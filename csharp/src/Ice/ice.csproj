@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Ice</AssemblyName>
+        <Title>Ice .NET library</Title>
+        <OutputPath>../../lib</OutputPath>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+    <ItemGroup>
+        <SliceCompile Include="../../../slice/$(AssemblyName)/*.ice" Exclude="../../../slice/$(AssemblyName)/*F.ice;../../../slice/$(AssemblyName)/BuiltinSequences.ice;../../../slice/$(AssemblyName)/Context.ice" />
+        <Compile Update="generated\Discovery.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Discovery.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Identity.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Identity.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Locator.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Locator.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\LocatorDiscovery.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\LocatorDiscovery.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Metrics.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Metrics.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Process.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Process.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\PropertiesAdmin.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\PropertiesAdmin.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\RemoteLogger.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\RemoteLogger.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Router.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\Router.ice</SliceCompileSource>
+        </Compile>
+    </ItemGroup>
+    <ItemGroup />
+</Project>

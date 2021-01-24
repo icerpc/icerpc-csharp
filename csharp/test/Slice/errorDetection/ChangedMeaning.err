@@ -1,0 +1,26 @@
+ChangedMeaning.ice:43: `M' has changed meaning
+ChangedMeaning.ice:49: `M' has changed meaning
+ChangedMeaning.ice:56: `i1' has changed meaning
+ChangedMeaning.ice:57: `i2' has changed meaning
+ChangedMeaning.ice:77: `e1' has changed meaning
+ChangedMeaning.ice:78: `e2' has changed meaning
+ChangedMeaning.ice:88: `c2' has changed meaning
+ChangedMeaning.ice:105: `CounterSeq' has changed meaning
+ChangedMeaning.ice:114: redefinition of parameter `param'
+ChangedMeaning.ice:114: note: parameter `param' was originally defined here
+ChangedMeaning.ice:132: `E' is not an exception
+ChangedMeaning.ice:132: `E' has changed meaning
+ChangedMeaning.ice:139: `E' has changed meaning
+ChangedMeaning.ice:145: `E' has changed meaning
+ChangedMeaning.ice:167: warning: referencing enumerator `C2' in its enumeration's enclosing scope is deprecated
+ChangedMeaning.ice:168: warning: referencing enumerator `C2' in its enumeration's enclosing scope is deprecated
+ChangedMeaning.ice:169: warning: referencing enumerator `C2' in its enumeration's enclosing scope is deprecated
+ChangedMeaning.ice:170: warning: referencing enumerator `C2' in its enumeration's enclosing scope is deprecated
+ChangedMeaning.ice:180: data member `X' differs only in capitalization from the data member named `x'
+ChangedMeaning.ice:179: note: data member `x' is defined here
+ChangedMeaning.ice:186: data member `X' differs only in capitalization from the data member named `x'
+ChangedMeaning.ice:185: note: data member `x' is defined here
+ChangedMeaning.ice:191: parameter `A' differs only in capitalization from the parameter named `a'
+ChangedMeaning.ice:191: note: parameter `a' is defined here
+ChangedMeaning.ice:199: data member `X' differs only in capitalization from the data member named `x'
+ChangedMeaning.ice:198: note: data member `x' is defined here

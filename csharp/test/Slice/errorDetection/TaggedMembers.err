@@ -1,0 +1,43 @@
+TaggedMembers.ice:15: value 4_294_967_296 for enumerator `e4' is outside the range of uint: [0..4_294_967_295]
+TaggedMembers.ice:21: missing tag
+TaggedMembers.ice:22: missing tag
+TaggedMembers.ice:23: `abc' is not defined
+TaggedMembers.ice:24: tag is out of range
+TaggedMembers.ice:25: tag is out of range
+TaggedMembers.ice:26: tag is out of range
+TaggedMembers.ice:28: tag for data member `m8' is already in use
+TaggedMembers.ice:29: cannot use value of `C3' as a tag
+TaggedMembers.ice:30: cannot use value of `C4' as a tag
+TaggedMembers.ice:31: cannot use value of `C5' as a tag
+TaggedMembers.ice:33: tag for data member `m13' is already in use
+TaggedMembers.ice:34: enumerator `e2' could designate `::Test::E::e2' or `::Test::Ebis::e2' or `::Test::Eter::e2'
+TaggedMembers.ice:36: tag for data member `m16' is already in use
+TaggedMembers.ice:37: warning: The `optional' keyword is deprecated, use `tag' instead
+TaggedMembers.ice:38: cannot use value of `E::e4' as a tag
+TaggedMembers.ice:38: tag for data member `m18' is already in use
+TaggedMembers.ice:39: cannot use value of `EBis::e3' as a tag
+TaggedMembers.ice:54: missing tag
+TaggedMembers.ice:55: missing tag
+TaggedMembers.ice:56: `abc' is not defined
+TaggedMembers.ice:57: tag is out of range
+TaggedMembers.ice:58: tag is out of range
+TaggedMembers.ice:59: tag is out of range
+TaggedMembers.ice:61: tag for data member `m8' is already in use
+TaggedMembers.ice:62: cannot use value of `C3' as a tag
+TaggedMembers.ice:63: cannot use value of `C4' as a tag
+TaggedMembers.ice:64: cannot use value of `C5' as a tag
+TaggedMembers.ice:66: tag for data member `m13' is already in use
+TaggedMembers.ice:69: tag for data member `m16' is already in use
+TaggedMembers.ice:70: warning: The `optional' keyword is deprecated, use `tag' instead
+TaggedMembers.ice:71: cannot use value of `E::e4' as a tag
+TaggedMembers.ice:71: tag for data member `m18' is already in use
+TaggedMembers.ice:72: cannot use value of `EBis::e3' as a tag
+TaggedMembers.ice:87: tagged data members are not supported in structs
+TaggedMembers.ice:88: tagged data members are not supported in structs
+TaggedMembers.ice:108: data member 'm3' cannot be tagged, since its type '::Test::C' is a class
+TaggedMembers.ice:109: data member 'm4' cannot be tagged, since its type '::Test::Derived' is a class
+TaggedMembers.ice:110: data member 'm5' cannot be tagged, since its type '::Test::HasClassMembers' contains classes
+TaggedMembers.ice:111: data member 'm6' cannot be tagged, since its type '::Test::TaggedClassMembers' is a class
+TaggedMembers.ice:112: data member 'm7' cannot be tagged, since its type '::Ice::AnyClass' is a class
+TaggedMembers.ice:113: data member 'm8' cannot be tagged, since its type '::Test::OnlyDeclared' is a class
+TaggedMembers.ice:116: data member 'm10' cannot be tagged, since its type '::Test::cs' contains classes

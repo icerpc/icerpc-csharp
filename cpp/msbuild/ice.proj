@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup Condition="'$(Configuration)' == ''">
+        <Configuration>Release</Configuration>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Platform)' == ''">
+        <Platform>Win32</Platform>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IceTestSolution>ice.test.sln</IceTestSolution>
+        <IceConfiguration>$(Configuration)</IceConfiguration>
+        <SymbolServer Condition="'$(SymbolServer)' == ''">SRV*%TEMP%\SymbolCache*https://symbols.zeroc.com</SymbolServer>
+    </PropertyGroup>
+
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+    <PropertyGroup>
+        <IceConfiguration Condition="$(Configuration.Contains('Release'))">Release</IceConfiguration>
+        <IceConfiguration Condition="$(Configuration.Contains('Debug'))">Debug</IceConfiguration>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(DefaultPlatformToolset)' == 'v141'">
+        <OpenSSL>yes</OpenSSL>
+    </PropertyGroup>
+
+    <Import Project="$(MSBuildThisFileDirectory)\..\..\config\icebuilder.props" />
+    <Import Project="$(MSBuildThisFileDirectory)\..\..\config\Ice.common.targets" />
+
+    <!--
+        Restore NuGet packages.
+    -->
+    <Target Name="NuGetRestore" DependsOnTargets="GetNuGet">
+        <Exec Command="$(NuGetExe) restore $(MSBuildThisFileDirectory)ice.sln"/>
+    </Target>
+
+    <Target Name="RemovePackages">
+        <Exec Command="rmdir /s /q $(MSBuildThisFileDirectory)packages" Condition="Exists('$(MSBuildThisFileDirectory)packages')" />
+    </Target>
+
+    <Target Name="TestNuGetRestore" DependsOnTargets="GetNuGet" Condition="'$(ICE_BIN_DIST)' == 'all'">
+        <Exec Command="$(NuGetExe) restore $(MSBuildThisFileDirectory)$(IceTestSolution)"/>
+        <Exec Command="$(NuGetExe) restore $(MSBuildThisFileDirectory)ice.openssl.test.sln"/>
+    </Target>
+
+    <Target Name="DownloadSymbols" DependsOnTargets="TestNuGetRestore" Condition="'$(ICE_BIN_DIST)' == 'all'">
+        <Exec IgnoreExitCode="True"
+              Command="symchk /r $(MSBuildThisFileDirectory)packages\zeroc.ice.$(DefaultPlatformToolset).$(IceVersion)\build\native\bin\$(Platform)\$(IceConfiguration)\* /s $(SymbolServer)">
+            <Output TaskParameter="ExitCode" PropertyName="ErrorCode"/>
+        </Exec>
+        <Warning  Text="PDBs download failed, stack traces might be missing or incomplete" Condition="'$(ErrorCode)' != '0'" />
+    </Target>
+
+    <!-- Ice for C++ builds. -->
+    <Choose>
+        <!--
+            If BuildAllConfigurations is set to yes we build all configurations that are
+            part of the binary distribution, otherwise we just build the given platform
+            and configuration.
+        -->
+        <When Condition="'$(BuildAllConfigurations)' == 'yes'">
+            <PropertyGroup>
+                <DefaultBuild>x64|Release</DefaultBuild>
+            </PropertyGroup>
+
+            <!-- Ice for C++ configurations -->
+            <ItemGroup>
+                <DistSolution Include="ice.sln">
+                    <Properties>Configuration=Debug;Platform=Win32</Properties>
+                </DistSolution>
+                <DistSolution Include="ice.sln">
+                    <Properties>Configuration=Debug;Platform=x64</Properties>
+                </DistSolution>
+                <DistSolution Include="ice.sln">
+                    <Properties>Configuration=Release;Platform=Win32</Properties>
+                </DistSolution>
+                <DistSolution Include="ice.sln">
+                    <Properties>Configuration=Release;Platform=x64</Properties>
+                </DistSolution>
+            </ItemGroup>
+
+            <ItemGroup>
+                <TestSolution Include="$(IceTestSolution)">
+                    <Properties>Configuration=Debug;Platform=Win32</Properties>
+                </TestSolution>
+                <TestSolution Include="$(IceTestSolution)">
+                    <Properties>Configuration=Debug;Platform=x64</Properties>
+                </TestSolution>
+                <TestSolution Include="$(IceTestSolution)">
+                    <Properties>Configuration=Release;Platform=Win32</Properties>
+                </TestSolution>
+                <TestSolution Include="$(IceTestSolution)">
+                    <Properties>Configuration=Release;Platform=x64</Properties>
+                </TestSolution>
+            </ItemGroup>
+
+            <!-- OpenSSL C++ test configurations -->
+            <ItemGroup Condition="'$(ICE_BIN_DIST)' != 'all' and $(OpenSSL) == 'yes'">
+                <OpenSSLTestSolution Include="ice.openssl.test.sln">
+                    <Properties>Configuration=Debug;Platform=Win32</Properties>
+                </OpenSSLTestSolution>
+                <OpenSSLTestSolution Include="ice.openssl.test.sln">
+                    <Properties>Configuration=Debug;Platform=x64</Properties>
+                </OpenSSLTestSolution>
+                <OpenSSLTestSolution Include="ice.openssl.test.sln">
+                    <Properties>Configuration=Release;Platform=Win32</Properties>
+                </OpenSSLTestSolution>
+                <OpenSSLTestSolution Include="ice.openssl.test.sln">
+                    <Properties>Configuration=Release;Platform=x64</Properties>
+                </OpenSSLTestSolution>
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <DefaultBuild>$(Platform)|$(Configuration)</DefaultBuild>
+            </PropertyGroup>
+
+            <!-- Ice for C++ configurations -->
+            <ItemGroup>
+                <DistSolution Include="ice.sln">
+                    <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
+                </DistSolution>
+            </ItemGroup>
+
+            <ItemGroup>
+                <TestSolution Include="$(IceTestSolution)">
+                    <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
+                </TestSolution>
+            </ItemGroup>
+
+            <!-- OpenSSL test builds -->
+            <ItemGroup  Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'">
+                <OpenSSLTestSolution Include="ice.openssl.test.sln">
+                    <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
+                </OpenSSLTestSolution>
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+
+    <!-- Build distribution targets -->
+    <Target Name="BuildDist" DependsOnTargets="NuGetRestore"
+            Condition="'$(ICE_BIN_DIST)' != 'all'">
+        <MSBuild Projects="@(DistSolution)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)"/>
+    </Target>
+
+    <!-- Clean distribution targets -->
+    <Target Name="CleanDist"
+            Condition="'$(ICE_BIN_DIST)' != 'all'">
+        <MSBuild Projects="@(DistSolution)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)"
+                 Targets="Clean" />
+    </Target>
+
+    <!-- Build test solution -->
+    <Target Name="Build" DependsOnTargets="TestNuGetRestore;BuildDist">
+        <MSBuild Projects="@(TestSolution)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)" />
+
+        <!-- Build OpenSSL tests only with supported compilers -->
+        <MSBuild Projects="@(OpenSSLTestSolution)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)"
+                 Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'" />
+    </Target>
+
+    <!-- Clean test solution -->
+    <Target Name="Clean" DependsOnTargets="CleanDist">
+        <MSBuild Projects="@(TestSolution)" BuildInParallel="true" Targets="Clean" Properties="%(Properties)" />
+        <MSBuild Projects="@(OpenSSLTestSolution)"
+                 BuildInParallel="true"
+                 Targets="Clean"
+                 Properties="%(Properties)"
+                 Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'" />
+    </Target>
+
+    <!-- Create nuget packages -->
+    <Target Name="NuGetPack"
+            DependsOnTargets="BuildDist">
+
+        <RemoveDir Directories="zeroc.ice.$(DefaultPlatformToolset)" />
+
+        <MSBuild Projects="ice.nuget.targets"
+                 Properties="Configuration=Debug;Platform=Win32;PackageDirectory=zeroc.ice.$(DefaultPlatformToolset);DefaultBuild=$(DefaultBuild)"
+                 Condition="'$(Platform)|$(Configuration)' == 'Win32|Debug' or '$(BuildAllConfigurations)' == 'yes'" />
+        <MSBuild Projects="ice.nuget.targets"
+                 Properties="Configuration=Debug;Platform=x64;PackageDirectory=zeroc.ice.$(DefaultPlatformToolset);DefaultBuild=$(DefaultBuild)"
+                 Condition="'$(Platform)|$(Configuration)' == 'x64|Debug' or '$(BuildAllConfigurations)' == 'yes'"/>
+        <MSBuild Projects="ice.nuget.targets"
+                 Properties="Configuration=Release;Platform=Win32;PackageDirectory=zeroc.ice.$(DefaultPlatformToolset);DefaultBuild=$(DefaultBuild)"
+                 Condition="'$(Platform)|$(Configuration)' == 'Win32|Release' or '$(BuildAllConfigurations)' == 'yes'"/>
+        <MSBuild Projects="ice.nuget.targets"
+                 Properties="Configuration=Release;Platform=x64;PackageDirectory=zeroc.ice.$(DefaultPlatformToolset);DefaultBuild=$(DefaultBuild)"
+                 Condition="'$(Platform)|$(Configuration)' == 'x64|Release' or '$(BuildAllConfigurations)' == 'yes'"/>
+
+        <Copy SourceFiles="$(MSBuildThisFileDirectory)THIRD_PARTY_LICENSE.txt"
+              DestinationFiles="zeroc.ice.$(DefaultPlatformToolset)\THIRD_PARTY_LICENSE.txt" />
+        <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\ICE_LICENSE"
+              DestinationFiles="zeroc.ice.$(DefaultPlatformToolset)\ICE_LICENSE.txt" />
+        <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\LICENSE"
+              DestinationFiles="zeroc.ice.$(DefaultPlatformToolset)\LICENSE.txt" />
+        <Copy SourceFiles="zeroc.ice.$(DefaultPlatformToolset).nuspec"
+              DestinationFolder="zeroc.ice.$(DefaultPlatformToolset)" />
+        <Copy SourceFiles="zeroc.ice.$(DefaultPlatformToolset).props"
+              DestinationFiles="zeroc.ice.$(DefaultPlatformToolset)\build\native\zeroc.ice.$(DefaultPlatformToolset).props" />
+        <Copy SourceFiles="zeroc.ice.$(DefaultPlatformToolset).targets"
+              DestinationFiles="zeroc.ice.$(DefaultPlatformToolset)\build\native\zeroc.ice.$(DefaultPlatformToolset).targets" />
+        <Exec Command="$(NuGetExe) pack -NoPackageAnalysis -NonInteractive"
+              WorkingDirectory="zeroc.ice.$(DefaultPlatformToolset)"/>
+    </Target>
+</Project>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildThisFileDirectory)../msbuild/ice.test.props" />
+    <PropertyGroup>
+        <AppTargetFramework Condition="'$(AppTargetFramework)' == ''">net5.0</AppTargetFramework>
+        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)../msbuild/CodeAnalysis.Test.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
+    <Choose>
+        <When Condition="'$(ICE_BIN_DIST)' == 'all'">
+            <ItemGroup>
+                <PackageReference Include="zeroc.ice.net" Version="4.0.0-alpha.0" />
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <ItemGroup>
+                <Reference Include="$(MSBuildThisFileDirectory)../lib/net5.0/Glacier2.dll" />
+                <Reference Include="$(MSBuildThisFileDirectory)../lib/net5.0/Ice.dll" />
+                <Reference Include="$(MSBuildThisFileDirectory)../lib/net5.0/IceGrid.dll" />
+                <Reference Include="$(MSBuildThisFileDirectory)../lib/net5.0/IceStorm.dll" />
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+    <ItemGroup>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\msbuild\stylecop.json" Link="stylecop.json" />
+    </ItemGroup>
+</Project>

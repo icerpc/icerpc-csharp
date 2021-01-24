@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) ZeroC, Inc. All rights reserved. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <IceVersion>4.0.0-alpha.0</IceVersion>
+        <IceIntVersion>40000</IceIntVersion>
+        <IceVersionMM>4.0</IceVersionMM>
+        <IceSoVersion>40a0</IceSoVersion>
+        <IceHome>$(MSBuildThisFileDirectory)..</IceHome>
+        <IceAssembliesDir>$(IceHome)\lib</IceAssembliesDir>
+    </PropertyGroup>
+
+    <Choose>
+        <When Condition="'$(IceToolsPath)' == ''">
+            <Choose>
+                <When Condition="'$(OS)' == 'Windows_NT'">
+                    <PropertyGroup>
+                        <IceToolsPath>$(IceHome)\tools</IceToolsPath>
+                    </PropertyGroup>
+                </When>
+                <When Condition="Exists('/usr/bin/slice2cs')">
+                    <PropertyGroup>
+                        <IceToolsPath>/usr/bin</IceToolsPath>
+                    </PropertyGroup>
+                </When>
+                <When Condition="Exists('/usr/local/bin/slice2cs')">
+                    <PropertyGroup>
+                        <IceToolsPath>/usr/local/bin</IceToolsPath>
+                    </PropertyGroup>
+                </When>
+            </Choose>
+        </When>
+    </Choose>
+</Project>

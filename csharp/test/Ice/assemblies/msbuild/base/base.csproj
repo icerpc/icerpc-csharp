@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>core</AssemblyName>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <SliceCompile>
+      <IncludeDirectories>../..</IncludeDirectories>
+    </SliceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <SliceCompile Include="../../Base.ice" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="generated/Base.cs">
+      <SliceCompileSource>../../Base.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+</Project>
