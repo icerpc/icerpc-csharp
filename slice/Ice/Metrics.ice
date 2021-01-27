@@ -4,20 +4,10 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
 
 #include <Ice/BuiltinSequences.ice>
 
-[[java:package(com.zeroc)]]
-
-[swift:module(Ice:MX)]
 [cs:namespace(ZeroC)]
 /// The Ice Management eXtension facility. It provides the {@link IceMX#MetricsAdmin} interface for management clients
 /// to retrieve metrics from Ice applications.
@@ -81,24 +71,22 @@ module IceMX
     {
         /// Get the names of enabled and disabled metrics.
         ///
-        /// @param disabledViews The names of the disabled views.
-        ///
-        /// @return The name of the enabled views.
-        Ice::StringSeq getMetricsViewNames(out Ice::StringSeq disabledViews);
+        /// @return A tuple containing the names of the enabled and disabled views.
+        (Ice::StringSeq enabledViews, Ice::StringSeq disabledViews) getMetricsViewNames();
 
         /// Enables a metrics view.
         ///
         /// @param name The metrics view name.
         ///
         /// @throws UnknownMetricsView Raised if the metrics view cannot be found.
-        void enableMetricsView(string name) throws UnknownMetricsView;
+        void enableMetricsView(string name);
 
         /// Disable a metrics view.
         ///
         /// @param name The metrics view name.
         ///
         /// @throws UnknownMetricsView Raised if the metrics view cannot be found.
-        void disableMetricsView(string name) throws UnknownMetricsView;
+        void disableMetricsView(string name);
 
         /// Get the metrics objects for the given metrics view. This returns a dictionary of metric maps for each
         /// metrics class configured with the view. The timestamp allows the client to compute averages which are
@@ -106,12 +94,10 @@ module IceMX
         ///
         /// @param view The name of the metrics view.
         ///
-        /// @param timestamp The local time of the process when the metrics objects were retrieved.
-        ///
-        /// @return The metrics view data.
+        /// @return A tuple containing the metrics view data and the time of when the metrics objects were retrieved.
         ///
         /// @throws UnknownMetricsView Raised if the metrics view cannot be found.
-        MetricsView getMetricsView(string view, out long timestamp) throws UnknownMetricsView;
+        (MetricsView metricsView, long timestamp) getMetricsView(string view);
 
         /// Get the metrics failures associated with the given view and map.
         ///
@@ -122,7 +108,7 @@ module IceMX
         /// @return The metrics failures associated with the map.
         ///
         /// @throws UnknownMetricsView Raised if the metrics view cannot be found.
-        MetricsFailuresSeq getMapMetricsFailures(string view, string map) throws UnknownMetricsView;
+        MetricsFailuresSeq getMapMetricsFailures(string view, string map);
 
         /// Get the metrics failure associated for the given metrics.
         ///
@@ -135,7 +121,7 @@ module IceMX
         /// @return The metrics failures associated with the metrics.
         ///
         /// @throws UnknownMetricsView Raised if the metrics view cannot be found.
-        MetricsFailures getMetricsFailures(string view, string map, string id) throws UnknownMetricsView;
+        MetricsFailures getMetricsFailures(string view, string map, string id);
     }
 
     /// Provides information on the number of threads currently in use and their activity.

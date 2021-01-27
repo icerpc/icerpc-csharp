@@ -4,21 +4,12 @@
 
 #pragma once
 
-[[cpp:dll-export(ICESTORM_API)]]
-[[cpp:doxygen:include(IceStorm/IceStorm.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceStorm/Config.h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(IceStorm)]]
 
 #include <Ice/Identity.ice>
 
 #include <IceStorm/Metrics.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 /// A messaging service with support for federation. In contrast to
 /// most other messaging or event services, IceStorm supports typed
@@ -98,7 +89,7 @@ module IceStorm
         /// @return The name of the topic.
         ///
         /// @see TopicManager#create
-        [nonmutating] [cpp:const] idempotent string getName();
+        [nonmutating] idempotent string getName();
 
         /// Get a proxy to a publisher object for this topic. To publish
         /// data to a topic, the publisher calls getPublisher and then
@@ -107,7 +98,7 @@ module IceStorm
         /// may return a replicated proxy.
         ///
         /// @return A proxy to publish data on this topic.
-        [nonmutating] [cpp:const] idempotent Object* getPublisher();
+        [nonmutating] idempotent Object* getPublisher();
 
         /// Get a non-replicated proxy to a publisher object for this
         /// topic. To publish data to a topic, the publisher calls
@@ -115,7 +106,7 @@ module IceStorm
         /// cast must be used on this proxy.
         ///
         /// @return A proxy to publish data on this topic.
-        [nonmutating] [cpp:const] idempotent Object* getNonReplicatedPublisher();
+        [nonmutating] idempotent Object* getNonReplicatedPublisher();
 
         /// Subscribe with the given <code>qos</code> to this topic.  A
         /// per-subscriber publisher object is returned.
@@ -136,8 +127,7 @@ module IceStorm
         /// is unavailable or invalid.
         ///
         /// @see #unsubscribe
-        Object* subscribeAndGetPublisher(QoS theQoS, Object* subscriber)
-            throws AlreadySubscribed, InvalidSubscriber, BadQoS;
+        Object* subscribeAndGetPublisher(QoS theQoS, Object* subscriber);
 
         /// Unsubscribe the given <code>subscriber</code>.
         ///
@@ -155,24 +145,24 @@ module IceStorm
         ///
         /// @throws LinkExists Raised if a link to the same topic already
         /// exists.
-        void link(Topic* linkTo, int cost) throws LinkExists;
+        void link(Topic* linkTo, int cost);
 
         /// Destroy the link from this topic to the given topic <code>linkTo</code>.
         ///
         /// @param linkTo The topic to destroy the link to.
         ///
         /// @throws NoSuchLink Raised if a link to the topic does not exist.
-        void unlink(Topic* linkTo) throws NoSuchLink;
+        void unlink(Topic* linkTo);
 
         /// Retrieve information on the current links.
         ///
         /// @return A sequence of LinkInfo objects.
-        [nonmutating] [cpp:const] idempotent LinkInfoSeq getLinkInfoSeq();
+        [nonmutating] idempotent LinkInfoSeq getLinkInfoSeq();
 
         /// Retrieve the list of subscribers for this topic.
         ///
         /// @return The sequence of Ice identities for the subscriber objects.
-        [nonmutating] [cpp:const] Ice::IdentitySeq getSubscribers();
+        [nonmutating] Ice::IdentitySeq getSubscribers();
 
         /// Destroy the topic.
         void destroy();
@@ -210,7 +200,7 @@ module IceStorm
         ///
         /// @throws TopicExists Raised if a topic with the same name already
         /// exists.
-        Topic* create(string name) throws TopicExists;
+        Topic* create(string name);
 
         /// Retrieve a topic by name.
         ///
@@ -219,7 +209,7 @@ module IceStorm
         /// @return A proxy to the topic instance.
         ///
         /// @throws NoSuchTopic Raised if the topic does not exist.
-        idempotent Topic* retrieve(string name) throws NoSuchTopic;
+        idempotent Topic* retrieve(string name);
 
         /// Retrieve all topics managed by this topic manager.
         ///

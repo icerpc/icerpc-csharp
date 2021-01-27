@@ -2,17 +2,9 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
 
 [cs:namespace(ZeroC)]
-[java:package(com.zeroc)]
 module Ice
 {
     /// Represents a version of the Ice protocol.

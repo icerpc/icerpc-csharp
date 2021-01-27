@@ -4,18 +4,10 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
 
 #include <Ice/BuiltinSequences.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module Ice
 {
@@ -36,7 +28,7 @@ module Ice
         /// properties are returned.
         /// @param prefix The prefix to search for (empty string if none).
         /// @return The matching property set.
-        [java:type(java.util.TreeMap<String, String>)] PropertyDict getPropertiesForPrefix(string prefix);
+        PropertyDict getPropertiesForPrefix(string prefix);
 
         /// Update the communicator's properties with the given property set.
         /// @param newProperties Properties to be added, changed, or removed. If an entry in <em>newProperties</em>

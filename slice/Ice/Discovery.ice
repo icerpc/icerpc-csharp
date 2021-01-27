@@ -2,15 +2,7 @@
 
 #pragma once
 
-#ifdef __SLICE2CS__
-
-[[cpp:doxygen:include(Ice/Discovery.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(IceDiscovery)]]
 
 #include <Ice/Endpoint.ice>
 #include <Ice/Identity.ice>
@@ -21,7 +13,6 @@
 /// Ice Discovery also implements the {@see Ice::LocatorDiscovery} interface to allow servers to respond to such
 /// multicast discovery requests.
 [cs:namespace(ZeroC)]
-[java:package(com.zeroc)]
 module Ice::Discovery
 {
     interface FindAdapterByIdReply;
@@ -119,5 +110,3 @@ module Ice::Discovery
         [oneway] void foundWellKnownProxy(string adapterId);
     }
 }
-
-#endif

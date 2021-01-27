@@ -2,25 +2,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
 
-#ifdef __SLICE2CS__
-
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
 
 #include <Ice/BuiltinSequences.ice>
 #include <Ice/Encoding.ice>
 #include <Ice/Identity.ice>
 #include <Ice/Protocol.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module Ice
 {
@@ -97,5 +87,3 @@ module Ice
         string? facet;                       // null equivalent to ""
     }
 }
-
-#endif

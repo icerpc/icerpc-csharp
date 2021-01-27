@@ -2,8 +2,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
 
-#ifndef TEST_ICE
-#define TEST_ICE
+#pragma once
 
 #include <Ice/PropertiesAdmin.ice>
 
@@ -43,5 +42,3 @@ interface TestFacet
 }
 
 }
-
-#endif
