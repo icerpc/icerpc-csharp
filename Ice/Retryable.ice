@@ -4,17 +4,7 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(list)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
-
-[[java:package(com.zeroc)]]
 
 [cs:namespace(ZeroC)]
 module Ice

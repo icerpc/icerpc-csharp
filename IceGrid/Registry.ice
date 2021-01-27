@@ -4,22 +4,13 @@
 
 #pragma once
 
-[[cpp:dll-export(ICEGRID_API)]]
-[[cpp:doxygen:include(IceGrid/IceGrid.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceGrid/Config.h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(IceGrid)]]
 
 #include <IceGrid/Exception.ice>
 #include <IceGrid/Session.ice>
 #include <IceGrid/Admin.ice>
 #include <Ice/Locator.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module IceGrid
 {
@@ -47,7 +38,7 @@ module IceGrid
         /// @param id The identity.
         ///
         /// @return The proxy or null if no such object has been found.
-        [nonmutating] [cpp:const] idempotent Object* findObjectById(Ice::Identity id);
+        [nonmutating] idempotent Object* findObjectById(Ice::Identity id);
 
         /// Find a well-known object by type. If there are several objects
         /// registered for the given type, the object is randomly
@@ -56,7 +47,7 @@ module IceGrid
         /// @param type The object type.
         ///
         /// @return The proxy or null, if no such object has been found.
-        [nonmutating] [cpp:const] idempotent Object* findObjectByType(string type);
+        [nonmutating] idempotent Object* findObjectByType(string type);
 
         /// Find a well-known object by type on the least-loaded node. If
         /// the registry does not know which node hosts the object
@@ -69,7 +60,7 @@ module IceGrid
         /// @param sample The sampling interval.
         ///
         /// @return The proxy or null, if no such object has been found.
-        [nonmutating] [cpp:const] idempotent Object* findObjectByTypeOnLeastLoadedNode(string type, LoadSample sample);
+        [nonmutating] idempotent Object* findObjectByTypeOnLeastLoadedNode(string type, LoadSample sample);
 
         /// Find all the well-known objects with the given type.
         ///
@@ -77,7 +68,7 @@ module IceGrid
         ///
         /// @return The proxies or an empty sequence, if no such objects
         /// have been found.
-        [nonmutating] [cpp:const] idempotent Ice::ObjectProxySeq findAllObjectsByType(string type);
+        [nonmutating] idempotent Ice::ProxySeq findAllObjectsByType(string type);
 
         /// Find all the object replicas associated with the given
         /// proxy. If the given proxy is not an indirect proxy from a
@@ -87,7 +78,7 @@ module IceGrid
         ///
         /// @return The proxies of each object replica or an empty sequence,
         /// if the given proxy is not from a replica group.
-        [cpp:const] idempotent Ice::ObjectProxySeq findAllReplicas(Object* proxy);
+        idempotent Ice::ProxySeq findAllReplicas(Object* proxy);
     }
 
     /// The IceGrid registry allows clients create sessions
@@ -108,8 +99,7 @@ module IceGrid
         /// @throws PermissionDeniedException Raised if the password for
         /// the given user id is not correct, or if the user is not allowed
         /// access.
-        Session* createSession(string userId, string password)
-            throws PermissionDeniedException;
+        Session* createSession(string userId, string password);
 
         /// Create an administrative session.
         ///
@@ -122,8 +112,7 @@ module IceGrid
         /// @throws PermissionDeniedException Raised if the password for
         /// the given user id is not correct, or if the user is not allowed
         /// access.
-        AdminSession* createAdminSession(string userId, string password)
-            throws PermissionDeniedException;
+        AdminSession* createAdminSession(string userId, string password);
 
         /// Create a client session from a secure connection.
         ///
@@ -132,8 +121,7 @@ module IceGrid
         /// @throws PermissionDeniedException Raised if the password for
         /// the given user id is not correct, or if the user is not allowed
         /// access.
-        Session* createSessionFromSecureConnection()
-            throws PermissionDeniedException;
+        Session* createSessionFromSecureConnection();
 
         /// Create an administrative session from a secure connection.
         ///
@@ -142,8 +130,7 @@ module IceGrid
         /// @throws PermissionDeniedException Raised if the password for
         /// the given user id is not correct, or if the user is not allowed
         /// access.
-        AdminSession* createAdminSessionFromSecureConnection()
-            throws PermissionDeniedException;
+        AdminSession* createAdminSessionFromSecureConnection();
 
         /// Get the session timeout. If a client or administrative client
         /// doesn't call the session keepAlive method in the time interval
@@ -153,7 +140,7 @@ module IceGrid
         /// @see AdminSession#keepAlive
         ///
         /// @return The timeout (in seconds).
-        [nonmutating] [cpp:const] idempotent int getSessionTimeout();
+        [nonmutating] idempotent int getSessionTimeout();
 
         /// Get the value of the ACM timeout. Clients supporting ACM
         /// connection heartbeats can enable them instead of explicitly
@@ -162,7 +149,7 @@ module IceGrid
         /// NOTE: This method is only available since Ice 3.6.
         ///
         /// @return The timeout (in seconds).
-        [nonmutating] [cpp:const] idempotent int getACMTimeout();
+        [nonmutating] idempotent int getACMTimeout();
     }
 
     /// The IceGrid locator interface provides access to the {@link Query}
@@ -176,12 +163,12 @@ module IceGrid
         /// registry.
         ///
         /// @return The proxy of the registry object.
-        [cpp:const] idempotent Registry* getLocalRegistry();
+        idempotent Registry* getLocalRegistry();
 
         /// Get the proxy of the query object hosted by this IceGrid
         /// registry.
         ///
         /// @return The proxy of the query object.
-        [cpp:const] idempotent Query* getLocalQuery();
+        idempotent Query* getLocalQuery();
     }
 }

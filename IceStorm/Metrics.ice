@@ -4,20 +4,10 @@
 
 #pragma once
 
-[[cpp:dll-export(ICESTORM_API)]]
-[[cpp:doxygen:include(IceStorm/IceStorm.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceStorm/Config.h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[python:pkgdir(IceStorm)]]
 
 #include <Ice/Metrics.ice>
 
-[[java:package(com.zeroc)]]
-
-[js:module(ice)]
-[swift:module(IceStorm:MX)]
 [cs:namespace(ZeroC)]
 module IceMX
 {

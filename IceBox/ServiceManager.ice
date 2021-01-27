@@ -4,19 +4,10 @@
 
 #pragma once
 
-[[cpp:dll-export(ICEBOX_API)]]
-[[cpp:doxygen:include(IceBox/IceBox.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceBox/Config.h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(IceBox)]]
 
 #include <Ice/BuiltinSequences.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 /// IceBox is an application server for Ice applications. IceBox can load IceBox services packaged as DLLs, .NET
 /// assemblies, Java classes and similar.
@@ -63,15 +54,13 @@ module IceBox
         /// @param service The service name.
         /// @throws AlreadyStartedException If the service is already running.
         /// @throws NoSuchServiceException If no service could be found with the given name.
-        void startService(string service)
-            throws AlreadyStartedException, NoSuchServiceException;
+        void startService(string service);
 
         /// Stops an individual service.
         /// @param service The service name.
         /// @throws AlreadyStoppedException If the service is already stopped.
         /// @throws NoSuchServiceException If no service could be found with the given name.
-        void stopService(string service)
-            throws AlreadyStoppedException, NoSuchServiceException;
+        void stopService(string service);
 
         /// Registers a new observer with the ServiceManager.
         /// @param observer The new observer.

@@ -4,19 +4,9 @@
 
 #pragma once
 
-#include <Ice/BuiltinSequences.ice>
-
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(list)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
 
-[[python:pkgdir(Ice)]]
-
-[[java:package(com.zeroc)]]
+#include <Ice/BuiltinSequences.ice>
 
 [cs:namespace(ZeroC)]
 module Ice
@@ -59,14 +49,11 @@ module Ice
     }
 
     /// A sequence of {@link LogMessage}.
-    [cpp:type(std::list<LogMessage>)]
     sequence<LogMessage> LogMessageSeq;
 
     /// The Ice remote logger interface. An application can implement a
     /// RemoteLogger to receive the log messages sent to the local {@link Logger}
     /// of another Ice application.
-    // TODO: fix C++ and Java implementations of the LoggerAdmin facet to use oneway invocations once [oneway]
-    // is supported in these languages.
     interface RemoteLogger
     {
         /// init is called by attachRemoteLogger when a RemoteLogger proxy is attached.
@@ -108,16 +95,15 @@ module Ice
         ///
         /// @throws RemoteLoggerAlreadyAttachedException Raised if this remote logger is already
         /// attached to this admin object.
-        void attachRemoteLogger(RemoteLogger* prx, LogMessageTypeSeq messageTypes, StringSeq traceCategories,
-                                int messageMax)
-            throws RemoteLoggerAlreadyAttachedException;
+        void attachRemoteLogger(RemoteLogger? prx, LogMessageTypeSeq messageTypes, StringSeq traceCategories,
+                                int messageMax);
 
         /// Detaches a RemoteLogger object from the local logger.
         ///
         /// @param prx A proxy to the remote logger.
         ///
         /// @return True if the provided remote logger proxy was detached, and false otherwise.
-        bool detachRemoteLogger(RemoteLogger* prx);
+        bool detachRemoteLogger(RemoteLogger? prx);
 
         /// Retrieves log messages recently logged.
         ///
@@ -131,9 +117,7 @@ module Ice
         /// @param messageMax The maximum number of log messages (of all types) to be returned.
         /// A negative value requests all messages available.
         ///
-        /// @param prefix The prefix of the associated local logger.
-        ///
-        /// @return The Log messages.
-        LogMessageSeq getLog(LogMessageTypeSeq messageTypes, StringSeq traceCategories, int messageMax, out string prefix);
+        /// @return A tuple containing the Log messages and the prefix of the associated local logger.
+        (LogMessageSeq messages, string prefix) getLog(LogMessageTypeSeq messageTypes, StringSeq traceCategories, int messageMax);
     }
 }

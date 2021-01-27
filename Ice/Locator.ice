@@ -3,14 +3,7 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
 
 #include <Ice/BuiltinSequences.ice>
 #include <Ice/Endpoint.ice>
@@ -18,7 +11,6 @@
 #include <Ice/Process.ice>
 
 [cs:namespace(ZeroC)]
-[java:package(com.zeroc)]
 module Ice
 {
     /// This exception is thrown when a server tries to register endpoints for an object adapter that is already active.
@@ -52,7 +44,6 @@ module Ice
     /// server applications to retrieve a proxy to the LocatorRegistry object.
     interface Locator
     {
-#ifdef __SLICE2CS__
         /// Finds an object by identity and facet and returns a proxy that provides a location or endpoint(s) that can
         /// be used to reach the object using the ice1 protocol.
         /// @param id The identity.
@@ -91,22 +82,11 @@ module Ice
         idempotent (EndpointDataSeq endpoints, StringSeq location) resolveWellKnownProxy(
             Identity identity,
             string facet);
-
-#else
-        [amd] [nonmutating] [cpp:const] idempotent Object? findObjectById(Identity id)
-            throws ObjectNotFoundException;
-
-        [amd] [nonmutating] [cpp:const] idempotent Object? findAdapterById(string id)
-            throws AdapterNotFoundException;
-
-        [cpp:const] idempotent LocatorRegistry? getRegistry();
-#endif
     }
 
     /// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry object.
     interface LocatorRegistry
     {
-#ifdef __SLICE2CS__
         /// Registers the endpoints of an object adapter that uses the ice2 protocol.
         /// @param adapterId The adapter ID.
         /// @param replicaGroupId The replica group ID. It is set to the empty string when the object adapter does not
@@ -163,17 +143,6 @@ module Ice
         /// registered with the locator.
         /// @throws InvalidArgumentException Thrown if any of the provided arguments is invalid.
         idempotent void unregisterAdapterEndpoints(string adapterId, string replicaGroupId);
-
-#else
-        [amd] idempotent void setAdapterDirectProxy(string id, Object? proxy)
-            throws AdapterNotFoundException, AdapterAlreadyActiveException;
-
-        [amd] idempotent void setReplicatedAdapterDirectProxy(string adapterId, string replicaGroupId, Object? proxy)
-            throws AdapterNotFoundException, AdapterAlreadyActiveException, InvalidReplicaGroupIdException;
-
-        [amd] idempotent void setServerProcessProxy(string id, Process proxy)
-            throws ServerNotFoundException;
-#endif
     }
 
     /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as an Ice

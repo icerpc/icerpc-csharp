@@ -4,23 +4,11 @@
 
 #pragma once
 
-[[cpp:doxygen:include(IceGrid/IceGrid.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceGrid/Config.h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(IceGrid)]]
-
-#ifndef ICE_BUILDING_ICEGRIDDB
-[[cpp:dll-export(ICEGRID_API)]]
-#endif
 
 #include <Ice/Identity.ice>
 #include <Ice/BuiltinSequences.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module IceGrid
 {
