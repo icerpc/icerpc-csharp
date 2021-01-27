@@ -687,12 +687,6 @@ namespace ZeroC.Ice
                     _defaultLocator = discovery.Proxy;
                     _activateLocatorAsync = discovery.ActivateAsync;
                 }
-                else if (defaultLocatorValue.Equals("locatordiscovery", StringComparison.OrdinalIgnoreCase))
-                {
-                    var locatorDiscovery = new LocatorDiscovery.Locator(this);
-                    _defaultLocator = locatorDiscovery.Proxy;
-                    _activateLocatorAsync = locatorDiscovery.ActivateAsync;
-                }
                 else
                 {
                     try

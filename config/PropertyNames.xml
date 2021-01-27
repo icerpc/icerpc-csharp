@@ -368,15 +368,6 @@ generated from the section label.
         <!-- TODO: Remove IPv6 -->
         <property name="IPv6" />
 
-        <property name="LocatorDiscovery.InstanceName"/>
-        <property name="LocatorDiscovery.Locator" class="objectadapter" />
-        <property name="LocatorDiscovery.Lookup"/>
-        <property name="LocatorDiscovery.Reply" class="objectadapter" />
-        <property name="LocatorDiscovery.RetryCount"/>
-        <property name="LocatorDiscovery.RetryDelay"/>
-        <property name="LocatorDiscovery.Timeout"/>
-        <property name="LocatorDiscovery.Trace.Lookup"/>"
-
         <property name="KeepAlive" />
         <property name="LogFile" />
         <property name="LogFile.MaxSize" />
@@ -466,21 +457,6 @@ generated from the section label.
         <property name="Port"/>
         <property name="Interface"/>
         <property name="DomainId"/>
-    </section>
-
-    <!-- TODO: remove IceLocatorDiscovery, replaced by Ice.LocatorDiscovery-->
-    <section name="IceLocatorDiscovery">
-        <property name="Reply" class="objectadapter" />
-        <property name="Locator" class="objectadapter" />
-        <property name="Lookup"/>
-        <property name="Timeout"/>
-        <property name="RetryCount"/>
-        <property name="RetryDelay"/>
-        <property name="Address"/>
-        <property name="Port"/>
-        <property name="Interface"/>
-        <property name="InstanceName"/>
-        <property name="Trace.Lookup"/>"
     </section>
 
     <section name="IceBox">
