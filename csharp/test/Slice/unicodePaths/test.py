@@ -37,10 +37,7 @@ class SliceUnicodePathsTestCase(ClientTestCase):
         tests = [
             ("cpp", ["Test.cpp", "Test.h", "TestI.cpp", "TestI.h"], "--impl"),
             ("cs", ["Test.cs", "TestI.cs"], "--impl"),
-            ("html", ["index.html"], ""),
-            ("java", ["Test/Point.java", "Test/CanvasI.java"], "--impl"),
-            ("js", ["Test.js"], ""),
-            ("objc", ["Test.m"], "")]
+            ("html", ["index.html"], "")]
 
         try:
             for language, generated, args in tests:

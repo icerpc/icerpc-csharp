@@ -49,21 +49,14 @@ StringLiteralGenerator::StringLiteralGenerator(const string& nonPrintableEscaped
                                                EscapeMode escapeMode,
                                                unsigned char cutOff) :
     _nonPrintableEscaped(nonPrintableEscaped),
-    _printableEscaped(printableEscaped + "\\"),
+    _printableEscaped(printableEscaped + "\\\""),
     _escapeMode(escapeMode),
     _cutOff(cutOff),
-    _shortUCNPrefix(escapeMode == Matlab ? "\\x" : "\\u"),
+    _shortUCNPrefix("\\u"),
     _octalChars("01234567"),
     _hexChars("01234567890ABCDEFabcdef"),
     _format(NoFormat)
 {
-    //
-    // Double quotes don't need to be escaped in Matlab because the string delimiter is a single quote.
-    //
-    if(_escapeMode != Matlab)
-    {
-        const_cast<string&>(_printableEscaped) += '"';
-    }
 }
 
 string
@@ -73,7 +66,6 @@ StringLiteralGenerator::escapeASCIIChar(char c)
 
     string result;
 
-    Format lastFormat = _format;
     _format = NoFormat;
 
     if(_nonPrintableEscaped.find(c) != string::npos)
@@ -142,51 +134,9 @@ StringLiteralGenerator::escapeASCIIChar(char c)
         result = '\\';
         result += c;
     }
-    else if(_escapeMode == Matlab && c == '\'')
-    {
-        //
-        // Matlab strings are converted by sprintf(), and sprintf() requires a single quote to be escaped
-        // with another single quote.
-        //
-        result = "''";
-    }
-    else if(_escapeMode == Matlab && c == '%')
-    {
-        //
-        // Matlab strings are converted by sprintf(), and sprintf() requires a percent to be escaped
-        // with another percent.
-        //
-        result = "%%";
-    }
     else if(c >= 32 && c <= 126)
     {
-        //
-        // Other printable ASCII.
-        //
-        if(_escapeMode == Matlab)
-        {
-            //
-            // While interpreting an octal or hex escape, the Matlab parser will continue to consume adjacent
-            // legal characters. If the trailing character after an escaped value could be consumed, we escape it
-            // as well to terminate the original escape.
-            //
-            if((lastFormat == OctalFormat && _octalChars.find(c) != string::npos) ||
-               (lastFormat == HexFormat && _hexChars.find(c) != string::npos))
-            {
-                ostringstream os;
-                os << "\\" << oct << setfill('0') << setw(3) << static_cast<unsigned int>(c & 0xFF);
-                result = os.str();
-                _format = OctalFormat;
-            }
-            else
-            {
-                result = c;
-            }
-        }
-        else
-        {
-            result = c;
-        }
+        result = c;
     }
     else
     {
@@ -253,7 +203,7 @@ StringLiteralGenerator::escapeCodePoint(unsigned int codePoint)
             os << _shortUCNPrefix << setfill('0') << setw(4) << hex << codePoint;
             _format = HexFormat;
         }
-        else if(_escapeMode == ShortUCN || _escapeMode == Matlab)
+        else if(_escapeMode == ShortUCN)
         {
             //
             // Convert to surrogate pair
@@ -357,7 +307,7 @@ Slice::toStringLiteral(const string& value,
                             IceUtil::Int64 v = IceUtilInternal::strToInt64(codePointStr.c_str(), 0, 16);
                             if(v < 128)
                             {
-                                // ASCII character that may need to escaped in languages such as Java
+                                // ASCII character that may need to escaped in some languages
                                 os << generator.escapeASCIIChar(static_cast<char>(v));
                             }
                             else if(escapeMode == UCN)
@@ -367,7 +317,7 @@ Slice::toStringLiteral(const string& value,
                             }
                             else if(c == 'u' && escapeMode != EC6UCN)
                             {
-                                os << (escapeMode == Matlab ? "\\x" : "\\u") << codePointStr;
+                                os << "\\u" << codePointStr;
                                 generator.format(StringLiteralGenerator::HexFormat);
                             }
                             else

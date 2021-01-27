@@ -313,14 +313,9 @@ Slice::Preprocessor::printMakefileDependencies(ostream& out, Language lang, cons
     }
 
     string cppHeaderExt;
-    string pyPrefix;
     if(lang == CPlusPlus)
     {
         cppHeaderExt = optValue;
-    }
-    else if(lang == Python)
-    {
-        pyPrefix = optValue;
     }
 
     //
@@ -492,17 +487,6 @@ Slice::Preprocessor::printMakefileDependencies(ostream& out, Language lang, cons
                     result += "\n    <dependsOn name=\"" + file + "\"/>";
                 }
             }
-            else if(lang == JavaScriptJSON)
-            {
-                if(sourceFile.empty())
-                {
-                    sourceFile = file;
-                }
-                else
-                {
-                    dependencies.push_back(file);
-                }
-            }
             else
             {
                 //
@@ -526,30 +510,6 @@ Slice::Preprocessor::printMakefileDependencies(ostream& out, Language lang, cons
     if(lang == SliceXML)
     {
         result += "\n  </source>\n";
-    }
-    else if(lang == JavaScriptJSON)
-    {
-        result = "\"" + sourceFile + "\":" + (dependencies.empty() ? "[]" : "[");
-        for(vector<string>::const_iterator i = dependencies.begin(); i != dependencies.end();)
-        {
-            string file = *i;
-            result += "\n    \"" + file + "\"";
-            if(++i == dependencies.end())
-            {
-                result += "]";
-            }
-            else
-            {
-                result += ",";
-            }
-        }
-
-        pos = 0;
-        while((pos = result.find("\\", pos + 1)) != string::npos)
-        {
-            result.insert(pos, 1, '\\');
-            ++pos;
-        }
     }
     else
     {
@@ -597,54 +557,6 @@ Slice::Preprocessor::printMakefileDependencies(ostream& out, Language lang, cons
         }
         case SliceXML:
             break;
-        case Java:
-        case MATLAB:
-        {
-            //
-            // We want to shift the files left one position, so that
-            // "x.h: x.ice y.ice" becomes "x.ice: y.ice".
-            //
-
-            //
-            // Remove the first file.
-            //
-            string::size_type start = result.find(suffix);
-            assert(start != string::npos);
-            start = result.find_first_not_of(" \t\r\n\\", start + suffix.size()); // Skip to beginning of next file.
-            assert(start != string::npos);
-            result.erase(0, start);
-
-            //
-            // Find end of next file.
-            //
-            pos = 0;
-            while((pos = result.find_first_of(" :\t\r\n\\", pos + 1)) != string::npos)
-            {
-                if(result[pos] == ':')
-                {
-                    result.insert(pos, 1, '\\'); // Escape colons.
-                    ++pos;
-                }
-                else if(result[pos] == '\\') // Ignore escaped characters.
-                {
-                    ++pos;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            if(pos == string::npos)
-            {
-                result.append(":");
-            }
-            else
-            {
-                result.insert(pos, 1, ':');
-            }
-            break;
-        }
         case CSharp:
         {
             //
@@ -654,48 +566,6 @@ Slice::Preprocessor::printMakefileDependencies(ostream& out, Language lang, cons
             if((pos = result.find(suffix)) != string::npos)
             {
                 result.replace(pos, suffix.size() - 1, ".cs");
-            }
-            break;
-        }
-        case JavaScriptJSON:
-            break;
-        case JavaScript:
-        {
-            //
-            // Change .o[bj] suffix to .js suffix.
-            //
-            pos = 0;
-            if((pos = result.find(suffix)) != string::npos)
-            {
-                result.replace(pos, suffix.size() - 1, ".js");
-            }
-            break;
-        }
-        case Python:
-        {
-            //
-            // Change .o[bj] suffix to .py suffix.
-            //
-            if(pyPrefix.size() != 0)
-            {
-                result = pyPrefix + result;
-            }
-            pos = 0;
-            if((pos = result.find(suffix)) != string::npos)
-            {
-                result.replace(pos, suffix.size() - 1, "_ice.py");
-            }
-            break;
-        }
-        case Swift:
-        {
-            //
-            // Change .o[bj] suffix to .swift suffix.
-            //
-            pos = 0;
-            if ((pos = result.find(suffix)) != string::npos)
-            {
-                result.replace(pos, suffix.size() - 1, ".swift");
             }
             break;
         }

@@ -284,10 +284,6 @@ namespace ZeroC.Ice.Test.Tagged
 
         public ValueTask<bool> SupportsRequiredParamsAsync(Current current, CancellationToken cancel) => new(false);
 
-        public ValueTask<bool> SupportsJavaSerializableAsync(Current current, CancellationToken cancel) => new(false);
-
-        public ValueTask<bool> SupportsCppStringViewAsync(Current current, CancellationToken cancel) => new(false);
-
         public ValueTask<bool> SupportsNullTaggedAsync(Current current, CancellationToken cancel) => new(true);
     }
 }

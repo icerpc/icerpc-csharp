@@ -26,7 +26,7 @@ std::vector<std::string> argvToArgs(int argc, wchar_t* argv[]);
 std::vector<std::string> argvToArgs(int argc, char* argv[]);
 #endif
 
-enum EscapeMode { UCN, Octal, ShortUCN, Matlab, EC6UCN };
+enum EscapeMode { UCN, Octal, ShortUCN, EC6UCN };
 
 // Parameters:
 // const string& value: input string provided by Slice Parser
@@ -36,7 +36,7 @@ enum EscapeMode { UCN, Octal, ShortUCN, Matlab, EC6UCN };
 // const string& printableEscaped: additional printable ASCII characters other than \ and the string delimiter
 //                                 that need to be escaped
 // EscapeMode escapeMode: whether we generate both UCNs, octal escape sequences, only short UCNs (\unnnn),
-//                        Matlab syntax, or ECMAScript 6-style UCNs with \u{...} for astral characters.
+//                        or ECMAScript 6-style UCNs with \u{...} for astral characters.
 // unsigned char cutOff: characters < cutOff other than the nonPrintableEscaped are generated as
 //                       octal escape sequences, regardless of escapeMode.
 std::string

@@ -82,20 +82,6 @@ class Ice(Component):
                      "Ice/logger",
                      "Ice/properties",
                      "Ice/slicing/*"])
-        elif isinstance(mapping, JavaMapping) and config.android:
-            return (["Ice/.*"],
-                    ["Ice/hash",
-                     "Ice/faultTolerance",
-                     "Ice/metrics",
-                     "Ice/networkProxy",
-                     "Ice/throughput",
-                     "Ice/plugin",
-                     "Ice/logger",
-                     "Ice/properties"])
-        elif isinstance(mapping, JavaScriptMapping):
-            return ([], ["typescript/.*", "es5/*"])
-        elif isinstance(mapping, SwiftMapping) and config.buildPlatform in ["iphonesimulator", "iphoneos"]:
-            return (["Ice/.*", "IceSSL/configuration", "Slice/*"], ["Ice/properties", "Ice/udp"])
         return ([], [])
 
     def canRun(self, testId, mapping, current):
@@ -212,7 +198,7 @@ from IceStormUtil import *
 #
 
 # The order that the languages will be tested in.
-lang_order = ("cpp", "java", "python", "js", "csharp", "swift")
+lang_order = ("cpp", "csharp")
 
 # Filters out any files that aren't directories or don't start with one of the prefixes specified in 'lang_order'.
 mapping_filter = lambda x: os.path.isdir(os.path.join(toplevel, x)) and x.startswith(lang_order)
@@ -222,32 +208,10 @@ mapping_orderer = lambda x: [index for index, name in enumerate(lang_order) if x
 for m in sorted(filter(mapping_filter, os.listdir(toplevel)), key=mapping_orderer):
     if m == "cpp" or re.match("cpp-.*", m):
         Mapping.add(m, CppMapping(), component)
-    elif m == "java" or re.match("java-.*", m):
-        Mapping.add(m, JavaMapping(), component)
-#    TODO temporarily disabled testing of Python mapping.
-#    elif m == "python" or re.match("python-.*", m):
-#        Mapping.add(m, PythonMapping(), component)
-    elif m == "js" or re.match("js-.*", m):
-        Mapping.add(m, JavaScriptMapping(), component, enable=platform.hasNodeJS())
-        Mapping.add("typescript", TypeScriptMapping(), component, "js", enable=platform.hasNodeJS())
     elif m == "csharp" or re.match("charp-.*", m):
         Mapping.add("csharp", CSharpMapping(), component, enable=isinstance(platform, Windows) or platform.hasDotNet())
-    elif m == "swift" or re.match("swift-.*", m):
-        # Swift mapping requires Swift 5.0 or greater
-        Mapping.add("swift", SwiftMapping(), component, enable=platform.hasSwift((5, 0)))
 
 if isinstance(platform, Windows):
     # Windows doesn't support all the mappings, we take them out here.
-#    TODO temporarily disabled testing of Python mapping.
-#    if platform.getCompiler() not in ["v141"]:
-#        Mapping.disable("python")
     if platform.getCompiler() not in ["v142"]:
         Mapping.disable("csharp")
-#
-# Check if Matlab is installed and eventually add the Matlab mapping
-#
-try:
-    run("where matlab" if isinstance(platform, Windows) else "which matlab")
-    Mapping.add("matlab", MatlabMapping(), component)
-except:
-    pass

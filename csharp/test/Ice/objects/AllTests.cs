@@ -220,7 +220,6 @@ namespace ZeroC.Ice.Test.Objects
             catch (UnhandledException)
             {
                 // Expected marshal exception from the server (max class graph depth reached)
-                // Expected stack overflow from the server(Java only)
             }
             initial.SetRecursive(new Recursive());
             output.WriteLine("ok");

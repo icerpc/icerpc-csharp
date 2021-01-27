@@ -95,7 +95,7 @@ namespace ZeroC.Ice
                 if (dotPos != -1)
                 {
                     string suffix = name[(dotPos + 1)..];
-                    if (suffix == "cpp" || suffix == "java")
+                    if (suffix == "cpp")
                     {
                         // Ignored
                         plugins.Remove(key);

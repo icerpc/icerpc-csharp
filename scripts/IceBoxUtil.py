@@ -14,9 +14,7 @@ class IceBox(ProcessFromBinDir, Server):
 
     def getExe(self, current):
         mapping = self.getMapping(current)
-        if isinstance(mapping, JavaMapping):
-            return "com.zeroc.IceBox.Server"
-        elif isinstance(mapping, CSharpMapping):
+        if isinstance(mapping, CSharpMapping):
             return "iceboxnet"
         else:
             name = "icebox"
@@ -38,18 +36,16 @@ class IceBox(ProcessFromBinDir, Server):
 class IceBoxAdmin(ProcessFromBinDir, ProcessIsReleaseOnly, Client):
 
     def getMapping(self, current):
-        # IceBox admin is only provided with the C++/Java, not C#
+        # IceBox admin is only provided with the C++, not C#
         mapping = Client.getMapping(self, current)
-        if isinstance(mapping, CppMapping) or isinstance(mapping, JavaMapping):
+        if isinstance(mapping, CppMapping):
             return mapping
         else:
             return Mapping.getByName("cpp")
 
     def getExe(self, current):
         mapping = self.getMapping(current)
-        if isinstance(mapping, JavaMapping):
-            return "com.zeroc.IceBox.Admin"
-        elif isinstance(platform, AIX) and \
+        if isinstance(platform, AIX) and \
              current.config.buildPlatform == "ppc" and not component.useBinDist(mapping, current):
             return "iceboxadmin_32"
         else:

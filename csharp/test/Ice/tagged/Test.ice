@@ -264,10 +264,6 @@ interface Initial
 
     bool supportsRequiredParams();
 
-    bool supportsJavaSerializable();
-
-    bool supportsCppStringView();
-
     bool supportsNullTagged();
 }
 

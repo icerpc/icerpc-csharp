@@ -204,10 +204,6 @@ namespace ZeroC.Ice.Test.Tagged
 
         public bool SupportsRequiredParams(Current current, CancellationToken cancel) => false;
 
-        public bool SupportsJavaSerializable(Current current, CancellationToken cancel) => false;
-
-        public bool SupportsCppStringView(Current current, CancellationToken cancel) => false;
-
         public bool SupportsNullTagged(Current current, CancellationToken cancel) => true;
     }
 }

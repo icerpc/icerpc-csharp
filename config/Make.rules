@@ -91,15 +91,12 @@ include $(top_srcdir)/config/Make.project.rules
 include $(top_srcdir)/config/Make.tests.rules
 
 dotnet := $(shell command -v dotnet 2> /dev/null)
-nodejs := $(shell command -v node 2> /dev/null)
 
 #
 # Languages, platforms and configurations to build
 #
-supported-languages     ?= $(strip cpp java \
-                                   $(if $(filter %/node,$(nodejs)),js) \
-                                   $(if $(filter %/dotnet,$(dotnet)),csharp) \
-                                   $(if $(filter Darwin,$(os)), swift))
+supported-languages     ?= $(strip cpp \
+                                   $(if $(filter %/dotnet,$(dotnet)),csharp))
 supported-configs       ?= shared
 
 version                 = 4.0.0-alpha.0
@@ -114,7 +111,7 @@ soversion               = 40a0
 #
 compatversion           = $(version)
 
-ifneq ($(filter all cpp obj%c,$(ICE_BIN_DIST)),)
+ifneq ($(filter all cpp,$(ICE_BIN_DIST)),)
 # NOTE: on macOS, if ICE_HOME isn't set we build against /usr/local/opt/ice because the
 # XCode SDK is not accessible through /usr/local
 $(eval $(call create-project-dependencies,ice,$(or $(ICE_HOME),$(if $(filter Darwin,$(os)),/usr/local/opt/ice)),cpp))
@@ -126,12 +123,6 @@ ifeq ($(filter all cpp,$(ICE_BIN_DIST)),)
 ice_cpp_cppflags        = -I$(top_srcdir)/cpp/include -I$(top_srcdir)/cpp/include/generated
 else
 ice_cpp_cppflags        = $(if $(ice_includedir),-I$(ice_includedir) $(if $(ice_src_dist),-I$(ice_includedir)/generated))
-endif
-
-ifeq ($(filter all obj%c,$(ICE_BIN_DIST)),)
-ice_objc_cppflags       = -I$(top_srcdir)/objective-c/include -I$(top_srcdir)/objective-c/include/generated
-else
-ice_objc_cppflags       = $(if $(ice_includedir),-I$(ice_includedir) $(if $(ice_src_dist),-I$(ice_includedir)/generated))
 endif
 
 ifeq ($(filter all cpp,$(ICE_BIN_DIST)),)

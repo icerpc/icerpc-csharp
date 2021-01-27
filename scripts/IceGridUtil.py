@@ -241,13 +241,11 @@ class IceGridTestCase(TestCase):
             except:
                 pass
 
-            javaHome = os.environ.get("JAVA_HOME", None)
             serverProps = Server().getProps(current)
             variables = {
                 "test.dir" : self.getPath(current),
                 "test.host": current.driver.getHost(current.config.transport, current.config.ipv6),
                 "test.transport": current.config.transport,
-                "java.exe" : os.path.join(javaHome, "bin", "java") if javaHome else "java",
                 "icebox.exe" : IceBox().getCommandLine(current),
                 "icegridnode.exe" : IceGridNode().getCommandLine(current),
                 "glacier2router.exe" : Glacier2Router().getCommandLine(current),

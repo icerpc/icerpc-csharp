@@ -10,7 +10,6 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <IceTestSolution>ice.test.sln</IceTestSolution>
         <IceConfiguration>$(Configuration)</IceConfiguration>
         <SymbolServer Condition="'$(SymbolServer)' == ''">SRV*%TEMP%\SymbolCache*https://symbols.zeroc.com</SymbolServer>
     </PropertyGroup>
@@ -41,8 +40,6 @@
     </Target>
 
     <Target Name="TestNuGetRestore" DependsOnTargets="GetNuGet" Condition="'$(ICE_BIN_DIST)' == 'all'">
-        <Exec Command="$(NuGetExe) restore $(MSBuildThisFileDirectory)$(IceTestSolution)"/>
-        <Exec Command="$(NuGetExe) restore $(MSBuildThisFileDirectory)ice.openssl.test.sln"/>
     </Target>
 
     <Target Name="DownloadSymbols" DependsOnTargets="TestNuGetRestore" Condition="'$(ICE_BIN_DIST)' == 'all'">
@@ -80,37 +77,6 @@
                     <Properties>Configuration=Release;Platform=x64</Properties>
                 </DistSolution>
             </ItemGroup>
-
-            <ItemGroup>
-                <TestSolution Include="$(IceTestSolution)">
-                    <Properties>Configuration=Debug;Platform=Win32</Properties>
-                </TestSolution>
-                <TestSolution Include="$(IceTestSolution)">
-                    <Properties>Configuration=Debug;Platform=x64</Properties>
-                </TestSolution>
-                <TestSolution Include="$(IceTestSolution)">
-                    <Properties>Configuration=Release;Platform=Win32</Properties>
-                </TestSolution>
-                <TestSolution Include="$(IceTestSolution)">
-                    <Properties>Configuration=Release;Platform=x64</Properties>
-                </TestSolution>
-            </ItemGroup>
-
-            <!-- OpenSSL C++ test configurations -->
-            <ItemGroup Condition="'$(ICE_BIN_DIST)' != 'all' and $(OpenSSL) == 'yes'">
-                <OpenSSLTestSolution Include="ice.openssl.test.sln">
-                    <Properties>Configuration=Debug;Platform=Win32</Properties>
-                </OpenSSLTestSolution>
-                <OpenSSLTestSolution Include="ice.openssl.test.sln">
-                    <Properties>Configuration=Debug;Platform=x64</Properties>
-                </OpenSSLTestSolution>
-                <OpenSSLTestSolution Include="ice.openssl.test.sln">
-                    <Properties>Configuration=Release;Platform=Win32</Properties>
-                </OpenSSLTestSolution>
-                <OpenSSLTestSolution Include="ice.openssl.test.sln">
-                    <Properties>Configuration=Release;Platform=x64</Properties>
-                </OpenSSLTestSolution>
-            </ItemGroup>
         </When>
         <Otherwise>
             <PropertyGroup>
@@ -122,19 +88,6 @@
                 <DistSolution Include="ice.sln">
                     <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
                 </DistSolution>
-            </ItemGroup>
-
-            <ItemGroup>
-                <TestSolution Include="$(IceTestSolution)">
-                    <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
-                </TestSolution>
-            </ItemGroup>
-
-            <!-- OpenSSL test builds -->
-            <ItemGroup  Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'">
-                <OpenSSLTestSolution Include="ice.openssl.test.sln">
-                    <Properties>Configuration=$(Configuration);Platform=$(Platform)</Properties>
-                </OpenSSLTestSolution>
             </ItemGroup>
         </Otherwise>
     </Choose>
@@ -161,22 +114,11 @@
         <MSBuild Projects="@(TestSolution)"
                  BuildInParallel="true"
                  Properties="%(Properties)" />
-
-        <!-- Build OpenSSL tests only with supported compilers -->
-        <MSBuild Projects="@(OpenSSLTestSolution)"
-                 BuildInParallel="true"
-                 Properties="%(Properties)"
-                 Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'" />
     </Target>
 
     <!-- Clean test solution -->
     <Target Name="Clean" DependsOnTargets="CleanDist">
         <MSBuild Projects="@(TestSolution)" BuildInParallel="true" Targets="Clean" Properties="%(Properties)" />
-        <MSBuild Projects="@(OpenSSLTestSolution)"
-                 BuildInParallel="true"
-                 Targets="Clean"
-                 Properties="%(Properties)"
-                 Condition="'$(ICE_BIN_DIST)' != 'all' and '$(OpenSSL)' == 'yes'" />
     </Target>
 
     <!-- Create nuget packages -->
