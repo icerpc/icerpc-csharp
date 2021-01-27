@@ -14,8 +14,7 @@
         <Pdbs Include="$(IceSrcRootDir)lib\**\*.pdb" />
 
         <Slices Include="$(IceSrcRootDir)..\slice\**\*.ice"
-                Exclude="$(IceSrcRootDir)..\slice\IceDiscovery\*.ice;
-                         $(IceSrcRootDir)..\slice\IceLocatorDiscovery\*.ice"/>
+                Exclude="$(IceSrcRootDir)..\slice\IceDiscovery\*.ice"/>
     </ItemGroup>
 
     <!-- Copy required files to the package specific directories -->
