@@ -163,11 +163,6 @@ namespace ZeroC.Ice
         /// was not set during communicator construction.</summary>
         public Instrumentation.ICommunicatorObserver? Observer { get; }
 
-        /// <summary>Gets all plug-ins loaded in this communicator. This list can change only during the construction
-        /// of this communicator.</summary>
-        /// <value>A list where each element is a plug-in name and a plug-in.</value>
-        public IReadOnlyList<(string Name, IPlugin Plugin)> Plugins => _plugins;
-
         /// <summary>The output mode or format for ToString on Ice proxies when the protocol is ice1. See
         /// <see cref="Ice.ToStringMode"/>.</summary>
         public ToStringMode ToStringMode { get; }
@@ -263,7 +258,6 @@ namespace ZeroC.Ice
 
         private volatile ILogger _logger;
         private readonly object _mutex = new object();
-        private readonly List<(string Name, IPlugin Plugin)> _plugins = new();
 
         private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin?, RemoteException>?> _remoteExceptionFactoryCache =
             new();
@@ -612,8 +606,6 @@ namespace ZeroC.Ice
                 LoadAssemblies();
             }
 
-            PluginLoader.LoadPlugins(this, ref args);
-
             // Create Admin facets, if enabled.
             //
             // Note that any logger-dependent admin facet must be created after we load all plugins,
@@ -741,12 +733,6 @@ namespace ZeroC.Ice
                     throw new InvalidOperationException("ActivateAsync was already called on this communicator");
                 }
                 _activateCalled = true;
-            }
-
-            // Activate all plug-ins, in order.
-            foreach ((string _, IPlugin plugin) in _plugins)
-            {
-                await plugin.ActivateAsync(cancel).ConfigureAwait(false);
             }
 
             if (_activateLocatorAsync != null)
@@ -902,19 +888,6 @@ namespace ZeroC.Ice
                             message.Append(s);
                         }
                         Logger.Warning(message.ToString());
-                    }
-                }
-
-                // Destroy last so that a Logger plugin can receive all log/traces before its destruction.
-                foreach ((string name, IPlugin plugin) in Enumerable.Reverse(_plugins))
-                {
-                    try
-                    {
-                        await plugin.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Runtime.Logger.Warning($"unexpected exception raised by plug-in `{name}' destruction:\n{ex}");
                     }
                 }
 
@@ -1080,9 +1053,6 @@ namespace ZeroC.Ice
                 // Ignored, already registered
             }
         }
-
-        /// <summary>Adds a plug-in to the plug-in list. Only called during communicator construction.</summary>
-        internal void AddPlugin(string name, IPlugin plugin) => _plugins.Add((name, plugin));
 
         internal void DecRetryBufferSize(int size)
         {

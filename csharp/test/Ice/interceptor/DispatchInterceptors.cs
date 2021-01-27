@@ -22,14 +22,6 @@ namespace ZeroC.Ice.Test.Interceptor
         {
             DispatchInterceptor raiseInterceptor = async (request, current, next, cancel) =>
             {
-                // Ensure the invocation plug-in interceptor added this entry to the context, with ice1 the interceptors
-                // cannot modify the conext because it is marshalled before the interceptors run.
-                Debug.Assert(request.Protocol == Protocol.Ice1 ||
-                             current.Context["InvocationPlugin"] == "1");
-
-                // The dispatch plug-in interceptor runs before the interceptors registered with
-                // the adapter.
-                Debug.Assert(current.Context.ContainsKey("DispatchPlugin"));
                 if (current.Context.TryGetValue("raiseBeforeDispatch", out string? context))
                 {
                     if (context == "invalidInput")
