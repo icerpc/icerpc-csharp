@@ -159,7 +159,6 @@ namespace ZeroC.Ice.Test.Interceptor
 
                 TestHelper.Assert(communicator.DefaultInvocationInterceptors.Count == 3);
                 await communicator.ActivateAsync();
-                TestHelper.Assert(communicator.DefaultInvocationInterceptors.Count == 4);
 
                 var prx1 = IMyObjectPrx.Parse(prx.ToString()!, communicator);
 
@@ -310,41 +309,36 @@ namespace ZeroC.Ice.Test.Interceptor
                 var communicator = helper.Communicator!;
 
                 SortedDictionary<string, string>? context = prx.Op2();
-                TestHelper.Assert(context["context1"] == "plug-in");
-                TestHelper.Assert(context["context2"] == "plug-in");
-                TestHelper.Assert(!context.ContainsKey("context3"));
+                TestHelper.Assert(!context.ContainsKey("context2"));
                 prx = prx.Clone(invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
                     (target, request, next, cancel) =>
                     {
+                        request.WritableContext["context1"] = "proxy";
                         request.WritableContext["context2"] = "proxy";
-                        request.WritableContext["context3"] = "proxy";
                         return next(target, request, cancel);
                     }).AddRange(communicator.DefaultInvocationInterceptors));
                 context = prx.Op2();
-                TestHelper.Assert(context["context1"] == "plug-in");
-                TestHelper.Assert(context["context2"] == "plug-in");
-                TestHelper.Assert(context["context3"] == "proxy");
+                TestHelper.Assert(context["context1"] == "proxy");
+                TestHelper.Assert(context["context2"] == "proxy");
 
                 // Calling next twice doesn't change the result
                 prx = prx.Clone(invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
                     (target, request, next, cancel) =>
                     {
+                        request.WritableContext["context1"] = "proxy";
                         request.WritableContext["context2"] = "proxy";
-                        request.WritableContext["context3"] = "proxy";
                         _ = next(target, request, cancel);
                         return next(target, request, cancel);
                     }).AddRange(communicator.DefaultInvocationInterceptors));
                 context = prx.Op2();
-                TestHelper.Assert(context["context1"] == "plug-in");
-                TestHelper.Assert(context["context2"] == "plug-in");
-                TestHelper.Assert(context["context3"] == "proxy");
+                TestHelper.Assert(context["context1"] == "proxy");
+                TestHelper.Assert(context["context2"] == "proxy");
 
                 // Cloning the proxy preserve its interceptors
                 prx = prx.Clone(invocationTimeout: TimeSpan.FromSeconds(10));
                 context = prx.Op2();
-                TestHelper.Assert(context["context1"] == "plug-in");
-                TestHelper.Assert(context["context2"] == "plug-in");
-                TestHelper.Assert(context["context3"] == "proxy");
+                TestHelper.Assert(context["context1"] == "proxy");
+                TestHelper.Assert(context["context2"] == "proxy");
 
                 // The server increments the result with each call when using the invocation interceptor we
                 // return a cached response, and we will see the same result with each call.
