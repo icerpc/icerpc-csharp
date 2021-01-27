@@ -4,9 +4,6 @@
 
 #pragma once
 
-
-
-
 #include <Ice/BuiltinSequences.ice>
 #include <Ice/Identity.ice>
 #include <Glacier2/SSLInfo.ice>

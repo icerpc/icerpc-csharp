@@ -4,9 +4,7 @@
 
 #pragma once
 
-
 [[suppress-warning(reserved-identifier)]]
-
 
 #include <Glacier2/Session.ice>
 #include <IceGrid/Exception.ice>

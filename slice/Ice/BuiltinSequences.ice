@@ -6,8 +6,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[[3.7]] // TODO, temporary
-
 [cs:namespace(ZeroC)]
 module Ice
 {

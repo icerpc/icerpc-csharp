@@ -4,8 +4,6 @@
 
 #pragma once
 
-
-
 #include <Ice/BuiltinSequences.ice>
 
 [cs:namespace(ZeroC)]

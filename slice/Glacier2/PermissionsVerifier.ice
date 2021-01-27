@@ -4,9 +4,6 @@
 
 #pragma once
 
-
-
-
 #include <Glacier2/SSLInfo.ice>
 
 [cs:namespace(ZeroC)]

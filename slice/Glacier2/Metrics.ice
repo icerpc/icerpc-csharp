@@ -4,12 +4,9 @@
 
 #pragma once
 
-
 [[suppress-warning(reserved-identifier)]]
 
-
 #include <Ice/Metrics.ice>
-
 
 [cs:namespace(ZeroC)]
 module IceMX

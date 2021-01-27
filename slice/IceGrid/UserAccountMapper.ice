@@ -4,9 +4,7 @@
 
 #pragma once
 
-
 [[suppress-warning(reserved-identifier)]]
-
 
 [cs:namespace(ZeroC)]
 module IceGrid

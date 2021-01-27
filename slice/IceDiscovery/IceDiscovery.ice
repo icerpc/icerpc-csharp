@@ -4,9 +4,7 @@
 
 // TODO: these definitions moved to Ice/Discovery.ice. Remove this file when all languages mappings are updated.
 
-
 [[suppress-warning(reserved-identifier)]]
-
 
 #include <Ice/Identity.ice>
 

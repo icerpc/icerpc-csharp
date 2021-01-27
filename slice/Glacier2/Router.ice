@@ -4,9 +4,6 @@
 
 #pragma once
 
-
-
-
 #include <Ice/Router.ice>
 #include <Glacier2/Session.ice>
 #include <Glacier2/PermissionsVerifier.ice>

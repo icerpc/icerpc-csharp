@@ -4,7 +4,6 @@
 
 #pragma once
 
-
 [[suppress-warning(reserved-identifier)]]
 
 #include <Ice/Metrics.ice>

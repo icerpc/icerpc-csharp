@@ -4,9 +4,7 @@
 
 #pragma once
 
-
 [[suppress-warning(reserved-identifier)]]
-
 
 [[3.7]]
 
