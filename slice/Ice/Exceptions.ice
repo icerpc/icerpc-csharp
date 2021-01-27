@@ -4,16 +4,7 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
-
-[[java:package(com.zeroc)]]
 
 #include <Ice/Identity.ice>
 
@@ -35,7 +26,6 @@ module Ice
         string operation;
     }
 
-#ifdef __SLICE2CS__
     /// The object adapter could not find a servant for the target object.
     exception ObjectNotExistException
     {
@@ -55,7 +45,6 @@ module Ice
     exception UnhandledException
     {
     }
-#endif
 
     /// One of the arguments to the operation has an invalid value.
     exception InvalidArgumentException

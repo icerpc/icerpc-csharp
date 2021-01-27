@@ -1,22 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#ifdef __SLICE2CS__
-
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-
-[[js:module(ice)]]
-[[python:pkgdir(Ice)]]
 
 #include <Ice/BuiltinSequences.ice>
 
 [cs:namespace(ZeroC)]
-[java:package(com.zeroc)]
 module Ice
 {
     /// Identifies a transport protocol that Ice can use to send requests and receive responses. The enumerators of
@@ -79,5 +69,3 @@ module Ice
     // Sequence of EndpointData (temporary).
     sequence<EndpointData> EndpointDataSeq;
 }
-
-#endif

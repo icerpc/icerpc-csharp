@@ -17,7 +17,7 @@ namespace ZeroC.Ice.Test.Metrics
             try
             {
                 ConnectionMetrics? s;
-                s = (ConnectionMetrics?)metrics.GetMetricsView("View").ReturnValue["Connection"][0];
+                s = (ConnectionMetrics?)metrics.GetMetricsView("View").MetricsView["Connection"][0];
                 TestHelper.Assert(s != null);
                 int nRetry = 30;
                 while (s.SentBytes < expected && nRetry-- > 0)
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Metrics
                     // to the operation is sent and getMetricsView can be dispatched before the metric is really
                     // updated.
                     Thread.Sleep(100);
-                    s = (ConnectionMetrics?)metrics.GetMetricsView("View").ReturnValue["Connection"][0];
+                    s = (ConnectionMetrics?)metrics.GetMetricsView("View").MetricsView["Connection"][0];
                     TestHelper.Assert(s != null);
                 }
                 if (s.SentBytes < expected)
@@ -147,7 +147,7 @@ namespace ZeroC.Ice.Test.Metrics
         {
             while (true)
             {
-                Dictionary<string, IceMX.Metrics?[]> view = metrics.GetMetricsView(viewName).ReturnValue;
+                Dictionary<string, IceMX.Metrics?[]> view = metrics.GetMetricsView(viewName).MetricsView;
                 TestHelper.Assert(view.ContainsKey(map));
                 int v = 0;
                 foreach (IceMX.Metrics? m in view[map])
@@ -210,7 +210,7 @@ namespace ZeroC.Ice.Test.Metrics
             }
 
             func();
-            Dictionary<string, IceMX.Metrics?[]> view = metrics.GetMetricsView("View").ReturnValue;
+            Dictionary<string, IceMX.Metrics?[]> view = metrics.GetMetricsView("View").MetricsView;
             if (!view.ContainsKey(map) || view[map].Length == 0)
             {
                 if (value.Length > 0)
@@ -404,7 +404,7 @@ namespace ZeroC.Ice.Test.Metrics
 
             props.Add("IceMX.Metrics.View.GroupBy", "none");
             UpdateProps(clientProps, serverProps, update, props, "");
-            Dictionary<string, IceMX.Metrics?[]> view = clientMetrics.GetMetricsView("View").ReturnValue;
+            Dictionary<string, IceMX.Metrics?[]> view = clientMetrics.GetMetricsView("View").MetricsView;
             TestHelper.Assert(
                 view["Connection"].Length == 1 &&
                 view["Connection"][0]!.Current == 1 &&
@@ -426,7 +426,7 @@ namespace ZeroC.Ice.Test.Metrics
             WaitForCurrent(clientMetrics, "View", "Invocation", 0);
             WaitForCurrent(serverMetrics, "View", "Dispatch", 0);
 
-            view = clientMetrics.GetMetricsView("View").ReturnValue;
+            view = clientMetrics.GetMetricsView("View").MetricsView;
             TestHelper.Assert(view["Connection"].Length == 2);
 
             if (ice1)
@@ -460,7 +460,7 @@ namespace ZeroC.Ice.Test.Metrics
                 TestHelper.Assert(invoke.Children[0]!.Total == 3);
             }
 
-            view = serverMetrics.GetMetricsView("View").ReturnValue;
+            view = serverMetrics.GetMetricsView("View").MetricsView;
             TestHelper.Assert(view["Connection"].Length == 2);
 
             TestHelper.Assert(view["Dispatch"].Length == 1);
@@ -491,17 +491,17 @@ namespace ZeroC.Ice.Test.Metrics
             {
                 props["IceMX.Metrics.View.Map.Connection.GroupBy"] = "none";
                 UpdateProps(clientProps, serverProps, update, props, "Connection");
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["Connection"].Length == 0);
-                TestHelper.Assert(serverMetrics.GetMetricsView("View").ReturnValue["Connection"].Length == 0);
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["Connection"].Length == 0);
+                TestHelper.Assert(serverMetrics.GetMetricsView("View").MetricsView["Connection"].Length == 0);
 
                 metrics.IcePing();
 
-                cm1 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm1 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 sm1 = GetServerConnectionMetrics(serverMetrics, ice1 ? 22 : 10)!;
 
                 metrics.IcePing();
 
-                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 sm2 = GetServerConnectionMetrics(serverMetrics, ice1 ? 44 : 20)!;
 
                 if (ice1)
@@ -525,7 +525,7 @@ namespace ZeroC.Ice.Test.Metrics
                 byte[] bs = Array.Empty<byte>();
                 metrics.OpByteS(bs);
 
-                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 sm2 = GetServerConnectionMetrics(serverMetrics, sm1.SentBytes + cm2.ReceivedBytes - cm1.ReceivedBytes)!;
                 long requestSz = cm2.SentBytes - cm1.SentBytes;
                 long replySz = cm2.ReceivedBytes - cm1.ReceivedBytes;
@@ -536,7 +536,7 @@ namespace ZeroC.Ice.Test.Metrics
                 bs = new byte[456];
                 metrics.OpByteS(bs);
 
-                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 sm2 = GetServerConnectionMetrics(serverMetrics, sm1.SentBytes + replySz)!;
 
                 // TODO: explanation
@@ -552,7 +552,7 @@ namespace ZeroC.Ice.Test.Metrics
                 bs = new byte[1024 * 1024 * 10]; // Try with large amount of data which should be sent in several chunks
                 metrics.OpByteS(bs);
 
-                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm2 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 sm2 = GetServerConnectionMetrics(serverMetrics, sm1.SentBytes + replySz)!;
 
                 // TODO: explanation!
@@ -574,12 +574,12 @@ namespace ZeroC.Ice.Test.Metrics
             props["IceMX.Metrics.View.Map.Connection.GroupBy"] = "state";
             UpdateProps(clientProps, serverProps, update, props, "Connection");
 
-            map = ToMap(serverMetrics.GetMetricsView("View").ReturnValue["Connection"]!);
+            map = ToMap(serverMetrics.GetMetricsView("View").MetricsView["Connection"]!);
 
             TestHelper.Assert(map["active"].Current == 1);
             _ = (await metrics.GetConnectionAsync()).GoAwayAsync();
 
-            map = ToMap(clientMetrics.GetMetricsView("View").ReturnValue["Connection"]!);
+            map = ToMap(clientMetrics.GetMetricsView("View").MetricsView["Connection"]!);
             // The connection might already be closed so it can be 0 or 1
             TestHelper.Assert(map["closing"].Current == 0 ||
                               map["closing"].Current == 1 ||
@@ -605,10 +605,10 @@ namespace ZeroC.Ice.Test.Metrics
                 }
                 controller.Resume();
 
-                cm1 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                cm1 = (ConnectionMetrics)clientMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                 while (true)
                 {
-                    sm1 = (ConnectionMetrics)serverMetrics.GetMetricsView("View").ReturnValue["Connection"][0]!;
+                    sm1 = (ConnectionMetrics)serverMetrics.GetMetricsView("View").MetricsView["Connection"][0]!;
                     if (sm1.Failures >= 2)
                     {
                         break;
@@ -676,19 +676,19 @@ namespace ZeroC.Ice.Test.Metrics
 
                 props["IceMX.Metrics.View.Map.ConnectionEstablishment.GroupBy"] = "id";
                 UpdateProps(clientProps, serverProps, update, props, "ConnectionEstablishment");
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"].Length == 0);
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"].Length == 0);
 
                 metrics.IcePing();
 
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"].Length == 1);
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"].Length == 1);
                 IceMX.Metrics? m1;
-                m1 = clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"][0]!;
+                m1 = clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"][0]!;
                 TestHelper.Assert(m1.Current == 0 && m1.Total == 1 && m1.Id.Equals(hostAndPort));
 
                 _ = (await metrics.GetConnectionAsync()).GoAwayAsync();
 
                 ClearView(clientProps, serverProps, update);
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"].Length == 0);
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"].Length == 0);
 
                 if (!colocated)
                 {
@@ -707,8 +707,8 @@ namespace ZeroC.Ice.Test.Metrics
                     }
                     controller.Resume();
 
-                    TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"].Length == 1);
-                    m1 = clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"][0]!;
+                    TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"].Length == 1);
+                    m1 = clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"][0]!;
                     TestHelper.Assert(m1.Total == 2 && m1.Failures == 2);
 
                     CheckFailure(clientMetrics,
@@ -720,8 +720,8 @@ namespace ZeroC.Ice.Test.Metrics
                 }
                 controller.Resume();
 
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"].Length == 1);
-                m1 = clientMetrics.GetMetricsView("View").ReturnValue["ConnectionEstablishment"][0]!;
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"].Length == 1);
+                m1 = clientMetrics.GetMetricsView("View").MetricsView["ConnectionEstablishment"][0]!;
                 TestHelper.Assert(m1.Total == 2 && m1.Failures == 2);
 
                 CheckFailure(clientMetrics, "ConnectionEstablishment", m1.Id, "ZeroC.Ice.ConnectTimeoutException", 2, output);
@@ -760,7 +760,7 @@ namespace ZeroC.Ice.Test.Metrics
 
                 props["IceMX.Metrics.View.Map.ConnectionEstablishment.GroupBy"] = "id";
                 UpdateProps(clientProps, serverProps, update, props, "EndpointLookup");
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"].Length == 0);
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"].Length == 0);
 
                 var prx = IObjectPrx.Parse(
                     ice1 ?
@@ -776,8 +776,8 @@ namespace ZeroC.Ice.Test.Metrics
                 {
                 }
 
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"].Length == 1);
-                m1 = clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"][0];
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"].Length == 1);
+                m1 = clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"][0];
                 TestHelper.Assert(m1 != null && m1.Current <= 1 && m1.Total == 1);
 
                 bool dnsException = false;
@@ -802,14 +802,14 @@ namespace ZeroC.Ice.Test.Metrics
                     // Some DNS servers don't fail on unknown DNS names.
                     // TODO: what's the point of this test then?
                 }
-                TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"].Length == 2);
-                m1 = clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"][0]!;
+                TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"].Length == 2);
+                m1 = clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"][0]!;
 
                 if (ice1)
                 {
                     if (!m1.Id.Equals($"tcp -h unknownfoo.zeroc.com -p {port} -t 500"))
                     {
-                        m1 = clientMetrics.GetMetricsView("View").ReturnValue["EndpointLookup"][1]!;
+                        m1 = clientMetrics.GetMetricsView("View").MetricsView["EndpointLookup"][1]!;
                     }
 
                     TestHelper.Assert(m1.Id.Equals("tcp -h unknownfoo.zeroc.com -p " + port + " -t 500") &&
@@ -848,7 +848,7 @@ namespace ZeroC.Ice.Test.Metrics
 
             props["IceMX.Metrics.View.Map.Dispatch.GroupBy"] = "operation";
             UpdateProps(clientProps, serverProps, update, props, "Dispatch");
-            TestHelper.Assert(serverMetrics.GetMetricsView("View").ReturnValue["Dispatch"].Length == 0);
+            TestHelper.Assert(serverMetrics.GetMetricsView("View").MetricsView["Dispatch"].Length == 0);
 
             metrics.Op();
             int userExErrorMessageSize = 0;
@@ -895,7 +895,7 @@ namespace ZeroC.Ice.Test.Metrics
             {
             }
 
-            map = ToMap(serverMetrics.GetMetricsView("View").ReturnValue["Dispatch"]!);
+            map = ToMap(serverMetrics.GetMetricsView("View").MetricsView["Dispatch"]!);
             TestHelper.Assert(map.Count == 6);
 
             DispatchMetrics dm1;
@@ -995,7 +995,7 @@ namespace ZeroC.Ice.Test.Metrics
             props["IceMX.Metrics.View.Map.Invocation.GroupBy"] = "operation";
             props["IceMX.Metrics.View.Map.Invocation.Map.ChildInvocation.GroupBy"] = "id";
             UpdateProps(clientProps, serverProps, update, props, "Invocation");
-            TestHelper.Assert(serverMetrics.GetMetricsView("View").ReturnValue["Invocation"].Length == 0);
+            TestHelper.Assert(serverMetrics.GetMetricsView("View").MetricsView["Invocation"].Length == 0);
 
             metrics.Op();
             metrics.OpAsync().Wait();
@@ -1094,7 +1094,7 @@ namespace ZeroC.Ice.Test.Metrics
                 TestHelper.Assert(ex.InnerException is ConnectionLostException);
             }
 
-            map = ToMap(clientMetrics.GetMetricsView("View").ReturnValue["Invocation"]!);
+            map = ToMap(clientMetrics.GetMetricsView("View").MetricsView["Invocation"]!);
             TestHelper.Assert(map.Count == 6);
 
             InvocationMetrics im1;
@@ -1206,7 +1206,7 @@ namespace ZeroC.Ice.Test.Metrics
             metricsOneway.Op();
             metricsOneway.OpAsync().Wait();
 
-            map = ToMap(clientMetrics.GetMetricsView("View").ReturnValue["Invocation"]!);
+            map = ToMap(clientMetrics.GetMetricsView("View").MetricsView["Invocation"]!);
             TestHelper.Assert(map.Count == 1);
 
             im1 = (InvocationMetrics)map["op"];
@@ -1226,23 +1226,23 @@ namespace ZeroC.Ice.Test.Metrics
             props["IceMX.Metrics.View.GroupBy"] = "none";
             props["IceMX.Metrics.View.Disabled"] = "0";
             UpdateProps(clientProps, serverProps, update, props, "Connection");
-            TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["Connection"].Length != 0);
+            TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["Connection"].Length != 0);
             (string[] names, string[] disabledViews) = clientMetrics.GetMetricsViewNames();
             TestHelper.Assert(names.Length == 1 && disabledViews.Length == 0);
 
             props["IceMX.Metrics.View.Disabled"] = "1";
             UpdateProps(clientProps, serverProps, update, props, "Connection");
-            TestHelper.Assert(!clientMetrics.GetMetricsView("View").ReturnValue.ContainsKey("Connection"));
+            TestHelper.Assert(!clientMetrics.GetMetricsView("View").MetricsView.ContainsKey("Connection"));
             (names, disabledViews) = clientMetrics.GetMetricsViewNames();
             TestHelper.Assert(names.Length == 0 && disabledViews.Length == 1);
 
             clientMetrics.EnableMetricsView("View");
-            TestHelper.Assert(clientMetrics.GetMetricsView("View").ReturnValue["Connection"].Length != 0);
+            TestHelper.Assert(clientMetrics.GetMetricsView("View").MetricsView["Connection"].Length != 0);
             (names, disabledViews) = clientMetrics.GetMetricsViewNames();
             TestHelper.Assert(names.Length == 1 && disabledViews.Length == 0);
 
             clientMetrics.DisableMetricsView("View");
-            TestHelper.Assert(!clientMetrics.GetMetricsView("View").ReturnValue.ContainsKey("Connection"));
+            TestHelper.Assert(!clientMetrics.GetMetricsView("View").MetricsView.ContainsKey("Connection"));
             (names, disabledViews) = clientMetrics.GetMetricsViewNames();
             TestHelper.Assert(names.Length == 0 && disabledViews.Length == 1);
 

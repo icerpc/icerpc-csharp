@@ -4,17 +4,7 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-
-[[js:module(ice)]]
-
-[[python:pkgdir(Ice)]]
-
-[[java:package(com.zeroc)]]
 
 [[3.7]] // TODO, temporary
 
@@ -45,9 +35,9 @@ module Ice
     /// A sequence of strings.
     sequence<string> StringSeq;
 
-    /// A sequence of objects.
-    sequence<Object> ObjectSeq;
+    /// A sequence of classes.
+    sequence<AnyClass> ClassSeq;
 
-    /// A sequence of object proxies.
-    sequence<Object*> ObjectProxySeq;
+    /// A sequence of proxies.
+    sequence<Object?> ProxySeq;
 }

@@ -4,13 +4,9 @@
 
 // TODO: these definitions moved to Ice/Discovery.ice. Remove this file when all languages mappings are updated.
 
-[[cpp:doxygen:include(IceDiscovery/IceDiscovery.h)]]
-[[cpp:header-ext(h)]]
 
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
 
-[[python:pkgdir(IceDiscovery)]]
 
 #include <Ice/Identity.ice>
 
@@ -18,7 +14,6 @@
 /// adapters using UDP multicast. It also implements the {@link Ice::LocatorDiscovery} interface to allow servers to
 /// respond to such multicast discovery requests.
 [cs:namespace(ZeroC)]
-[java:package(com.zeroc)]
 module IceDiscovery
 {
     interface LookupReply;

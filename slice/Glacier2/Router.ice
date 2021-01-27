@@ -4,20 +4,13 @@
 
 #pragma once
 
-[[cpp:dll-export(GLACIER2_API)]]
-[[cpp:doxygen:include(Glacier2/Glacier2.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(Glacier2/Config.h)]]
 
-[[js:module(ice)]]
 
-[[python:pkgdir(Glacier2)]]
 
 #include <Ice/Router.ice>
 #include <Glacier2/Session.ice>
 #include <Glacier2/PermissionsVerifier.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 /// Glacier2 is a firewall solution for Ice. Glacier2 authenticates
 /// and filters client requests and allows callbacks to the client in a
@@ -43,7 +36,7 @@ module Glacier2
         /// string.
         ///
         /// @return The category.
-        [nonmutating] [cpp:const] idempotent string getCategoryForClient();
+        [nonmutating] idempotent string getCategoryForClient();
 
         /// Create a per-client session with the router. If a
         /// {@link SessionManager} has been installed, a proxy to a {@link Session}
@@ -74,8 +67,7 @@ module Glacier2
         ///
         /// @throws CannotCreateSessionException Raised if the session
         /// cannot be created.
-        [amd] [format(sliced)] Session* createSession(string userId, string password)
-            throws PermissionDeniedException, CannotCreateSessionException;
+        [amd] [format(sliced)] Session* createSession(string userId, string password);
 
         /// Create a per-client session with the router. The user is
         /// authenticated through the SSL certificates that have been
@@ -102,28 +94,25 @@ module Glacier2
         ///
         /// @throws CannotCreateSessionException Raised if the session
         /// cannot be created.
-        [amd] [format(sliced)] Session* createSessionFromSecureConnection()
-            throws PermissionDeniedException, CannotCreateSessionException;
+        [amd] [format(sliced)] Session* createSessionFromSecureConnection();
 
         /// Keep the calling client's session with this router alive.
         ///
         /// @throws SessionNotExistException Raised if no session exists
         /// for the calling client.
-        [amd] void refreshSession()
-            throws SessionNotExistException;
+        [amd] void refreshSession();
 
         /// Destroy the calling client's session with this router.
         ///
         /// @throws SessionNotExistException Raised if no session exists
         /// for the calling client.
-        void destroySession()
-            throws SessionNotExistException;
+        void destroySession();
 
         /// Get the value of the session timeout. Sessions are destroyed
         /// if they see no activity for this period of time.
         ///
         /// @return The timeout (in seconds).
-        [nonmutating] [cpp:const] idempotent long getSessionTimeout();
+        [nonmutating] idempotent long getSessionTimeout();
 
         /// Get the value of the ACM timeout. Clients supporting connection
         /// heartbeats can enable them instead of explicitly sending keep
@@ -132,6 +121,6 @@ module Glacier2
         /// NOTE: This method is only available since Ice 3.6.
         ///
         /// @return The timeout (in seconds).
-        [nonmutating] [cpp:const] idempotent int getACMTimeout();
+        [nonmutating] idempotent int getACMTimeout();
     }
 }

@@ -4,20 +4,13 @@
 
 #pragma once
 
-[[cpp:dll-export(ICEGRID_API)]]
-[[cpp:doxygen:include(IceGrid/IceGrid.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceGrid/Config.h)]]
 
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
 
-[[python:pkgdir(IceGrid)]]
 
 #include <Glacier2/Session.ice>
 #include <IceGrid/Exception.ice>
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module IceGrid
 {
@@ -51,8 +44,7 @@ module IceGrid
         ///
         /// @see #setAllocationTimeout
         /// @see #releaseObject
-        [amd] Object* allocateObjectById(Ice::Identity id)
-            throws ObjectNotRegisteredException, AllocationException;
+        [amd] Object* allocateObjectById(Ice::Identity id);
 
         /// Allocate an object with the given type. Depending on the
         /// allocation timeout, this operation can block until an object
@@ -66,8 +58,7 @@ module IceGrid
         ///
         /// @see #setAllocationTimeout
         /// @see #releaseObject
-        [amd] Object* allocateObjectByType(string type)
-            throws AllocationException;
+        [amd] Object* allocateObjectByType(string type);
 
         /// Release an object that was allocated using <code>allocateObjectById</code> or
         /// <code>allocateObjectByType</code>.
@@ -80,8 +71,7 @@ module IceGrid
         /// @throws AllocationException Raised if the given object can't be
         /// released. This might happen if the object isn't allocatable or
         /// isn't allocated by the session.
-        void releaseObject(Ice::Identity id)
-            throws ObjectNotRegisteredException, AllocationException;
+        void releaseObject(Ice::Identity id);
 
         /// Set the allocation timeout. If no objects are available for an
         /// allocation request, a call to <code>allocateObjectById</code> or

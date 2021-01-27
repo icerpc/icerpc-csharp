@@ -2,20 +2,11 @@
 
 #pragma once
 
-[[cpp:dll-export(ICE_API)]]
-[[cpp:doxygen:include(Ice/Ice.h)]]
-[[cpp:header-ext(h)]]
-
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
 
-[[python:pkgdir(Ice)]]
-
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module Ice
 {
-#ifdef __SLICE2CS__
     // These definitions help with the encoding of Slic frames.
     module Slic
     {
@@ -61,5 +52,4 @@ module Ice
             varulong applicationProtocolErrorCode;
         }
     }
-#endif
 }

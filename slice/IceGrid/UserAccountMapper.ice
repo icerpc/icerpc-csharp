@@ -4,17 +4,10 @@
 
 #pragma once
 
-[[cpp:dll-export(ICEGRID_API)]]
-[[cpp:doxygen:include(IceGrid/IceGrid.h)]]
-[[cpp:header-ext(h)]]
-[[cpp:include(IceGrid/Config.h)]]
 
 [[suppress-warning(reserved-identifier)]]
-[[js:module(ice)]]
 
-[[python:pkgdir(IceGrid)]]
 
-[[java:package(com.zeroc)]]
 [cs:namespace(ZeroC)]
 module IceGrid
 {
@@ -41,7 +34,6 @@ module IceGrid
         ///
         /// @throws UserAccountNotFoundException Raised if no user account
         /// is found for the given user.
-        string getUserAccount(string user)
-            throws UserAccountNotFoundException;
+        string getUserAccount(string user);
     }
 }
