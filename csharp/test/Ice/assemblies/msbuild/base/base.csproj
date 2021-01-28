@@ -12,9 +12,4 @@
   <ItemGroup>
     <SliceCompile Include="../../Base.ice" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="generated/Base.cs">
-      <SliceCompileSource>../../Base.ice</SliceCompileSource>
-    </Compile>
-  </ItemGroup>
 </Project>
