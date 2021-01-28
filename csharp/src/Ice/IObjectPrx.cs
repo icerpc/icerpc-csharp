@@ -203,10 +203,6 @@ namespace ZeroC.Ice
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol => IceReference.Protocol;
 
-        /// <summary>The router associated with this proxy. This property is null when no router is associated with this
-        /// proxy.</summary>
-        public IRouterPrx? Router => IceReference.RouterInfo?.Router;
-
         /// <summary>Indicates whether the two proxy operands are equal.</summary>
         /// <param name="lhs">The left hand-side operand.</param>
         /// <param name="rhs">The right hand-side operand.</param>

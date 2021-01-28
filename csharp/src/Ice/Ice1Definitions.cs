@@ -135,16 +135,7 @@ namespace ZeroC.Ice
                 if (istr?.ReadIce1SystemException(replyStatus) is ObjectNotExistException one)
                 {
                     // 1.1 System exceptions
-                    if (reference.RouterInfo != null && one.Origin!.Value.Operation == "ice_add_proxy")
-                    {
-                        // If we have a router, an ObjectNotExistException with an operation name
-                        // "ice_add_proxy" indicates to the client that the router isn't aware of the proxy
-                        // (for example, because it was evicted by the router). In this case, we must
-                        // *always* retry, so that the missing proxy is added to the router.
-                        reference.RouterInfo.ClearCache(reference);
-                        return RetryPolicy.AfterDelay(TimeSpan.Zero);
-                    }
-                    else if (reference.IsIndirect)
+                    if (reference.IsIndirect)
                     {
                         if (reference.IsWellKnown)
                         {

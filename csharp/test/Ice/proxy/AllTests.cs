@@ -701,23 +701,7 @@ namespace ZeroC.Ice.Test.Proxy
             }
             TestHelper.Assert(b1.IsRelative);
 
-            if (ice1)
-            {
-                string property = propertyPrefix + ".Router";
-                TestHelper.Assert(b1.Router == null);
-                communicator.SetProperty(property, "ice+tcp://host:10000/router");
-                try
-                {
-                    b1 = communicator.GetPropertyAsProxy(propertyPrefix, IObjectPrx.Factory)!;
-                    TestHelper.Assert(false);
-                }
-                catch (InvalidConfigurationException)
-                {
-                    // expected: a router must be an ice1 proxy
-                }
-                communicator.RemoveProperty(property);
-            }
-            else
+            if (!ice1)
             {
                 string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
                     "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";
@@ -746,7 +730,6 @@ namespace ZeroC.Ice.Test.Proxy
 
             Dictionary<string, string> proxyProps = b1.ToProperty("Test");
             // InvocationTimeout is a property with ice1 and an URI option with ice2 so the extra property with ice1.
-            // Also no router properties with ice2.
             TestHelper.Assert(proxyProps.Count == (ice1 ? 4 : 1));
 
             TestHelper.Assert(proxyProps["Test"] ==
@@ -759,21 +742,10 @@ namespace ZeroC.Ice.Test.Proxy
                 TestHelper.Assert(proxyProps["Test.PreferNonSecure"] == "Never");
             }
 
-            IRouterPrx? router = null;
-
-            if (ice1)
-            {
-                router = IRouterPrx.Parse("router", communicator).Clone(
-                    cacheConnection: true,
-                    preferExistingConnection: true,
-                    preferNonSecure: NonSecure.Always);
-            }
-
             ILocatorPrx? locator = ILocatorPrx.Parse(ice1 ? "locator" : "ice:locator", communicator).Clone(
                 cacheConnection: false,
                 preferExistingConnection: false,
-                preferNonSecure: NonSecure.Always,
-                router: router);
+                preferNonSecure: NonSecure.Always);
 
             b1 = b1.Clone(endpoints: ImmutableArray<Endpoint>.Empty,
                           locatorCacheTimeout: TimeSpan.FromSeconds(100),
@@ -781,7 +753,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             proxyProps = b1.ToProperty("Test");
 
-            TestHelper.Assert(proxyProps.Count == (ice1 ? 12 : 1), $"count: {proxyProps.Count}");
+            TestHelper.Assert(proxyProps.Count == (ice1 ? 9 : 1), $"count: {proxyProps.Count}");
             TestHelper.Assert(proxyProps["Test"] == (ice1 ? "test -t -e 1.1" :
                 "ice:test?invocation-timeout=10s&locator-cache-timeout=100s&prefer-existing-connection=true&prefer-non-secure=never"));
 
@@ -795,8 +767,6 @@ namespace ZeroC.Ice.Test.Proxy
                 TestHelper.Assert(proxyProps["Test.LocatorCacheTimeout"] == "100s");
                 TestHelper.Assert(proxyProps["Test.Locator.PreferExistingConnection"] == "false");
                 TestHelper.Assert(proxyProps["Test.Locator.PreferNonSecure"] == "Always");
-                TestHelper.Assert(proxyProps["Test.Locator.Router"] == "router -t -e 1.1");
-                TestHelper.Assert(proxyProps["Test.Locator.Router.PreferNonSecure"] == "Always");
             }
 
             output.WriteLine("ok");
@@ -914,17 +884,6 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(!compObj.Clone(locator: loc1).Equals(compObj.Clone(clearLocator: true)));
             TestHelper.Assert(!compObj.Clone(clearLocator: true).Equals(compObj.Clone(locator: loc2)));
             TestHelper.Assert(!compObj.Clone(locator: loc1).Equals(compObj.Clone(locator: loc2)));
-
-            if (ice1)
-            {
-                var rtr1 = IRouterPrx.Parse("rtr1:tcp -h host -p 10000", communicator);
-                var rtr2 = IRouterPrx.Parse("rtr2:tcp -h host -p 10000", communicator);
-                TestHelper.Assert(compObj.Clone(clearRouter: true).Equals(compObj.Clone(clearRouter: true)));
-                TestHelper.Assert(compObj.Clone(router: rtr1).Equals(compObj.Clone(router: rtr1)));
-                TestHelper.Assert(!compObj.Clone(router: rtr1).Equals(compObj.Clone(clearRouter: true)));
-                TestHelper.Assert(!compObj.Clone(clearRouter: true).Equals(compObj.Clone(router: rtr2)));
-                TestHelper.Assert(!compObj.Clone(router: rtr1).Equals(compObj.Clone(router: rtr2)));
-            }
 
             var ctx1 = new Dictionary<string, string>
             {

@@ -24,9 +24,6 @@
         <Compile Update="generated\Process.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Process.ice</SliceCompileSource>
         </Compile>
-        <Compile Update="generated\Router.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\Router.ice</SliceCompileSource>
-        </Compile>
         <Compile Update="generated\Encoding.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Encoding.ice</SliceCompileSource>
         </Compile>

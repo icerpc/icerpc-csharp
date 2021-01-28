@@ -143,15 +143,6 @@ namespace ZeroC.Ice
         /// communicator.</summary>
         public TimeSpan DefaultLocatorCacheTimeout { get; }
 
-        /// <summary>The default router for this communicator. To disable the default router, null can be used.
-        /// All newly created proxies will use this default router. Note that setting this property has no effect on
-        /// existing proxies.</summary>
-        public IRouterPrx? DefaultRouter
-        {
-            get => _defaultRouter;
-            set => _defaultRouter = value;
-        }
-
         /// <summary>The logger for this communicator.</summary>
         public ILogger Logger
         {
@@ -236,7 +227,6 @@ namespace ZeroC.Ice
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
         private volatile ILocatorPrx? _defaultLocator;
-        private volatile IRouterPrx? _defaultRouter;
         private volatile ImmutableList<DispatchInterceptor> _defaultDispatchInterceptors =
             ImmutableList<DispatchInterceptor>.Empty;
         private Task? _destroyTask;
@@ -261,7 +251,7 @@ namespace ZeroC.Ice
         private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin?, RemoteException>?> _remoteExceptionFactoryCache =
             new();
         private int _retryBufferSize;
-        private readonly ConcurrentDictionary<IRouterPrx, RouterInfo> _routerInfoTable = new();
+
         private readonly Dictionary<Transport, BufWarnSizeInfo> _setBufWarnSize = new();
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -641,10 +631,7 @@ namespace ZeroC.Ice
 
             Observer?.SetObserverUpdater(new ObserverUpdater(this));
 
-            // The default router/locator may have been set during the loading of plugins.
-            // Therefore we only set it if it hasn't already been set.
-
-            if (_defaultLocator == null && GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
+            if (GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
             {
                 if (defaultLocatorValue.Equals("discovery", StringComparison.OrdinalIgnoreCase))
                 {
@@ -663,15 +650,6 @@ namespace ZeroC.Ice
                         throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
                     }
                 }
-            }
-
-            try
-            {
-                _defaultRouter ??= this.GetPropertyAsProxy("Ice.Default.Router", IRouterPrx.Factory);
-            }
-            catch (FormatException ex)
-            {
-                throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
             }
 
             // Show process id if requested (but only once).
@@ -1048,16 +1026,6 @@ namespace ZeroC.Ice
                 transportName,
                 out (Ice2EndpointParser, Transport) value) ? value : null;
 
-        internal void EraseRouterInfo(IRouterPrx? router)
-        {
-            // Removes router info for a given router.
-            if (router != null)
-            {
-                // The router cannot be routed.
-                _routerInfoTable.TryRemove(router.Clone(clearRouter: true), out RouterInfo? _);
-            }
-        }
-
         internal BufWarnSizeInfo GetBufWarnSize(Transport transport)
         {
             lock (_mutex)
@@ -1146,20 +1114,6 @@ namespace ZeroC.Ice
 
             return _locatorInfoMap.GetOrAdd(locator,
                                             locator => new LocatorInfo(locator, _backgroundLocatorCacheUpdates));
-        }
-
-        internal RouterInfo? GetRouterInfo(IRouterPrx? router)
-        {
-            // Returns router info for a given router. Automatically creates the router info if it doesn't exist yet.
-            if (router != null)
-            {
-                // The router cannot be routed.
-                return _routerInfoTable.GetOrAdd(router.Clone(clearRouter: true), key => new RouterInfo(key));
-            }
-            else
-            {
-                return null;
-            }
         }
 
         internal bool IncRetryBufferSize(int size)

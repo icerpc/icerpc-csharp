@@ -191,7 +191,6 @@ namespace ZeroC.Ice.Discovery
             // Datagram proxies do not support SSL/TLS so they can only be used with PreferNonSecure set to
             // NonSecure.Always.
             _lookup = ILookupPrx.Parse($"IceDiscovery/Lookup -d:{lookupEndpoints}", communicator).Clone(
-                clearRouter: true,
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
