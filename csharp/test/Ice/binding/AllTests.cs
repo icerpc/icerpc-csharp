@@ -56,8 +56,8 @@ namespace ZeroC.Ice.Test.Binding
                 TestHelper.Assert(test1 != null && test2 != null);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
 
-                test1.IcePing();
-                test2.IcePing();
+                await test1.IcePingAsync();
+                await test2.IcePingAsync();
 
                 com.DeactivateObjectAdapter(adapter);
 
@@ -67,7 +67,7 @@ namespace ZeroC.Ice.Test.Binding
 
                 try
                 {
-                    test3.IcePing();
+                    await test3.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ConnectFailedException)
@@ -131,7 +131,7 @@ namespace ZeroC.Ice.Test.Binding
                 TestHelper.Assert(!test2.CacheConnection && !test2.PreferExistingConnection);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
 
-                test1.IcePing();
+                await test1.IcePingAsync();
 
                 com.DeactivateObjectAdapter(adapter);
 
@@ -372,7 +372,7 @@ namespace ZeroC.Ice.Test.Binding
 
                     try
                     {
-                        testSecure.IcePing();
+                        await testSecure.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (ConnectionRefusedException)
@@ -471,7 +471,7 @@ namespace ZeroC.Ice.Test.Binding
                     {
                         await using var clientCommunicator = new Communicator();
                         prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
-                        prx.IcePing();
+                        await prx.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (ObjectNotExistException)
@@ -503,7 +503,7 @@ namespace ZeroC.Ice.Test.Binding
                     {
                         await using var clientCommunicator = new Communicator();
                         var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
-                        prx.IcePing();
+                        await prx.IcePingAsync();
                     }
                     catch (ObjectNotExistException)
                     {
@@ -530,7 +530,7 @@ namespace ZeroC.Ice.Test.Binding
                     {
                         await using var clientCommunicator = new Communicator();
                         var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
-                        prx.IcePing();
+                        await prx.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (ConnectionRefusedException)
@@ -563,7 +563,7 @@ namespace ZeroC.Ice.Test.Binding
                     {
                         await using var clientCommunicator = new Communicator();
                         var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
-                        prx.IcePing();
+                        await prx.IcePingAsync();
                     }
                     catch (ObjectNotExistException)
                     {

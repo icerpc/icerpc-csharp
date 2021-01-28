@@ -68,7 +68,7 @@ namespace ZeroC.Ice.Test.Interceptor
 
                 try
                 {
-                    prx.IcePing(ctx);
+                    await prx.IcePingAsync(ctx);
                     TestHelper.Assert(false);
                 }
                 catch (InvalidInputException) when (kind == "invalidInput")

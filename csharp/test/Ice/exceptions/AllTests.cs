@@ -403,7 +403,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 try
                 {
                     IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, identity: identity);
-                    thrower2.IcePing();
+                    await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException ex)
@@ -427,7 +427,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, facet: "no such facet");
                 try
                 {
-                    thrower2.IcePing();
+                    await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException ex)

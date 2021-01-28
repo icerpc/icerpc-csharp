@@ -237,7 +237,7 @@ namespace ZeroC.Ice.Test.Retry
 
                     IReplicatedPrx? replicated = IReplicatedPrx.Parse(sb.ToString(), communicator);
 
-                    replicated.IcePing();
+                    await replicated.IcePingAsync();
                     TestHelper.Assert(((IPConnection)replicated.GetCachedConnection()!).RemoteEndpoint!.Port ==
                                       helper.BasePort);
 
@@ -251,7 +251,7 @@ namespace ZeroC.Ice.Test.Retry
                     {
                         var nonreplicated = INonReplicatedPrx.Parse(helper.GetTestProxy("replicated"), communicator);
 
-                        nonreplicated.IcePing();
+                        await nonreplicated.IcePingAsync();
                         TestHelper.Assert(((IPConnection)nonreplicated.GetCachedConnection()!).RemoteEndpoint!.Port ==
                                           helper.BasePort);
                         nonreplicated.OtherReplica();

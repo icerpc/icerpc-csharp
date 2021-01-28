@@ -11,7 +11,7 @@ namespace ZeroC.Ice.Test.FaultTolerance
 {
     public static class AllTests
     {
-        public static Task RunAsync(TestHelper helper, List<int> ports)
+        public static async Task RunAsync(TestHelper helper, List<int> ports)
         {
             Communicator communicator = helper.Communicator;
 
@@ -101,14 +101,13 @@ namespace ZeroC.Ice.Test.FaultTolerance
             output.Flush();
             try
             {
-                obj.Clone(invocationTimeout: TimeSpan.FromMilliseconds(100)).IcePing();
+                await obj.Clone(invocationTimeout: TimeSpan.FromMilliseconds(100)).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch
             {
                 output.WriteLine("ok");
             }
-            return Task.CompletedTask;
         }
     }
 }

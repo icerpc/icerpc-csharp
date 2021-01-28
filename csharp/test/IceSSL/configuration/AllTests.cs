@@ -140,7 +140,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -167,7 +167,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -207,7 +207,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -234,7 +234,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -277,7 +277,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
                     await adapter.ActivateAsync();
                     prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                 }
                 {
                     // Initialization using TlsClientOptions and TlsServerOptions options, validate using
@@ -323,7 +323,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
                     await adapter.ActivateAsync();
                     prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                     TestHelper.Assert(clientCertificateValidationCallbackCalled);
                     TestHelper.Assert(serverCertificateValidationCallbackCalled);
                 }
@@ -424,7 +424,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (ConnectionLostException)
@@ -466,7 +466,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, false);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -489,7 +489,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -512,7 +512,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, false);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -530,7 +530,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, false);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -570,7 +570,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                             }
                             catch (Exception ex)
                             {
@@ -590,7 +590,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -611,7 +611,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                             }
                             catch
                             {
@@ -632,7 +632,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -653,7 +653,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -680,7 +680,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             server = fact.CreateServer(d);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                             }
                             catch
                             {
@@ -702,7 +702,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             server = fact.CreateServer(d);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch(Ice.SecurityException)
@@ -724,7 +724,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                             }
                             catch (TransportException ex)
                             {
@@ -748,7 +748,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, true);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -788,7 +788,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     TestHelper.Assert(server != null);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         var connection = server.GetCachedConnection() as TcpConnection;
                         TestHelper.Assert(connection != null);
                         TestHelper.Assert(connection.LocalCertificate == myCerts[0]);
@@ -835,7 +835,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             IServerPrx server = fact.CreateServer(serverProperties, false);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -854,7 +854,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             server = fact.CreateServer(serverProperties, false);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -872,7 +872,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                             server = fact.CreateServer(serverProperties, false);
                             try
                             {
-                                server.IcePing();
+                                await server.IcePingAsync();
                                 TestHelper.Assert(false);
                             }
                             catch (TransportException)
@@ -979,7 +979,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     try
                     {
                         TestHelper.Assert(server != null);
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -1011,7 +1011,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -1033,7 +1033,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     serverProperties["IceSSL.Protocols"] = "tls1_2, tls1_3";
                     IServerPrx server = fact.CreateServer(serverProperties, true);
 
-                    server.IcePing();
+                    await server.IcePingAsync();
                     fact.DestroyServer(server);
                 }
 
@@ -1046,7 +1046,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     serverProperties = CreateProperties(defaultProperties, "s_rsa_ca1", "cacert1");
                     serverProperties["IceSSL.Protocols"] = "tls1_2";
                     IServerPrx server = fact.CreateServer(serverProperties, true);
-                    server.IcePing();
+                    await server.IcePingAsync();
 
                     fact.DestroyServer(server);
                 }
@@ -1068,7 +1068,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -1091,7 +1091,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch (ConnectionLostException)
@@ -1121,7 +1121,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -1144,7 +1144,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {
@@ -1167,7 +1167,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     IServerPrx server = fact.CreateServer(serverProperties, true);
                     try
                     {
-                        server.IcePing();
+                        await server.IcePingAsync();
                     }
                     catch (Exception ex)
                     {

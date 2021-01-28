@@ -80,7 +80,7 @@ namespace ZeroC.Ice.Test.Facets
 
             output.Write("testing checked cast... ");
             output.Flush();
-            d = prx.CheckedCast(IDPrx.Factory);
+            d = await prx.CheckedCastAsync(IDPrx.Factory);
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.Facet.Length == 0);
             df = prx.Clone(IDPrx.Factory, facet: "facetABCD");

@@ -18,18 +18,22 @@ namespace ZeroC.Ice
     public static class Proxy
     {
         /// <summary>Tests whether this proxy points to a remote object derived from T. If so it returns a proxy of
-        /// type T otherwise returns null.</summary>
+        /// type T otherwise returns null. This is a convenience wrapper for <see cref="IObjectPrx.IceIsAAsync"/>.
+        /// </summary>
         /// <param name="prx">The source proxy.</param>
         /// <param name="factory">The proxy factory used to manufacture the returned proxy.</param>
-        /// <param name="context">The request context used for the remote
-        /// <see cref="IObjectPrx.IceIsA(string, IReadOnlyDictionary{string, string}?, CancellationToken)"/>
-        /// invocation.</param>
-        /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
-        public static T? CheckedCast<T>(
+        /// <param name="context">The context dictionary for the invocation.</param>
+        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A new proxy manufactured by the proxy factory, or null.</returns>
+        public static async Task<T?> CheckedCastAsync<T>(
             this IObjectPrx prx,
             ProxyFactory<T> factory,
-            IReadOnlyDictionary<string, string>? context = null) where T : class, IObjectPrx =>
-            prx.IceIsA(typeof(T).GetIceTypeId()!, context) ? factory(prx.IceReference) : null;
+            IReadOnlyDictionary<string, string>? context = null,
+            IProgress<bool>? progress = null,
+            CancellationToken cancel = default) where T : class, IObjectPrx =>
+            await prx.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
+                factory(prx.IceReference) : null;
 
         /// <summary>Creates a clone of this proxy, with a new identity and optionally other options. The clone
         /// is identical to this proxy except for its identity and other options set through parameters.</summary>
