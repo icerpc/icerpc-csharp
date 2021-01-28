@@ -193,7 +193,6 @@ namespace ZeroC.Ice
         internal bool KeepAlive { get; }
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
-        internal INetworkProxy? NetworkProxy { get; }
         internal int SlicPacketMaxSize { get; }
 
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
@@ -559,8 +558,6 @@ namespace ZeroC.Ice
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
 
             _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
-
-            NetworkProxy = CreateNetworkProxy(Network.EnableBoth);
 
             SslEngine = new SslEngine(this, tlsClientOptions, tlsServerOptions);
 
@@ -1282,27 +1279,6 @@ namespace ZeroC.Ice
                     return t;
                 }
             }
-            return null;
-        }
-
-        private INetworkProxy? CreateNetworkProxy(int protocolSupport)
-        {
-            string? proxyHost = GetProperty("Ice.SOCKSProxyHost");
-            if (proxyHost != null)
-            {
-                if (protocolSupport == Network.EnableIPv6)
-                {
-                    throw new InvalidConfigurationException("IPv6 only is not supported with SOCKS4 proxies");
-                }
-                return new SOCKSNetworkProxy(proxyHost, this.GetPropertyAsInt("Ice.SOCKSProxyPort") ?? 1080);
-            }
-
-            proxyHost = GetProperty("Ice.HTTPProxyHost");
-            if (proxyHost != null)
-            {
-                return new HTTPNetworkProxy(proxyHost, this.GetPropertyAsInt("Ice.HTTPProxyPort") ?? 1080);
-            }
-
             return null;
         }
 

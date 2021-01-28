@@ -402,7 +402,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal static string SocketToString(Socket socket, INetworkProxy? proxy, EndPoint? target)
+        internal static string SocketToString(Socket socket, EndPoint? target)
         {
             try
             {
@@ -415,23 +415,11 @@ namespace ZeroC.Ice
 
                 var s = new System.Text.StringBuilder();
                 s.Append("local address = " + LocalAddrToString(GetLocalAddress(socket)));
-                if (proxy != null)
+                if (remote == null)
                 {
-                    if (remote == null)
-                    {
-                        remote = proxy.Address;
-                    }
-                    s.Append("\n" + proxy.Name + " proxy address = " + RemoteAddrToString(remote));
-                    s.Append("\nremote address = " + RemoteAddrToString(target));
+                    remote = target;
                 }
-                else
-                {
-                    if (remote == null)
-                    {
-                        remote = target;
-                    }
-                    s.Append("\nremote address = " + RemoteAddrToString(remote));
-                }
+                s.Append("\nremote address = " + RemoteAddrToString(remote));
                 return s.ToString();
             }
             catch (ObjectDisposedException)
