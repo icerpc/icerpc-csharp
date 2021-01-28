@@ -113,11 +113,7 @@ namespace ZeroC.Ice
             endpointLookupObserver?.Attach();
             try
             {
-                addresses = await Network.GetAddressesForClientEndpointAsync(
-                    Host,
-                    Port,
-                    Network.EnableBoth,
-                    cancel).ConfigureAwait(false);
+                addresses = await Network.GetAddressesForClientEndpointAsync(Host, Port, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
