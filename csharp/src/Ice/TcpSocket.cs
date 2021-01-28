@@ -18,7 +18,6 @@ namespace ZeroC.Ice
         private readonly EndPoint? _addr;
         private readonly Communicator _communicator;
         private string _desc;
-        private readonly INetworkProxy? _proxy;
         private readonly IPAddress? _sourceAddr;
 
         public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => new ValueTask();
@@ -35,15 +34,10 @@ namespace ZeroC.Ice
                         Socket.Bind(new IPEndPoint(_sourceAddr, 0));
                     }
 
-                    // Connect to the server or proxy server.
-                    await Socket.ConnectAsync(_proxy?.Address ?? _addr, cancel).ConfigureAwait(false);
+                    // Connect to the server.
+                    await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                    _desc = Network.SocketToString(Socket, _proxy, _addr);
-
-                    if (_proxy != null)
-                    {
-                        await _proxy.ConnectAsync(Socket, _addr, cancel).ConfigureAwait(false);
-                    }
+                    _desc = Network.SocketToString(Socket, _addr);
                 }
                 catch (SocketException) when (cancel.IsCancellationRequested)
                 {
@@ -130,15 +124,13 @@ namespace ZeroC.Ice
         internal TcpSocket(
             Communicator communicator,
             EndPoint addr,
-            INetworkProxy? proxy,
             IPAddress? sourceAddr)
         {
             _communicator = communicator;
-            _proxy = proxy;
             _addr = addr;
             _desc = "";
             _sourceAddr = sourceAddr;
-            Socket = Network.CreateSocket(false, (_proxy != null ? _proxy.Address : _addr).AddressFamily);
+            Socket = Network.CreateSocket(false, _addr.AddressFamily);
             try
             {
                 Network.SetBufSize(Socket, _communicator, Transport.TCP);

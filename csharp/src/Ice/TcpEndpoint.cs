@@ -201,10 +201,9 @@ namespace ZeroC.Ice
         protected internal override Connection CreateConnection(
             bool secureOnly,
             IPEndPoint address,
-            INetworkProxy? proxy,
             object? label)
         {
-            SingleStreamSocket socket = CreateSocket(address, proxy, preferNonSecure: !secureOnly);
+            SingleStreamSocket socket = CreateSocket(address, preferNonSecure: !secureOnly);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),
@@ -307,10 +306,9 @@ namespace ZeroC.Ice
 
         internal virtual SingleStreamSocket CreateSocket(
             EndPoint addr,
-            INetworkProxy? proxy,
             bool preferNonSecure)
         {
-            SingleStreamSocket singleStreamSocket = new TcpSocket(Communicator, addr, proxy, SourceAddress);
+            SingleStreamSocket singleStreamSocket = new TcpSocket(Communicator, addr, SourceAddress);
             if (IsAlwaysSecure || !preferNonSecure)
             {
                 singleStreamSocket = new SslSocket(Communicator, singleStreamSocket, Host, false);
