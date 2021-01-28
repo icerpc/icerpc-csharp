@@ -133,7 +133,6 @@ namespace ZeroC.Ice
         protected internal override Connection CreateConnection(
             bool secureOnly,
             IPEndPoint address,
-            INetworkProxy? proxy,
             object? label)
         {
             Debug.Assert(secureOnly == false);

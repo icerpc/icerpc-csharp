@@ -108,22 +108,12 @@ namespace ZeroC.Ice
             object? label,
             CancellationToken cancel)
         {
-            INetworkProxy? networkProxy;
             IReadOnlyList<IPEndPoint> addresses;
             IObserver? endpointLookupObserver = Communicator.Observer?.GetEndpointLookupObserver(this);
             endpointLookupObserver?.Attach();
             try
             {
-                networkProxy = Communicator.NetworkProxy;
-                if (networkProxy != null)
-                {
-                    networkProxy = await networkProxy.ResolveHostAsync(cancel).ConfigureAwait(false);
-                }
-                addresses = await Network.GetAddressesForClientEndpointAsync(
-                    Host,
-                    Port,
-                    networkProxy?.IPVersion ?? Network.EnableBoth,
-                    cancel).ConfigureAwait(false);
+                addresses = await Network.GetAddressesForClientEndpointAsync(Host, Port, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -151,7 +141,7 @@ namespace ZeroC.Ice
                         NonSecure.Always => false,
                         _ => true
                     };
-                    connection = CreateConnection(secureOnly, address, networkProxy, label);
+                    connection = CreateConnection(secureOnly, address, label);
                     await connection.InitializeAsync(cancel).ConfigureAwait(false);
                     break;
                 }
@@ -176,7 +166,6 @@ namespace ZeroC.Ice
         protected internal abstract Connection CreateConnection(
             bool secureOnly,
             IPEndPoint address,
-            INetworkProxy? proxy,
             object? label);
 
         protected internal override void WriteOptions(OutputStream ostr)

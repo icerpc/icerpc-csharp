@@ -167,9 +167,8 @@ namespace ZeroC.Ice
 
         internal override SingleStreamSocket CreateSocket(
             EndPoint addr,
-            INetworkProxy? proxy,
             bool preferNonSecure) =>
-            new WSSocket(Communicator, base.CreateSocket(addr, proxy, preferNonSecure), Host, Resource);
+            new WSSocket(Communicator, base.CreateSocket(addr, preferNonSecure), Host, Resource);
 
         internal override SingleStreamSocket CreateSocket(Socket socket, string adapterName, bool preferNonSecure) =>
             new WSSocket(Communicator, base.CreateSocket(socket, adapterName, preferNonSecure));
