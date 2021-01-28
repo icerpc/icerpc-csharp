@@ -1,24 +1,45 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 using ZeroC.Ice;
 
 namespace IceRPC.Ice.Tests
 {
-    public class ProxyTest
+    public class ProxyTestFixture : IAsyncLifetime
     {
+        public Communicator Communicator { get; }
+        public ProxyTestFixture() => Communicator = new Communicator();
+
+        public Task InitializeAsync() => Task.CompletedTask;
+        public async Task DisposeAsync() => await Communicator.DisposeAsync();
+    }
+
+    public class ProxyTest : IClassFixture<ProxyTestFixture>
+    {
+        private readonly ITestOutputHelper _output;
+        private ProxyTestFixture _fixture;
+
+        public ProxyTest(ITestOutputHelper output, ProxyTestFixture fixture)
+        {
+            _output = output;
+            _fixture = fixture;
+        }
+
+
         [Theory]
         [ClassData(typeof(TestProxyParsingData))]
-        public async Task TestProxyParsingAsync(string str)
+        public void TestProxyParsing(string str)
         {
-            await using var communicator = new Communicator();
-            var prx = IObjectPrx.Parse(str, communicator);
+            var prx = IObjectPrx.Parse(str, _fixture.Communicator);
             Assert.Equal(Protocol.Ice2, prx.Protocol);
-            // output.WriteLine($"{str} = {prx}");
-            var prx2 = IObjectPrx.Parse(prx.ToString()!, communicator);
+            _output.WriteLine($"{str} = {prx}");
+            var prx2 = IObjectPrx.Parse(prx.ToString()!, _fixture.Communicator);
             Assert.Equal(prx, prx2); // round-trip works
         }
+
         public class TestProxyParsingData : IEnumerable<object[]>
         {
             public IEnumerator<object[]> GetEnumerator()
@@ -49,7 +70,7 @@ namespace IceRPC.Ice.Tests
 
             IEnumerator IEnumerable.GetEnumerator()
             {
-                throw new System.NotImplementedException();
+                throw new NotImplementedException();
             }
         }
     }
