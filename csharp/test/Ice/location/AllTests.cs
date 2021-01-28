@@ -89,17 +89,17 @@ namespace ZeroC.Ice.Test.Location
 
             output.Write("testing checked cast... ");
             output.Flush();
-            var obj1 = base1.CheckedCast(ITestIntfPrx.Factory);
+            var obj1 = await base1.CheckedCastAsync(ITestIntfPrx.Factory);
             TestHelper.Assert(obj1 != null);
-            var obj2 = base2.CheckedCast(ITestIntfPrx.Factory);
+            var obj2 = await base2.CheckedCastAsync(ITestIntfPrx.Factory);
             TestHelper.Assert(obj2 != null);
-            var obj3 = base3.CheckedCast(ITestIntfPrx.Factory);
+            var obj3 = await base3.CheckedCastAsync(ITestIntfPrx.Factory);
             TestHelper.Assert(obj3 != null);
-            var obj4 = base4.CheckedCast(IServerManagerPrx.Factory);
+            var obj4 = await base4.CheckedCastAsync(IServerManagerPrx.Factory);
             TestHelper.Assert(obj4 != null);
-            var obj5 = base5.CheckedCast(ITestIntfPrx.Factory);
+            var obj5 = await base5.CheckedCastAsync(ITestIntfPrx.Factory);
             TestHelper.Assert(obj5 != null);
-            var obj6 = base6.CheckedCast(ITestIntfPrx.Factory);
+            var obj6 = await base6.CheckedCastAsync(ITestIntfPrx.Factory);
             TestHelper.Assert(obj6 != null);
             output.WriteLine("ok");
 
@@ -193,7 +193,7 @@ namespace ZeroC.Ice.Test.Location
             manager.StartServer();
             try
             {
-                obj5 = base5.CheckedCast(ITestIntfPrx.Factory);
+                obj5 = await base5.CheckedCastAsync(ITestIntfPrx.Factory);
                 TestHelper.Assert(obj5 != null);
                 obj5.IcePing();
             }
@@ -208,7 +208,7 @@ namespace ZeroC.Ice.Test.Location
             try
             {
                 base1 = IObjectPrx.Parse(ice1 ? "unknown/unknown" : "ice:unknown/unknown", communicator);
-                base1.IcePing();
+                await base1.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (NoEndpointException)
@@ -668,13 +668,13 @@ namespace ZeroC.Ice.Test.Location
             TestHelper.Assert(await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             // Ensure that calls on the indirect proxy (with adapter ID) is colocated
-            helloPrx = adapter.CreateProxy(id, IObjectPrx.Factory).CheckedCast(IHelloPrx.Factory);
+            helloPrx = await adapter.CreateProxy(id, IObjectPrx.Factory).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             // Ensure that calls on the direct proxy is colocated
-            helloPrx = adapter.CreateProxy(id, IObjectPrx.Factory).Clone(
+            helloPrx = await adapter.CreateProxy(id, IObjectPrx.Factory).Clone(
                 endpoints: adapter.PublishedEndpoints,
-                location: ImmutableArray<string>.Empty).CheckedCast(IHelloPrx.Factory);
+                location: ImmutableArray<string>.Empty).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             output.WriteLine("ok");

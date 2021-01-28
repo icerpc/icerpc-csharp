@@ -985,9 +985,9 @@ namespace ZeroC.Ice.Test.Proxy
 
             output.Write("testing checked cast... ");
             output.Flush();
-            var cl = baseProxy.CheckedCast(IMyClassPrx.Factory);
+            var cl = await baseProxy.CheckedCastAsync(IMyClassPrx.Factory);
             TestHelper.Assert(cl != null);
-            var derived = cl.CheckedCast(IMyDerivedClassPrx.Factory);
+            var derived = await cl.CheckedCastAsync(IMyDerivedClassPrx.Factory);
             TestHelper.Assert(derived != null);
             TestHelper.Assert(cl.Equals(baseProxy));
             TestHelper.Assert(derived.Equals(baseProxy));
@@ -1013,7 +1013,7 @@ namespace ZeroC.Ice.Test.Proxy
                 ["one"] = "hello",
                 ["two"] = "world"
             };
-            cl = baseProxy.CheckedCast(IMyClassPrx.Factory, c);
+            cl = await baseProxy.CheckedCastAsync(IMyClassPrx.Factory, c);
             SortedDictionary<string, string> c2 = cl!.GetContext();
             TestHelper.Assert(c.DictionaryEqual(c2));
             output.WriteLine("ok");
