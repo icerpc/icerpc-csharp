@@ -612,13 +612,6 @@ namespace ZeroC.Ice
 
             if (_adminEnabled)
             {
-                // Process facet
-                string processFacetName = "Process";
-                if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(processFacetName))
-                {
-                    _adminFacets.Add(processFacetName, new Process(this));
-                }
-
                 // Metrics facet
                 string metricsFacetName = "Metrics";
                 if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(metricsFacetName))
@@ -763,7 +756,6 @@ namespace ZeroC.Ice
                 // We need to activate the newly created adminAdapter
                 await adminAdapter.ActivateAsync(cancel).ConfigureAwait(false);
             }
-            await SetServerProcessProxyAsync(adminAdapter, adminIdentity, cancel).ConfigureAwait(false);
             return adminAdapter.CreateProxy(adminIdentity, IObjectPrx.Factory);
         }
 
@@ -917,7 +909,6 @@ namespace ZeroC.Ice
             // _adminAdapter and _adminIdentity are read-only at this point.
 
             await _adminAdapter.ActivateAsync(cancel).ConfigureAwait(false);
-            await SetServerProcessProxyAsync(_adminAdapter, _adminIdentity, cancel).ConfigureAwait(false);
             return _adminAdapter.CreateProxy(_adminIdentity, IObjectPrx.Factory);
         }
 
@@ -1261,61 +1252,6 @@ namespace ZeroC.Ice
             catch (PlatformNotSupportedException)
             {
                 // Some platforms like UWP do not support using GetReferencedAssemblies
-            }
-        }
-
-        private async ValueTask SetServerProcessProxyAsync(
-            ObjectAdapter adminAdapter,
-            Identity adminIdentity,
-            CancellationToken cancel)
-        {
-            if (GetProperty("Ice.Admin.ServerId") is string serverId && adminAdapter.Locator is ILocatorPrx locator)
-            {
-                ILocatorRegistryPrx? locatorRegistry;
-
-                try
-                {
-                    locatorRegistry =
-                        await GetLocatorInfo(locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (TraceLevels.Locator >= 1)
-                    {
-                        Logger.Trace(TraceLevels.LocatorCategory, $"failed to retrieve locator registry:\n{ex}");
-                    }
-                    return;
-                }
-
-                if (locatorRegistry == null)
-                {
-                    return;
-                }
-
-                IProcessPrx process = adminAdapter.CreateProxy(adminIdentity, "Process", IProcessPrx.Factory);
-                try
-                {
-                    // Note that as soon as the process proxy is registered, the communicator might be shutdown by a
-                    // remote client and admin facets might start receiving calls.
-                    await locatorRegistry.SetServerProcessProxyAsync(serverId, process, cancel: cancel).
-                        ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (TraceLevels.Locator >= 1)
-                    {
-                        Logger.Trace(
-                            TraceLevels.LocatorCategory,
-                            $"could not register server `{serverId}' with the locator registry:\n{ex}");
-                    }
-                    throw;
-                }
-
-                if (TraceLevels.Locator >= 1)
-                {
-                    Logger.Trace(TraceLevels.LocatorCategory,
-                                 $"registered server `{serverId}' with the locator registry");
-                }
             }
         }
 
