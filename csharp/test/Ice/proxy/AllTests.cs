@@ -994,7 +994,7 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(cl.Equals(derived));
             try
             {
-                cl.Clone(IMyDerivedClassPrx.Factory, facet: "facet").IcePing();
+                await cl.Clone(IMyDerivedClassPrx.Factory, facet: "facet").IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ObjectNotExistException)
@@ -1094,7 +1094,7 @@ namespace ZeroC.Ice.Test.Proxy
                                  }),
                     ICallbackPrx.Factory).Clone(encoding: Encoding.V20, relative: true);
                 TestHelper.Assert(callback.IsRelative);
-                callback.IcePing(); // colocated call
+                await callback.IcePingAsync(); // colocated call
 
                 IRelativeTestPrx relativeTest = cl.Clone(encoding: Encoding.V20).OpRelative(callback);
                 TestHelper.Assert(relativeTest.Endpoints == cl.Endpoints); // reference equality
@@ -1111,7 +1111,7 @@ namespace ZeroC.Ice.Test.Proxy
                     TestHelper.Assert(!cl.IsFixed);
                     IMyClassPrx prx = cl.Clone(fixedConnection: connection2);
                     TestHelper.Assert(prx.IsFixed);
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                     TestHelper.Assert(cl.Clone(IObjectPrx.Factory,
                                                facet: "facet",
                                                fixedConnection: connection2).Facet == "facet");
@@ -1144,7 +1144,7 @@ namespace ZeroC.Ice.Test.Proxy
             IMyClassPrx cl13 = IMyClassPrx.Parse(ref13, communicator).Clone(encoding: new Encoding(1, 3));
             try
             {
-                cl13.IcePing();
+                await cl13.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (NotSupportedException)
@@ -1166,7 +1166,7 @@ namespace ZeroC.Ice.Test.Proxy
                 var cl3 = IMyClassPrx.Parse(ref3, communicator);
                 try
                 {
-                    cl3.IcePing();
+                    await cl3.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NotSupportedException)

@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.NetworkProxy
             output.Write("testing connection... ");
             output.Flush();
             {
-                testPrx.IcePing();
+                await testPrx.IcePingAsync();
             }
             output.WriteLine("ok");
 
@@ -46,7 +46,7 @@ namespace ZeroC.Ice.Test.NetworkProxy
             {
                 try
                 {
-                    testPrx.IcePing();
+                    await testPrx.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch

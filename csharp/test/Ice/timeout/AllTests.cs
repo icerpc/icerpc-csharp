@@ -70,7 +70,7 @@ namespace ZeroC.Ice.Test.Timeout
             output.Write("testing invocation timeout... ");
             output.Flush();
             {
-                timeout.IcePing(); // Makes sure a working connection is associated with the proxy
+                await timeout.IcePingAsync(); // Makes sure a working connection is associated with the proxy
                 Connection connection = await timeout.GetConnectionAsync();
                 try
                 {
@@ -80,7 +80,7 @@ namespace ZeroC.Ice.Test.Timeout
                 catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
                 {
                 }
-                timeout.IcePing();
+                await timeout.IcePingAsync();
 
                 TestHelper.Assert(connection == await timeout.GetConnectionAsync());
                 try

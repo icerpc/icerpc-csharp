@@ -38,7 +38,7 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 foreach (IControllerPrx prx in indirectProxies)
                 {
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                 }
             }
             output.WriteLine("ok");
@@ -48,7 +48,7 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 foreach (IControllerPrx prx in proxies)
                 {
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                 }
             }
             output.WriteLine("ok");
@@ -58,7 +58,7 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 foreach (IControllerPrx prx in facetedProxies)
                 {
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                 }
             }
             output.WriteLine("ok");
@@ -68,7 +68,7 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 try
                 {
-                    IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -79,7 +79,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException)
@@ -90,7 +90,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -104,13 +104,13 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 proxies[0].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[0].AddObject("oa", "object");
-                IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
                 proxies[0].DeactivateObjectAdapter("oa");
 
                 proxies[1].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[1].AddObject("oa", "object");
-                IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
                 proxies[1].DeactivateObjectAdapter("oa");
             }
@@ -123,25 +123,25 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].ActivateObjectAdapter("oa", "oa2", "");
 
                 proxies[0].AddObject("oa", "object");
-                IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
 
                 proxies[1].AddObject("oa", "object");
-                IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
 
                 try
                 {
-                    IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
                 }
                 try
                 {
-                    IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
@@ -163,11 +163,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePingAsync();
 
-                IObjectPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePingAsync();
 
                 var adapterIds = new List<string>
                 {
@@ -213,11 +213,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePing();
-                IObjectPrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
+                await IObjectPrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePingAsync();
 
-                IObjectPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePing();
+                await IObjectPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePingAsync();
 
                 adapterIds = new List<string>
                 {
@@ -277,7 +277,8 @@ namespace ZeroC.Ice.Test.Discovery
                     TestHelper.Assert(comm.DefaultLocator != null);
                     try
                     {
-                        IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).IcePing();
+                        await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
+                            IcePingAsync();
                         TestHelper.Assert(false);
                     }
                     catch
@@ -296,7 +297,8 @@ namespace ZeroC.Ice.Test.Discovery
 
                     await using var comm = new Communicator(properties);
                     TestHelper.Assert(comm.DefaultLocator != null);
-                    IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).IcePing();
+                    await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
+                        IcePingAsync();
                 }
             }
             output.WriteLine("ok");

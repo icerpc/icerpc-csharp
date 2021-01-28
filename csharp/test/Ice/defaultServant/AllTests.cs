@@ -49,7 +49,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             {
                 identity = new Identity(name, identity.Category);
                 prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
-                prx.IcePing();
+                await prx.IcePingAsync();
                 TestHelper.Assert(prx.GetName() == name);
             }
 
@@ -57,7 +57,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
             try
             {
-                prx.IcePing();
+                await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ObjectNotExistException)
@@ -83,7 +83,7 @@ namespace ZeroC.Ice.Test.DefaultServant
 
                 try
                 {
-                    prx.IcePing();
+                    await prx.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException)
@@ -110,7 +110,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
             try
             {
-                prx.IcePing();
+                await prx.IcePingAsync();
             }
             catch (ObjectNotExistException)
             {
@@ -147,7 +147,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             {
                 identity = new Identity(name, "");
                 prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
-                prx.IcePing();
+                await prx.IcePingAsync();
                 TestHelper.Assert(prx.GetName() == name);
             }
 

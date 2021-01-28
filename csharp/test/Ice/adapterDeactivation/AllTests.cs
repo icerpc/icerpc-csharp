@@ -248,7 +248,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Flush();
             try
             {
-                obj.IcePing();
+                await obj.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch

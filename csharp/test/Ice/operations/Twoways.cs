@@ -92,19 +92,6 @@ namespace ZeroC.Ice.Test.Operations
                     Constants.su0.Equals(literals[29]) &&
                     Constants.su0.Equals(literals[30]));
 
-            p.IcePing();
-
-            TestHelper.Assert(p.IceIsA("::ZeroC::Ice::Test::Operations::MyClass"));
-            TestHelper.Assert(p.IceId().Equals("::ZeroC::Ice::Test::Operations::MyDerivedClass"));
-
-            {
-                string[] ids = p.IceIds();
-                TestHelper.Assert(ids.Length == 3);
-                TestHelper.Assert(ids[0].Equals("::Ice::Object"));
-                TestHelper.Assert(ids[1].Equals("::ZeroC::Ice::Test::Operations::MyClass"));
-                TestHelper.Assert(ids[2].Equals("::ZeroC::Ice::Test::Operations::MyDerivedClass"));
-            }
-
             {
                 p.OpVoid();
             }
