@@ -24,12 +24,6 @@
         <Compile Update="generated\Process.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Process.ice</SliceCompileSource>
         </Compile>
-        <Compile Update="generated\PropertiesAdmin.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\PropertiesAdmin.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\RemoteLogger.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\RemoteLogger.ice</SliceCompileSource>
-        </Compile>
         <Compile Update="generated\Router.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Router.ice</SliceCompileSource>
         </Compile>

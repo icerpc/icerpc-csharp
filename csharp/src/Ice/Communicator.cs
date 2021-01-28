@@ -632,24 +632,6 @@ namespace ZeroC.Ice
                     _adminFacets.Add(processFacetName, new Process(this));
                 }
 
-                // Logger facet
-                string loggerFacetName = "Logger";
-                if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(loggerFacetName))
-                {
-                    var loggerAdminLogger = new LoggerAdminLogger(this, Logger);
-                    Logger = loggerAdminLogger;
-                    _adminFacets.Add(loggerFacetName, loggerAdminLogger.GetFacet());
-                }
-
-                // Properties facet
-                string propertiesFacetName = "Properties";
-                PropertiesAdmin? propsAdmin = null;
-                if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(propertiesFacetName))
-                {
-                    propsAdmin = new PropertiesAdmin(this);
-                    _adminFacets.Add(propertiesFacetName, propsAdmin);
-                }
-
                 // Metrics facet
                 string metricsFacetName = "Metrics";
                 if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(metricsFacetName))
@@ -657,12 +639,6 @@ namespace ZeroC.Ice
                     var communicatorObserver = new CommunicatorObserver(this, Logger);
                     Observer = communicatorObserver;
                     _adminFacets.Add(metricsFacetName, communicatorObserver.AdminFacet);
-
-                    // Make sure the admin plugin receives property updates.
-                    if (propsAdmin != null)
-                    {
-                        propsAdmin.Updated += (_, updates) => communicatorObserver.AdminFacet.Updated(updates);
-                    }
                 }
             }
 
@@ -864,11 +840,6 @@ namespace ZeroC.Ice
                 }
 
                 Observer?.SetObserverUpdater(null);
-
-                if (Logger is LoggerAdminLogger adminLogger)
-                {
-                    await adminLogger.DisposeAsync().ConfigureAwait(false);
-                }
 
                 if (this.GetPropertyAsBool("Ice.Warn.UnusedProperties") ?? false)
                 {
