@@ -43,8 +43,6 @@ namespace ZeroC.Ice
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
         /// <param name="clearLocator">When set to true, the clone does not have an associated locator proxy (optional).
         /// </param>
-        /// <param name="clearRouter">When set to true, the clone does not have an associated router proxy (optional).
-        /// </param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -68,7 +66,6 @@ namespace ZeroC.Ice
         /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
         /// connections (optional).</param>
         /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
-        /// <param name="router">The router proxy of the clone (optional).</param>
         /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
         public static T Clone<T>(
             this IObjectPrx prx,
@@ -76,7 +73,6 @@ namespace ZeroC.Ice
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
-            bool clearRouter = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -94,12 +90,10 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null,
-            IRouterPrx? router = null) where T : class, IObjectPrx =>
+            bool? relative = null) where T : class, IObjectPrx =>
             factory(prx.IceReference.Clone(cacheConnection,
                                            clearLabel,
                                            clearLocator,
-                                           clearRouter,
                                            context,
                                            encoding,
                                            endpoints,
@@ -117,8 +111,7 @@ namespace ZeroC.Ice
                                            oneway,
                                            preferExistingConnection,
                                            preferNonSecure,
-                                           relative,
-                                           router));
+                                           relative));
 
         /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for options set
         /// through parameters. This method returns this proxy instead of a new proxy in the event none of the options
@@ -127,8 +120,6 @@ namespace ZeroC.Ice
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
         /// <param name="clearLocator">When set to true, the clone does not have an associated locator proxy (optional).
-        /// </param>
-        /// <param name="clearRouter">When set to true, the clone does not have an associated router proxy (optional).
         /// </param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
@@ -150,14 +141,12 @@ namespace ZeroC.Ice
         /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
         /// connections (optional).</param>
         /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
-        /// <param name="router">The router proxy of the clone (optional).</param>
         /// <returns>A new proxy with the same type as this proxy.</returns>
         public static T Clone<T>(
             this T prx,
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
-            bool clearRouter = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -172,13 +161,11 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null,
-            IRouterPrx? router = null) where T : IObjectPrx
+            bool? relative = null) where T : IObjectPrx
         {
             Reference clone = prx.IceReference.Clone(cacheConnection,
                                                      clearLabel,
                                                      clearLocator,
-                                                     clearRouter,
                                                      context,
                                                      encoding,
                                                      endpoints,
@@ -196,8 +183,7 @@ namespace ZeroC.Ice
                                                      oneway,
                                                      preferExistingConnection,
                                                      preferNonSecure,
-                                                     relative,
-                                                     router);
+                                                     relative);
 
             // Reference.Clone never returns a new reference == to itself.
             return ReferenceEquals(clone, prx.IceReference) ? prx : (T)prx.Clone(clone);
