@@ -203,10 +203,6 @@ namespace ZeroC.Ice
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol => IceReference.Protocol;
 
-        /// <summary>The router associated with this proxy. This property is null when no router is associated with this
-        /// proxy.</summary>
-        public IRouterPrx? Router => IceReference.RouterInfo?.Router;
-
         /// <summary>Indicates whether the two proxy operands are equal.</summary>
         /// <param name="lhs">The left hand-side operand.</param>
         /// <param name="rhs">The right hand-side operand.</param>
@@ -258,14 +254,6 @@ namespace ZeroC.Ice
         /// <summary>Returns the Slice type ID of the most-derived interface supported by the target object of this
         /// proxy.</summary>
         /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The Slice type ID of the most-derived interface.</returns>
-        public string IceId(IReadOnlyDictionary<string, string>? context = null, CancellationToken cancel = default) =>
-            IceInvoke(Request.IceId(this, context, cancel), Response.IceId);
-
-        /// <summary>Returns the Slice type ID of the most-derived interface supported by the target object of this
-        /// proxy.</summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
         /// <param name="progress">Sent progress provider.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
@@ -274,16 +262,6 @@ namespace ZeroC.Ice
             IProgress<bool>? progress = null,
             CancellationToken cancel = default) =>
             IceInvokeAsync(Request.IceId(this, context, cancel), Response.IceId, progress);
-
-        /// <summary>Returns the Slice type IDs of the interfaces supported by the target object of this proxy.</summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The Slice type IDs of the interfaces supported by the target object, in base-to-derived
-        /// order. The first element of the returned array is always ::Ice::IObject.</returns>
-        public string[] IceIds(
-            IReadOnlyDictionary<string, string>? context = null,
-            CancellationToken cancel = default) =>
-            IceInvoke(Request.IceIds(this, context, cancel), Response.IceIds);
 
         /// <summary>Returns the Slice type IDs of the interfaces supported by the target object of this proxy.
         /// </summary>
@@ -297,18 +275,6 @@ namespace ZeroC.Ice
             CancellationToken cancel = default) =>
             IceInvokeAsync(Request.IceIds(this, context, cancel), Response.IceIds, progress);
 
-        /// <summary>Tests whether the target object implements a specific Slice interface.</summary>
-        /// <param name="id">The type ID of the Slice interface to test against.</param>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>True if the target object implements the Slice interface identified by id, false otherwise.
-        /// </returns>
-        public bool IceIsA(
-            string id,
-            IReadOnlyDictionary<string, string>? context = null,
-            CancellationToken cancel = default) =>
-            IceInvoke(Request.IceIsA(this, id, context, cancel), Response.IceIsA);
-
         /// <summary>Tests whether this object supports a specific Slice interface.</summary>
         /// <param name="id">The type ID of the Slice interface to test against.</param>
         /// <param name="context">The context dictionary for the invocation.</param>
@@ -321,12 +287,6 @@ namespace ZeroC.Ice
             IProgress<bool>? progress = null,
             CancellationToken cancel = default) =>
             IceInvokeAsync(Request.IceIsA(this, id, context, cancel), Response.IceIsA, progress);
-
-        /// <summary>Tests whether the target object of this proxy can be reached.</summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public void IcePing(IReadOnlyDictionary<string, string>? context = null, CancellationToken cancel = default) =>
-            IceInvoke(Request.IcePing(this, context, cancel), IsOneway);
 
         /// <summary>Tests whether the target object of this proxy can be reached.</summary>
         /// <param name="context">The context dictionary for the invocation.</param>

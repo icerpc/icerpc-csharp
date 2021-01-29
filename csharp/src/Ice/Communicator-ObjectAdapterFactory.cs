@@ -84,8 +84,43 @@ namespace ZeroC.Ice
         public ObjectAdapter CreateObjectAdapter(
             string name,
             bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null) =>
-            CreateObjectAdapter(name, serializeDispatch, taskScheduler, router: null);
+            TaskScheduler? taskScheduler = null)
+        {
+            if (name.Length == 0)
+            {
+                throw new ArgumentException("the empty string is not a valid object adapter name", nameof(name));
+            }
+
+            lock (_mutex)
+            {
+                if (IsDisposed)
+                {
+                    throw new CommunicatorDisposedException();
+                }
+                if (_shutdownTask != null)
+                {
+                    throw new InvalidOperationException("ShutdownAsync has been called on this communicator");
+                }
+
+                if (!_adapterNamesInUse.Add(name))
+                {
+                    throw new ArgumentException($"an object adapter with name `{name}' was already created",
+                                                nameof(name));
+                }
+
+                try
+                {
+                    var adapter = new ObjectAdapter(this, name, serializeDispatch, taskScheduler);
+                    _adapters.Add(adapter);
+                    return adapter;
+                }
+                catch
+                {
+                    _adapterNamesInUse.Remove(name);
+                    throw;
+                }
+            }
+        }
 
         /// <summary>Creates a new object adapter with the specified endpoint string. Calling this method is equivalent
         /// to setting the name.Endpoints property and then calling
@@ -128,48 +163,6 @@ namespace ZeroC.Ice
                                              endpoints,
                                              serializeDispatch,
                                              taskScheduler);
-
-        /// <summary>Creates a new object adapter with a router.</summary>
-        /// <param name="name">The object adapter name. Cannot be empty.</param>
-        /// <param name="router">The proxy to the router.</param>
-        /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
-        /// of requests received over the same connection.</param>
-        /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
-        /// <returns>The new object adapter.</returns>
-        public ObjectAdapter CreateObjectAdapterWithRouter(
-            string name,
-            IRouterPrx router,
-            bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null)
-        {
-            if (name.Length == 0)
-            {
-                throw new ArgumentException("the empty string is not a valid object adapter name", nameof(name));
-            }
-
-            // We set the proxy properties here, although we still use the proxy supplied.
-            Dictionary<string, string> properties = router.ToProperty($"{name}.Router");
-            foreach (KeyValuePair<string, string> entry in properties)
-            {
-                SetProperty(entry.Key, entry.Value);
-            }
-
-            return CreateObjectAdapter(name, serializeDispatch, taskScheduler, router);
-        }
-
-        /// <summary>Creates a new object adapter with a router. This method generates a UUID for the object adapter
-        /// name and then calls <see cref="CreateObjectAdapterWithRouter(string, IRouterPrx, bool, TaskScheduler?)"/>.
-        /// </summary>
-        /// <param name="router">The proxy to the router.</param>
-        /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
-        /// of requests received over the same connection.</param>
-        /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
-        /// <returns>The new object adapter.</returns>
-        public ObjectAdapter CreateObjectAdapterWithRouter(
-            IRouterPrx router,
-            bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null) =>
-            CreateObjectAdapterWithRouter(Guid.NewGuid().ToString(), router, serializeDispatch, taskScheduler);
 
         internal Endpoint? GetColocatedEndpoint(Reference reference)
         {
@@ -215,48 +208,6 @@ namespace ZeroC.Ice
                     }
                 }
                 // TODO clear outgoing connections adapter?
-            }
-        }
-
-        private ObjectAdapter CreateObjectAdapter(
-            string name,
-            bool serializeDispatch,
-            TaskScheduler? taskScheduler,
-            IRouterPrx? router)
-        {
-            if (name.Length == 0)
-            {
-                throw new ArgumentException("the empty string is not a valid object adapter name", nameof(name));
-            }
-
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-                if (_shutdownTask != null)
-                {
-                    throw new InvalidOperationException("ShutdownAsync has been called on this communicator");
-                }
-
-                if (!_adapterNamesInUse.Add(name))
-                {
-                    throw new ArgumentException($"an object adapter with name `{name}' was already created",
-                                                nameof(name));
-                }
-
-                try
-                {
-                    var adapter = new ObjectAdapter(this, name, serializeDispatch, taskScheduler, router);
-                    _adapters.Add(adapter);
-                    return adapter;
-                }
-                catch
-                {
-                    _adapterNamesInUse.Remove(name);
-                    throw;
-                }
             }
         }
     }

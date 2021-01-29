@@ -227,33 +227,6 @@ namespace ZeroC.Ice
             }
         }
 
-        internal async ValueTask SetRouterInfoAsync(RouterInfo routerInfo, CancellationToken cancel)
-        {
-            ObjectAdapter? adapter = routerInfo.Adapter;
-            IReadOnlyList<Endpoint> endpoints = await routerInfo.GetClientEndpointsAsync(cancel).ConfigureAwait(false);
-
-            // Search for connections to the router's client proxy endpoints, and update the object adapter for
-            // such connections, so that callbacks from the router can be received over such connections.
-            lock (_mutex)
-            {
-                if (_destroyTask != null)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-
-                foreach (Endpoint endpoint in endpoints)
-                {
-                    foreach (ICollection<Connection> connections in _outgoingConnections.Values)
-                    {
-                        foreach (Connection connection in connections)
-                        {
-                            connection.Adapter = adapter;
-                        }
-                    }
-                }
-            }
-        }
-
         private abstract class EndpointComparer : EqualityComparer<(Endpoint Endpoint, object? Label)>
         {
             internal static EndpointComparer Equivalent { get; } = new EquivalentEndpointComparer();

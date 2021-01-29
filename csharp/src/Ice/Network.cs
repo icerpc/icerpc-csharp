@@ -96,7 +96,6 @@ namespace ZeroC.Ice
         internal static async ValueTask<IReadOnlyList<IPEndPoint>> GetAddressesAsync(
             string host,
             int port,
-            int ipVersion,
             CancellationToken cancel = default)
         {
             Debug.Assert(host.Length > 0);
@@ -107,16 +106,8 @@ namespace ZeroC.Ice
                 // Trying to parse the IP address is necessary to handle wildcard addresses such as 0.0.0.0 or ::0
                 // since GetHostAddressesAsync fails to resolve them.
                 var a = IPAddress.Parse(host);
-                if ((a.AddressFamily == AddressFamily.InterNetwork && ipVersion != EnableIPv6) ||
-                    (a.AddressFamily == AddressFamily.InterNetworkV6 && ipVersion != EnableIPv4))
-                {
-                    addresses.Add(new IPEndPoint(a, port));
-                    return addresses;
-                }
-                else
-                {
-                    throw new DNSException(host);
-                }
+                addresses.Add(new IPEndPoint(a, port));
+                return addresses;
             }
             catch (FormatException)
             {
@@ -126,11 +117,7 @@ namespace ZeroC.Ice
             {
                 foreach (IPAddress a in await Dns.GetHostAddressesAsync(host).WaitAsync(cancel).ConfigureAwait(false))
                 {
-                    if ((a.AddressFamily == AddressFamily.InterNetwork && ipVersion != EnableIPv6) ||
-                        (a.AddressFamily == AddressFamily.InterNetworkV6 && ipVersion != EnableIPv4))
-                    {
-                        addresses.Add(new IPEndPoint(a, port));
-                    }
+                    addresses.Add(new IPEndPoint(a, port));
                 }
 
                 // No InterNetwork/InterNetworkV6 available.
@@ -154,12 +141,11 @@ namespace ZeroC.Ice
         internal static async ValueTask<IReadOnlyList<IPEndPoint>> GetAddressesForClientEndpointAsync(
             string host,
             int port,
-            int ipVersion,
             CancellationToken cancel)
         {
             Debug.Assert(host.Length > 0);
 
-            return await GetAddressesAsync(host, port, ipVersion, cancel).ConfigureAwait(false);
+            return await GetAddressesAsync(host, port, cancel).ConfigureAwait(false);
         }
 
         internal static List<string> GetHostsForEndpointExpand(string host, int ipVersion, bool includeLoopback)
@@ -402,7 +388,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal static string SocketToString(Socket socket, INetworkProxy? proxy, EndPoint? target)
+        internal static string SocketToString(Socket socket, EndPoint? target)
         {
             try
             {
@@ -415,23 +401,11 @@ namespace ZeroC.Ice
 
                 var s = new System.Text.StringBuilder();
                 s.Append("local address = " + LocalAddrToString(GetLocalAddress(socket)));
-                if (proxy != null)
+                if (remote == null)
                 {
-                    if (remote == null)
-                    {
-                        remote = proxy.Address;
-                    }
-                    s.Append("\n" + proxy.Name + " proxy address = " + RemoteAddrToString(remote));
-                    s.Append("\nremote address = " + RemoteAddrToString(target));
+                    remote = target;
                 }
-                else
-                {
-                    if (remote == null)
-                    {
-                        remote = target;
-                    }
-                    s.Append("\nremote address = " + RemoteAddrToString(remote));
-                }
+                s.Append("\nremote address = " + RemoteAddrToString(remote));
                 return s.ToString();
             }
             catch (ObjectDisposedException)

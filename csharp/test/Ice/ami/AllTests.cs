@@ -117,8 +117,8 @@ namespace ZeroC.Ice.Test.AMI
                 TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Result);
                 TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf", ctx).Result);
 
-                p.IcePingAsync().Wait();
-                p.IcePingAsync(ctx).Wait();
+                await p.IcePingAsync();
+                await p.IcePingAsync(ctx);
 
                 TestHelper.Assert(p.IceIdAsync().Result.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
                 TestHelper.Assert(p.IceIdAsync(ctx).Result.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
@@ -432,7 +432,7 @@ namespace ZeroC.Ice.Test.AMI
                     // Run blocking IcePing() on another thread from the continuation to ensure there's no deadlock
                     // if the continuaion blocks and wait for another thread to complete an invocation with the
                     // connection.
-                    Task.Run(() => p.IcePing()).Wait();
+                    Task.Run(async () => await p.IcePingAsync()).Wait();
 
                     int r = await p.OpWithResultAsync();
                     TestHelper.Assert(r == 15);
@@ -447,7 +447,7 @@ namespace ZeroC.Ice.Test.AMI
                         // Run blocking IcePing() on another thread from the continuation to ensure there's no deadlock
                         // if the continuation blocks and wait for another thread to complete an invocation with the
                         // connection.
-                        Task.Run(() => p.IcePing()).Wait();
+                        Task.Run(async () => await p.IcePingAsync()).Wait();
                     }
 
                     try
@@ -460,7 +460,7 @@ namespace ZeroC.Ice.Test.AMI
                         // Run blocking IcePing() on another thread from the continuation to ensure there's no deadlock
                         // if the continuation blocks and wait for another thread to complete an invocation with the
                         // connection.
-                        Task.Run(() => p.IcePing()).Wait();
+                        Task.Run(async () => await p.IcePingAsync()).Wait();
                     }
 
                     // Operations implemented with amd and async.
@@ -483,7 +483,7 @@ namespace ZeroC.Ice.Test.AMI
                     // Run blocking IcePing() on another thread from the continuation to ensure there's no deadlock
                     // if the continuaion blocks and wait for another thread to complete an invocation with the
                     // connection.
-                    Task.Run(() => p.IcePing()).Wait();
+                    Task.Run(async () => await p.IcePingAsync()).Wait();
                 }
                 catch (OperationNotExistException)
                 {
@@ -507,7 +507,7 @@ namespace ZeroC.Ice.Test.AMI
                         for (int i = 0; i < 50; ++i)
                         {
                             // Async serialization only works once the connection is established and if there's no retries
-                            serialized.IcePing();
+                            await serialized.IcePingAsync();
                             for (int j = 0; j < tasks.Length; ++j)
                             {
                                 context["value"] = j.ToString(); // This is for debugging
@@ -529,7 +529,7 @@ namespace ZeroC.Ice.Test.AMI
                         var tasks = new Task[20];
                         for (int i = 0; i < 10; ++i)
                         {
-                            serialized.IcePing();
+                            await serialized.IcePingAsync();
                             for (int j = 0; j < tasks.Length; ++j)
                             {
                                 tasks[j] = serialized.IcePingAsync();
@@ -561,7 +561,7 @@ namespace ZeroC.Ice.Test.AMI
                         for (int i = 0; i < 50; ++i)
                         {
                             // Async serialization only works once the connection is established and if there's no retries
-                            serialized.IcePing();
+                            await serialized.IcePingAsync();
                             for (int j = 0; j < tasks.Length; ++j)
                             {
                                 context["value"] = (i * tasks.Length + j).ToString(); // This is for debugging
@@ -584,7 +584,7 @@ namespace ZeroC.Ice.Test.AMI
                         var serializedOneway = serialized.Clone(oneway: true);
                         for (int i = 0; i < 10; ++i)
                         {
-                            serializedOneway.IcePing();
+                            await serializedOneway.IcePingAsync();
                             for (int j = 0; j < tasks.Length; ++j)
                             {
                                 tasks[j] = serializedOneway.IcePingAsync();
@@ -669,7 +669,7 @@ namespace ZeroC.Ice.Test.AMI
                 }
                 finally
                 {
-                    p.IcePing();
+                    await p.IcePingAsync();
                 }
             }
             {
@@ -757,7 +757,7 @@ namespace ZeroC.Ice.Test.AMI
                     while (!done && maxQueue < 50)
                     {
                         done = true;
-                        p.IcePing();
+                        await p.IcePingAsync();
                         var results = new List<Task>();
                         for (int i = 0; i < maxQueue; ++i)
                         {

@@ -168,60 +168,6 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.WriteLine("ok");
             }
 
-            output.Write("testing object adapter with router... ");
-            output.Flush();
-            if (ice1)
-            {
-                var routerId = new Identity("router", "");
-                IRouterPrx router = obj.Clone(IRouterPrx.Factory, label: "rc", identity: routerId);
-                {
-                    await using var adapter = communicator.CreateObjectAdapterWithRouter(router);
-                    await adapter.ActivateAsync();
-                    TestHelper.Assert(adapter.PublishedEndpoints.Count == 1);
-                    string endpointsStr = adapter.PublishedEndpoints[0].ToString();
-                    TestHelper.Assert(endpointsStr == "tcp -h localhost -p 23456 -t 60000");
-                }
-
-                try
-                {
-                    routerId = new Identity("test", "");
-                    router = obj.Clone(IRouterPrx.Factory, identity: routerId);
-                    await using var adapter = communicator.CreateObjectAdapterWithRouter(router);
-                    await adapter.ActivateAsync();
-                    TestHelper.Assert(false);
-                }
-                catch (OperationNotExistException)
-                {
-                    // Expected: the "test" object doesn't implement Ice::Router!
-                }
-
-                try
-                {
-                    router = IRouterPrx.Parse(helper.GetTestProxy("test", 1), communicator);
-                    await using var adapter = communicator.CreateObjectAdapterWithRouter(router);
-                    await adapter.ActivateAsync();
-                    TestHelper.Assert(false);
-                }
-                catch (ConnectFailedException)
-                {
-                }
-            }
-            else
-            {
-                try
-                {
-                    await using var adapter = communicator.CreateObjectAdapterWithRouter(
-                        obj.Clone(IRouterPrx.Factory, label: "rc", identity: new Identity("router", "")));
-
-                    TestHelper.Assert(false);
-                }
-                catch (ArgumentException)
-                {
-                    // expected.
-                }
-            }
-            output.WriteLine("ok");
-
             output.Write("testing object adapter creation with port in use... ");
             output.Flush();
             {
@@ -248,7 +194,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Flush();
             try
             {
-                obj.IcePing();
+                await obj.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch

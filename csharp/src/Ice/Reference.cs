@@ -55,8 +55,6 @@ namespace ZeroC.Ice
         internal NonSecure PreferNonSecure => _preferNonSecure ?? Communicator.DefaultPreferNonSecure;
         internal Protocol Protocol { get; }
 
-        internal RouterInfo? RouterInfo { get; }
-
         // Sub-properties for ice1 proxies
         private static readonly string[] _suffixes =
         {
@@ -66,7 +64,6 @@ namespace ZeroC.Ice
             "Locator",
             "PreferNonSecure",
             "Relative",
-            "Router",
             "Context\\..*"
         };
 
@@ -128,7 +125,6 @@ namespace ZeroC.Ice
             LocatorInfo? locatorInfo = null;
             Protocol protocol;
             bool? relative = null;
-            RouterInfo? routerInfo = null;
 
             if (UriParser.IsProxyUri(proxyString))
             {
@@ -251,26 +247,6 @@ namespace ZeroC.Ice
                     {
                         throw new InvalidConfigurationException($"{property}: a direct proxy cannot be relative");
                     }
-
-                    property = $"{propertyPrefix}.Router";
-                    if (communicator.GetPropertyAsProxy(property, IRouterPrx.Factory) is IRouterPrx router)
-                    {
-                        if (protocol != Protocol.Ice1)
-                        {
-                            throw new InvalidConfigurationException(
-                                $"{property}: only an ice1 proxy can have a router");
-                        }
-                        if (router.Protocol != Protocol.Ice1)
-                        {
-                            throw new InvalidConfigurationException(@$"{property}={communicator.GetProperty(property)
-                                }: a router proxy must use the ice1 protocol");
-                        }
-                        if (propertyPrefix.EndsWith(".Router", StringComparison.Ordinal))
-                        {
-                            throw new InvalidConfigurationException($"{property}: cannot set a router on a router");
-                        }
-                        routerInfo = communicator.GetRouterInfo(router);
-                    }
                 }
             }
 
@@ -293,9 +269,7 @@ namespace ZeroC.Ice
                                  preferExistingConnection: preferExistingConnection,
                                  preferNonSecure: preferNonSecure,
                                  protocol: protocol,
-                                 relative: relative ?? false,
-                                 routerInfo: protocol == Protocol.Ice1 ?
-                                    routerInfo ?? communicator.GetRouterInfo(communicator.DefaultRouter) : null);
+                                 relative: relative ?? false);
         }
 
         /// <inheritdoc/>
@@ -358,10 +332,6 @@ namespace ZeroC.Ice
                     return false;
                 }
                 if (_preferNonSecure != other._preferNonSecure)
-                {
-                    return false;
-                }
-                if (RouterInfo != other.RouterInfo)
                 {
                     return false;
                 }
@@ -451,7 +421,6 @@ namespace ZeroC.Ice
                     hash.Add(LocatorInfo);
                     hash.Add(_preferExistingConnection);
                     hash.Add(_preferNonSecure);
-                    hash.Add(RouterInfo);
                 }
 
                 int hashCode = hash.ToHashCode();
@@ -1004,9 +973,7 @@ namespace ZeroC.Ice
                    preferExistingConnection: null,
                    preferNonSecure: null,
                    protocol: protocol,
-                   relative: false,
-                   routerInfo: protocol == Protocol.Ice1 ?
-                    communicator.GetRouterInfo(communicator.DefaultRouter) : null)
+                   relative: false)
         {
         }
 
@@ -1034,7 +1001,6 @@ namespace ZeroC.Ice
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
-            bool clearRouter = false,
             IReadOnlyDictionary<string, string>? context = null, // can be provided by app
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null, // from app
@@ -1052,17 +1018,12 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null,
-            IRouterPrx? router = null)
+            bool? relative = null)
         {
             // Check for incompatible arguments
             if (locator != null && clearLocator)
             {
                 throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
-            }
-            if (router != null && clearRouter)
-            {
-                throw new ArgumentException($"cannot set both {nameof(router)} and {nameof(clearRouter)}");
             }
             if (invocationMode != null)
             {
@@ -1160,14 +1121,6 @@ namespace ZeroC.Ice
                 {
                     throw new ArgumentException("cannot convert a fixed proxy into a relative proxy", nameof(relative));
                 }
-                if (router != null)
-                {
-                    throw new ArgumentException("cannot change the router of a fixed proxy", nameof(router));
-                }
-                else if (clearRouter)
-                {
-                    throw new ArgumentException("cannot change the router of a fixed proxy", nameof(clearRouter));
-                }
 
                 var clone = new Reference(
                     context?.ToImmutableSortedDictionary() ?? Context,
@@ -1203,18 +1156,6 @@ namespace ZeroC.Ice
                 if (locator != null && clearLocator)
                 {
                     throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
-                }
-                if (Protocol != Protocol.Ice1 && router != null)
-                {
-                    throw new ArgumentException("only an ice1 proxy can have a router", nameof(router));
-                }
-                if (router != null && clearRouter)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(router)} and {nameof(clearRouter)}");
-                }
-                if (router != null && router.Protocol != Protocol.Ice1)
-                {
-                    throw new ArgumentException($"{nameof(router)} must be an ice1 proxy", nameof(router));
                 }
 
                 if (locatorCacheTimeout != null &&
@@ -1297,16 +1238,6 @@ namespace ZeroC.Ice
                     }
                 }
 
-                RouterInfo? routerInfo = RouterInfo;
-                if (router != null)
-                {
-                    routerInfo = Communicator.GetRouterInfo(router);
-                }
-                else if (clearRouter)
-                {
-                    routerInfo = null;
-                }
-
                 var clone = new Reference(cacheConnection ?? CacheConnection,
                                           Communicator,
                                           context?.ToImmutableSortedDictionary() ?? Context,
@@ -1324,8 +1255,7 @@ namespace ZeroC.Ice
                                           preferExistingConnection ?? _preferExistingConnection,
                                           preferNonSecure ?? _preferNonSecure,
                                           Protocol,
-                                          relative ?? IsRelative,
-                                          routerInfo); // no fallback otherwise breaks clearRouter
+                                          relative ?? IsRelative);
 
                 return clone == this ? this : clone;
             }
@@ -1345,27 +1275,19 @@ namespace ZeroC.Ice
             }
 
             IReadOnlyList<Endpoint>? endpoints = ImmutableArray<Endpoint>.Empty;
-            if (RouterInfo != null)
-            {
-                // Get the router client endpoints if a router is configured
-                endpoints = await RouterInfo.GetClientEndpointsAsync(cancel).ConfigureAwait(false);
-            }
-
             TimeSpan endpointsAge = TimeSpan.Zero;
-            if (endpoints.Count == 0)
+
+            // Get the proxy's endpoint or query the locator to get endpoints
+            if (Endpoints.Count > 0)
             {
-                // Get the proxy's endpoint or query the locator to get endpoints
-                if (Endpoints.Count > 0)
-                {
-                    endpoints = Endpoints.ToList();
-                }
-                else if (LocatorInfo != null)
-                {
-                    (endpoints, endpointsAge) =
-                        await LocatorInfo.ResolveIndirectReferenceAsync(this,
-                                                                        endpointsMaxAge,
-                                                                        cancel).ConfigureAwait(false);
-                }
+                endpoints = Endpoints.ToList();
+            }
+            else if (LocatorInfo != null)
+            {
+                (endpoints, endpointsAge) =
+                    await LocatorInfo.ResolveIndirectReferenceAsync(this,
+                                                                    endpointsMaxAge,
+                                                                    cancel).ConfigureAwait(false);
             }
 
             // Apply overrides and filter endpoints
@@ -1530,14 +1452,6 @@ namespace ZeroC.Ice
                 {
                     properties[$"{prefix}.Relative"] = "true";
                 }
-                if (RouterInfo != null)
-                {
-                    Dictionary<string, string> routerProperties = RouterInfo.Router.ToProperty(prefix + ".Router");
-                    foreach (KeyValuePair<string, string> entry in routerProperties)
-                    {
-                        properties[entry.Key] = entry.Value;
-                    }
-                }
             }
             // else, only a single property in the dictionary
 
@@ -1657,8 +1571,7 @@ namespace ZeroC.Ice
             bool? preferExistingConnection,
             NonSecure? preferNonSecure,
             Protocol protocol,
-            bool relative,
-            RouterInfo? routerInfo)
+            bool relative)
         {
             CacheConnection = cacheConnection;
             Communicator = communicator;
@@ -1679,7 +1592,6 @@ namespace ZeroC.Ice
             _preferExistingConnection = preferExistingConnection;
             _preferNonSecure = preferNonSecure;
             Protocol = protocol;
-            RouterInfo = routerInfo;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -1724,7 +1636,6 @@ namespace ZeroC.Ice
             _locatorCacheTimeout = null;
             LocatorInfo = null;
             Protocol = fixedConnection.Protocol;
-            RouterInfo = null;
 
             _connection = fixedConnection;
 
@@ -1813,18 +1724,6 @@ namespace ZeroC.Ice
                                                                      PreferNonSecure,
                                                                      Label,
                                                                      cancel).ConfigureAwait(false);
-
-                        if (RouterInfo != null)
-                        {
-                            await RouterInfo.AddProxyAsync(IObjectPrx.Factory(this)).ConfigureAwait(false);
-
-                            // Set the object adapter for this router (if any) on the new connection, so that callbacks from
-                            // the router can be received over this new connection.
-                            if (RouterInfo.Adapter != null)
-                            {
-                                connection.Adapter = RouterInfo.Adapter;
-                            }
-                        }
 
                         if (CacheConnection)
                         {
