@@ -212,11 +212,6 @@ namespace ZeroC.Ice
         private readonly Func<CancellationToken, Task>? _activateLocatorAsync;
         private readonly HashSet<string> _adapterNamesInUse = new();
         private readonly List<ObjectAdapter> _adapters = new();
-        private ObjectAdapter? _adminAdapter;
-        private readonly bool _adminEnabled;
-        private readonly HashSet<string> _adminFacetFilter = new();
-        private readonly Dictionary<string, IObject> _adminFacets = new();
-        private Identity _adminIdentity;
         private readonly bool _backgroundLocatorCacheUpdates;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
@@ -593,42 +588,6 @@ namespace ZeroC.Ice
                 LoadAssemblies();
             }
 
-            // Create Admin facets, if enabled.
-            //
-            // Note that any logger-dependent admin facet must be created after we load all plugins,
-            // since one of these plugins can be a Logger plugin that sets a new logger during loading
-
-            if (GetProperty("Ice.Admin.Enabled") == null)
-            {
-                _adminEnabled = GetProperty("Ice.Admin.Endpoints") != null;
-            }
-            else
-            {
-                _adminEnabled = this.GetPropertyAsBool("Ice.Admin.Enabled") ?? false;
-            }
-
-            _adminFacetFilter = new HashSet<string>(
-                (this.GetPropertyAsList("Ice.Admin.Facets") ?? Array.Empty<string>()).Distinct());
-
-            if (_adminEnabled)
-            {
-                // Process facet
-                string processFacetName = "Process";
-                if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(processFacetName))
-                {
-                    _adminFacets.Add(processFacetName, new Process(this));
-                }
-
-                // Metrics facet
-                string metricsFacetName = "Metrics";
-                if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(metricsFacetName))
-                {
-                    var communicatorObserver = new CommunicatorObserver(this, Logger);
-                    Observer = communicatorObserver;
-                    _adminFacets.Add(metricsFacetName, communicatorObserver.AdminFacet);
-                }
-            }
-
             Observer?.SetObserverUpdater(new ObserverUpdater(this));
 
             if (GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
@@ -664,9 +623,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Activates the plugins and built-in locator implementation of this communicator, if any. Also
-        /// creates and activates the Ice.Admin object and its object adapter, if enabled. It is recommended to always
-        /// activate a communicator even though this activation may not do anything.</summary>
+        /// <summary>Activates the built-in locator implementation of this communicator, if any.</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A task that completes when the activation completes.</returns>
         public async Task ActivateAsync(CancellationToken cancel = default)
@@ -684,87 +641,6 @@ namespace ZeroC.Ice
             {
                 await _activateLocatorAsync(cancel).ConfigureAwait(false);
             }
-
-            _ = await GetAdminAsync(cancel).ConfigureAwait(false);
-        }
-
-        /// <summary>Adds an admin facet to the communicator.</summary>
-        /// <param name="facet">The facet name.</param>
-        /// <param name="servant">The servant that implements the admin facet.</param>
-        /// <exception cref="ArgumentException">If the configuration doesn't allow adding a facet with
-        /// the given name or if there is already a facet with the given name registered with the communicator.
-        /// </exception>
-        public void AddAdminFacet(string facet, IObject servant)
-        {
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-
-                if (_adminFacetFilter.Count > 0 && !_adminFacetFilter.Contains(facet))
-                {
-                    throw new ArgumentException($"facet `{facet}' not allowed by Ice.Admin.Facets configuration",
-                        nameof(facet));
-                }
-
-                if (_adminFacets.ContainsKey(facet))
-                {
-                    throw new ArgumentException($"facet `{facet}' is already registered", nameof(facet));
-                }
-                _adminFacets.Add(facet, servant);
-                _adminAdapter?.Add(_adminIdentity, facet, servant);
-            }
-        }
-
-        /// <summary>Adds the Admin object with all its facets to the provided object adapter. If Ice.Admin.ServerId is
-        /// set and the provided object adapter has a locator registry, CreateAdmin registers the Admin's Process facet
-        /// with the locator registry. CreateAdmin can only be called once; subsequent calls throw
-        /// <see cref="InvalidOperationException"/>.</summary>
-        /// <param name="adminAdapter">The object adapter used to host the Admin object; if null and Ice.Admin.Endpoints
-        /// is set, create, activate and use the Ice.Admin object adapter.</param>
-        /// <param name="adminIdentity">The identity of the Admin object.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A proxy to the Admin object.</returns>
-        public async Task<IObjectPrx> CreateAdminAsync(
-            ObjectAdapter? adminAdapter,
-            Identity adminIdentity,
-            CancellationToken cancel = default)
-        {
-            bool activateAdminAdapter = adminAdapter == null;
-
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-
-                if (_adminAdapter != null)
-                {
-                    throw new InvalidOperationException("Admin already created");
-                }
-
-                if (!_adminEnabled)
-                {
-                    throw new InvalidOperationException("Admin is disabled");
-                }
-
-                adminAdapter ??= CreateObjectAdapter("Ice.Admin");
-                _adminIdentity = adminIdentity;
-                _adminAdapter = adminAdapter;
-
-                AddAllAdminFacets();
-            }
-
-            if (activateAdminAdapter)
-            {
-                // We need to activate the newly created adminAdapter
-                await adminAdapter.ActivateAsync(cancel).ConfigureAwait(false);
-            }
-            await SetServerProcessProxyAsync(adminAdapter, adminIdentity, cancel).ConfigureAwait(false);
-            return adminAdapter.CreateProxy(adminIdentity, IObjectPrx.Factory);
         }
 
         /// <summary>Releases all resources used by this communicator. This method calls <see cref="ShutdownAsync"/>
@@ -807,13 +683,6 @@ namespace ZeroC.Ice
                 // Ensure all the outgoing connections were removed
                 Debug.Assert(_outgoingConnections.Count == 0);
 
-                // _adminAdapter is disposed by ShutdownAsync call above when iterating over all adapters, we call
-                // DisposeAsync here to avoid the compiler warning about disposable field not being dispose.
-                if (_adminAdapter != null)
-                {
-                    await _adminAdapter.DisposeAsync().ConfigureAwait(false);
-                }
-
                 Observer?.SetObserverUpdater(null);
 
                 if (this.GetPropertyAsBool("Ice.Warn.UnusedProperties") ?? false)
@@ -844,103 +713,6 @@ namespace ZeroC.Ice
         /// </summary>
         /// <returns>A value task constructed using the task returned by DestroyAsync.</returns>
         public ValueTask DisposeAsync() => new(DestroyAsync());
-
-        /// <summary>Returns a facet of the Admin object.</summary>
-        /// <param name="facet">The name of the Admin facet.</param>
-        /// <returns>The servant associated with this Admin facet, or null if no facet is registered with the given
-        /// name.</returns>
-        public IObject? FindAdminFacet(string facet)
-        {
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-
-                if (!_adminFacets.TryGetValue(facet, out IObject? result))
-                {
-                    return null;
-                }
-                return result;
-            }
-        }
-
-        /// <summary>Returns a map of all facets of the Admin object.</summary>
-        /// <returns>A collection containing all the facet names and servants of the Admin object.</returns>
-        public IReadOnlyDictionary<string, IObject> FindAllAdminFacets()
-        {
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-                return _adminFacets.ToImmutableDictionary();
-            }
-        }
-
-        /// <summary>Gets a proxy to the main facet of the Admin object. GetAdminAsync also creates the Admin object and
-        /// creates and activates the Ice.Admin object adapter to host this Admin object if Ice.Admin.Endpoints is set.
-        /// The identity of the Admin object created by GetAdminAsync is {value of Ice.Admin.InstanceName}/admin, or
-        /// {UUID}/admin when Ice.Admin.InstanceName is not set.</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A proxy to the Admin object, or a null proxy if no Admin object is configured.</returns>
-        public async Task<IObjectPrx?> GetAdminAsync(CancellationToken cancel = default)
-        {
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-
-                if (_adminAdapter != null)
-                {
-                    return _adminAdapter.CreateProxy(_adminIdentity, IObjectPrx.Factory);
-                }
-                else if (!_adminEnabled || GetProperty("Ice.Admin.Endpoints") == null)
-                {
-                    return null;
-                }
-                else
-                {
-                    _adminIdentity = new Identity("admin",
-                                                  GetProperty("Ice.Admin.InstanceName") ?? Guid.NewGuid().ToString());
-                    _adminAdapter = CreateObjectAdapter("Ice.Admin");
-
-                    AddAllAdminFacets();
-                    // and continue below outside the lock
-                }
-            }
-
-            // _adminAdapter and _adminIdentity are read-only at this point.
-
-            await _adminAdapter.ActivateAsync(cancel).ConfigureAwait(false);
-            await SetServerProcessProxyAsync(_adminAdapter, _adminIdentity, cancel).ConfigureAwait(false);
-            return _adminAdapter.CreateProxy(_adminIdentity, IObjectPrx.Factory);
-        }
-
-        /// <summary>Removes an admin facet servant previously added with AddAdminFacet.</summary>
-        /// <param name="facet">The Admin facet.</param>
-        /// <returns>The admin facet servant that was just removed, or null if the facet was not found.</returns>
-        public IObject? RemoveAdminFacet(string facet)
-        {
-            lock (_mutex)
-            {
-                if (_adminFacets.TryGetValue(facet, out IObject? result))
-                {
-                    _adminFacets.Remove(facet);
-                }
-                else
-                {
-                    return null;
-                }
-
-                _adminAdapter?.Remove(_adminIdentity, facet);
-                return result;
-            }
-        }
 
         /// <summary>Registers a new transport for the ice1 protocol.</summary>
         /// <param name="transport">The transport.</param>
@@ -1178,21 +950,6 @@ namespace ZeroC.Ice
             }
         }
 
-        private void AddAllAdminFacets()
-        {
-            lock (_mutex)
-            {
-                Debug.Assert(_adminAdapter != null);
-                foreach (KeyValuePair<string, IObject> entry in _adminFacets)
-                {
-                    if (_adminFacetFilter.Count == 0 || _adminFacetFilter.Contains(entry.Key))
-                    {
-                        _adminAdapter.Add(_adminIdentity, entry.Key, entry.Value);
-                    }
-                }
-            }
-        }
-
         private static Type? FindType(string csharpId)
         {
             Type? t;
@@ -1261,61 +1018,6 @@ namespace ZeroC.Ice
             catch (PlatformNotSupportedException)
             {
                 // Some platforms like UWP do not support using GetReferencedAssemblies
-            }
-        }
-
-        private async ValueTask SetServerProcessProxyAsync(
-            ObjectAdapter adminAdapter,
-            Identity adminIdentity,
-            CancellationToken cancel)
-        {
-            if (GetProperty("Ice.Admin.ServerId") is string serverId && adminAdapter.Locator is ILocatorPrx locator)
-            {
-                ILocatorRegistryPrx? locatorRegistry;
-
-                try
-                {
-                    locatorRegistry =
-                        await GetLocatorInfo(locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (TraceLevels.Locator >= 1)
-                    {
-                        Logger.Trace(TraceLevels.LocatorCategory, $"failed to retrieve locator registry:\n{ex}");
-                    }
-                    return;
-                }
-
-                if (locatorRegistry == null)
-                {
-                    return;
-                }
-
-                IProcessPrx process = adminAdapter.CreateProxy(adminIdentity, "Process", IProcessPrx.Factory);
-                try
-                {
-                    // Note that as soon as the process proxy is registered, the communicator might be shutdown by a
-                    // remote client and admin facets might start receiving calls.
-                    await locatorRegistry.SetServerProcessProxyAsync(serverId, process, cancel: cancel).
-                        ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (TraceLevels.Locator >= 1)
-                    {
-                        Logger.Trace(
-                            TraceLevels.LocatorCategory,
-                            $"could not register server `{serverId}' with the locator registry:\n{ex}");
-                    }
-                    throw;
-                }
-
-                if (TraceLevels.Locator >= 1)
-                {
-                    Logger.Trace(TraceLevels.LocatorCategory,
-                                 $"registered server `{serverId}' with the locator registry");
-                }
             }
         }
 

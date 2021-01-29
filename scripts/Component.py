@@ -15,27 +15,27 @@ class Ice(Component):
         "compress" : [False, True],
         "ipv6" : [False, True],
         "serialize" : [False, True],
-        "mx" : [False, True],
+        "mx" : [False],
     }
 
-    # Options for Ice tests, run tests with ssl and ws/ipv6/serial/mx/compress
+    # Options for Ice tests, run tests with ssl and ws/ipv6/serial/compress
     coreOptions = {
         "transport" : ["ssl", "ws"],
         "protocol" : ["ice1", "ice2"],
         "compress" : [False, True],
         "ipv6" : [False, True],
         "serialize" : [False, True],
-        "mx" : [False, True],
+        "mx" : [False],
     }
 
-    # Options for Ice services, run tests with ssl + mx
+    # Options for Ice services, run tests with ssl
     serviceOptions = {
         "transport" : ["ssl"],
         "protocol" : ["ice1"],
         "compress" : [False],
         "ipv6" : [False],
         "serialize" : [False],
-        "mx" : [True],
+        "mx" : [False],
     }
 
     def useBinDist(self, mapping, current):
