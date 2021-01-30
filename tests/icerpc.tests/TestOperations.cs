@@ -1,5 +1,4 @@
-using System;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,24 +18,28 @@ namespace IceRPC.Ice.Tests.Operations
             _fixture = fixture;
         }
 
-        [Fact]
-        [InlineData(Protocol.Ice2, "tcp", "localhost")]
-        public async Task Operations(Protocol protocol, string transport, string host)
+        [Theory]
+        [InlineData("Default", Protocol.Ice2, "tcp", "localhost")]
+        [InlineData("Ipv6", Protocol.Ice1, "tcp", "::1")]
+        public async Task Operations(string name, Protocol protocol, string transport, string host)
         {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, host));
+            ObjectAdapter adapter = _fixture.Communicator.CreateObjectAdapterWithEndpoints(
+                $"TestAdapter{name}",
+                _fixture.GetTestEndpoint(protocol, transport, host));
             adapter.Add("test", new Tester());
             await adapter.ActivateAsync();
 
-            ITesterPrx prx = ITesterPrx.Parse(GetTestProxy(Protocol.Ice2, protocol, host, "test"), Communicator);
+            ITesterPrx prx = ITesterPrx.Parse(_fixture.GetTestProxy(protocol, transport, host, "test"), _fixture.Communicator);
 
             await prx.OpVoidAsync();
+            await adapter.ShutdownAsync();
+
+            await adapter.ShutdownComplete;
         }
     }
 
-    public class Tester : ITester
+    public class Tester : IAsyncTester
     {
-        Task OpVoidAsync() => Task.CompletedTask; 
+        ValueTask IAsyncTester.OpVoidAsync(Current current, CancellationToken cancel) => default;
     }
 }

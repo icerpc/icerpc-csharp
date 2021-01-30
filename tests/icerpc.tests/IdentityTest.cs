@@ -14,7 +14,7 @@ namespace IceRPC.Ice.Tests
         public void TestToString(Identity id, string expected)
         {
             Assert.Equal(expected, id.ToString());
-            Assert.Equal(id, Identity.Parse(expectedes, uriFormat: true));
+            Assert.Equal(id, Identity.Parse(expected, uriFormat: true));
         }
 
         public class ToStringData : TheoryData<Identity, string>
@@ -64,10 +64,6 @@ namespace IceRPC.Ice.Tests
 
                 id = new Identity("/test", "cat/");
                 Add(id, ToStringMode.Unicode, "cat\\//\\/test");
-
-                // Input string in ice1 format with various pitfalls
-                id = new Identity("\\342\\x82\\254\\60\\x9\\60\\", "");
-                Add(id, ToStringMode.Unicode, "€0\t0\\");
             }
         }
 
@@ -80,10 +76,26 @@ namespace IceRPC.Ice.Tests
         [InlineData("xx\\ud911")]
         [InlineData("test/foo/bar")]
         [InlineData("cat//test")]
-        public void ParseInvalidIdentity(string str)
+        public void TestParseInvalidIdentity(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));
             Assert.False(Identity.TryParse(str, uriFormat: false, out _));
+        }
+
+        [Theory]
+        [ClassData(typeof(ParseValidIdentityData))]
+        public void TestParseValidIdentity(Identity expected, string str, bool uriFormat)
+        {
+            Assert.Equal(expected, Identity.Parse(str, uriFormat));
+        }
+
+        public class ParseValidIdentityData : TheoryData<Identity, string, bool>
+        {
+            public ParseValidIdentityData()
+            {
+                // Input string in ice1 format with various pitfalls
+                Add(new Identity("€0\t0\\", ""), "\\342\\x82\\254\\60\\x9\\60\\", false);
+            }
         }
     }
 }

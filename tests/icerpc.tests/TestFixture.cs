@@ -1,5 +1,6 @@
 
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +21,7 @@ namespace IceRPC.Ice.Tests
         public TestFixture() 
         {
             Communicator = new Communicator();
-            _basePort = Increment.Add(ref _nextBasePort, 100);
+            _basePort = Interlocked.Add(ref _nextBasePort, 100);
         }
 
         public Task InitializeAsync() => Task.CompletedTask;
@@ -78,6 +79,7 @@ namespace IceRPC.Ice.Tests
             Protocol protocol,
             string transport,
             string host,
+            string identity,
             int port = 0)
         {
             if (protocol == Protocol.Ice2)
@@ -118,7 +120,7 @@ namespace IceRPC.Ice.Tests
                     sb.Append(host);
                 }
                 sb.Append(" -p ");
-                sb.Append(GetTestBasePort(port));
+                sb.Append(GetTestPort(port));
                 return sb.ToString();
             }
         }

@@ -53,7 +53,7 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.4" PrivateAssets="All"/>
+        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" PrivateAssets="All"/>
         <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1" PrivateAssets="All"/>
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All"/>
