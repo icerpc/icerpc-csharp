@@ -7,21 +7,12 @@ using ZeroC.Ice;
 
 namespace IceRPC.Ice.Tests
 {
-    public class ProxyTestFixture : IAsyncLifetime
-    {
-        public Communicator Communicator { get; }
-        public ProxyTestFixture() => Communicator = new Communicator();
-
-        public Task InitializeAsync() => Task.CompletedTask;
-        public async Task DisposeAsync() => await Communicator.DisposeAsync();
-    }
-
-    public class ProxyTest : IClassFixture<ProxyTestFixture>
+    public class ProxyTest : IClassFixture<TestFixture>
     {
         private readonly ITestOutputHelper _output;
-        private ProxyTestFixture _fixture;
+        private TestFixture _fixture;
 
-        public ProxyTest(ITestOutputHelper output, ProxyTestFixture fixture)
+        public ProxyTest(ITestOutputHelper output, TestFixture fixture)
         {
             _output = output;
             _fixture = fixture;
@@ -71,6 +62,7 @@ namespace IceRPC.Ice.Tests
                 Add("ice+ws://host.zeroc.com/identity?resource=/foo%2Fbar?/xyz", Protocol.Ice2);
                 Add("ice+universal://host.zeroc.com:10000/identity?transport=tcp", Protocol.Ice2);
                 Add("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar", Protocol.Ice2);
+                Add("ice+tcp://host:10000/test?source-address=::1", Protocol.Ice2);
                 // a valid URI
                 Add("ice:tcp -p 10000", Protocol.Ice2);
                 // ice3 proxies
@@ -181,6 +173,16 @@ namespace IceRPC.Ice.Tests
                 Add("ice:category/test", "test", "category");
 
                 Add("ice:loc0/loc1/category/test", "test", "category", new string[] { "loc0", "loc1" });
+                Add("ice+tcp://host:10000/loc0/loc1//test?source-address=::1", 
+                    "test",
+                    "",
+                    new string[]{ "loc0", "loc1"});
+
+                Add("ice:adapter//test", "test", "", new string[] { "adapter" });
+                Add("ice:adapter/category/test", "test", "category", new string[] { "adapter" });
+                Add("ice:adapter:tcp/category/test", "test", "category", new string[] { "adapter:tcp" });
+                Add("ice:adapter%3Atcp/category/test", "test", "category", new string[] { "adapter:tcp" });
+                Add("category/test", "test", "category");
             }
 
             private void Add(string str, string name) => Add(str, name, "");
