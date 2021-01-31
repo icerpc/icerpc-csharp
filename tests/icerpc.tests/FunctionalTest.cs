@@ -80,17 +80,4 @@ namespace IceRPC.Ice.Tests
             }
         }
     }
-
-    public class TestFixture : IAsyncLifetime
-    {
-        public Communicator Communicator { get; }
-
-        public TestFixture() 
-        {
-            Communicator = new Communicator();
-        }
-
-        public Task InitializeAsync() => Task.CompletedTask;
-        public async Task DisposeAsync() => await Communicator.DisposeAsync();
-    }
 }

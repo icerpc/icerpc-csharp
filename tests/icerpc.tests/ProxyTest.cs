@@ -7,17 +7,16 @@ using ZeroC.Ice;
 
 namespace IceRPC.Ice.Tests
 {
-    public class ProxyTest : IClassFixture<TestFixture>
+    public class ProxyTest : IAsyncLifetime
     {
-        private readonly ITestOutputHelper _output;
-        private TestFixture _fixture;
+        public Communicator Communicator { get; }
 
-        public ProxyTest(ITestOutputHelper output, TestFixture fixture)
+        public ProxyTest()
         {
-            _output = output;
-            _fixture = fixture;
+            Communicator = new Communicator();
         }
-
+        public Task InitializeAsync() => Task.CompletedTask;
+        public async Task DisposeAsync() => await Communicator.DisposeAsync();
 
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
@@ -26,9 +25,9 @@ namespace IceRPC.Ice.Tests
         [ClassData(typeof(ParsingValidProxyData))]
         public void ParsingValidProxy(string str, Protocol protocol)
         {
-            var prx = IObjectPrx.Parse(str, _fixture.Communicator);
+            var prx = IObjectPrx.Parse(str, Communicator);
             Assert.Equal(protocol, prx.Protocol);
-            var prx2 = IObjectPrx.Parse(prx.ToString()!, _fixture.Communicator);
+            var prx2 = IObjectPrx.Parse(prx.ToString()!, Communicator);
             Assert.Equal(prx, prx2); // round-trip works
         }
 
@@ -76,7 +75,7 @@ namespace IceRPC.Ice.Tests
         [ClassData(typeof(ParsingInvalidProxyData))]
         public void ParsingInvalidProxy(string str)
         {
-            Assert.Throws<FormatException>(() => IObjectPrx.Parse(str, _fixture.Communicator));
+            Assert.Throws<FormatException>(() => IObjectPrx.Parse(str, Communicator));
         }
 
         public class ParsingInvalidProxyData : TheoryData<string>
@@ -137,7 +136,7 @@ namespace IceRPC.Ice.Tests
             string category,
             IReadOnlyList<string> location)
         {
-            var prx = IObjectPrx.Parse(str, _fixture.Communicator);
+            var prx = IObjectPrx.Parse(str, Communicator);
             Assert.Equal(name, prx.Identity.Name);
             Assert.Equal(category, prx.Identity.Category);
             Assert.Equal(location, prx.Location);
