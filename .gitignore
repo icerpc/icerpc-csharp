@@ -68,6 +68,7 @@ bld/
 .vs/
 *.d
 **/net5/*
+**/net5.0/*
 Resource.designer.cs
 *.apk
 *.apk.mSYM
