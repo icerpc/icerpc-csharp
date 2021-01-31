@@ -23,26 +23,6 @@ namespace IceRPC.Ice.Tests
             _basePort = Interlocked.Add(ref _nextBasePort, 100);
             Communicator = new Communicator();
         }
-        public async Task<IAsyncDisposable> CreateServerAsync<TServant>(
-            Protocol protocol,
-            string identity,
-            TServant servant,
-            string transport = "tcp") where TServant : IObject
-        {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, transport));
-            adapter.Add(identity, servant);
-            await adapter.ActivateAsync();
-            return adapter;
-        }
-
-        public TClient CreateClient<TClient>(
-            ProxyFactory<TClient> proxyFactory,
-            Protocol protocol,
-            string identity,
-            string transport = "tcp") where TClient : class, IObjectPrx =>
-            IObjectPrx.Parse(GetTestProxy(protocol, transport, identity), Communicator).Clone(proxyFactory);
 
         public Task InitializeAsync() => Task.CompletedTask;
         public async Task DisposeAsync() => await Communicator.DisposeAsync();
