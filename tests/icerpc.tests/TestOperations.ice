@@ -6,5 +6,6 @@ module IceRPC::Ice::Tests::Operations
     interface Tester
     {
         void opVoid();
+        string opString(string str);
     }
 }

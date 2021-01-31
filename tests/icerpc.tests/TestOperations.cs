@@ -7,39 +7,38 @@ using ZeroC.Ice;
 namespace IceRPC.Ice.Tests.Operations
 {
 
-    public class OperationsTest : IClassFixture<TestFixture>
+    public class OperationsTest : FunctionalTest
     {
-        private readonly ITestOutputHelper _output;
-        private TestFixture _fixture;
-
-        public OperationsTest(ITestOutputHelper output, TestFixture fixture)
+        [Theory]
+        [InlineData(Protocol.Ice2)]
+        [InlineData(Protocol.Ice1)]
+        public async Task OperationsOpVoid(Protocol protocol)
         {
-            _output = output;
-            _fixture = fixture;
+            await using (await CreateServerAsync<Tester>(protocol, "test", new Tester()))
+            {
+                ITesterPrx prx = CreateClient(ITesterPrx.Factory, protocol, "test");
+                await prx.OpVoidAsync();
+            }
         }
 
         [Theory]
-        [InlineData("Default", Protocol.Ice2, "tcp", "localhost")]
-        [InlineData("Ipv6", Protocol.Ice1, "tcp", "::1")]
-        public async Task Operations(string name, Protocol protocol, string transport, string host)
+        [InlineData(Protocol.Ice2, "hello")]
+        [InlineData(Protocol.Ice1, "hello")]
+        public async Task OperationsOpStringstring(Protocol protocol, string value)
         {
-            ObjectAdapter adapter = _fixture.Communicator.CreateObjectAdapterWithEndpoints(
-                $"TestAdapter{name}",
-                _fixture.GetTestEndpoint(protocol, transport, host));
-            adapter.Add("test", new Tester());
-            await adapter.ActivateAsync();
-
-            ITesterPrx prx = ITesterPrx.Parse(_fixture.GetTestProxy(protocol, transport, host, "test"), _fixture.Communicator);
-
-            await prx.OpVoidAsync();
-            await adapter.ShutdownAsync();
-
-            await adapter.ShutdownComplete;
+            await using (await CreateServerAsync<Tester>(protocol, "test", new Tester()))
+            {
+                ITesterPrx prx = CreateClient(ITesterPrx.Factory, protocol, "test");
+                var result = await prx.OpStringAsync(value);
+                Assert.Equal(value, result);
+            }
         }
     }
 
     public class Tester : IAsyncTester
     {
-        ValueTask IAsyncTester.OpVoidAsync(Current current, CancellationToken cancel) => default;
+        public ValueTask OpVoidAsync(Current current, CancellationToken cancel) => default;
+        public ValueTask<string> OpStringAsync(string str, Current current, CancellationToken cancel) =>
+            new ValueTask<string>(str);
     }
 }
