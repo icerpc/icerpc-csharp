@@ -2,6 +2,7 @@
 
 namespace ZeroC.Ice
 {
+    /// <summary>An options class for configuring a <see cref="ObjectAdapter"/>.</summary>
     public sealed class ObjectAdapterOptions
     {
         public NonSecure? AcceptNonSecure { get; set; } // null means use communicator's value
@@ -16,16 +17,16 @@ namespace ZeroC.Ice
         public string? Locator { get; set; } // TODO: should it be a proxy? Only needed for locator registry lookup
                                              // and registration.
 
-        // TODO: locator ice1 proxy options
-
-        public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints and PublishedEndpoints are empty
+        public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
 
         public string? PublishedEndpoints { get; set; }
 
+        // TODO: primarily useful when Endpoints is udp. Should this be automatic?
         public InvocationMode PublishedInvocationMode { get; set; }
 
         public string? ReplicaGroupId { get; set; }
 
-        public string? ServerName { get; set; } // null means communicator's default
+        // TODO: should it be PublishedServerName?
+        public string? ServerName { get; set; } // null means use communicator's default
     }
 }
