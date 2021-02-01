@@ -78,7 +78,8 @@ namespace ZeroC.Ice
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
         /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
         /// instances.</param>
         /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
@@ -99,7 +100,7 @@ namespace ZeroC.Ice
             OutputStreamWriter<T> writer,
             CancellationToken cancel = default)
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, compress, context, cancel);
+            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -121,7 +122,8 @@ namespace ZeroC.Ice
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
         /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
         /// instances.</param>
         /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
@@ -159,7 +161,8 @@ namespace ZeroC.Ice
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
         /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
         /// instances.</param>
         /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
@@ -180,7 +183,7 @@ namespace ZeroC.Ice
             OutputStreamValueWriter<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, compress, context, cancel);
+            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -203,7 +206,8 @@ namespace ZeroC.Ice
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
         /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only to
+        /// the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
         /// instances.</param>
         /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
@@ -223,7 +227,7 @@ namespace ZeroC.Ice
             OutputStreamValueWriterWithStreamable<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, compress, context, cancel);
+            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -258,7 +262,6 @@ namespace ZeroC.Ice
             var emptyArgsFrame = new OutgoingRequestFrame(proxy,
                                                           operation,
                                                           idempotent,
-                                                          compress: false,
                                                           context,
                                                           cancel);
             emptyArgsFrame.Payload.Add(proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding));
@@ -278,7 +281,7 @@ namespace ZeroC.Ice
             IncomingRequestFrame request,
             bool forwardBinaryContext = true,
             CancellationToken cancel = default)
-            : this(proxy, request.Operation, request.IsIdempotent, compress: false, request.Context, cancel)
+            : this(proxy, request.Operation, request.IsIdempotent, request.Context, cancel)
         {
             PayloadEncoding = request.PayloadEncoding;
 
@@ -344,11 +347,9 @@ namespace ZeroC.Ice
             IObjectPrx proxy,
             string operation,
             bool idempotent,
-            bool compress,
             IReadOnlyDictionary<string, string>? context,
             CancellationToken cancel)
             : base(proxy.Protocol,
-                   compress,
                    proxy.Communicator.CompressionLevel,
                    proxy.Communicator.CompressionMinSize)
         {

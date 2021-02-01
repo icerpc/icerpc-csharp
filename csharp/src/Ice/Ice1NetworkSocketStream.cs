@@ -37,7 +37,7 @@ namespace ZeroC.Ice
             IList<ArraySegment<byte>> buffer,
             bool fin,
             CancellationToken cancel) =>
-            await _socket.SendFrameAsync(this, buffer, false, cancel).ConfigureAwait(false);
+            await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
         internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, long streamId)
             : base(socket, streamId) => _socket = socket;
@@ -92,7 +92,7 @@ namespace ZeroC.Ice
 
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequestFrame ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            ostr.WriteByte(0); // placeholder for compression status
+            ostr.WriteByte(0); // compression status
             OutputStream.Position start = ostr.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
@@ -105,12 +105,11 @@ namespace ZeroC.Ice
             int frameSize = buffer.GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
-            byte compressionStatus =
-                await _socket.SendFrameAsync(this, buffer, frame.Compress, cancel).ConfigureAwait(false);
+            await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
             if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
             {
-                TraceFrame(frame, compress: compressionStatus);
+                TraceFrame(frame);
             }
         }
     }
