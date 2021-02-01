@@ -12,22 +12,24 @@ namespace ZeroC.Ice.Test.Threading
         {
             await Communicator.ActivateAsync();
 
-            ObjectAdapter? adapter = Communicator.CreateObjectAdapterWithEndpoints("TestAdapter", GetTestEndpoint(0));
+            ObjectAdapter? adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
             adapter.Add("test", new TestIntf(TaskScheduler.Default));
             await adapter.ActivateAsync();
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
-            ObjectAdapter? adapter2 = Communicator.CreateObjectAdapterWithEndpoints(
+            ObjectAdapter? adapter2 = Communicator.CreateObjectAdapter(
                 "TestAdapterExclusiveTS",
-                GetTestEndpoint(1),
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
                 taskScheduler: schedulerPair.ExclusiveScheduler);
             adapter2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
             await adapter2.ActivateAsync();
 
-            ObjectAdapter? adapter3 = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapteConcurrentTS",
-                GetTestEndpoint(2),
+            ObjectAdapter? adapter3 = Communicator.CreateObjectAdapter(
+                "TestAdapterConcurrentTS",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2) },
                 taskScheduler: schedulerPair.ConcurrentScheduler);
             adapter3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
             await adapter3.ActivateAsync();

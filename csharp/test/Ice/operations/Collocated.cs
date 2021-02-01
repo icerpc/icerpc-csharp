@@ -10,12 +10,13 @@ namespace ZeroC.Ice.Test.Operations
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.AdapterId", "test");
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { AdapterId = "test", Endpoints = GetTestEndpoint(0) });
+
             var prx = adapter.Add("test", new MyDerivedClass(), IMyDerivedClassPrx.Factory);
-            // Don't activate OA to ensure collocation is used.
+            // Don't activate OA to ensure colocation is used.
 
             await AllTests.RunAsync(this);
         }

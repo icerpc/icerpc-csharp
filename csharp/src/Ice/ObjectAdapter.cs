@@ -101,24 +101,6 @@ namespace ZeroC.Ice
 
         internal int IncomingFrameMaxSize { get; }
 
-        private static readonly string[] _suffixes =
-        {
-            "AcceptNonSecure",
-            "AdapterId",
-            "Endpoints",
-            "IncomingFrameMaxSize",
-            "Locator",
-            "Locator.CacheConnection",
-            "Locator.Encoding",
-            "Locator.Label",
-            "Locator.PreferExistingConnection",
-            "Locator.PreferNonSecure",
-            "ProxyOptions",
-            "PublishedEndpoints",
-            "ReplicaGroupId",
-            "ServerName"
-        };
-
         private Task? _activateTask;
 
         private readonly Dictionary<(string Category, string Facet), IObject> _categoryServantMap = new();
@@ -657,82 +639,43 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Constructs a nameless object adapter.</summary>
-        internal ObjectAdapter(
-            Communicator communicator,
-            bool serializeDispatch,
-            TaskScheduler? scheduler,
-            Protocol protocol)
-        {
-            Communicator = communicator;
-            Name = "";
-            SerializeDispatch = serializeDispatch;
-            TaskScheduler = scheduler;
-
-            AdapterId = "";
-            ReplicaGroupId = "";
-            Protocol = protocol;
-            IncomingFrameMaxSize = communicator.IncomingFrameMaxSize;
-            AcceptNonSecure = communicator.AcceptNonSecure;
-
-            _dispatchInterceptors = Communicator.DefaultDispatchInterceptors.ToImmutableList();
-        }
-
-        /// <summary>Constructs a named object adapter.</summary>
+        /// <summary>Constructs an object adapter.</summary>
         internal ObjectAdapter(
             Communicator communicator,
             string name,
+            ObjectAdapterOptions? options,
             bool serializeDispatch,
             TaskScheduler? scheduler)
         {
-            Debug.Assert(name.Length != 0);
-
             Communicator = communicator;
             Name = name;
             SerializeDispatch = serializeDispatch;
             TaskScheduler = scheduler;
             _dispatchInterceptors = Communicator.DefaultDispatchInterceptors.ToImmutableList();
 
-            (bool noProps, List<string> unknownProps) = FilterProperties();
+            AdapterId = options?.AdapterId ?? "";
+            ReplicaGroupId = options?.ReplicaGroupId ?? "";
 
-            // Warn about unknown object adapter properties.
-            if (unknownProps.Count != 0 && Communicator.WarnUnknownProperties)
+            if (options?.Locator is string locator && locator.Length > 0)
             {
-                var message = new StringBuilder("found unknown properties for object adapter `");
-                message.Append(Name);
-                message.Append("':");
-                foreach (string s in unknownProps)
-                {
-                    message.Append("\n    ");
-                    message.Append(s);
-                }
-                Communicator.Logger.Warning(message.ToString());
+                _locator = ILocatorPrx.Parse(locator, Communicator);
+                // TODO: locator options (ice1)
+            }
+            else
+            {
+                _locator = Communicator.DefaultLocator;
             }
 
-            // Make sure named adapter has configuration.
-            if (noProps)
-            {
-                throw new InvalidConfigurationException($"object adapter `{Name}' requires configuration");
-            }
-
-            AdapterId = Communicator.GetProperty($"{Name}.AdapterId") ?? "";
-            ReplicaGroupId = Communicator.GetProperty($"{Name}.ReplicaGroupId") ?? "";
-
-            _locator = Communicator.GetPropertyAsProxy($"{Name}.Locator", ILocatorPrx.Factory) ??
-                Communicator.DefaultLocator;
-
-            int frameMaxSize =
-                Communicator.GetPropertyAsByteSize($"{Name}.IncomingFrameMaxSize") ?? Communicator.IncomingFrameMaxSize;
+            int frameMaxSize = options?.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
             if (IncomingFrameMaxSize < 1024)
             {
-                throw new InvalidConfigurationException("Ice.IncomingFrameMaxSize can't be inferior to 1KB");
+                throw new ArgumentException("options.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
             }
 
-            AcceptNonSecure =
-                Communicator.GetPropertyAsEnum<NonSecure>($"{Name}.AcceptNonSecure") ?? Communicator.AcceptNonSecure;
+            AcceptNonSecure = options?.AcceptNonSecure ?? Communicator.AcceptNonSecure;
 
-            if (Communicator.GetProperty($"{Name}.Endpoints") is string value)
+            if (options?.Endpoints is string value)
             {
                 if (UriParser.IsEndpointUri(value))
                 {
@@ -743,16 +686,18 @@ namespace ZeroC.Ice
                 {
                     Protocol = Protocol.Ice1;
                     Endpoints = Ice1Parser.ParseEndpoints(value, communicator);
-                    _invocationMode = Ice1Parser.ParseProxyOptions(Name, communicator);
+                    _invocationMode = options?.PublishedInvocationMode ?? default;
 
                     // When the adapter is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
                     if (AcceptNonSecure == NonSecure.Never &&
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
-                        throw new InvalidConfigurationException($@"object adapter `{Name
-                            }' is configured to only accept secure connections but endpoint: `{endpoint
-                            }' accepts non-secure connections");
+                        throw new ArgumentException(
+                            $@"object adapter `{Name
+                            }' is configured to only accept secure connections but endpoint `{endpoint
+                            }' accepts non-secure connections",
+                            nameof(options));
                     }
                 }
                 Debug.Assert(Endpoints.Count > 0);
@@ -761,14 +706,18 @@ namespace ZeroC.Ice
                 {
                     if (Endpoints.Count > 1)
                     {
-                        throw new InvalidConfigurationException(@$"object adapter `{Name
-                            }': only one endpoint is allowed when a dynamic IP port (:0) is configured");
+                        throw new ArgumentException(
+                            @$"object adapter `{Name
+                            }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
+                            nameof(options));
                     }
 
                     if (Endpoints[0].HasDnsHost)
                     {
-                        throw new InvalidConfigurationException(@$"object adapter `{Name
-                            }': use an IP address to configure an endpoint with a dynamic port (:0)");
+                        throw new ArgumentException(
+                            @$"object adapter `{Name
+                            }': you can only use an IP address to configure an endpoint with a dynamic port (:0)",
+                            nameof(options));
                     }
                 }
 
@@ -788,11 +737,10 @@ namespace ZeroC.Ice
             }
             else
             {
-                // TODO: is an adapter with a name but no Endpoints really a valid adapter?
-                Protocol = Protocol.Ice2;
+                Protocol = options?.Protocol ?? Protocol.Ice2;
             }
 
-            if (Communicator.GetProperty($"{Name}.PublishedEndpoints") is string publishedEndpointsValue)
+            if (options?.PublishedEndpoints is string publishedEndpointsValue)
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(publishedEndpointsValue) ?
                     UriParser.ParseEndpoints(publishedEndpointsValue, Communicator) :
@@ -804,12 +752,20 @@ namespace ZeroC.Ice
                 // If the PublishedEndpoints config property isn't set, we compute the published endpoints from
                 // the endpoints.
 
-                string serverName = Communicator.GetProperty($"{Name}.ServerName") ?? Communicator.ServerName;
+                string serverName = options?.ServerName ?? Communicator.ServerName;
 
                 PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(serverName)).
                     Distinct().ToImmutableArray();
             }
-            TracePublishedEndpoints();
+
+            if (Communicator.TraceLevels.Transport >= 1 && PublishedEndpoints.Count > 0)
+            {
+                var sb = new StringBuilder("published endpoints for object adapter `");
+                sb.Append(Name);
+                sb.Append("':\n");
+                sb.AppendEndpointList(PublishedEndpoints);
+                Communicator.Logger.Trace(TraceLevels.TransportCategory, sb.ToString());
+            }
         }
 
         internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
@@ -977,56 +933,6 @@ namespace ZeroC.Ice
             if (identity.Name.Length == 0)
             {
                 throw new ArgumentException("identity name cannot be empty", nameof(identity));
-            }
-        }
-
-        private (bool NoProps, List<string> UnknownProps) FilterProperties()
-        {
-            // Do not create unknown properties list if Ice prefix, i.e. Ice, Glacier2, etc.
-            bool addUnknown = true;
-            string prefix = $"{Name}.";
-            foreach (string propertyName in PropertyNames.ClassPropertyNames)
-            {
-                if (prefix.StartsWith($"{propertyName}.", StringComparison.Ordinal))
-                {
-                    addUnknown = false;
-                    break;
-                }
-            }
-
-            bool noProps = true;
-            var unknownProps = new List<string>();
-            Dictionary<string, string> props = Communicator.GetProperties(forPrefix: prefix);
-            foreach (string prop in props.Keys)
-            {
-                bool valid = false;
-                for (int i = 0; i < _suffixes.Length; ++i)
-                {
-                    if (prop.Equals(prefix + _suffixes[i]))
-                    {
-                        noProps = false;
-                        valid = true;
-                        break;
-                    }
-                }
-
-                if (!valid && addUnknown)
-                {
-                    unknownProps.Add(prop);
-                }
-            }
-            return (noProps, unknownProps);
-        }
-
-        private void TracePublishedEndpoints()
-        {
-            if (Communicator.TraceLevels.Transport >= 1 && PublishedEndpoints.Count > 0)
-            {
-                var sb = new StringBuilder("published endpoints for object adapter `");
-                sb.Append(Name);
-                sb.Append("':\n");
-                sb.AppendEndpointList(PublishedEndpoints);
-                Communicator.Logger.Trace(TraceLevels.TransportCategory, sb.ToString());
             }
         }
 

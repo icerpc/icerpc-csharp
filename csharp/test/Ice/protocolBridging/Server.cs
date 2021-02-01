@@ -11,7 +11,6 @@ namespace ZeroC.Ice.Test.ProtocolBridging
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapterForwarder.Endpoints", GetTestEndpoint(0));
 
             var ice1Endpoint = TestHelper.GetTestEndpoint(
                 new Dictionary<string, string>
@@ -31,20 +30,19 @@ namespace ZeroC.Ice.Test.ProtocolBridging
                 },
                 ephemeral: true);
 
-            if (Protocol == Protocol.Ice1)
-            {
-                Communicator.SetProperty("TestAdapterSame.Endpoints", ice1Endpoint);
-                Communicator.SetProperty("TestAdapterOther.Endpoints", ice2Endpoint);
-            }
-            else
-            {
-                Communicator.SetProperty("TestAdapterSame.Endpoints", ice2Endpoint);
-                Communicator.SetProperty("TestAdapterOther.Endpoints", ice1Endpoint);
-            }
+            bool ice1 = Protocol == Protocol.Ice1;
 
-            ObjectAdapter adapterForwarder = Communicator.CreateObjectAdapter("TestAdapterForwarder");
-            ObjectAdapter adapterSame = Communicator.CreateObjectAdapter("TestAdapterSame");
-            ObjectAdapter adapterOther = Communicator.CreateObjectAdapter("TestAdapterOther");
+            ObjectAdapter adapterForwarder = Communicator.CreateObjectAdapter(
+                "TestAdapterForwarder",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+
+            ObjectAdapter adapterSame = Communicator.CreateObjectAdapter(
+                "TestAdapterSame",
+                new ObjectAdapterOptions { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
+
+            ObjectAdapter adapterOther = Communicator.CreateObjectAdapter(
+                "TestAdapterOther",
+                new ObjectAdapterOptions { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
 
             ITestIntfPrx samePrx = adapterSame.Add("TestSame", new TestI(), ITestIntfPrx.Factory);
             ITestIntfPrx otherPrx = adapterOther.Add("TestOther", new TestI(), ITestIntfPrx.Factory);

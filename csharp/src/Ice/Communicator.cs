@@ -208,8 +208,6 @@ namespace ZeroC.Ice
         private static bool _printProcessIdDone;
 
         private static readonly object _staticMutex = new object();
-        private bool _activateCalled;
-        private readonly Func<CancellationToken, Task>? _activateLocatorAsync;
         private readonly HashSet<string> _adapterNamesInUse = new();
         private readonly List<ObjectAdapter> _adapters = new();
         private readonly bool _backgroundLocatorCacheUpdates;
@@ -592,11 +590,12 @@ namespace ZeroC.Ice
 
             if (GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
             {
-                if (defaultLocatorValue.Equals("discovery", StringComparison.OrdinalIgnoreCase))
+                if (defaultLocatorValue.Equals("local", StringComparison.OrdinalIgnoreCase))
                 {
-                    var discovery = new Discovery.Locator(this);
-                    _defaultLocator = discovery.Proxy;
-                    _activateLocatorAsync = discovery.ActivateAsync;
+                    // Must be implemented later on my a local (colocated) locator implementation that will read this
+                    // value.
+                    _defaultLocator =
+                        ILocatorPrx.Parse($"ice:{Guid.NewGuid().ToString().ToLowerInvariant()}/local", this);
                 }
                 else
                 {
@@ -624,24 +623,8 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Activates the built-in locator implementation of this communicator, if any.</summary>
-        /// <param name="cancel">The cancellation token.</param>
         /// <returns>A task that completes when the activation completes.</returns>
-        public async Task ActivateAsync(CancellationToken cancel = default)
-        {
-            lock (_mutex)
-            {
-                if (_activateCalled)
-                {
-                    throw new InvalidOperationException("ActivateAsync was already called on this communicator");
-                }
-                _activateCalled = true;
-            }
-
-            if (_activateLocatorAsync != null)
-            {
-                await _activateLocatorAsync(cancel).ConfigureAwait(false);
-            }
-        }
+        public Task ActivateAsync() => Task.CompletedTask; // TODO: remove method
 
         /// <summary>Releases all resources used by this communicator. This method calls <see cref="ShutdownAsync"/>
         /// implicitly, and can be called multiple times.</summary>

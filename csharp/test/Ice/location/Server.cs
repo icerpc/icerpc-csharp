@@ -11,11 +11,12 @@ namespace ZeroC.Ice.Test.Location
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("ServerManagerAdapter.Endpoints", GetTestEndpoint(0));
 
-            // Register the server manager. The server manager creates a new 'server'(a server isn't a different
+            // Register the server manager. The server manager creates a new 'server' (a server isn't a different
             // process, it's just a new communicator and object adapter).
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("ServerManagerAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "ServerManagerAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
             // We also register a sample server locator which implements the locator interface, this locator is used by
             // the clients and the 'servers' created with the server manager interface.

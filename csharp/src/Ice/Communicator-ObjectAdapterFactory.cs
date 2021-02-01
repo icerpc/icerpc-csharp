@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ZeroC.Ice
@@ -45,52 +44,20 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Creates a new nameless object adapter. Such an object adapter has no configuration and can be
-        /// associated with a bidirectional connection.</summary>
-        /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
-        /// of requests received over the same connection.</param>
-        /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
-        /// <param name="protocol">The protocol used for this object adapter.</param>
-        /// <returns>The new object adapter.</returns>
-        public ObjectAdapter CreateObjectAdapter(
-            bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null,
-            Protocol protocol = Protocol.Ice2)
-        {
-            lock (_mutex)
-            {
-                if (IsDisposed)
-                {
-                    throw new CommunicatorDisposedException();
-                }
-                if (_shutdownTask != null)
-                {
-                    throw new InvalidOperationException("ShutdownAsync has been called on this communicator");
-                }
-
-                var adapter = new ObjectAdapter(this, serializeDispatch, taskScheduler, protocol);
-                _adapters.Add(adapter);
-                return adapter;
-            }
-        }
-
-        /// <summary>Creates a new object adapter. The communicator uses the object adapter's name to lookup its
-        /// properties, such as name.Endpoints.</summary>
-        /// <param name="name">The object adapter name. Cannot be empty.</param>
+        /// <summary>Creates a new object adapter.</summary>
+        /// <param name="name">The object adapter name, used for logging. If not specified, the implementation generates
+        /// a unique name.</param>
+        /// <param name="options">The object adapter options.</param>
         /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
         /// of requests received over the same connection.</param>
         /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
         /// <returns>The new object adapter.</returns>
         public ObjectAdapter CreateObjectAdapter(
-            string name,
+            string name = "",
+            ObjectAdapterOptions? options = null,
             bool serializeDispatch = false,
             TaskScheduler? taskScheduler = null)
         {
-            if (name.Length == 0)
-            {
-                throw new ArgumentException("the empty string is not a valid object adapter name", nameof(name));
-            }
-
             lock (_mutex)
             {
                 if (IsDisposed)
@@ -100,6 +67,11 @@ namespace ZeroC.Ice
                 if (_shutdownTask != null)
                 {
                     throw new InvalidOperationException("ShutdownAsync has been called on this communicator");
+                }
+
+                if (name.Length == 0)
+                {
+                    name = Guid.NewGuid().ToString();
                 }
 
                 if (!_adapterNamesInUse.Add(name))
@@ -110,7 +82,7 @@ namespace ZeroC.Ice
 
                 try
                 {
-                    var adapter = new ObjectAdapter(this, name, serializeDispatch, taskScheduler);
+                    var adapter = new ObjectAdapter(this, name, options, serializeDispatch, taskScheduler);
                     _adapters.Add(adapter);
                     return adapter;
                 }
@@ -121,48 +93,6 @@ namespace ZeroC.Ice
                 }
             }
         }
-
-        /// <summary>Creates a new object adapter with the specified endpoint string. Calling this method is equivalent
-        /// to setting the name.Endpoints property and then calling
-        /// <see cref="CreateObjectAdapter(string, bool, TaskScheduler?)"/>.</summary>
-        /// <param name="name">The object adapter name. Cannot be empty.</param>
-        /// <param name="endpoints">The endpoint string for the object adapter.</param>
-        /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
-        /// of requests received over the same connection.</param>
-        /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
-        /// <returns>The new object adapter.</returns>
-        public ObjectAdapter CreateObjectAdapterWithEndpoints(
-            string name,
-            string endpoints,
-            bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null)
-        {
-            if (name.Length == 0)
-            {
-                throw new ArgumentException("the empty string is not a valid object adapter name", nameof(name));
-            }
-
-            SetProperty($"{name}.Endpoints", endpoints);
-            return CreateObjectAdapter(name, serializeDispatch, taskScheduler);
-        }
-
-        /// <summary>Creates a new object adapter with the specified endpoint string. This method generates a UUID for
-        /// the object adapter name and then calls
-        /// <see cref="CreateObjectAdapterWithEndpoints(string, string, bool, TaskScheduler?)"/>.
-        /// </summary>
-        /// <param name="endpoints">The endpoint string for the object adapter.</param>
-        /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
-        /// of requests received over the same connection.</param>
-        /// <param name="taskScheduler">The optional task scheduler to use for dispatching requests.</param>
-        /// <returns>The new object adapter.</returns>
-        public ObjectAdapter CreateObjectAdapterWithEndpoints(
-            string endpoints,
-            bool serializeDispatch = false,
-            TaskScheduler? taskScheduler = null) =>
-            CreateObjectAdapterWithEndpoints(Guid.NewGuid().ToString(),
-                                             endpoints,
-                                             serializeDispatch,
-                                             taskScheduler);
 
         internal Endpoint? GetColocatedEndpoint(Reference reference)
         {

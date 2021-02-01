@@ -10,9 +10,11 @@ namespace ZeroC.Ice.Test.Proxy
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
 
-            var adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+
             adapter.Add("test", new MyDerivedClass());
             await adapter.ActivateAsync();
 

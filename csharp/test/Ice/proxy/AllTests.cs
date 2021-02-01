@@ -408,7 +408,7 @@ namespace ZeroC.Ice.Test.Proxy
             // TODO: why are we testing this here?
             try
             {
-                communicator.CreateObjectAdapterWithEndpoints("BadAdapter", " : ");
+                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = " : " });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -417,7 +417,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                communicator.CreateObjectAdapterWithEndpoints("BadAdapter", "tcp: ");
+                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = "tcp: "});
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -426,7 +426,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                communicator.CreateObjectAdapterWithEndpoints("BadAdapter", ":tcp");
+                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = ":tcp" });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -1043,7 +1043,8 @@ namespace ZeroC.Ice.Test.Proxy
                 // The Clone(encoding: Encoding.V20) are only for ice1; with ice2, it's the default encoding. We need
                 // to marshal all relative proxies with the 2.0 encoding.
 
-                await using ObjectAdapter oa = communicator.CreateObjectAdapter(protocol: helper.Protocol);
+                await using ObjectAdapter oa = communicator.CreateObjectAdapter(
+                     options: new ObjectAdapterOptions { Protocol = helper.Protocol });
                 (await cl.GetConnectionAsync()).Adapter = oa;
                 ICallbackPrx callback = oa.AddWithUUID(
                     new Callback((relativeTest, current, cancel) =>

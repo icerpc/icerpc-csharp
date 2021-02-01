@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Threading.Tasks;
+using ZeroC.Ice;
 using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Info
@@ -10,17 +11,23 @@ namespace ZeroC.Ice.Test.Info
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
+
+            ObjectAdapterOptions options;
+
             if (Protocol == Protocol.Ice1)
             {
-                Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0) + ":" + GetTestEndpoint(0, "udp"));
-                Communicator.SetProperty("TestAdapter.AcceptNonSecure", "Always");
+                options = new ObjectAdapterOptions
+                {
+                    Endpoints = GetTestEndpoint(0) + ":" + GetTestEndpoint(0, "udp"),
+                    AcceptNonSecure = NonSecure.Always
+                };
             }
             else
             {
-                Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
+                options = new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) };
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter", options);
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 

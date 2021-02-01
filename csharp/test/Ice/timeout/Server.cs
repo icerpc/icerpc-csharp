@@ -14,12 +14,12 @@ namespace ZeroC.Ice.Test.Timeout
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
-            Communicator.SetProperty("ControllerAdapter.Endpoints", GetTestEndpoint(1));
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter",
-                                                                      taskScheduler: schedulerPair.ExclusiveScheduler);
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) },
+                taskScheduler: schedulerPair.ExclusiveScheduler);
             adapter.Add("timeout", new Timeout());
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                 (request, current, next, cancel) =>
@@ -36,7 +36,9 @@ namespace ZeroC.Ice.Test.Timeout
 
             await adapter.ActivateAsync();
 
-            ObjectAdapter controllerAdapter = Communicator.CreateObjectAdapter("ControllerAdapter");
+            ObjectAdapter controllerAdapter = Communicator.CreateObjectAdapter(
+                "ControllerAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
             controllerAdapter.Add("controller", new Controller(schedulerPair.ExclusiveScheduler));
             await controllerAdapter.ActivateAsync();
 

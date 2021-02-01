@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using ZeroC.Ice.Discovery;
 using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Discovery
@@ -260,6 +261,17 @@ namespace ZeroC.Ice.Test.Discovery
             output.Write("testing invalid lookup endpoints... ");
             output.Flush();
             {
+                // TODO: convert properties to options for now
+                var discoveryServerOptions = new DiscoveryServerOptions
+                {
+                    DomainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "",
+                    Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
+                    MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
+                    RetryCount = communicator.GetPropertyAsInt("Ice.Discovery.RetryCount") ?? 20,
+                    ReplyServerName = communicator.GetProperty("Ice.Discovery.Reply.ServerName") ?? "",
+                    Timeout = communicator.GetPropertyAsTimeSpan("Ice.Discovery.Timeout") ?? TimeSpan.FromMilliseconds(100)
+                };
+
                 string multicast;
                 if (helper.Host.Contains(":"))
                 {
@@ -271,10 +283,12 @@ namespace ZeroC.Ice.Test.Discovery
                 }
 
                 {
-                    Dictionary<string, string> properties = communicator.GetProperties();
-                    properties["Ice.Discovery.Lookup"] = $"udp -h {multicast} --interface unknown";
-                    await using var comm = new Communicator(properties);
+                    await using var comm = new Communicator(communicator.GetProperties());
                     TestHelper.Assert(comm.DefaultLocator != null);
+
+                    discoveryServerOptions.Lookup = $"udp -h {multicast} --interface unknown"; // invalid value
+                    await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+
                     try
                     {
                         await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
@@ -283,20 +297,24 @@ namespace ZeroC.Ice.Test.Discovery
                     }
                     catch
                     {
+                        // expected
                     }
                 }
                 {
-                    Dictionary<string, string> properties = communicator.GetProperties();
+                    await using var comm = new Communicator(communicator.GetProperties());
+                    TestHelper.Assert(comm.DefaultLocator != null);
+
                     string port = $"{helper.BasePort + 10}";
                     string intf = helper.Host.Contains(":") ? $"\"{helper.Host}\"" : helper.Host;
-                    string lookup = $"udp -h {multicast} --interface unknown:udp -h {multicast} -p {port}";
+                    discoveryServerOptions.Lookup =
+                        $"udp -h {multicast} --interface unknown:udp -h {multicast} -p {port}"; // partially bad
                     if (!OperatingSystem.IsLinux())
                     {
-                        lookup += " --interface {intf}";
+                        discoveryServerOptions.Lookup += $" --interface {intf}";
                     }
 
-                    await using var comm = new Communicator(properties);
-                    TestHelper.Assert(comm.DefaultLocator != null);
+                    await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+
                     await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                         IcePingAsync();
                 }

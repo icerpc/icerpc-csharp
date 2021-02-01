@@ -156,7 +156,8 @@ namespace ZeroC.Ice.Test.Retry
             {
                 output.Write("testing retry with fixed reference... ");
                 output.Flush();
-                var adapter = communicator.CreateObjectAdapter(protocol: ice1 ? Protocol.Ice1 : Protocol.Ice2);
+                var adapter = communicator.CreateObjectAdapter(
+                    options: new ObjectAdapterOptions { Protocol = ice1 ? Protocol.Ice1 : Protocol.Ice2 });
                 var bidir = adapter.AddWithUUID(new Bidir(), IBidirPrx.Factory);
                 (await retry1.GetConnectionAsync()).Adapter = adapter;
                 retry1.OpBidirRetry(bidir);

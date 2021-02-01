@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
+using ZeroC.Ice;
 using ZeroC.Test;
 
 namespace ZeroC.IceSSL.Test.Configuration
@@ -16,10 +17,11 @@ namespace ZeroC.IceSSL.Test.Configuration
             }
 
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0, "tcp"));
-            Communicator.SetProperty("TestAdapter.AcceptNonSecure", "Always");
 
-            Ice.ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = GetTestEndpoint(0, "tcp") });
+
             adapter.Add("factory", new ServerFactory(args[0] + "/../certs"));
             await adapter.ActivateAsync();
 

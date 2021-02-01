@@ -11,16 +11,19 @@ namespace ZeroC.Ice.Test.Exceptions
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Dictionary<string, string> properties = Communicator.GetProperties();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
-            Communicator.SetProperty("TestAdapter2.Endpoints", GetTestEndpoint(1));
-            Communicator.SetProperty("TestAdapter2.IncomingFrameMaxSize", "0");
-            Communicator.SetProperty("TestAdapter3.Endpoints", GetTestEndpoint(2));
-            Communicator.SetProperty("TestAdapter3.IncomingFrameMaxSize", "1K");
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
-            ObjectAdapter adapter2 = Communicator.CreateObjectAdapter("TestAdapter2");
-            ObjectAdapter adapter3 = Communicator.CreateObjectAdapter("TestAdapter3");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+
+            ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+                "TestAdapter2",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
+
+            ObjectAdapter adapter3 = Communicator.CreateObjectAdapter(
+                "TestAdapter3",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
+
             var obj = new Thrower();
             ZeroC.Ice.IObjectPrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IObjectPrx.Factory);
             adapter2.Add("thrower", obj);
@@ -29,11 +32,12 @@ namespace ZeroC.Ice.Test.Exceptions
             await adapter2.ActivateAsync();
             await adapter3.ActivateAsync();
 
-            await using var communicator2 = new Communicator(properties);
+            await using var communicator2 = new Communicator(Communicator.GetProperties());
             await communicator2.ActivateAsync();
-            communicator2.SetProperty("ForwarderAdapter.Endpoints", GetTestEndpoint(3));
-            communicator2.SetProperty("ForwarderAdapter.IncomingFrameMaxSize", "0");
-            ObjectAdapter forwarderAdapter = communicator2.CreateObjectAdapter("ForwarderAdapter");
+
+            ObjectAdapter forwarderAdapter = communicator2.CreateObjectAdapter(
+                "ForwarderAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
             forwarderAdapter.Add("forwarder", new Forwarder(IObjectPrx.Parse(GetTestProxy("thrower"), communicator2)));
             await forwarderAdapter.ActivateAsync();
 

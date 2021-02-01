@@ -11,9 +11,11 @@ namespace ZeroC.Ice.Test.Objects
         public override async Task RunAsync(string[] args)
         {
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+
             adapter.Add("initial", new Initial(adapter));
             adapter.Add("F21", new F2());
             var uoet = new UnexpectedObjectExceptionTest();

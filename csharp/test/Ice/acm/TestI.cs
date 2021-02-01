@@ -26,8 +26,9 @@ namespace ZeroC.Ice.Test.ACM
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             string endpoint = TestHelper.GetTestEndpoint(properties: communicator.GetProperties(), ephemeral: true);
-            ObjectAdapter adapter = communicator.CreateObjectAdapterWithEndpoints("TestAdapter",
-                endpoint,
+            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = endpoint },
                 taskScheduler: schedulerPair.ExclusiveScheduler);
 
             await adapter.ActivateAsync(cancel);

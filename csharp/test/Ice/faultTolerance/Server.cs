@@ -40,9 +40,11 @@ namespace ZeroC.Ice.Test.FaultTolerance
             }
 
             await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(port));
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(port) });
+
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 

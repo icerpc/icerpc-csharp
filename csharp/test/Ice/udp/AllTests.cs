@@ -63,9 +63,13 @@ namespace ZeroC.Ice.Test.UDP
         {
             Communicator communicator = helper.Communicator;
 
-            communicator.SetProperty("ReplyAdapter.Endpoints", helper.GetTestEndpoint(0, "udp", true));
-            communicator.SetProperty("ReplyAdapter.AcceptNonSecure", "Always");
-            ObjectAdapter adapter = communicator.CreateObjectAdapter("ReplyAdapter");
+            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+                "ReplyAdapter",
+                new ObjectAdapterOptions
+                {
+                    AcceptNonSecure = NonSecure.Always,
+                    Endpoints = helper.GetTestEndpoint(0, "udp", true)
+                });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = adapter.AddWithUUID(replyI, IPingReplyPrx.Factory)
                 .Clone(invocationMode: InvocationMode.Datagram, preferNonSecure: NonSecure.Always);
