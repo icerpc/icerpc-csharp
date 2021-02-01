@@ -588,26 +588,13 @@ namespace ZeroC.Ice
 
             Observer?.SetObserverUpdater(new ObserverUpdater(this));
 
-            if (GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
+            try
             {
-                if (defaultLocatorValue.Equals("local", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Must be implemented later on my a local (colocated) locator implementation that will read this
-                    // value.
-                    _defaultLocator =
-                        ILocatorPrx.Parse($"ice:{Guid.NewGuid().ToString().ToLowerInvariant()}/local", this);
-                }
-                else
-                {
-                    try
-                    {
-                        _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
-                    }
-                }
+                _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
             }
 
             // Show process id if requested (but only once).

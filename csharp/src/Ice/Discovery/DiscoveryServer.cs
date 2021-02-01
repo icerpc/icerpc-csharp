@@ -8,15 +8,18 @@ namespace ZeroC.Ice.Discovery
 {
     public sealed class DiscoveryServerOptions
     {
+        public const string DefaultIPv4Endpoint = "udp -h 239.255.0.1 -p 4061";
+        public const string DefaultIPv6Endpoint = "udp -h \"ff15::1\" -p 4061";
+
         public string DomainId { get; set; } = "";
 
         public int LatencyMultiplier { get; set; } = 1;
 
         public string Lookup { get; set; } = "";
 
-        public string MulticastEndpoints { get; set; } = "";
+        public string MulticastEndpoints { get; set; } = $"{DefaultIPv4Endpoint}:{DefaultIPv6Endpoint}";
 
-        public string ReplyEndpoints { get; set; } = "";
+        public string ReplyEndpoints { get; set; } = "udp -h \"::0\" -p 0";
 
         public string ReplyServerName { get; set; } = "";
 

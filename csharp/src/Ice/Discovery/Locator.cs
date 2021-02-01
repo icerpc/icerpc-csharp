@@ -140,38 +140,29 @@ namespace ZeroC.Ice.Discovery
 
             if (communicator.DefaultLocator is ILocatorPrx defaultLocator)
             {
-                // make sure it's a well-known proxy with a "local" name
-                if (defaultLocator.Identity.Name != "local" ||
-                    defaultLocator.Protocol != Protocol.Ice2 ||
-                    defaultLocator.Endpoints.Count > 0 ||
-                    defaultLocator.Location.Count > 0)
-                {
-                    throw new InvalidOperationException("incompatible default locator proxy");
-                }
-                else
-                {
-                    locatorIdentity = defaultLocator.Identity;
-                }
+                locatorIdentity =
+                    defaultLocator.Identity.Name.ToLowerInvariant() == "discovery" &&
+                    defaultLocator.Protocol == Protocol.Ice2 &&
+                    defaultLocator.Endpoints.Count == 0 &&
+                    defaultLocator.Location.Count == 0 ? defaultLocator.Identity :
+                    throw new InvalidOperationException(
+                        $"expected `ice:discovery' as default locator proxy, got `{defaultLocator}'");
             }
             else
             {
-                throw new ArgumentException("communicator does not have a default locator", nameof(communicator));
+                throw new InvalidOperationException("communicator does not have a default locator");
             }
-
-            const string defaultIPv4Endpoint = "udp -h 239.255.0.1 -p 4061";
-            const string defaultIPv6Endpoint = "udp -h \"ff15::1\" -p 4061";
 
             var multicastOptions = new ObjectAdapterOptions
             {
                 AcceptNonSecure = NonSecure.Always,
-                Endpoints = options.MulticastEndpoints.Length == 0 ?
-                    $"{defaultIPv4Endpoint}:{defaultIPv6Endpoint}" : options.MulticastEndpoints
+                Endpoints = options.MulticastEndpoints,
             };
 
             var replyOptions = new ObjectAdapterOptions
             {
                 AcceptNonSecure = NonSecure.Always,
-                Endpoints = options.ReplyEndpoints.Length == 0 ? "udp -h \"::0\" -p 0" : options.ReplyEndpoints,
+                Endpoints = options.ReplyEndpoints,
                 PublishedInvocationMode = InvocationMode.Datagram,
                 ServerName = options.ReplyServerName.Length > 0 ? options.ReplyServerName : null
             };
@@ -200,8 +191,11 @@ namespace ZeroC.Ice.Discovery
                 List<string> ipv4Interfaces = Network.GetInterfacesForMulticast("0.0.0.0", Network.EnableIPv4);
                 List<string> ipv6Interfaces = Network.GetInterfacesForMulticast("::0", Network.EnableIPv6);
 
-                endpoints.AddRange(ipv4Interfaces.Select(i => $"{defaultIPv4Endpoint} --interface \"{i}\""));
-                endpoints.AddRange(ipv6Interfaces.Select(i => $"{defaultIPv6Endpoint} --interface \"{i}\""));
+                endpoints.AddRange(ipv4Interfaces.Select(
+                    i => $"{DiscoveryServerOptions.DefaultIPv4Endpoint} --interface \"{i}\""));
+
+                endpoints.AddRange(ipv6Interfaces.Select(
+                    i => $"{DiscoveryServerOptions.DefaultIPv6Endpoint} --interface \"{i}\""));
 
                 lookupEndpoints = string.Join(":", endpoints);
             }

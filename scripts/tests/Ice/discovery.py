@@ -15,7 +15,7 @@ def props(process, current):
 
     discoveryProps = {
         "Ice.ProgramName": "server{}".format(process.args[0]) if isinstance(process, Server) else "client", # This is used for the trace file
-        "Ice.Default.Locator": "local",
+        "Ice.Default.Locator": "ice:local/discovery", # can be any ice2 well-known proxy with identity.Name = discovery
         "Ice.Discovery.RetryCount": 20,
         "Ice.Discovery.DomainId": domainId,
         "Ice.Discovery.Timeout": "100ms",
