@@ -1,7 +1,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRPC::Ice::Tests::Operations
+module IceRpc::Ice::Tests::Operations
 {
     interface Tester
     {

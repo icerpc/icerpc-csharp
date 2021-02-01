@@ -1,89 +1,62 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
+using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRPC.Ice.Tests.Operations
+namespace IceRpc.Ice.Tests.Operations
 {
 
+    [TestFixture(Protocol.Ice2, "tcp", Category = "Ice2")]
+    [TestFixture(Protocol.Ice1, "tcp", Category = "Ice1")]
+    [Parallelizable]
     public class OperationsTest : FunctionalTest
     {
-        [Theory]
-        [InlineData(Protocol.Ice2)]
-        [InlineData(Protocol.Ice1)]
-        public async Task OperationsOpVoid(Protocol protocol)
+        ITesterPrx? _prx;
+        public OperationsTest(Protocol protocol, string transport) : base(protocol, transport)
         {
-            // Setup
-            await using ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, "tcp"));
-            adapter.Add("test", new Tester());
-            await adapter.ActivateAsync();
-            ITesterPrx prx = ITesterPrx.Parse(GetTestProxy(protocol, "tcp", "test"), Communicator);
-
-            // Exercise
-            await prx.OpVoidAsync();
         }
 
-        [Theory]
-        [InlineData(Protocol.Ice2, 127)]
-        [InlineData(Protocol.Ice1, 127)]
-        public async Task OperationsOpByte(Protocol protocol, byte value)
+        [OneTimeSetUp]
+        public async Task InitializeAsync()
         {
-            // Setup
-            await using ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, "tcp"));
-            adapter.Add("test", new Tester());
-            await adapter.ActivateAsync();
-            ITesterPrx prx = ITesterPrx.Parse(GetTestProxy(protocol, "tcp", "test"), Communicator);
-
-            // Exercise
-            var result = await prx.OpByteAsync(value);
-
-            // Assert
-            Assert.Equal(value, result);
+            ObjectAdapter.Add("test", new Tester());
+            await ObjectAdapter.ActivateAsync();
+            _prx = ITesterPrx.Parse(GetTestProxy("test"), Communicator);
         }
 
-        [Theory]
-        [InlineData(Protocol.Ice2, 1024)]
-        [InlineData(Protocol.Ice1, 1024)]
-        public async Task OperationsOpShort(Protocol protocol, short value)
+        public async Task OperationsOpVoid()
         {
-            // Setup
-            await using ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, "tcp"));
-            adapter.Add("test", new Tester());
-            await adapter.ActivateAsync();
-            ITesterPrx prx = ITesterPrx.Parse(GetTestProxy(protocol, "tcp", "test"), Communicator);
-
-            // Exercise
-            var result = await prx.OpShortAsync(value);
-
-            // Assert
-            Assert.Equal(value, result);
+            await _prx!.OpVoidAsync();
         }
 
-        [Theory]
-        [InlineData(Protocol.Ice2, "hello")]
-        [InlineData(Protocol.Ice1, "hello")]
-        public async Task OperationsOpString(Protocol protocol, string value)
+        [TestCase(127)]
+        public async Task OperationsOpByte(byte value)
         {
-            // Setup
-            await using ObjectAdapter adapter = Communicator.CreateObjectAdapterWithEndpoints(
-                "TestAdapter",
-                GetTestEndpoint(protocol, "tcp"));
-            adapter.Add("test", new Tester());
-            await adapter.ActivateAsync();
-            ITesterPrx prx = ITesterPrx.Parse(GetTestProxy(protocol, "tcp", "test"), Communicator);
-
             // Exercise
-            var result = await prx.OpStringAsync(value);
+            var result = await _prx!.OpByteAsync(value);
 
             // Assert
-            Assert.Equal(value, result);
+            Assert.AreEqual(value, result);
+        }
+
+        [TestCase(1024)]
+        public async Task OperationsOpShort(short value)
+        {
+            // Exercise
+            var result = await _prx!.OpShortAsync(value);
+
+            // Assert
+            Assert.AreEqual(value, result);
+        }
+
+        [TestCase("hello")]
+        public async Task OperationsOpString(string value)
+        {
+            // Exercise
+            var result = await _prx!.OpStringAsync(value);
+
+            // Assert
+            Assert.AreEqual(value, result);
         }
     }
 

@@ -1,48 +1,49 @@
 
-using System;
 using System.Text;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
+using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRPC.Ice.Tests
+namespace IceRpc.Ice.Tests
 {
-    public class FunctionalTest : IAsyncLifetime
+    public class FunctionalTest
     {
         public Communicator Communicator { get; }
+        public ObjectAdapter ObjectAdapter { get; }
+        public Protocol Protocol { get; }
+        public string Transport { get; }
 
-        private static int _nextBasePort = 12000;
         // Base port for the tests that run with this test fixture
-        private static int _basePort;
+        private int _basePort;
+        private static int _nextBasePort = 12000;
 
-        public FunctionalTest()
+        public FunctionalTest(Protocol protocol, string transport)
         {
             _basePort = Interlocked.Add(ref _nextBasePort, 100);
+            TestContext.WriteLine($"BasePort: {_basePort} Protocol: {protocol}");
+            Protocol = protocol;
+            Transport = transport;
             Communicator = new Communicator();
+            ObjectAdapter = Communicator.CreateObjectAdapterWithEndpoints("TestAdapter", GetTestEndpoint());
         }
-
-        public Task InitializeAsync() => Task.CompletedTask;
+        
+        [OneTimeTearDown]
         public async Task DisposeAsync() => await Communicator.DisposeAsync();
 
-        public string GetTestEndpoint(
-            Protocol protocol,
-            string transport,
-            int port = 0)
+        public string GetTestEndpoint(int port = 0)
         {
-            if (protocol == Protocol.Ice2)
+            if (Protocol == Protocol.Ice2)
             {
                 var sb = new StringBuilder("ice+");
-                sb.Append(transport);
+                sb.Append(Transport);
                 sb.Append("://localhost:");
                 sb.Append(GetTestPort(port));
                 return sb.ToString();
             }
             else
             {
-                var sb = new StringBuilder(transport);
+                var sb = new StringBuilder(Transport);
                 sb.Append(" -h localhost ");
                 sb.Append(" -p ");
                 sb.Append(GetTestPort(port));
@@ -50,18 +51,14 @@ namespace IceRPC.Ice.Tests
             }
         }
 
-        int GetTestPort(int num) => _basePort + num;
+        public int GetTestPort(int num) => _basePort + num;
 
-        public string GetTestProxy(
-            Protocol protocol,
-            string transport,
-            string identity,
-            int port = 0)
+        public string GetTestProxy(string identity, int port = 0)
         {
-            if (protocol == Protocol.Ice2)
+            if (Protocol == Protocol.Ice2)
             {
                 var sb = new StringBuilder("ice+");
-                sb.Append(transport);
+                sb.Append(Transport);
                 sb.Append("://localhost:");
                 sb.Append(GetTestPort(port));
                 sb.Append('/');
@@ -72,7 +69,7 @@ namespace IceRPC.Ice.Tests
             {
                 var sb = new StringBuilder(identity);
                 sb.Append(':');
-                sb.Append(transport);
+                sb.Append(Transport);
                 sb.Append(" -h localhost ");
                 sb.Append(" -p ");
                 sb.Append(GetTestPort(port));
