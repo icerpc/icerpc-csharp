@@ -263,7 +263,7 @@ namespace ZeroC.Ice
                 _engine.TlsClientOptions.ServerCertificateCertificateAuthorities;
 
             bool useMachineContext = _incoming ?
-                _engine.TlsServerOptions.UseMachineContex : _engine.TlsClientOptions.UseMachineContex;
+                _engine.TlsServerOptions.UseMachineContext : _engine.TlsClientOptions.UseMachineContext;
 
             bool buildCustomChain =
                 (trustedCertificateAuthorities != null || useMachineContext) && certificate != null;
