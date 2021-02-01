@@ -12,8 +12,6 @@ namespace ZeroC.Ice.Test.UDP
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             Dictionary<string, string> properties = Communicator.GetProperties();
             int num = 0;
             try

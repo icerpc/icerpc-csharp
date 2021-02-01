@@ -9,8 +9,6 @@ namespace ZeroC.Ice.Test.Operations
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             ObjectAdapter adapter = Communicator.CreateObjectAdapter(
                 "TestAdapter",
                 new ObjectAdapterOptions { AdapterId = "test", Endpoints = GetTestEndpoint(0) });

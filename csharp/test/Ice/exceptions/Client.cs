@@ -17,7 +17,6 @@ namespace ZeroC.Ice.Test.Exceptions
             properties["Ice.IncomingFrameMaxSize"] = "10K";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -16,8 +16,6 @@ namespace ZeroC.IceSSL.Test.Configuration
                 throw new ArgumentException("Usage: server testdir");
             }
 
-            await Communicator.ActivateAsync();
-
             ObjectAdapter adapter = Communicator.CreateObjectAdapter(
                 "TestAdapter",
                 new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = GetTestEndpoint(0, "tcp") });

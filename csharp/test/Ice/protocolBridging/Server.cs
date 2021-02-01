@@ -10,8 +10,6 @@ namespace ZeroC.Ice.Test.ProtocolBridging
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             var ice1Endpoint = TestHelper.GetTestEndpoint(
                 new Dictionary<string, string>
                 {

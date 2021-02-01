@@ -15,7 +15,6 @@ namespace ZeroC.Ice.Test.Impl
     {
         public override async Task RunAsync(string[] args)
         {
-            Communicator.ActivateAsync();
             // We don't want connection warnings because of the timeout test.
             Communicator.getProperties().setProperty("Ice.Warn.Connections", "0");
             Communicator.getProperties().setProperty("TestAdapter.Endpoints", getTestEndpoint(0));

@@ -13,8 +13,6 @@ namespace ZeroC.Ice.Test.Timeout
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             ObjectAdapter adapter = Communicator.CreateObjectAdapter(
                 "TestAdapter",

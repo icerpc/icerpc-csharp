@@ -10,8 +10,6 @@ namespace ZeroC.Ice.Test.Location
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             // Register the server manager. The server manager creates a new 'server' (a server isn't a different
             // process, it's just a new communicator and object adapter).
             ObjectAdapter adapter = Communicator.CreateObjectAdapter(

@@ -20,8 +20,6 @@ namespace ZeroC.Ice.Test.Discovery
             {
             }
 
-            await Communicator.ActivateAsync();
-
             ObjectAdapter adapter = Communicator.CreateObjectAdapter(
                 "ControlAdapter",
                 new ObjectAdapterOptions { AdapterId = $"control{num}", Endpoints = GetTestEndpoint(num) });

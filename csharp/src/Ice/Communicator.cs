@@ -609,10 +609,6 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Activates the built-in locator implementation of this communicator, if any.</summary>
-        /// <returns>A task that completes when the activation completes.</returns>
-        public Task ActivateAsync() => Task.CompletedTask; // TODO: remove method
-
         /// <summary>Releases all resources used by this communicator. This method calls <see cref="ShutdownAsync"/>
         /// implicitly, and can be called multiple times.</summary>
         /// <returns>A task that completes when the destruction is complete.</returns>

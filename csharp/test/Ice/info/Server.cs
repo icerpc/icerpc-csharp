@@ -10,8 +10,6 @@ namespace ZeroC.Ice.Test.Info
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             ObjectAdapterOptions options;
 
             if (Protocol == Protocol.Ice1)

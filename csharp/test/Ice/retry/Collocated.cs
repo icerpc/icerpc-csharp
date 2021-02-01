@@ -11,8 +11,6 @@ namespace ZeroC.Ice.Test.Retry
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             Communicator.CreateObjectAdapter(
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) }).Add("retry", new Retry());

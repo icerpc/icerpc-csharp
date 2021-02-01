@@ -13,7 +13,6 @@ namespace ZeroC.Ice.Test.SeqMapping
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -28,7 +28,6 @@ namespace ZeroC.Ice.Test.Interceptor
                     }
                 });
 
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }
