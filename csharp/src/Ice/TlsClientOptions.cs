@@ -67,7 +67,7 @@ namespace ZeroC.Ice
         /// <see cref="X509KeyStorageFlags.UserKeySet"/> and the certificate chain uses the user context. On Linux
         /// certificates are always imported with <see cref="X509KeyStorageFlags.EphemeralKeySet"/> flag independently
         /// of the value of this property.</summary>
-        public bool UseMachineContex { get; set; }
+        public bool UseMachineContext { get; set; }
 
         private X509Certificate2Collection? _serverCertificateCertificateAuthorities;
         private RemoteCertificateValidationCallback? _serverCertificateValidationCallback;

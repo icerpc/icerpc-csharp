@@ -62,8 +62,8 @@ namespace ZeroC.Ice
                     }
                     else
                     {
-                        importFlags = tlsClientOptions?.UseMachineContex ??
-                                      tlsServerOptions?.UseMachineContex ?? false ?
+                        importFlags = tlsClientOptions?.UseMachineContext ??
+                                      tlsServerOptions?.UseMachineContext ?? false ?
                             X509KeyStorageFlags.MachineKeySet : X509KeyStorageFlags.UserKeySet;
                     }
 
