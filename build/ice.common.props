@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-    <!-- Required for the project configurations to show up in settings editor -->
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    </PropertyGroup>
-
     <PropertyGroup>
         <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
         <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -23,18 +17,8 @@
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" PrivateAssets="All"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1" PrivateAssets="All"/>
-        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All"/>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All"/>
-    </ItemGroup>
-
     <!-- Import Ice version settings -->
-    <Import Project="$(MSBuildThisFileDirectory)..\..\config\icebuilder.props" Condition="'$(ICE_BIN_DIST)' != 'all'"/>
+    <Import Project="$(MSBuildThisFileDirectory)icebuilder.props" Condition="'$(ICE_BIN_DIST)' != 'all'"/>
     <PropertyGroup>
         <Company>ZeroC, Inc.</Company>
         <Product>Ice</Product>
@@ -44,8 +28,8 @@
     <Choose>
         <When Condition="'$(ICE_BIN_DIST)' != 'all'">
             <PropertyGroup>
-                <IceHome>$(MSBuildThisFileDirectory)..\..</IceHome>
-                <IceAssembliesDir>$(MSBuildThisFileDirectory)..\lib</IceAssembliesDir>
+                <IceHome>$(MSBuildThisFileDirectory)..</IceHome>
+                <IceAssembliesDir>$(MSBuildThisFileDirectory)..\csharp\lib</IceAssembliesDir>
             </PropertyGroup>
             <Choose>
                 <When Condition="'$(OS)' == 'Windows_NT'">

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <MaxCpuCount>8</MaxCpuCount>
+  </RunConfiguration>
+  <NUnit>
+  </NUnit>
+   <TestRunParameters>
+       <Parameter name="IceRpc.Tests.DefaultTransport" value="tcp" />
+       <Parameter name="IceRpc.Tests.DefaultHost" value="localhost" />
+       <Parameter name="IceRpc.Tests.BasePort" value="12000" />
+  </TestRunParameters>
+</RunSettings>

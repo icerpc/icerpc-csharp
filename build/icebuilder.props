@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) ZeroC, Inc. All rights reserved. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <IceVersion>4.0.0-alpha.0</IceVersion>
+    <IceIntVersion>40000</IceIntVersion>
+    <IceVersionMM>4.0</IceVersionMM>
+    <IceSoVersion>40a0</IceSoVersion>
+  </PropertyGroup>
+</Project>
