@@ -52,5 +52,7 @@
           <SliceCompileSource>..\..\..\slice\Ice\SlicDefinitions.ice</SliceCompileSource>
         </Compile>
     </ItemGroup>
-    <ItemGroup />
+    <ItemGroup>
+      <PackageReference Update="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.2" />
+    </ItemGroup>
 </Project>
