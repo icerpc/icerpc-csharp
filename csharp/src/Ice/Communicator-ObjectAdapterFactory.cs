@@ -45,8 +45,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Creates a new object adapter.</summary>
-        /// <param name="name">The object adapter name, used for logging. If not specified, the implementation generates
-        /// a unique name.</param>
+        /// <param name="name">The object adapter name. A unique name is generated if an empty string is specified.</param>
         /// <param name="options">The object adapter options.</param>
         /// <param name="serializeDispatch">Indicates whether or not this object adapter serializes the dispatching of
         /// of requests received over the same connection.</param>
