@@ -38,7 +38,8 @@ namespace ZeroC.Ice
         /// return type.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
         /// <param name="current">The Current object for the corresponding incoming request.</param>
-        /// <param name="compress">True if the response should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
@@ -52,7 +53,7 @@ namespace ZeroC.Ice
             T returnValue,
             OutputStreamWriter<T> writer)
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, compress, format);
+            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
             writer(ostr, returnValue);
             ostr.Finish();
             if (compress && current.Encoding == Encoding.V20)
@@ -66,7 +67,8 @@ namespace ZeroC.Ice
         /// value.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
         /// <param name="current">The Current object for the corresponding incoming request.</param>
-        /// <param name="compress">True if the response should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
@@ -93,7 +95,8 @@ namespace ZeroC.Ice
         /// type.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
         /// <param name="current">The Current object for the corresponding incoming request.</param>
-        /// <param name="compress">True if the response should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
@@ -108,7 +111,7 @@ namespace ZeroC.Ice
             OutputStreamValueWriter<T> writer)
             where T : struct
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, compress, format);
+            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
             writer(ostr, in returnValue);
             ostr.Finish();
             if (compress && current.Encoding == Encoding.V20)
@@ -122,7 +125,8 @@ namespace ZeroC.Ice
         /// type where the tuple return type contains a stream return value.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
         /// <param name="current">The Current object for the corresponding incoming request.</param>
-        /// <param name="compress">True if the response should be compressed, false otherwise.</param>
+        /// <param name="compress">True if the response payload should be compressed, false otherwise Applies only
+        /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
@@ -136,7 +140,7 @@ namespace ZeroC.Ice
             OutputStreamValueWriterWithStreamable<T> writer)
             where T : struct
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, compress, format);
+            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
             // TODO: deal with compress, format and cancellation token
             response.StreamDataWriter = writer(ostr, in returnValue, default);
             ostr.Finish();
@@ -379,12 +383,10 @@ namespace ZeroC.Ice
 
         private static (OutgoingResponseFrame ResponseFrame, OutputStream Ostr) PrepareReturnValue(
             Current current,
-            bool compress,
             FormatType format)
         {
             var response = new OutgoingResponseFrame(current.Protocol,
                                                      current.Encoding,
-                                                     compress,
                                                      current.Communicator.CompressionLevel,
                                                      current.Communicator.CompressionMinSize);
 
@@ -403,11 +405,9 @@ namespace ZeroC.Ice
         private OutgoingResponseFrame(
             Protocol protocol,
             Encoding encoding,
-            bool compress = false,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
             int compressionMinSize = 100)
             : base(protocol,
-                   compress,
                    compressionLevel,
                    compressionMinSize) =>
             PayloadEncoding = encoding;

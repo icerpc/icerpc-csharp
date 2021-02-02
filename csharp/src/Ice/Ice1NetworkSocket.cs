@@ -190,7 +190,7 @@ namespace ZeroC.Ice
         {
             cancel.ThrowIfCancellationRequested();
 
-            await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
+            await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
             if (Endpoint.Communicator.TraceLevels.Protocol >= 1)
             {
@@ -259,10 +259,9 @@ namespace ZeroC.Ice
             }
         }
 
-        internal async ValueTask<byte> SendFrameAsync(
+        internal async ValueTask SendFrameAsync(
             Ice1NetworkSocketStream? stream,
             IList<ArraySegment<byte>> buffer,
-            bool compress,
             CancellationToken cancel)
         {
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue
@@ -282,39 +281,8 @@ namespace ZeroC.Ice
                     }
                 }
 
-                // Compress the message if asked to and the compression library is loaded.
-                byte compressionStatus = 0;
-                if (BZip2.IsLoaded && compress)
-                {
-                    int size = buffer.GetByteCount();
-                    List<ArraySegment<byte>>? compressed = null;
-                    if (size >= Endpoint.Communicator.CompressionMinSize)
-                    {
-                        compressed = BZip2.Compress(buffer,
-                                                    size,
-                                                    Ice1Definitions.HeaderSize,
-                                                    Endpoint.Communicator.CompressionLevel);
-                    }
-
-                    if (compressed != null)
-                    {
-                        // Message compressed, get the compression status and ensure we send the compressed message.
-                        buffer = compressed;
-                        compressionStatus = buffer[0][9];
-                    }
-                    else
-                    {
-                        // Message not compressed, request compressed response, if any and write the compression status.
-                        compressionStatus = 1;
-                        ArraySegment<byte> header = buffer[0];
-                        header[9] = compressionStatus; // Write the compression status
-                    }
-                }
-
                 // Perform the sending.
                 await SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
-
-                return compressionStatus;
             }
             finally
             {
@@ -361,14 +329,7 @@ namespace ZeroC.Ice
             byte compressionStatus = readBuffer[9];
             if (compressionStatus == 2)
             {
-                if (BZip2.IsLoaded)
-                {
-                    readBuffer = BZip2.Decompress(readBuffer, Ice1Definitions.HeaderSize, IncomingFrameMaxSize);
-                }
-                else
-                {
-                    throw new LoadException("compression not supported, bzip2 library not found");
-                }
+                throw new NotSupportedException("cannot decompress ice1 frame");
             }
 
             switch (frameType)

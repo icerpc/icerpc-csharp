@@ -77,9 +77,6 @@ namespace ZeroC.Ice
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        // True if Ice1 frames should use protocol compression, false otherwise.
-        internal bool Compress { get; }
-
         /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
         /// called after the request or response frame is sent over a socket stream.</summary>
         internal Action<SocketStream>? StreamDataWriter { get; set; }
@@ -215,13 +212,11 @@ namespace ZeroC.Ice
 
         private protected OutgoingFrame(
             Protocol protocol,
-            bool compress,
             CompressionLevel compressionLevel,
             int compressionMinSize)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
-            Compress = compress;
             _compressionLevel = compressionLevel;
             _compressionMinSize = compressionMinSize;
         }
