@@ -103,8 +103,31 @@ namespace IceRpc.Tests
             Assert.AreEqual(r1, p1);
         }
 
+        [TestCase(3.14f, 1.1E10)]
+        [TestCase(float.MaxValue, double.MaxValue)]
+        [TestCase(float.MinValue, double.MinValue)]
+        public async Task OpFloatDoubleAsync(float p1, double p2)
+        {
+            (double r1, float r2, double r3) = await _prx.OpFloatDoubleAsync(p1, p2);
+
+            Assert.AreEqual(r1, p2);
+            Assert.AreEqual(r2, p1);
+            Assert.AreEqual(r3, p2);
+        }
+
+        [TestCase(Operations.MyEnum.enum1)]
+        [TestCase(Operations.MyEnum.enum2)]
+        [TestCase(Operations.MyEnum.enum3)]
+        public async Task OpMyEnum(Operations.MyEnum p1)
+        {
+            (Operations.MyEnum r1, Operations.MyEnum r2) = await _prx.OpMyEnumAsync(p1);
+            Assert.AreEqual(Operations.MyEnum.enum3, r1);
+            Assert.AreEqual(p1, r2);
+        }
 
         [TestCase(1024)]
+        [TestCase(short.MaxValue)]
+        [TestCase(short.MinValue)]
         public async Task OpShort(short value) => Assert.AreEqual(value, await _prx.OpShortAsync(value));
 
         [TestCase("hello")]
@@ -144,6 +167,17 @@ namespace IceRpc.Tests
 
         public ValueTask<short> OpShortAsync(short value, Current current, CancellationToken cancel) =>
             new ValueTask<short>(value);
+
+        public ValueTask<(double, float, double)> OpFloatDoubleAsync(
+            float p1,
+            double p2,
+            Current current,
+            CancellationToken cancel) =>
+            new((p2, p1, p2));
+
+        public ValueTask<(Operations.MyEnum, Operations.MyEnum)> OpMyEnumAsync(
+            Operations.MyEnum p1, Current current, CancellationToken cancel) =>
+            new((Operations.MyEnum.enum3, p1));
 
         public ValueTask<string> OpStringAsync(string value, Current current, CancellationToken cancel) =>
             new ValueTask<string>(value);
