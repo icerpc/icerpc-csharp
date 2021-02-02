@@ -5,25 +5,26 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests
+namespace IceRpc.Tests.Operations
 {
 
     [TestFixture(Protocol.Ice2, Category = "Ice2")]
     [TestFixture(Protocol.Ice1, Category = "Ice1")]
     [Parallelizable]
-    public class OperationsTest : FunctionalTest
+    public class AllTests : FunctionalTest
     {
-        private Operations.ITestServicePrx _prx;
-        public OperationsTest(Protocol protocol) : base(protocol, "") => _prx = null!;
+        private ITestServicePrx _prx;
+        public AllTests(Protocol protocol) : base(protocol, "") => _prx = null!;
 
         [OneTimeSetUp]
         public async Task InitializeAsync()
         {
             ObjectAdapter.Add("test", new TestService());
             await ObjectAdapter.ActivateAsync();
-            _prx = Operations.ITestServicePrx.Parse(GetTestProxy("test"), Communicator);
+            _prx = ITestServicePrx.Parse(GetTestProxy("test"), Communicator);
         }
 
+        [Test]
         public async Task OpVoid() => await _prx.OpVoidAsync();
 
         [TestCase(0xff, 0x0f)]
@@ -115,26 +116,21 @@ namespace IceRpc.Tests
             Assert.AreEqual(r3, p2);
         }
 
-        [TestCase(Operations.MyEnum.enum1)]
-        [TestCase(Operations.MyEnum.enum2)]
-        [TestCase(Operations.MyEnum.enum3)]
-        public async Task OpMyEnum(Operations.MyEnum p1)
+        [TestCase(MyEnum.enum1)]
+        [TestCase(MyEnum.enum2)]
+        [TestCase(MyEnum.enum3)]
+        public async Task OpMyEnum(MyEnum p1)
         {
-            (Operations.MyEnum r1, Operations.MyEnum r2) = await _prx.OpMyEnumAsync(p1);
-            Assert.AreEqual(Operations.MyEnum.enum3, r1);
+            (MyEnum r1, MyEnum r2) = await _prx.OpMyEnumAsync(p1);
+            Assert.AreEqual(MyEnum.enum3, r1);
             Assert.AreEqual(p1, r2);
         }
-
-        [TestCase(1024)]
-        [TestCase(short.MaxValue)]
-        [TestCase(short.MinValue)]
-        public async Task OpShort(short value) => Assert.AreEqual(value, await _prx.OpShortAsync(value));
 
         [TestCase("hello")]
         public async Task OpString(string value) => Assert.AreEqual(value, await _prx.OpStringAsync(value));
     }
 
-    public class TestService : Operations.IAsyncTestService
+    public class TestService : IAsyncTestService
     {
         public ValueTask OpVoidAsync(Current current, CancellationToken cancel) => default;
 
@@ -165,9 +161,6 @@ namespace IceRpc.Tests
         public ValueTask<long> OpVarLongAsync(long v, Current current, CancellationToken cancel) => new(v);
         public ValueTask<ulong> OpVarULongAsync(ulong v, Current current, CancellationToken cancel) => new(v);
 
-        public ValueTask<short> OpShortAsync(short value, Current current, CancellationToken cancel) =>
-            new ValueTask<short>(value);
-
         public ValueTask<(double, float, double)> OpFloatDoubleAsync(
             float p1,
             double p2,
@@ -175,9 +168,9 @@ namespace IceRpc.Tests
             CancellationToken cancel) =>
             new((p2, p1, p2));
 
-        public ValueTask<(Operations.MyEnum, Operations.MyEnum)> OpMyEnumAsync(
-            Operations.MyEnum p1, Current current, CancellationToken cancel) =>
-            new((Operations.MyEnum.enum3, p1));
+        public ValueTask<(MyEnum, MyEnum)> OpMyEnumAsync(
+            MyEnum p1, Current current, CancellationToken cancel) =>
+            new((MyEnum.enum3, p1));
 
         public ValueTask<string> OpStringAsync(string value, Current current, CancellationToken cancel) =>
             new ValueTask<string>(value);

@@ -6,14 +6,14 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests
+namespace IceRpc.Tests.Proxy
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class ProxyTest
+    public class AllTests
     {
         public Communicator Communicator { get; }
 
-        public ProxyTest() => Communicator = new Communicator();
+        public AllTests() => Communicator = new Communicator();
 
         [OneTimeTearDown]
         public Task DisposeAsync() => Communicator.DestroyAsync();
@@ -189,7 +189,8 @@ namespace IceRpc.Tests
 
             private void Add(string str, string name) => Add(str, name, "");
 
-            private void Add(string str, string name, string category) => Add(str, name, category, Array.Empty<string>());
+            private void Add(string str, string name, string category) =>
+                Add(str, name, category, Array.Empty<string>());
         }
     }
 }

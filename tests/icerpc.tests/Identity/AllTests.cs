@@ -4,28 +4,28 @@ using NUnit.Framework;
 using System;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests
+namespace IceRpc.Tests.Identity
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class IdentityTest
+    public class AllTests
     {
         /// <summary>Test Identity to string conversion.</summary>
         /// <param name="id">The identity to convert to a string.</param>
         /// <param name="expected">The expected result.</param>
         [TestCaseSource(typeof(ToStringTestCases))]
-        public void TestToString(Identity id, string expected)
+        public void TestToString(ZeroC.Ice.Identity id, string expected)
         {
             Assert.AreEqual(expected, id.ToString());
-            Assert.AreEqual(id, Identity.Parse(expected, uriFormat: true));
+            Assert.AreEqual(id, ZeroC.Ice.Identity.Parse(expected, uriFormat: true));
         }
 
         /// <summary>Test data for <see cref="TestToString"/>.</summary>
-        public class ToStringTestCases : TestData<Identity, string>
+        public class ToStringTestCases : TestData<ZeroC.Ice.Identity, string>
         {
             public ToStringTestCases()
             {
-                Add(new Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
-                Add(new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
+                Add(new ZeroC.Ice.Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
+                Add(new ZeroC.Ice.Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
                     "greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");
             }
         }
@@ -35,23 +35,23 @@ namespace IceRpc.Tests
         /// <param name="mode">The mode argument to call ToString</param>
         /// <param name="expected">The expected result for ToString invocation.</param>
         [TestCaseSource(typeof(ToStringModeTestCases))]
-        public void TestToStringMode(Identity id, ToStringMode mode, string expected)
+        public void TestToStringMode(ZeroC.Ice.Identity id, ToStringMode mode, string expected)
         {
             Assert.AreEqual(expected, id.ToString(mode));
-            Assert.AreEqual(id, Identity.Parse(expected, uriFormat: false));
+            Assert.AreEqual(id, ZeroC.Ice.Identity.Parse(expected, uriFormat: false));
         }
 
         /// <summary>Test data for <see cref="TestToStringMode"/>.</summary>
-        class ToStringModeTestCases : TestData<Identity, ToStringMode, string>
+        class ToStringModeTestCases : TestData<ZeroC.Ice.Identity, ToStringMode, string>
         {
             public ToStringModeTestCases()
             {
-                var id = new Identity("test", "\x7f€");
+                var id = new ZeroC.Ice.Identity("test", "\x7f€");
                 Add(id, ToStringMode.Unicode, "\\u007f€/test");
                 Add(id, ToStringMode.ASCII, "\\u007f\\u20ac/test");
                 Add(id, ToStringMode.Compat, "\\177\\342\\202\\254/test");
 
-                id = new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a");
+                id = new ZeroC.Ice.Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a");
                 Add(id, ToStringMode.Unicode, "greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$");
                 Add(id, ToStringMode.ASCII, "greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$");
                 Add(id,
@@ -59,13 +59,13 @@ namespace IceRpc.Tests
                     "greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$");
 
                 // escaped escapes in Identity
-                id = new Identity("test", ",X2QNUAzSBcJ_e$AV;E\\");
+                id = new ZeroC.Ice.Identity("test", ",X2QNUAzSBcJ_e$AV;E\\");
                 Add(id, ToStringMode.Unicode, ",X2QNUAzSBcJ_e$AV;E\\\\/test");
 
-                id = new Identity("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\");
+                id = new ZeroC.Ice.Identity("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\");
                 Add(id, ToStringMode.Unicode, ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test");
 
-                id = new Identity("/test", "cat/");
+                id = new ZeroC.Ice.Identity("/test", "cat/");
                 Add(id, ToStringMode.Unicode, "cat\\//\\/test");
             }
         }
@@ -80,24 +80,24 @@ namespace IceRpc.Tests
         [TestCase("cat//test")]
         public void TestParseInvalidIdentity(string str)
         {
-            Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));
-            Assert.False(Identity.TryParse(str, uriFormat: false, out _));
+            Assert.Throws<FormatException>(() => ZeroC.Ice.Identity.Parse(str, uriFormat: false));
+            Assert.False(ZeroC.Ice.Identity.TryParse(str, uriFormat: false, out _));
         }
 
         /// <summary>Test that Identity.Parse produces the expected Identity values.</summary>
         [TestCaseSource(typeof(ParseValidIdentityTestCases))]
-        public void TestParseValidIdentity(string str, bool uriFormat, Identity expected)
+        public void TestParseValidIdentity(string str, bool uriFormat, ZeroC.Ice.Identity expected)
         {
-            Assert.AreEqual(expected, Identity.Parse(str, uriFormat));
+            Assert.AreEqual(expected, ZeroC.Ice.Identity.Parse(str, uriFormat));
         }
 
         /// <summary>Test data for <see cref="IdentityTest.TestParseValidIdentity"/>.</summary>
-        public class ParseValidIdentityTestCases : TestData<string, bool, Identity>
+        public class ParseValidIdentityTestCases : TestData<string, bool, ZeroC.Ice.Identity>
         {
             public ParseValidIdentityTestCases()
             {
                 // Input string in ice1 format with various pitfalls
-                Add("\\342\\x82\\254\\60\\x9\\60\\", false, new Identity("€0\t0\\", ""));
+                Add("\\342\\x82\\254\\60\\x9\\60\\", false, new ZeroC.Ice.Identity("€0\t0\\", ""));
             }
         }
     }

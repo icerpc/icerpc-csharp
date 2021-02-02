@@ -20,12 +20,16 @@ namespace IceRpc.Tests
         private int _basePort;
         private static int _nextBasePort = 0;
 
+        public FunctionalTest() : this(Protocol.Ice2, "")
+        {
+        }
+
         public FunctionalTest(Protocol protocol, string transport)
         {
             int basePort = 12000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.BasePort"))
             {
-                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.BasePort"]);
+                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.BasePort"]!);
             }
             _basePort = Interlocked.Add(ref _nextBasePort, 100) + basePort;
             Protocol = protocol;
@@ -33,13 +37,13 @@ namespace IceRpc.Tests
             DefaultHost = "localhost";
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.DefaultHost"))
             {
-                DefaultHost = TestContext.Parameters["IceRpc.Tests.DefaultHost"];
+                DefaultHost = TestContext.Parameters["IceRpc.Tests.DefaultHost"]!;
             }
 
             DefaultTransport = "tcp";
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.DefaultTransport"))
             {
-                DefaultTransport = TestContext.Parameters["IceRpc.Tests.DefaultTransport"];
+                DefaultTransport = TestContext.Parameters["IceRpc.Tests.DefaultTransport"]!;
             }
             Transport = transport.Length == 0 ? DefaultTransport : transport;
             Communicator = new Communicator();
@@ -52,7 +56,7 @@ namespace IceRpc.Tests
         }
 
         [OneTimeTearDown]
-        public async Task DisposeAsync() => Communicator.DestroyAsync();
+        public Task DisposeAsync() => Communicator.DestroyAsync();
 
         public string GetTestEndpoint(int port = 0) =>
             Protocol == Protocol.Ice2 ?
