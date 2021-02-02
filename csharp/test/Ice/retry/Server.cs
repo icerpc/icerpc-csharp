@@ -9,17 +9,17 @@ namespace ZeroC.Ice.Test.Retry
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
+            var adapter1 = Communicator.CreateObjectAdapter(
+                "TestAdapter1",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            Communicator.SetProperty("TestAdapter1.Endpoints", GetTestEndpoint(0));
-            var adapter1 = Communicator.CreateObjectAdapter("TestAdapter1");
             adapter1.Add("retry", new Retry());
             adapter1.Add("replicated", new Replicated(true));
             adapter1.Add("nonreplicated", new NonReplicated());
             await adapter1.ActivateAsync();
 
-            Communicator.SetProperty("TestAdapter2.Endpoints", GetTestEndpoint(1));
-            var adapter2 = Communicator.CreateObjectAdapter("TestAdapter2");
+            var adapter2 = Communicator.CreateObjectAdapter("TestAdapter2",
+                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
             adapter2.Add("replicated", new Replicated(false));
             await adapter2.ActivateAsync();
 

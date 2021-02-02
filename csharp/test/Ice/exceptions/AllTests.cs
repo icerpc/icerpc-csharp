@@ -17,21 +17,15 @@ namespace ZeroC.Ice.Test.Exceptions
             TextWriter output = helper.Output;
             {
                 output.Write("testing object adapter registration exceptions... ");
-                ObjectAdapter first;
-                try
-                {
-                    first = communicator.CreateObjectAdapter("TestAdapter0");
-                }
-                catch (InvalidConfigurationException)
-                {
-                    // Expected
-                }
 
-                communicator.SetProperty("TestAdapter0.Endpoints", helper.GetTestEndpoint(ephemeral: true));
-                first = communicator.CreateObjectAdapter("TestAdapter0");
+                ObjectAdapter first = communicator.CreateObjectAdapter(
+                    "TestAdapter0",
+                    new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 try
                 {
-                    communicator.CreateObjectAdapter("TestAdapter0");
+                    communicator.CreateObjectAdapter(
+                        "TestAdapter0",
+                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                     TestHelper.Assert(false);
                 }
                 catch (ArgumentException)
@@ -44,8 +38,9 @@ namespace ZeroC.Ice.Test.Exceptions
                     // test that foo does not resolve
                     var props = communicator.GetProperties();
                     props["Test.Host"] = "foo";
-                    _ = communicator.CreateObjectAdapterWithEndpoints("TestAdapter0",
-                    TestHelper.GetTestEndpoint(props, ephemeral: true));
+                    _ = communicator.CreateObjectAdapter(
+                        "TestAdapter0",
+                        new ObjectAdapterOptions { Endpoints = TestHelper.GetTestEndpoint(props, ephemeral: true) });
 
                     TestHelper.Assert(false);
                 }
@@ -59,8 +54,9 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 output.Write("testing servant registration exceptions... ");
-                communicator.SetProperty("TestAdapter1.Endpoints", helper.GetTestEndpoint(ephemeral: true));
-                await using ObjectAdapter adapter = communicator.CreateObjectAdapter("TestAdapter1");
+                await using ObjectAdapter adapter = communicator.CreateObjectAdapter(
+                    "TestAdapter1",
+                    new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();
                 adapter.Add("x", obj);
                 try

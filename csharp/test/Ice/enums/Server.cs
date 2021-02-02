@@ -10,10 +10,10 @@ namespace ZeroC.Ice.Test.Enums
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 

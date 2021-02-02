@@ -111,10 +111,10 @@ namespace ZeroC.Ice.Test.Scope
 
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
             adapter.Add("i1", new I1());
             adapter.Add("i2", new I2());
             adapter.Add("i3", new I3());

@@ -100,9 +100,6 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        var endpoint = Protocol == ZeroC.Ice.Protocol.Ice1 ? $"{Transport} -h {Host}" : $"ice+{Transport}://{Host}:0";
-        Communicator.SetProperty("TestAdapter.Endpoints", endpoint);
-
         ZeroC.Ice.ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
         adapter.Add("test", new Decimal());
         adapter.Add("test1", new Test1I());
@@ -135,7 +132,6 @@ public class Client : TestHelper
     public static async Task<int> Main(string[] args)
     {
         await using var communicator = CreateCommunicator(ref args);
-        await communicator.ActivateAsync();
         return await RunTestAsync<Client>(communicator, args);
     }
 }

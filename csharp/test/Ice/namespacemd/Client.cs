@@ -16,7 +16,6 @@ namespace ZeroC.Ice.Test.NamespaceMD
             properties["Ice.Warn.Dispatch"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -19,7 +19,6 @@ namespace ZeroC.Ice.Test.Binding
             properties["Ice.Warn.Connections"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -10,10 +10,10 @@ namespace ZeroC.Ice.Test.Compress
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-            Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(0));
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
             adapter.Add("test-1", new Interceptor(new TestIntf(), compressed: true));
             adapter.Add("test-2", new Interceptor(new TestIntf(), compressed: false));
             await adapter.ActivateAsync();

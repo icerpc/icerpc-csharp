@@ -77,12 +77,14 @@ namespace ZeroC.Ice.Test.Info
             output.Flush();
             {
                 string serverName = helper.Host;
-
-                communicator.SetProperty("TestAdapter.Endpoints",
-                    $"tcp -h \"{helper.Host}\" -p 0 -t 15000");
-                communicator.SetProperty("TestAdapter.AcceptNonSecure", "Always");
-                communicator.SetProperty("TestAdapter.ServerName", serverName);
-                adapter = communicator.CreateObjectAdapter("TestAdapter");
+                adapter = communicator.CreateObjectAdapter(
+                    "TestAdapter",
+                    new ObjectAdapterOptions
+                    {
+                        AcceptNonSecure = NonSecure.Always,
+                        Endpoints = $"tcp -h \"{helper.Host}\" -p 0 -t 15000",
+                        ServerName = serverName
+                    });
 
                 IReadOnlyList<Endpoint> endpoints = adapter.Endpoints;
                 TestHelper.Assert(endpoints.Count == 1);
@@ -100,10 +102,13 @@ namespace ZeroC.Ice.Test.Info
 
                 int port = helper.BasePort + 1;
 
-                communicator.SetProperty("TestAdapter.Endpoints",
-                    ice1 ? $"{transport} -h 0.0.0.0 -p {port}" : $"ice+{transport}://0.0.0.0:{port}");
-                communicator.SetProperty("TestAdapter.PublishedEndpoints", helper.GetTestEndpoint(1));
-                adapter = communicator.CreateObjectAdapter("TestAdapter");
+                adapter = communicator.CreateObjectAdapter(
+                    "TestAdapter",
+                    new ObjectAdapterOptions
+                    {
+                        Endpoints = ice1 ? $"{transport} -h 0.0.0.0 -p {port}" : $"ice+{transport}://0.0.0.0:{port}",
+                        PublishedEndpoints = helper.GetTestEndpoint(1)
+                    });
 
                 endpoints = adapter.Endpoints;
                 TestHelper.Assert(endpoints.Count >= 1);

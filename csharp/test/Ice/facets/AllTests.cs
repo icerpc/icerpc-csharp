@@ -37,8 +37,7 @@ namespace ZeroC.Ice.Test.Facets
             output.WriteLine("ok");
 
             output.Write("testing facet registration exceptions... ");
-            communicator.SetProperty("FacetExceptionTestAdapter.Endpoints", helper.GetTestEndpoint(ephemeral: true));
-            ObjectAdapter adapter = communicator.CreateObjectAdapter("FacetExceptionTestAdapter");
+            ObjectAdapter adapter = communicator.CreateObjectAdapter();
 
             var obj = new Empty();
 

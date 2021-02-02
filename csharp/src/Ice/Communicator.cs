@@ -208,8 +208,6 @@ namespace ZeroC.Ice
         private static bool _printProcessIdDone;
 
         private static readonly object _staticMutex = new object();
-        private bool _activateCalled;
-        private readonly Func<CancellationToken, Task>? _activateLocatorAsync;
         private readonly HashSet<string> _adapterNamesInUse = new();
         private readonly List<ObjectAdapter> _adapters = new();
         private readonly bool _backgroundLocatorCacheUpdates;
@@ -590,25 +588,13 @@ namespace ZeroC.Ice
 
             Observer?.SetObserverUpdater(new ObserverUpdater(this));
 
-            if (GetProperty("Ice.Default.Locator") is string defaultLocatorValue)
+            try
             {
-                if (defaultLocatorValue.Equals("discovery", StringComparison.OrdinalIgnoreCase))
-                {
-                    var discovery = new Discovery.Locator(this);
-                    _defaultLocator = discovery.Proxy;
-                    _activateLocatorAsync = discovery.ActivateAsync;
-                }
-                else
-                {
-                    try
-                    {
-                        _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
-                    }
-                }
+                _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
             }
 
             // Show process id if requested (but only once).
@@ -620,26 +606,6 @@ namespace ZeroC.Ice
                     Console.WriteLine(p.Id);
                     _printProcessIdDone = true;
                 }
-            }
-        }
-
-        /// <summary>Activates the built-in locator implementation of this communicator, if any.</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A task that completes when the activation completes.</returns>
-        public async Task ActivateAsync(CancellationToken cancel = default)
-        {
-            lock (_mutex)
-            {
-                if (_activateCalled)
-                {
-                    throw new InvalidOperationException("ActivateAsync was already called on this communicator");
-                }
-                _activateCalled = true;
-            }
-
-            if (_activateLocatorAsync != null)
-            {
-                await _activateLocatorAsync(cancel).ConfigureAwait(false);
             }
         }
 

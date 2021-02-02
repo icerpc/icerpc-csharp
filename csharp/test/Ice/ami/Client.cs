@@ -20,7 +20,6 @@ namespace ZeroC.Ice.Test.AMI
             properties["Ice.TCP.SndSize"] = "50K";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

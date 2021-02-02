@@ -36,7 +36,6 @@ namespace ZeroC.Ice.Test.UDP
             properties["Ice.UDP.SndSize"] = "16K";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -25,13 +25,14 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("creating/destroying/recreating object adapter... ");
                 output.Flush();
                 {
-                    await using var adapter = communicator.CreateObjectAdapterWithEndpoints(
+                    await using var adapter = communicator.CreateObjectAdapter(
                         "TransientTestAdapter",
-                        helper.GetTestEndpoint(1));
+                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(1) });
                     try
                     {
-                        communicator.CreateObjectAdapterWithEndpoints("TransientTestAdapter",
-                                                                      helper.GetTestEndpoint(2));
+                        communicator.CreateObjectAdapter(
+                            "TransientTestAdapter",
+                            new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(2) });
                         TestHelper.Assert(false);
                     }
                     catch (ArgumentException)
@@ -41,9 +42,9 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
                 // Use a different port than the first adapter to avoid an "address already in use" error.
                 {
-                    var adapter = communicator.CreateObjectAdapterWithEndpoints(
+                    var adapter = communicator.CreateObjectAdapter(
                         "TransientTestAdapter",
-                        helper.GetTestEndpoint(2));
+                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(2) });
 
                     TestHelper.Assert(!adapter.ShutdownComplete.IsCompleted);
                     await adapter.DisposeAsync();
@@ -74,25 +75,31 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Flush();
                 try
                 {
-                    communicator.CreateObjectAdapterWithEndpoints(
+                    communicator.CreateObjectAdapter(
                         "BadAdapter1",
-                        ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0");
+                        new ObjectAdapterOptions
+                        {
+                            Endpoints = ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0"
+                        });
                     TestHelper.Assert(false);
                 }
-                catch (InvalidConfigurationException)
+                catch (ArgumentException)
                 {
                     // expected
                 }
 
                 try
                 {
-                    communicator.CreateObjectAdapterWithEndpoints(
+                    communicator.CreateObjectAdapter(
                         "BadAdapter2",
-                        ice1 ? "tcp -h 127.0.0.1 -p 0:tcp -h \"::1\" -p 10000" :
-                            "ice+tcp://127.0.0.1:0?alt-endpoint=[::1]:10000");
+                        new ObjectAdapterOptions
+                        {
+                            Endpoints = ice1 ? "tcp -h 127.0.0.1 -p 0:tcp -h \"::1\" -p 10000" :
+                                "ice+tcp://127.0.0.1:0?alt-endpoint=[::1]:10000"
+                        });
                     TestHelper.Assert(false);
                 }
-                catch (InvalidConfigurationException)
+                catch (ArgumentException)
                 {
                     // expected
                 }
@@ -102,28 +109,29 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 output.Write("testing object adapter default published endpoints... ");
                 string testHost = "testhost";
-                communicator.SetProperty("DAdapter.ServerName", testHost);
-                if (ice1)
                 {
-                    communicator.SetProperty("DAdapter.AcceptNonSecure", "Always");
-                }
-                {
-                    communicator.SetProperty(
-                        "DAdapter.Endpoints",
-                        ice1 ? "tcp -h \"::0\" -p 0" : "ice+tcp://[::0]:0");
-
-                    await using var adapter = communicator.CreateObjectAdapter("DAdapter");
+                    await using var adapter = communicator.CreateObjectAdapter(
+                        "DAdapter",
+                        new ObjectAdapterOptions
+                        {
+                            AcceptNonSecure = ice1 ? NonSecure.Always : null,
+                            Endpoints = ice1 ? "tcp -h \"::0\" -p 0" : "ice+tcp://[::0]:0",
+                            ServerName = testHost
+                        });
                     TestHelper.Assert(adapter.PublishedEndpoints.Count == 1);
                     Endpoint publishedEndpoint = adapter.PublishedEndpoints[0];
                     TestHelper.Assert(publishedEndpoint.Host == testHost);
                 }
                 {
-                    communicator.SetProperty(
-                        "DAdapter.Endpoints",
-                        ice1 ? $"{helper.GetTestEndpoint(1)}:{helper.GetTestEndpoint(2)}" :
-                            $"{helper.GetTestEndpoint(1)}?alt-endpoint={helper.GetTestEndpoint(2)}");
+                    await using var adapter = communicator.CreateObjectAdapter(
+                        "DAdapter",
+                        new ObjectAdapterOptions
+                        {
+                            Endpoints = ice1 ? $"{helper.GetTestEndpoint(1)}:{helper.GetTestEndpoint(2)}" :
+                                $"{helper.GetTestEndpoint(1)}?alt-endpoint={helper.GetTestEndpoint(2)}",
+                            ServerName = testHost
+                        });
 
-                    await using var adapter = communicator.CreateObjectAdapter("DAdapter");
                     TestHelper.Assert(adapter.PublishedEndpoints.Count == 2);
                     Endpoint publishedEndpoint0 = adapter.PublishedEndpoints[0];
                     TestHelper.Assert(publishedEndpoint0.Host == testHost);
@@ -138,9 +146,13 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter published endpoints... ");
             output.Flush();
             {
-                communicator.SetProperty("PAdapter.PublishedEndpoints",
-                    ice1 ? "tcp -h localhost -p 12345 -t 30000" : "ice+tcp://localhost:12345");
-                await using var adapter = communicator.CreateObjectAdapter("PAdapter");
+                await using var adapter = communicator.CreateObjectAdapter(
+                    "PAdapter",
+                    new ObjectAdapterOptions
+                    {
+                        PublishedEndpoints = ice1 ? "tcp -h localhost -p 12345 -t 30000" : "ice+tcp://localhost:12345"
+                    });
+
                 TestHelper.Assert(adapter.PublishedEndpoints.Count == 1);
                 Endpoint? endpt = adapter.PublishedEndpoints[0];
                 TestHelper.Assert(endpt != null);
@@ -171,11 +183,14 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter creation with port in use... ");
             output.Flush();
             {
-                await using var adapter1 = communicator.CreateObjectAdapterWithEndpoints("Adpt1",
-                                                                                         helper.GetTestEndpoint(10));
+                await using var adapter1 = communicator.CreateObjectAdapter(
+                    "Adpt1",
+                    new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
                 try
                 {
-                    communicator.CreateObjectAdapterWithEndpoints("Adpt2", helper.GetTestEndpoint(10));
+                    communicator.CreateObjectAdapter(
+                        "Adpt2",
+                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
                     TestHelper.Assert(false);
                 }
                 catch

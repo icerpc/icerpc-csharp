@@ -34,9 +34,6 @@ namespace ZeroC.Ice.Test.Location
             // The new object adapter will register its endpoints with the locator and create references containing
             // the adapter id instead of the endpoints.
             Dictionary<string, string> properties = _helper.Communicator!.GetProperties();
-            properties["TestAdapter.AdapterId"] = "TestAdapter";
-            properties["TestAdapter.ReplicaGroupId"] = "ReplicatedAdapter";
-            properties["TestAdapter2.AdapterId"] = "TestAdapter2";
 
             Communicator serverCommunicator = TestHelper.CreateCommunicator(properties);
             _communicators.Add(serverCommunicator);
@@ -50,11 +47,22 @@ namespace ZeroC.Ice.Test.Location
                 ObjectAdapter? adapter2 = null;
                 try
                 {
-                    serverCommunicator.SetProperty("TestAdapter.Endpoints", _helper.GetTestEndpoint(_nextPort++));
-                    serverCommunicator.SetProperty("TestAdapter2.Endpoints", _helper.GetTestEndpoint(_nextPort++));
+                    adapter = serverCommunicator.CreateObjectAdapter(
+                        "TestAdapter",
+                        new ObjectAdapterOptions
+                        {
+                            AdapterId = "TestAdapter",
+                            Endpoints = _helper.GetTestEndpoint(_nextPort++),
+                            ReplicaGroupId = "ReplicatedAdapter"
+                        });
 
-                    adapter = serverCommunicator.CreateObjectAdapter("TestAdapter");
-                    adapter2 = serverCommunicator.CreateObjectAdapter("TestAdapter2");
+                    adapter2 = serverCommunicator.CreateObjectAdapter(
+                        "TestAdapter2",
+                        new ObjectAdapterOptions
+                        {
+                            AdapterId = "TestAdapter2",
+                            Endpoints = _helper.GetTestEndpoint(_nextPort++)
+                        });
 
                     var locator = ILocatorPrx.Parse(_helper.GetTestProxy("locator", 0), serverCommunicator);
                     adapter.Locator = locator;

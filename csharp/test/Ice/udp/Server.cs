@@ -12,8 +12,6 @@ namespace ZeroC.Ice.Test.UDP
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
             Dictionary<string, string> properties = Communicator.GetProperties();
             int num = 0;
             try
@@ -24,16 +22,22 @@ namespace ZeroC.Ice.Test.UDP
             {
             }
 
-            Communicator.SetProperty("ControlAdapter.Endpoints", GetTestEndpoint(num, Transport));
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("ControlAdapter");
+            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+                "ControlAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(num, Transport) });
+
             adapter.Add("control", new TestIntf());
             await adapter.ActivateAsync();
             ServerReady();
             if (num == 0)
             {
-                Communicator.SetProperty("TestAdapter.Endpoints", GetTestEndpoint(num, "udp"));
-                Communicator.SetProperty("TestAdapter.AcceptNonSecure", "Always");
-                ObjectAdapter adapter2 = Communicator.CreateObjectAdapter("TestAdapter");
+                ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+                    "TestAdapter",
+                    new ObjectAdapterOptions
+                    {
+                        AcceptNonSecure = NonSecure.Always,
+                        Endpoints = GetTestEndpoint(num, "udp")
+                    });
                 adapter2.Add("test", new TestIntf());
                 await adapter2.ActivateAsync();
             }
@@ -61,9 +65,10 @@ namespace ZeroC.Ice.Test.UDP
             }
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
-            Communicator.SetProperty("McastTestAdapter.Endpoints", endpoint.ToString());
-            Communicator.SetProperty("McastTestAdapter.AcceptNonSecure", "Always");
-            ObjectAdapter mcastAdapter = Communicator.CreateObjectAdapter("McastTestAdapter");
+
+            ObjectAdapter mcastAdapter = Communicator.CreateObjectAdapter(
+                "McastTestAdapter",
+                new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = endpoint.ToString() });
             mcastAdapter.Add("test", new TestIntf());
             await mcastAdapter.ActivateAsync();
 

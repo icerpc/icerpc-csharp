@@ -16,7 +16,6 @@ namespace ZeroC.Ice.Test.Location
             properties["Ice.Default.Locator"] = GetTestProxy("locator", properties, 0);
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -17,7 +17,6 @@ namespace ZeroC.Ice.Test.Retry
             properties["Ice.Warn.Connections"] = "0";
 
             await using var communicator = CreateCommunicator(properties, observer: Instrumentation.GetObserver());
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

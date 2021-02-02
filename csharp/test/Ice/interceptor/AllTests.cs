@@ -117,8 +117,6 @@ namespace ZeroC.Ice.Test.Interceptor
                         return response;
                     });
 
-                await communicator.ActivateAsync();
-
                 for (int i = 0; i < 10; ++i)
                 {
                     invocationContext.Value = i;
@@ -158,7 +156,6 @@ namespace ZeroC.Ice.Test.Interceptor
                     });
 
                 TestHelper.Assert(communicator.DefaultInvocationInterceptors.Count == 3);
-                await communicator.ActivateAsync();
 
                 var prx1 = IMyObjectPrx.Parse(prx.ToString()!, communicator);
 
@@ -190,7 +187,6 @@ namespace ZeroC.Ice.Test.Interceptor
                         TestHelper.Assert(false);
                         return next(target, request, cancel);
                     });
-                await communicator.ActivateAsync();
 
                 var prx1 = IMyObjectPrx.Parse(prx.ToString()!, communicator);
                 try

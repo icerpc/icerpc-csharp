@@ -26,7 +26,6 @@ namespace ZeroC.IceSSL.Test.Configuration
             properties["Ice.Default.PreferNonSecure"] = "Never";
 
             await using var communicator = CreateCommunicator(properties);
-            await communicator.ActivateAsync();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

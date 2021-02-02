@@ -10,22 +10,22 @@ namespace ZeroC.Ice.Test.Threading
     {
         public override async Task RunAsync(string[] args)
         {
-            await Communicator.ActivateAsync();
-
-            ObjectAdapter adapter1 = Communicator.CreateObjectAdapterWithEndpoints("TestAdapter", GetTestEndpoint(0));
+            ObjectAdapter adapter1 = Communicator.CreateObjectAdapter(
+                "TestAdapter",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
             adapter1.Add("test", new TestIntf(TaskScheduler.Default));
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
-            ObjectAdapter? adapter2 = Communicator.CreateObjectAdapterWithEndpoints(
+            ObjectAdapter? adapter2 = Communicator.CreateObjectAdapter(
                 "TestAdapterExclusiveTS",
-                GetTestEndpoint(1),
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
                 taskScheduler: schedulerPair.ExclusiveScheduler);
             adapter2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
 
-            ObjectAdapter? adapter3 = Communicator.CreateObjectAdapterWithEndpoints(
+            ObjectAdapter? adapter3 = Communicator.CreateObjectAdapter(
                 "TestAdapteConcurrentTS",
-                GetTestEndpoint(2),
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2) },
                 taskScheduler: schedulerPair.ConcurrentScheduler);
             adapter3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
 
