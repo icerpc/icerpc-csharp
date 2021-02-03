@@ -48,7 +48,7 @@ namespace IceRpc.Tests
             Transport = transport.Length == 0 ? DefaultTransport : transport;
             Communicator = new Communicator();
             ObjectAdapter = Communicator.CreateObjectAdapter(
-                "TestAdapter",
+                "TestAdapter-0",
                 new ObjectAdapterOptions()
                 {
                     Endpoints = GetTestEndpoint()

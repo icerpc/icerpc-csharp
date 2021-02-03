@@ -2,10 +2,14 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::Interceptors
+module IceRpc::Tests::DispatchInterceptors
 {
+    exception ForbiddenException
+    {
+    }
+
     interface TestService
     {
-        void op1();
+        int opInt(int value);
     }
 }

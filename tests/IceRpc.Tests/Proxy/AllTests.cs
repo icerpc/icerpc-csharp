@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
+using System.Collections.Immutable;
 using System.Collections.Generic;
 using NUnit.Framework;
 using ZeroC.Ice;
@@ -191,6 +192,27 @@ namespace IceRpc.Tests.Proxy
 
             private void Add(string str, string name, string category) =>
                 Add(str, name, category, Array.Empty<string>());
+        }
+
+        /// <summary>Test that the communicator default invocation interceptors are used when the
+        /// proxy doesn't specify its own interceptors.</summary>
+        [Test]
+        public void ProxyInvocationInterceptors()
+        {
+            var communicator = new Communicator();
+            communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                (target, request, next, cancel) =>
+                    {
+                        throw new NotImplementedException();
+                    },
+                (target, request, next, cancel) =>
+                    {
+                        throw new NotImplementedException();
+                    });
+
+            var prx = IObjectPrx.Parse("test", communicator);
+
+            CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
         }
     }
 }
