@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.AMI
             adapter.Add("test2", new TestIntf2());
             await adapter.ActivateAsync();
 
-            ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
                 "TestAdapter2",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
                 serializeDispatch: true);

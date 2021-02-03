@@ -10,23 +10,26 @@ namespace ZeroC.Ice.Test.Threading
     {
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapter adapter1 = Communicator.CreateObjectAdapter(
+            await using var adapter1 = new ObjectAdapter(
+                Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
             adapter1.Add("test", new TestIntf(TaskScheduler.Default));
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
-            ObjectAdapter? adapter2 = Communicator.CreateObjectAdapter(
+            await using var adapter2 = new ObjectAdapter(
+                Communicator,
                 "TestAdapterExclusiveTS",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
-                taskScheduler: schedulerPair.ExclusiveScheduler);
+                scheduler: schedulerPair.ExclusiveScheduler);
             adapter2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
 
-            ObjectAdapter? adapter3 = Communicator.CreateObjectAdapter(
+            await using var adapter3 = new ObjectAdapter(
+                Communicator,
                 "TestAdapteConcurrentTS",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2) },
-                taskScheduler: schedulerPair.ConcurrentScheduler);
+                scheduler: schedulerPair.ConcurrentScheduler);
             adapter3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
 
             // Setup 21 worker threads for the .NET thread pool (we setup the minimum to avoid delays from the

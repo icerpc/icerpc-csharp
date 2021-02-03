@@ -14,11 +14,11 @@ namespace ZeroC.Ice.Test.Exceptions
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
                 "TestAdapter2",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
 
-            ObjectAdapter adapter3 = Communicator.CreateObjectAdapter(
+            ObjectAdapter adapter3 = new ObjectAdapter(Communicator,
                 "TestAdapter3",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 

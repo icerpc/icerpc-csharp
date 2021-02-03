@@ -31,7 +31,7 @@ namespace ZeroC.Ice.Test.UDP
             ServerReady();
             if (num == 0)
             {
-                ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+                ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
                     "TestAdapter",
                     new ObjectAdapterOptions
                     {
@@ -66,7 +66,7 @@ namespace ZeroC.Ice.Test.UDP
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
 
-            ObjectAdapter mcastAdapter = Communicator.CreateObjectAdapter(
+            ObjectAdapter mcastAdapter = new ObjectAdapter(Communicator,
                 "McastTestAdapter",
                 new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = endpoint.ToString() });
             mcastAdapter.Add("test", new TestIntf());

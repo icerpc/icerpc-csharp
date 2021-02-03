@@ -48,7 +48,7 @@ namespace ZeroC.Ice.Test.Binding
             output.Flush();
             {
                 // Use "default" with ice1 + tcp here to ensure that it still works
-                IRemoteObjectAdapterPrx? adapter = com.CreateObjectAdapter(
+                IRemoteObjectAdapterPrx? adapter = await com.CreateObjectAdapterAsync(
                     "Adapter",
                     (ice1 && testTransport == "tcp") ? "default" : testTransport);
                 TestHelper.Assert(adapter != null);
@@ -82,9 +82,9 @@ namespace ZeroC.Ice.Test.Binding
             {
                 var adapters = new List<IRemoteObjectAdapterPrx>
                 {
-                    com.CreateObjectAdapter("Adapter31", testTransport)!,
-                    com.CreateObjectAdapter("Adapter32", testTransport)!,
-                    com.CreateObjectAdapter("Adapter33", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter31", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter32", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter33", testTransport)!
                 };
 
                 ITestIntfPrx obj = CreateTestIntfPrx(adapters);
@@ -122,7 +122,7 @@ namespace ZeroC.Ice.Test.Binding
             output.Write("testing per request binding with single endpoint... ");
             output.Flush();
             {
-                IRemoteObjectAdapterPrx? adapter = com.CreateObjectAdapter("Adapter41", testTransport);
+                IRemoteObjectAdapterPrx? adapter = await com.CreateObjectAdapterAsync("Adapter41", testTransport);
                 TestHelper.Assert(adapter != null);
                 ITestIntfPrx test1 = adapter.GetTestIntf()!.Clone(cacheConnection: false,
                                                                   preferExistingConnection: false);
@@ -153,9 +153,9 @@ namespace ZeroC.Ice.Test.Binding
             {
                 var adapters = new List<IRemoteObjectAdapterPrx>
                 {
-                    com.CreateObjectAdapter("Adapter61", testTransport)!,
-                    com.CreateObjectAdapter("Adapter62", testTransport)!,
-                    com.CreateObjectAdapter("Adapter63", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter61", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter62", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter63", testTransport)!
                 };
 
                 ITestIntfPrx obj = CreateTestIntfPrx(adapters);
@@ -230,16 +230,16 @@ namespace ZeroC.Ice.Test.Binding
             {
                 var adapters1 = new List<IRemoteObjectAdapterPrx>
                 {
-                    com.CreateObjectAdapter("Adapter81", testTransport)!,
-                    com.CreateObjectAdapter("Adapter82", testTransport)!,
-                    com.CreateObjectAdapter("Adapter83", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter81", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter82", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter83", testTransport)!
                 };
 
                 var adapters2 = new List<IRemoteObjectAdapterPrx>
                 {
                     adapters1[0],
-                    com.CreateObjectAdapter("Adapter84", testTransport)!,
-                    com.CreateObjectAdapter("Adapter85", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter84", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter85", testTransport)!
                 };
 
                 ITestIntfPrx obj1 = CreateTestIntfPrx(adapters1);
@@ -259,16 +259,16 @@ namespace ZeroC.Ice.Test.Binding
             {
                 var adapters1 = new List<IRemoteObjectAdapterPrx>
                 {
-                    com.CreateObjectAdapter("Adapter91", testTransport)!,
-                    com.CreateObjectAdapter("Adapter92", testTransport)!,
-                    com.CreateObjectAdapter("Adapter93", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter91", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter92", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter93", testTransport)!
                 };
 
                 var adapters2 = new List<IRemoteObjectAdapterPrx>
                 {
                     adapters1[0],
-                    com.CreateObjectAdapter("Adapter94", testTransport)!,
-                    com.CreateObjectAdapter("Adapter95", testTransport)!
+                    await com.CreateObjectAdapterAsync("Adapter94", testTransport)!,
+                    await com.CreateObjectAdapterAsync("Adapter95", testTransport)!
                 };
 
                 ITestIntfPrx obj1 = CreateTestIntfPrx(adapters1);
@@ -291,8 +291,8 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     var adapters = new List<IRemoteObjectAdapterPrx>
                     {
-                        com.CreateObjectAdapter("Adapter71", testTransport),
-                        com.CreateObjectAdapter("Adapter72", "udp")
+                        await com.CreateObjectAdapterAsync("Adapter71", testTransport),
+                        await com.CreateObjectAdapterAsync("Adapter72", "udp")
                     };
 
                     ITestIntfPrx obj = CreateTestIntfPrx(adapters);
@@ -331,8 +331,8 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     var adapters = new List<IRemoteObjectAdapterPrx>
                     {
-                        com.CreateObjectAdapter("Adapter81", "ssl")!,
-                        com.CreateObjectAdapter("Adapter82", "tcp")!
+                        await com.CreateObjectAdapterAsync("Adapter81", "ssl")!,
+                        await com.CreateObjectAdapterAsync("Adapter82", "tcp")!
                     };
 
                     ITestIntfPrx obj = CreateTestIntfPrx(adapters);
