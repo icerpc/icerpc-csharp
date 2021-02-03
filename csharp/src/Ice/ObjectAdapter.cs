@@ -92,14 +92,17 @@ namespace ZeroC.Ice
         public bool SerializeDispatch { get; }
 
         /// <summary>Returns a task that completes when the object adapter's shutdown is complete: see
-        /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. See also
-        /// <see cref="Communicator.ShutdownComplete"/>.</summary>
+        /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
+        /// is to call <c>await server.ShutdownComplete;</c> in the Main method of a server to prevent the server
+        /// from exiting immediately.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         /// <summary>Returns the TaskScheduler used to dispatch requests.</summary>
         public TaskScheduler? TaskScheduler { get; }
 
         internal int IncomingFrameMaxSize { get; }
+
+        private static ulong _counter; // used to generate names for nameless object adapters.
 
         private Task? _activateTask;
 
@@ -625,9 +628,6 @@ namespace ZeroC.Ice
 
                     // Wait for the incoming connection factories to be shut down.
                     await Task.WhenAll(tasks).ConfigureAwait(false);
-
-                    // TODO jose: Clear the outgoing connections adapter?
-                    Communicator.RemoveObjectAdapter(this);
                 }
                 finally
                 {
@@ -640,13 +640,18 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Constructs an object adapter.</summary>
-        internal ObjectAdapter(
+        public ObjectAdapter(
             Communicator communicator,
-            string name,
-            ObjectAdapterOptions? options,
-            bool serializeDispatch,
-            TaskScheduler? scheduler)
+            string name = "",
+            ObjectAdapterOptions? options = null,
+            bool serializeDispatch = false,
+            TaskScheduler? scheduler = null)
         {
+            if (name.Length == 0)
+            {
+                name = $"server-{Interlocked.Increment(ref _counter)}";
+            }
+
             Communicator = communicator;
             Name = name;
             SerializeDispatch = serializeDispatch;

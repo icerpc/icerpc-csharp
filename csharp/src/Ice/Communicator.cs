@@ -208,8 +208,6 @@ namespace ZeroC.Ice
         private static bool _printProcessIdDone;
 
         private static readonly object _staticMutex = new object();
-        private readonly HashSet<string> _adapterNamesInUse = new();
-        private readonly List<ObjectAdapter> _adapters = new();
         private readonly bool _backgroundLocatorCacheUpdates;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
@@ -246,9 +244,6 @@ namespace ZeroC.Ice
         private int _retryBufferSize;
 
         private readonly Dictionary<Transport, BufWarnSizeInfo> _setBufWarnSize = new();
-        private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private Lazy<Task>? _shutdownTask;
 
         /// <summary>Constructs a new communicator.</summary>
         /// <param name="properties">The properties of the new communicator.</param>
@@ -609,9 +604,10 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Releases all resources used by this communicator. This method calls <see cref="ShutdownAsync"/>
-        /// implicitly, and can be called multiple times.</summary>
+        /// <summary>Releases all resources used by this communicator. This method can be called multiple times.
+        /// </summary>
         /// <returns>A task that completes when the destruction is complete.</returns>
+        // TODO: rename to ShutdownAsync and add cancellation token
         public Task DestroyAsync()
         {
             lock (_mutex)
@@ -630,7 +626,7 @@ namespace ZeroC.Ice
                 var disposedException = new CommunicatorDisposedException();
                 IEnumerable<Task> closeTasks =
                     _outgoingConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.GoAwayAsync(disposedException)).Append(ShutdownAsync());
+                        connection => connection.GoAwayAsync(disposedException));
 
                 await Task.WhenAll(closeTasks).ConfigureAwait(false);
 
@@ -892,11 +888,8 @@ namespace ZeroC.Ice
         {
             try
             {
-                ObjectAdapter[] adapters;
                 lock (_mutex)
                 {
-                    adapters = _adapters.ToArray();
-
                     foreach (ICollection<Connection> connections in _outgoingConnections.Values)
                     {
                         foreach (Connection c in connections)
@@ -904,11 +897,6 @@ namespace ZeroC.Ice
                             c.UpdateObserver();
                         }
                     }
-                }
-
-                foreach (ObjectAdapter adapter in adapters)
-                {
-                    adapter.UpdateConnectionObservers();
                 }
             }
             catch (CommunicatorDisposedException)
