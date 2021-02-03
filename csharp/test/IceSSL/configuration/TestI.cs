@@ -10,7 +10,14 @@ namespace ZeroC.IceSSL.Test.Configuration
 {
     internal sealed class SSLServer : IServer
     {
-        internal SSLServer(Communicator communicator) => _communicator = communicator;
+        private readonly ObjectAdapter _adapter;
+        private readonly Communicator _communicator;
+
+        internal SSLServer(Communicator communicator, ObjectAdapter adapter)
+        {
+            _communicator = communicator;
+            _adapter = adapter;
+        }
 
         public void NoCert(Current current, CancellationToken cancel)
         {
@@ -58,9 +65,8 @@ namespace ZeroC.IceSSL.Test.Configuration
             }
         }
 
-        internal Task DestroyAsync() => _communicator.DestroyAsync();
-
-        private readonly Communicator _communicator;
+        internal Task DestroyAsync() =>
+            Task.WhenAll(_adapter.ShutdownAsync(), _communicator.DestroyAsync());
     }
 
     internal sealed class ServerFactory : IAsyncServerFactory
@@ -93,10 +99,11 @@ namespace ZeroC.IceSSL.Test.Configuration
                 transport: ice1 ? "ssl" : "tcp",
                 ephemeral: host != "localhost");
 
-            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+            var adapter = new ObjectAdapter(
+                communicator,
                 "ServerAdapter",
                 new ObjectAdapterOptions { Endpoints = serverEndpoint });
-            var server = new SSLServer(communicator);
+            var server = new SSLServer(communicator, adapter);
             IServerPrx prx = adapter.AddWithUUID(server, IServerPrx.Factory);
             _servers[prx.Identity] = server;
             await adapter.ActivateAsync(cancel);
@@ -115,7 +122,7 @@ namespace ZeroC.IceSSL.Test.Configuration
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(_servers.Count == 0);
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
             return default;
         }
     }

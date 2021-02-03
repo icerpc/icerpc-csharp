@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Interceptor
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
             return default;
         }
     }

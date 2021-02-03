@@ -589,6 +589,8 @@ namespace ZeroC.Ice
             {
                 try
                 {
+                    ObjectAdapterRegistry.UnregisterObjectAdapter(this); // no longer available for coloc connections.
+
                     // Synchronously shuts down the incoming connection factories to stop accepting new incoming
                     // requests or connections. This ensures that once ShutdownAsync returns, no new requests will be
                     // dispatched. Calling ToArray is important here to ensure that all the ShutdownAsync calls are
@@ -762,6 +764,8 @@ namespace ZeroC.Ice
                 PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(serverName)).
                     Distinct().ToImmutableArray();
             }
+
+            ObjectAdapterRegistry.RegisterObjectAdapter(this);
 
             if (Communicator.TraceLevels.Transport >= 1 && PublishedEndpoints.Count > 0)
             {

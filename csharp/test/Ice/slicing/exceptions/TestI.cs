@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
     {
         public void Shutdown(
             Current current,
-            CancellationToken cancel) => current.Communicator.ShutdownAsync();
+            CancellationToken cancel) => current.Adapter.ShutdownAsync();
 
         public void BaseAsBase(
             Current current,

@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Optional
     internal class Test : ITest
     {
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
 
         public void OpInt(int? i1, Current current, CancellationToken cancel) =>
             TestHelper.Assert(i1 == null || i1.Value == 42);

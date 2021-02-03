@@ -14,13 +14,13 @@ namespace ZeroC.Ice
 
         internal static Endpoint? GetColocatedEndpoint(Reference reference)
         {
-            // TODO: should we also check if the communicators match?
+            // TODO: should work for different communicators but breaks some tests like IceSSL/configuration.
 
             foreach (ObjectAdapter adapter in _objectAdapterList)
             {
                 try
                 {
-                    if (adapter.IsLocal(reference))
+                    if (adapter.IsLocal(reference) && adapter.Communicator == reference.Communicator)
                     {
                         return adapter.GetColocatedEndpoint();
                     }

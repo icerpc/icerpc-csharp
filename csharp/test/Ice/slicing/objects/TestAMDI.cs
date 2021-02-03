@@ -12,7 +12,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
     {
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
             return default;
         }
 

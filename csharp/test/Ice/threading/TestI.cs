@@ -83,6 +83,6 @@ namespace ZeroC.Ice.Test.Threading
         }
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
     }
 }

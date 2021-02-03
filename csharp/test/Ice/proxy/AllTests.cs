@@ -1181,13 +1181,11 @@ namespace ZeroC.Ice.Test.Proxy
             output.WriteLine("ok");
 
             // TODO test communicator destroy in its own test
-            output.Write("testing communicator shutdown/destroy... ");
+            output.Write("testing communicator shutdown... ");
             output.Flush();
             {
                 var com = new Communicator();
-                await com.ShutdownAsync();
                 await com.DisposeAsync();
-                await com.ShutdownAsync();
                 await com.DisposeAsync();
             }
             output.WriteLine("ok");

@@ -263,8 +263,7 @@ namespace ZeroC.Ice.Test.Info
             }
             output.WriteLine("ok");
 
-            testIntf.Shutdown();
-            await communicator.ShutdownAsync();
+            await testIntf.ShutdownAsync();
         }
     }
 }

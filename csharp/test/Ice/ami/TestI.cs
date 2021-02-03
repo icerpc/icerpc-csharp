@@ -64,7 +64,7 @@ namespace ZeroC.Ice.Test.AMI
                     _pending.SetResult(null);
                     _pending = null;
                 }
-                current.Communicator.ShutdownAsync();
+                current.Adapter.ShutdownAsync();
             }
         }
 

@@ -70,7 +70,7 @@ namespace ZeroC.Ice.Test.Binding
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Communicator.ShutdownAsync(); // only initiate shutdown
+            _ = current.Adapter.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

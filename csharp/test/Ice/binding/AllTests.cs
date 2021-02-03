@@ -48,7 +48,8 @@ namespace ZeroC.Ice.Test.Binding
             output.Flush();
             {
                 // Use "default" with ice1 + tcp here to ensure that it still works
-                IRemoteObjectAdapterPrx? adapter = com.CreateObjectAdapter("Adapter",
+                IRemoteObjectAdapterPrx? adapter = com.CreateObjectAdapter(
+                    "Adapter",
                     (ice1 && testTransport == "tcp") ? "default" : testTransport);
                 TestHelper.Assert(adapter != null);
                 ITestIntfPrx? test1 = adapter.GetTestIntf();
@@ -463,7 +464,7 @@ namespace ZeroC.Ice.Test.Binding
                 foreach (ObjectAdapterOptions p in serverOptions)
                 {
                     await using var serverCommunicator = new Communicator();
-                    ObjectAdapter oa = serverCommunicator.CreateObjectAdapter("Adapter", p);
+                    await using var oa = new ObjectAdapter(serverCommunicator, "Adapter", p);
                     await oa.ActivateAsync();
 
                     IObjectPrx prx = oa.CreateProxy("dummy", IObjectPrx.Factory);
@@ -484,15 +485,16 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0");
-                    ObjectAdapter oa = serverCommunicator.CreateObjectAdapter(
+                    await using var oa = new ObjectAdapter(
+                        serverCommunicator,
                         options: new ObjectAdapterOptions { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     try
                     {
-                        await using ObjectAdapter ipv4OA =
-                            serverCommunicator.CreateObjectAdapter(
-                                options: new ObjectAdapterOptions { Endpoints = getEndpoint("0.0.0.0") });
+                        await using var ipv4OA = new ObjectAdapter(
+                            serverCommunicator,
+                            options: new ObjectAdapterOptions { Endpoints = getEndpoint("0.0.0.0") });
                         await ipv4OA.ActivateAsync();
                         TestHelper.Assert(false);
                     }
@@ -517,15 +519,16 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0") + (ice1 ? " --ipv6Only" : "?ipv6-only=true");
-                    ObjectAdapter oa = serverCommunicator.CreateObjectAdapter(
+                    await using var oa = new ObjectAdapter(
+                        serverCommunicator,
                         options: new ObjectAdapterOptions { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
-                        await using ObjectAdapter ipv4OA =
-                            serverCommunicator.CreateObjectAdapter(
+                        await using var ipv4OA = new ObjectAdapter(
+                                serverCommunicator,
                                 options: new ObjectAdapterOptions { Endpoints = ipv4Endpoint });
                         await ipv4OA.ActivateAsync();
                     }
@@ -547,16 +550,17 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
-                    ObjectAdapter oa = serverCommunicator.CreateObjectAdapter(
+                    await using var oa = new ObjectAdapter(
+                        serverCommunicator,
                         options: new ObjectAdapterOptions { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     try
                     {
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
-                        await using ObjectAdapter ipv4OA =
-                            serverCommunicator.CreateObjectAdapter(
-                                options: new ObjectAdapterOptions { Endpoints = ipv4Endpoint });
+                        await using var ipv4OA = new ObjectAdapter(
+                            serverCommunicator,
+                            options: new ObjectAdapterOptions { Endpoints = ipv4Endpoint });
                         await ipv4OA.ActivateAsync();
                         TestHelper.Assert(false);
                     }

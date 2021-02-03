@@ -16,7 +16,8 @@ namespace ZeroC.IceSSL.Test.Configuration
                 throw new ArgumentException("Usage: server testdir");
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(
+                Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = GetTestEndpoint(0, "tcp") });
 
@@ -24,7 +25,7 @@ namespace ZeroC.IceSSL.Test.Configuration
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

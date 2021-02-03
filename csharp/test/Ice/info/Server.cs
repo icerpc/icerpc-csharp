@@ -25,12 +25,12 @@ namespace ZeroC.Ice.Test.Info
                 options = new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) };
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter", options);
+            await using var adapter = new ObjectAdapter(Communicator, "TestAdapter", options);
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

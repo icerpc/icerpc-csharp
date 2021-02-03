@@ -37,6 +37,6 @@ namespace ZeroC.Ice.Test.Interceptor
 
         public int Op3(Current current, CancellationToken cancel) => _i++;
 
-        public void Shutdown(Current current, CancellationToken cancel) => current.Communicator.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
     }
 }

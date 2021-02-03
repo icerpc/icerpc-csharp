@@ -20,7 +20,8 @@ namespace ZeroC.Ice.Test.Discovery
             {
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(
+                Communicator,
                 "ControlAdapter",
                 new ObjectAdapterOptions { AdapterId = $"control{num}", Endpoints = GetTestEndpoint(num) });
 
@@ -29,7 +30,7 @@ namespace ZeroC.Ice.Test.Discovery
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

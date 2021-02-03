@@ -11,7 +11,7 @@ namespace ZeroC.Ice.Test.Tagged
     {
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
             return default;
         }
 

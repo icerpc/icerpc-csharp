@@ -9,7 +9,8 @@ namespace ZeroC.Ice.Test.Retry
     {
         public override async Task RunAsync(string[] args)
         {
-            var adapter1 = Communicator.CreateObjectAdapter(
+            await using var adapter1 = new ObjectAdapter(
+                Communicator,
                 "TestAdapter1",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -18,13 +19,15 @@ namespace ZeroC.Ice.Test.Retry
             adapter1.Add("nonreplicated", new NonReplicated());
             await adapter1.ActivateAsync();
 
-            var adapter2 = Communicator.CreateObjectAdapter("TestAdapter2",
-                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
+            await using var adapter2 = new ObjectAdapter(
+                Communicator,
+                "TestAdapter2",
+                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
             adapter2.Add("replicated", new Replicated(false));
             await adapter2.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter1.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

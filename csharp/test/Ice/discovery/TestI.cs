@@ -22,7 +22,8 @@ namespace ZeroC.Ice.Test.Discovery
             bool ice1 = TestHelper.GetTestProtocol(communicator.GetProperties()) == Protocol.Ice1;
             string transport = TestHelper.GetTestTransport(communicator.GetProperties());
 
-            ObjectAdapter oa = communicator.CreateObjectAdapter(
+            var oa = new ObjectAdapter(
+                communicator,
                 name,
                 new ObjectAdapterOptions
                 {
@@ -37,7 +38,7 @@ namespace ZeroC.Ice.Test.Discovery
 
         public async ValueTask DeactivateObjectAdapterAsync(string name, Current current, CancellationToken cancel)
         {
-            await _adapters[name].DisposeAsync();
+            await _adapters[name].ShutdownAsync();
             _adapters.Remove(name);
         }
 
@@ -65,7 +66,7 @@ namespace ZeroC.Ice.Test.Discovery
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
             return default;
         }
     }

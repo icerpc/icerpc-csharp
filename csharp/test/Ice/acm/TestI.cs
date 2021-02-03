@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Test.ACM
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
             return default;
         }
     }

@@ -24,7 +24,6 @@ namespace ZeroC.Ice.Test.Location
         {
             foreach (Communicator c in _communicators)
             {
-                await c.ShutdownComplete;
                 await c.DisposeAsync();
             }
             _communicators.Clear();
@@ -105,7 +104,7 @@ namespace ZeroC.Ice.Test.Location
                 await c.DisposeAsync();
             }
             _communicators.Clear();
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
         }
     }
 }

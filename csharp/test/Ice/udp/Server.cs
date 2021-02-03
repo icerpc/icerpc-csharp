@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.UDP
             {
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "ControlAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(num, Transport) });
 
@@ -73,7 +73,7 @@ namespace ZeroC.Ice.Test.UDP
             await mcastAdapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

@@ -20,7 +20,7 @@ namespace ZeroC.Ice.Test.Proxy
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
             return default;
         }
 

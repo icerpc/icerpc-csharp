@@ -272,7 +272,8 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    ObjectAdapter adapter = serverCommunicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        serverCommunicator,
                         "MyAdapter",
                         new ObjectAdapterOptions { Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0" });
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
@@ -319,7 +320,8 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    ObjectAdapter adapter = serverCommunicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        serverCommunicator,
                         "MyAdapter",
                         new ObjectAdapterOptions { Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0" });
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
