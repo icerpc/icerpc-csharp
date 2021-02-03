@@ -44,9 +44,11 @@ namespace ZeroC.Ice.Test.Location
             {
                 ObjectAdapter? adapter = null;
                 ObjectAdapter? adapter2 = null;
+
                 try
                 {
-                    adapter = serverCommunicator.CreateObjectAdapter(
+                    adapter = new ObjectAdapter(
+                        serverCommunicator,
                         "TestAdapter",
                         new ObjectAdapterOptions
                         {
@@ -55,7 +57,8 @@ namespace ZeroC.Ice.Test.Location
                             ReplicaGroupId = "ReplicatedAdapter"
                         });
 
-                    adapter2 = serverCommunicator.CreateObjectAdapter(
+                    adapter2 = new ObjectAdapter(
+                        serverCommunicator,
                         "TestAdapter2",
                         new ObjectAdapterOptions
                         {
@@ -84,7 +87,7 @@ namespace ZeroC.Ice.Test.Location
                     }
 
                     // Retry, if OA creation fails with EADDRINUSE (this can occur when running with JS web
-                    // browser clients if the driver uses ports in the same range as this test, ICE-8148)
+                     // browser clients if the driver uses ports in the same range as this test, ICE-8148)
                     if (adapter != null)
                     {
                         await adapter.DisposeAsync();
