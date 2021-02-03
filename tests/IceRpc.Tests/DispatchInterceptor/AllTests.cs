@@ -13,18 +13,6 @@ namespace IceRpc.Tests.DispatchInterceptors
     [Parallelizable]
     public class AllTests : FunctionalTest
     {
-        private ITestServicePrx _prx;
-
-        public AllTests() => _prx = null!;
-
-        [OneTimeSetUp]
-        public async Task InitializeAsync()
-        {
-            ObjectAdapter.Add("test", new TestService());
-            await ObjectAdapter.ActivateAsync();
-            _prx = ITestServicePrx.Parse(GetTestProxy("test"), Communicator);
-        }
-
         [Test]
         public async Task ThrowUserExceptionFromDispatchInterceptor()
         {
