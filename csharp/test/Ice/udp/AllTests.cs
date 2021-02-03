@@ -63,7 +63,7 @@ namespace ZeroC.Ice.Test.UDP
         {
             Communicator communicator = helper.Communicator;
 
-            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+            ObjectAdapter adapter = new ObjectAdapter(communicator,
                 "ReplyAdapter",
                 new ObjectAdapterOptions
                 {

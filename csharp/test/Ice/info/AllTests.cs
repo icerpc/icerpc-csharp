@@ -77,7 +77,7 @@ namespace ZeroC.Ice.Test.Info
             output.Flush();
             {
                 string serverName = helper.Host;
-                adapter = communicator.CreateObjectAdapter(
+                adapter = new ObjectAdapter(communicator,
                     "TestAdapter",
                     new ObjectAdapterOptions
                     {
@@ -102,7 +102,7 @@ namespace ZeroC.Ice.Test.Info
 
                 int port = helper.BasePort + 1;
 
-                adapter = communicator.CreateObjectAdapter(
+                adapter = new ObjectAdapter(communicator,
                     "TestAdapter",
                     new ObjectAdapterOptions
                     {
