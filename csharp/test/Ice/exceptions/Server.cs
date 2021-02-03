@@ -31,7 +31,8 @@ namespace ZeroC.Ice.Test.Exceptions
             await adapter3.ActivateAsync();
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
-            ObjectAdapter forwarderAdapter = communicator2.CreateObjectAdapter(
+            await using var forwarderAdapter = new ObjectAdapter(
+                communicator2,
                 "ForwarderAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
             forwarderAdapter.Add("forwarder", new Forwarder(IObjectPrx.Parse(GetTestProxy("thrower"), communicator2)));

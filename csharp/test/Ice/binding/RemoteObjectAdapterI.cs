@@ -20,6 +20,6 @@ namespace ZeroC.Ice.Test.Binding
         public ValueTask<ITestIntfPrx> GetTestIntfAsync(Current current, CancellationToken cancel) =>
             new(_testIntf);
 
-        public ValueTask DeactivateAsync(Current current, CancellationToken cancel) => _adapter.DisposeAsync();
+        public ValueTask DeactivateAsync(Current current, CancellationToken cancel) => new(_adapter.ShutdownAsync());
     }
 }
