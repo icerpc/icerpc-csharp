@@ -12,7 +12,7 @@ namespace ZeroC.Ice.Test.Location
         {
             // Register the server manager. The server manager creates a new 'server' (a server isn't a different
             // process, it's just a new communicator and object adapter).
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "ServerManagerAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Location
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

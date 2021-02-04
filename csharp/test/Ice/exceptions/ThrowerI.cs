@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Exceptions
             new byte[1024 * 20];
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
 
         public bool SupportsAssertException(Current current, CancellationToken cancel) => false;
 

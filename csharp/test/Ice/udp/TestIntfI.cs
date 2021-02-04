@@ -62,6 +62,6 @@ namespace ZeroC.Ice.Test.UDP
         }
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
     }
 }

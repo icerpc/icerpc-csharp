@@ -408,7 +408,8 @@ namespace ZeroC.Ice.Test.Proxy
             // TODO: why are we testing this here?
             try
             {
-                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = " : " });
+                await using var badOa =
+                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = " : " });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -417,7 +418,8 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = "tcp: "});
+                await using var badOa =
+                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = "tcp: "});
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -426,7 +428,8 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                communicator.CreateObjectAdapter("BadAdapter", new ObjectAdapterOptions { Endpoints = ":tcp" });
+                await using var badOa =
+                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = ":tcp" });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -1043,7 +1046,7 @@ namespace ZeroC.Ice.Test.Proxy
                 // The Clone(encoding: Encoding.V20) are only for ice1; with ice2, it's the default encoding. We need
                 // to marshal all relative proxies with the 2.0 encoding.
 
-                await using ObjectAdapter oa = communicator.CreateObjectAdapter(
+                await using ObjectAdapter oa = new ObjectAdapter(communicator,
                      options: new ObjectAdapterOptions { Protocol = helper.Protocol });
                 (await cl.GetConnectionAsync()).Adapter = oa;
                 ICallbackPrx callback = oa.AddWithUUID(
@@ -1181,13 +1184,11 @@ namespace ZeroC.Ice.Test.Proxy
             output.WriteLine("ok");
 
             // TODO test communicator destroy in its own test
-            output.Write("testing communicator shutdown/destroy... ");
+            output.Write("testing communicator shutdown... ");
             output.Flush();
             {
                 var com = new Communicator();
-                await com.ShutdownAsync();
                 await com.DisposeAsync();
-                await com.ShutdownAsync();
                 await com.DisposeAsync();
             }
             output.WriteLine("ok");

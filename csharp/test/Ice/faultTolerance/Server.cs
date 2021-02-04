@@ -39,7 +39,7 @@ namespace ZeroC.Ice.Test.FaultTolerance
                 throw new ArgumentException("Server: no port specified");
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(port) });
 
@@ -47,7 +47,7 @@ namespace ZeroC.Ice.Test.FaultTolerance
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

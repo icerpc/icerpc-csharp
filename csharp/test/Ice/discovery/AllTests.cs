@@ -291,6 +291,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                     try
                     {
+                        // TODO: relies on coloc being same communicator only.
                         await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                             IcePingAsync();
                         TestHelper.Assert(false);

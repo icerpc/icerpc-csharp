@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.AMI
     {
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.AMI
             adapter.Add("test2", new TestIntf2());
             // Don't activate OA to ensure collocation is used.
 
-            ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
                 "TestAdapter2",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
                 serializeDispatch: true);

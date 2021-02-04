@@ -2,6 +2,7 @@
 
 using System.Collections.Immutable;
 using System.Threading;
+using System.Threading.Tasks;
 using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Location
@@ -22,7 +23,8 @@ namespace ZeroC.Ice.Test.Location
             _registry.AddObject(_adapter1.Add("bonjour#abc", new Hello(), IObjectPrx.Factory));
         }
 
-        public void Shutdown(Current current, CancellationToken cancel) => _adapter1.Communicator.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) =>
+            Task.WhenAll(_adapter1.ShutdownAsync(), _adapter2.ShutdownAsync());
 
         public IHelloPrx GetHello(Current current, CancellationToken cancel) =>
             _adapter1.CreateProxy("hello", IHelloPrx.Factory).Clone(

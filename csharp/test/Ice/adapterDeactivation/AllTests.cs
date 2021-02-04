@@ -25,24 +25,16 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("creating/destroying/recreating object adapter... ");
                 output.Flush();
                 {
-                    await using var adapter = communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "TransientTestAdapter",
                         new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(1) });
-                    try
-                    {
-                        communicator.CreateObjectAdapter(
-                            "TransientTestAdapter",
-                            new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(2) });
-                        TestHelper.Assert(false);
-                    }
-                    catch (ArgumentException)
-                    {
-                    }
                 }
 
                 // Use a different port than the first adapter to avoid an "address already in use" error.
                 {
-                    var adapter = communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "TransientTestAdapter",
                         new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(2) });
 
@@ -75,7 +67,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Flush();
                 try
                 {
-                    communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "BadAdapter1",
                         new ObjectAdapterOptions
                         {
@@ -90,7 +83,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
                 try
                 {
-                    communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "BadAdapter2",
                         new ObjectAdapterOptions
                         {
@@ -110,7 +104,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("testing object adapter default published endpoints... ");
                 string testHost = "testhost";
                 {
-                    await using var adapter = communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "DAdapter",
                         new ObjectAdapterOptions
                         {
@@ -123,7 +118,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                     TestHelper.Assert(publishedEndpoint.Host == testHost);
                 }
                 {
-                    await using var adapter = communicator.CreateObjectAdapter(
+                    await using var adapter = new ObjectAdapter(
+                        communicator,
                         "DAdapter",
                         new ObjectAdapterOptions
                         {
@@ -146,7 +142,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter published endpoints... ");
             output.Flush();
             {
-                await using var adapter = communicator.CreateObjectAdapter(
+                await using var adapter = new ObjectAdapter(
+                    communicator,
                     "PAdapter",
                     new ObjectAdapterOptions
                     {
@@ -171,7 +168,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 output.Write("testing object adapter with bi-dir connection... ");
                 output.Flush();
-                ObjectAdapter adapter = communicator.CreateObjectAdapter();
+                await using var adapter = new ObjectAdapter(communicator);
                 connection.Adapter = adapter;
                 connection.Adapter = null;
                 await adapter.DisposeAsync();
@@ -183,12 +180,14 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter creation with port in use... ");
             output.Flush();
             {
-                await using var adapter1 = communicator.CreateObjectAdapter(
+                await using var adapter1 = new ObjectAdapter(
+                    communicator,
                     "Adpt1",
                     new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
                 try
                 {
-                    communicator.CreateObjectAdapter(
+                    await using var adapter2 = new ObjectAdapter(
+                        communicator,
                         "Adpt2",
                         new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
                     TestHelper.Assert(false);

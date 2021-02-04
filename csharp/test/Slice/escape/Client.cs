@@ -100,7 +100,7 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        ZeroC.Ice.ObjectAdapter adapter = Communicator.CreateObjectAdapter("TestAdapter");
+        await using var adapter = new ZeroC.Ice.ObjectAdapter(Communicator, "TestAdapter");
         adapter.Add("test", new Decimal());
         adapter.Add("test1", new Test1I());
         adapter.Add("test2", new Test2I());

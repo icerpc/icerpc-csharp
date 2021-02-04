@@ -84,7 +84,7 @@ namespace ZeroC.Ice.Test.Objects
 
         public Compact GetCompact(Current current, CancellationToken cancel) => new CompactExt();
 
-        public void Shutdown(Current current, CancellationToken cancel) => _adapter.Communicator.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => _adapter.ShutdownAsync();
 
         public Inner.A GetInnerA(Current current, CancellationToken cancel) => new(_b1);
 

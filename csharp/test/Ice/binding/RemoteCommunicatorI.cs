@@ -24,7 +24,8 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoints =
                         TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
 
-                    ObjectAdapter adapter = current.Communicator.CreateObjectAdapter(
+                    var adapter = new ObjectAdapter(
+                        current.Communicator,
                         name,
                         new ObjectAdapterOptions
                         {
@@ -53,7 +54,8 @@ namespace ZeroC.Ice.Test.Binding
             Current current,
             CancellationToken cancel)
         {
-            ObjectAdapter adapter = current.Communicator.CreateObjectAdapter(
+            var adapter = new ObjectAdapter(
+                current.Communicator,
                 name,
                 new ObjectAdapterOptions { Endpoints = endpoints });
             await adapter.ActivateAsync(cancel);
@@ -70,7 +72,7 @@ namespace ZeroC.Ice.Test.Binding
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Communicator.ShutdownAsync(); // only initiate shutdown
+            _ = current.Adapter.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

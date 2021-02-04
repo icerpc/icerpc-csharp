@@ -1269,7 +1269,7 @@ namespace ZeroC.Ice
             // If the invocation mode is not datagram, we first check if the target is colocated and if that's the
             // case we use the colocated endpoint.
             if (InvocationMode != InvocationMode.Datagram &&
-                Communicator.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+                ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
             }

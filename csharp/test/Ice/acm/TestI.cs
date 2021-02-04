@@ -26,10 +26,11 @@ namespace ZeroC.Ice.Test.ACM
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             string endpoint = TestHelper.GetTestEndpoint(properties: communicator.GetProperties(), ephemeral: true);
-            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+            ObjectAdapter adapter = new ObjectAdapter(
+                communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = endpoint },
-                taskScheduler: schedulerPair.ExclusiveScheduler);
+                scheduler: schedulerPair.ExclusiveScheduler);
 
             await adapter.ActivateAsync(cancel);
             return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);
@@ -37,7 +38,7 @@ namespace ZeroC.Ice.Test.ACM
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Communicator.ShutdownAsync();
+            _ = current.Adapter.ShutdownAsync();
             return default;
         }
     }
@@ -56,7 +57,7 @@ namespace ZeroC.Ice.Test.ACM
         public ITestIntfPrx GetTestIntf(Current current, CancellationToken cancel) => _testIntf;
 
         public void Deactivate(Current current, CancellationToken cancel) =>
-            _adapter.Communicator.DestroyAsync();
+            _adapter.ShutdownAsync();
     }
 
     public class TestIntf : ITestIntf
