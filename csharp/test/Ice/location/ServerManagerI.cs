@@ -11,6 +11,7 @@ namespace ZeroC.Ice.Test.Location
     {
         private readonly ServerLocatorRegistry _registry;
         private readonly List<Communicator> _communicators = new();
+        private readonly List<ObjectAdapter> _adapters = new();
         private readonly TestHelper _helper;
         private int _nextPort = 1;
 
@@ -24,9 +25,15 @@ namespace ZeroC.Ice.Test.Location
         {
             foreach (Communicator c in _communicators)
             {
-                await c.DisposeAsync();
+                await c.ShutdownAsync();
             }
             _communicators.Clear();
+
+            foreach (ObjectAdapter a in _adapters)
+            {
+                await a.ShutdownAsync();
+            }
+            _adapters.Clear();
 
             // Simulate a server: create a new communicator and object adapter. The object adapter is started on a
             // system allocated port. The configuration used here contains the Ice.Locator configuration variable.
@@ -56,6 +63,7 @@ namespace ZeroC.Ice.Test.Location
                             Endpoints = _helper.GetTestEndpoint(_nextPort++),
                             ReplicaGroupId = "ReplicatedAdapter"
                         });
+                    _adapters.Add(adapter);
 
                     adapter2 = new ObjectAdapter(
                         serverCommunicator,
@@ -65,6 +73,7 @@ namespace ZeroC.Ice.Test.Location
                             AdapterId = "TestAdapter2",
                             Endpoints = _helper.GetTestEndpoint(_nextPort++)
                         });
+                    _adapters.Add(adapter2);
 
                     var locator = ILocatorPrx.Parse(_helper.GetTestProxy("locator", 0), serverCommunicator);
                     adapter.Locator = locator;
@@ -87,7 +96,7 @@ namespace ZeroC.Ice.Test.Location
                     }
 
                     // Retry, if OA creation fails with EADDRINUSE (this can occur when running with JS web
-                     // browser clients if the driver uses ports in the same range as this test, ICE-8148)
+                    // browser clients if the driver uses ports in the same range as this test, ICE-8148)
                     if (adapter != null)
                     {
                         await adapter.DisposeAsync();
@@ -104,9 +113,16 @@ namespace ZeroC.Ice.Test.Location
         {
             foreach (Communicator c in _communicators)
             {
-                await c.DisposeAsync();
+                await c.ShutdownAsync();
             }
             _communicators.Clear();
+
+            foreach (ObjectAdapter a in _adapters)
+            {
+                await a.ShutdownAsync();
+            }
+            _adapters.Clear();
+
             _ = current.Adapter.ShutdownAsync();
         }
     }
