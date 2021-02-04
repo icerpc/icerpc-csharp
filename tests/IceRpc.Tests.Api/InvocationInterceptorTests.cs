@@ -25,14 +25,8 @@ namespace IceRpc.Tests.Api
             Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
         }
 
-        [OneTimeSetUp]
-        public async Task InitializeAsync() => await ObjectAdapter.ActivateAsync();
-
         [OneTimeTearDown]
-        public async Task ShutdownAsync()
-        {
-            await Communicator.DestroyAsync();
-        }
+        public async Task ShutdownAsync() => await Communicator.DestroyAsync();
 
         /// <summary>If an interceptor throws an exception in its way out the caller can catch this exception.
         /// </summary>
