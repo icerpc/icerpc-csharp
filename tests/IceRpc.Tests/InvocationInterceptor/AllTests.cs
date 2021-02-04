@@ -91,7 +91,7 @@ namespace IceRpc.Tests.InvocationInterceptors
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
-        /// <summary>Ensure that invocation interceptors can bypass the remote call an directly return a result.
+        /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
         public async Task InvocationInterceptorCanBypassRemoteCall(int p1, int p2)
