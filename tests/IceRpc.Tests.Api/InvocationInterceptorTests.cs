@@ -8,21 +8,30 @@ using NUnit.Framework;
 using System;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests.InvocationInterceptors
+namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class AllTests : FunctionalTest
+    public class InvocationInterceptorTests
     {
-        private ITestServicePrx _prx;
+        private Communicator Communicator { get; }
+        private ObjectAdapter ObjectAdapter { get; }
 
-        public AllTests() => _prx = null!;
+        private IInvocationInterceptorTestServicePrx Prx { get; }
+
+        public InvocationInterceptorTests()
+        {
+            Communicator = new Communicator();
+            ObjectAdapter = Communicator.CreateObjectAdapter("TestAdapter-1");
+            Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
+        }
 
         [OneTimeSetUp]
-        public async Task InitializeAsync()
+        public async Task InitializeAsync() => await ObjectAdapter.ActivateAsync();
+
+        [OneTimeTearDown]
+        public async Task ShutdownAsync()
         {
-            ObjectAdapter.Add("test", new TestService());
-            await ObjectAdapter.ActivateAsync();
-            _prx = ITestServicePrx.Parse(GetTestProxy("test"), Communicator);
+            await Communicator.DestroyAsync();
         }
 
         /// <summary>If an interceptor throws an exception in its way out the caller can catch this exception.
@@ -30,31 +39,30 @@ namespace IceRpc.Tests.InvocationInterceptors
         [Test]
         public async Task ThrowFromInvocationInterceptor()
         {
-            await using var communicator = new Communicator();
-            communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) =>
-                    {
-                        throw new ArgumentException();
-                    });
+            await using var communicator = new Communicator
+            {
+                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                    (target, request, next, cancel) => throw new ArgumentException())
+            };
 
-            var prx = IObjectPrx.Parse(GetTestProxy("test"), communicator);
-            Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
+            Assert.ThrowsAsync<ArgumentException>(async () => await Prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
         [Test]
         public async Task InvocationInterceptorTimeout()
         {
-            await using var communicator = new Communicator();
-            communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                async (target, request, next, cancel) =>
-                    {
-                        await Task.Delay(100);
-                        return await next(target, request, cancel);
-                    });
+            await using var communicator = new Communicator
+            {
+                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                    async (target, request, next, cancel) =>
+                        {
+                            await Task.Delay(100, cancel);
+                            return await next(target, request, cancel);
+                        })
+            };
 
-            var prx = IObjectPrx.Parse(GetTestProxy("test"), communicator).Clone(
-                invocationTimeout: TimeSpan.FromMilliseconds(10));
+            var prx = Prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10));
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
         }
 
@@ -63,7 +71,7 @@ namespace IceRpc.Tests.InvocationInterceptors
         public async Task InvocationInterceptorCallOrder()
         {
             var interceptorCalls = new List<string>();
-            var prx = IObjectPrx.Parse(GetTestProxy("test"), Communicator).Clone(
+            var prx = Prx.Clone(
                 invocationInterceptors: new InvocationInterceptor[] 
                 {
                     async (target, request, next, cancel) =>
@@ -97,7 +105,7 @@ namespace IceRpc.Tests.InvocationInterceptors
         public async Task InvocationInterceptorCanBypassRemoteCall(int p1, int p2)
         {            
             IncomingResponseFrame? response = null;
-            var prx = ITestServicePrx.Parse(GetTestProxy("test"), Communicator).Clone(
+            var prx = Prx.Clone(
                 invocationInterceptors: new InvocationInterceptor[] 
                 {
                     async (target, request, next, cancel) =>
@@ -117,10 +125,10 @@ namespace IceRpc.Tests.InvocationInterceptors
             Assert.AreEqual(r2, p1);
             Assert.IsNotNull(response);    
         }
-    }
 
-    public class TestService : IAsyncTestService
-    {
-        public ValueTask<int> OpIntAsync(int value, Current current, CancellationToken cancel) => new(value);
+        internal class TestService : IAsyncInvocationInterceptorTestService
+        {
+            public ValueTask<int> OpIntAsync(int value, Current current, CancellationToken cancel) => new(value);
+        }
     }
 }

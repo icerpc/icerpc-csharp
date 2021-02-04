@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ice", "csharp\src\Ice\ice.csproj", "{516D755E-DA02-41CE-95A5-23D54691B642}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests", "tests\IceRpc.Tests\IceRpc.Tests.csproj", "{434AC405-D3A7-4BDC-A811-B1BA32D3273B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Api", "tests\IceRpc.Tests.Api\IceRpc.Tests.Api.csproj", "{434AC405-D3A7-4BDC-A811-B1BA32D3273B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8AC71827-78FD-4A6C-97C7-3E4378AFB568}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +46,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{434AC405-D3A7-4BDC-A811-B1BA32D3273B} = {8AC71827-78FD-4A6C-97C7-3E4378AFB568}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8BB4EF8D-31A9-4DBC-AD9F-164CF6C083B6}

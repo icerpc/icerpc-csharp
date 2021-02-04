@@ -2,9 +2,9 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::InvocationTimeout
+module IceRpc::Tests::Api
 {
-    interface TestService
+    interface InvocationTimeoutTestService
     {
     }
 }

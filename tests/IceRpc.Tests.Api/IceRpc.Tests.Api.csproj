@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\TestData.cs" Link="TestData.cs" />
+    <Compile Update="generated\DispatchInterceptorTests.cs">
+      <SliceCompileSource>DispatchInterceptorTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\InvocationInterceptorTests.cs">
+      <SliceCompileSource>InvocationInterceptorTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\InvocationTimeoutTests.cs">
+      <SliceCompileSource>InvocationTimeoutTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.13.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="generated\" />
+  </ItemGroup>
+
+</Project>

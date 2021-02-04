@@ -8,51 +8,35 @@ using NUnit.Framework;
 using System;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests.DispatchInterceptors
+namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class AllTests : FunctionalTest
+    public class DispatchInterceptorTests
     {
         [Test]
         public async Task ThrowUserExceptionFromDispatchInterceptor()
         {
-            await using var adapter = Communicator.CreateObjectAdapter(
-                "TestAdapter-1",
-                new ObjectAdapterOptions()
-                {
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
+            await using var communicator = new Communicator();
+            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
 
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                (request, current, next, cancel) =>
-                {
-                    throw new ForbiddenException();
-                });
-            adapter.Add("test", new TestService());
+                (request, current, next, cancel) => throw new DispatchInterceptorForbiddenException());
+            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
-            var prx = IObjectPrx.Parse(GetTestProxy("test", port: 1), Communicator);
 
-            Assert.ThrowsAsync<ForbiddenException>(() => prx.IcePingAsync());
+            Assert.ThrowsAsync<DispatchInterceptorForbiddenException>(() => prx.IcePingAsync());
         }
 
         [Test]
         public async Task ThrowSystemExceptionFromDispatchInterceptor()
         {
-            await using var adapter = Communicator.CreateObjectAdapter(
-                "TestAdapter-1",
-                new ObjectAdapterOptions()
-                {
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
+            await using var communicator = new Communicator();
+            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
 
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                (request, current, next, cancel) =>
-                {
-                    throw new ArgumentException();
-                });
-            adapter.Add("test", new TestService());
+                (request, current, next, cancel) => throw new ArgumentException());
+            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
-            var prx = IObjectPrx.Parse(GetTestProxy("test", port: 1), Communicator);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.IcePingAsync());
         }
@@ -80,16 +64,9 @@ namespace IceRpc.Tests.DispatchInterceptors
                         return result;
                     });
 
-            await using var adapter = communicator.CreateObjectAdapter(
-                "TestAdapter-1",
-                new ObjectAdapterOptions()
-                {
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
-            adapter.Add("test", new TestService());
+            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
+            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
-
-            var prx = IObjectPrx.Parse(GetTestProxy("test", port: 1), communicator);
 
             await prx.IcePingAsync();
 
@@ -104,12 +81,8 @@ namespace IceRpc.Tests.DispatchInterceptors
         [Test]
         public async Task ObjectAdapterDispatchInterceptorCallOrder()
         {
-            await using var adapter = Communicator.CreateObjectAdapter(
-                "TestAdapter-1",
-                new ObjectAdapterOptions()
-                {
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
+            await using var communicator = new Communicator();
+            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
             var interceptorCalls = new List<string>();
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                 async (request, current, next, cancel) =>
@@ -126,10 +99,8 @@ namespace IceRpc.Tests.DispatchInterceptors
                     interceptorCalls.Add("AdapterDispatchInterceptors <- 1");
                     return result;
                 });
-            adapter.Add("test", new TestService());
+            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
-
-            var prx = IObjectPrx.Parse(GetTestProxy("test", port: 1), Communicator);
 
             await prx.IcePingAsync();
 
@@ -139,10 +110,9 @@ namespace IceRpc.Tests.DispatchInterceptors
             Assert.AreEqual("AdapterDispatchInterceptors <- 0", interceptorCalls[3]);
             Assert.AreEqual(4, interceptorCalls.Count);
         }
-    }
 
-    public class TestService : IAsyncTestService
-    {
-        public ValueTask<int> OpIntAsync(int value, Current current, CancellationToken cancel) => new(value);
+        public class TestService : IAsyncDispatchInterceptorTestService
+        {
+        }
     }
 }

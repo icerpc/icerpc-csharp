@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests.Proxy
+namespace IceRpc.Tests.ProxyTests
 {
     [Parallelizable(scope: ParallelScope.All)]
     public class AllTests
@@ -201,14 +201,8 @@ namespace IceRpc.Tests.Proxy
         {
             var communicator = new Communicator();
             communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) =>
-                    {
-                        throw new NotImplementedException();
-                    },
-                (target, request, next, cancel) =>
-                    {
-                        throw new NotImplementedException();
-                    });
+                (target, request, next, cancel) => throw new NotImplementedException(),
+                (target, request, next, cancel) => throw new NotImplementedException());
 
             var prx = IObjectPrx.Parse("test", communicator);
 

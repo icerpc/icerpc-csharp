@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests.InvocationTimeout
+namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class AllTests : FunctionalTest
+    public class InvocationTimeoutTests
     {
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timemout expires.
         /// </summary>
@@ -18,12 +18,8 @@ namespace IceRpc.Tests.InvocationTimeout
         [TestCase(500, 100)]
         public async Task DelayedInvocationTimeouts(int delay, int timeout)
         {
-            await using var adapter = Communicator.CreateObjectAdapter(
-                "TestAdapter-1",
-                new ObjectAdapterOptions()
-                {
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
+            await using var communicator = new Communicator();
+            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
 
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                 async (request, current, next, cancel) =>
@@ -31,11 +27,10 @@ namespace IceRpc.Tests.InvocationTimeout
                     await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                     return await next(request, current, cancel);
                 });
-            adapter.Add("test", new TestService());
-            await adapter.ActivateAsync();
 
-            var prx = IObjectPrx.Parse(GetTestProxy("test", port: 1), Communicator).Clone(
+            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));
+            await adapter.ActivateAsync();
             
             // Establish a connection
             var connection = await prx.GetConnectionAsync();
@@ -43,9 +38,9 @@ namespace IceRpc.Tests.InvocationTimeout
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.AreEqual(connection, await prx.GetConnectionAsync());
         }
-    }
 
-    public class TestService : IAsyncTestService
-    {
+        public class TestService : IAsyncInvocationTimeoutTestService
+        {
+        }
     }
 }
