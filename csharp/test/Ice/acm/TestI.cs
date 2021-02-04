@@ -57,7 +57,7 @@ namespace ZeroC.Ice.Test.ACM
         public ITestIntfPrx GetTestIntf(Current current, CancellationToken cancel) => _testIntf;
 
         public void Deactivate(Current current, CancellationToken cancel) =>
-            _adapter.Communicator.DestroyAsync();
+            _adapter.ShutdownAsync();
     }
 
     public class TestIntf : ITestIntf

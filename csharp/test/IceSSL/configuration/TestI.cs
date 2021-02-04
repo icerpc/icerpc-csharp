@@ -65,8 +65,8 @@ namespace ZeroC.IceSSL.Test.Configuration
             }
         }
 
-        internal Task DestroyAsync() =>
-            Task.WhenAll(_adapter.ShutdownAsync(), _communicator.DestroyAsync());
+        internal Task ShutdownAsync() =>
+            Task.WhenAll(_adapter.ShutdownAsync(), _communicator.ShutdownAsync());
     }
 
     internal sealed class ServerFactory : IAsyncServerFactory
@@ -114,7 +114,7 @@ namespace ZeroC.IceSSL.Test.Configuration
         {
             if (_servers.TryGetValue(srv!.Identity, out SSLServer? server))
             {
-                await server.DestroyAsync();
+                await server.ShutdownAsync();
                 _servers.Remove(srv.Identity);
             }
         }

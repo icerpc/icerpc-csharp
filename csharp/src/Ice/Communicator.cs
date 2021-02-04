@@ -180,7 +180,7 @@ namespace ZeroC.Ice
 
         internal TimeSpan IdleTimeout { get; }
         internal int IncomingFrameMaxSize { get; }
-        internal bool IsDisposed => _destroyTask != null;
+        internal bool IsDisposed => _shutdownTask != null;
         internal bool KeepAlive { get; }
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
@@ -220,7 +220,7 @@ namespace ZeroC.Ice
         private volatile ILocatorPrx? _defaultLocator;
         private volatile ImmutableList<DispatchInterceptor> _defaultDispatchInterceptors =
             ImmutableList<DispatchInterceptor>.Empty;
-        private Task? _destroyTask;
+        private Task? _shutdownTask;
 
         private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =
             new ConcurrentDictionary<Transport, Ice1EndpointFactory>();
@@ -607,16 +607,16 @@ namespace ZeroC.Ice
         /// <summary>Releases all resources used by this communicator. This method can be called multiple times.
         /// </summary>
         /// <returns>A task that completes when the destruction is complete.</returns>
-        // TODO: rename to ShutdownAsync and add cancellation token
-        public Task DestroyAsync()
+        // TODO: add cancellation token, switch to lazy task pattern
+        public Task ShutdownAsync()
         {
             lock (_mutex)
             {
-                _destroyTask ??= PerformDestroyAsync();
-                return _destroyTask;
+                _shutdownTask ??= PerformShutdownAsync();
+                return _shutdownTask;
             }
 
-            async Task PerformDestroyAsync()
+            async Task PerformShutdownAsync()
             {
                 // Cancel operations that are waiting and using the communicator's cancellation token
                 _cancellationTokenSource.Cancel();
@@ -671,10 +671,10 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>An alias for <see cref="DestroyAsync"/>, except this method returns a <see cref="ValueTask"/>.
+        /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
         /// </summary>
-        /// <returns>A value task constructed using the task returned by DestroyAsync.</returns>
-        public ValueTask DisposeAsync() => new(DestroyAsync());
+        /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
+        public ValueTask DisposeAsync() => new(ShutdownAsync());
 
         /// <summary>Registers a new transport for the ice1 protocol.</summary>
         /// <param name="transport">The transport.</param>

@@ -167,10 +167,10 @@ namespace ZeroC.Ice.Test.ACM
 
         public void Start() => _thread!.Start();
 
-        public async Task DestroyAsync()
+        public async Task ShutdownAsync()
         {
             await _adapter!.DeactivateAsync();
-            await _communicator!.DestroyAsync();
+            await _communicator!.ShutdownAsync();
         }
 
         public void Join()
@@ -431,7 +431,7 @@ namespace ZeroC.Ice.Test.ACM
             }
             foreach (TestCase test in tests)
             {
-                await test.DestroyAsync();
+                await test.ShutdownAsync();
             }
 
             output.Write("shutting down... ");
