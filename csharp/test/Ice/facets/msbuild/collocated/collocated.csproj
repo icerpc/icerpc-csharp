@@ -16,7 +16,6 @@
     <Compile Include="../../EI.cs" />
     <Compile Include="../../EmptyI.cs" />
     <Compile Include="../../FI.cs" />
-    <Compile Include="../../GI.cs" />
     <Compile Include="../../HI.cs" />
     <Compile Include="../../Collocated.cs" />
     <Compile Include="generated/Test.cs">

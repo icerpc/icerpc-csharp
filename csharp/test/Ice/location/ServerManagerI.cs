@@ -11,6 +11,7 @@ namespace ZeroC.Ice.Test.Location
     {
         private readonly ServerLocatorRegistry _registry;
         private readonly List<Communicator> _communicators = new();
+        private readonly List<ObjectAdapter> _adapters = new();
         private readonly TestHelper _helper;
         private int _nextPort = 1;
 
@@ -22,10 +23,15 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask StartServerAsync(Current current, CancellationToken cancel)
         {
+            foreach (ObjectAdapter a in _adapters)
+            {
+                await a.ShutdownAsync();
+            }
+            _adapters.Clear();
+
             foreach (Communicator c in _communicators)
             {
-                await c.ShutdownComplete;
-                await c.DisposeAsync();
+                await c.ShutdownAsync();
             }
             _communicators.Clear();
 
@@ -45,9 +51,11 @@ namespace ZeroC.Ice.Test.Location
             {
                 ObjectAdapter? adapter = null;
                 ObjectAdapter? adapter2 = null;
+
                 try
                 {
-                    adapter = serverCommunicator.CreateObjectAdapter(
+                    adapter = new ObjectAdapter(
+                        serverCommunicator,
                         "TestAdapter",
                         new ObjectAdapterOptions
                         {
@@ -55,14 +63,17 @@ namespace ZeroC.Ice.Test.Location
                             Endpoints = _helper.GetTestEndpoint(_nextPort++),
                             ReplicaGroupId = "ReplicatedAdapter"
                         });
+                    _adapters.Add(adapter);
 
-                    adapter2 = serverCommunicator.CreateObjectAdapter(
+                    adapter2 = new ObjectAdapter(
+                        serverCommunicator,
                         "TestAdapter2",
                         new ObjectAdapterOptions
                         {
                             AdapterId = "TestAdapter2",
                             Endpoints = _helper.GetTestEndpoint(_nextPort++)
                         });
+                    _adapters.Add(adapter2);
 
                     var locator = ILocatorPrx.Parse(_helper.GetTestProxy("locator", 0), serverCommunicator);
                     adapter.Locator = locator;
@@ -100,12 +111,19 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
+            foreach (ObjectAdapter a in _adapters)
+            {
+                await a.ShutdownAsync();
+            }
+            _adapters.Clear();
+
             foreach (Communicator c in _communicators)
             {
-                await c.DisposeAsync();
+                await c.ShutdownAsync();
             }
             _communicators.Clear();
-            _ = current.Communicator.ShutdownAsync();
+
+            _ = current.Adapter.ShutdownAsync();
         }
     }
 }

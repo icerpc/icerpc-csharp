@@ -14,7 +14,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             TextWriter output = helper.Output;
             Communicator communicator = helper.Communicator;
 
-            ObjectAdapter oa = communicator.CreateObjectAdapter(
+            ObjectAdapter oa = new ObjectAdapter(communicator,
                 "MyOA",
                 new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
             await oa.ActivateAsync();

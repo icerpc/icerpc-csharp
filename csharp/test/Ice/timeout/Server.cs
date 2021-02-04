@@ -14,10 +14,10 @@ namespace ZeroC.Ice.Test.Timeout
         public override async Task RunAsync(string[] args)
         {
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) },
-                taskScheduler: schedulerPair.ExclusiveScheduler);
+                scheduler: schedulerPair.ExclusiveScheduler);
             adapter.Add("timeout", new Timeout());
             adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                 (request, current, next, cancel) =>
@@ -34,14 +34,15 @@ namespace ZeroC.Ice.Test.Timeout
 
             await adapter.ActivateAsync();
 
-            ObjectAdapter controllerAdapter = Communicator.CreateObjectAdapter(
+            await using var controllerAdapter = new ObjectAdapter(
+                Communicator,
                 "ControllerAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
             controllerAdapter.Add("controller", new Controller(schedulerPair.ExclusiveScheduler));
             await controllerAdapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await controllerAdapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -79,6 +80,6 @@ namespace ZeroC.Ice.Test.Timeout
         public void ResumeAdapter(Current current, CancellationToken cancel) => _ = _semaphore.Release();
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
     }
 }

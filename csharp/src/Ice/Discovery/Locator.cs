@@ -206,15 +206,15 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = communicator.CreateObjectAdapter();
+            _locatorAdapter = new(communicator);
             _locatorAdapter.Add(locatorIdentity, this);
 
             // Setup locator registry.
             var registryServant = new LocatorRegistry(communicator);
             _registry = _locatorAdapter.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
 
-            _multicastAdapter = communicator.CreateObjectAdapter("Discovery.Multicast", multicastOptions);
-            _replyAdapter = communicator.CreateObjectAdapter("Discovery.Reply", replyOptions);
+            _multicastAdapter = new(communicator, "Discovery.Multicast", multicastOptions);
+            _replyAdapter = new(communicator, "Discovery.Reply", replyOptions);
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
             IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);

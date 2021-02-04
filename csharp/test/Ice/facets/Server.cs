@@ -9,7 +9,8 @@ namespace ZeroC.Ice.Test.Facets
     {
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(
+                Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -18,12 +19,12 @@ namespace ZeroC.Ice.Test.Facets
             adapter.Add("d#facetABCD", d);
             var f = new F();
             adapter.Add("d#facetEF", f);
-            var h = new H(Communicator);
+            var h = new H();
             adapter.Add("d#facetGH", h);
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

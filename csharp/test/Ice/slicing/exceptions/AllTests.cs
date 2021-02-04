@@ -768,7 +768,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(slices[0].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Exceptions::SPreserved2"));
                 }
 
-                await using var adapter = communicator.CreateObjectAdapter(
+                await using var adapter = new ObjectAdapter(communicator,
                     options: new ObjectAdapterOptions { Protocol = helper.Protocol });
                 IRelayPrx relay = adapter.AddWithUUID(new Relay(), IRelayPrx.Factory);
                 await adapter.ActivateAsync();

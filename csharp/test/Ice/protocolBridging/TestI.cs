@@ -99,6 +99,6 @@ namespace ZeroC.Ice.Test.ProtocolBridging
                 encoding: current.Encoding);
         }
 
-        public void Shutdown(Current current, CancellationToken cancel) => current.Communicator.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
     }
 }

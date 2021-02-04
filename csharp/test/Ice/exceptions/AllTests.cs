@@ -18,28 +18,19 @@ namespace ZeroC.Ice.Test.Exceptions
             {
                 output.Write("testing object adapter registration exceptions... ");
 
-                ObjectAdapter first = communicator.CreateObjectAdapter(
+                await using var first = new ObjectAdapter(
+                    communicator,
                     "TestAdapter0",
                     new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
-                try
-                {
-                    communicator.CreateObjectAdapter(
-                        "TestAdapter0",
-                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
-                    TestHelper.Assert(false);
-                }
-                catch (ArgumentException)
-                {
-                    // Expected.
-                }
 
                 try
                 {
                     // test that foo does not resolve
                     var props = communicator.GetProperties();
                     props["Test.Host"] = "foo";
-                    _ = communicator.CreateObjectAdapter(
-                        "TestAdapter0",
+                    await using var badOa = new ObjectAdapter(
+                        communicator,
+                        "TestAdapter1",
                         new ObjectAdapterOptions { Endpoints = TestHelper.GetTestEndpoint(props, ephemeral: true) });
 
                     TestHelper.Assert(false);
@@ -48,13 +39,13 @@ namespace ZeroC.Ice.Test.Exceptions
                 {
                     // Expected
                 }
-                await first.DisposeAsync();
                 output.WriteLine("ok");
             }
 
             {
                 output.Write("testing servant registration exceptions... ");
-                await using ObjectAdapter adapter = communicator.CreateObjectAdapter(
+                await using ObjectAdapter adapter = new ObjectAdapter(
+                    communicator,
                     "TestAdapter1",
                     new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();

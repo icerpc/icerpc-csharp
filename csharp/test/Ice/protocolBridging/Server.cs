@@ -30,15 +30,18 @@ namespace ZeroC.Ice.Test.ProtocolBridging
 
             bool ice1 = Protocol == Protocol.Ice1;
 
-            ObjectAdapter adapterForwarder = Communicator.CreateObjectAdapter(
+            await using var adapterForwarder = new ObjectAdapter(
+                Communicator,
                 "TestAdapterForwarder",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapterSame = Communicator.CreateObjectAdapter(
+            await using var adapterSame = new ObjectAdapter(
+                Communicator,
                 "TestAdapterSame",
                 new ObjectAdapterOptions { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
 
-            ObjectAdapter adapterOther = Communicator.CreateObjectAdapter(
+            await using var adapterOther = new ObjectAdapter(
+                Communicator,
                 "TestAdapterOther",
                 new ObjectAdapterOptions { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
 
@@ -53,7 +56,7 @@ namespace ZeroC.Ice.Test.ProtocolBridging
             await adapterOther.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await Task.WhenAny(adapterSame.ShutdownComplete, adapterOther.ShutdownComplete);
         }
 
         public static async Task<int> Main(string[] args)

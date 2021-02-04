@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Alias
     {
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -17,7 +17,7 @@ namespace ZeroC.Ice.Test.Alias
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

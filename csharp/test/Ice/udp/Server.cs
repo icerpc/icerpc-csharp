@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.UDP
             {
             }
 
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "ControlAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(num, Transport) });
 
@@ -31,7 +31,7 @@ namespace ZeroC.Ice.Test.UDP
             ServerReady();
             if (num == 0)
             {
-                ObjectAdapter adapter2 = Communicator.CreateObjectAdapter(
+                ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
                     "TestAdapter",
                     new ObjectAdapterOptions
                     {
@@ -66,14 +66,14 @@ namespace ZeroC.Ice.Test.UDP
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
 
-            ObjectAdapter mcastAdapter = Communicator.CreateObjectAdapter(
+            ObjectAdapter mcastAdapter = new ObjectAdapter(Communicator,
                 "McastTestAdapter",
                 new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = endpoint.ToString() });
             mcastAdapter.Add("test", new TestIntf());
             await mcastAdapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

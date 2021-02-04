@@ -631,7 +631,8 @@ namespace ZeroC.Ice.Test.Location
             output.Write("testing indirect proxies to colocated objects... ");
             output.Flush();
 
-            ObjectAdapter adapter = communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(
+                communicator,
                 options: new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
             var id = new Identity(Guid.NewGuid().ToString(), "");

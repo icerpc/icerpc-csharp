@@ -11,12 +11,12 @@ namespace ZeroC.Ice.Test.Echo
         private class Echo : IEcho
         {
             public void Shutdown(Current current, CancellationToken cancel) =>
-                current.Communicator.ShutdownAsync();
+                current.Adapter.ShutdownAsync();
         }
 
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapter adapter = Communicator.CreateObjectAdapter(
+            await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
 
@@ -26,7 +26,7 @@ namespace ZeroC.Ice.Test.Echo
             await adapter.ActivateAsync();
 
             ServerReady();
-            await Communicator.ShutdownComplete;
+            await adapter.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

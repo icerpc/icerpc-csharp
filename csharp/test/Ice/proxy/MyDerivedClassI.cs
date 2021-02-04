@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.Proxy
         public IEnumerable<string> GetLocation(Current current, CancellationToken cancel) => current.Location;
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Communicator.ShutdownAsync();
+            current.Adapter.ShutdownAsync();
 
         public IReadOnlyDictionary<string, string> GetContext(Current current, CancellationToken cancel) => _ctx!;
 
