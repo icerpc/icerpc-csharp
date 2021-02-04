@@ -11,58 +11,41 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationInterceptorTests
+    public class InvocationInterceptorTests : CollocatedTest
     {
-        private Communicator Communicator { get; }
-        private ObjectAdapter ObjectAdapter { get; }
-
         private IInvocationInterceptorTestServicePrx Prx { get; }
 
-        public InvocationInterceptorTests()
-        {
-            Communicator = new Communicator();
-            ObjectAdapter = Communicator.CreateObjectAdapter("TestAdapter-1");
+        public InvocationInterceptorTests() =>
             Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
-        }
-
-        [OneTimeTearDown]
-        public async Task ShutdownAsync() => await Communicator.DestroyAsync();
 
         /// <summary>If an interceptor throws an exception in its way out the caller can catch this exception.
         /// </summary>
         [Test]
-        public async Task ThrowFromInvocationInterceptor()
+        public void InvocationInterceptor_Throws_ArgumentException()
         {
-            await using var communicator = new Communicator
-            {
-                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    (target, request, next, cancel) => throw new ArgumentException())
-            };
-
-            Assert.ThrowsAsync<ArgumentException>(async () => await Prx.IcePingAsync());
+            var prx = Prx.Clone(invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
+                (target, request, next, cancel) => throw new ArgumentException()));
+            Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
         [Test]
-        public async Task InvocationInterceptorTimeout()
+        public void InvocationInterceptor_Timeout_OperationCanceledException()
         {
-            await using var communicator = new Communicator
-            {
-                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+            var prx = Prx.Clone(
+                invocationTimeout: TimeSpan.FromMilliseconds(10),
+                invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
                     async (target, request, next, cancel) =>
                         {
-                            await Task.Delay(100, cancel);
+                            await Task.Delay(100, default);
                             return await next(target, request, cancel);
-                        })
-            };
-
-            var prx = Prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10));
+                        }));
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation interceptors are called in the expected order.</summary>
         [Test]
-        public async Task InvocationInterceptorCallOrder()
+        public async Task InvocationInterceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
             var prx = Prx.Clone(
@@ -96,7 +79,7 @@ namespace IceRpc.Tests.Api
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
-        public async Task InvocationInterceptorCanBypassRemoteCall(int p1, int p2)
+        public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
         {            
             IncomingResponseFrame? response = null;
             var prx = Prx.Clone(

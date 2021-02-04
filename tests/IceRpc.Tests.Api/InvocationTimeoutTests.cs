@@ -9,28 +9,24 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class InvocationTimeoutTests
+    public class InvocationTimeoutTests : CollocatedTest
     {
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timemout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
         [TestCase(500, 100)]
-        public async Task DelayedInvocationTimeouts(int delay, int timeout)
+        public async Task InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
         {
-            await using var communicator = new Communicator();
-            await using var adapter = communicator.CreateObjectAdapter("TestAdapter-1");
-
-            adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
+            ObjectAdapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                 async (request, current, next, cancel) =>
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                     return await next(request, current, cancel);
                 });
 
-            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
+            var prx = ObjectAdapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));
-            await adapter.ActivateAsync();
             
             // Establish a connection
             var connection = await prx.GetConnectionAsync();

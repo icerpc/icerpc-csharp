@@ -1,29 +1,21 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Threading.Tasks;
-using System.Collections.Immutable;
-using System.Collections.Generic;
 using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests.ProxyTests
+namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class AllTests
+    public class ProxyTests : CollocatedTest
     {
-        public Communicator Communicator { get; }
-
-        public AllTests() => Communicator = new Communicator();
-
-        [OneTimeTearDown]
-        public Task DisposeAsync() => Communicator.DestroyAsync();
-
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         /// <param name="protocol">The expected Protocol for the parsed proxy.</param>
         [TestCaseSource(typeof(ParseValidProxyTestCases))]
-        public void TestParseValidProxy(string str, Protocol protocol)
+        public void Proxy_Parse_ValidInput(string str, Protocol protocol)
         {
             var prx = IObjectPrx.Parse(str, Communicator);
             Assert.AreEqual(protocol, prx.Protocol);
@@ -31,7 +23,7 @@ namespace IceRpc.Tests.ProxyTests
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
-        /// <summary>Test data for <see cref="TestParseValidProxy"/>.</summary>
+        /// <summary>Test data for <see cref="Proxy_Parse_ValidInput"/>.</summary>
         public class ParseValidProxyTestCases : TestData<string, Protocol>
         {
             public ParseValidProxyTestCases()
@@ -73,12 +65,12 @@ namespace IceRpc.Tests.ProxyTests
         /// <summary>Test that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCaseSource(typeof(ParseInvalidProxyTestCases))]
-        public void TestParseInvalidProxy(string str)
+        public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => IObjectPrx.Parse(str, Communicator));
         }
 
-        /// <summary>Test data for <see cref="TestParseInvalidProxy"/>.</summary>
+        /// <summary>Test data for <see cref="Proxy_Parse_InvalidInput"/>.</summary>
         public class ParseInvalidProxyTestCases : TestData<string>
         {
             public ParseInvalidProxyTestCases()
@@ -133,7 +125,7 @@ namespace IceRpc.Tests.ProxyTests
         /// <param name="category">The expected identity category for the parsed proxy.</param>
         /// <param name="location">The expected location for the parsed proxy.</param>
         [TestCaseSource(typeof(ParseProxyWithIdentityAndLocationTestCases))]
-        public void TestParseProxyWithIdentityAndLocation(
+        public void Proxy_Parse_InputWithIdentityAndLocation(
             string str,
             string name,
             string category,
@@ -146,7 +138,7 @@ namespace IceRpc.Tests.ProxyTests
             Assert.AreEqual(0, prx.Facet.Length);
         }
 
-        /// <summary>Test data for <see cref="TestParseProxyWithIdentityAndLocation"/>.</summary>
+        /// <summary>Test data for <see cref="Proxy_Parse_InputWithIdentityAndLocation"/>.</summary>
         public class ParseProxyWithIdentityAndLocationTestCases :
             TestData<string, string, string, IReadOnlyList<string>>
         {
@@ -197,7 +189,7 @@ namespace IceRpc.Tests.ProxyTests
         /// <summary>Test that the communicator default invocation interceptors are used when the
         /// proxy doesn't specify its own interceptors.</summary>
         [Test]
-        public void ProxyInvocationInterceptors()
+        public void Proxy_DefaultInvocationInterceptors()
         {
             var communicator = new Communicator();
             communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(

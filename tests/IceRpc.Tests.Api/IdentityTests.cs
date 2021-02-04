@@ -12,17 +12,17 @@ namespace IceRpc.Tests.Api
         /// <summary>Test Identity to string conversion.</summary>
         /// <param name="id">The identity to convert to a string.</param>
         /// <param name="expected">The expected result.</param>
-        [TestCaseSource(typeof(ToStringTestCases))]
-        public void TestToString(Identity id, string expected)
+        [TestCaseSource(typeof(Identity_ToString_TestCases))]
+        public void Identity_ToString(Identity id, string expected)
         {
             Assert.AreEqual(expected, id.ToString());
             Assert.AreEqual(id, Identity.Parse(expected, uriFormat: true));
         }
 
-        /// <summary>Test data for <see cref="TestToString"/>.</summary>
-        public class ToStringTestCases : TestData<Identity, string>
+        /// <summary>Test data for <see cref="Identity_ToString"/>.</summary>
+        public class Identity_ToString_TestCases : TestData<Identity, string>
         {
-            public ToStringTestCases()
+            public Identity_ToString_TestCases()
             {
                 Add(new Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
                 Add(new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
@@ -34,17 +34,17 @@ namespace IceRpc.Tests.Api
         /// <param name="id">The identity to convert to a string.</param>
         /// <param name="mode">The mode argument to call ToString</param>
         /// <param name="expected">The expected result for ToString invocation.</param>
-        [TestCaseSource(typeof(ToStringModeTestCases))]
-        public void TestToStringMode(Identity id, ToStringMode mode, string expected)
+        [TestCaseSource(typeof(Identity_ToStringMode_TestCases))]
+        public void Identity_ToStringMode(Identity id, ToStringMode mode, string expected)
         {
             Assert.AreEqual(expected, id.ToString(mode));
             Assert.AreEqual(id, Identity.Parse(expected, uriFormat: false));
         }
 
-        /// <summary>Test data for <see cref="TestToStringMode"/>.</summary>
-        class ToStringModeTestCases : TestData<Identity, ToStringMode, string>
+        /// <summary>Test data for <see cref="Identity_ToStringMode"/>.</summary>
+        class Identity_ToStringMode_TestCases : TestData<Identity, ToStringMode, string>
         {
-            public ToStringModeTestCases()
+            public Identity_ToStringMode_TestCases()
             {
                 var id = new Identity("test", "\x7f€");
                 Add(id, ToStringMode.Unicode, "\\u007f€/test");
@@ -78,23 +78,23 @@ namespace IceRpc.Tests.Api
         [TestCase("xx\\ud911")]
         [TestCase("test/foo/bar")]
         [TestCase("cat//test")]
-        public void TestParseInvalidIdentity(string str)
+        public void Identity_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));
             Assert.False(Identity.TryParse(str, uriFormat: false, out _));
         }
 
         /// <summary>Test that Identity.Parse produces the expected Identity values.</summary>
-        [TestCaseSource(typeof(ParseValidIdentityTestCases))]
-        public void TestParseValidIdentity(string str, bool uriFormat, Identity expected)
+        [TestCaseSource(typeof(Identity_Parse_ValidInput_TestCases))]
+        public void Identity_Parse_ValidInput(string str, bool uriFormat, Identity expected)
         {
             Assert.AreEqual(expected, Identity.Parse(str, uriFormat));
         }
 
         /// <summary>Test data for <see cref="IdentityTest.TestParseValidIdentity"/>.</summary>
-        public class ParseValidIdentityTestCases : TestData<string, bool, Identity>
+        public class Identity_Parse_ValidInput_TestCases : TestData<string, bool, Identity>
         {
-            public ParseValidIdentityTestCases()
+            public Identity_Parse_ValidInput_TestCases()
             {
                 // Input string in ice1 format with various pitfalls
                 Add("\\342\\x82\\254\\60\\x9\\60\\", false, new Identity("€0\t0\\", ""));
