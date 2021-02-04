@@ -9,7 +9,7 @@ namespace ZeroC.Ice
     /// </summary>
     internal static class ObjectAdapterRegistry
     {
-        private static ImmutableArray<ObjectAdapter> _objectAdapterList = ImmutableArray<ObjectAdapter>.Empty;
+        private static volatile ImmutableList<ObjectAdapter> _objectAdapterList = ImmutableList<ObjectAdapter>.Empty;
         private static readonly object _mutex = new();
 
         internal static Endpoint? GetColocatedEndpoint(Reference reference)
