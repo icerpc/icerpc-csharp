@@ -23,17 +23,17 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask StartServerAsync(Current current, CancellationToken cancel)
         {
-            foreach (Communicator c in _communicators)
-            {
-                await c.ShutdownAsync();
-            }
-            _communicators.Clear();
-
             foreach (ObjectAdapter a in _adapters)
             {
                 await a.ShutdownAsync();
             }
             _adapters.Clear();
+
+            foreach (Communicator c in _communicators)
+            {
+                await c.ShutdownAsync();
+            }
+            _communicators.Clear();
 
             // Simulate a server: create a new communicator and object adapter. The object adapter is started on a
             // system allocated port. The configuration used here contains the Ice.Locator configuration variable.
@@ -111,17 +111,17 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            foreach (Communicator c in _communicators)
-            {
-                await c.ShutdownAsync();
-            }
-            _communicators.Clear();
-
             foreach (ObjectAdapter a in _adapters)
             {
                 await a.ShutdownAsync();
             }
             _adapters.Clear();
+
+            foreach (Communicator c in _communicators)
+            {
+                await c.ShutdownAsync();
+            }
+            _communicators.Clear();
 
             _ = current.Adapter.ShutdownAsync();
         }
