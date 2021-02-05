@@ -17,9 +17,9 @@ jobs:
     steps:
     - name: Install Slice compiler dependencies
       run: sudo apt-get install libmcpp-dev
+    - uses: actions/checkout@v2
     - name: Build Slice compiler
       run: make -C ./cpp
-    - uses: actions/checkout@v2
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
