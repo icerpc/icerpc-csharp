@@ -3,7 +3,7 @@ namespace ZeroC.Ice
 {
     public enum ColocationScope
     {
-        Application,
+        Process,
         Communicator,
         None
     }
