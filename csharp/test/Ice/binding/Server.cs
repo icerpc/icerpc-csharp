@@ -12,7 +12,11 @@ namespace ZeroC.Ice.Test.Binding
         {
             await using var adapter = new ObjectAdapter(Communicator,
                 "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+                new ObjectAdapterOptions
+                {
+                    Endpoints = GetTestEndpoint(0),
+                    ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
+                });
 
             adapter.Add("communicator", new RemoteCommunicator());
             await adapter.ActivateAsync();

@@ -102,7 +102,12 @@ namespace ZeroC.IceSSL.Test.Configuration
             var adapter = new ObjectAdapter(
                 communicator,
                 "ServerAdapter",
-                new ObjectAdapterOptions { Endpoints = serverEndpoint });
+                new ObjectAdapterOptions
+                {
+                    ColocationScope = ColocationScope.Communicator,
+                    Endpoints = serverEndpoint,
+                    ServerName = host
+                });
             var server = new SSLServer(communicator, adapter);
             IServerPrx prx = adapter.AddWithUUID(server, IServerPrx.Factory);
             _servers[prx.Identity] = server;

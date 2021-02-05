@@ -22,9 +22,14 @@ namespace ZeroC.Ice.Test.UDP
             {
             }
 
+            var serverName = Communicator.GetProperty("Ice.ServerName") ?? "127.0.0.1";
+
             await using var adapter = new ObjectAdapter(Communicator,
                 "ControlAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(num, Transport) });
+                new ObjectAdapterOptions {
+                    Endpoints = GetTestEndpoint(num, Transport),
+                    ServerName = serverName
+                });
 
             adapter.Add("control", new TestIntf());
             await adapter.ActivateAsync();
@@ -36,7 +41,8 @@ namespace ZeroC.Ice.Test.UDP
                     new ObjectAdapterOptions
                     {
                         AcceptNonSecure = NonSecure.Always,
-                        Endpoints = GetTestEndpoint(num, "udp")
+                        Endpoints = GetTestEndpoint(num, "udp"),
+                        ServerName = serverName
                     });
                 adapter2.Add("test", new TestIntf());
                 await adapter2.ActivateAsync();
@@ -66,9 +72,15 @@ namespace ZeroC.Ice.Test.UDP
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
 
-            ObjectAdapter mcastAdapter = new ObjectAdapter(Communicator,
+            ObjectAdapter mcastAdapter = new ObjectAdapter(
+                Communicator,
                 "McastTestAdapter",
-                new ObjectAdapterOptions { AcceptNonSecure = NonSecure.Always, Endpoints = endpoint.ToString() });
+                new ObjectAdapterOptions
+                {
+                    AcceptNonSecure = NonSecure.Always,
+                    Endpoints = endpoint.ToString(),
+                    ServerName = serverName
+                });
             mcastAdapter.Add("test", new TestIntf());
             await mcastAdapter.ActivateAsync();
 

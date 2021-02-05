@@ -275,7 +275,12 @@ namespace ZeroC.IceSSL.Test.Configuration
                     await using var adapter = new ObjectAdapter(
                         serverCommunicator,
                         "MyAdapter",
-                        new ObjectAdapterOptions { Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0" });
+                        new ObjectAdapterOptions
+                        {
+                            ColocationScope = ColocationScope.Communicator,
+                            Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
+                            ServerName = host
+                        });
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
                     await adapter.ActivateAsync();
                     prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
@@ -323,7 +328,12 @@ namespace ZeroC.IceSSL.Test.Configuration
                     await using var adapter = new ObjectAdapter(
                         serverCommunicator,
                         "MyAdapter",
-                        new ObjectAdapterOptions { Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0" });
+                        new ObjectAdapterOptions
+                        {
+                            ColocationScope = ColocationScope.Communicator,
+                            Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
+                            ServerName = host
+                        });
                     IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
                     await adapter.ActivateAsync();
                     prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);

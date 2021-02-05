@@ -30,8 +30,10 @@ namespace ZeroC.Ice.Test.Binding
                         new ObjectAdapterOptions
                         {
                             AcceptNonSecure = transport == "udp" ? NonSecure.Always :
-                                current.Communicator.AcceptNonSecure,
-                            Endpoints = endpoints
+                                current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
+                                    NonSecure.Always,
+                            Endpoints = endpoints,
+                            ServerName = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
                     await adapter.ActivateAsync(cancel);
 
