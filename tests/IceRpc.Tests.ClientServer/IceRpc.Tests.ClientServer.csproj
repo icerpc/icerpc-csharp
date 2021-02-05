@@ -7,11 +7,11 @@
     <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
-  <ItemDefinitionGroup>
-    <SliceCompile>
-      <OutputDir>%(RelativeDir)</OutputDir>
-    </SliceCompile>
-  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Compile Update="generated\StressTests.cs">
+      <SliceCompileSource>StressTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="3.13.1" />
@@ -23,7 +23,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>
