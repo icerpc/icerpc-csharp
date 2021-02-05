@@ -15,15 +15,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install Slice compiler dependencies
-      run: sudo apt-get install libmcpp-dev
-    - uses: actions/checkout@v2
-    - name: Build Slice compiler
-      run: make -C ./cpp
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    - name: Install Slice compiler dependencies
+      run: sudo apt-get install libmcpp-dev
+    - uses: actions/checkout@v2
+    - name: Build Slice compiler
+      run: make -j8 V=1 -C ./cpp
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -33,6 +33,6 @@ jobs:
     - name: ReportGenerator
       uses: danielpalme/ReportGenerator-GitHub-Action@4.8.4
       with:
-        reports: 'tests\*\TestResults\*\coverage.cobertura.xml'
-        targetdir: 'tests\coveragereport'
+        reports: 'tests/*/TestResults/*/coverage.cobertura.xml'
+        targetdir: 'tests/coveragereport'
         reporttypes: 'Html'
