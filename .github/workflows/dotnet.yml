@@ -2,9 +2,12 @@ name: .NET
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - nunit-testing
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -16,7 +19,6 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
     - name: Install Slice compiler dependencies
       run: sudo apt-get install libmcpp-dev
     - name: Build Slice compiler
