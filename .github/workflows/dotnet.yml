@@ -34,5 +34,9 @@ jobs:
       uses: danielpalme/ReportGenerator-GitHub-Action@4.8.4
       with:
         reports: 'tests/*/TestResults/*/coverage.cobertura.xml'
-        targetdir: 'tests/coveragereport'
+        targetdir: 'tests/coverage-report'
         reporttypes: 'Html'
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-report
+        path: tests/coverage-report/ # or path/to/artifact
