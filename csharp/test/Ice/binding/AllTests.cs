@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Binding
                 endpoints.AddRange(obj!.Endpoints);
             }
             TestHelper.Assert(obj != null);
-            return obj.Clone(endpoints: endpoints);
+            return obj.Clone(endpoints: endpoints, invocationMode: InvocationMode.Twoway);
         }
 
         private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteObjectAdapterPrx> adapters)

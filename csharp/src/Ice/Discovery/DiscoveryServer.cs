@@ -15,6 +15,8 @@ namespace ZeroC.Ice.Discovery
         /// <summary>The default IPv6 multicast endpoint using by DiscoveryServer.</summary>
         public const string DefaultIPv6Endpoint = "udp -h \"ff15::1\" -p 4061";
 
+        public ColocationScope ColocationScope { get; set; }
+
         /// <summary>The DiscoveryServer's domain ID. Applications using different domain IDs don't interfere with one
         /// another even if they share the same multicast endpoints.</summary>
         public string DomainId { get; set; } = "";

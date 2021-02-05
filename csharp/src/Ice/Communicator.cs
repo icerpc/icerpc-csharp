@@ -43,12 +43,6 @@ namespace ZeroC.Ice
             private readonly Communicator _communicator;
         }
 
-        /// <summary>Indicates under what conditions the object adapters created by this communicator accept non-secure
-        /// incoming connections. This property corresponds to the Ice.AcceptNonSecure configuration property. It can
-        /// be overridden for each object adapter by the object adapter property with the same name.</summary>
-        // TODO: update doc with default value for AcceptNonSecure - it's currently Always but should be Never
-        public NonSecure AcceptNonSecure { get; }
-
         /// <summary>The connection close timeout.</summary>
         public TimeSpan CloseTimeout { get; }
         /// <summary>The connection establishment timeout.</summary>
@@ -97,15 +91,6 @@ namespace ZeroC.Ice
         {
             get => _defaultContext;
             set => _defaultContext = value.ToImmutableSortedDictionary();
-        }
-
-        /// <summary>The default dispatch interceptors for object adapters created using this communicator. Changing the
-        /// value of DefaultDispatchInterceptors does not change the dispatch interceptors of previously created object
-        /// adapters.</summary>
-        public IReadOnlyList<DispatchInterceptor> DefaultDispatchInterceptors
-        {
-            get => _defaultDispatchInterceptors;
-            set => _defaultDispatchInterceptors = value.ToImmutableList();
         }
 
         /// <summary>The default invocation interceptors for proxies created using this communicator. Changing the value
@@ -191,7 +176,6 @@ namespace ZeroC.Ice
         internal int InvocationMaxAttempts { get; }
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
-        internal string ServerName { get; }
         internal SslEngine SslEngine { get; }
         internal TraceLevels TraceLevels { get; private set; }
         internal bool WarnConnections { get; }
@@ -218,8 +202,6 @@ namespace ZeroC.Ice
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
         private volatile ILocatorPrx? _defaultLocator;
-        private volatile ImmutableList<DispatchInterceptor> _defaultDispatchInterceptors =
-            ImmutableList<DispatchInterceptor>.Empty;
         private Task? _shutdownTask;
 
         private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =
@@ -480,8 +462,6 @@ namespace ZeroC.Ice
 
             KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
 
-            ServerName = GetProperty("Ice.ServerName") ?? Dns.GetHostName();
-
             MaxBidirectionalStreams = this.GetPropertyAsInt("Ice.MaxBidirectionalStreams") ?? 100;
             if (MaxBidirectionalStreams < 1)
             {
@@ -528,8 +508,6 @@ namespace ZeroC.Ice
                 this.GetPropertyAsEnum<CompressionLevel>("Ice.CompressionLevel") ?? CompressionLevel.Fastest;
             CompressionMinSize = this.GetPropertyAsByteSize("Ice.CompressionMinSize") ?? 100;
 
-            // TODO: switch to NonSecure.Never default (see ObjectAdapter also)
-            AcceptNonSecure = this.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always;
             int classGraphMaxDepth = this.GetPropertyAsInt("Ice.ClassGraphMaxDepth") ?? 100;
             ClassGraphMaxDepth = classGraphMaxDepth < 1 ? int.MaxValue : classGraphMaxDepth;
 

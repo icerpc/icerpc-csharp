@@ -68,7 +68,8 @@ namespace ZeroC.Ice.Test.UDP
                 new ObjectAdapterOptions
                 {
                     AcceptNonSecure = NonSecure.Always,
-                    Endpoints = helper.GetTestEndpoint(0, "udp", true)
+                    Endpoints = helper.GetTestEndpoint(0, "udp", true),
+                    ServerName = "127.0.0.1"
                 });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = adapter.AddWithUUID(replyI, IPingReplyPrx.Factory)
