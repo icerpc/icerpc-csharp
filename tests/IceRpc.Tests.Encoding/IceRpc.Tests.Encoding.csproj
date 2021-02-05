@@ -2,16 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-
     <IsPackable>false</IsPackable>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
-
-  <ItemDefinitionGroup>
-    <SliceCompile>
-      <OutputDir>%(RelativeDir)</OutputDir>
-    </SliceCompile>
-  </ItemDefinitionGroup>
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="3.13.1" />
@@ -23,7 +16,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>

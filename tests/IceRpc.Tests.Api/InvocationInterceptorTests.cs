@@ -18,8 +18,8 @@ namespace IceRpc.Tests.Api
         public InvocationInterceptorTests() =>
             Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
 
-        /// <summary>If an interceptor throws an exception ithe caller can catch this exception.
-        /// </summary>
+        /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
+        /// receives the exception.</summary>
         [Test]
         public void InvocationInterceptor_Throws_ArgumentException()
         {
@@ -103,8 +103,31 @@ namespace IceRpc.Tests.Api
             Assert.IsNotNull(response);    
         }
 
+        [Test]
+        public async Task InvocationIterceptor_Overwrite_RequestContext()
+        {
+            var prx = Prx.Clone(
+                context: new Dictionary<string, string>()
+                {
+                    { "foo", "foo" }
+                },
+                invocationInterceptors: new InvocationInterceptor[]
+                {
+                    async (target, request, next, cancel) =>
+                        {
+                            request.WritableContext["foo"] = "bar";
+                            return await next(target, request, cancel);
+                        },
+                });
+            var ctx = await prx.OpContextAsync();
+            Assert.AreEqual("bar", ctx["foo"]);
+            Assert.AreEqual(1, ctx.Count);
+        }
+
         internal class TestService : IAsyncInvocationInterceptorTestService
         {
+            public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Current current, CancellationToken cancel) =>
+                new(current.Context);
             public ValueTask<int> OpIntAsync(int value, Current current, CancellationToken cancel) => new(value);
         }
     }

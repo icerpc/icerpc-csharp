@@ -24,6 +24,8 @@ namespace IceRpc.Tests.Api
         {
             public Identity_ToString_TestCases()
             {
+                Add(new Identity("foo", ""), "foo");
+                Add(new Identity("foo", "bar"), "bar/foo");
                 Add(new Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
                 Add(new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
                     "greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");

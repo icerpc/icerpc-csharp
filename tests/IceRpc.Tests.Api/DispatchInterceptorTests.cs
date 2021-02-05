@@ -15,8 +15,8 @@ namespace IceRpc.Tests.Api
     {
         /// <summary>Check that throwing an exception from a dispatch interceptor aborts the dispatch,
         /// and the caller receives the expected exception</summary>
-        [TestCaseSource(typeof(DispatchInterceptor_Throws_TestCases))]
-        public async Task DispatchInterceptor_Throws<TExpected>(
+        [TestCaseSource(typeof(DispatchInterceptor_Throw_AbortsDispatch_TestCases))]
+        public async Task DispatchInterceptor_Throw_AbortsDispatch<TExpected>(
             Exception exception,
             TExpected expected) where TExpected : Exception
         {
@@ -34,9 +34,9 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(service.Called);
         }
 
-        public class DispatchInterceptor_Throws_TestCases : TestData<Exception, Exception>
+        public class DispatchInterceptor_Throw_AbortsDispatch_TestCases : TestData<Exception, Exception>
         {
-            public DispatchInterceptor_Throws_TestCases()
+            public DispatchInterceptor_Throw_AbortsDispatch_TestCases()
             {
                 Add(new DispatchInterceptorForbiddenException(), new DispatchInterceptorForbiddenException());
                 Add(new ArgumentException(), new UnhandledException());

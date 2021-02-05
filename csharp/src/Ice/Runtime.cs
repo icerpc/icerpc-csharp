@@ -4,7 +4,8 @@ using System;
 using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
-[assembly: InternalsVisibleTo("IceRpc.Tests")]
+[assembly: InternalsVisibleTo("IceRpc.Tests.Api")]
+[assembly: InternalsVisibleTo("IceRpc.Tests.Encoding")]
 
 namespace ZeroC.Ice
 {

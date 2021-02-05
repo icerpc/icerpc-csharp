@@ -6,6 +6,8 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests
 {
+    /// <summary>Test fixture for tests that need to create a collocated server. The constructor initialize
+    /// a communicator and an ObjectAdapter.</summary>
     public class CollocatedTest
     {
         private protected Communicator Communicator { get; }

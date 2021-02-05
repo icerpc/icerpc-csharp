@@ -177,10 +177,12 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_DefaultInvocationInterceptors()
         {
-            var communicator = new Communicator();
-            communicator.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) => throw new NotImplementedException(),
-                (target, request, next, cancel) => throw new NotImplementedException());
+            var communicator = new Communicator
+            {
+                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                    (target, request, next, cancel) => throw new NotImplementedException(),
+                    (target, request, next, cancel) => throw new NotImplementedException())
+            };
 
             var prx = IObjectPrx.Parse("test", communicator);
 

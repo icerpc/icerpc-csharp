@@ -4,8 +4,10 @@
 
 module IceRpc::Tests::Api
 {
+    dictionary<string, string> Context;
     interface InvocationInterceptorTestService
     {
+        Context opContext();
         int opInt(int value);
     }
 }
