@@ -7,7 +7,7 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.CodeGeneration
 {
-    class SequenceMappingTests : CollocatedTest
+    class SequenceMappingTests : ColocatedTest
     {
         ISequenceMappingTestServicePrx Prx { get; }
         public SequenceMappingTests() =>

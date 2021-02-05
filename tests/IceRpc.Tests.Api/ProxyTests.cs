@@ -9,7 +9,7 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class ProxyTests : CollocatedTest
+    public class ProxyTests : ColocatedTest
     {
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>

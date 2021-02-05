@@ -11,7 +11,7 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationInterceptorTests : CollocatedTest
+    public class InvocationInterceptorTests : ColocatedTest
     {
         private IInvocationInterceptorTestServicePrx Prx { get; }
 

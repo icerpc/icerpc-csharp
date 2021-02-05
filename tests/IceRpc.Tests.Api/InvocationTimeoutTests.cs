@@ -9,7 +9,7 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class InvocationTimeoutTests : CollocatedTest
+    public class InvocationTimeoutTests : ColocatedTest
     {
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timemout expires.
         /// </summary>

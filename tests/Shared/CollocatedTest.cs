@@ -8,12 +8,12 @@ namespace IceRpc.Tests
 {
     /// <summary>Test fixture for tests that need to create a collocated server. The constructor initialize
     /// a communicator and an ObjectAdapter.</summary>
-    public class CollocatedTest
+    public class ColocatedTest
     {
         private protected Communicator Communicator { get; }
         private protected ObjectAdapter ObjectAdapter { get; }
 
-        public CollocatedTest()
+        public ColocatedTest()
         {
             Communicator = new Communicator();
             ObjectAdapter = new ObjectAdapter(Communicator);
