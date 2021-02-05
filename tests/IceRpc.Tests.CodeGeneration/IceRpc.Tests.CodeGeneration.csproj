@@ -9,9 +9,16 @@
 
   <ItemDefinitionGroup>
     <SliceCompile>
-      <OutputDir>%(RelativeDir)</OutputDir>
+      <OutputDir>generated</OutputDir>
     </SliceCompile>
   </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\CollocatedTest.cs" Link="CollocatedTest.cs" />
+    <Compile Update="generated\SequenceMappingTests.cs">
+      <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="3.13.1" />
@@ -23,7 +30,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>
