@@ -74,32 +74,34 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Identity.Parse for an invalid identity throws FormatException, Identity.TryParse
         /// for an invalid identity must return false.</summary>
-        // Illegal character < 32
-        [TestCase("xx\01FooBar")]
-        // Illegal surrogate
-        [TestCase("xx\\ud911")]
+        [TestCase("xx\01FooBar")] // Illegal character < 32
+        [TestCase("xx\\ud911")] // Illegal surrogate
         [TestCase("test/foo/bar")]
         [TestCase("cat//test")]
-        public void Identity_Parse_InvalidInput(string str)
+        [TestCase("")] // Empty name
+        [TestCase("cat/")]  // Empty name
+        public void Identity_Parse_Ice1InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));
             Assert.False(Identity.TryParse(str, uriFormat: false, out _));
         }
 
         /// <summary>Test that Identity.Parse produces the expected Identity values.</summary>
-        [TestCaseSource(typeof(Identity_Parse_ValidInput_TestCases))]
-        public void Identity_Parse_ValidInput(string str, bool uriFormat, Identity expected)
+        [TestCaseSource(typeof(Identity_Parse_Ice1ValidInput_TestCases))]
+        public void Identity_Parse_Ice1ValidInput(string str, Identity expected)
         {
-            Assert.AreEqual(expected, Identity.Parse(str, uriFormat));
+            Assert.AreEqual(expected, Identity.Parse(str, uriFormat: false));
         }
 
-        /// <summary>Test data for <see cref="IdentityTest.TestParseValidIdentity"/>.</summary>
-        public class Identity_Parse_ValidInput_TestCases : TestData<string, bool, Identity>
+        /// <summary>Test data for <see cref="Identity_Parse_Ice1ValidInput"/>.</summary>
+        public class Identity_Parse_Ice1ValidInput_TestCases : TestData<string, Identity>
         {
-            public Identity_Parse_ValidInput_TestCases()
+            public Identity_Parse_Ice1ValidInput_TestCases()
             {
                 // Input string in ice1 format with various pitfalls
-                Add("\\342\\x82\\254\\60\\x9\\60\\", false, new Identity("€0\t0\\", ""));
+                Add("\\342\\x82\\254\\60\\x9\\60\\", new Identity("€0\t0\\", ""));
+                Add("bar/foo", new Identity("foo", "bar"));
+                Add("foo", new Identity("foo", ""));
             }
         }
     }

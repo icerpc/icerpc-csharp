@@ -13,34 +13,22 @@ namespace IceRpc.Tests.Api
     [Parallelizable]
     public class DispatchInterceptorTests
     {
-        /// <summary>Check that throwing an exception from a dispatch interceptor aborts the dispatch,
-        /// and the caller receives the expected exception</summary>
-        [TestCaseSource(typeof(DispatchInterceptor_Throw_AbortsDispatch_TestCases))]
-        public async Task DispatchInterceptor_Throw_AbortsDispatch<TExpected>(
-            Exception exception,
-            TExpected expected) where TExpected : Exception
+        /// <summary>Check that throwing an exception from a dispatch interceptor aborts the dispatch.</summary>
+        [Test]
+        public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
             await using var adapter = new ObjectAdapter(communicator)
             {
                 DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                    (request, current, next, cancel) => throw exception)
+                    (request, current, next, cancel) => throw new ArgumentException())
             };
             var service = new TestService();
             var prx = adapter.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
             await adapter.ActivateAsync();
 
-            Assert.ThrowsAsync<TExpected>(() => prx.OpAsync());
+            Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
-        }
-
-        public class DispatchInterceptor_Throw_AbortsDispatch_TestCases : TestData<Exception, Exception>
-        {
-            public DispatchInterceptor_Throw_AbortsDispatch_TestCases()
-            {
-                Add(new DispatchInterceptorForbiddenException(), new DispatchInterceptorForbiddenException());
-                Add(new ArgumentException(), new UnhandledException());
-            }
         }
 
         /// <summary>Ensure that object adapter dispatch interceptors are called in the expected order.</summary>

@@ -4,10 +4,6 @@
 
 module IceRpc::Tests::Api
 {
-    exception DispatchInterceptorForbiddenException
-    {
-    }
-
     interface DispatchInterceptorTestService
     {
         void Op();

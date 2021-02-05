@@ -78,3 +78,5 @@ generated
 
 # Test generated files
 tests/**/Test.cs
+tests/reports/
+TestResults

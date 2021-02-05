@@ -53,6 +53,7 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Update="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.2" />
       <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
     </ItemGroup>
 </Project>
