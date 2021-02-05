@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
 
@@ -12,34 +13,34 @@ namespace IceRpc.Tests.Api
     [Parallelizable]
     public class DispatchInterceptorTests
     {
-        [Test]
-        public async Task DispatchInterceptor_Throws_UserException()
+        /// <summary>Check that throwing an exception from a dispatch interceptor aborts the dispatch,
+        /// and the caller receives the expected exception</summary>
+        [TestCaseSource(typeof(DispatchInterceptor_Throws_TestCases))]
+        public async Task DispatchInterceptor_Throws<TExpected>(
+            Exception exception,
+            TExpected expected) where TExpected : Exception
         {
             await using var communicator = new Communicator();
             await using var adapter = new ObjectAdapter(communicator)
             {
                 DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                    (request, current, next, cancel) => throw new DispatchInterceptorForbiddenException())
+                    (request, current, next, cancel) => throw exception)
             };
-            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
+            var service = new TestService();
+            var prx = adapter.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
             await adapter.ActivateAsync();
 
-            Assert.ThrowsAsync<DispatchInterceptorForbiddenException>(() => prx.IcePingAsync());
+            Assert.ThrowsAsync<TExpected>(() => prx.OpAsync());
+            Assert.IsFalse(service.Called);
         }
 
-        [Test]
-        public async Task DispatchInterceptor_Throws_SystemExceptionFrom()
+        public class DispatchInterceptor_Throws_TestCases : TestData<Exception, Exception>
         {
-            await using var communicator = new Communicator();
-            await using var adapter = new ObjectAdapter(communicator)
+            public DispatchInterceptor_Throws_TestCases()
             {
-                DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                    (request, current, next, cancel) => throw new ArgumentException())
-            };
-            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
-            await adapter.ActivateAsync();
-
-            Assert.ThrowsAsync<UnhandledException>(() => prx.IcePingAsync());
+                Add(new DispatchInterceptorForbiddenException(), new DispatchInterceptorForbiddenException());
+                Add(new ArgumentException(), new UnhandledException());
+            }
         }
 
         /// <summary>Ensure that object adapter dispatch interceptors are called in the expected order.</summary>
@@ -78,6 +79,12 @@ namespace IceRpc.Tests.Api
 
         public class TestService : IAsyncDispatchInterceptorTestService
         {
+            public bool Called { get; private set; }
+            public ValueTask OpAsync(Current current, CancellationToken cancel)
+            {
+                Called = true;
+                return default;
+            }
         }
     }
 }

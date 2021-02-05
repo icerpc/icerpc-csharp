@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
         public InvocationInterceptorTests() =>
             Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
 
-        /// <summary>If an interceptor throws an exception in its way out the caller can catch this exception.
+        /// <summary>If an interceptor throws an exception ithe caller can catch this exception.
         /// </summary>
         [Test]
         public void InvocationInterceptor_Throws_ArgumentException()

@@ -10,5 +10,6 @@ module IceRpc::Tests::Api
 
     interface DispatchInterceptorTestService
     {
+        void Op();
     }
 }

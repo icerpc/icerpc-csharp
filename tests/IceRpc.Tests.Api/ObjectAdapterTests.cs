@@ -15,15 +15,15 @@ namespace IceRpc.Tests.Api
         /// <summary>Test that the communicator default dispatch interceptors are used when the
         /// object adapter doesn't specify its own interceptors.</summary>
         [Test]
-        public void ObjectAdapter_DefaultDispatchInterceptors()
+        public async Task ObjectAdapter_DefaultDispatchInterceptors()
         {
-            var communicator = new Communicator
+            await using var communicator = new Communicator
             {
                 DefaultDispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
                     (request, current, next, cancel) => throw new NotImplementedException(),
                     (request, current, next, cancel) => throw new NotImplementedException())
             };
-            var adapter = new ObjectAdapter(communicator);
+            await using var adapter = new ObjectAdapter(communicator);
             CollectionAssert.AreEqual(communicator.DefaultDispatchInterceptors, adapter.DispatchInterceptors);
         }
     }
