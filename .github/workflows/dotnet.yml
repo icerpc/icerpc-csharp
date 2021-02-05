@@ -18,9 +18,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Install Slice compiler dependencies
-      sudo apt-get install libmcpp-dev
+      run: sudo apt-get install libmcpp-dev
     - name: Build Slice compiler
-      make -C ./cpp
+      run: make -C ./cpp
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
