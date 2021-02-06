@@ -161,8 +161,8 @@ namespace ZeroC.Ice.Test.Info
                 if (ice1)
                 {
                     Endpoint udpEndpoint =
-                        (await testIntf.Clone(invocationMode: InvocationMode.Datagram,
-                                       preferNonSecure: NonSecure.Always).GetConnectionAsync()).Endpoint;
+                        (await testIntf.Clone(oneway: true,
+                                              preferNonSecure: NonSecure.Always).GetConnectionAsync()).Endpoint;
                     TestHelper.Assert(udpEndpoint.Port == endpointPort);
                     TestHelper.Assert(udpEndpoint.Host == defaultHost);
                 }
@@ -243,8 +243,10 @@ namespace ZeroC.Ice.Test.Info
 
                 if (ice1)
                 {
-                    connection = (IPConnection)await testIntf.Clone(
-                        invocationMode: InvocationMode.Datagram,
+                    var dTest = ITestIntfPrx.Parse("test:" + helper.GetTestEndpoint(0, "udp"), communicator);
+
+                    connection = (IPConnection)await dTest.Clone(
+                        oneway: true,
                         preferNonSecure: NonSecure.Always).GetConnectionAsync();
 
                     var udpConnection = connection as UdpConnection;

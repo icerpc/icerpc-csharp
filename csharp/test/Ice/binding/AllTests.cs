@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Binding
                 endpoints.AddRange(obj!.Endpoints);
             }
             TestHelper.Assert(obj != null);
-            return obj.Clone(endpoints: endpoints, invocationMode: InvocationMode.Twoway);
+            return obj.Clone(endpoints: endpoints, oneway: false);
         }
 
         private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteObjectAdapterPrx> adapters)
@@ -291,15 +291,18 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     var adapters = new List<IRemoteObjectAdapterPrx>
                     {
+                        await com.CreateObjectAdapterAsync("Adapter72", "udp"),
                         await com.CreateObjectAdapterAsync("Adapter71", testTransport),
-                        await com.CreateObjectAdapterAsync("Adapter72", "udp")
                     };
 
                     ITestIntfPrx obj = CreateTestIntfPrx(adapters);
                     TestHelper.Assert(obj.GetAdapterName().Equals("Adapter71"));
 
+                    adapters.RemoveAt(adapters.Count - 1);
+                    ITestIntfPrx testUDP = CreateTestIntfPrx(adapters).Clone(oneway: true);
+
                     // test that datagram proxies fail if PreferNonSecure is false
-                    ITestIntfPrx testUDP = obj.Clone(invocationMode: InvocationMode.Datagram, preferNonSecure: NonSecure.Never);
+                    testUDP = testUDP.Clone(preferNonSecure: NonSecure.Never);
                     try
                     {
                         await testUDP.GetConnectionAsync();
@@ -310,14 +313,13 @@ namespace ZeroC.Ice.Test.Binding
                         // expected
                     }
 
-                    testUDP = obj.Clone(invocationMode: InvocationMode.Datagram, preferNonSecure: NonSecure.Always);
-                    TestHelper.Assert(await obj.GetConnectionAsync() != await testUDP.GetConnectionAsync());
+                    testUDP = testUDP.Clone(preferNonSecure: NonSecure.Always);
                     try
                     {
                         testUDP.GetAdapterName();
                         TestHelper.Assert(false);
                     }
-                    catch (InvalidOperationException)
+                    catch (NoEndpointException)
                     {
                         // expected
                     }

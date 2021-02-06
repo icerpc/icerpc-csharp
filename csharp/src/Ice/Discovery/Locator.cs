@@ -225,7 +225,6 @@ namespace ZeroC.Ice.Discovery
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
             IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);
-            Debug.Assert(lookupReply.InvocationMode == InvocationMode.Datagram);
 
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.
