@@ -1243,7 +1243,7 @@ namespace ZeroC.Ice
             // Get the proxy's endpoint or query the locator to get endpoints
             if (Endpoints.Count > 0)
             {
-               endpoints = Endpoints.ToList();
+                endpoints = Endpoints.ToList();
             }
             else if (LocatorInfo != null)
             {
