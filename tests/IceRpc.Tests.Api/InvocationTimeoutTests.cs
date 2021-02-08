@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Api
 
             var prx = ObjectAdapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));
-            
+
             // Establish a connection
             var connection = await prx.GetConnectionAsync();
 

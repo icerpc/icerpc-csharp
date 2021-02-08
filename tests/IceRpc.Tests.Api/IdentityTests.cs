@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Api
         }
 
         /// <summary>Test data for <see cref="Identity_ToStringMode"/>.</summary>
-        class Identity_ToStringMode_TestCases : TestData<Identity, ToStringMode, string>
+        public class Identity_ToStringMode_TestCases : TestData<Identity, ToStringMode, string>
         {
             public Identity_ToStringMode_TestCases()
             {
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.Api
         [TestCase("test/foo/bar")]
         [TestCase("cat//test")]
         [TestCase("")] // Empty name
-        [TestCase("cat/")]  // Empty name
+        [TestCase("cat/")] // Empty name
         public void Identity_Parse_Ice1InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));

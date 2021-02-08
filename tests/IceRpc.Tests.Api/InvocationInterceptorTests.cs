@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Threading.Tasks;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
 using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Api
         {
             var interceptorCalls = new List<string>();
             var prx = Prx.Clone(
-                invocationInterceptors: new InvocationInterceptor[] 
+                invocationInterceptors: new InvocationInterceptor[]
                 {
                     async (target, request, next, cancel) =>
                         {
@@ -66,9 +66,9 @@ namespace IceRpc.Tests.Api
                             return result;
                         }
                 });
-            
+
             await prx.IcePingAsync();
-            
+
             Assert.AreEqual("ProxyInvocationInterceptors -> 0", interceptorCalls[0]);
             Assert.AreEqual("ProxyInvocationInterceptors -> 1", interceptorCalls[1]);
             Assert.AreEqual("ProxyInvocationInterceptors <- 1", interceptorCalls[2]);
@@ -80,10 +80,10 @@ namespace IceRpc.Tests.Api
         /// </summary>
         [TestCase(0, 1)]
         public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
-        {            
+        {
             IncomingResponseFrame? response = null;
             var prx = Prx.Clone(
-                invocationInterceptors: new InvocationInterceptor[] 
+                invocationInterceptors: new InvocationInterceptor[]
                 {
                     async (target, request, next, cancel) =>
                         {
@@ -94,13 +94,13 @@ namespace IceRpc.Tests.Api
                             return response;
                         },
                 });
-            
+
             int r1 = await prx.OpIntAsync(p1);
             int r2 = await prx.OpIntAsync(p2);
-            
+
             Assert.AreEqual(r1, p1);
             Assert.AreEqual(r2, p1);
-            Assert.IsNotNull(response);    
+            Assert.IsNotNull(response);
         }
 
         [Test]

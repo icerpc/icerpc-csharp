@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Test that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
-        [TestCase("ice + tcp://host.zeroc.com:foo")]    // missing host
+        [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("ice+tcp:identity?protocol=invalid")] // invalid protocol
         [TestCase("ice+universal://host.zeroc.com")] // missing transport
         [TestCase("ice+universal://host.zeroc.com?transport=100&protocol=ice1")] // invalid protocol
@@ -154,10 +154,10 @@ namespace IceRpc.Tests.Api
                 Add("ice:category/test", "test", "category");
 
                 Add("ice:loc0/loc1/category/test", "test", "category", new string[] { "loc0", "loc1" });
-                Add("ice+tcp://host:10000/loc0/loc1//test?source-address=::1", 
+                Add("ice+tcp://host:10000/loc0/loc1//test?source-address=::1",
                     "test",
                     "",
-                    new string[]{ "loc0", "loc1"});
+                    new string[] { "loc0", "loc1" });
 
                 Add("ice:adapter//test", "test", "", new string[] { "adapter" });
                 Add("ice:adapter/category/test", "test", "category", new string[] { "adapter" });

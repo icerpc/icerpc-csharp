@@ -1,11 +1,13 @@
-﻿using NUnit.Framework;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using ZeroC.Ice;
 
 namespace IceRpc.Tests.Encoding
 {
-    class BuiltInTypesTests
+    public class BuiltInTypesTests
     {
         [TestCase(int.MinValue)]
         [TestCase(0)]

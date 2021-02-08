@@ -18,7 +18,8 @@ namespace IceRpc.Tests.ClientServer
         private readonly int _basePort;
         private static int _nextBasePort = 0;
 
-        public ClientServerBaseTest() : this(Protocol.Ice2, "")
+        public ClientServerBaseTest()
+            : this(Protocol.Ice2, "")
         {
         }
 

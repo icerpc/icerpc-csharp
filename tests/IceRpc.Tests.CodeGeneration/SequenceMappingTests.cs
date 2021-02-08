@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -7,9 +9,9 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.CodeGeneration
 {
-    class SequenceMappingTests : ColocatedTest
+    public class SequenceMappingTests : ColocatedTest
     {
-        ISequenceMappingTestServicePrx Prx { get; }
+        private ISequenceMappingTestServicePrx Prx { get; }
         public SequenceMappingTests() =>
             Prx = ObjectAdapter.AddWithUUID(new TestService(), ISequenceMappingTestServicePrx.Factory);
 

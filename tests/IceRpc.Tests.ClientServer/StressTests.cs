@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Threading;
@@ -7,17 +9,18 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [TestFixture(Protocol.Ice1, "tcp", Category = "Ice1")]
-    [TestFixture(Protocol.Ice1, "ws", Category = "Ice1")]
-    [TestFixture(Protocol.Ice2, "tcp", Category = "Ice2")]
-    [TestFixture(Protocol.Ice2, "ws", Category = "Ice2")]
+    [TestFixture(Protocol.Ice1, "tcp")]
+    [TestFixture(Protocol.Ice1, "ws")]
+    [TestFixture(Protocol.Ice2, "tcp")]
+    [TestFixture(Protocol.Ice2, "ws")]
     [Parallelizable]
-    class StressTests : ClientServerBaseTest
+    public class StressTests : ClientServerBaseTest
     {
-        IStressTestServicePrx Prx { get; }
-        TestService Servant { get; }
+        private IStressTestServicePrx Prx { get; }
+        public TestService Servant { get; }
 
-        public StressTests(Protocol protocol, string transport) : base(protocol, transport)
+        public StressTests(Protocol protocol, string transport)
+            : base(protocol, transport)
         {
             Servant = new TestService();
             Prx = ObjectAdapter.AddWithUUID(Servant, IStressTestServicePrx.Factory);
