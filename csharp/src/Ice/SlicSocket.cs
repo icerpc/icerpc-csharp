@@ -121,9 +121,9 @@ namespace ZeroC.Ice
                             }
                             catch
                             {
-                                // The socket is being closed or closed, we make sure the receive of the frame data
-                                // will be skiped if the connection is being closed gracefully and we are waiting for
-                                // the peer to close the connection.
+                                // The socket is being closed,  we make sure the receive of the frame data will be
+                                // skiped if the connection is being closed gracefully and we are waiting for the
+                                // peer to close the connection.
                                 FinishedReceivedStreamData(size);
                                 throw;
                             }

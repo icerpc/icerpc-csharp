@@ -159,7 +159,7 @@ namespace ZeroC.Ice
             }
         }
 
-        protected ValueTask<T> WaitSignalAsync(CancellationToken cancel = default)
+        protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
             if (cancel.CanBeCanceled)
             {

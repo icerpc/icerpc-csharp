@@ -56,7 +56,7 @@ namespace ZeroC.Ice
             // socket channel.
             if (_streamReader == null)
             {
-                (object frame, bool fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
                 _streamReader = frame as ChannelReader<byte[]>;
                 Debug.Assert(_streamReader != null);
             }
@@ -144,7 +144,7 @@ namespace ZeroC.Ice
 
         internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequestFrame);
             var frame = (IncomingRequestFrame)frameObject;
 
@@ -173,7 +173,7 @@ namespace ZeroC.Ice
 
             try
             {
-                (frameObject, fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+                (frameObject, fin) = await WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -209,7 +209,7 @@ namespace ZeroC.Ice
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+            (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             if (fin)
             {
                 _receivedEndOfStream = true;

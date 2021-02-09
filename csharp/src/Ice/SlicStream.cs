@@ -16,7 +16,7 @@ namespace ZeroC.Ice
     {
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
         protected override bool ReceivedEndOfStream => _receivedEndOfStream;
-        private volatile CircularBuffer? _receiveBuffer;
+        private CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
         // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
         // frame data has been consumed and additional credit is therefore available for sending.
@@ -31,6 +31,8 @@ namespace ZeroC.Ice
         // The semaphore is used when flow control is enabled to wait for the send credit to be available.
         private AsyncSemaphore? _sendSemaphore;
         private readonly SlicSocket _socket;
+        // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
+        private SpinLock _lock;
         // A value to ensure the stream isn't released twice with the socket.
         private int _streamReleased;
 
@@ -41,21 +43,21 @@ namespace ZeroC.Ice
             // If there's still data pending to be received for the stream, we notify the socket that
             // we're abandoning the reading. It will finish to read the stream's frame data in order to
             // continue receiving frames for other streams.
-            if (!_receivedFromBuffer && _receivedOffset < _receivedSize)
-            {
-                _socket.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
-            }
-            else
+            if (!_receivedFromBuffer)
             {
                 try
                 {
-                    ValueTask<(int, bool, bool)> valueTask = WaitSignalAsync(CancellationToken.None);
-                    Debug.Assert(valueTask.IsCompleted);
-                    (_receivedSize, _receivedEndOfStream, _receivedFromBuffer) = valueTask.Result;
-                    _receivedOffset = 0;
-                    if (!_receivedFromBuffer && _receivedSize == 0)
+                    if (_receivedOffset == _receivedSize)
                     {
-                        _socket.FinishedReceivedStreamData(0);
+                        ValueTask<(int, bool, bool)> valueTask = WaitAsync(CancellationToken.None);
+                        Debug.Assert(valueTask.IsCompleted);
+                        _receivedOffset = 0;
+                        (_receivedSize, _receivedEndOfStream, _receivedFromBuffer) = valueTask.Result;
+                        _socket.FinishedReceivedStreamData(_receivedSize);
+                    }
+                    else
+                    {
+                        _socket.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                     }
                 }
                 catch
@@ -78,16 +80,32 @@ namespace ZeroC.Ice
         {
             base.EnableReceiveFlowControl();
 
-            // Create a receive buffer to buffer the received stream data. The sender must ensure it doesn't send
-            // more data than this receiver allows.
-            _receiveBuffer = new CircularBuffer(_socket.Endpoint.Communicator.SlicStreamBufferMaxSize);
-
-            // If the stream is in the signaled state, the socket is waiting for the frame to be received. In this
-            // case we get the frame information and notify again the stream that the frame was received. The frame
-            // will be received in the circular buffer and queued.
-            if (IsSignaled)
+            bool signaled;
+            bool lockTaken = false;
+            try
             {
-                ValueTask<(int, bool, bool)> valueTask = WaitSignalAsync();
+                _lock.Enter(ref lockTaken);
+
+                // Create a receive buffer to buffer the received stream data. The sender must ensure it doesn't
+                // send more data than this receiver allows.
+                _receiveBuffer = new CircularBuffer(_socket.Endpoint.Communicator.SlicStreamBufferMaxSize);
+
+                // If the stream is in the signaled state, the socket is waiting for the frame to be received. In
+                // this case we get the frame information and notify again the stream that the frame was received.
+                // The frame will be received in the circular buffer and queued.
+                signaled = IsSignaled;
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    _lock.Exit();
+                }
+            }
+
+            if (signaled)
+            {
+                ValueTask<(int, bool, bool)> valueTask = WaitAsync();
                 Debug.Assert(valueTask.IsCompleted);
                 (int size, bool fin, bool buffered) = valueTask.Result;
                 Debug.Assert(!buffered);
@@ -118,7 +136,7 @@ namespace ZeroC.Ice
                 // enabled, check for the circular buffer element count instead of the signal result since
                 // multiple Slic frame might have been received and buffered while waiting for the signal.
                 (_receivedSize, _receivedEndOfStream, _receivedFromBuffer) =
-                    await WaitSignalAsync(cancel).ConfigureAwait(false);
+                    await WaitAsync(cancel).ConfigureAwait(false);
                 if (_receivedSize == 0)
                 {
                     if (!_receivedFromBuffer)
@@ -398,30 +416,42 @@ namespace ZeroC.Ice
 
             // Set the result if buffering is not enabled, the data will be consumed when ReceiveAsync is
             // called. If buffering is enabled, we receive the data and queue the result.
-            if (_receiveBuffer == null)
+            bool lockTaken = false;
+            try
             {
-                try
+                _lock.Enter(ref lockTaken);
+                if (_receiveBuffer == null)
                 {
-                    SetResult((size, fin, false));
+                    try
+                    {
+                        SetResult((size, fin, false));
+                    }
+                    catch
+                    {
+                        // Ignore, the stream has been aborted.
+                        _socket.FinishedReceivedStreamData(size);
+                    }
                 }
-                catch
+                else
                 {
-                    // Ignore, the stream has been aborted.
-                    _socket.FinishedReceivedStreamData(size);
+                    // If the peer sends more data than the circular buffer remaining capacity, it violated flow
+                    // control. It's considered as a fatal failure for the connection.
+                    if (size > _receiveBuffer.Available)
+                    {
+                        throw new InvalidDataException("flow control violation, peer sent too much data");
+                    }
+
+                    // Receive the data asynchronously. The task will notify the socket when the Slic frame is fully
+                    // received to allow the socket to process the next Slic frame.
+                    _ = PerformReceiveInBufferAsync();
                 }
             }
-            else
+            finally
             {
-                // If the peer sends more data than the circular buffer remaining capacity, it violated flow control.
-                // It's considered as a fatal failure for the connection.
-                if (size > _receiveBuffer.Available)
+                if (lockTaken)
                 {
-                    throw new InvalidDataException("flow control violation, peer sent too much data");
+                    _lock.Exit();
                 }
-
-                // Receive the data asynchronously. The task will notify the socket when the Slic frame is fully
-                // received to allow the socket to process the next Slic frame.
-                _ = PerformReceiveInBufferAsync();
             }
 
             async Task PerformReceiveInBufferAsync()
