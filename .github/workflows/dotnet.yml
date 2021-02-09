@@ -2,12 +2,9 @@ name: .NET
 
 on:
   push:
-    branches:
-      - main
-      - nunit-testing
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
