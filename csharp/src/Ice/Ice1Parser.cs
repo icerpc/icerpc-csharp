@@ -174,12 +174,9 @@ namespace ZeroC.Ice
         /// <param name="s">The string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The components of the proxy.</returns>
-        internal static (Identity Identity,
-                         string Facet,
-                         InvocationMode InvocationMode,
-                         Encoding Encoding,
-                         string Location0,
-                         IReadOnlyList<Endpoint> Endpoints) ParseProxy(string s, Communicator communicator)
+        internal static (Identity Identity, string Facet, Encoding Encoding, string Location0, IReadOnlyList<Endpoint> Endpoints, bool Oneway) ParseProxy(
+            string s,
+            Communicator communicator)
         {
             // TODO: rework this implementation
 
@@ -220,8 +217,8 @@ namespace ZeroC.Ice
             Identity identity = ParseIdentity(identityString);
 
             string facet = "";
-            InvocationMode invocationMode = InvocationMode.Twoway;
             Encoding encoding = Ice1Definitions.Encoding;
+            bool oneway = false;
 
             while (true)
             {
@@ -302,7 +299,6 @@ namespace ZeroC.Ice
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -t option in `{s}'");
                         }
-                        invocationMode = InvocationMode.Twoway;
                         break;
 
                     case 'o':
@@ -311,7 +307,7 @@ namespace ZeroC.Ice
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -o option in `{s}'");
                         }
-                        invocationMode = InvocationMode.Oneway;
+                        oneway = true;
                         break;
 
                     case 'O':
@@ -321,7 +317,7 @@ namespace ZeroC.Ice
                                 $"unexpected argument `{argument}' provided for -O option in `{s}'");
                         }
 
-                        invocationMode = InvocationMode.BatchOneway;
+                        oneway = true;
                         break;
 
                     case 'd':
@@ -330,7 +326,7 @@ namespace ZeroC.Ice
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -d option in `{s}'");
                         }
-                        invocationMode = InvocationMode.Datagram;
+                        oneway = true;
                         break;
 
                     case 'D':
@@ -339,7 +335,7 @@ namespace ZeroC.Ice
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -D option in `{s}'");
                         }
-                        invocationMode = InvocationMode.BatchDatagram;
+                        oneway = true;
                         break;
 
                     case 's':
@@ -378,7 +374,7 @@ namespace ZeroC.Ice
 
             if (beg == -1)
             {
-                return (identity, facet, invocationMode, encoding, Location0: "", ImmutableArray<Endpoint>.Empty);
+                return (identity, facet, encoding, Location0: "", ImmutableArray<Endpoint>.Empty, oneway);
             }
 
             var endpoints = new List<Endpoint>();
@@ -439,7 +435,7 @@ namespace ZeroC.Ice
                 }
 
                 Debug.Assert(endpoints.Count > 0);
-                return (identity, facet, invocationMode, encoding, Location0: "", endpoints);
+                return (identity, facet, encoding, Location0: "", endpoints, oneway);
             }
             else if (s[beg] == '@')
             {
@@ -484,32 +480,10 @@ namespace ZeroC.Ice
                     throw new FormatException($"empty location in proxy `{s}'");
                 }
 
-                return (identity, facet, invocationMode, encoding, location0, ImmutableArray<Endpoint>.Empty);
+                return (identity, facet, encoding, location0, ImmutableArray<Endpoint>.Empty, oneway);
             }
 
             throw new FormatException($"malformed proxy `{s}'");
-        }
-
-        /// <summary>Parses the value of the ProxyOptions property of an object adapter.</summary>
-        /// <param name="name">The name of the object adapter.</param>
-        /// <param name="communicator">The communicator.</param>
-        /// <returns>The invocation mode from ProxyOptions, or InvocationMode.Twoway if ProxyOptions is not set.
-        /// </returns>
-        internal static InvocationMode ParseProxyOptions(string name, Communicator communicator)
-        {
-            if (communicator.GetProperty($"{name}.ProxyOptions") is string proxyOptions)
-            {
-                return proxyOptions.Trim() switch
-                {
-                    "-t" => InvocationMode.Twoway,
-                    "-o" => InvocationMode.Oneway,
-                    "-d" => InvocationMode.Datagram,
-                    "-O" => throw new NotSupportedException($"batch oneway is not supported in {name}.ProxyOptions"),
-                    "-D" => throw new NotSupportedException($"batch datagram is not supported in {name}.ProxyOptions"),
-                    _ => throw new InvalidConfigurationException($"cannot parse ProxyOptions {proxyOptions}")
-                };
-            }
-            return InvocationMode.Twoway;
         }
 
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
