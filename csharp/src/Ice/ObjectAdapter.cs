@@ -33,10 +33,10 @@ namespace ZeroC.Ice
         public Communicator Communicator { get; }
 
         /// <summary>The dispatch interceptors of this object adapter.</summary>
-        public IReadOnlyList<DispatchInterceptor> DispatchInterceptors
+        public ImmutableList<DispatchInterceptor> DispatchInterceptors
         {
             get => _dispatchInterceptors;
-            set => _dispatchInterceptors = value.ToImmutableList();
+            set => _dispatchInterceptors = value;
         }
 
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
