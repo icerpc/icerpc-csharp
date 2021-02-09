@@ -109,7 +109,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                         "DAdapter",
                         new ObjectAdapterOptions
                         {
-                            AcceptNonSecure = ice1 ? NonSecure.Always : null,
+                            AcceptNonSecure = ice1 ? NonSecure.Always :
+                                communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
                             Endpoints = ice1 ? "tcp -h \"::0\" -p 0" : "ice+tcp://[::0]:0",
                             ServerName = testHost
                         });

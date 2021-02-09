@@ -20,7 +20,7 @@ namespace ZeroC.Ice.Test.Interceptor
 
         public static async ValueTask ActivateAsync(ObjectAdapter adapter)
         {
-            DispatchInterceptor raiseInterceptor = async (request, current, next, cancel) =>
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
             {
                 if (current.Context.TryGetValue("raiseBeforeDispatch", out string? context))
                 {
@@ -49,9 +49,9 @@ namespace ZeroC.Ice.Test.Interceptor
                 }
 
                 return response;
-            };
+            });
 
-            DispatchInterceptor addWithRetry = async (request, current, next, cancel) =>
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "addWithRetry")
                     {
@@ -70,9 +70,9 @@ namespace ZeroC.Ice.Test.Interceptor
                         current.Context["retry"] = "no";
                     }
                     return await next(request, current, cancel);
-                };
+                });
 
-            DispatchInterceptor retry = async (request, current, next, cancel) =>
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
                 {
                     if (current.Context.TryGetValue("retry", out string? context) && context.Equals("yes"))
                     {
@@ -84,9 +84,9 @@ namespace ZeroC.Ice.Test.Interceptor
                         return await vt2.ConfigureAwait(false);
                     }
                     return await next(request, current, cancel);
-                };
+                });
 
-            DispatchInterceptor opWithBinaryContext = async (request, current, next, cancel) =>
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "opWithBinaryContext" && request.Protocol == Protocol.Ice2)
                     {
@@ -123,9 +123,9 @@ namespace ZeroC.Ice.Test.Interceptor
                         }
                     }
                     return await next(request, current, cancel);
-                };
+                });
 
-            DispatchInterceptor op1 = async (request, current, next, cancel) =>
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "op1")
                     {
@@ -139,10 +139,7 @@ namespace ZeroC.Ice.Test.Interceptor
                         }
                     }
                     return await next(request, current, cancel);
-                };
-
-            adapter.DispatchInterceptors = adapter.Communicator.DefaultDispatchInterceptors.ToImmutableList().AddRange(
-                ImmutableList.Create(raiseInterceptor, addWithRetry, retry, opWithBinaryContext, op1));
+                });
 
             await adapter.ActivateAsync();
         }

@@ -68,27 +68,30 @@ namespace ZeroC.Ice.Test.UDP
                 new ObjectAdapterOptions
                 {
                     AcceptNonSecure = NonSecure.Always,
-                    Endpoints = helper.GetTestEndpoint(0, "udp", true)
+                    Endpoints = helper.GetTestEndpoint(0, "udp", true),
+                    ServerName = "127.0.0.1"
                 });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = adapter.AddWithUUID(replyI, IPingReplyPrx.Factory)
-                .Clone(invocationMode: InvocationMode.Datagram, preferNonSecure: NonSecure.Always);
+                .Clone(oneway: true, preferNonSecure: NonSecure.Always);
             await adapter.ActivateAsync();
 
             Console.Out.Write("testing udp... ");
             Console.Out.Flush();
             ITestIntfPrx obj = ITestIntfPrx.Parse(
                 helper.GetTestProxy("test", 0, "udp"),
-                communicator).Clone(invocationMode: InvocationMode.Datagram, preferNonSecure: NonSecure.Always);
+                communicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
             try
             {
                 int val = obj.GetValue();
                 TestHelper.Assert(false);
             }
-            catch (InvalidOperationException)
+            catch (NoEndpointException)
             {
                 // expected
             }
+
+            await obj.IcePingAsync();
 
             int nRetry = 5;
             bool ret = false;
@@ -108,7 +111,7 @@ namespace ZeroC.Ice.Test.UDP
                 // receive 3 new datagrams using a new object. We give up after 5 retries.
                 replyI = new PingReplyI();
                 reply = adapter.AddWithUUID(
-                    replyI, IPingReplyPrx.Factory).Clone(invocationMode: InvocationMode.Datagram,
+                    replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                          preferNonSecure: NonSecure.Always);
             }
             TestHelper.Assert(ret == true);
@@ -189,7 +192,7 @@ namespace ZeroC.Ice.Test.UDP
                 }
                 replyI = new PingReplyI();
                 reply = adapter.AddWithUUID(
-                    replyI, IPingReplyPrx.Factory).Clone(invocationMode: InvocationMode.Datagram,
+                    replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                          preferNonSecure: NonSecure.Always);
             }
             if (!ret)
@@ -221,7 +224,7 @@ namespace ZeroC.Ice.Test.UDP
                     }
                     replyI = new PingReplyI();
                     reply = adapter.AddWithUUID(
-                        replyI, IPingReplyPrx.Factory).Clone(invocationMode: InvocationMode.Datagram,
+                        replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                              preferNonSecure: NonSecure.Always);
                 }
                 TestHelper.Assert(ret);

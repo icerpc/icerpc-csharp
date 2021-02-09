@@ -18,25 +18,25 @@ namespace ZeroC.Ice
     /// servants, identities, and proxies.</summary>
     public sealed class ObjectAdapter : IAsyncDisposable
     {
-        /// <summary>Indicates under what circumstances the object adapter accepts non-secure incoming connections. This
-        /// property corresponds to the object adapter's AcceptNonSecure property. If not set then the value of
-        /// <see cref="Communicator.AcceptNonSecure"/> is used.</summary>
+        /// <summary>Indicates under what circumstances this object adapter accepts non-secure incoming connections.
+        /// </summary>
         public NonSecure AcceptNonSecure { get; }
 
         /// <summary>Returns the adapter ID of this object adapter, or the empty string if this object adapter does not
         /// have an adapter ID.</summary>
         public string AdapterId { get; }
 
-        /// <summary>Returns the communicator that created this object adapter.</summary>
+        public ColocationScope ColocationScope { get; }
+
+        /// <summary>Returns the communicator of this object adapter. It is used when unmarshaling proxies.</summary>
         /// <value>The communicator.</value>
         public Communicator Communicator { get; }
 
-        /// <summary>The dispatch interceptors of this object adapter. The default value is
-        /// <see cref="Communicator.DefaultDispatchInterceptors"/></summary>
-        public IReadOnlyList<DispatchInterceptor> DispatchInterceptors
+        /// <summary>The dispatch interceptors of this object adapter.</summary>
+        public ImmutableList<DispatchInterceptor> DispatchInterceptors
         {
             get => _dispatchInterceptors;
-            set => _dispatchInterceptors = value.ToImmutableList();
+            set => _dispatchInterceptors = value;
         }
 
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
@@ -70,8 +70,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Returns the name of this object adapter. This name is used as prefix for the object adapter's
-        /// configuration properties.</summary>
+        /// <summary>Returns the name of this object adapter. This name is used for logging.</summary>
         /// <value>The object adapter's name.</value>
         public string Name { get; }
 
@@ -108,13 +107,16 @@ namespace ZeroC.Ice
 
         private readonly Dictionary<(string Category, string Facet), IObject> _categoryServantMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
+
+        private readonly bool _datagramOnly;
+
         private readonly Dictionary<string, IObject> _defaultServantMap = new();
-        private volatile ImmutableList<DispatchInterceptor> _dispatchInterceptors;
+        private volatile ImmutableList<DispatchInterceptor> _dispatchInterceptors =
+            ImmutableList<DispatchInterceptor>.Empty;
 
         private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
-        private readonly InvocationMode _invocationMode = InvocationMode.Twoway;
 
         private ILocatorPrx? _locator;
         private readonly object _mutex = new();
@@ -215,8 +217,8 @@ namespace ZeroC.Ice
                                           PublishedEndpoints,
                                           facet: "",
                                           new Identity("dummy", ""),
-                                          invocationMode: default,
                                           location: ImmutableArray<string>.Empty,
+                                          oneway: false,
                                           protocol: PublishedEndpoints[0].Protocol));
                         if (ReplicaGroupId.Length > 0)
                         {
@@ -542,8 +544,8 @@ namespace ZeroC.Ice
                                                 PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
                                              facet,
                                              identity,
-                                             _invocationMode,
                                              location,
+                                             oneway: _datagramOnly,
                                              protocol));
             }
         }
@@ -589,7 +591,11 @@ namespace ZeroC.Ice
             {
                 try
                 {
-                    ObjectAdapterRegistry.UnregisterObjectAdapter(this); // no longer available for coloc connections.
+                    if (ColocationScope != ColocationScope.None)
+                    {
+                        // no longer available for coloc connections.
+                        ObjectAdapterRegistry.UnregisterObjectAdapter(this);
+                    }
 
                     // Synchronously shuts down the incoming connection factories to stop accepting new incoming
                     // requests or connections. This ensures that once ShutdownAsync returns, no new requests will be
@@ -653,17 +659,21 @@ namespace ZeroC.Ice
             {
                 name = $"server-{Interlocked.Increment(ref _counter)}";
             }
+            if (options == null)
+            {
+                options = new ObjectAdapterOptions();
+            }
 
             Communicator = communicator;
             Name = name;
             SerializeDispatch = serializeDispatch;
             TaskScheduler = scheduler;
-            _dispatchInterceptors = Communicator.DefaultDispatchInterceptors.ToImmutableList();
 
-            AdapterId = options?.AdapterId ?? "";
-            ReplicaGroupId = options?.ReplicaGroupId ?? "";
+            AdapterId = options.AdapterId;
+            ReplicaGroupId = options.ReplicaGroupId;
+            ColocationScope = options.ColocationScope;
 
-            if (options?.Locator is string locator && locator.Length > 0)
+            if (options.Locator is string locator && locator.Length > 0)
             {
                 _locator = ILocatorPrx.Parse(locator, Communicator);
                 // TODO: locator options (ice1)
@@ -673,27 +683,32 @@ namespace ZeroC.Ice
                 _locator = Communicator.DefaultLocator;
             }
 
-            int frameMaxSize = options?.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
+            int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
             if (IncomingFrameMaxSize < 1024)
             {
                 throw new ArgumentException("options.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
             }
 
-            AcceptNonSecure = options?.AcceptNonSecure ?? Communicator.AcceptNonSecure;
+            AcceptNonSecure = options.AcceptNonSecure;
 
-            if (options?.Endpoints is string value)
+            if (options.Endpoints.Length > 0)
             {
-                if (UriParser.IsEndpointUri(value))
+                if (UriParser.IsEndpointUri(options.Endpoints))
                 {
                     Protocol = Protocol.Ice2;
-                    Endpoints = UriParser.ParseEndpoints(value, Communicator);
+                    Endpoints = UriParser.ParseEndpoints(options.Endpoints, Communicator);
                 }
                 else
                 {
                     Protocol = Protocol.Ice1;
-                    Endpoints = Ice1Parser.ParseEndpoints(value, communicator);
-                    _invocationMode = options?.PublishedInvocationMode ?? default;
+                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoints, communicator);
+
+                    if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
+                    {
+                        _datagramOnly = true;
+                        ColocationScope = ColocationScope.None;
+                    }
 
                     // When the adapter is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
@@ -744,14 +759,14 @@ namespace ZeroC.Ice
             }
             else
             {
-                Protocol = options?.Protocol ?? Protocol.Ice2;
+                Protocol = options.Protocol;
             }
 
-            if (options?.PublishedEndpoints is string publishedEndpointsValue)
+            if (options.PublishedEndpoints.Length > 0)
             {
-                PublishedEndpoints = UriParser.IsEndpointUri(publishedEndpointsValue) ?
-                    UriParser.ParseEndpoints(publishedEndpointsValue, Communicator) :
-                    Ice1Parser.ParseEndpoints(publishedEndpointsValue, Communicator, oaEndpoints: false);
+                PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
+                    UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator) :
+                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, oaEndpoints: false);
             }
 
             if (PublishedEndpoints.Count == 0)
@@ -759,13 +774,21 @@ namespace ZeroC.Ice
                 // If the PublishedEndpoints config property isn't set, we compute the published endpoints from
                 // the endpoints.
 
-                string serverName = options?.ServerName ?? Communicator.ServerName;
+                if (options.ServerName.Length == 0)
+                {
+                    throw new ArgumentException(
+                        "both options.ServerName and options.PublishedEndpoints are empty",
+                        nameof(options));
+                }
 
-                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(serverName)).
+                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.ServerName)).
                     Distinct().ToImmutableArray();
             }
 
-            ObjectAdapterRegistry.RegisterObjectAdapter(this);
+            if (ColocationScope != ColocationScope.None)
+            {
+                ObjectAdapterRegistry.RegisterObjectAdapter(this);
+            }
 
             if (Communicator.TraceLevels.Transport >= 1 && PublishedEndpoints.Count > 0)
             {
@@ -871,62 +894,66 @@ namespace ZeroC.Ice
             }
         }
 
-        internal Endpoint GetColocatedEndpoint()
+        internal Endpoint? GetColocatedEndpoint(Reference reference)
         {
-            lock (_mutex)
+            Debug.Assert(ColocationScope != ColocationScope.None);
+
+            if (ColocationScope == ColocationScope.Communicator && Communicator != reference.Communicator)
             {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-
-                if (_colocatedConnectionFactory == null)
-                {
-                    _colocatedConnectionFactory = new AcceptorIncomingConnectionFactory(this,
-                                                                                        new ColocatedEndpoint(this));
-
-                    // It's safe to start the connection within the synchronization, this isn't supposed to block for
-                    // colocated connections.
-                    _colocatedConnectionFactory.Activate();
-                }
+                return null;
             }
-            return _colocatedConnectionFactory.Endpoint;
-        }
 
-        internal bool IsLocal(Reference reference)
-        {
-            // The proxy protocol must match the object adapter's protocol.
             if (reference.Protocol != Protocol)
             {
-                return false;
+                return null;
             }
+
+            bool isLocal = false;
 
             if (reference.IsWellKnown)
             {
-                return Find(reference.Identity, reference.Facet) != null;
+                isLocal = Find(reference.Identity, reference.Facet) != null;
             }
             else if (reference.IsIndirect)
             {
                 // Reference is local if the reference's location matches this adapter ID or replica group ID.
-                return reference.Location.Count == 1 &&
+                isLocal = reference.Location.Count == 1 &&
                     (reference.Location[0] == AdapterId || reference.Location[0] == ReplicaGroupId);
             }
             else
             {
                 lock (_mutex)
                 {
-                    if (_shutdownTask != null)
-                    {
-                        throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                    }
-
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
                     // adapter's incoming connection factories are considered local.
-                    return reference.Endpoints.Any(endpoint =>
+                    isLocal = _shutdownTask == null && reference.Endpoints.Any(endpoint =>
                         PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
                 }
             }
+
+            if (isLocal)
+            {
+                lock (_mutex)
+                {
+                    if (_shutdownTask != null)
+                    {
+                        return null;
+                    }
+
+                    if (_colocatedConnectionFactory == null)
+                    {
+                        _colocatedConnectionFactory =
+                            new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
+
+                        // It's safe to start the connection within the synchronization, this isn't supposed to block
+                        // for colocated connections.
+                        _colocatedConnectionFactory.Activate();
+                    }
+                    return _colocatedConnectionFactory.Endpoint;
+                }
+            }
+            return null;
         }
 
         internal void UpdateConnectionObservers()

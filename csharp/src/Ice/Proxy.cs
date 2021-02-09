@@ -53,8 +53,6 @@ namespace ZeroC.Ice
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
         /// executed with each invocation</param>
-        /// <param name="invocationMode">The invocation mode of the clone (optional). Applies only to ice1 proxies.
-        /// </param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
@@ -81,7 +79,6 @@ namespace ZeroC.Ice
             Identity? identity = null,
             string? identityAndFacet = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
-            InvocationMode? invocationMode = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null,
@@ -102,7 +99,6 @@ namespace ZeroC.Ice
                                            identity,
                                            identityAndFacet,
                                            invocationInterceptors,
-                                           invocationMode,
                                            invocationTimeout,
                                            label,
                                            location,
@@ -128,8 +124,6 @@ namespace ZeroC.Ice
         /// proxy. You can clone a non-fixed proxy into a fixed proxy but not vice-versa.</param>
         /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
         /// executed with each invocation</param>
-        /// <param name="invocationMode">The invocation mode of the clone (optional). Applies only to ice1 proxies.
-        /// </param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
@@ -152,7 +146,6 @@ namespace ZeroC.Ice
             IEnumerable<Endpoint>? endpoints = null,
             Connection? fixedConnection = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
-            InvocationMode? invocationMode = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null,
@@ -174,7 +167,6 @@ namespace ZeroC.Ice
                                                      identity: null,
                                                      identityAndFacet: null,
                                                      invocationInterceptors,
-                                                     invocationMode,
                                                      invocationTimeout,
                                                      label,
                                                      location,

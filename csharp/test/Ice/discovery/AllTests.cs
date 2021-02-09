@@ -264,6 +264,7 @@ namespace ZeroC.Ice.Test.Discovery
                 // TODO: convert properties to options for now
                 var discoveryServerOptions = new DiscoveryServerOptions
                 {
+                    ColocationScope = ColocationScope.Communicator,
                     DomainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "",
                     Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
                     MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
@@ -291,7 +292,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                     try
                     {
-                        // TODO: relies on coloc being same communicator only.
+                        // relies on ColocationScope = Communicator
                         await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                             IcePingAsync();
                         TestHelper.Assert(false);

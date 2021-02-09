@@ -31,6 +31,7 @@ namespace ZeroC.Ice.Test.Discovery
             // TODO: convert properties to options for now
             var discoveryServerOptions = new DiscoveryServerOptions
             {
+                ColocationScope = ColocationScope.Communicator,
                 DomainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "",
                 Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
                 MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",

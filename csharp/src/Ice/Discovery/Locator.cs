@@ -153,18 +153,24 @@ namespace ZeroC.Ice.Discovery
                 throw new InvalidOperationException("communicator does not have a default locator");
             }
 
+            if (options.ColocationScope == ColocationScope.None)
+            {
+                throw new ArgumentException("options.ColocationScope cannot be set to None", nameof(options));
+            }
+
             var multicastOptions = new ObjectAdapterOptions
             {
                 AcceptNonSecure = NonSecure.Always,
+                ColocationScope = options.ColocationScope,
                 Endpoints = options.MulticastEndpoints,
             };
 
             var replyOptions = new ObjectAdapterOptions
             {
                 AcceptNonSecure = NonSecure.Always,
+                ColocationScope = options.ColocationScope,
                 Endpoints = options.ReplyEndpoints,
-                PublishedInvocationMode = InvocationMode.Datagram,
-                ServerName = options.ReplyServerName.Length > 0 ? options.ReplyServerName : null
+                ServerName = options.ReplyServerName
             };
 
             _timeout = options.Timeout;
@@ -206,7 +212,8 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = new(communicator);
+            _locatorAdapter = new(communicator,
+                                  options: new ObjectAdapterOptions { ColocationScope = options.ColocationScope });
             _locatorAdapter.Add(locatorIdentity, this);
 
             // Setup locator registry.
@@ -218,7 +225,6 @@ namespace ZeroC.Ice.Discovery
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
             IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);
-            Debug.Assert(lookupReply.InvocationMode == InvocationMode.Datagram);
 
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.

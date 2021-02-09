@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace ZeroC.Ice
 {
@@ -12,27 +13,9 @@ namespace ZeroC.Ice
         private static volatile ImmutableList<ObjectAdapter> _objectAdapterList = ImmutableList<ObjectAdapter>.Empty;
         private static readonly object _mutex = new();
 
-        internal static Endpoint? GetColocatedEndpoint(Reference reference)
-        {
-            foreach (ObjectAdapter adapter in _objectAdapterList)
-            {
-                try
-                {
-                    // TODO: should work when the communicators don't match but breaks some tests like
-                    // IceSSL/configuration.
-                    if (adapter.IsLocal(reference) && adapter.Communicator == reference.Communicator)
-                    {
-                        return adapter.GetColocatedEndpoint();
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore.
-                }
-            }
-            return null;
-        }
-
+        internal static Endpoint? GetColocatedEndpoint(Reference reference) =>
+            _objectAdapterList.Select(adapter => adapter.GetColocatedEndpoint(reference)).
+                FirstOrDefault(endpoint => endpoint != null);
         internal static void RegisterObjectAdapter(ObjectAdapter adapter)
         {
             lock (_mutex)

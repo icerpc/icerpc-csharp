@@ -18,6 +18,7 @@ module Ice
 
     /// The InvocationMode is carried by proxies that use the ice1 protocol, and it specifies the behavior when sending
     /// a request using such a proxy.
+    /// When marshaling an ice1 proxy, IceRPC only uses 3 values: Twoway, Oneway and Datagram.
     enum InvocationMode : byte
     {
         /// This is the default invocation mode; a request using this mode always expects a response.
