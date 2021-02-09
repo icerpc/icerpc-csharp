@@ -31,15 +31,11 @@ namespace ZeroC.Ice
 
         internal IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
 
-        // For ice1 proxies, all the enumerators are meaningful. For other proxies, only the Twoway and Oneway
-        // enumerators are used.
-        internal InvocationMode InvocationMode { get; }
-
         internal TimeSpan InvocationTimeout => _invocationTimeout ?? Communicator.DefaultInvocationTimeout;
         internal bool IsFixed { get; }
         internal bool IsIndirect => Endpoints.Count == 0 && !IsFixed;
 
-        internal bool IsOneway => InvocationMode != InvocationMode.Twoway;
+        internal bool IsOneway { get; }
 
         internal bool IsRelative { get; }
 
@@ -115,10 +111,10 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint> endpoints;
             string facet;
             Identity identity;
-            InvocationMode invocationMode = InvocationMode.Twoway;
             TimeSpan? invocationTimeout = null;
             object? label = null;
             IReadOnlyList<string> location;
+            bool oneway = false;
             bool? preferExistingConnection = null;
             NonSecure? preferNonSecure = null;
             TimeSpan? locatorCacheTimeout = null;
@@ -185,7 +181,7 @@ namespace ZeroC.Ice
                 protocol = Protocol.Ice1;
                 string location0;
 
-                (identity, facet, invocationMode, encoding, location0, endpoints) =
+                (identity, facet, encoding, location0, endpoints, oneway) =
                     Ice1Parser.ParseProxy(proxyString, communicator);
 
                 // 0 or 1 segment
@@ -258,7 +254,6 @@ namespace ZeroC.Ice
                                  facet: facet,
                                  identity: identity,
                                  invocationInterceptors: communicator.DefaultInvocationInterceptors,
-                                 invocationMode: invocationMode,
                                  invocationTimeout: invocationTimeout,
                                  label: null,
                                  location: location,
@@ -266,6 +261,7 @@ namespace ZeroC.Ice
                                  locatorInfo: locatorInfo ??
                                     (endpoints.Count == 0 ?
                                         communicator.GetLocatorInfo(communicator.DefaultLocator) : null),
+                                 oneway: oneway,
                                  preferExistingConnection: preferExistingConnection,
                                  preferNonSecure: preferNonSecure,
                                  protocol: protocol,
@@ -358,15 +354,15 @@ namespace ZeroC.Ice
             {
                 return false;
             }
-            if (InvocationMode != other.InvocationMode)
-            {
-                return false;
-            }
             if (_invocationTimeout != other._invocationTimeout)
             {
                 return false;
             }
             if (IsFixed != other.IsFixed)
+            {
+                return false;
+            }
+            if (IsOneway != other.IsOneway)
             {
                 return false;
             }
@@ -401,9 +397,9 @@ namespace ZeroC.Ice
                 hash.Add(Facet);
                 hash.Add(Identity);
                 hash.Add(InvocationInterceptors.GetSequenceHashCode());
-                hash.Add(InvocationMode);
                 hash.Add(_invocationTimeout);
                 hash.Add(IsFixed);
+                hash.Add(IsOneway);
                 hash.Add(IsRelative);
                 hash.Add(Protocol);
 
@@ -475,23 +471,20 @@ namespace ZeroC.Ice
                     }
                 }
 
-                switch (InvocationMode)
+                if (IsOneway)
                 {
-                    case InvocationMode.Twoway:
-                        sb.Append(" -t");
-                        break;
-                    case InvocationMode.Oneway:
-                        sb.Append(" -o");
-                        break;
-                    case InvocationMode.BatchOneway:
-                        sb.Append(" -O");
-                        break;
-                    case InvocationMode.Datagram:
+                    if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
+                    {
                         sb.Append(" -d");
-                        break;
-                    case InvocationMode.BatchDatagram:
-                        sb.Append(" -D");
-                        break;
+                    }
+                    else
+                    {
+                        sb.Append(" -o");
+                    }
+                }
+                else
+                {
+                    sb.Append(" -t");
                 }
 
                 // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
@@ -698,22 +691,12 @@ namespace ZeroC.Ice
         {
             IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.IceReference.InvocationInterceptors;
 
-            switch (proxy.InvocationMode)
-            {
-                case InvocationMode.BatchOneway:
-                case InvocationMode.BatchDatagram:
-                    Debug.Assert(false); // not implemented
-                    return default;
-                case InvocationMode.Datagram when !oneway:
-                    throw new InvalidOperationException("cannot make two-way call on a datagram proxy");
-                default:
-                    return InvokeWithInterceptorsAsync(proxy,
-                                                       request,
-                                                       oneway,
-                                                       0,
-                                                       progress,
-                                                       request.CancellationToken);
-            }
+            return InvokeWithInterceptorsAsync(proxy,
+                                               request,
+                                               oneway,
+                                               0,
+                                               progress,
+                                               request.CancellationToken);
 
             async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
                 IObjectPrx proxy,
@@ -829,9 +812,9 @@ namespace ZeroC.Ice
                                      endpoints,
                                      proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                                      identity,
-                                     proxyData.InvocationMode,
                                      location: location0.Length > 0 ?
                                         ImmutableArray.Create(location0) : ImmutableArray<string>.Empty,
+                                     oneway: proxyData.InvocationMode != InvocationMode.Twoway,
                                      proxyData.Protocol);
             }
             else
@@ -877,8 +860,8 @@ namespace ZeroC.Ice
                                              identity: proxyData.Identity,
                                              invocationInterceptors:
                                                 connection.Communicator.DefaultInvocationInterceptors,
-                                             invocationMode: InvocationMode.Twoway,
-                                             invocationTimeout: null);
+                                             invocationTimeout: null,
+                                             oneway: false);
                     }
                     else
                     {
@@ -939,8 +922,9 @@ namespace ZeroC.Ice
                                          endpoints,
                                          proxyData.Facet ?? "",
                                          proxyData.Identity,
-                                         proxyData.InvocationMode ?? InvocationMode.Twoway,
                                          (IReadOnlyList<string>?)proxyData.Location ?? ImmutableArray<string>.Empty,
+                                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) !=
+                                            InvocationMode.Twoway,
                                          protocol);
                 }
             }
@@ -953,8 +937,8 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint> endpoints, // already a copy provided by Ice
             string facet,
             Identity identity,
-            InvocationMode invocationMode,
             IReadOnlyList<string> location, // already a copy provided by Ice
+            bool oneway,
             Protocol protocol)
             : this(cacheConnection: true,
                    communicator: communicator,
@@ -964,12 +948,12 @@ namespace ZeroC.Ice
                    facet: facet,
                    identity: identity,
                    invocationInterceptors: communicator.DefaultInvocationInterceptors,
-                   invocationMode: invocationMode,
                    invocationTimeout: null,
                    label: null,
                    location: location,
                    locatorCacheTimeout: null,
                    locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
+                   oneway: oneway,
                    preferExistingConnection: null,
                    preferNonSecure: null,
                    protocol: protocol,
@@ -985,9 +969,8 @@ namespace ZeroC.Ice
                    fixedConnection: fixedConnection,
                    identity: identity,
                    invocationInterceptors: ImmutableList<InvocationInterceptor>.Empty,
-                   invocationMode: (fixedConnection.Endpoint?.IsDatagram ?? false) ?
-                       InvocationMode.Datagram : InvocationMode.Twoway,
-                   invocationTimeout: null)
+                   invocationTimeout: null,
+                   oneway: fixedConnection.Endpoint.IsDatagram)
         {
         }
 
@@ -1009,7 +992,6 @@ namespace ZeroC.Ice
             Identity? identity = null,
             string? identityAndFacet = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app
-            InvocationMode? invocationMode = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null, // from app
@@ -1024,20 +1006,6 @@ namespace ZeroC.Ice
             if (locator != null && clearLocator)
             {
                 throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
-            }
-            if (invocationMode != null)
-            {
-                if (oneway != null)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(oneway)} and {nameof(invocationMode)}");
-                }
-                if (Protocol != Protocol.Ice1)
-                {
-                    // This way, we won't get an invalid invocationMode when protocol > ice1.
-                    throw new ArgumentException(
-                        $"{nameof(invocationMode)} applies only to ice1 proxies",
-                        nameof(invocationMode));
-                }
             }
 
             if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
@@ -1055,10 +1023,6 @@ namespace ZeroC.Ice
                 throw new ArgumentException($"cannot set both {nameof(identity)} and {nameof(identityAndFacet)}");
             }
 
-            if (oneway != null)
-            {
-                invocationMode = oneway.Value ? InvocationMode.Oneway : InvocationMode.Twoway;
-            }
             if (identityAndFacet != null)
             {
                 (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
@@ -1129,8 +1093,8 @@ namespace ZeroC.Ice
                     (fixedConnection ?? _connection)!,
                     identity ?? Identity,
                     invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                    invocationMode ?? InvocationMode,
-                    invocationTimeout ?? _invocationTimeout);
+                    invocationTimeout ?? _invocationTimeout,
+                    oneway: oneway ?? IsOneway);
                 return clone == this ? this : clone;
             }
             else
@@ -1246,12 +1210,12 @@ namespace ZeroC.Ice
                                           facet ?? Facet,
                                           identity ?? Identity,
                                           invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                                          invocationMode ?? InvocationMode,
                                           invocationTimeout ?? _invocationTimeout,
                                           clearLabel ? null : label ?? Label,
                                           newLocation ?? Location,
                                           locatorCacheTimeout ?? (locatorInfo != null ? _locatorCacheTimeout : null),
                                           locatorInfo, // no fallback otherwise breaks clearLocator
+                                          oneway ?? IsOneway,
                                           preferExistingConnection ?? _preferExistingConnection,
                                           preferNonSecure ?? _preferNonSecure,
                                           Protocol,
@@ -1263,13 +1227,12 @@ namespace ZeroC.Ice
 
         private async ValueTask<(List<Endpoint> Endpoints, TimeSpan EndpointsAge)> ComputeEndpointsAsync(
             TimeSpan endpointsMaxAge,
+            bool oneway,
             CancellationToken cancel)
         {
             Debug.Assert(!IsFixed);
-            // If the invocation mode is not datagram, we first check if the target is colocated and if that's the
-            // case we use the colocated endpoint.
-            if (InvocationMode != InvocationMode.Datagram &&
-                ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+
+            if (ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
             }
@@ -1305,15 +1268,13 @@ namespace ZeroC.Ice
                     return false;
                 }
 
-                // Check if the endpoint is compatible with the proxy invocation mode, Twoway and Oneway invocation
-                // modes require a non datagram endpoint, Datagram invocation mode requires a datagram endpoint, the
-                // other invocation modes (BatchOneway and BatchDagram) are not supported.
-                return InvocationMode switch
+                // Filter out datagram endpoints when oneway is false.
+                if (endpoint.IsDatagram)
                 {
-                    InvocationMode.Twoway or InvocationMode.Oneway => !endpoint.IsDatagram,
-                    InvocationMode.Datagram => endpoint.IsDatagram,
-                    _ => false
-                };
+                    return oneway;
+                }
+
+                return true;
             }).ToList();
 
             if (filteredEndpoints.Count == 0)
@@ -1346,7 +1307,8 @@ namespace ZeroC.Ice
             if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge, cancel).ConfigureAwait(false);
+                (endpoints, endpointsAge) =
+                    await ComputeEndpointsAsync(endpointsMaxAge, IsOneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
                 if (CacheConnection)
                 {
@@ -1359,6 +1321,7 @@ namespace ZeroC.Ice
                 if (endpoints == null)
                 {
                     (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge,
+                                                                            IsOneway,
                                                                             cancel).ConfigureAwait(false);
                 }
 
@@ -1466,6 +1429,12 @@ namespace ZeroC.Ice
                 throw new NotSupportedException("cannot marshal a fixed proxy");
             }
 
+            InvocationMode invocationMode = IsOneway ? InvocationMode.Oneway : InvocationMode.Twoway;
+            if (Protocol == Protocol.Ice1 && IsOneway && Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
+            {
+                invocationMode = InvocationMode.Datagram;
+            }
+
             if (ostr.Encoding == Encoding.V11)
             {
                 if (IsRelative)
@@ -1474,7 +1443,7 @@ namespace ZeroC.Ice
                 }
 
                 Identity.IceWrite(ostr);
-                ostr.WriteProxyData11(Facet, InvocationMode, Protocol, Encoding);
+                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
                 ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
 
                 if (Endpoints.Count == 0)
@@ -1497,7 +1466,7 @@ namespace ZeroC.Ice
                     location = ImmutableArray.Create(location[^1]);
                 }
 
-                ostr.WriteProxyData20(Identity, Protocol, Encoding, location, InvocationMode, Facet);
+                ostr.WriteProxyData20(Identity, Protocol, Encoding, location, invocationMode, Facet);
 
                 if (Endpoints.Count > 0)
                 {
@@ -1562,12 +1531,12 @@ namespace ZeroC.Ice
             string facet,
             Identity identity,
             IReadOnlyList<InvocationInterceptor> invocationInterceptors, // already a copy provided by Ice
-            InvocationMode invocationMode,
             TimeSpan? invocationTimeout,
             object? label,
             IReadOnlyList<string> location, // already a copy provided by Ice
             TimeSpan? locatorCacheTimeout,
             LocatorInfo? locatorInfo,
+            bool oneway,
             bool? preferExistingConnection,
             NonSecure? preferNonSecure,
             Protocol protocol,
@@ -1582,8 +1551,8 @@ namespace ZeroC.Ice
             Facet = facet;
             Identity = identity;
             InvocationInterceptors = invocationInterceptors;
-            InvocationMode = invocationMode;
             _invocationTimeout = invocationTimeout;
+            IsOneway = oneway;
             IsRelative = relative;
             Label = label;
             Location = location;
@@ -1597,10 +1566,6 @@ namespace ZeroC.Ice
             {
                 Debug.Assert(location.Count <= 1);
                 Debug.Assert(location.Count == 0 || endpoints.Count == 0);
-            }
-            else
-            {
-                Debug.Assert((byte)InvocationMode <= (byte)InvocationMode.Oneway);
             }
 
             Debug.Assert(!IsRelative || Endpoints.Count == 0);
@@ -1617,8 +1582,8 @@ namespace ZeroC.Ice
             Connection fixedConnection,
             Identity identity,
             IReadOnlyList<InvocationInterceptor> invocationInterceptors, // already a copy provided by Ice
-            InvocationMode invocationMode,
-            TimeSpan? invocationTimeout)
+            TimeSpan? invocationTimeout,
+            bool oneway)
         {
             Communicator = fixedConnection.Communicator;
             Label = null;
@@ -1628,9 +1593,9 @@ namespace ZeroC.Ice
             Facet = facet;
             Identity = identity;
             InvocationInterceptors = invocationInterceptors;
-            InvocationMode = invocationMode;
             _invocationTimeout = invocationTimeout;
             IsFixed = true;
+            IsOneway = oneway;
             IsRelative = false;
             Location = ImmutableArray<string>.Empty;
             _locatorCacheTimeout = null;
@@ -1638,27 +1603,6 @@ namespace ZeroC.Ice
             Protocol = fixedConnection.Protocol;
 
             _connection = fixedConnection;
-
-            if (Protocol == Protocol.Ice1)
-            {
-                if (InvocationMode == InvocationMode.Datagram)
-                {
-                    if (!_connection.Endpoint.IsDatagram)
-                    {
-                        throw new ArgumentException(
-                            "a fixed datagram proxy requires a datagram connection",
-                            nameof(fixedConnection));
-                    }
-                }
-                else if (InvocationMode == InvocationMode.BatchOneway || InvocationMode == InvocationMode.BatchDatagram)
-                {
-                    throw new NotSupportedException("batch invocation modes are not supported for fixed proxies");
-                }
-            }
-            else
-            {
-                Debug.Assert((byte)InvocationMode <= (byte)InvocationMode.Oneway);
-            }
             Debug.Assert(invocationTimeout != TimeSpan.Zero);
         }
 
@@ -1675,10 +1619,17 @@ namespace ZeroC.Ice
             TimeSpan endpointsAge = TimeSpan.Zero;
             List<Endpoint>? endpoints = null;
 
+            if (connection != null && !oneway && connection.Endpoint.IsDatagram)
+            {
+                throw new InvalidOperationException(
+                    "cannot make two-way invocation using a cached datagram connection");
+            }
+
             if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge, cancel).ConfigureAwait(false);
+                (endpoints, endpointsAge) =
+                    await ComputeEndpointsAsync(endpointsMaxAge, oneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
                 if (CacheConnection)
                 {
@@ -1708,6 +1659,7 @@ namespace ZeroC.Ice
                             Debug.Assert(nextEndpoint == 0);
                             // ComputeEndpointsAsync throws if it can't figure out the endpoints
                             (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge,
+                                                                                    oneway,
                                                                                     cancel).ConfigureAwait(false);
                             if (excludedEndpoints != null)
                             {

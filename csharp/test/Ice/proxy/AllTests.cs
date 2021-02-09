@@ -369,27 +369,25 @@ namespace ZeroC.Ice.Test.Proxy
             // End of ice1 format-only tests.
 
             b1 = IObjectPrx.Parse("ice:test", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.Twoway);
             TestHelper.Assert(!b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.Twoway);
             TestHelper.Assert(!b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test -t", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.Twoway);
+            TestHelper.Assert(!b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test -o", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.Oneway);
+            TestHelper.Assert(b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test -O", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.BatchOneway);
+            TestHelper.Assert(b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test -d", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.Datagram);
+            TestHelper.Assert(b1.IsOneway);
 
             b1 = IObjectPrx.Parse("test -D", communicator);
-            TestHelper.Assert(b1.InvocationMode == InvocationMode.BatchDatagram);
+            TestHelper.Assert(b1.IsOneway);
 
             b1 = IObjectPrx.Parse("ice:test", communicator);
             TestHelper.Assert(b1.Protocol == Protocol.Ice2 && b1.Encoding == Encoding.V20);
@@ -789,8 +787,8 @@ namespace ZeroC.Ice.Test.Proxy
 
             if (ice1)
             {
-                TestHelper.Assert(!baseProxy.Clone(invocationMode: InvocationMode.Twoway).IsOneway);
-                TestHelper.Assert(baseProxy.Clone(invocationMode: InvocationMode.Oneway).IsOneway);
+                TestHelper.Assert(!baseProxy.Clone(oneway: false).IsOneway);
+                TestHelper.Assert(baseProxy.Clone(oneway: true).IsOneway);
             }
 
             IObjectPrx other = baseProxy.Clone(IObjectPrx.Factory, identityAndFacet: "test#facet");
@@ -808,16 +806,6 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(other.Identity.Name == "foo");
             TestHelper.Assert(other.Identity.Category.Length == 0);
 
-            if (ice1)
-            {
-                TestHelper.Assert(baseProxy.Clone(invocationMode: InvocationMode.Datagram).IsOneway);
-                TestHelper.Assert(baseProxy.Clone(invocationMode: InvocationMode.BatchOneway).InvocationMode ==
-                    InvocationMode.BatchOneway);
-                TestHelper.Assert(baseProxy.Clone(invocationMode: InvocationMode.Datagram).InvocationMode ==
-                    InvocationMode.Datagram);
-                TestHelper.Assert(baseProxy.Clone(invocationMode: InvocationMode.BatchDatagram).InvocationMode ==
-                    InvocationMode.BatchDatagram);
-            }
             TestHelper.Assert(baseProxy.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure == NonSecure.Always);
             TestHelper.Assert(baseProxy.Clone(preferNonSecure: NonSecure.Never).PreferNonSecure == NonSecure.Never);
 
@@ -1090,14 +1078,6 @@ namespace ZeroC.Ice.Test.Proxy
                     TestHelper.Assert(await cl.Clone(fixedConnection: connection2).Clone(fixedConnection: connection2).GetConnectionAsync() == connection2);
                     Connection? fixedConnection = await cl.Clone(label: "ice_fixed").GetConnectionAsync();
                     TestHelper.Assert(await cl.Clone(fixedConnection: connection2).Clone(fixedConnection: fixedConnection).GetConnectionAsync() == fixedConnection);
-                    try
-                    {
-                        cl.Clone(invocationMode: InvocationMode.Datagram, fixedConnection: connection2);
-                        TestHelper.Assert(false);
-                    }
-                    catch (ArgumentException)
-                    {
-                    }
                 }
             }
             output.WriteLine("ok");
