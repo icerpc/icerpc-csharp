@@ -145,7 +145,7 @@ namespace ZeroC.Ice.Test.Timeout
                 {
                     var comm1 = new Communicator(communicator.GetProperties());
 
-                    comm1.DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                    comm1.DefaultInvocationInterceptors = comm1.DefaultInvocationInterceptors.Add(
                             (target, request, next, cancel) =>
                             {
                                 request.BinaryContextOverride.Add(10, ostr =>
