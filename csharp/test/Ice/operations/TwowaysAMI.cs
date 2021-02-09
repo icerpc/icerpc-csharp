@@ -1509,11 +1509,13 @@ namespace ZeroC.Ice.Test.Operations
                                 streams.Add(new MemoryStreamWithDisposeCheck(buffer));
                                 (int receivedSize1, Stream receivedStream1) = await p.OpSendAndGetStream2Async(
                                     size, streams.Last()).ConfigureAwait(false);
+
                                 streams.Add(new MemoryStreamWithDisposeCheck(buffer));
                                 (int receivedSize2, Stream receivedStream2) = await p.OpSendAndGetStream2Async(
                                     size, streams.Last()).ConfigureAwait(false);
 
-                                TestHelper.Assert(receivedSize1 == receivedSize2);
+                                TestHelper.Assert(receivedSize1 == receivedSize2,
+                                    $"size not equal {receivedSize1} {receivedSize2}");
                                 AssertStreamEquals(receivedStream1, receivedStream2);
                                 receivedStream1.Dispose();
                                 receivedStream2.Dispose();

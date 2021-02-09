@@ -25,9 +25,10 @@ namespace ZeroC.Ice
         }
 
         private int _currentCount;
+        private Exception? _exception;
         private readonly int _maxCount;
         private readonly object _mutex = new();
-        private Queue<ManualResetValueTaskCompletionSource<bool>>? _queue = new();
+        private Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
 
         internal AsyncSemaphore(int initialCount)
         {
@@ -43,9 +44,9 @@ namespace ZeroC.Ice
         {
             lock (_mutex)
             {
-                if (_queue == null)
+                if (_exception != null)
                 {
-                    return;
+                    throw _exception;
                 }
 
                 // While we could instead use the EnterAsync cancellation token to cancel the operation, it's
@@ -70,7 +71,6 @@ namespace ZeroC.Ice
                         // Ignore, the source might already be completed if canceled.
                     }
                 }
-                _queue = null;
             }
         }
 
@@ -86,9 +86,9 @@ namespace ZeroC.Ice
             CancellationTokenRegistration? tokenRegistration = null;
             lock (_mutex)
             {
-                if (_queue == null)
+                if (_exception != null)
                 {
-                    throw new InvalidOperationException("semaphore completed");
+                    throw _exception;
                 }
 
                 if (_currentCount > 0)
@@ -143,9 +143,9 @@ namespace ZeroC.Ice
                     throw new SemaphoreFullException($"semaphore maximum count of {_maxCount} already reached");
                 }
 
-                if (_queue == null)
+                if (_exception != null)
                 {
-                    return;
+                    throw _exception;
                 }
 
                 while (_queue.Count > 0)
