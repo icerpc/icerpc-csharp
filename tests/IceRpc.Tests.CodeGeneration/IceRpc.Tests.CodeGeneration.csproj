@@ -14,7 +14,7 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\CollocatedTest.cs" Link="CollocatedTest.cs" />
+    <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
     <Compile Update="generated\SequenceMappingTests.cs">
       <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
     </Compile>
