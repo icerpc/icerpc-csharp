@@ -70,7 +70,7 @@ namespace ZeroC.Ice
                         catch
                         {
                             // Ignore, the connection is being closed or the stream got aborted.
-                            stream?.Dispose();
+                            stream?.TryRelease();
                         }
                     }
                     else
@@ -147,13 +147,13 @@ namespace ZeroC.Ice
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            _bidirectionalSerializeSemaphore?.CancelAwaiters(exception);
-            _unidirectionalSerializeSemaphore?.CancelAwaiters(exception);
+            _bidirectionalSerializeSemaphore?.Complete(exception);
+            _unidirectionalSerializeSemaphore?.Complete(exception);
 
             return streamIds;
         }
 
-        internal void ReleaseFlowControlCredit(ColocatedStream stream)
+        internal void ReleaseStream(ColocatedStream stream)
         {
             if (stream.IsIncoming && !stream.IsBidirectional && !stream.IsControl)
             {
@@ -194,7 +194,7 @@ namespace ZeroC.Ice
                             _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
                         if (semaphore != null)
                         {
-                            await semaphore.WaitAsync(cancel).ConfigureAwait(false);
+                            await semaphore.EnterAsync(cancel).ConfigureAwait(false);
                         }
                     }
 

@@ -1790,7 +1790,7 @@ namespace ZeroC.Ice
                 }
                 finally
                 {
-                    stream?.TryDispose();
+                    stream?.TryRelease();
                     childObserver?.Detach();
                 }
 

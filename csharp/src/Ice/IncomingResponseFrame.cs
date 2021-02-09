@@ -26,8 +26,7 @@ namespace ZeroC.Ice
         internal SocketStream? SocketStream { get; set; }
 
         private static readonly ConcurrentDictionary<(Protocol Protocol, Encoding Encoding), IncomingResponseFrame>
-            _cachedVoidReturnValueFrames =
-                new ConcurrentDictionary<(Protocol Protocol, Encoding Encoding), IncomingResponseFrame>();
+            _cachedVoidReturnValueFrames = new();
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The Ice protocol of this frame.</param>
@@ -39,7 +38,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Releases resources used by the response frame.</summary>
-        public void Dispose() => SocketStream?.TryDispose();
+        public void Dispose() => SocketStream?.TryRelease();
 
         /// <summary>Reads the return value. If this response frame carries a failure, reads and throws this exception.
         /// </summary>

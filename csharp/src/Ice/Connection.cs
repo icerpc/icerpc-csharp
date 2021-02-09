@@ -274,9 +274,13 @@ namespace ZeroC.Ice
                 }
                 await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
             }
-            catch
+            catch (OperationCanceledException)
             {
                 // Ignore
+            }
+            catch (Exception ex)
+            {
+                Debug.Assert(false, $"unexpected exception {ex}");
             }
 
             async Task PerformGoAwayAsync(Exception exception)
@@ -456,7 +460,7 @@ namespace ZeroC.Ice
 
             async Task PerformAbortAsync()
             {
-                await Socket.AbortAsync(exception).ConfigureAwait(false);
+                Socket.Abort(exception);
 
                 // Dispose of the socket.
                 Socket.Dispose();
@@ -487,20 +491,37 @@ namespace ZeroC.Ice
         private async ValueTask AcceptStreamAsync()
         {
             SocketStream? stream = null;
+            while (stream == null)
+            {
+                try
+                {
+                    // Accept a new stream.
+                    stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (ConnectionClosedException) when (_state == ConnectionState.Closing)
+                {
+                    // Ignore and continue accepting stream data until the peer closes the connection.
+                }
+                catch (Exception ex)
+                {
+                    _ = AbortAsync(ex);
+                    throw;
+                }
+            }
+
+            // Start a new accept stream task to accept another stream.
+            _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
+
+            Debug.Assert(stream != null);
             try
             {
-                // Accept a new stream.
-                stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
-
-                // Start a new accept stream task otherwise to accept another stream.
-                _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
-
                 using var cancelSource = new CancellationTokenSource();
                 CancellationToken cancel = cancelSource.Token;
                 if (stream.IsBidirectional)
                 {
                     // Be notified if the peer resets the stream to cancel the dispatch.
-                    // TODO: the error code is ignored here as we can't provide it to the CancelationTokenSource. We
+                    //
+                    // The error code is ignored here since we can't provide it to the CancelationTokenSource. We
                     // could consider setting the error code into Ice.Current to allow the user to figure out the
                     // reason of the stream reset.
                     stream.Reset += (long errorCode) => cancelSource.Cancel();
@@ -511,30 +532,29 @@ namespace ZeroC.Ice
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
                 // If no adapter is configure to dispatch the request, return an ObjectNotExistException to the caller.
-                OutgoingResponseFrame response;
+                OutgoingResponseFrame? response = null;
                 ObjectAdapter? adapter = _adapter;
                 if (adapter == null)
                 {
                     if (stream.IsBidirectional)
                     {
-                        var exception = new ObjectNotExistException();
-                        response = new OutgoingResponseFrame(request, exception);
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        response = new OutgoingResponseFrame(request, new ObjectNotExistException());
                     }
-                    return;
-                }
-
-                // Dispatch the request and get the response
-                var current = new Current(adapter, request, stream, this);
-                if (adapter.TaskScheduler != null)
-                {
-                    response = await TaskRun(() => adapter.DispatchAsync(request, current, cancel),
-                                             cancel,
-                                             adapter.TaskScheduler).ConfigureAwait(false);
                 }
                 else
                 {
-                    response = await adapter.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                    // Dispatch the request and get the response
+                    var current = new Current(adapter, request, stream, this);
+                    if (adapter.TaskScheduler != null)
+                    {
+                        response = await TaskRun(() => adapter.DispatchAsync(request, current, cancel),
+                                                cancel,
+                                                adapter.TaskScheduler).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        response = await adapter.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                    }
                 }
 
                 // No need to send the response if the dispatch is canceled.
@@ -542,6 +562,7 @@ namespace ZeroC.Ice
 
                 if (stream.IsBidirectional)
                 {
+                    Debug.Assert(response != null);
                     try
                     {
                         // Send the response over the stream
@@ -562,13 +583,11 @@ namespace ZeroC.Ice
             }
             catch (Exception ex)
             {
-                // Other exceptions are considered fatal, abort the connection
                 _ = AbortAsync(ex);
-                throw;
             }
             finally
             {
-                stream?.TryDispose();
+                stream?.TryRelease();
             }
 
             static async ValueTask<OutgoingResponseFrame> TaskRun(

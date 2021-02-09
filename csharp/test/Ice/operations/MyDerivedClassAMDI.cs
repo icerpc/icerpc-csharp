@@ -16,6 +16,7 @@ namespace ZeroC.Ice.Test.Operations
         private int _opByteSOnewayCallCount;
         private Thread_opVoid? _opVoidThread;
 
+        private readonly List<Stream> _streams = new();
         internal class Thread_opVoid : TaskCompletionSource<object?>
         {
             private readonly object _mutex = new();
@@ -1016,56 +1017,61 @@ namespace ZeroC.Ice.Test.Operations
 
         public ValueTask OpSendStream1Async(Stream p1, Current current, CancellationToken cancel)
         {
-            CompareStreams(File.OpenRead("AllTests.cs"), p1);
+            ConsumeStream(-1, p1);
             return default;
         }
 
-        /// <param name="current">The Current object for the dispatch.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public ValueTask OpSendStream2Async(string p1, Stream p2, Current current, CancellationToken cancel)
+        public ValueTask OpSendStream2Async(int p1, Stream p2, Current current, CancellationToken cancel)
         {
-            CompareStreams(File.OpenRead(p1), p2);
+            ConsumeStream(p1, p2);
             return default;
         }
 
-        /// <param name="current">The Current object for the dispatch.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public ValueTask<Stream> OpGetStream1Async(Current current, CancellationToken cancel) =>
-            new(File.OpenRead("AllTests.cs"));
+        public ValueTask<Stream> OpGetStream1Async(Current current, CancellationToken cancel)
+        {
+            byte[] buffer = new byte[1024];
+            for (int i = 0; i < buffer.Length; ++i)
+            {
+                buffer[i] = (byte)(i % 256);
+            }
+            _streams.Add(new MemoryStream(buffer));
+            return new(_streams.Last());
+        }
 
-        /// <param name="current">The Current object for the dispatch.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>Named tuple with the following fields:</returns>
-        public ValueTask<(string R1, Stream R2)> OpGetStream2Async(Current current, CancellationToken cancel) =>
-            new(("AllTests.cs", File.OpenRead("AllTests.cs")));
+        public ValueTask<(int R1, Stream R2)> OpGetStream2Async(Current current, CancellationToken cancel)
+        {
+            byte[] buffer = new byte[1024];
+            for (int i = 0; i < buffer.Length; ++i)
+            {
+                buffer[i] = (byte)(i % 256);
+            }
+            _streams.Add(new MemoryStream(buffer));
+            return new((1024, _streams.Last()));
+        }
 
-        /// <param name="current">The Current object for the dispatch.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public ValueTask<Stream> OpSendAndGetStream1Async(Stream p1, Current current, CancellationToken cancel) =>
             new(p1);
 
-        /// <param name="current">The Current object for the dispatch.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>Named tuple with the following fields:</returns>
-        public ValueTask<(string R1, Stream R2)> OpSendAndGetStream2Async(
-            string p1,
+        public ValueTask<(int R1, Stream R2)> OpSendAndGetStream2Async(
+            int p1,
             Stream p2,
             Current current,
             CancellationToken cancel) => new((p1, p2));
 
-        private static void CompareStreams(Stream s1, Stream s2)
+        private static void ConsumeStream(int receivedSize, Stream stream)
         {
-            int v1, v2;
-            do
+            var buffer = new byte[1024];
+            int size = 0;
+            while (true)
             {
-                v1 = s1.ReadByte();
-                v2 = s2.ReadByte();
-                TestHelper.Assert(v1 == v2);
+                int read = stream.Read(new Span<byte>(buffer));
+                if (read == 0)
+                {
+                    break;
+                }
+                size += read;
             }
-            while (v1 != -1 && v2 != -1);
-
-            s1.Dispose();
-            s2.Dispose();
+            TestHelper.Assert(receivedSize == -1 || receivedSize == size);
         }
 
         private static IReadOnlyDictionary<TKey, TValue> MergeDictionaries<TKey, TValue>(

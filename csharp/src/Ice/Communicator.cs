@@ -170,6 +170,7 @@ namespace ZeroC.Ice
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
         internal int SlicPacketMaxSize { get; }
+        internal int SlicStreamBufferMaxSize { get; }
 
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
@@ -480,6 +481,14 @@ namespace ZeroC.Ice
             if (SlicPacketMaxSize < 1024)
             {
                 throw new InvalidConfigurationException("Ice.Slic.PacketMaxSize can't be inferior to 1KB");
+            }
+
+            SlicStreamBufferMaxSize =
+                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * SlicPacketMaxSize;
+            if (SlicStreamBufferMaxSize < SlicPacketMaxSize)
+            {
+                throw new InvalidConfigurationException(
+                    "Ice.Slic.StreamBufferMaxSize can't be inferior to Ice.Slic.PacketMaxSize");
             }
 
             int frameMaxSize = this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? 1024 * 1024;

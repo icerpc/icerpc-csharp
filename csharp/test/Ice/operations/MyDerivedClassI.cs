@@ -16,6 +16,8 @@ namespace ZeroC.Ice.Test.Operations
 
         private int _opByteSOnewayCallCount;
 
+        private readonly List<Stream> _streams = new();
+
         // Override the Object "pseudo" operations to verify the operation mode.
         public ValueTask<bool> IceIsAAsync(string id, Current current, CancellationToken cancel)
         {
@@ -41,7 +43,22 @@ namespace ZeroC.Ice.Test.Operations
             return new(typeof(IMyDerivedClass).GetIceTypeId()!);
         }
 
-        public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel)
+        {
+            _ = current.Adapter.ShutdownAsync();
+
+            foreach (Stream stream in _streams)
+            {
+                try
+                {
+                    stream.ReadByte();
+                    TestHelper.Assert(false);
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+        }
 
         // TODO check if compress is supported.
         public bool SupportsCompress(Current current, CancellationToken cancel) => false;
@@ -1003,40 +1020,61 @@ namespace ZeroC.Ice.Test.Operations
             CancellationToken cancel) =>
             new IMyClass.OpMDict2MarshaledReturnValue(p1, p1, current);
 
-        public void OpSendStream1(Stream p1, Current current, CancellationToken cancel) =>
-            CompareStreams(File.OpenRead("AllTests.cs"), p1);
+        public void OpSendStream1(Stream p1, Current current, CancellationToken cancel) => ConsumeStream(-1, p1);
 
-        public void OpSendStream2(string p1, Stream p2, Current current, CancellationToken cancel) =>
-            CompareStreams(File.OpenRead(p1), p2);
+        public void OpSendStream2(int p1, Stream p2, Current current, CancellationToken cancel) =>
+            ConsumeStream(p1, p2);
 
-        public Stream OpGetStream1(Current current, CancellationToken cancel) =>
-            File.OpenRead("AllTests.cs");
+        public Stream OpGetStream1(Current current, CancellationToken cancel)
+        {
+            byte[] buffer = new byte[1024];
+            for (int i = 0; i < buffer.Length; ++i)
+            {
+                buffer[i] = (byte)(i % 256);
+            }
+            _streams.Add(new MemoryStream(buffer));
+            return _streams.Last();
+        }
 
-        public (string R1, Stream R2) OpGetStream2(Current current, CancellationToken cancel) =>
-            ("AllTests.cs", File.OpenRead("AllTests.cs"));
+        public (int R1, Stream R2) OpGetStream2(Current current, CancellationToken cancel)
+        {
+            byte[] buffer = new byte[1024];
+            for (int i = 0; i < buffer.Length; ++i)
+            {
+                buffer[i] = (byte)(i % 256);
+            }
+            _streams.Add(new MemoryStream(buffer));
+            return (1024, _streams.Last());
+        }
 
         public Stream OpSendAndGetStream1(Stream p1, Current current, CancellationToken cancel) =>
             p1;
 
-        public (string R1, Stream R2) OpSendAndGetStream2(
-            string p1,
+        public (int R1, Stream R2) OpSendAndGetStream2(
+            int p1,
             Stream p2,
             Current current,
             CancellationToken cancel) => (p1, p2);
 
-        private static void CompareStreams(Stream s1, Stream s2)
+        private static void ConsumeStream(int receivedSize, Stream stream)
         {
-            int v1, v2;
-            do
+            byte[] buffer = new byte[1024];
+            int size = 0;
+            while (true)
             {
-                v1 = s1.ReadByte();
-                v2 = s2.ReadByte();
-                TestHelper.Assert(v1 == v2);
+                int read = stream.Read(new Span<byte>(buffer));
+                if (read == 0)
+                {
+                    break;
+                }
+                for (int i = 0; i < read; ++i)
+                {
+                    TestHelper.Assert(buffer[i] == (byte)((size + i) % 256), $"{buffer[i]} != {(size + i) % 256}");
+                }
+                size += read;
             }
-            while (v1 != -1 && v2 != -1);
-
-            s1.Dispose();
-            s2.Dispose();
+            TestHelper.Assert(receivedSize == -1 || receivedSize == size);
+            stream.Dispose();
         }
     }
 }

@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Test;
@@ -86,14 +88,53 @@ namespace ZeroC.Ice.Test.Operations
 
             (byte ReturnValue, byte p3) = p.OpByteAsync(0xff, 0x0f).Result;
 
-            if (p.Protocol != Protocol.Ice1)
+            Task.Run(async () =>
             {
-                Task.Run(async () =>
+                if (p.Protocol == Protocol.Ice1)
                 {
-                    await p.OpSendStream1Async(File.OpenRead("AllTests.cs")).ConfigureAwait(false);
-                    await p.OpSendStream2Async("AllTests.cs", File.OpenRead("AllTests.cs")).ConfigureAwait(false);
-                }).Wait();
-            }
+                    return;
+                }
+
+                foreach (int size in new List<int>() { 32, 1024, 1024 * 1024 })
+                {
+                    byte[] buffer = new byte[size];
+                    for (int i = 0; i < buffer.Length; ++i)
+                    {
+                        buffer[i] = (byte)(i % 256);
+                    }
+
+                    var streams = new List<MemoryStreamWithDisposeCheck>();
+                    try
+                    {
+                        streams.Add(new MemoryStreamWithDisposeCheck(buffer));
+                        await p.OpSendStream1Async(streams.Last()).ConfigureAwait(false);
+                        streams.Last().WaitForDispose();
+
+                        streams.Add(new MemoryStreamWithDisposeCheck(buffer));
+                        await p.OpSendStream2Async(buffer.Length, streams.Last()).ConfigureAwait(false);
+                        streams.Last().WaitForDispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"test failed: {ex}");
+                        throw;
+                    }
+                    finally
+                    {
+                        foreach (Stream stream in streams)
+                        {
+                            try
+                            {
+                                stream.ReadByte();
+                                TestHelper.Assert(false);
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                            }
+                        }
+                    }
+                }
+            }).Wait();
         }
     }
 }

@@ -16,22 +16,18 @@ namespace ZeroC.Ice
         private bool _receivedEndOfStream;
         private readonly Ice1NetworkSocket _socket;
 
-        protected override void Dispose(bool disposing)
+        protected override void Destroy()
         {
-            base.Dispose(disposing);
-            if (disposing)
-            {
-                _socket.ReleaseFlowControlCredit(this);
-            }
+            base.Destroy();
+            _socket.ReleaseStream(this);
         }
 
         protected override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             // This is never called because we override the default ReceiveFrameAsync implementation
             throw new NotImplementedException();
 
-        protected override ValueTask ResetAsync(long errorCode) =>
-            // Stream reset is not supported with Ice1
-            new ValueTask();
+        // Stream reset is not supported with Ice1
+        protected override ValueTask ResetAsync(long errorCode) => default;
 
         protected async override ValueTask SendAsync(
             IList<ArraySegment<byte>> buffer,
@@ -47,17 +43,12 @@ namespace ZeroC.Ice
 
         internal void ReceivedFrame(Ice1FrameType frameType, ArraySegment<byte> frame)
         {
-            // If we received a response, we make sure to run the continuation asynchronously since this might end
-            // up calling user code and could therefore prevent receiving further data since AcceptStreamAsync
-            // would be blocked calling user code through this method.
-            if (frameType == Ice1FrameType.Reply)
+            if (frameType == Ice1FrameType.Reply && _socket.LastResponseStreamId < Id)
             {
-                if (_socket.LastResponseStreamId < Id)
-                {
-                    _socket.LastResponseStreamId = Id;
-                }
+                _socket.LastResponseStreamId = Id;
             }
-            SignalCompletion((frameType, frame));
+
+            SetResult((frameType, frame));
         }
 
         private protected override async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
@@ -65,8 +56,7 @@ namespace ZeroC.Ice
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
-            (Ice1FrameType frameType, ArraySegment<byte> frame) =
-                await WaitSignalAsync(cancel).ConfigureAwait(false);
+            (Ice1FrameType frameType, ArraySegment<byte> frame) = await WaitSignalAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)
