@@ -46,8 +46,10 @@ namespace ZeroC.Ice
             {
                 if (_exception != null)
                 {
-                    throw _exception;
+                    return;
                 }
+
+                _exception = exception;
 
                 // While we could instead use the EnterAsync cancellation token to cancel the operation, it's
                 // simpler and more efficient to trigger the cancellation directly by setting the exception on
@@ -141,11 +143,6 @@ namespace ZeroC.Ice
                 if (_currentCount == _maxCount)
                 {
                     throw new SemaphoreFullException($"semaphore maximum count of {_maxCount} already reached");
-                }
-
-                if (_exception != null)
-                {
-                    throw _exception;
                 }
 
                 while (_queue.Count > 0)

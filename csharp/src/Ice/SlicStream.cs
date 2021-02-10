@@ -359,7 +359,8 @@ namespace ZeroC.Ice
             }
         }
 
-        internal SlicStream(SlicSocket socket, long streamId) : base(socket, streamId) => _socket = socket;
+        internal SlicStream(SlicSocket socket, long streamId)
+            : base(socket, streamId) => _socket = socket;
 
         internal SlicStream(SlicSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
