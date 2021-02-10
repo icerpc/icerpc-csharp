@@ -14,6 +14,7 @@ namespace ZeroC.Ice
             Stream = 6,
             StreamLast = 7,
             StreamReset = 8,
+            StreamConsumed = 9
         }
 
         // The header below is a sentinel header used to reserve space in the protocol frame to avoid

@@ -11,7 +11,7 @@ namespace ZeroC.Ice
 {
     /// <summary>The SocketStream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream socket.</summary>
-    public abstract class SocketStream : IDisposable
+    public abstract class SocketStream
     {
         /// <summary>A delegate used to send data from a System.IO.Stream value.</summary>
         public static readonly Action<SocketStream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
@@ -37,8 +37,11 @@ namespace ZeroC.Ice
             set
             {
                 Debug.Assert(_id == -1);
+                // First add the stream and then assign the ID. AddStream can throw if the socket is closed and
+                // in this case we want to make sure the id isn't assigned since the stream isn't considered if
+                // not added to the socket.
+                _socket.AddStream(value, this, IsControl);
                 _id = value;
-                _socket.AddStream(_id, this, IsControl);
             }
         }
 
@@ -69,7 +72,7 @@ namespace ZeroC.Ice
 
         // The use count indicates if the socket stream is being used to process an invocation or dispatch or
         // to process stream parameters. The socket stream is disposed only once this count drops to 0.
-        private protected int UseCount = 1;
+        private protected int _useCount = 1;
 
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
@@ -81,18 +84,16 @@ namespace ZeroC.Ice
         /// implementation should abort the pending receive task.</summary>
         public abstract void Abort(Exception ex);
 
-        /// <summary>Releases the stream resources.</summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
+        /// <return>The IO stream which can be used to read the data received from the stream.</return>
+        public System.IO.Stream ReceiveDataIntoIOStream() => new IOStream(this);
 
-        public virtual System.IO.Stream ReceiveDataIntoIOStream() => new IOStream(this);
-
-        public virtual void SendDataFromIOStream(System.IO.Stream ioStream, CancellationToken cancel)
+        /// <summary>Send data from the given IO stream to the socket stream.</summary>
+        /// <param name="ioStream">The IO stream to read the data to send over the socket stream.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public void SendDataFromIOStream(System.IO.Stream ioStream, CancellationToken cancel)
         {
-            Interlocked.Increment(ref UseCount);
+            EnableSendFlowControl();
             Task.Run(async () =>
                 {
                     // We use the same default buffer size as System.IO.Stream.CopyToAsync()
@@ -109,7 +110,7 @@ namespace ZeroC.Ice
                         }
                     }
 
-                    ArraySegment<byte> receiveBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+                    var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(bufferSize), 0, bufferSize);
                     try
                     {
                         var sendBuffers = new List<ArraySegment<byte>> { receiveBuffer };
@@ -136,10 +137,10 @@ namespace ZeroC.Ice
                     finally
                     {
                         ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
-                    }
 
-                    TryDispose();
-                    ioStream.Dispose();
+                        Release();
+                        ioStream.Dispose();
+                    }
                 },
                 cancel);
         }
@@ -184,15 +185,40 @@ namespace ZeroC.Ice
             IsControl = control;
         }
 
-        /// <summary>Releases the resources used by the socket.</summary>
-        /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
-        /// unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
+        /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
+        /// response or a streamable parameter. It un-registers the stream from the socket.</summary>
+        protected virtual void Shutdown()
         {
-            if (disposing && IsStarted)
+            if (IsStarted && !_socket.RemoveStream(Id))
             {
-                _socket.RemoveStream(Id);
+                Debug.Assert(false);
+                throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
             }
+        }
+
+        /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
+        /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
+        /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
+        /// The stream relies on the underlying transport flow control instead (TCP, Quic, ...). For stream
+        /// parameters, whose size is not limited, it's important that the transport doesn't send an unlimited
+        /// amount of data if the receiver doesn't process it. For TCP based transports, this would cause the
+        /// send buffer to fill up and this would prevent other streams to be processed.</summary>
+        protected virtual void EnableReceiveFlowControl()
+        {
+            // Increment the use count of this stream to ensure it's not going to be disposed until receiving
+            // all the data from the stream.
+            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
+            Interlocked.Increment(ref _useCount);
+        }
+
+        /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
+        /// sending a request or response frame to send data from a stream parameter.</summary>
+        protected virtual void EnableSendFlowControl()
+        {
+            // Increment the use count of this stream to ensure it's not going to be disposed before sending
+            // all the data with the stream.
+            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
+            Interlocked.Increment(ref _useCount);
         }
 
         internal virtual async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
@@ -301,9 +327,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                // Increment the use count of this stream to ensure it's not going to be disposed before the
-                // stream parameter data is disposed.
-                Interlocked.Increment(ref UseCount);
+                EnableReceiveFlowControl();
                 request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
@@ -341,9 +365,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                // Increment the use count of this stream to ensure it's not going to be disposed before the
-                // stream parameter data is disposed.
-                Interlocked.Increment(ref UseCount);
+                EnableReceiveFlowControl();
                 response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
@@ -477,13 +499,12 @@ namespace ZeroC.Ice
         internal void TraceFrame(object frame, byte type = 0, byte compress = 0) =>
             _socket.TraceFrame(Id, frame, type, compress);
 
-        internal void TryDispose()
+        internal void Release()
         {
-            if (Interlocked.Decrement(ref UseCount) == 0)
+            if (Interlocked.Decrement(ref _useCount) == 0)
             {
-                Dispose();
+                Shutdown();
             }
-            Debug.Assert(UseCount >= 0);
         }
 
         private protected virtual async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
@@ -547,7 +568,7 @@ namespace ZeroC.Ice
                 if (frame is OutgoingRequestFrame)
                 {
                     throw new LimitExceededException(
-                        $@"the request size is larger than the peer's IncomingFrameSizeMax ({
+                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameSizeMax ({
                         _socket.PeerIncomingFrameMaxSize} bytes)");
                 }
                 else
@@ -555,7 +576,7 @@ namespace ZeroC.Ice
                     // Throw a remote exception instead of this response, the Ice connection will catch it and send it
                     // as the response instead of sending this response which is too large.
                     throw new ServerException(
-                        $@"the response size is larger than the peer's IncomingFrameSizeMax ({
+                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameSizeMax ({
                         _socket.PeerIncomingFrameMaxSize} bytes)");
                 }
             }
@@ -628,7 +649,7 @@ namespace ZeroC.Ice
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.TryDispose();
+                    _stream.Release();
                 }
             }
 

@@ -102,11 +102,17 @@ namespace ZeroC.Ice
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            // Dispose of the control streams.
+            // Release the remaining streams.
             foreach (SocketStream stream in _streams.Values)
             {
-                Debug.Assert(stream.IsControl);
-                stream.Dispose();
+                try
+                {
+                    stream.Release();
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception on Stream.TryRelease: {ex}");
+                }
             }
         }
 
@@ -185,7 +191,7 @@ namespace ZeroC.Ice
             return false;
         }
 
-        internal async ValueTask AbortAsync(Exception exception)
+        internal void Abort(Exception exception)
         {
             // Abort the transport.
             Abort();
@@ -197,12 +203,10 @@ namespace ZeroC.Ice
                 graceful = _streamsAborted;
             }
 
-            // Abort the streams if not already done and wait for all the streams to be completed. It's important to
-            // call this again even if has already been called previously by graceful connection closure. Not all the
-            // streams might have been aborted and at this point we want to make sure all the streams are aborted.
+            // Abort the streams if not already done. It's important to call this again even if has already been
+            // called previously by graceful connection closure. Not all the streams might have been aborted and
+            // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
-
-            await WaitForEmptyStreamsAsync().ConfigureAwait(false);
 
             if (Endpoint.Communicator.TraceLevels.Transport >= 1)
             {
@@ -227,8 +231,8 @@ namespace ZeroC.Ice
         {
             lock (_mutex)
             {
-                // Set the _streamsAborted flag to prevent addition of new streams by AddStream. No more streams will
-                // be added to _streams once this flag is true.
+                // Set the _streamsAborted flag to prevent addition of new streams by AddStream. No more streams
+                // will be added to _streams once this flag is true.
                 _streamsAborted = true;
             }
 
@@ -321,7 +325,7 @@ namespace ZeroC.Ice
             return stream;
         }
 
-        internal void RemoveStream(long id)
+        internal bool RemoveStream(long id)
         {
             if (_streams.TryRemove(id, out SocketStream? stream))
             {
@@ -330,6 +334,11 @@ namespace ZeroC.Ice
                     Interlocked.Decrement(ref stream.IsIncoming ? ref _incomingStreamCount : ref _outgoingStreamCount);
                 }
                 CheckStreamsEmpty();
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 

@@ -48,7 +48,7 @@ namespace ZeroC.Ice
             var readerOptions = new UnboundedChannelOptions
             {
                 SingleReader = true,
-                SingleWriter = true,
+                SingleWriter = false,
                 AllowSynchronousContinuations = false
             };
             var reader = Channel.CreateUnbounded<(long, object?, bool)>(readerOptions);
@@ -56,7 +56,7 @@ namespace ZeroC.Ice
             var writerOptions = new UnboundedChannelOptions
             {
                 SingleReader = true,
-                SingleWriter = true,
+                SingleWriter = false,
                 AllowSynchronousContinuations = false
             };
             var writer = Channel.CreateUnbounded<(long, object?, bool)>(writerOptions);
@@ -86,10 +86,12 @@ namespace ZeroC.Ice
                    adapter.Protocol)
         {
             Adapter = adapter;
+            // There's always a single reader (the acceptor) but there might be several writers calling Write
+            // concurrently if there are connection establishment attempts from multiple threads.
             var options = new UnboundedChannelOptions
             {
                 SingleReader = true,
-                SingleWriter = true,
+                SingleWriter = false,
                 AllowSynchronousContinuations = true
             };
             _channel = Channel.CreateUnbounded<(long, ColocatedChannelWriter, ColocatedChannelReader)>(options);

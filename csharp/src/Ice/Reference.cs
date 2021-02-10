@@ -1734,7 +1734,7 @@ namespace ZeroC.Ice
                 }
                 finally
                 {
-                    stream?.TryDispose();
+                    stream?.Release();
                 }
 
                 // Compute retry policy based on the exception or response retry policy, whether or not the connection

@@ -32,12 +32,10 @@ namespace ZeroC.Ice.Test.AMI
         public static async Task<int> Main(string[] args)
         {
             Dictionary<string, string> properties = CreateTestProperties(ref args);
-            properties["Ice.Warn.AMICallback"] = "0";
+
             // Limit the send buffer size, this test relies on the socket send() blocking after sending a given amount
             // of data.
             properties["Ice.TCP.SndSize"] = "50K";
-            // This test kills connections, so we don't want warnings.
-            properties["Ice.Warn.Connections"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
             return await RunTestAsync<Collocated>(communicator, args);

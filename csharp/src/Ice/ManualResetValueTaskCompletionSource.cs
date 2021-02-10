@@ -17,7 +17,7 @@ namespace ZeroC.Ice
             get => _source.RunContinuationsAsynchronously;
             set => _source.RunContinuationsAsynchronously = value;
         }
-        internal ValueTask<T> ValueTask => new ValueTask<T>(this, _source.Version);
+        internal ValueTask<T> ValueTask => new(this, _source.Version);
         private ManualResetValueTaskSourceCore<T> _source;
         private readonly bool _autoReset;
 

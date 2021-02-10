@@ -515,7 +515,7 @@ namespace ZeroC.Ice.Test.AMI
                             }
                             for (int j = 0; j < tasks.Length; ++j)
                             {
-                                previous = await tasks[j].ConfigureAwait(false);
+                                previous = tasks[j].Result;
                                 TestHelper.Assert(previous == expected);
                                 expected = j;
                             }
@@ -537,7 +537,7 @@ namespace ZeroC.Ice.Test.AMI
                             _ = (await serialized.GetConnectionAsync()).GoAwayAsync();
                             for (int j = 0; j < tasks.Length; ++j)
                             {
-                                await tasks[j].ConfigureAwait(false);
+                                tasks[j].Wait();
                             }
                         }
                     }
