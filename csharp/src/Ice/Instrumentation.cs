@@ -4,8 +4,7 @@ using System.Collections.Generic;
 
 namespace ZeroC.Ice.Instrumentation
 {
-    /// <summary>The child invocation observer to instrument remote or collocated invocations.
-    /// </summary>
+    /// <summary>The child invocation observer to instrument remote or collocated invocations.</summary>
     public interface IChildInvocationObserver : IObserver
     {
         /// <summary>Reply notification.</summary>
