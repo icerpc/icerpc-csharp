@@ -9,7 +9,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice.Instrumentation;
 
 namespace ZeroC.Ice
 {

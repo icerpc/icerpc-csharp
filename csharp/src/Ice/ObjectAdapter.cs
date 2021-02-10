@@ -9,8 +9,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using ZeroC.Ice.Instrumentation;
-
 namespace ZeroC.Ice
 {
     /// <summary>The object adapter provides an up-call interface from the Ice run time to the implementation of Ice
