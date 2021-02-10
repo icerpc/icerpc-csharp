@@ -1648,7 +1648,6 @@ namespace ZeroC.Ice
             do
             {
                 bool sent = false;
-                IChildInvocationObserver? childObserver = null;
                 SocketStream? stream = null;
                 try
                 {
@@ -1688,9 +1687,6 @@ namespace ZeroC.Ice
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
 
-                    childObserver = observer?.GetChildInvocationObserver(connection, request.PayloadSize);
-                    childObserver?.Attach();
-
                     // Send the request and wait for the sending to complete.
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
@@ -1717,8 +1713,6 @@ namespace ZeroC.Ice
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
 
-                    childObserver?.Reply(response.PayloadSize);
-
                     // If success, just return the response!
                     if (response.ResultType == ResultType.Success)
                     {
@@ -1731,19 +1725,16 @@ namespace ZeroC.Ice
                     // If we get NoEndpointException while using non cached endpoints, either all endpoints
                     // have been excluded or the proxy has no endpoints. we cannot retry, return here to
                     // preserve any previous exceptions that might have been throw.
-                    childObserver?.Failed(ex.GetType().FullName ?? "System.Exception");
                     observer?.Failed(ex.GetType().FullName ?? "System.Exception"); // TODO cleanup observer logic
                     return response ?? throw exception ?? ex;
                 }
                 catch (Exception ex)
                 {
                     exception = ex;
-                    childObserver?.Failed(ex.GetType().FullName ?? "System.Exception");
                 }
                 finally
                 {
                     stream?.Release();
-                    childObserver?.Detach();
                 }
 
                 // Compute retry policy based on the exception or response retry policy, whether or not the connection
