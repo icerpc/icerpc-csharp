@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice.Instrumentation;
 
 namespace ZeroC.Ice
 {
@@ -38,32 +37,13 @@ namespace ZeroC.Ice
         // necessary to avoid a race condition with the GoAway frame which could be received and processed before
         // the response is delivered to the stream.
         internal long LastResponseStreamId { get; set; }
-        internal IConnectionObserver? Observer
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _observer;
-                }
-            }
-            set
-            {
-                lock (_mutex)
-                {
-                    _observer = value;
-                    _observer?.Attach();
-                }
-            }
-        }
         internal event EventHandler? Ping;
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
 
         private int _incomingStreamCount;
-        // The mutex provides thread-safety for the _observer, _streamsAborted and LastActivity data members.
+        // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
         private readonly object _mutex = new();
-        private IConnectionObserver? _observer;
         private int _outgoingStreamCount;
         private readonly ConcurrentDictionary<long, SocketStream> _streams = new();
         private bool _streamsAborted;
@@ -127,7 +107,7 @@ namespace ZeroC.Ice
             {
                 try
                 {
-                    stream.TryRelease();
+                    stream.Release();
                 }
                 catch (Exception ex)
                 {
@@ -136,16 +116,14 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Notifies the observer and traces the given received amount of data. Transport implementations
-        /// should call this method to trace the received data.</summary>
+        /// <summary>Traces the given received amount of data. Transport implementations should call this method
+        /// to trace the received data.</summary>
         /// <param name="size">The size in bytes of the received data.</param>
         protected void Received(int size)
         {
             lock (_mutex)
             {
                 Debug.Assert(size > 0);
-                _observer?.ReceivedBytes(size);
-
                 LastActivity = Time.Elapsed;
             }
 
@@ -178,16 +156,14 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Notifies the observer and traces the given sent amount of data. Transport implementations
-        /// should call this method to trace the data sent.</summary>
+        /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
+        /// trace the data sent.</summary>
         /// <param name="size">The size in bytes of the data sent.</param>
         protected void Sent(int size)
         {
             lock (_mutex)
             {
                 Debug.Assert(size > 0);
-                _observer?.SentBytes(size);
-
                 LastActivity = Time.Elapsed;
             }
 
@@ -231,11 +207,6 @@ namespace ZeroC.Ice
             // called previously by graceful connection closure. Not all the streams might have been aborted and
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
-
-            lock (_mutex)
-            {
-                _observer?.Detach();
-            }
 
             if (Endpoint.Communicator.TraceLevels.Transport >= 1)
             {
@@ -294,6 +265,8 @@ namespace ZeroC.Ice
         {
             lock (_mutex)
             {
+                // It's important to hold the mutex here to ensure the check for _streamsAborted and the stream
+                // addition to the dictionary is atomic.
                 if (_streamsAborted)
                 {
                     throw new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));

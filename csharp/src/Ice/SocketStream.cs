@@ -138,7 +138,7 @@ namespace ZeroC.Ice
                     {
                         ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
 
-                        TryRelease();
+                        Release();
                         ioStream.Dispose();
                     }
                 },
@@ -187,7 +187,7 @@ namespace ZeroC.Ice
 
         /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
         /// response or a streamable parameter. It un-registers the stream from the socket.</summary>
-        protected virtual void Destroy()
+        protected virtual void Shutdown()
         {
             if (IsStarted && !_socket.RemoveStream(Id))
             {
@@ -499,11 +499,11 @@ namespace ZeroC.Ice
         internal void TraceFrame(object frame, byte type = 0, byte compress = 0) =>
             _socket.TraceFrame(Id, frame, type, compress);
 
-        internal void TryRelease()
+        internal void Release()
         {
             if (Interlocked.Decrement(ref _useCount) == 0)
             {
-                Destroy();
+                Shutdown();
             }
         }
 
@@ -649,7 +649,7 @@ namespace ZeroC.Ice
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.TryRelease();
+                    _stream.Release();
                 }
             }
 

@@ -70,7 +70,7 @@ namespace ZeroC.Ice
                         catch
                         {
                             // Ignore, the connection is being closed or the stream got aborted.
-                            stream?.TryRelease();
+                            stream?.Release();
                         }
                     }
                     else

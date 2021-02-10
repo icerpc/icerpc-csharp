@@ -46,9 +46,9 @@ namespace ZeroC.Ice
         // A value which is used as a gate to ensure the stream isn't released twice with the socket.
         private int _streamReleased;
 
-        protected override void Destroy()
+        protected override void Shutdown()
         {
-            base.Destroy();
+            base.Shutdown();
 
             // If there's still data pending to be received for the stream, we notify the socket that
             // we're abandoning the reading. It will finish to read the stream's frame data in order to
