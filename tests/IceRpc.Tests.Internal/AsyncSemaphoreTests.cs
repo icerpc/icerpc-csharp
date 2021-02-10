@@ -82,11 +82,36 @@ namespace IceRpc.Tests.Internal
             Assert.Throws<SemaphoreFullException>(() => semaphore.Release());
         }
 
-        [TestCase(null)]
-        public async Task AsyncSemaphore_Complete(Exception? exception)
+        [Test]
+        public void AsyncSemaphore_Complete()
         {
             var semaphore = new AsyncSemaphore(1);
-            semaphore.Complete(exception);
+            semaphore.Complete(new InvalidOperationException());
+        }
+
+        [Test]
+        public void AsyncSemaphore_Complete_Exception()
+        {
+            var semaphore = new AsyncSemaphore(1);
+            Assert.Throws<ArgumentOutOfRangeException>(() => semaphore.Complete(null!));
+        }
+
+        [Test]
+        public async Task AsyncSemaphore_Complete_ExceptionThrowing()
+        {
+            // Completing the semaphore should cause EnterAsync to throw the completion exception, other methods
+            // shouldn't throw this exception.
+            var semaphore = new AsyncSemaphore(1);
+            semaphore.Complete(new InvalidOperationException());
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await semaphore.EnterAsync());
+            Assert.DoesNotThrow(() => semaphore.Complete(new InvalidOperationException()));
+            Assert.Throws<SemaphoreFullException>(() => semaphore.Release());
+
+            // Completing the semaphore should cause Release to throw if the semaphore isn't full
+            semaphore = new AsyncSemaphore(1);
+            await semaphore.EnterAsync();
+            semaphore.Complete(new InvalidOperationException());
+            Assert.DoesNotThrow(() => semaphore.Release());
         }
     }
 }

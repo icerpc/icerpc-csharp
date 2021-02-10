@@ -48,8 +48,13 @@ namespace ZeroC.Ice
         /// The given exception will be raised by the awaited EnterAsync operation.</summary>
         /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
         /// completion.</param>
-        internal void Complete(Exception? exception = null)
+        internal void Complete(Exception exception)
         {
+            if (exception == null)
+            {
+                throw new ArgumentOutOfRangeException("exception can't be null");
+            }
+
             lock (_mutex)
             {
                 if (_exception != null)
