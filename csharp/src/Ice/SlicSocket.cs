@@ -261,7 +261,7 @@ namespace ZeroC.Ice
 
                 if (initializeBody.SlicVersion != 1)
                 {
-                    // If unsupported Slic version, we stop reading there and reply with a VERSION frame to provide
+                    // If unsupported Slic version, we stop reading there and reply with a Version frame to provide
                     // the client the supported Slic versions.
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
@@ -303,7 +303,7 @@ namespace ZeroC.Ice
                 // Read transport parameters
                 ReadParameters(istr);
 
-                // Send back an INITIALIZE_ACK frame.
+                // Send back an InitializeAck frame.
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.InitializeAck,
                     WriteParameters,
@@ -311,7 +311,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                // Send the INITIALIZE frame.
+                // Send the Initialize frame.
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.Initialize,
                     ostr =>
@@ -322,13 +322,13 @@ namespace ZeroC.Ice
                     },
                     cancel: cancel).ConfigureAwait(false);
 
-                // Read the INITIALIZE_ACK or VERSION frame from the server
+                // Read the InitializeAck or Version frame from the server
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 var istr = new InputStream(data, SlicDefinitions.Encoding);
 
-                // If we receive a VERSION frame, there isn't much we can do as we only support V1 so we throw
+                // If we receive a Version frame, there isn't much we can do as we only support V1 so we throw
                 // with an appropriate message to abort the connection.
                 if (type == SlicDefinitions.FrameType.Version)
                 {
