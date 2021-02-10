@@ -46,53 +46,38 @@ namespace ZeroC.Ice
             object? label,
             CancellationToken cancel)
         {
-            IObserver? observer = Communicator.Observer?.GetConnectionEstablishmentObserver(
+            var readerOptions = new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                AllowSynchronousContinuations = false
+            };
+            var reader = Channel.CreateUnbounded<(long, object?, bool)>(readerOptions);
+
+            var writerOptions = new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                AllowSynchronousContinuations = false
+            };
+            var writer = Channel.CreateUnbounded<(long, object?, bool)>(writerOptions);
+
+            long id = Interlocked.Increment(ref _nextId);
+
+            if (!_channel.Writer.TryWrite((id, writer.Writer, reader.Reader)))
+            {
+                throw new ConnectionRefusedException();
+            }
+
+            var connection = new ColocatedConnection(
                 this,
-                Adapter.Name.Length == 0 ? "unnamed adapter" : Adapter.Name);
-            try
-            {
-                observer?.Attach();
-                var readerOptions = new UnboundedChannelOptions
-                {
-                    SingleReader = true,
-                    SingleWriter = true,
-                    AllowSynchronousContinuations = false
-                };
-                var reader = Channel.CreateUnbounded<(long, object?, bool)>(readerOptions);
-
-                var writerOptions = new UnboundedChannelOptions
-                {
-                    SingleReader = true,
-                    SingleWriter = true,
-                    AllowSynchronousContinuations = false
-                };
-                var writer = Channel.CreateUnbounded<(long, object?, bool)>(writerOptions);
-
-                long id = Interlocked.Increment(ref _nextId);
-
-                if (!_channel.Writer.TryWrite((id, writer.Writer, reader.Reader)))
-                {
-                    throw new ConnectionRefusedException();
-                }
-
-                var connection = new ColocatedConnection(
-                    this,
-                    new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
-                    label,
-                    adapter: null);
-                await connection.InitializeAsync(cancel).ConfigureAwait(false);
-                return connection;
-            }
-            catch (Exception ex)
-            {
-                observer?.Failed(ex.GetType().FullName ?? "System.Exception");
-                throw;
-            }
-            finally
-            {
-                observer?.Detach();
-            }
+                new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
+                label,
+                adapter: null);
+            await connection.InitializeAsync(cancel).ConfigureAwait(false);
+            return connection;
         }
+
         protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 

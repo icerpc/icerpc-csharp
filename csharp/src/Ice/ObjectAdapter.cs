@@ -805,10 +805,6 @@ namespace ZeroC.Ice
             Current current,
             CancellationToken cancel)
         {
-            IDispatchObserver? dispatchObserver = Communicator.Observer?.GetDispatchObserver(current,
-                                                                                             current.StreamId,
-                                                                                             request.PayloadSize);
-            dispatchObserver?.Attach();
             try
             {
                 Debug.Assert(current.Adapter == this);
@@ -834,9 +830,7 @@ namespace ZeroC.Ice
                     }
                 }
 
-                OutgoingResponseFrame response = await DispatchAsync(_dispatchInterceptors, 0).ConfigureAwait(false);
-                dispatchObserver?.Reply(response.PayloadSize);
-                return response;
+                return await DispatchAsync(_dispatchInterceptors, 0).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -846,21 +840,17 @@ namespace ZeroC.Ice
                     if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
                     {
                         actualEx = remoteEx;
-                        dispatchObserver?.RemoteException();
                     }
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        dispatchObserver?.Failed(actualEx.InnerException!.GetType().FullName ?? "System.Exception");
                         if (Communicator.WarnDispatch)
                         {
                             Warning(ex);
                         }
                     }
 
-                    var response = new OutgoingResponseFrame(request, actualEx);
-                    dispatchObserver?.Reply(response.PayloadSize);
-                    return response;
+                    return new OutgoingResponseFrame(request, actualEx);
                 }
                 else
                 {
@@ -868,13 +858,8 @@ namespace ZeroC.Ice
                     {
                         Warning(ex);
                     }
-                    dispatchObserver?.Failed(ex.GetType().FullName ?? "System.Exception");
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }
-            }
-            finally
-            {
-                dispatchObserver?.Detach();
             }
 
             void Warning(Exception ex)
@@ -954,14 +939,6 @@ namespace ZeroC.Ice
                 }
             }
             return null;
-        }
-
-        internal void UpdateConnectionObservers()
-        {
-            foreach (IncomingConnectionFactory factory in _incomingConnectionFactories)
-            {
-                factory.UpdateConnectionObservers();
-            }
         }
 
         private static void CheckIdentity(Identity identity)

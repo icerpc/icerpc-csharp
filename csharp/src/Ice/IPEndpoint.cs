@@ -108,30 +108,13 @@ namespace ZeroC.Ice
             object? label,
             CancellationToken cancel)
         {
-            IReadOnlyList<IPEndPoint> addresses;
-            IObserver? endpointLookupObserver = Communicator.Observer?.GetEndpointLookupObserver(this);
-            endpointLookupObserver?.Attach();
-            try
-            {
-                addresses = await Network.GetAddressesForClientEndpointAsync(Host, Port, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                endpointLookupObserver?.Failed(ex.GetType().FullName ?? "System.Exception");
-                throw;
-            }
-            finally
-            {
-                endpointLookupObserver?.Detach();
-            }
+            IReadOnlyList<IPEndPoint> addresses =
+                await Network.GetAddressesForClientEndpointAsync(Host, Port, cancel).ConfigureAwait(false);
 
             IPEndPoint lastAddress = addresses[^1];
             Connection? connection = null;
             foreach (IPEndPoint address in addresses)
             {
-                IObserver? connectionEstablishmentObserver =
-                    Communicator.Observer?.GetConnectionEstablishmentObserver(this, address.ToString());
-                connectionEstablishmentObserver?.Attach();
                 try
                 {
                     bool secureOnly = preferNonSecure switch
@@ -147,16 +130,11 @@ namespace ZeroC.Ice
                 }
                 catch (Exception ex)
                 {
-                    connectionEstablishmentObserver?.Failed(ex.GetType().FullName ?? "System.Exception");
                     // Ignore the exception unless this is the last address
                     if (ex is OperationCanceledException || ReferenceEquals(lastAddress, address))
                     {
                         throw;
                     }
-                }
-                finally
-                {
-                    connectionEstablishmentObserver?.Detach();
                 }
             }
             Debug.Assert(connection != null);

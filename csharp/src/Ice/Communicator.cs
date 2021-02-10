@@ -34,15 +34,6 @@ namespace ZeroC.Ice
     /// </summary>
     public sealed partial class Communicator : IAsyncDisposable
     {
-        private class ObserverUpdater : Instrumentation.IObserverUpdater
-        {
-            public ObserverUpdater(Communicator communicator) => _communicator = communicator;
-
-            public void UpdateConnectionObservers() => _communicator.UpdateConnectionObservers();
-
-            private readonly Communicator _communicator;
-        }
-
         /// <summary>The connection close timeout.</summary>
         public TimeSpan CloseTimeout { get; }
         /// <summary>The connection establishment timeout.</summary>
@@ -559,8 +550,6 @@ namespace ZeroC.Ice
                 LoadAssemblies();
             }
 
-            Observer?.SetObserverUpdater(new ObserverUpdater(this));
-
             try
             {
                 _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
@@ -622,8 +611,6 @@ namespace ZeroC.Ice
 
                 // Ensure all the outgoing connections were removed
                 Debug.Assert(_outgoingConnections.Count == 0);
-
-                Observer?.SetObserverUpdater(null);
 
                 if (this.GetPropertyAsBool("Ice.Warn.UnusedProperties") ?? false)
                 {
@@ -859,26 +846,6 @@ namespace ZeroC.Ice
                 info.SndWarn = true;
                 info.SndSize = size;
                 _setBufWarnSize[transport] = info;
-            }
-        }
-
-        internal void UpdateConnectionObservers()
-        {
-            try
-            {
-                lock (_mutex)
-                {
-                    foreach (ICollection<Connection> connections in _outgoingConnections.Values)
-                    {
-                        foreach (Connection c in connections)
-                        {
-                            c.UpdateObserver();
-                        }
-                    }
-                }
-            }
-            catch (CommunicatorDisposedException)
-            {
             }
         }
 
