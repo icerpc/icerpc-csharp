@@ -57,9 +57,9 @@ namespace ZeroC.Ice
         internal CircularBuffer(int capacity) => _buffer = new byte[capacity];
 
         /// <summary>Add data to the buffer. This method doesn't actually copy the data to the buffer but returns
-        /// a slice of the buffer of the given size that the producer is responsible for filling in. The returned,
-        /// buffer is typically used to received directly the data from the socket which avoids any copy. The
-        /// caller must ensure there's enough space for adding the data.</summary>
+        /// a slice of the buffer of the given size. The producer is responsible for filling the data in. The
+        /// buffer is typically used to receive the data from the socket. The caller must ensure there's enough
+        /// space for adding the data.</summary>
         /// <param name="size">The size of the data to add.</param>
         /// <return>A buffer of the given size.</return>
         internal Memory<byte> Enqueue(int size)
@@ -103,7 +103,7 @@ namespace ZeroC.Ice
 
         /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from
         /// this circular buffer. The caller must ensure that there's enough data available.</summary>
-        /// <param name="buffer">The buffer to copy the consumed data.</param>
+        /// <param name="buffer">The buffer to copy the consumed data to.</param>
         internal void Consume(Memory<byte> buffer)
         {
             Debug.Assert(buffer.Length <= Count, "not enough data available");

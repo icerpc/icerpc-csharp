@@ -11,7 +11,11 @@ namespace ZeroC.Ice
 {
     /// <summary>The SignaledSocketStream abstract class provides signaling functionality using the
     /// IValueTaskSource interface. It's useful for stream implementations that depend on the socket
-    /// for receiving data. The socket can easily signal the stream when new data is available.</summary>
+    /// for receiving data. The socket can easily signal the stream when new data is available.
+    /// Signaling the stream and either be done with SetResult/SetException to signal a single value
+    /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
+    /// heap. Stream implementations will typically only use it when needed.
+    /// </summary>
     internal abstract class SignaledSocketStream<T> : SocketStream, IValueTaskSource<T>
     {
         internal bool IsSignaled
@@ -39,7 +43,7 @@ namespace ZeroC.Ice
         // is used to protect the setting of the signal value or exception with the manual reset value task source.
         private SpinLock _lock;
         // The result queue is only created when QueueResult() is called and if the result can't be set on the source
-        // because a result is already set.
+        // when a result is already set on the source.
         private Queue<T>? _resultQueue;
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
@@ -68,6 +72,7 @@ namespace ZeroC.Ice
 
         /// <summary>Queue a new result. Results are typically queue when stream buffering is enabled to receive
         /// stream data.</summary>
+        /// <param name="result">The result to queue.</param>
         protected void QueueResult(T result)
         {
             bool lockTaken = false;
@@ -102,7 +107,9 @@ namespace ZeroC.Ice
             }
         }
 
-        protected void SetException(Exception ex)
+        /// <summary>Signals the stream with a new exception.</summary>
+        /// <param name="exception">The exception that will be raised by WaitAsync.</param>
+        protected void SetException(Exception exception)
         {
             bool lockTaken = false;
             try
@@ -110,7 +117,7 @@ namespace ZeroC.Ice
                 _lock.Enter(ref lockTaken);
                 if (_exception == null)
                 {
-                    _exception = ex;
+                    _exception = exception;
 
                     // If the source isn't already signaled, signal completion by setting the exception. Otherwise
                     // if it's already signaled, a result is pending. In this case, we'll raise the exception the
@@ -119,7 +126,7 @@ namespace ZeroC.Ice
                     // source's result or exception is consumed.
                     if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                     {
-                        _source.SetException(ex);
+                        _source.SetException(exception);
                     }
                 }
             }
@@ -132,6 +139,8 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Signals the stream with a new result.</summary>
+        /// <param name="result">The result that will be returned by WaitAsync.</param>
         protected void SetResult(T result)
         {
             bool lockTaken = false;
@@ -159,6 +168,9 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Wait for the stream to be signaled with a result or exception.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <return>The value used to signaled the stream.</return>
         protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
             if (cancel.CanBeCanceled)
@@ -179,7 +191,7 @@ namespace ZeroC.Ice
             T result = _source.GetResult(token);
 
             // Reset the source to allow the stream to be signaled again. It's important to dispose the
-            // registration without the lock held as Dispose() might block until the cancellation callback
+            // registration without the lock held since Dispose() might block until the cancellation callback
             // is completed if the cancellation callback is running (and potentially trying to acquire the
             // lock to set the exception).
             _tokenRegistration.Dispose();
@@ -191,8 +203,8 @@ namespace ZeroC.Ice
                 _lock.Enter(ref lockTaken);
 
                 // Reseting the source must be done with the lock held because  other threads are
-                // checking the source status to figure out whether or not the queue another result
-                // or exception.
+                // checking the source status to figure out whether or not to set another result
+                // or exception on the source.
                 _source.Reset();
 
                 if (_resultQueue != null && _resultQueue.Count > 0)

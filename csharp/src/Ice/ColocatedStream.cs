@@ -119,8 +119,10 @@ namespace ZeroC.Ice
             {
                 if (buffer[0].Count > 0)
                 {
-                    // TODO: replace the channel with a better mechanism which doesn't require copying the data
-                    // from the sender.
+                    // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
+                    // copying the data from the sender. Copying the data is necessary here because WriteAsync
+                    // doesn't block if there's space in the channel and it's not possible to create a
+                    // bounded channel with a null capacity.
                     byte[] copy = new byte[buffer[0].Count];
                     buffer[0].CopyTo(copy);
                     await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);

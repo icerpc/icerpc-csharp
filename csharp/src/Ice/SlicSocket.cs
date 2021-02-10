@@ -33,10 +33,10 @@ namespace ZeroC.Ice
         private readonly int _maxUnidirectionalStreams;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
-        private Memory<byte>? _receiveBuffer;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly BufferedReceiveOverSingleStreamSocket _socket;
+        private Memory<byte>? _streamConsumedBuffer;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
 
@@ -121,9 +121,10 @@ namespace ZeroC.Ice
                             }
                             catch
                             {
-                                // The socket is being closed,  we make sure the receive of the frame data will be
-                                // skiped if the connection is being closed gracefully and we are waiting for the
-                                // peer to close the connection.
+                                // The socket is being closed,  we make sure to receive the frame data. If the
+                                // connection is being closed gracefully, the connection waits for the socket
+                                // to receive the RST from the peer so it's important to receive and skip all
+                                // the data until the RST is received.
                                 FinishedReceivedStreamData(size);
                                 throw;
                             }
@@ -215,11 +216,11 @@ namespace ZeroC.Ice
                             throw new InvalidDataException("stream consumed frame too large");
                         }
 
-                        _receiveBuffer ??= new byte[size];
+                        _streamConsumedBuffer ??= new byte[8];
 
-                        await ReceiveDataAsync(_receiveBuffer.Value[0..size], cancel).ConfigureAwait(false);
+                        await ReceiveDataAsync(_streamConsumedBuffer.Value[0..size], cancel).ConfigureAwait(false);
 
-                        var istr = new InputStream(_receiveBuffer.Value[0..size], SlicDefinitions.Encoding);
+                        var istr = new InputStream(_streamConsumedBuffer.Value[0..size], SlicDefinitions.Encoding);
                         var streamConsumed = new StreamConsumedBody(istr);
                         if (TryGetStream(streamId.Value, out SlicStream? stream))
                         {
@@ -502,7 +503,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                // If the outgoing stream isn't started, we need to acquire increase the stream count to
+                // If the outgoing stream isn't started, we need to increase the semaphore count to
                 // ensure we don't open more streams than the peer allows. The semaphore provides FIFO
                 // guarantee to ensure that the sending of requests is serialized.
                 Debug.Assert(!stream.IsIncoming);
