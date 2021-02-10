@@ -46,31 +46,14 @@ namespace ZeroC.Ice.Test.Retry
             public void RemoteException()
             {
             }
-
-            public IChildInvocationObserver? GetChildInvocationObserver(Connection connection, int size) => null;
         }
 
         private static readonly IInvocationObserver _invocationObserver = new InvocationObserver();
 
         private class CommunicatorObserverI : ICommunicatorObserver
         {
-            public IObserver? GetConnectionEstablishmentObserver(Endpoint e, string s) => null;
-
-            public IObserver? GetEndpointLookupObserver(Endpoint e) => null;
-
-            public IConnectionObserver? GetConnectionObserver(
-                Connection connection,
-                ConnectionState connectionState,
-                IConnectionObserver? observer) => null;
-
             public IInvocationObserver? GetInvocationObserver(IObjectPrx? p, string o,
                 IReadOnlyDictionary<string, string> c) => _invocationObserver;
-
-            public IDispatchObserver? GetDispatchObserver(Current c, long requestId, int i) => null;
-
-            public void SetObserverUpdater(IObserverUpdater? u)
-            {
-            }
         }
 
         public static ICommunicatorObserver GetObserver() => _communicatorObserver;

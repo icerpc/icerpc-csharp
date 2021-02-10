@@ -428,20 +428,6 @@ namespace ZeroC.Ice
             }
         }
 
-        internal void UpdateObserver()
-        {
-            lock (_mutex)
-            {
-                // The observer is attached once the connection is active and detached once the close task completes.
-                if (_state < ConnectionState.Active || (_state == ConnectionState.Closed && _closeTask!.IsCompleted))
-                {
-                    return;
-                }
-
-                Socket.Observer = Communicator.Observer?.GetConnectionObserver(this, _state, Socket.Observer);
-            }
-        }
-
         private async Task AbortAsync(Exception exception)
         {
             lock (_mutex)
@@ -616,19 +602,6 @@ namespace ZeroC.Ice
                 }
             }
 
-            if (Communicator.Observer != null)
-            {
-                Socket.Observer = Communicator.Observer.GetConnectionObserver(this, state, Socket.Observer);
-
-                if (Socket.Observer != null && state == ConnectionState.Closed)
-                {
-                    Debug.Assert(exception != null);
-                    if (_state != ConnectionState.Closing)
-                    {
-                        Socket.Observer.Failed(exception.GetType().FullName!);
-                    }
-                }
-            }
             _state = state;
         }
 
