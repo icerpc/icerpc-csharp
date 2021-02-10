@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
+    <Compile Include="..\Shared\TestData.cs" Link="TestData.cs" />
+    <Compile Update="generated\DispatchInterceptorTests.cs">
+      <SliceCompileSource>DispatchInterceptorTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\InvocationInterceptorTests.cs">
+      <SliceCompileSource>InvocationInterceptorTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\InvocationTimeoutTests.cs">
+      <SliceCompileSource>InvocationTimeoutTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="3.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit" Version="3.13.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All"/>
+    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="generated\" />
+  </ItemGroup>
+
+</Project>

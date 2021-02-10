@@ -153,9 +153,6 @@ namespace ZeroC.Ice
         /// <summary>The invocation interceptors of this proxy.</summary>
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors => IceReference.InvocationInterceptors;
 
-        /// <summary>The invocation mode of this proxy. Only useful for ice1 proxies.</summary>
-        public InvocationMode InvocationMode => IceReference.InvocationMode;
-
         /// <summary>The invocation timeout of this proxy.</summary>
         public TimeSpan InvocationTimeout => IceReference.InvocationTimeout;
 

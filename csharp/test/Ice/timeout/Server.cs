@@ -19,7 +19,7 @@ namespace ZeroC.Ice.Test.Timeout
                 new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) },
                 scheduler: schedulerPair.ExclusiveScheduler);
             adapter.Add("timeout", new Timeout());
-            adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
+            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(
                 (request, current, next, cancel) =>
                 {
                     if (current.Operation == "checkDeadline")

@@ -96,10 +96,10 @@ namespace ZeroC.Ice
         /// <summary>The default invocation interceptors for proxies created using this communicator. Changing the value
         /// of DefaultInvocationInterceptors does not change the invocation interceptors of previously created proxies.
         /// </summary>
-        public IReadOnlyList<InvocationInterceptor> DefaultInvocationInterceptors
+        public ImmutableList<InvocationInterceptor> DefaultInvocationInterceptors
         {
             get => _defaultInvocationInterceptors;
-            set => _defaultInvocationInterceptors = value.ToImmutableList();
+            set => _defaultInvocationInterceptors = value;
         }
 
         /// <summary>The default locator for this communicator. To disable the default locator, null can be used.

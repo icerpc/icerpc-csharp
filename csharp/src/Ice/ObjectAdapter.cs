@@ -33,10 +33,10 @@ namespace ZeroC.Ice
         public Communicator Communicator { get; }
 
         /// <summary>The dispatch interceptors of this object adapter.</summary>
-        public IReadOnlyList<DispatchInterceptor> DispatchInterceptors
+        public ImmutableList<DispatchInterceptor> DispatchInterceptors
         {
             get => _dispatchInterceptors;
-            set => _dispatchInterceptors = value.ToImmutableList();
+            set => _dispatchInterceptors = value;
         }
 
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
@@ -108,6 +108,8 @@ namespace ZeroC.Ice
         private readonly Dictionary<(string Category, string Facet), IObject> _categoryServantMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
 
+        private readonly bool _datagramOnly;
+
         private readonly Dictionary<string, IObject> _defaultServantMap = new();
         private volatile ImmutableList<DispatchInterceptor> _dispatchInterceptors =
             ImmutableList<DispatchInterceptor>.Empty;
@@ -115,7 +117,6 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
-        private readonly InvocationMode _invocationMode = InvocationMode.Twoway;
 
         private ILocatorPrx? _locator;
         private readonly object _mutex = new();
@@ -216,8 +217,8 @@ namespace ZeroC.Ice
                                           PublishedEndpoints,
                                           facet: "",
                                           new Identity("dummy", ""),
-                                          invocationMode: default,
                                           location: ImmutableArray<string>.Empty,
+                                          oneway: false,
                                           protocol: PublishedEndpoints[0].Protocol));
                         if (ReplicaGroupId.Length > 0)
                         {
@@ -543,8 +544,8 @@ namespace ZeroC.Ice
                                                 PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
                                              facet,
                                              identity,
-                                             _invocationMode,
                                              location,
+                                             oneway: _datagramOnly,
                                              protocol));
             }
         }
@@ -705,7 +706,8 @@ namespace ZeroC.Ice
 
                     if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
                     {
-                        _invocationMode = InvocationMode.Datagram;
+                        _datagramOnly = true;
+                        ColocationScope = ColocationScope.None;
                     }
 
                     // When the adapter is configured to only accept secure connections ensure that all
