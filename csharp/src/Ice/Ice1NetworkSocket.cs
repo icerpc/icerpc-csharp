@@ -142,7 +142,7 @@ namespace ZeroC.Ice
                         catch
                         {
                             // Ignore, if the connection is being closed or the stream has been aborted.
-                            stream?.TryRelease();
+                            stream?.Release();
                         }
                     }
                     else if (frameType == Ice1FrameType.ValidateConnection)

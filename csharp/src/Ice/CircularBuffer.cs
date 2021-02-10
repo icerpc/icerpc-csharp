@@ -49,6 +49,7 @@ namespace ZeroC.Ice
         // _full is required to figure out whether or not the buffer is full or empty when _tail == _head.
         private bool _full;
         private int _head;
+        // The lock provides thread-safety for the _head, _full and _tail data members.
         private SpinLock _lock;
         private int _tail;
 

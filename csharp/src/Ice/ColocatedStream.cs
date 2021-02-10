@@ -20,9 +20,9 @@ namespace ZeroC.Ice
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
-        protected override void Destroy()
+        protected override void Shutdown()
         {
-            base.Destroy();
+            base.Shutdown();
             _socket.ReleaseStream(this);
         }
 

@@ -59,9 +59,9 @@ namespace ZeroC.Ice
         protected SignaledSocketStream(MultiStreamSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _source.RunContinuationsAsynchronously = true;
 
-        protected override void Destroy()
+        protected override void Shutdown()
         {
-            base.Destroy();
+            base.Shutdown();
 
             // Ensure the stream signaling fails after destruction of the stream.
             SetException(_disposedException);
@@ -202,7 +202,7 @@ namespace ZeroC.Ice
             {
                 _lock.Enter(ref lockTaken);
 
-                // Reseting the source must be done with the lock held because  other threads are
+                // Reseting the source must be done with the lock held because other threads are
                 // checking the source status to figure out whether or not to set another result
                 // or exception on the source.
                 _source.Reset();

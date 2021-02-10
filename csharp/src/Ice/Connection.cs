@@ -587,7 +587,7 @@ namespace ZeroC.Ice
             }
             finally
             {
-                stream?.TryRelease();
+                stream?.Release();
             }
 
             static async ValueTask<OutgoingResponseFrame> TaskRun(

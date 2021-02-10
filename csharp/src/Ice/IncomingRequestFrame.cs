@@ -60,7 +60,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Releases resources used by the request frame.</summary>
-        public void Dispose() => SocketStream?.TryRelease();
+        public void Dispose() => SocketStream?.Release();
 
         /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
         /// unknown tagged arguments.</summary>

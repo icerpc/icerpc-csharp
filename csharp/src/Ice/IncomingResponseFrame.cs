@@ -38,7 +38,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Releases resources used by the response frame.</summary>
-        public void Dispose() => SocketStream?.TryRelease();
+        public void Dispose() => SocketStream?.Release();
 
         /// <summary>Reads the return value. If this response frame carries a failure, reads and throws this exception.
         /// </summary>

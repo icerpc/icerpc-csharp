@@ -28,7 +28,7 @@ namespace ZeroC.Ice
         private Exception? _exception;
         private readonly int _maxCount;
         private readonly object _mutex = new();
-        private Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
+        private readonly Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
 
         internal AsyncSemaphore(int initialCount)
         {

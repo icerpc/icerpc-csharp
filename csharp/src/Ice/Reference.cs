@@ -1742,7 +1742,7 @@ namespace ZeroC.Ice
                 }
                 finally
                 {
-                    stream?.TryRelease();
+                    stream?.Release();
                     childObserver?.Detach();
                 }
 

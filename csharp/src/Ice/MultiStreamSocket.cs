@@ -127,7 +127,7 @@ namespace ZeroC.Ice
             {
                 try
                 {
-                    stream.TryRelease();
+                    stream.Release();
                 }
                 catch (Exception ex)
                 {

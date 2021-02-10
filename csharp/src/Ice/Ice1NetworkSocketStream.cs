@@ -16,9 +16,9 @@ namespace ZeroC.Ice
         private bool _receivedEndOfStream;
         private readonly Ice1NetworkSocket _socket;
 
-        protected override void Destroy()
+        protected override void Shutdown()
         {
-            base.Destroy();
+            base.Shutdown();
             _socket.ReleaseStream(this);
         }
 
