@@ -16,6 +16,7 @@ namespace ZeroC.Ice
         internal static Endpoint? GetColocatedEndpoint(ObjectPrx proxy) =>
             _objectAdapterList.Select(adapter => adapter.GetColocatedEndpoint(proxy)).
                 FirstOrDefault(endpoint => endpoint != null);
+
         internal static void RegisterObjectAdapter(ObjectAdapter adapter)
         {
             lock (_mutex)
