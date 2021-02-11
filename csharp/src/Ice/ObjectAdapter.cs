@@ -211,15 +211,7 @@ namespace ZeroC.Ice
                 {
                     if (Protocol == Protocol.Ice1)
                     {
-                        IObjectPrx proxy = ObjectPrx.Create<ObjectPrx>(
-                            Communicator,
-                            Protocol.GetEncoding(),
-                            PublishedEndpoints,
-                            facet: "",
-                            new Identity("dummy", ""),
-                            location: ImmutableArray<string>.Empty,
-                            oneway: false,
-                            protocol: PublishedEndpoints[0].Protocol);
+                        var proxy = CreateDummyProxy();
 
                         if (ReplicaGroupId.Length > 0)
                         {
@@ -268,6 +260,17 @@ namespace ZeroC.Ice
                     Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
                 }
             }
+
+            IObjectPrx CreateDummyProxy()
+            {
+                var options = new ObjectPrxOptions(
+                    Communicator,
+                    new Identity("dummy", ""),
+                    PublishedEndpoints[0].Protocol,
+                    endpoints: PublishedEndpoints);
+
+                return ObjectPrx.Create(options, IObjectPrx.Factory);
+            }
         }
 
         /// <inheritdoc/>
@@ -311,15 +314,13 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{TPrx, TImpl}(Identity, string, ProxyFactory{TPrx, TImpl})"/>.
-        /// </param>
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, T)"/>. </param>
         /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public TPrx Add<TPrx, TImpl>(
+        public T Add<T>(
             Identity identity,
             string facet,
             IObject servant,
-            ProxyFactory<TPrx, TImpl> proxyFactory) where TPrx : class, IObjectPrx
-                                                    where TImpl : ObjectPrx, TPrx, new()
+            T proxyFactory) where T : class, IObjectPrx
         {
             Add(identity, facet, servant);
             return CreateProxy(identity, facet, proxyFactory);
@@ -354,11 +355,9 @@ namespace ZeroC.Ice
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{TPrx, TImpl}(string, ProxyFactory{TPrx, TImpl})"/>.</param>
+        /// for this parameter. See <see cref="CreateProxy{T}(string, T)"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public TPrx Add<TPrx, TImpl>(string identityAndFacet, IObject servant, ProxyFactory<TPrx, TImpl> proxyFactory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new()
+        public T Add<T>(string identityAndFacet, IObject servant, T proxyFactory) where T : class, IObjectPrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Add(identity, facet, servant, proxyFactory);
@@ -381,11 +380,9 @@ namespace ZeroC.Ice
         /// be empty.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{TPrx, TImpl}(Identity, ProxyFactory{TPrx, TImpl})"/>.</param>
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, T)"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public TPrx Add<TPrx, TImpl>(Identity identity, IObject servant, ProxyFactory<TPrx, TImpl> proxyFactory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new() =>
+        public T Add<T>(Identity identity, IObject servant, T proxyFactory) where T : class, IObjectPrx =>
             Add(identity, "", servant, proxyFactory);
 
         /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
@@ -401,12 +398,10 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{TPrx, TImpl}(Identity, string, ProxyFactory{TPrx, TImpl})"/>.
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, T)"/>.
         /// </param>
         /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public TPrx AddWithUUID<TPrx, TImpl>(string facet, IObject servant, ProxyFactory<TPrx, TImpl> proxyFactory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new() =>
+        public T AddWithUUID<T>(string facet, IObject servant, T proxyFactory) where T : class, IObjectPrx =>
             Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
 
         /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
@@ -414,11 +409,9 @@ namespace ZeroC.Ice
         /// category.</summary>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{TPrx, TImpl}(Identity, ProxyFactory{TPrx, TImpl})"/>.</param>
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, T)"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public TPrx AddWithUUID<TPrx, TImpl>(IObject servant, ProxyFactory<TPrx, TImpl> proxyFactory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new() =>
+        public T AddWithUUID<T>(IObject servant, T proxyFactory) where T : class, IObjectPrx =>
             AddWithUUID("", servant, proxyFactory);
 
         /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
@@ -533,9 +526,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public TPrx CreateProxy<TPrx, TImpl>(Identity identity, string facet, ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new()
+        public T CreateProxy<T>(Identity identity, string facet, T factory) where T : class, IObjectPrx
         {
             CheckIdentity(identity);
 
@@ -551,15 +542,16 @@ namespace ZeroC.Ice
 
                 Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
 
-                return factory(ObjectPrx.Create<TImpl>(Communicator,
-                                                       protocol.GetEncoding(),
-                                                       endpoints: AdapterId.Length == 0 ?
-                                                            PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
-                                                       facet,
-                                                       identity,
-                                                       location,
-                                                       oneway: _datagramOnly,
-                                                       protocol));
+                var options = new ObjectPrxOptions(
+                    Communicator,
+                    identity,
+                    protocol,
+                    endpoints: AdapterId.Length == 0 ? PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
+                    facet: facet,
+                    location: location,
+                    oneway: _datagramOnly);
+
+                return ObjectPrx.Create(options, factory);
             }
         }
 
@@ -571,9 +563,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity.</returns>
-        public TPrx CreateProxy<TPrx, TImpl>(Identity identity, ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new() =>
+        public T CreateProxy<T>(Identity identity, T factory) where T : class, IObjectPrx =>
             CreateProxy(identity, "", factory);
 
         /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
@@ -584,9 +574,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public TPrx CreateProxy<TPrx, TImpl>(string identityAndFacet, ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new()
+        public T CreateProxy<T>(string identityAndFacet, T factory) where T : class, IObjectPrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return CreateProxy(identity, facet, factory);

@@ -8,39 +8,30 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
-    /// <summary>Helper delegate used when manufacturing proxies.</summary>
-    /// <typeparam name="TPrx">The proxy interface.</typeparam>
-    /// <typeparam name="TImpl">The record that implements <c>TPrx</c>.</typeparam>
-    /// <param name="impl">An instance of TImpl.</param>
-    /// <returns><c>impl</c> converted into a <c>TPrx</c>.</returns>
-    public delegate TPrx ProxyFactory<TPrx, TImpl>(TImpl impl) where TPrx : class, IObjectPrx
-                                                               where TImpl : ObjectPrx, TPrx, new();
-
     /// <summary>Proxy provides extension methods for IObjectPrx.</summary>
     public static class Proxy
     {
         /// <summary>Tests whether this proxy points to a remote object derived from T. If so it returns a proxy of
         /// type T otherwise returns null. This is a convenience wrapper for <see cref="IObjectPrx.IceIsAAsync"/>.
         /// </summary>
-        /// <param name="prx">The source proxy.</param>
+        /// <param name="proxy">The source proxy.</param>
         /// <param name="factory">The proxy factory used to specify the desired proxy type.</param>
         /// <param name="context">The context dictionary for the invocation.</param>
         /// <param name="progress">Sent progress provider.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new proxy manufactured by the proxy factory, or null.</returns>
-        public static async Task<TPrx?> CheckedCastAsync<TPrx, TImpl>(
-            this IObjectPrx prx,
-            ProxyFactory<TPrx, TImpl> factory,
+        public static async Task<T?> CheckedCastAsync<T>(
+            this IObjectPrx proxy,
+            T factory,
             IReadOnlyDictionary<string, string>? context = null,
             IProgress<bool>? progress = null,
-            CancellationToken cancel = default) where TPrx : class, IObjectPrx
-                                                where TImpl : ObjectPrx, TPrx, new() =>
-            await prx.IceIsAAsync(typeof(TPrx).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
-                (prx is TPrx t ? t : factory(prx.Impl.Convert<TImpl>())) : null;
+            CancellationToken cancel = default) where T : class, IObjectPrx =>
+            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
+                (proxy is T t ? t : Clone(proxy, factory)) : null;
 
         /// <summary>Creates a clone of this proxy, with a new identity and optionally other options. The clone
         /// is identical to this proxy except for its identity and other options set through parameters.</summary>
-        /// <param name="prx">The source proxy.</param>
+        /// <param name="proxy">The source proxy.</param>
         /// <param name="factory">The proxy factory used to specify the desired proxy type.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
@@ -68,10 +59,9 @@ namespace ZeroC.Ice
         /// connections (optional).</param>
         /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
         /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
-        // TODO: rename to Convert?
-        public static TPrx Clone<TPrx, TImpl>(
-            this IObjectPrx prx,
-            ProxyFactory<TPrx, TImpl> factory,
+        public static T Clone<T>(
+            this IObjectPrx proxy,
+            T factory,
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
@@ -91,33 +81,34 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null) where TPrx : class, IObjectPrx
-                                   where TImpl : ObjectPrx, TPrx, new() =>
-            factory(prx.Impl.Convert<TImpl>(cacheConnection,
-                                            clearLabel,
-                                            clearLocator,
-                                            context,
-                                            encoding,
-                                            endpoints,
-                                            facet,
-                                            fixedConnection,
-                                            identity,
-                                            identityAndFacet,
-                                            invocationInterceptors,
-                                            invocationTimeout,
-                                            label,
-                                            location,
-                                            locator,
-                                            locatorCacheTimeout,
-                                            oneway,
-                                            preferExistingConnection,
-                                            preferNonSecure,
-                                            relative));
+            bool? relative = null) where T : class, IObjectPrx =>
+            ObjectPrx.Clone(proxy.Impl,
+                            factory,
+                            cacheConnection,
+                            clearLabel,
+                            clearLocator,
+                            context,
+                            encoding,
+                            endpoints,
+                            facet,
+                            fixedConnection,
+                            identity,
+                            identityAndFacet,
+                            invocationInterceptors,
+                            invocationTimeout,
+                            label,
+                            location,
+                            locator,
+                            locatorCacheTimeout,
+                            oneway,
+                            preferExistingConnection,
+                            preferNonSecure,
+                            relative);
 
         /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for options set
         /// through parameters. This method returns this proxy instead of a new proxy in the event none of the options
         /// specified through the parameters change this proxy's options.</summary>
-        /// <param name="prx">The source proxy.</param>
+        /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
         /// <param name="clearLocator">When set to true, the clone does not have an associated locator proxy (optional).
@@ -142,7 +133,7 @@ namespace ZeroC.Ice
         /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
         /// <returns>A new proxy with the same type as this proxy.</returns>
         public static T Clone<T>(
-            this T prx,
+            this T proxy,
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
@@ -160,41 +151,28 @@ namespace ZeroC.Ice
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
             bool? relative = null) where T : class, IObjectPrx =>
-                (prx.Impl.With(cacheConnection,
-                               clearLabel,
-                               clearLocator,
-                               context,
-                               encoding,
-                               endpoints,
-                               fixedConnection,
-                               invocationInterceptors,
-                               invocationTimeout,
-                               label,
-                               location,
-                               locator,
-                               locatorCacheTimeout,
-                               oneway,
-                               preferExistingConnection,
-                               preferNonSecure,
-                               relative) as T)!;
-
-        /// <summary>Returns the cached Connection for this proxy. If the proxy does not yet have an established
-        /// connection, it does not attempt to create a connection.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <returns>The cached Connection for this proxy (null if the proxy does not have
-        /// an established connection).</returns>
-        public static Connection? GetCachedConnection(this IObjectPrx proxy) =>
-            proxy.Impl.GetCachedConnection();
-
-        /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
-        /// it first attempts to create a connection.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The Connection for this proxy.</returns>
-        public static ValueTask<Connection> GetConnectionAsync(
-            this IObjectPrx proxy,
-            CancellationToken cancel = default) =>
-            proxy.Impl.GetConnectionAsync(cancel);
+            ObjectPrx.Clone(proxy.Impl,
+                            proxy,
+                            cacheConnection,
+                            clearLabel,
+                            clearLocator,
+                            context,
+                            encoding,
+                            endpoints,
+                            facet: null,
+                            fixedConnection,
+                            identity: null,
+                            identityAndFacet: null,
+                            invocationInterceptors,
+                            invocationTimeout,
+                            label,
+                            location,
+                            locator,
+                            locatorCacheTimeout,
+                            oneway,
+                            preferExistingConnection,
+                            preferNonSecure,
+                            relative);
 
         /// <summary>Forwards an incoming request to another Ice object represented by the <paramref name="proxy"/>
         /// parameter.</summary>
@@ -229,6 +207,24 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Returns the cached Connection for this proxy. If the proxy does not yet have an established
+        /// connection, it does not attempt to create a connection.</summary>
+        /// <param name="proxy">The proxy.</param>
+        /// <returns>The cached Connection for this proxy (null if the proxy does not have
+        /// an established connection).</returns>
+        public static Connection? GetCachedConnection(this IObjectPrx proxy) =>
+            proxy.Impl.GetCachedConnection();
+
+        /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
+        /// it first attempts to create a connection.</summary>
+        /// <param name="proxy">The proxy.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The Connection for this proxy.</returns>
+        public static ValueTask<Connection> GetConnectionAsync(
+            this IObjectPrx proxy,
+            CancellationToken cancel = default) =>
+            proxy.Impl.GetConnectionAsync(cancel);
+
         /// <summary>Invokes a request on a proxy.</summary>
         /// <remarks>request.CancellationToken holds the cancellation token.</remarks>
         /// <param name="proxy">The proxy for the target Ice object.</param>
@@ -249,5 +245,12 @@ namespace ZeroC.Ice
         /// <returns>The location as a percent-escaped string with segments separated by '/'.</returns>
         public static string ToLocationString(this IEnumerable<string> location) =>
             string.Join('/', location.Select(s => Uri.EscapeDataString(s)));
+
+        /// <summary>Converts a proxy to a set of proxy properties.</summary>
+        /// <param name="proxy">The proxy for the target Ice object.</param>
+        /// <param name="property">The base property name.</param>
+        /// <returns>The property set.</returns>
+        public static Dictionary<string, string> ToProperty(this IObjectPrx proxy, string property) =>
+            proxy.Impl.ToProperty(property);
     }
 }

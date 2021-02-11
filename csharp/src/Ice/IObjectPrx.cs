@@ -99,8 +99,8 @@ namespace ZeroC.Ice
                 response.ReadReturnValue(proxy, InputStream.IceReaderIntoBool);
         }
 
-         /// <summary>Factory for <see cref="IObjectPrx"/> proxies.</summary>
-        public static readonly ProxyFactory<IObjectPrx, ObjectPrx> Factory = prx => prx;
+        /// <summary>Factory for <see cref="IObjectPrx"/> proxies.</summary>
+        public static readonly IObjectPrx Factory = new ObjectPrx();
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IObjectPrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -214,7 +214,7 @@ namespace ZeroC.Ice
                 return false;
             }
 
-            return lhs.Impl.Equals(rhs);
+            return lhs.Equals(rhs);
         }
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IObjectPrx"/> equivalent.</summary>
@@ -224,23 +224,23 @@ namespace ZeroC.Ice
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
         public static IObjectPrx Parse(string s, Communicator communicator) =>
-            ObjectPrx.Parse<ObjectPrx>(s, communicator);
+            ObjectPrx.Parse(s, communicator, Factory);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IObjectPrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
         /// <param name="communicator">The communicator for the new proxy.</param>
-        /// <param name="prx">When this method returns it contains the new proxy, if the conversion succeeded or null
+        /// <param name="proxy">When this method returns it contains the new proxy, if the conversion succeeded or null
         /// if the conversion failed.</param>
         /// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, Communicator communicator, out IObjectPrx? prx)
+        public static bool TryParse(string s, Communicator communicator, out IObjectPrx? proxy)
         {
             try
             {
-                prx = ObjectPrx.Parse<ObjectPrx>(s, communicator);
+                proxy = ObjectPrx.Parse(s, communicator, Factory);
             }
             catch (Exception)
             {
-                prx = null;
+                proxy = null;
                 return false;
             }
             return true;
@@ -298,11 +298,6 @@ namespace ZeroC.Ice
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
-
-        /// <summary>Converts a proxy to a set of proxy properties.</summary>
-        /// <param name="property">The base property name.</param>
-        /// <returns>The property set.</returns>
-        public Dictionary<string, string> ToProperty(string property);
 
         /// <summary>Sends a request that returns a value and returns the result synchronously.</summary>
         /// <typeparam name="T">The operation's return type.</typeparam>

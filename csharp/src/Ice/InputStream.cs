@@ -449,27 +449,21 @@ namespace ZeroC.Ice
         /// <summary>Reads a nullable proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public TPrx? ReadNullableProxy<TPrx, TImpl>(ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new()
+        public T? ReadNullableProxy<T>(T factory) where T : class, IObjectPrx
         {
             if (Communicator == null)
             {
                 throw new InvalidOperationException(
                     "cannot read a proxy from an InputStream with a null communicator");
             }
-            TImpl? impl = ObjectPrx.Read<TImpl>(this);
-            return impl == null ? null : factory(impl);
+            return ObjectPrx.Read(this, factory);
         }
 
         /// <summary>Reads a proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream; this proxy cannot be null.</returns>
-        public TPrx ReadProxy<TPrx, TImpl>(ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new() =>
-            ReadNullableProxy<TPrx, TImpl>(factory) ??
-                throw new InvalidDataException("read null for a non-nullable proxy");
+        public T ReadProxy<T>(T factory) where T : class, IObjectPrx =>
+            ReadNullableProxy<T>(factory) ?? throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a sequence from the stream.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
@@ -817,9 +811,7 @@ namespace ZeroC.Ice
         /// <param name="tag">The tag.</param>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public TPrx? ReadTaggedProxy<TPrx, TImpl>(int tag, ProxyFactory<TPrx, TImpl> factory)
-            where TPrx : class, IObjectPrx
-            where TImpl : ObjectPrx, TPrx, new()
+        public T? ReadTaggedProxy<T>(int tag, T factory) where T : class, IObjectPrx
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
