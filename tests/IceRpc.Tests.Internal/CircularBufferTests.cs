@@ -61,8 +61,10 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(1, 1)]
         [TestCase(1, 10)]
+        [TestCase(6, 10)]
         [TestCase(10, 10)]
         [TestCase(10, 100)]
+        [TestCase(40, 100)]
         public void CircularBuffer_EnqueueAndConsume(int size, int capacity)
         {
             var buffer = new CircularBuffer(capacity);
