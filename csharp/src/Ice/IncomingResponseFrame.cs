@@ -95,7 +95,7 @@ namespace ZeroC.Ice
 
                 var istr = new InputStream(Payload.AsReadOnlyMemory(1),
                                            Protocol.GetEncoding(),
-                                           reference: proxy?.IceReference,
+                                           sourceProxy: proxy.Impl,
                                            startEncapsulation: true);
                 T value = reader(istr, SocketStream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
@@ -261,12 +261,12 @@ namespace ZeroC.Ice
             Payload = response.Payload.AsArraySegment();
         }
 
-        internal RetryPolicy GetRetryPolicy(Reference reference)
+        internal RetryPolicy GetRetryPolicy(ObjectPrx proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
             if (PayloadEncoding == Encoding.V11)
             {
-                retryPolicy = Ice1Definitions.GetRetryPolicy(this, reference);
+                retryPolicy = Ice1Definitions.GetRetryPolicy(this, proxy);
             }
             else if (BinaryContext.TryGetValue((int)Ice.BinaryContextKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
@@ -295,7 +295,7 @@ namespace ZeroC.Ice
             {
                 istr = new InputStream(Payload.Slice(1),
                                        Protocol.GetEncoding(),
-                                       reference: proxy.IceReference,
+                                       sourceProxy: proxy.Impl,
                                        startEncapsulation: true);
 
                 if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)

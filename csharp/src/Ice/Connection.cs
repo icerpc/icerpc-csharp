@@ -162,8 +162,12 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory, where INamePrx is the desired proxy type.
         /// </param>
         /// <returns>A proxy that matches the given identity and facet, and uses this connection.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx =>
-            factory(new Reference(this, identity, facet));
+        public TPrx CreateProxy<TPrx, TImpl>(
+            Identity identity,
+            string facet,
+            ProxyFactory<TPrx, TImpl> factory) where TPrx : class, IObjectPrx
+                                               where TImpl : ObjectPrx, TPrx, new() =>
+            factory(ObjectPrx.Create<TImpl>(this, identity, facet));
 
         /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about
         /// the closure, it can call Connection.ThrowException. The connection object is passed as the event sender

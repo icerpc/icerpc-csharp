@@ -174,14 +174,18 @@ namespace ZeroC.Ice
         /// <param name="name">The property name.</param>
         /// <param name="factory">The proxy factory. Use IAPrx.Factory to create IAPrx proxies.</param>
         /// <returns>The property value parsed into a proxy or null.</returns>
-        public static T? GetPropertyAsProxy<T>(this Communicator communicator, string name, ProxyFactory<T> factory)
-            where T : class, IObjectPrx
+        public static TPrx? GetPropertyAsProxy<TPrx, TImpl>(
+            this Communicator communicator,
+            string name,
+            ProxyFactory<TPrx, TImpl> factory)
+            where TPrx : class, IObjectPrx
+            where TImpl : ObjectPrx, TPrx, new()
         {
             if (communicator.GetProperty(name) is string value)
             {
                 try
                 {
-                    return factory(Reference.Parse(value, communicator, name));
+                    return factory(ObjectPrx.Parse<TImpl>(value, communicator, name));
                 }
                 catch (FormatException ex)
                 {

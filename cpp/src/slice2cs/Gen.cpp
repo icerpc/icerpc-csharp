@@ -2364,14 +2364,16 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     InterfaceList bases = p->bases();
 
     string name = interfaceName(p) + "Prx";
+    string impl = "_" + name.substr(1);
+
     //
     // Proxy static methods
     //
     _out << sp;
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new ZeroC.Ice.ProxyFactory<" << name << "> Factory =";
+    _out << nl << "public static readonly new ZeroC.Ice.ProxyFactory<" << name << ", " << impl << "> Factory =";
     _out.inc();
-    _out << nl << "(reference) => new _" << p->name() << "Prx(reference);";
+    _out << nl << "prx => prx;";
     _out.dec();
 
     _out << sp;
@@ -2399,7 +2401,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, ZeroC.Ice.Communicator communicator) => "
-         << "new _" << p->name() << "Prx(ZeroC.Ice.Reference.Parse(s, communicator));";
+         << "ZeroC.Ice.ObjectPrx.Parse<" << impl << ">(s, communicator);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
@@ -2410,13 +2412,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "succeeded or null if the conversion failed.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
-    _out << nl << "public static bool TryParse("
-         << "string s, ZeroC.Ice.Communicator communicator, "
-         << "out " <<name << "? prx)";
+    _out << nl << "public static bool TryParse(string s, ZeroC.Ice.Communicator communicator, out " << name << "? prx)";
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "prx = new _" << p->name() << "Prx(ZeroC.Ice.Reference.Parse(s, communicator));";
+    _out << nl << "prx = ZeroC.Ice.ObjectPrx.Parse<" << impl << ">(s, communicator);";
     _out << eb;
     _out << nl << "catch (global::System.Exception)";
     _out << sb;
@@ -2428,26 +2428,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
 
     _out << eb;
 
-    //
-    // Proxy instance
-    //
+    // Impl record
     _out << sp;
-    _out << nl << "internal sealed class _" << p->name() << "Prx : ZeroC.Ice.ObjectPrx, "
-         << name;
+    _out << nl << "public sealed record " << impl << " : ZeroC.Ice.ObjectPrx, " << name;
     _out << sb;
-
-    _out << sp;
-    _out << nl << "internal _" << p->name() << "Prx(ZeroC.Ice.Reference reference)";
-    _out.inc();
-    _out << nl << ": base(reference)";
-    _out.dec();
-    _out << sb;
-    _out << eb;
-
-    _out << sp;
-    _out << nl << "ZeroC.Ice.IObjectPrx ZeroC.Ice.IObjectPrx.IceClone(ZeroC.Ice.Reference reference) => new _"
-         << p->name() << "Prx(reference);";
-
+    _out << nl << "public override string ToString() => base.ToString();";
     _out << eb;
 }
 

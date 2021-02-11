@@ -118,10 +118,10 @@ namespace ZeroC.Ice
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private set; }
 
-        /// <summary>The Reference used to read relative proxies. When not null, a relative proxy is unmarshaled into a
-        /// clone of this reference (with various updates). Reference and Connection are mutually exclusive: only one of
+        /// <summary>The proxy used to read relative proxies. When not null, a relative proxy is unmarshaled into a
+        /// clone of this proxy (with various updates). SourceProxy and Connection are mutually exclusive: only one of
         /// them can be non-null.</summary>
-        internal Reference? Reference { get; }
+        internal ObjectPrx? SourceProxy { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -449,21 +449,27 @@ namespace ZeroC.Ice
         /// <summary>Reads a nullable proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadNullableProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx
+        public TPrx? ReadNullableProxy<TPrx, TImpl>(ProxyFactory<TPrx, TImpl> factory)
+            where TPrx : class, IObjectPrx
+            where TImpl : ObjectPrx, TPrx, new()
         {
             if (Communicator == null)
             {
                 throw new InvalidOperationException(
                     "cannot read a proxy from an InputStream with a null communicator");
             }
-            return Reference.Read(this) is Reference reference ? factory(reference) : null;
+            TImpl? impl = ObjectPrx.Read<TImpl>(this);
+            return impl == null ? null : factory(impl);
         }
 
         /// <summary>Reads a proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream; this proxy cannot be null.</returns>
-        public T ReadProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx =>
-            ReadNullableProxy(factory) ?? throw new InvalidDataException("read null for a non-nullable proxy");
+        public TPrx ReadProxy<TPrx, TImpl>(ProxyFactory<TPrx, TImpl> factory)
+            where TPrx : class, IObjectPrx
+            where TImpl : ObjectPrx, TPrx, new() =>
+            ReadNullableProxy<TPrx, TImpl>(factory) ??
+                throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a sequence from the stream.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
@@ -811,7 +817,9 @@ namespace ZeroC.Ice
         /// <param name="tag">The tag.</param>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadTaggedProxy<T>(int tag, ProxyFactory<T> factory) where T : class, IObjectPrx
+        public TPrx? ReadTaggedProxy<TPrx, TImpl>(int tag, ProxyFactory<TPrx, TImpl> factory)
+            where TPrx : class, IObjectPrx
+            where TImpl : ObjectPrx, TPrx, new()
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
@@ -995,7 +1003,7 @@ namespace ZeroC.Ice
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="communicator">The communicator (optional).</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="reference">The reference (optional).</param>
+        /// <param name="sourceProxy">The source proxy (optional).</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         internal InputStream(
@@ -1003,15 +1011,15 @@ namespace ZeroC.Ice
             Encoding encoding,
             Communicator? communicator = null,
             Connection? connection = null,
-            Reference? reference = null,
+            ObjectPrx? sourceProxy = null,
             bool startEncapsulation = false)
         {
-            // Connection and reference are mutually exclusive - it's neither or one or the other.
-            Debug.Assert(connection == null || reference == null);
+            // Connection and sourceProxy are mutually exclusive - it's neither or one or the other.
+            Debug.Assert(connection == null || sourceProxy == null);
 
-            Communicator = communicator ?? connection?.Communicator ?? reference?.Communicator;
+            Communicator = communicator ?? connection?.Communicator ?? sourceProxy?.Communicator;
             Connection = connection;
-            Reference = reference;
+            SourceProxy = sourceProxy;
 
             Pos = 0;
             _buffer = buffer;

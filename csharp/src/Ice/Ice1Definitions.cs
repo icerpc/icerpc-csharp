@@ -103,7 +103,7 @@ namespace ZeroC.Ice
             return facetPath.Length == 1 ? facetPath[0] : "";
         }
 
-        internal static RetryPolicy GetRetryPolicy(IncomingResponseFrame response, Reference reference)
+        internal static RetryPolicy GetRetryPolicy(IncomingResponseFrame response, ObjectPrx proxy)
         {
             Debug.Assert(response.PayloadEncoding == Encoding.V11);
             if (response.ResultType == ResultType.Failure)
@@ -122,7 +122,7 @@ namespace ZeroC.Ice
                 {
                     istr = new InputStream(response.Payload.Slice(1),
                                            Ice2Definitions.Encoding,
-                                           reference: reference,
+                                           sourceProxy: proxy,
                                            startEncapsulation: true);
 
                     replyStatus = istr.ReadReplyStatus();
@@ -135,11 +135,11 @@ namespace ZeroC.Ice
                 if (istr?.ReadIce1SystemException(replyStatus) is ObjectNotExistException one)
                 {
                     // 1.1 System exceptions
-                    if (reference.IsIndirect)
+                    if (proxy.IsIndirect)
                     {
-                        if (reference.IsWellKnown)
+                        if (proxy.IsWellKnown)
                         {
-                            reference.LocatorInfo?.ClearCache(reference);
+                            proxy.LocatorInfo?.ClearCache(proxy);
                         }
                         return RetryPolicy.OtherReplica;
                     }
