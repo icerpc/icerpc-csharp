@@ -12,10 +12,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(1024)]
-        public void CircularBuffer_Constructor(int capacity)
-        {
-            _ = new CircularBuffer(capacity);
-        }
+        public void CircularBuffer_Constructor(int capacity) => _ = new CircularBuffer(capacity);
 
         [TestCase(0)]
         [TestCase(-1)]
@@ -32,7 +29,7 @@ namespace IceRpc.Tests.Internal
         {
             var buffer = new CircularBuffer(capacity);
             Memory<byte> b = buffer.Enqueue(size);
-            Assert.AreEqual(b.Length, size);
+            Assert.AreEqual(size, b.Length);
         }
 
         [TestCase(0, 1)]
@@ -65,24 +62,46 @@ namespace IceRpc.Tests.Internal
         [TestCase(1, 1)]
         [TestCase(1, 10)]
         [TestCase(10, 10)]
+        [TestCase(10, 100)]
         public void CircularBuffer_EnqueueAndConsume(int size, int capacity)
         {
             var buffer = new CircularBuffer(capacity);
-            Memory<byte> p = buffer.Enqueue(size);
-            for (int i = 0; i < size; ++i)
-            {
-                p.Span[i] = (byte)i;
-            }
+            Memory<byte> p = Fill(buffer.Enqueue(size));
             Memory<byte> c = new byte[size];
             buffer.Consume(c);
             Assert.AreEqual(p.ToArray(), c.ToArray());
 
-            c = new byte[1];
-            for (int i = 0; i < size; ++i)
+            for (int sz = 1; sz < size + 1; ++sz)
             {
-                buffer.Enqueue(1).Span[0] = (byte)i;
-                buffer.Consume(c);
-                Assert.AreEqual(c.Span[0], (byte)i);
+                c = new byte[sz];
+                for (int i = 0; i < 2 * capacity; ++i)
+                {
+                    p = Fill(buffer.Enqueue(sz));
+                    if (p.Length < sz)
+                    {
+                        // The Enqueue request couldn't be satisfied with a single memory block if the returned
+                        // memory block is smaller than the requested size. In this case, we make another Enqueue
+                        // request for the remaining size.
+                        Memory<byte> p2 = Fill(buffer.Enqueue(sz - p.Length), p.Length);
+                        buffer.Consume(c);
+                        Assert.AreEqual(p.ToArray(), c.Slice(0, p.Length).ToArray());
+                        Assert.AreEqual(p2.ToArray(), c.Slice(p.Length, p2.Length).ToArray());
+                    }
+                    else
+                    {
+                        buffer.Consume(c);
+                        Assert.AreEqual(p.ToArray(), c.ToArray());
+                    }
+                }
+            }
+
+            Memory<byte> Fill(Memory<byte> memory, int start = 0)
+            {
+                for (int i = 0; i < memory.Span.Length; ++i)
+                {
+                    memory.Span[i] = (byte)(start + i);
+                }
+                return memory;
             }
         }
     }
