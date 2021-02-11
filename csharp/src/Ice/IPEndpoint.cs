@@ -124,7 +124,6 @@ namespace ZeroC.Ice
                         _ => true
                     };
                     connection = CreateConnection(secureOnly, address, label);
-                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
                     break;
                 }
                 catch (Exception ex)

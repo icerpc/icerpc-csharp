@@ -40,7 +40,7 @@ namespace ZeroC.Ice
         {
         }
 
-        protected internal async override Task<Connection> ConnectAsync(
+        protected internal override Task<Connection> ConnectAsync(
             NonSecure preferNonSecure,
             object? label,
             CancellationToken cancel)
@@ -68,13 +68,11 @@ namespace ZeroC.Ice
                 throw new ConnectionRefusedException();
             }
 
-            var connection = new ColocatedConnection(
+            return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
                 new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
                 label,
-                adapter: null);
-            await connection.InitializeAsync(cancel).ConfigureAwait(false);
-            return connection;
+                adapter: null));
         }
 
         protected internal override Endpoint GetPublishedEndpoint(string serverName) =>

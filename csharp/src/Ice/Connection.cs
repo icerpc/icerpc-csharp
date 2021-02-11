@@ -129,7 +129,8 @@ namespace ZeroC.Ice
             }
         }
 
-        private protected MultiStreamSocket Socket { get; }
+        // This property should be private protected, it's internal instead for testing purpose.
+        internal MultiStreamSocket Socket { get; }
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private volatile ObjectAdapter? _adapter;

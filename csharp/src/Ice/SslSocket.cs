@@ -94,8 +94,6 @@ namespace ZeroC.Ice
             // session resumption if we want to allow connection migration.
             _underlying.CloseAsync(exception, cancel);
 
-        public override void CheckSendSize(int size) => _underlying.CheckSendSize(size);
-
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             throw new InvalidOperationException("only supported by datagram transports");
 

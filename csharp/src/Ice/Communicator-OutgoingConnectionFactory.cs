@@ -102,6 +102,7 @@ namespace ZeroC.Ice
                     Connection connection = await endpoint.ConnectAsync(preferNonSecure,
                                                                         label,
                                                                         cancel).ConfigureAwait(false);
+                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
                     lock (_mutex)
                     {
                         if (_shutdownTask != null)

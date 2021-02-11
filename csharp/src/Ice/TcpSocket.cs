@@ -20,7 +20,7 @@ namespace ZeroC.Ice
         private string _desc;
         private readonly IPAddress? _sourceAddr;
 
-        public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => new ValueTask();
+        public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => default;
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {

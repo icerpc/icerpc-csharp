@@ -41,7 +41,7 @@ namespace ZeroC.Ice
         private const string IceProtocol = "ice.zeroc.com";
         private const string WsUUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-        private static readonly UTF8Encoding _utf8 = new UTF8Encoding(false, true);
+        private static readonly UTF8Encoding _utf8 = new(false, true);
 
         private bool _closing;
         private readonly Communicator _communicator;
@@ -49,7 +49,7 @@ namespace ZeroC.Ice
         private readonly string _host;
         private string _key;
         private readonly HttpParser _parser;
-        private readonly object _mutex = new object();
+        private readonly object _mutex = new();
         private readonly BufferedReceiveOverSingleStreamSocket _underlying;
         private readonly Random _rand;
         private bool _receiveLastFrame;
@@ -219,6 +219,11 @@ namespace ZeroC.Ice
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            if (buffer.Length == 0)
+            {
+                throw new ArgumentException($"empty {nameof(buffer)}");
+            }
+
             // If we've fully read the previous DATA frame payload, read a new frame
             if (_receivePayloadOffset == _receivePayloadLength)
             {
@@ -439,8 +444,7 @@ namespace ZeroC.Ice
                     case OpCode.Pong:
                     {
                         // Read the pong payload.
-                        ReadOnlyMemory<byte> payload =
-                            await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                        await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Nothing to do, this can be received even if we don't send a ping frame if the peer sends
                         // an unidirectional heartbeat.
