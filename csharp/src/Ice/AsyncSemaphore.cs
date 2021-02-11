@@ -30,18 +30,31 @@ namespace ZeroC.Ice
         private readonly object _mutex = new();
         private readonly Queue<ManualResetValueTaskCompletionSource<bool>> _queue = new();
 
-        internal AsyncSemaphore(int initialCount)
+        /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of
+        /// times to the semaphore can be entered.</summary>
+        /// <param name="maxCount">The maximum number of times the semaphore can be entered.</param>
+        /// <exception name="ArgumentOutOfRangeException">Raised if maxCount is less than 1.</exception>
+        internal AsyncSemaphore(int maxCount)
         {
-            _currentCount = initialCount;
-            _maxCount = initialCount;
+            if (maxCount < 1)
+            {
+                throw new ArgumentOutOfRangeException("max count can't be < 1");
+            }
+            _currentCount = maxCount;
+            _maxCount = maxCount;
         }
 
         /// <summary>Notify callers that are waiting to enter the semaphore that the semaphore is being terminated.
         /// The given exception will be raised by the awaited EnterAsync operation.</summary>
         /// <param name="exception">The exception raised to notify the callers waiting to enter the semaphore of the
         /// completion.</param>
-        internal void Complete(Exception? exception = null)
+        internal void Complete(Exception exception)
         {
+            if (exception == null)
+            {
+                throw new ArgumentOutOfRangeException("exception can't be null");
+            }
+
             lock (_mutex)
             {
                 if (_exception != null)
@@ -79,7 +92,7 @@ namespace ZeroC.Ice
         /// <summary>Asynchronously enter the semaphore. If the semaphore can't be entered, this method waits
         /// until the semaphore is released.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <exception name="InvalidOperationException">Thrown when the semaphore is completed.</exception>
+        /// <exception cref="_exception">Raises the completion exception if the semaphore is completed.</exception>
         internal async ValueTask EnterAsync(CancellationToken cancel = default)
         {
             cancel.ThrowIfCancellationRequested();
@@ -102,7 +115,7 @@ namespace ZeroC.Ice
 
                 // Don't auto reset the task completion source after obtaining the result. This is necessary to
                 // ensure that the exception won't be cleared if the task is canceled.
-                taskCompletionSource = new ManualResetValueTaskCompletionSource<bool>(autoReset: false);
+                taskCompletionSource = new(autoReset: false);
                 taskCompletionSource.RunContinuationAsynchronously = true;
                 if (cancel.CanBeCanceled)
                 {
