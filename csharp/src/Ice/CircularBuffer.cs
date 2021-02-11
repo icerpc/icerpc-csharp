@@ -55,7 +55,15 @@ namespace ZeroC.Ice
 
         /// <summary>Construct a new Circular buffer with the given capacity.</summary>
         /// <param name="capacity">The capacity of the buffer.</param>
-        internal CircularBuffer(int capacity) => _buffer = new byte[capacity];
+        /// <exception name="ArgumentOutRangeException">Raised if capacity is inferior to 1</exception>
+        internal CircularBuffer(int capacity)
+        {
+            if (capacity < 1)
+            {
+                throw new ArgumentOutOfRangeException("capacity can't be < 1");
+            }
+            _buffer = new byte[capacity];
+        }
 
         /// <summary>Add data to the buffer. This method doesn't actually copy the data to the buffer but returns
         /// a slice of the buffer of the given size. The producer is responsible for filling the data in. The
@@ -63,9 +71,18 @@ namespace ZeroC.Ice
         /// space for adding the data.</summary>
         /// <param name="size">The size of the data to add.</param>
         /// <return>A buffer of the given size.</return>
+        /// <exception name="ArgumentOutRangeException">Raised if size if superior to the available space or inferior
+        /// to one byte.</exception>
         internal Memory<byte> Enqueue(int size)
         {
-            Debug.Assert(size <= Available, "buffer is full");
+            if (size > Available)
+            {
+                throw new ArgumentOutOfRangeException("not enough space available");
+            }
+            if (size <= 0)
+            {
+                throw new ArgumentOutOfRangeException("size must be superior to 0");
+            }
 
             bool lockTaken = false;
             try
@@ -105,10 +122,18 @@ namespace ZeroC.Ice
         /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from
         /// this circular buffer. The caller must ensure that there's enough data available.</summary>
         /// <param name="buffer">The buffer to copy the consumed data to.</param>
+        /// <exception name="ArgumentOutRangeException">Raised the buffer is empty or larger than the available data.
+        /// </exception>
         internal void Consume(Memory<byte> buffer)
         {
-            Debug.Assert(buffer.Length <= Count, "not enough data available");
-            Debug.Assert(buffer.Length > 0, "empty buffer");
+            if (buffer.Length > Count)
+            {
+                throw new ArgumentOutOfRangeException("not enough data available");
+            }
+            if (buffer.IsEmpty)
+            {
+                throw new ArgumentOutOfRangeException("empty buffer");
+            }
 
             bool lockTaken = false;
             try
