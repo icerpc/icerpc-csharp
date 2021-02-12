@@ -916,7 +916,7 @@ namespace ZeroC.Ice
                             _loadedAssemblies[loadedAssembly.FullName!] = loadedAssembly;
                             LoadReferencedAssemblies(loadedAssembly);
                         }
-                        catch (Exception)
+                        catch
                         {
                             // Ignore assemblies that cannot be loaded.
                         }

@@ -33,7 +33,7 @@ namespace ZeroC.Ice
                 identity = Parse(s, uriFormat);
                 return true;
             }
-            catch (Exception)
+            catch
             {
                 identity = default;
                 return false;

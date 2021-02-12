@@ -449,7 +449,7 @@ namespace ZeroC.Ice
         /// <summary>Reads a nullable proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadNullableProxy<T>(T factory) where T : class, IObjectPrx
+        public T? ReadNullableProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx
         {
             if (Communicator == null)
             {
@@ -462,7 +462,7 @@ namespace ZeroC.Ice
         /// <summary>Reads a proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream; this proxy cannot be null.</returns>
-        public T ReadProxy<T>(T factory) where T : class, IObjectPrx =>
+        public T ReadProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx =>
             ReadNullableProxy<T>(factory) ?? throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a sequence from the stream.</summary>
@@ -811,7 +811,7 @@ namespace ZeroC.Ice
         /// <param name="tag">The tag.</param>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadTaggedProxy<T>(int tag, T factory) where T : class, IObjectPrx
+        public T? ReadTaggedProxy<T>(int tag, ProxyFactory<T> factory) where T : class, IObjectPrx
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {

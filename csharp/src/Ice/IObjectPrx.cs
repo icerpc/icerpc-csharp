@@ -100,7 +100,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Factory for <see cref="IObjectPrx"/> proxies.</summary>
-        public static readonly IObjectPrx Factory = new ObjectPrx();
+        public static readonly ProxyFactory<IObjectPrx> Factory = options => new ObjectPrx(options);
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IObjectPrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -238,7 +238,7 @@ namespace ZeroC.Ice
             {
                 proxy = ObjectPrx.Parse(s, communicator, Factory);
             }
-            catch (Exception)
+            catch
             {
                 proxy = null;
                 return false;

@@ -162,7 +162,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory, where INamePrx is the desired proxy type.
         /// </param>
         /// <returns>A proxy that matches the given identity and facet, and uses this connection.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, T factory) where T : class, IObjectPrx
+        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx
         {
             var options = new ObjectPrxOptions(
                 Communicator,
@@ -172,7 +172,7 @@ namespace ZeroC.Ice
                 fixedConnection: this,
                 oneway: Endpoint.IsDatagram);
 
-            return factory.Create(options);
+            return factory(options);
         }
 
         /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about

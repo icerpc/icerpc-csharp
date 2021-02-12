@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
+    /// <summary>Creates a new proxy.</summary>
+    /// <paramtype name="T">The type of the new proxy.</paramtype>
+    /// <param name="options">The proxy options.</param>
+    /// <returns>The new proxy.</returns>
+    public delegate T ProxyFactory<T>(ObjectPrxOptions options) where T : class, IObjectPrx;
+
     /// <summary>Proxy provides extension methods for IObjectPrx.</summary>
     public static class Proxy
     {
@@ -22,7 +28,7 @@ namespace ZeroC.Ice
         /// <returns>A new proxy manufactured by the proxy factory, or null.</returns>
         public static async Task<T?> CheckedCastAsync<T>(
             this IObjectPrx proxy,
-            T factory,
+            ProxyFactory<T> factory,
             IReadOnlyDictionary<string, string>? context = null,
             IProgress<bool>? progress = null,
             CancellationToken cancel = default) where T : class, IObjectPrx =>
@@ -63,7 +69,7 @@ namespace ZeroC.Ice
         /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
         public static T Clone<T>(
             this IObjectPrx proxy,
-            T factory,
+            ProxyFactory<T> factory,
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
@@ -83,29 +89,30 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null) where T : class, IObjectPrx =>
-            ObjectPrx.Clone(proxy.Impl,
-                            factory,
-                            cacheConnection,
-                            clearLabel,
-                            clearLocator,
-                            context,
-                            encoding,
-                            endpoints,
-                            facet,
-                            fixedConnection,
-                            identity,
-                            identityAndFacet,
-                            invocationInterceptors,
-                            invocationTimeout,
-                            label,
-                            location,
-                            locator,
-                            locatorCacheTimeout,
-                            oneway,
-                            preferExistingConnection,
-                            preferNonSecure,
-                            relative);
+            bool? relative = null) where T : class, IObjectPrx
+        {
+            T clone = factory(proxy.Impl.CreateCloneOptions(cacheConnection,
+                                                            clearLabel,
+                                                            clearLocator,
+                                                            context,
+                                                            encoding,
+                                                            endpoints,
+                                                            facet,
+                                                            fixedConnection,
+                                                            identity,
+                                                            identityAndFacet,
+                                                            invocationInterceptors,
+                                                            invocationTimeout,
+                                                            label,
+                                                            location,
+                                                            locator,
+                                                            locatorCacheTimeout,
+                                                            oneway,
+                                                            preferExistingConnection,
+                                                            preferNonSecure,
+                                                            relative));
+            return proxy is T t && t.Equals(clone) ? t : clone;
+        }
 
         /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for the options set
         /// through parameters. This method returns this proxy instead of a new proxy in the event none of the options
@@ -152,29 +159,31 @@ namespace ZeroC.Ice
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
-            bool? relative = null) where T : class, IObjectPrx =>
-            ObjectPrx.Clone(proxy.Impl,
-                            proxy,
-                            cacheConnection,
-                            clearLabel,
-                            clearLocator,
-                            context,
-                            encoding,
-                            endpoints,
-                            facet: null,
-                            fixedConnection,
-                            identity: null,
-                            identityAndFacet: null,
-                            invocationInterceptors,
-                            invocationTimeout,
-                            label,
-                            location,
-                            locator,
-                            locatorCacheTimeout,
-                            oneway,
-                            preferExistingConnection,
-                            preferNonSecure,
-                            relative);
+            bool? relative = null) where T : class, IObjectPrx
+        {
+            ObjectPrx impl = proxy.Impl;
+            ObjectPrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
+                                                                 clearLabel,
+                                                                 clearLocator,
+                                                                 context,
+                                                                 encoding,
+                                                                 endpoints,
+                                                                 facet: null,
+                                                                 fixedConnection,
+                                                                 identity: null,
+                                                                 identityAndFacet: null,
+                                                                 invocationInterceptors,
+                                                                 invocationTimeout,
+                                                                 label,
+                                                                 location,
+                                                                 locator,
+                                                                 locatorCacheTimeout,
+                                                                 oneway,
+                                                                 preferExistingConnection,
+                                                                 preferNonSecure,
+                                                                 relative));
+            return clone == impl ? proxy : (clone as T)!;
+        }
 
         /// <summary>Forwards an incoming request to another Ice object represented by the <paramref name="proxy"/>
         /// parameter.</summary>
@@ -254,12 +263,5 @@ namespace ZeroC.Ice
         /// <returns>The property set.</returns>
         public static Dictionary<string, string> ToProperty(this IObjectPrx proxy, string property) =>
             proxy.Impl.ToProperty(property);
-
-        /// <summary>Creates a new proxy.</summary>
-        /// <param name="factory">The proxy factory.</param>
-        /// <param name="options">The proxy options.</param>
-        /// <returns>The new proxy.</returns>
-        internal static T Create<T>(this T factory, ObjectPrxOptions options) where T : class, IObjectPrx =>
-            ObjectPrx.Create(factory, options);
     }
 }
