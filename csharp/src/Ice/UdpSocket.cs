@@ -30,7 +30,6 @@ namespace ZeroC.Ice
         private readonly string? _multicastInterface;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
-        private readonly int _sndSize;
         private readonly IPEndPoint? _sourceAddr;
 
         public Endpoint Bind(UdpEndpoint endpoint)
@@ -84,7 +83,7 @@ namespace ZeroC.Ice
             return endpoint.Clone((ushort)_addr.Port);
         }
 
-        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => new ValueTask();
+        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
@@ -274,7 +273,6 @@ namespace ZeroC.Ice
             {
                 Network.SetBufSize(Socket, _communicator, Transport.UDP);
                 _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                _sndSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer)!;
 
                 if (Network.IsMulticast(_addr))
                 {
@@ -311,7 +309,7 @@ namespace ZeroC.Ice
             {
                 Network.SetBufSize(Socket, _communicator, Transport.UDP);
                 _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                _sndSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer)!;
+                Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer);
             }
             catch (SocketException ex)
             {

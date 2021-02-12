@@ -49,7 +49,7 @@ namespace ZeroC.Ice
             // Then, read the reminder from the underlying transport.
             if (received < buffer.Length)
             {
-                received += await Underlying.ReceiveAsync(buffer.Slice(received), cancel).ConfigureAwait(false);
+                received += await Underlying.ReceiveAsync(buffer[received..], cancel).ConfigureAwait(false);
             }
             return received;
         }

@@ -10,7 +10,7 @@ namespace ZeroC.Ice
     /// data encoded using the Ice encoding.</summary>
     public static class ByteBufferExtensions
     {
-        private static readonly System.Text.UTF8Encoding _utf8 = new System.Text.UTF8Encoding(false, true);
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         /// <summary>Reads a value from the buffer. This value cannot contain classes or exceptions.</summary>
         /// <typeparam name="T">The type of the value.</typeparam>

@@ -141,8 +141,18 @@ namespace IceRpc.Tests.Internal
             Assert.Less(ClientSocket.Socket!.SendBufferSize, 16 * 1024);
 
             using var canceled = new CancellationTokenSource();
-            ValueTask<int> sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+
+            // Wait for the SendAsync call to block.
+            ValueTask<int> sendTask;
+            do
+            {
+                sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+            }
+            while (sendTask.IsCompleted);
+            sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
             Assert.IsFalse(sendTask.IsCompleted);
+
+            // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await sendTask);
         }
@@ -152,7 +162,13 @@ namespace IceRpc.Tests.Internal
         {
             ServerSocket.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
-                async () => await ClientSocket.SendAsync(OneMBSendBuffer, default));
+                async () =>
+                {
+                    while (true)
+                    {
+                        await ClientSocket.SendAsync(OneMBSendBuffer, default);
+                    }
+                });
         }
 
         [Test]
