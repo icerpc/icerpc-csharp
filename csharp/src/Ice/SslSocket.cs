@@ -169,7 +169,7 @@ namespace ZeroC.Ice
             {
                 _writeStream?.Dispose();
             }
-            catch (Exception)
+            catch
             {
                 // Ignore: the buffer flush which will fail since the underlying transport is closed.
             }

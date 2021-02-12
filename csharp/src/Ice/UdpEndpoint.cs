@@ -52,7 +52,7 @@ namespace ZeroC.Ice
                 var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, adapter);
                 return new UdpConnection(endpoint, multiStreamSocket, label: null, adapter);
             }
-            catch (Exception)
+            catch
             {
                 socket.Dispose();
                 throw;

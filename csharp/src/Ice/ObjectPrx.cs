@@ -105,7 +105,11 @@ namespace ZeroC.Ice
         public static bool operator !=(ObjectPrx? lhs, ObjectPrx? rhs) => !(lhs == rhs);
 
         /// <summary>Creates a proxy from a string and a communicator.</summary>
-        public static T Parse<T>(string s, Communicator communicator, T factory, string? propertyPrefix = null)
+        public static T Parse<T>(
+            string s,
+            Communicator communicator,
+            ProxyFactory<T> factory,
+            string? propertyPrefix = null)
             where T : class, IObjectPrx
         {
             string proxyString = s.Trim();
@@ -274,7 +278,7 @@ namespace ZeroC.Ice
                 preferNonSecure: preferNonSecure,
                 relative: relative ?? false);
 
-            return factory.Create(options);
+            return factory(options);
         }
 
         /// <inheritdoc/>
@@ -749,12 +753,9 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Constructs an empty proxy instance. Such a proxy is typically used as a proxy factory.</summary>
-        protected internal ObjectPrx() => Communicator = null!;
-
         /// <summary>Constructs a new proxy class instance with the specified options. The options must be validated
         /// by the caller and all dictionaries / lists must be safe to reference as-is.</summary>
-        protected ObjectPrx(ObjectPrxOptions options)
+        protected internal ObjectPrx(ObjectPrxOptions options)
         {
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator;
@@ -780,117 +781,7 @@ namespace ZeroC.Ice
 
         /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
         /// proxy classes must override this method.</summary>
-        protected virtual ObjectPrx IceCreate(ObjectPrxOptions options) => new(options);
-
-        /// <summary>Provides the implementation of the two Proxy.Clone methods.</summary>
-        internal static T Clone<T>(
-            ObjectPrx source,
-            T factory,
-            bool? cacheConnection = null,
-            bool clearLabel = false,
-            bool clearLocator = false,
-            IReadOnlyDictionary<string, string>? context = null, // can be provided by app
-            Encoding? encoding = null,
-            IEnumerable<Endpoint>? endpoints = null, // from app
-            string? facet = null,
-            Connection? fixedConnection = null,
-            Identity? identity = null,
-            string? identityAndFacet = null,
-            IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app
-            TimeSpan? invocationTimeout = null,
-            object? label = null,
-            IEnumerable<string>? location = null, // from app
-            ILocatorPrx? locator = null,
-            TimeSpan? locatorCacheTimeout = null,
-            bool? oneway = null,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null,
-            bool? relative = null) where T : class, IObjectPrx
-        {
-            Debug.Assert(source.Communicator != null); // i.e. not constructed with parameterless ctor
-
-            if (identityAndFacet != null)
-            {
-                if (facet != null)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(facet)}",
-                                                nameof(facet));
-                }
-
-                if (identity != null)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(identity)}",
-                                                nameof(identity));
-                }
-
-                (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            }
-
-            (IReadOnlyList<Endpoint>? newEndpoints, IReadOnlyList<string>? newLocation, LocatorInfo? locatorInfo) =
-                source.ValidateCloneArgs(cacheConnection,
-                                         clearLabel,
-                                         clearLocator,
-                                         endpoints,
-                                         fixedConnection,
-                                         invocationTimeout,
-                                         label,
-                                         location,
-                                         locator,
-                                         locatorCacheTimeout,
-                                         preferExistingConnection,
-                                         preferNonSecure,
-                                         relative);
-
-            ObjectPrxOptions options;
-            if (source.IsFixed || fixedConnection != null)
-            {
-                fixedConnection ??= source._connection;
-                Debug.Assert(fixedConnection != null);
-
-                options = new(source.Communicator,
-                              identity ?? source.Identity,
-                              source.Protocol,
-                              context: context?.ToImmutableSortedDictionary() ?? source.Context,
-                              encoding: encoding ?? source.Encoding,
-                              facet: facet ?? source.Facet,
-                              fixedConnection: fixedConnection,
-                              invocationInterceptors:
-                                invocationInterceptors?.ToImmutableList() ?? source.InvocationInterceptors,
-                              invocationTimeout: invocationTimeout ?? source._invocationTimeoutOverride,
-                              oneway: fixedConnection.Endpoint.IsDatagram || (oneway ?? source.IsOneway));
-            }
-            else
-            {
-                options = new(source.Communicator,
-                              identity ?? source.Identity,
-                              source.Protocol,
-                              cacheConnection: cacheConnection ?? source.CacheConnection,
-                              context: context?.ToImmutableSortedDictionary() ?? source.Context,
-                              encoding: encoding ?? source.Encoding,
-                              endpoints: newEndpoints,
-                              facet: facet ?? source.Facet,
-                              invocationInterceptors:
-                                invocationInterceptors?.ToImmutableList() ?? source.InvocationInterceptors,
-                              invocationTimeout: invocationTimeout ?? source._invocationTimeoutOverride,
-                              label: clearLabel ? null : label ?? source.Label,
-                              location: newLocation ?? source.Location,
-                              locatorCacheTimeout: locatorCacheTimeout ??
-                                (locatorInfo != null ? source._locatorCacheTimeoutOverride : null),
-                              locatorInfo: locatorInfo, // no fallback otherwise breaks clearLocator
-                              oneway: oneway ?? source.IsOneway,
-                              preferExistingConnection:
-                                preferExistingConnection ?? source._preferExistingConnectionOverride,
-                              preferNonSecure: preferNonSecure ?? source._preferNonSecureOverride,
-                              relative: relative ?? source.IsRelative);
-            }
-
-            T clone = factory.Create(options);
-            return source is T t && t.Equals(clone) ? t : clone;
-        }
-
-        /// <summary>Creates a new proxy using the provided factory and options.</summary>
-        internal static T Create<T>(T factory, ObjectPrxOptions options) where T : class, IObjectPrx =>
-            (factory.Impl.IceCreate(options) as T)!;
+        protected virtual ObjectPrx IceClone(ObjectPrxOptions options) => new(options);
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
             IObjectPrx proxy,
@@ -975,7 +866,7 @@ namespace ZeroC.Ice
         /// <param name="istr">The input stream to read from.</param>
         /// <param name="factory">The proxy factory.</param>
         /// <returns>The proxy read from the stream (can be null).</returns>
-        internal static T? Read<T>(InputStream istr, T factory) where T : class, IObjectPrx
+        internal static T? Read<T>(InputStream istr, ProxyFactory<T> factory) where T : class, IObjectPrx
         {
             if (istr.Encoding == Encoding.V11)
             {
@@ -1030,7 +921,7 @@ namespace ZeroC.Ice
                     locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
-                return factory.Create(options);
+                return factory(options);
             }
             else
             {
@@ -1077,7 +968,7 @@ namespace ZeroC.Ice
                             facet: proxyData.Facet ?? "",
                             fixedConnection: connection);
 
-                        return factory.Create(options);
+                        return factory(options);
                     }
                     else
                     {
@@ -1118,12 +1009,11 @@ namespace ZeroC.Ice
                             }
                         }
 
-                        return Clone(source,
-                                     factory,
-                                     encoding: proxyData.Encoding ?? Encoding.V20,
-                                     facet: proxyData.Facet ?? "",
-                                     identity: proxyData.Identity,
-                                     location: location);
+                        return source.Clone(factory,
+                                            encoding: proxyData.Encoding ?? Encoding.V20,
+                                            facet: proxyData.Facet ?? "",
+                                            identity: proxyData.Identity,
+                                            location: location);
                     }
                 }
                 else
@@ -1148,8 +1038,106 @@ namespace ZeroC.Ice
                         locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
 
-                    return factory.Create(options);
+                    return factory(options);
                 }
+            }
+        }
+
+        /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
+        internal ObjectPrx Clone(ObjectPrxOptions options) => IceClone(options);
+
+        /// <summary>Computes the options used by the implementation of Proxy.Clone.</summary>
+        internal ObjectPrxOptions CreateCloneOptions(
+            bool? cacheConnection = null,
+            bool clearLabel = false,
+            bool clearLocator = false,
+            IReadOnlyDictionary<string, string>? context = null, // can be provided by app, needs to be copied
+            Encoding? encoding = null,
+            IEnumerable<Endpoint>? endpoints = null, // from app, needs to be copied
+            string? facet = null,
+            Connection? fixedConnection = null,
+            Identity? identity = null,
+            string? identityAndFacet = null,
+            IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app, needs to be copied
+            TimeSpan? invocationTimeout = null,
+            object? label = null,
+            IEnumerable<string>? location = null, // from app, needs to be copied
+            ILocatorPrx? locator = null,
+            TimeSpan? locatorCacheTimeout = null,
+            bool? oneway = null,
+            bool? preferExistingConnection = null,
+            NonSecure? preferNonSecure = null,
+            bool? relative = null)
+        {
+            if (identityAndFacet != null)
+            {
+                if (facet != null)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(facet)}",
+                                                nameof(facet));
+                }
+
+                if (identity != null)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(identity)}",
+                                                nameof(identity));
+                }
+
+                (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            }
+
+            (IReadOnlyList<Endpoint>? newEndpoints, IReadOnlyList<string>? newLocation, LocatorInfo? locatorInfo) =
+                ValidateCloneArgs(cacheConnection,
+                                  clearLabel,
+                                  clearLocator,
+                                  endpoints,
+                                  fixedConnection,
+                                  invocationTimeout,
+                                  label,
+                                  location,
+                                  locator,
+                                  locatorCacheTimeout,
+                                  preferExistingConnection,
+                                  preferNonSecure,
+                                  relative);
+
+            if (IsFixed || fixedConnection != null)
+            {
+                fixedConnection ??= _connection;
+                Debug.Assert(fixedConnection != null);
+
+                return new(Communicator,
+                           identity ?? Identity,
+                           Protocol,
+                           context: context?.ToImmutableSortedDictionary() ?? Context,
+                           encoding: encoding ?? Encoding,
+                           facet: facet ?? Facet,
+                           fixedConnection: fixedConnection,
+                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
+                           oneway: fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway));
+            }
+            else
+            {
+                return new(Communicator,
+                           identity ?? Identity,
+                           Protocol,
+                           cacheConnection: cacheConnection ?? CacheConnection,
+                           context: context?.ToImmutableSortedDictionary() ?? Context,
+                           encoding: encoding ?? Encoding,
+                           endpoints: newEndpoints,
+                           facet: facet ?? Facet,
+                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
+                           label: clearLabel ? null : label ?? Label,
+                           location: newLocation ?? Location,
+                           locatorCacheTimeout:
+                                locatorCacheTimeout ?? (locatorInfo != null ? _locatorCacheTimeoutOverride : null),
+                           locatorInfo: locatorInfo, // no fallback otherwise breaks clearLocator
+                           oneway: oneway ?? IsOneway,
+                           preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
+                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride,
+                           relative: relative ?? IsRelative);
             }
         }
 

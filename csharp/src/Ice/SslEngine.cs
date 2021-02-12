@@ -103,7 +103,7 @@ namespace ZeroC.Ice
                     {
                         strbuf = System.Text.Encoding.UTF8.GetString(data);
                     }
-                    catch (Exception)
+                    catch
                     {
                         // Ignore
                     }
