@@ -1,3 +1,5 @@
 # IceRPC
 
-![.github/workflows/dotnet.yml](https://github.com/zeroc/icerpc-csharp/workflows/.github/workflows/dotnet.yml/badge.svg?branch=main)
+![.github/workflows/dotnet.yml](https://github.com/zeroc/icerpc-csharp/workflows/.NET/badge.svg?branch=main)
+
+
