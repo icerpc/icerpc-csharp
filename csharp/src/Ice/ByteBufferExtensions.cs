@@ -33,7 +33,7 @@ namespace ZeroC.Ice
             Connection? connection = null,
             IObjectPrx? proxy = null)
         {
-            var istr = new InputStream(buffer, encoding, communicator, connection, proxy?.IceReference);
+            var istr = new InputStream(buffer, encoding, communicator, connection, proxy?.Impl);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -104,7 +104,7 @@ namespace ZeroC.Ice
                                        encoding,
                                        communicator,
                                        connection,
-                                       proxy?.IceReference,
+                                       proxy?.Impl,
                                        startEncapsulation: true);
             T result = payloadReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
