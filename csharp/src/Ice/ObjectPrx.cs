@@ -71,6 +71,9 @@ namespace ZeroC.Ice
         private volatile Connection? _connection;
         private int _hashCode; // cached hash code value
 
+        // The various Override fields override the value from the communicator. When null, they are not included in
+        // the ToString()/ToProperty() representation.
+
         private readonly TimeSpan? _invocationTimeoutOverride;
         private readonly TimeSpan? _locatorCacheTimeoutOverride;
 
@@ -817,7 +820,7 @@ namespace ZeroC.Ice
                 if (identity != null)
                 {
                     throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(identity)}",
-                                               nameof(identity));
+                                                nameof(identity));
                 }
 
                 (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);

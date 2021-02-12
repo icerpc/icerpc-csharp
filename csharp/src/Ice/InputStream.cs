@@ -1006,7 +1006,7 @@ namespace ZeroC.Ice
             ObjectPrx? sourceProxy = null,
             bool startEncapsulation = false)
         {
-            // Connection and sourceProxy are mutually exclusive - it's neither or one or the other.
+            // Connection and sourceProxy are mutually exclusive - it's either one or the other.
             Debug.Assert(connection == null || sourceProxy == null);
 
             Communicator = communicator ?? connection?.Communicator ?? sourceProxy?.Communicator;
