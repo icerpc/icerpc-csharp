@@ -39,7 +39,7 @@ namespace ZeroC.Ice
             {
                 if (_incoming)
                 {
-                    var options = new SslServerAuthenticationOptions();
+                    SslServerAuthenticationOptions options = new();
                     options.ServerCertificate = _engine.TlsServerOptions.ServerCertificate;
                     options.ClientCertificateRequired = _engine.TlsServerOptions.RequireClientCertificate;
                     options.EnabledSslProtocols = _engine.TlsServerOptions.EnabledSslProtocols!.Value;
@@ -51,7 +51,7 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    var options = new SslClientAuthenticationOptions();
+                    SslClientAuthenticationOptions options = new();
                     options.TargetHost = _host;
                     options.ClientCertificates = _engine.TlsClientOptions.ClientCertificates;
                     options.EnabledSslProtocols = _engine.TlsClientOptions.EnabledSslProtocols!.Value;

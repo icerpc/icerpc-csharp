@@ -34,13 +34,22 @@ namespace ZeroC.Ice
 
             // Check the inner exceptions if the given exception isn't a socket exception. Streams wrapping a socket
             // typically throw an IOException with the SocketException as the InnerException.
-            while (!(ex is SocketException || ex is System.ComponentModel.Win32Exception) &&
+            while (!(ex is SocketException ||
+                     ex is System.ComponentModel.Win32Exception ||
+                     ex is System.IO.IOException) &&
                    ex.InnerException != null)
             {
                 ex = ex.InnerException;
             }
 
-            if (ex is SocketException socketException)
+            if (ex is System.IO.IOException)
+            {
+                // On Unix platforms, IOException can be raised without inner socket exception. This is
+                // in particular the case for SSLStream reads.
+                Debug.Assert(ex.InnerException == null);
+                return true;
+            }
+            else if (ex is SocketException socketException)
             {
                 SocketError error = socketException.SocketErrorCode;
                 return error == SocketError.ConnectionReset ||
