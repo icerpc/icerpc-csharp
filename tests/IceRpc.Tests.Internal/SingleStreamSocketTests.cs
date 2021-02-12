@@ -134,8 +134,11 @@ namespace IceRpc.Tests.Internal
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
             ClientSocket.Socket!.SendBufferSize = 4096;
 
-            Assert.AreEqual(ServerSocket.Socket!.ReceiveBufferSize, 4096);
-            Assert.AreEqual(ClientSocket.Socket!.SendBufferSize, 4096);
+            // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
+            // are at least not larger than 16KB. The test below relies on the SendAsync to block when the socket
+            // send/receive buffers fill up.
+            Assert.Less(ServerSocket.Socket!.ReceiveBufferSize, 16 * 1024);
+            Assert.Less(ClientSocket.Socket!.SendBufferSize, 16 * 1024);
 
             using var canceled = new CancellationTokenSource();
             ValueTask<int> sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
