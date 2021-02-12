@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Internal
         public void CircularBuffer_Consume(int size, int capacity)
         {
             var buffer = new CircularBuffer(capacity);
-            Memory<byte> p = buffer.Enqueue(size);
+            _ = buffer.Enqueue(size);
             Memory<byte> c = new byte[size];
             buffer.Consume(c);
         }
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            Memory<byte> Fill(Memory<byte> memory, int start = 0)
+            static Memory<byte> Fill(Memory<byte> memory, int start = 0)
             {
                 for (int i = 0; i < memory.Span.Length; ++i)
                 {
