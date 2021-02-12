@@ -123,7 +123,7 @@ namespace ZeroC.Ice
                         NonSecure.Always => false,
                         _ => true
                     };
-                    connection = CreateConnection(secureOnly, address, label);
+                    connection = await CreateConnectionAsync(secureOnly, address, label, cancel);
                     break;
                 }
                 catch (Exception ex)
@@ -139,10 +139,11 @@ namespace ZeroC.Ice
             return connection;
         }
 
-        protected internal abstract Connection CreateConnection(
+        protected internal abstract ValueTask<Connection> CreateConnectionAsync(
             bool secureOnly,
             IPEndPoint address,
-            object? label);
+            object? label,
+            CancellationToken token);
 
         protected internal override void WriteOptions(OutputStream ostr)
         {

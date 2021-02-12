@@ -388,6 +388,7 @@ namespace ZeroC.Ice
             {
                 // Initialize the transport.
                 await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+
                 if (!Endpoint.IsDatagram)
                 {
                     // Create the control stream and send the initialize frame

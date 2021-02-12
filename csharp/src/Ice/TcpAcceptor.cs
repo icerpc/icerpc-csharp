@@ -24,57 +24,51 @@ namespace ZeroC.Ice
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-
-            bool secure = Endpoint.IsAlwaysSecure || _adapter.AcceptNonSecure == NonSecure.Never;
-            // TODO run checks for SameHost, TrustedHost according to AcceptNonSeucre settings.
-            if (_adapter.Protocol == Protocol.Ice2 && _adapter.AcceptNonSecure != NonSecure.Never)
+            // Don't return until AcceptAsync either throws an exception or until the accepted connection
+            // correctly initializes.
+            SingleStreamSocket? socket = null;
+            while (socket == null)
             {
-                Debug.Assert(_adapter.Communicator.ConnectTimeout != TimeSpan.Zero);
-                // TODO: we are using reusing ConnectTimeout here so that peeking cannot block forever.
-                // However, this means that it's possible to end up waiting 2 * ConnectTime if reading the
-                // first byte is slow and then the actual connection initialization is also slow.
+                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
                 using var source = new CancellationTokenSource(_adapter.Communicator.ConnectTimeout);
                 CancellationToken cancel = source.Token;
-
-                // Peek one byte into the tcp stream to see if it contains the TLS handshake record
-                var buffer = new ArraySegment<byte>(new byte[1]);
-
-                int received;
                 try
                 {
-                    received = await fd.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
-                }
-                catch (SocketException) when (cancel.IsCancellationRequested)
-                {
-                    throw new OperationCanceledException(cancel);
-                }
-                catch (SocketException ex) when (ex.IsConnectionLost())
-                {
-                    throw new ConnectionLostException(ex);
-                }
-                catch (SocketException ex)
-                {
-                    throw new TransportException(ex);
-                }
-                if (received == 0)
-                {
-                    throw new ConnectionLostException();
-                }
+                    bool secure = Endpoint.IsAlwaysSecure || _adapter.AcceptNonSecure == NonSecure.Never;
 
-                Debug.Assert(received == 1);
-                secure = buffer.Array![0] == TlsHandshakeRecord;
+                    // TODO run checks for SameHost, TrustedHost according to AcceptNonSeucre settings.
+                    if (_adapter.Protocol == Protocol.Ice2 && _adapter.AcceptNonSecure != NonSecure.Never)
+                    {
+                        Debug.Assert(_adapter.Communicator.ConnectTimeout != TimeSpan.Zero);
+
+                        // Peek one byte into the tcp stream to see if it contains the TLS handshake record
+                        var buffer = new ArraySegment<byte>(new byte[1]);
+
+                        int received = await fd.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
+                        if (received == 0)
+                        {
+                            throw new ConnectionLostException();
+                        }
+
+                        Debug.Assert(received == 1);
+                        secure = buffer.Array![0] == TlsHandshakeRecord;
+                    }
+
+                    socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _adapter.Name, !secure);
+                    await socket.InitializeAsync(cancel);
+                }
+                catch
+                {
+                    // Ignore, the accepted connection can't be initialized.
+                }
             }
-
-            SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _adapter.Name, !secure);
 
             MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
                 _ => new SlicSocket(socket, Endpoint, _adapter)
             };
-
             return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
         }
 

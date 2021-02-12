@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
@@ -130,13 +132,15 @@ namespace ZeroC.Ice
             }
         }
 
-        protected internal override Connection CreateConnection(
+        protected internal override async ValueTask<Connection> CreateConnectionAsync(
             bool secureOnly,
             IPEndPoint address,
-            object? label)
+            object? label,
+            CancellationToken cancel)
         {
             Debug.Assert(secureOnly == false);
             UdpSocket socket = new(Communicator, address, SourceAddress, MulticastInterface, MulticastTtl);
+            await socket.InitializeAsync(cancel);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, adapter: null), label, adapter: null);
         }
 

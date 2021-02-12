@@ -7,6 +7,8 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
@@ -198,12 +200,14 @@ namespace ZeroC.Ice
                                    oaEndpoint);
         }
 
-        protected internal override Connection CreateConnection(
+        protected internal override async ValueTask<Connection> CreateConnectionAsync(
             bool secureOnly,
             IPEndPoint address,
-            object? label)
+            object? label,
+            CancellationToken cancel)
         {
             SingleStreamSocket socket = CreateSocket(address, preferNonSecure: !secureOnly);
+            await socket.InitializeAsync(cancel).ConfigureAwait(false);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),

@@ -26,9 +26,9 @@ namespace IceRpc.Tests.ClientServer
         public ClientServerBaseTest(Protocol protocol, string transport)
         {
             int basePort = 12000;
-            if (TestContext.Parameters.Names.Contains("IceRpc.Tests.BasePort"))
+            if (TestContext.Parameters.Names.Contains("IceRpc.Tests.ClientServer.BasePort"))
             {
-                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.BasePort"]!);
+                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.ClientServer.BasePort"]!);
             }
             _basePort = Interlocked.Add(ref _nextBasePort, 100) + basePort;
             Protocol = protocol;

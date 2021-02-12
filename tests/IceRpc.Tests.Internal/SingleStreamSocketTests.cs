@@ -28,16 +28,11 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetUp()
         {
-            _clientSocket = await SingleStreamSocket(ConnectAsync());
-            ValueTask clientInitialize = _clientSocket.InitializeAsync(default);
-
+            ValueTask<SingleStreamSocket> clientInitialize = SingleStreamSocket(ConnectAsync());
             _serverSocket = await SingleStreamSocket(AcceptAsync());
-            ValueTask serverInitialize = _serverSocket.InitializeAsync(default);
+            _clientSocket = await clientInitialize;
 
-            await clientInitialize;
-            await serverInitialize;
-
-            static async Task<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
+            static async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
                (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
@@ -228,57 +223,6 @@ namespace IceRpc.Tests.Internal
                 Assert.AreEqual(await sendTask, size);
             }
         }
-    }
-
-    [Parallelizable(scope: ParallelScope.Fixtures)]
-    [TestFixture("tcp", false)]
-    [TestFixture("ws", false)]
-    [TestFixture("ssl", true)]
-    [TestFixture("wss", true)]
-    public class InitializeSingleStreamSocketTests : SocketBaseTest
-    {
-        // Using the Ice1 protocol is important to workaround the Ice2 one-byte peek check done in
-        // AcceptAsync to figure out if it's a secure connection or not.
-        public InitializeSingleStreamSocketTests(string transport, bool secure)
-            : base(Protocol.Ice1, transport, secure)
-        {
-        }
-
-        [Test]
-        public async Task SingleStreamSocket_InitializeAsync()
-        {
-            var clientSocket = await SingleStreamSocket(ConnectAsync());
-            ValueTask clientInitializeTask = clientSocket.InitializeAsync(default);
-
-            var serverSocket = await SingleStreamSocket(AcceptAsync());
-
-            await serverSocket.InitializeAsync(default);
-            await clientInitializeTask;
-        }
-
-        [Test]
-        public async Task SingleStreamSocket_InitializeAsync_ConnectionLostException()
-        {
-            var clientSocket = await SingleStreamSocket(ConnectAsync());
-            ValueTask clientInitializeTask = clientSocket.InitializeAsync(default);
-
-            var serverSocket = await SingleStreamSocket(AcceptAsync());
-            serverSocket.Dispose();
-
-            if (TransportName.Equals("tcp"))
-            {
-                // With TCP, there's no Initialize exchange so the initialize task will complete.
-                await clientInitializeTask;
-            }
-            else
-            {
-                Assert.ThrowsAsync<ConnectionLostException>(async () => await clientInitializeTask);
-            }
-        }
-
-        private static async Task<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
-            // Return the underlying single stream socket from the multi stream socket.
-           (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
     }
 
     [TestFixture("ws", false)]

@@ -244,9 +244,6 @@ namespace ZeroC.Ice
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
-            // Initialize the underlying transport
-            await _socket.InitializeAsync(cancel).ConfigureAwait(false);
-
             if (IsIncoming)
             {
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =

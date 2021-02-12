@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
 
-namespace IceRpc.Tests
+namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
     // ObjectAdapter and establish a connection with a configurable transport.<summary>
@@ -31,9 +31,9 @@ namespace IceRpc.Tests
         public SocketBaseTest(Protocol protocol, string transport, bool secure)
         {
             int port = 12000;
-            if (TestContext.Parameters.Names.Contains("IceRpc.Tests.BasePort"))
+            if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
             {
-                port = int.Parse(TestContext.Parameters["IceRpc.Tests.BasePort"]!);
+                port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!);
             }
             port += Interlocked.Add(ref _nextBasePort, 1);
 
