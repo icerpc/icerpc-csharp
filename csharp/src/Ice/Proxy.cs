@@ -29,8 +29,10 @@ namespace ZeroC.Ice
             await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
                 (proxy is T t ? t : Clone(proxy, factory)) : null;
 
-        /// <summary>Creates a clone of this proxy, with a new identity and optionally other options. The clone
-        /// is identical to this proxy except for its identity and other options set through parameters.</summary>
+        /// <summary>Creates a clone of this proxy with a new proxy type specified using the factory parameter. The
+        /// clone is identical to this proxy except for options set through parameters. This method returns this proxy
+        /// instead of a new proxy in the event none of the options specified through the parameters change anything.
+        /// </summary>
         /// <param name="proxy">The source proxy.</param>
         /// <param name="factory">The proxy factory used to specify the desired proxy type.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
@@ -105,9 +107,9 @@ namespace ZeroC.Ice
                             preferNonSecure,
                             relative);
 
-        /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for options set
+        /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for the options set
         /// through parameters. This method returns this proxy instead of a new proxy in the event none of the options
-        /// specified through the parameters change this proxy's options.</summary>
+        /// specified through the parameters change anything.</summary>
         /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>

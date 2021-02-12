@@ -881,7 +881,8 @@ namespace ZeroC.Ice
                               preferNonSecure: preferNonSecure ?? source._preferNonSecureOverride);
             }
 
-            return Create(options, factory);
+            var clone = Create(options, factory);
+            return source is T t && t.Equals(clone) ? t : clone;
         }
 
         /// <summary>Creates a new proxy using the provided options and factory.</summary>
@@ -1013,14 +1014,17 @@ namespace ZeroC.Ice
 
                 string location0 = endpoints.Length == 0 ? istr.ReadString() : "";
 
+                Communicator communicator = istr.Communicator!;
+
                 var options = new ObjectPrxOptions(
-                    istr.Communicator!,
+                    communicator,
                     identity,
                     proxyData.Protocol,
                     encoding: proxyData.Encoding,
                     endpoints: endpoints,
                     facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                     location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
+                    locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
                 return Create(options, factory);
@@ -1128,14 +1132,17 @@ namespace ZeroC.Ice
                         istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
                         ImmutableList<Endpoint>.Empty;
 
+                    Communicator communicator = istr.Communicator!;
+
                     var options = new ObjectPrxOptions(
-                        istr.Communicator!,
+                        communicator,
                         proxyData.Identity,
                         protocol,
                         encoding: proxyData.Encoding ?? Encoding.V20,
                         endpoints: endpoints,
                         facet: proxyData.Facet ?? "",
                         location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
+                        locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
 
                     return Create(options, factory);
