@@ -16,6 +16,8 @@ module Ice
             MaxBidirectionalStreams = 0,
             MaxUnidirectionalStreams = 1,
             IdleTimeout = 2,
+            PacketMaxSize = 3,
+            StreamBufferMaxSize = 4,
         }
 
         /// The header of the Slic initialize frame body. This header is followed by connection parameters encoded
@@ -50,6 +52,15 @@ module Ice
         {
             /// The application protocol error code indicating the reason of the reset.
             varulong applicationProtocolErrorCode;
+        }
+
+        /// The body of the Stream consumed frame. This frame is sent to notify the peer that the receiver
+        /// consumed some data from the stream.
+        [cs:readonly]
+        struct StreamConsumedBody
+        {
+            /// The size of the consumed data.
+            varulong size;
         }
     }
 }

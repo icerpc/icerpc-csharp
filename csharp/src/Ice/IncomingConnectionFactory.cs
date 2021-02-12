@@ -16,8 +16,6 @@ namespace ZeroC.Ice
         internal bool IsLocal(Endpoint endpoint) => endpoint.IsLocal(Endpoint);
 
         internal abstract Task ShutdownAsync();
-
-        internal abstract void UpdateConnectionObservers();
     }
 
     // IncomingConnectionFactory for acceptor based transports.
@@ -110,17 +108,6 @@ namespace ZeroC.Ice
             await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
-        internal override void UpdateConnectionObservers()
-        {
-            lock (_mutex)
-            {
-                foreach (Connection connection in _connections)
-                {
-                    connection.UpdateObserver();
-                }
-            }
-        }
-
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Reliability",
             "CA2007:Consider calling ConfigureAwait on the awaited task",
@@ -205,7 +192,5 @@ namespace ZeroC.Ice
                 new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_connection.Adapter!.Name}");
             return _connection.GoAwayAsync(exception);
         }
-
-        internal override void UpdateConnectionObservers() => _connection.UpdateObserver();
     }
 }

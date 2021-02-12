@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice.Instrumentation;
 
 namespace ZeroC.Ice
 {
@@ -38,32 +37,13 @@ namespace ZeroC.Ice
         // necessary to avoid a race condition with the GoAway frame which could be received and processed before
         // the response is delivered to the stream.
         internal long LastResponseStreamId { get; set; }
-        internal IConnectionObserver? Observer
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _observer;
-                }
-            }
-            set
-            {
-                lock (_mutex)
-                {
-                    _observer = value;
-                    _observer?.Attach();
-                }
-            }
-        }
         internal event EventHandler? Ping;
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
 
         private int _incomingStreamCount;
-        // The mutex provides thread-safety for the _observer, _streamsAborted and LastActivity data members.
+        // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
         private readonly object _mutex = new();
-        private IConnectionObserver? _observer;
         private int _outgoingStreamCount;
         private readonly ConcurrentDictionary<long, SocketStream> _streams = new();
         private bool _streamsAborted;
@@ -122,24 +102,28 @@ namespace ZeroC.Ice
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            // Dispose of the control streams.
+            // Release the remaining streams.
             foreach (SocketStream stream in _streams.Values)
             {
-                Debug.Assert(stream.IsControl);
-                stream.Dispose();
+                try
+                {
+                    stream.Release();
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception on Stream.TryRelease: {ex}");
+                }
             }
         }
 
-        /// <summary>Notifies the observer and traces the given received amount of data. Transport implementations
-        /// should call this method to trace the received data.</summary>
+        /// <summary>Traces the given received amount of data. Transport implementations should call this method
+        /// to trace the received data.</summary>
         /// <param name="size">The size in bytes of the received data.</param>
         protected void Received(int size)
         {
             lock (_mutex)
             {
                 Debug.Assert(size > 0);
-                _observer?.ReceivedBytes(size);
-
                 LastActivity = Time.Elapsed;
             }
 
@@ -172,16 +156,14 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Notifies the observer and traces the given sent amount of data. Transport implementations
-        /// should call this method to trace the data sent.</summary>
+        /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
+        /// trace the data sent.</summary>
         /// <param name="size">The size in bytes of the data sent.</param>
         protected void Sent(int size)
         {
             lock (_mutex)
             {
                 Debug.Assert(size > 0);
-                _observer?.SentBytes(size);
-
                 LastActivity = Time.Elapsed;
             }
 
@@ -209,7 +191,7 @@ namespace ZeroC.Ice
             return false;
         }
 
-        internal async ValueTask AbortAsync(Exception exception)
+        internal void Abort(Exception exception)
         {
             // Abort the transport.
             Abort();
@@ -221,17 +203,10 @@ namespace ZeroC.Ice
                 graceful = _streamsAborted;
             }
 
-            // Abort the streams if not already done and wait for all the streams to be completed. It's important to
-            // call this again even if has already been called previously by graceful connection closure. Not all the
-            // streams might have been aborted and at this point we want to make sure all the streams are aborted.
+            // Abort the streams if not already done. It's important to call this again even if has already been
+            // called previously by graceful connection closure. Not all the streams might have been aborted and
+            // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
-
-            await WaitForEmptyStreamsAsync().ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                _observer?.Detach();
-            }
 
             if (Endpoint.Communicator.TraceLevels.Transport >= 1)
             {
@@ -256,8 +231,8 @@ namespace ZeroC.Ice
         {
             lock (_mutex)
             {
-                // Set the _streamsAborted flag to prevent addition of new streams by AddStream. No more streams will
-                // be added to _streams once this flag is true.
+                // Set the _streamsAborted flag to prevent addition of new streams by AddStream. No more streams
+                // will be added to _streams once this flag is true.
                 _streamsAborted = true;
             }
 
@@ -290,6 +265,8 @@ namespace ZeroC.Ice
         {
             lock (_mutex)
             {
+                // It's important to hold the mutex here to ensure the check for _streamsAborted and the stream
+                // addition to the dictionary is atomic.
                 if (_streamsAborted)
                 {
                     throw new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -348,7 +325,7 @@ namespace ZeroC.Ice
             return stream;
         }
 
-        internal void RemoveStream(long id)
+        internal bool RemoveStream(long id)
         {
             if (_streams.TryRemove(id, out SocketStream? stream))
             {
@@ -357,6 +334,11 @@ namespace ZeroC.Ice
                     Interlocked.Decrement(ref stream.IsIncoming ? ref _incomingStreamCount : ref _outgoingStreamCount);
                 }
                 CheckStreamsEmpty();
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 

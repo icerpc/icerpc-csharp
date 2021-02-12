@@ -52,5 +52,9 @@
           <SliceCompileSource>..\..\..\slice\Ice\SlicDefinitions.ice</SliceCompileSource>
         </Compile>
     </ItemGroup>
-    <ItemGroup />
+    <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All" />
+      <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All" />
+    </ItemGroup>
 </Project>

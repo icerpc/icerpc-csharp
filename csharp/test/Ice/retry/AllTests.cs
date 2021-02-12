@@ -201,7 +201,7 @@ namespace ZeroC.Ice.Test.Retry
                 {
                     Instrumentation.TestInvocationReset();
                     // No retries before timeout kicks-in
-                    int n = retry1.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500)).OpAfterDelay(4, 50);
+                    int n = retry1.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000)).OpAfterDelay(4, 50);
                     Instrumentation.TestRetryCount(4);
                     retry1.OpAfterDelay(-1, 0);
                     TestHelper.Assert(n == 4);

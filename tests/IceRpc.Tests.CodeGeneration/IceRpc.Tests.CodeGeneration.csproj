@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <SliceCompile>
+      <OutputDir>generated</OutputDir>
+    </SliceCompile>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
+    <Compile Update="generated\SequenceMappingTests.cs">
+      <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="3.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+    <PackageReference Include="NUnit" Version="3.13.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All" />
+    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\csharp\src\Ice\ice.csproj" />
+  </ItemGroup>
+
+</Project>

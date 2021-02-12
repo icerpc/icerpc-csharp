@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace ZeroC.Ice
@@ -13,35 +14,59 @@ namespace ZeroC.Ice
     internal class ColocatedStream : SignaledSocketStream<(object, bool)>
     {
         protected override bool ReceivedEndOfStream => _receivedEndOfStream;
-
-        private ConcurrentQueue<ArraySegment<byte>>? _receivedData;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
         private readonly ColocatedSocket _socket;
+        private ChannelWriter<byte[]>? _streamWriter;
+        private ChannelReader<byte[]>? _streamReader;
 
-        protected override void Dispose(bool disposing)
+        protected override void Shutdown()
         {
-            base.Dispose(disposing);
+            base.Shutdown();
+            _socket.ReleaseStream(this);
+        }
 
-            if (disposing)
+        protected override void EnableSendFlowControl()
+        {
+            base.EnableSendFlowControl();
+
+            // Create a channel to send the data directly to the peer's stream. It's a bounded channel
+            // of one element which requires the sender to wait if the channel is full. This ensures
+            // that the sender doesn't send the data faster than the receiver can process. Using channels
+            // for this purpose might be a little overkill, we could consider adding a small async queue
+            // class for this purpose instead.
+            var channelOptions = new BoundedChannelOptions(1)
             {
-                _socket.ReleaseFlowControlCredit(this);
-            }
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.Wait,
+                AllowSynchronousContinuations = false
+            };
+            var channel = Channel.CreateBounded<byte[]>(channelOptions);
+            _streamWriter = channel.Writer;
+
+            // Send the channel reader to the peer. Receiving data will first wait for the channel reader
+            // to be transmitted.
+            _socket.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
         }
 
         protected override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
+            // socket channel.
+            if (_streamReader == null)
+            {
+                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+                _streamReader = frame as ChannelReader<byte[]>;
+                Debug.Assert(_streamReader != null);
+            }
+
             int received = 0;
             while (buffer.Length > 0)
             {
-                if (_receiveSegment.Count > 0 || (_receivedData?.TryDequeue(out _receiveSegment) ?? false))
+                if (_receiveSegment.Count > 0)
                 {
-                    if (_receiveSegment.Count == 0)
-                    {
-                        _receivedEndOfStream = true;
-                        return received;
-                    }
-                    else if (buffer.Length < _receiveSegment.Count)
+                    if (buffer.Length < _receiveSegment.Count)
                     {
                         _receiveSegment[0..buffer.Length].AsMemory().CopyTo(buffer);
                         received += buffer.Length;
@@ -53,12 +78,24 @@ namespace ZeroC.Ice
                         _receiveSegment.AsMemory().CopyTo(buffer);
                         received += _receiveSegment.Count;
                         _receiveSegment = new ArraySegment<byte>();
-                        buffer = buffer[_receiveSegment.Count..];
+                        buffer = Memory<byte>.Empty;
                     }
                 }
                 else
                 {
-                    await WaitSignalAsync(cancel).ConfigureAwait(false);
+                    if (_receivedEndOfStream)
+                    {
+                        return 0;
+                    }
+
+                    try
+                    {
+                        _receiveSegment = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
+                    }
+                    catch (ChannelClosedException)
+                    {
+                        _receivedEndOfStream = true;
+                    }
                 }
             }
             return received;
@@ -69,8 +106,33 @@ namespace ZeroC.Ice
             // TODO: Provide the error code?
             _socket.SendFrameAsync(this, frame: null, fin: true, CancellationToken.None);
 
-        protected override ValueTask SendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel) =>
-            _socket.SendFrameAsync(this, frame: new List<ArraySegment<byte>>(buffer), fin: fin, cancel);
+        protected override async ValueTask SendAsync(
+            IList<ArraySegment<byte>> buffer,
+            bool fin,
+            CancellationToken cancel)
+        {
+            if (_streamWriter == null)
+            {
+                await _socket.SendFrameAsync(this, buffer, fin, cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                if (buffer[0].Count > 0)
+                {
+                    // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
+                    // copying the data from the sender. Copying the data is necessary here because WriteAsync
+                    // doesn't block if there's space in the channel and it's not possible to create a
+                    // bounded channel with a null capacity.
+                    byte[] copy = new byte[buffer[0].Count];
+                    buffer[0].CopyTo(copy);
+                    await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);
+                }
+                if (fin)
+                {
+                    _streamWriter.Complete();
+                }
+            }
+        }
 
         /// <summary>Constructor for incoming colocated stream</summary>
         internal ColocatedStream(ColocatedSocket socket, long streamId)
@@ -80,37 +142,11 @@ namespace ZeroC.Ice
         internal ColocatedStream(ColocatedSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
-        internal void ReceivedFrame(object frame, bool fin)
-        {
-            if (_receivedData != null)
-            {
-                Debug.Assert(frame is List<ArraySegment<byte>>);
-                var data = (List<ArraySegment<byte>>)frame;
-                Debug.Assert(data.Count == 1);
-                _receivedData.Enqueue(data[0]);
-                if (fin)
-                {
-                    _receivedData.Enqueue(ArraySegment<byte>.Empty);
-                }
-            }
-            else if (frame is IncomingFrame && !fin)
-            {
-                // If it's a request or response and the stream is not finished, create a concurrent queue to
-                // keep track of additional data frames.
-                _receivedData = new ConcurrentQueue<ArraySegment<byte>>();
-            }
-
-            // Run the continuation asynchronously if it's a response to ensure we don't end up calling user
-            // code which could end up blocking the AcceptStreamAsync task.
-            if (!IsSignaled)
-            {
-                SignalCompletion((frame, fin));
-            }
-        }
+        internal void ReceivedFrame(object frame, bool fin) => QueueResult((frame, fin));
 
         internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequestFrame);
             var frame = (IncomingRequestFrame)frameObject;
 
@@ -121,8 +157,14 @@ namespace ZeroC.Ice
             else
             {
                 frame.SocketStream = this;
-                Interlocked.Increment(ref UseCount);
+                Interlocked.Increment(ref _useCount);
             }
+
+            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            {
+                _socket.TraceFrame(Id, frame);
+            }
+
             return frame;
         }
 
@@ -133,7 +175,7 @@ namespace ZeroC.Ice
 
             try
             {
-                (frameObject, fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+                (frameObject, fin) = await WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -154,7 +196,12 @@ namespace ZeroC.Ice
             else
             {
                 frame.SocketStream = this;
-                Interlocked.Increment(ref UseCount);
+                Interlocked.Increment(ref _useCount);
+            }
+
+            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            {
+                _socket.TraceFrame(Id, frame);
             }
 
             return frame;
@@ -164,7 +211,7 @@ namespace ZeroC.Ice
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitSignalAsync(cancel).ConfigureAwait(false);
+            (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             if (fin)
             {
                 _receivedEndOfStream = true;

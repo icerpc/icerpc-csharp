@@ -34,15 +34,6 @@ namespace ZeroC.Ice
     /// </summary>
     public sealed partial class Communicator : IAsyncDisposable
     {
-        private class ObserverUpdater : Instrumentation.IObserverUpdater
-        {
-            public ObserverUpdater(Communicator communicator) => _communicator = communicator;
-
-            public void UpdateConnectionObservers() => _communicator.UpdateConnectionObservers();
-
-            private readonly Communicator _communicator;
-        }
-
         /// <summary>The connection close timeout.</summary>
         public TimeSpan CloseTimeout { get; }
         /// <summary>The connection establishment timeout.</summary>
@@ -170,6 +161,7 @@ namespace ZeroC.Ice
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
         internal int SlicPacketMaxSize { get; }
+        internal int SlicStreamBufferMaxSize { get; }
 
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
@@ -482,6 +474,14 @@ namespace ZeroC.Ice
                 throw new InvalidConfigurationException("Ice.Slic.PacketMaxSize can't be inferior to 1KB");
             }
 
+            SlicStreamBufferMaxSize =
+                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * SlicPacketMaxSize;
+            if (SlicStreamBufferMaxSize < SlicPacketMaxSize)
+            {
+                throw new InvalidConfigurationException(
+                    "Ice.Slic.StreamBufferMaxSize can't be inferior to Ice.Slic.PacketMaxSize");
+            }
+
             int frameMaxSize = this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? 1024 * 1024;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
             if (IncomingFrameMaxSize < 1024)
@@ -559,8 +559,6 @@ namespace ZeroC.Ice
                 LoadAssemblies();
             }
 
-            Observer?.SetObserverUpdater(new ObserverUpdater(this));
-
             try
             {
                 _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
@@ -622,8 +620,6 @@ namespace ZeroC.Ice
 
                 // Ensure all the outgoing connections were removed
                 Debug.Assert(_outgoingConnections.Count == 0);
-
-                Observer?.SetObserverUpdater(null);
 
                 if (this.GetPropertyAsBool("Ice.Warn.UnusedProperties") ?? false)
                 {
@@ -859,26 +855,6 @@ namespace ZeroC.Ice
                 info.SndWarn = true;
                 info.SndSize = size;
                 _setBufWarnSize[transport] = info;
-            }
-        }
-
-        internal void UpdateConnectionObservers()
-        {
-            try
-            {
-                lock (_mutex)
-                {
-                    foreach (ICollection<Connection> connections in _outgoingConnections.Values)
-                    {
-                        foreach (Connection c in connections)
-                        {
-                            c.UpdateObserver();
-                        }
-                    }
-                }
-            }
-            catch (CommunicatorDisposedException)
-            {
             }
         }
 
