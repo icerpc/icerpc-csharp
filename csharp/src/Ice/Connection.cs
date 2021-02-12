@@ -172,7 +172,7 @@ namespace ZeroC.Ice
                 fixedConnection: this,
                 oneway: Endpoint.IsDatagram);
 
-            return ObjectPrx.Create(options, factory);
+            return factory.Create(options);
         }
 
         /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about

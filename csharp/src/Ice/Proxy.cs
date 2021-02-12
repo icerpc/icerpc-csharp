@@ -254,5 +254,12 @@ namespace ZeroC.Ice
         /// <returns>The property set.</returns>
         public static Dictionary<string, string> ToProperty(this IObjectPrx proxy, string property) =>
             proxy.Impl.ToProperty(property);
+
+        /// <summary>Creates a new proxy.</summary>
+        /// <param name="factory">The proxy factory.</param>
+        /// <param name="options">The proxy options.</param>
+        /// <returns>The new proxy.</returns>
+        internal static T Create<T>(this T factory, ObjectPrxOptions options) where T : class, IObjectPrx =>
+            ObjectPrx.Create(factory, options);
     }
 }

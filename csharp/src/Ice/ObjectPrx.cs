@@ -262,16 +262,16 @@ namespace ZeroC.Ice
                 endpoints: endpoints,
                 facet: facet,
                 invocationTimeout: invocationTimeout,
-                oneway: oneway,
-                relative: relative ?? false,
                 location: location,
                 locatorCacheTimeout: locatorCacheTimeout,
                 locatorInfo: locatorInfo ??
                     (endpoints.Count == 0 ? communicator.GetLocatorInfo(communicator.DefaultLocator) : null),
+                oneway: oneway,
                 preferExistingConnection: preferExistingConnection,
-                preferNonSecure: preferNonSecure);
+                preferNonSecure: preferNonSecure,
+                relative: relative ?? false);
 
-            return Create(options, factory);
+            return factory.Create(options);
         }
 
         /// <inheritdoc/>
@@ -875,18 +875,18 @@ namespace ZeroC.Ice
                                 (locatorInfo != null ? source._locatorCacheTimeoutOverride : null),
                               locatorInfo: locatorInfo, // no fallback otherwise breaks clearLocator
                               oneway: oneway ?? source.IsOneway,
-                              relative: relative ?? source.IsRelative,
                               preferExistingConnection:
                                 preferExistingConnection ?? source._preferExistingConnectionOverride,
-                              preferNonSecure: preferNonSecure ?? source._preferNonSecureOverride);
+                              preferNonSecure: preferNonSecure ?? source._preferNonSecureOverride,
+                              relative: relative ?? source.IsRelative);
             }
 
-            var clone = Create(options, factory);
+            T clone = factory.Create(options);
             return source is T t && t.Equals(clone) ? t : clone;
         }
 
-        /// <summary>Creates a new proxy using the provided options and factory.</summary>
-        internal static T Create<T>(ObjectPrxOptions options, T factory) where T : class, IObjectPrx =>
+        /// <summary>Creates a new proxy using the provided factory and options.</summary>
+        internal static T Create<T>(T factory, ObjectPrxOptions options) where T : class, IObjectPrx =>
             (factory.Impl.IceCreate(options) as T)!;
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
@@ -1027,7 +1027,7 @@ namespace ZeroC.Ice
                     locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
-                return Create(options, factory);
+                return factory.Create(options);
             }
             else
             {
@@ -1074,7 +1074,7 @@ namespace ZeroC.Ice
                             facet: proxyData.Facet ?? "",
                             fixedConnection: connection);
 
-                        return Create(options, factory);
+                        return factory.Create(options);
                     }
                     else
                     {
@@ -1145,7 +1145,7 @@ namespace ZeroC.Ice
                         locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
 
-                    return Create(options, factory);
+                    return factory.Create(options);
                 }
             }
         }

@@ -267,7 +267,7 @@ namespace ZeroC.Ice
                     PublishedEndpoints[0].Protocol,
                     endpoints: PublishedEndpoints);
 
-                return ObjectPrx.Create(options, IObjectPrx.Factory);
+                return IObjectPrx.Factory.Create(options);
             }
         }
 
@@ -549,7 +549,7 @@ namespace ZeroC.Ice
                     location: location,
                     oneway: _datagramOnly);
 
-                return ObjectPrx.Create(options, factory);
+                return factory.Create(options);
             }
         }
 
