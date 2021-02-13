@@ -30,11 +30,17 @@ namespace ZeroC.Ice
         /// <value>The communicator.</value>
         public Communicator Communicator { get; }
 
-        /// <summary>The dispatch interceptors of this object adapter.</summary>
-        public ImmutableList<DispatchInterceptor> DispatchInterceptors
+        /// <summary>The dispatch interceptor(s) of this object adapter.</summary>
+        public DispatchInterceptor? DispatchInterceptor
         {
-            get => _dispatchInterceptors;
-            set => _dispatchInterceptors = value;
+            get => _dispatchInterceptor;
+            set
+            {
+                _dispatchInterceptor = value;
+                _dispatchInterceptorList =
+                    _dispatchInterceptor?.GetInvocationList()?.Select(d => (DispatchInterceptor)d)?.ToImmutableList() ??
+                        ImmutableList<DispatchInterceptor>.Empty;
+            }
         }
 
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
@@ -109,8 +115,8 @@ namespace ZeroC.Ice
         private readonly bool _datagramOnly;
 
         private readonly Dictionary<string, IObject> _defaultServantMap = new();
-        private volatile ImmutableList<DispatchInterceptor> _dispatchInterceptors =
-            ImmutableList<DispatchInterceptor>.Empty;
+        private DispatchInterceptor? _dispatchInterceptor;
+        private ImmutableList<DispatchInterceptor> _dispatchInterceptorList = ImmutableList<DispatchInterceptor>.Empty;
 
         private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
 
@@ -811,23 +817,7 @@ namespace ZeroC.Ice
                     throw new ObjectNotExistException(RetryPolicy.OtherReplica);
                 }
 
-                ValueTask<OutgoingResponseFrame> DispatchAsync(IReadOnlyList<DispatchInterceptor> interceptors, int i)
-                {
-                    if (i < interceptors.Count)
-                    {
-                        DispatchInterceptor interceptor = interceptors[i++];
-                        return interceptor(request,
-                                           current,
-                                           (request, current, cancel) => DispatchAsync(interceptors, i),
-                                           cancel);
-                    }
-                    else
-                    {
-                        return servant.DispatchAsync(request, current, cancel);
-                    }
-                }
-
-                return await DispatchAsync(_dispatchInterceptors, 0).ConfigureAwait(false);
+                return await DispatchAsync(servant, _dispatchInterceptorList, 0).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -856,6 +846,25 @@ namespace ZeroC.Ice
                         Warning(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
+                }
+            }
+
+            ValueTask<OutgoingResponseFrame> DispatchAsync(
+                IObject servant,
+                IReadOnlyList<DispatchInterceptor> interceptors,
+                int i)
+            {
+                if (i < interceptors.Count)
+                {
+                    DispatchInterceptor interceptor = interceptors[i++];
+                    return interceptor(request,
+                                       current,
+                                       (request, current, cancel) => DispatchAsync(servant, interceptors, i),
+                                       cancel);
+                }
+                else
+                {
+                    return servant.DispatchAsync(request, current, cancel);
                 }
             }
 
