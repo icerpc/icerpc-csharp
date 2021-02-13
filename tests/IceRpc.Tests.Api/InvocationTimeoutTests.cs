@@ -18,12 +18,11 @@ namespace IceRpc.Tests.Api
         [TestCase(500, 100)]
         public async Task InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
         {
-            ObjectAdapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                async (request, current, next, cancel) =>
-                {
-                    await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                    return await next(request, current, cancel);
-                });
+            ObjectAdapter.DispatchInterceptor += async (request, current, next, cancel) =>
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                return await next(request, current, cancel);
+            };
 
             var prx = ObjectAdapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));

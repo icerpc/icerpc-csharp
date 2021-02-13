@@ -20,8 +20,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var adapter = new ObjectAdapter(communicator)
             {
-                DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                    (request, current, next, cancel) => throw new ArgumentException())
+                DispatchInterceptor = (request, current, next, cancel) => throw new ArgumentException()
             };
             var service = new TestService();
             var prx = adapter.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
@@ -38,30 +37,29 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var adapter = new ObjectAdapter(communicator);
             var interceptorCalls = new List<string>();
-            adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                async (request, current, next, cancel) =>
-                {
-                    interceptorCalls.Add("DispatchInterceptors -> 0");
-                    var result = await next(request, current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 0");
-                    return result;
-                },
-                async (request, current, next, cancel) =>
-                {
-                    interceptorCalls.Add("DispatchInterceptors -> 1");
-                    var result = await next(request, current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 1");
-                    return result;
-                });
+            adapter.DispatchInterceptor += async (request, current, next, cancel) =>
+            {
+                interceptorCalls.Add("DispatchInterceptor -> 0");
+                var result = await next(request, current, cancel);
+                interceptorCalls.Add("DispatchInterceptor <- 0");
+                return result;
+            };
+            adapter.DispatchInterceptor += async (request, current, next, cancel) =>
+            {
+                interceptorCalls.Add("DispatchInterceptor -> 1");
+                var result = await next(request, current, cancel);
+                interceptorCalls.Add("DispatchInterceptor <- 1");
+                return result;
+            };
             var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
 
             await prx.IcePingAsync();
 
-            Assert.AreEqual("DispatchInterceptors -> 0", interceptorCalls[0]);
-            Assert.AreEqual("DispatchInterceptors -> 1", interceptorCalls[1]);
-            Assert.AreEqual("DispatchInterceptors <- 1", interceptorCalls[2]);
-            Assert.AreEqual("DispatchInterceptors <- 0", interceptorCalls[3]);
+            Assert.AreEqual("DispatchInterceptor -> 0", interceptorCalls[0]);
+            Assert.AreEqual("DispatchInterceptor -> 1", interceptorCalls[1]);
+            Assert.AreEqual("DispatchInterceptor <- 1", interceptorCalls[2]);
+            Assert.AreEqual("DispatchInterceptor <- 0", interceptorCalls[3]);
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
