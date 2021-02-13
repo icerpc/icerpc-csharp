@@ -34,13 +34,7 @@ namespace ZeroC.Ice
         public DispatchInterceptor? DispatchInterceptor
         {
             get => _dispatchInterceptor;
-            set
-            {
-                _dispatchInterceptor = value;
-                _dispatchInterceptorList =
-                    _dispatchInterceptor?.GetInvocationList()?.Select(d => (DispatchInterceptor)d)?.ToImmutableList() ??
-                        ImmutableList<DispatchInterceptor>.Empty;
-            }
+            set => _dispatchInterceptor = value;
         }
 
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
@@ -115,9 +109,7 @@ namespace ZeroC.Ice
         private readonly bool _datagramOnly;
 
         private readonly Dictionary<string, IObject> _defaultServantMap = new();
-        private DispatchInterceptor? _dispatchInterceptor;
-        private ImmutableList<DispatchInterceptor> _dispatchInterceptorList = ImmutableList<DispatchInterceptor>.Empty;
-
+        private volatile DispatchInterceptor? _dispatchInterceptor;
         private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
@@ -817,7 +809,7 @@ namespace ZeroC.Ice
                     throw new ObjectNotExistException(RetryPolicy.OtherReplica);
                 }
 
-                return await DispatchAsync(servant, _dispatchInterceptorList, 0).ConfigureAwait(false);
+                return await DispatchAsync(servant, _dispatchInterceptor?.GetInvocationList(), 0).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -849,14 +841,11 @@ namespace ZeroC.Ice
                 }
             }
 
-            ValueTask<OutgoingResponseFrame> DispatchAsync(
-                IObject servant,
-                IReadOnlyList<DispatchInterceptor> interceptors,
-                int i)
+            ValueTask<OutgoingResponseFrame> DispatchAsync(IObject servant, Delegate[]? interceptors, int i)
             {
-                if (i < interceptors.Count)
+                if (interceptors != null && i < interceptors.Length)
                 {
-                    DispatchInterceptor interceptor = interceptors[i++];
+                    var interceptor = (DispatchInterceptor)interceptors[i++];
                     return interceptor(request,
                                        current,
                                        (request, current, cancel) => DispatchAsync(servant, interceptors, i),
