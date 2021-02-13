@@ -10,8 +10,11 @@ namespace ZeroC.Ice.Test.Operations
         public override async Task RunAsync(string[] args)
         {
             await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { AdapterId = "test", Endpoints = GetTestEndpoint(0) });
+                                                        new()
+                                                        {
+                                                            AdapterId = "test",
+                                                            Endpoints = GetTestEndpoint(0)
+                                                        });
 
             var prx = adapter.Add("test", new MyDerivedClass(), IMyDerivedClassPrx.Factory);
             // Don't activate OA to ensure colocation is used.

@@ -9,10 +9,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
     {
         public override async Task RunAsync(string[] args)
         {
-            var adapter = new ObjectAdapter(
-                Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            var adapter = new ObjectAdapter(Communicator,
+                                            new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.AddDefault(new Servant());
             await adapter.ActivateAsync();

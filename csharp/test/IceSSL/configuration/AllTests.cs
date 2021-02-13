@@ -274,8 +274,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     bool ice1 = helper.Protocol == Protocol.Ice1;
                     await using var adapter = new ObjectAdapter(
                         serverCommunicator,
-                        "MyAdapter",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             ColocationScope = ColocationScope.Communicator,
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
@@ -327,8 +326,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     bool ice1 = helper.Protocol == Protocol.Ice1;
                     await using var adapter = new ObjectAdapter(
                         serverCommunicator,
-                        "MyAdapter",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             ColocationScope = ColocationScope.Communicator,
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",

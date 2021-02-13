@@ -54,30 +54,30 @@ namespace ZeroC.Ice.Test.Location
 
                 try
                 {
+                    var locator = ILocatorPrx.Parse(_helper.GetTestProxy("locator", 0), serverCommunicator);
+
+                    ILocatorRegistryPrx? locatorRegistry = await locator.GetRegistryAsync();
+
                     adapter = new ObjectAdapter(
                         serverCommunicator,
-                        "TestAdapter",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             AdapterId = "TestAdapter",
                             Endpoints = _helper.GetTestEndpoint(_nextPort++),
+                            LocatorRegistry = locatorRegistry,
                             ReplicaGroupId = "ReplicatedAdapter"
                         });
                     _adapters.Add(adapter);
 
                     adapter2 = new ObjectAdapter(
                         serverCommunicator,
-                        "TestAdapter2",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             AdapterId = "TestAdapter2",
-                            Endpoints = _helper.GetTestEndpoint(_nextPort++)
+                            Endpoints = _helper.GetTestEndpoint(_nextPort++),
+                            LocatorRegistry = locatorRegistry
                         });
                     _adapters.Add(adapter2);
-
-                    var locator = ILocatorPrx.Parse(_helper.GetTestProxy("locator", 0), serverCommunicator);
-                    adapter.Locator = locator;
-                    adapter2.Locator = locator;
 
                     var testI = new TestIntf(adapter, adapter2, _registry);
                     _registry.AddObject(adapter.Add("test", testI, IObjectPrx.Factory));

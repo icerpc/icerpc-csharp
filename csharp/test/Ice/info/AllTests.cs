@@ -77,9 +77,9 @@ namespace ZeroC.Ice.Test.Info
             output.Flush();
             {
                 string serverName = helper.Host;
-                adapter = new ObjectAdapter(communicator,
-                    "TestAdapter",
-                    new ObjectAdapterOptions
+                adapter = new ObjectAdapter(
+                    communicator,
+                    new()
                     {
                         AcceptNonSecure = NonSecure.Always,
                         Endpoints = $"tcp -h \"{helper.Host}\" -p 0 -t 15000",
@@ -102,9 +102,9 @@ namespace ZeroC.Ice.Test.Info
 
                 int port = helper.BasePort + 1;
 
-                adapter = new ObjectAdapter(communicator,
-                    "TestAdapter",
-                    new ObjectAdapterOptions
+                adapter = new ObjectAdapter(
+                    communicator,
+                    new()
                     {
                         Endpoints = ice1 ? $"{transport} -h 0.0.0.0 -p {port}" : $"ice+{transport}://0.0.0.0:{port}",
                         PublishedEndpoints = helper.GetTestEndpoint(1)

@@ -30,20 +30,14 @@ namespace ZeroC.Ice.Test.ProtocolBridging
 
             bool ice1 = Protocol == Protocol.Ice1;
 
-            await using var adapterForwarder = new ObjectAdapter(
-                Communicator,
-                "TestAdapterForwarder",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            await using var adapterForwarder =
+                new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            await using var adapterSame = new ObjectAdapter(
-                Communicator,
-                "TestAdapterSame",
-                new ObjectAdapterOptions { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
+            await using var adapterSame =
+                new ObjectAdapter(Communicator, new() { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
 
-            await using var adapterOther = new ObjectAdapter(
-                Communicator,
-                "TestAdapterOther",
-                new ObjectAdapterOptions { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
+            await using var adapterOther =
+                new ObjectAdapter(Communicator, new() { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
 
             ITestIntfPrx samePrx = adapterSame.Add("TestSame", new TestI(), ITestIntfPrx.Factory);
             ITestIntfPrx otherPrx = adapterOther.Add("TestOther", new TestI(), ITestIntfPrx.Factory);

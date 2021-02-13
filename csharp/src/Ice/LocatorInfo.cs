@@ -32,10 +32,7 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Location, Protocol), Task<EndpointList>> _locationRequests =
             new(_locationComparer);
 
-        private ILocatorRegistryPrx? _locatorRegistry;
-        private bool _locatorRegistryRetrieved; // used to cache null locator registries
-
-        // _mutex protects _locatorRegistry, _locatorRegistryRetrieved, _locationRequests and _wellKnownProxyRequests
+        // _mutex protects _locationRequests and _wellKnownProxyRequests
         private readonly object _mutex = new();
 
         private readonly ConcurrentDictionary<(Identity, string, Protocol), (TimeSpan InsertionTime, EndpointList Endpoints, Location Location)> _wellKnownProxyCache =
@@ -213,33 +210,6 @@ namespace ZeroC.Ice
             }
 
             return (endpoints, proxy.IsWellKnown ? wellKnownLocationAge : endpointsAge);
-        }
-
-        internal async Task<ILocatorRegistryPrx?> GetLocatorRegistryAsync(CancellationToken cancel)
-        {
-            lock (_mutex)
-            {
-                if (_locatorRegistryRetrieved)
-                {
-                    return _locatorRegistry;
-                }
-            }
-
-            ILocatorRegistryPrx? locatorRegistry = await Locator.GetRegistryAsync(cancel: cancel).ConfigureAwait(false);
-
-            lock (_mutex)
-            {
-                if (_locatorRegistryRetrieved)
-                {
-                    locatorRegistry = _locatorRegistry;
-                }
-                else
-                {
-                    _locatorRegistry = locatorRegistry;
-                    _locatorRegistryRetrieved = true;
-                }
-            }
-            return locatorRegistry;
         }
 
         private static bool CheckExpired(TimeSpan age, TimeSpan maxAge) =>

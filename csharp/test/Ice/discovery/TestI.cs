@@ -22,13 +22,16 @@ namespace ZeroC.Ice.Test.Discovery
             bool ice1 = TestHelper.GetTestProtocol(communicator.GetProperties()) == Protocol.Ice1;
             string transport = TestHelper.GetTestTransport(communicator.GetProperties());
 
+            ILocatorRegistryPrx? locatorRegistry = await communicator.DefaultLocator!.GetRegistryAsync();
+
             var oa = new ObjectAdapter(
                 communicator,
-                name,
-                new ObjectAdapterOptions
+                new()
                 {
                     AdapterId = adapterId,
                     Endpoints = ice1 ? $"{transport} -h 127.0.0.1" : $"ice+{transport}://127.0.0.1:0",
+                    LocatorRegistry = locatorRegistry,
+                    Name = name,
                     ReplicaGroupId = replicaGroupId,
                     ServerName = "localhost"
                 });

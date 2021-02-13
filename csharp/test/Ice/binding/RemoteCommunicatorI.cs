@@ -26,13 +26,13 @@ namespace ZeroC.Ice.Test.Binding
 
                     var adapter = new ObjectAdapter(
                         current.Communicator,
-                        name,
-                        new ObjectAdapterOptions
+                        new()
                         {
                             AcceptNonSecure = transport == "udp" ? NonSecure.Always :
                                 current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
                                     NonSecure.Always,
                             Endpoints = endpoints,
+                            Name = name,
                             ServerName = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
                     await adapter.ActivateAsync(cancel);
@@ -58,8 +58,7 @@ namespace ZeroC.Ice.Test.Binding
         {
             var adapter = new ObjectAdapter(
                 current.Communicator,
-                name,
-                new ObjectAdapterOptions { Endpoints = endpoints });
+                new ObjectAdapterOptions { Endpoints = endpoints, Name = name });
             await adapter.ActivateAsync(cancel);
 
             return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);

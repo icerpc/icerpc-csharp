@@ -15,9 +15,12 @@ namespace ZeroC.Ice.Test.Timeout
         {
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) },
-                scheduler: schedulerPair.ExclusiveScheduler);
+                                                        new()
+                                                        {
+                                                            Endpoints = GetTestEndpoint(0),
+                                                            TaskScheduler = schedulerPair.ExclusiveScheduler
+                                                        });
+
             adapter.Add("timeout", new Timeout());
             adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(
                 (request, current, next, cancel) =>
@@ -36,8 +39,7 @@ namespace ZeroC.Ice.Test.Timeout
 
             await using var controllerAdapter = new ObjectAdapter(
                 Communicator,
-                "ControllerAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) });
+                new() { Endpoints = GetTestEndpoint(1) });
             controllerAdapter.Add("controller", new Controller(schedulerPair.ExclusiveScheduler));
             await controllerAdapter.ActivateAsync();
 

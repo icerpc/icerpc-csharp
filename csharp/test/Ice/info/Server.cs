@@ -16,16 +16,17 @@ namespace ZeroC.Ice.Test.Info
             {
                 options = new ObjectAdapterOptions
                 {
+                    AcceptNonSecure = NonSecure.Always,
                     Endpoints = GetTestEndpoint(0) + ":" + GetTestEndpoint(0, "udp"),
-                    AcceptNonSecure = NonSecure.Always
+                    Name = "TestAdapter"
                 };
             }
             else
             {
-                options = new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) };
+                options = new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0), Name = "TestAdapter" };
             }
 
-            await using var adapter = new ObjectAdapter(Communicator, "TestAdapter", options);
+            await using var adapter = new ObjectAdapter(Communicator, options);
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 

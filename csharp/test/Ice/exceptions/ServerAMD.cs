@@ -10,17 +10,15 @@ namespace ZeroC.Ice.Test.Exceptions
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
-                "TestAdapter2",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
+            ObjectAdapter adapter2 = new ObjectAdapter(
+                Communicator,
+                new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
 
-            ObjectAdapter adapter3 = new ObjectAdapter(Communicator,
-                "TestAdapter3",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
+            ObjectAdapter adapter3 = new ObjectAdapter(
+                Communicator,
+                new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new AsyncThrower();
             ZeroC.Ice.IObjectPrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IObjectPrx.Factory);
@@ -34,8 +32,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             await using var forwarderAdapter = new ObjectAdapter(
                 communicator2,
-                "ForwarderAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
+                new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
 
             forwarderAdapter.Add("forwarder", new Forwarder(IObjectPrx.Parse(GetTestProxy("thrower"), communicator2)));
             await forwarderAdapter.ActivateAsync();

@@ -101,8 +101,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 
             var adapter = new ObjectAdapter(
                 communicator,
-                "ServerAdapter",
-                new ObjectAdapterOptions
+                new()
                 {
                     ColocationScope = ColocationScope.Communicator,
                     Endpoints = serverEndpoint,

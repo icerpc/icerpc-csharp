@@ -42,31 +42,11 @@ namespace ZeroC.Ice
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
-        /// <summary>The locator proxy associated with this object adapter, if any. The object adapter registers itself
-        /// with the locator registry associated with this locator during activation.</summary>
-        /// <value>The locator proxy.</value>
-        public ILocatorPrx? Locator
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _locator;
-                }
-            }
-
-            set
-            {
-                lock (_mutex)
-                {
-                    if (_activateTask != null)
-                    {
-                        throw new InvalidOperationException("cannot set the locator proxy during or after activation");
-                    }
-                    _locator = value;
-                }
-            }
-        }
+        /// <summary>The locator registry proxy associated with this object adapter, if any. An indirect object adapter
+        /// registers itself with the locator registry associated during activation, and unregisters during shutdown.
+        /// </summary>
+        /// <value>The locator registry proxy.</value>
+        public ILocatorRegistryPrx? LocatorRegistry { get; }
 
         /// <summary>Returns the name of this object adapter. This name is used for logging.</summary>
         /// <value>The object adapter's name.</value>
@@ -116,7 +96,6 @@ namespace ZeroC.Ice
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
-        private ILocatorPrx? _locator;
         private readonly object _mutex = new();
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -191,16 +170,7 @@ namespace ZeroC.Ice
             {
                 // Register the published endpoints with the locator registry.
 
-                // _locator and _publishedEndpoints are read-only at this point.
-                if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || _locator == null)
-                {
-                    return; // nothing to do
-                }
-
-                ILocatorRegistryPrx? locatorRegistry =
-                    await Communicator.GetLocatorInfo(_locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-
-                if (locatorRegistry == null)
+                if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || LocatorRegistry == null)
                 {
                     return; // nothing to do
                 }
@@ -209,15 +179,14 @@ namespace ZeroC.Ice
                 {
                     if (Protocol == Protocol.Ice1)
                     {
-                        var proxy = IObjectPrx.Factory(
-                            new ObjectPrxOptions(Communicator,
-                                                 new Identity("dummy", ""),
-                                                 PublishedEndpoints[0].Protocol,
-                                                 endpoints: PublishedEndpoints));
+                        var proxy = IObjectPrx.Factory(new(Communicator,
+                                                           new Identity("dummy", ""),
+                                                           PublishedEndpoints[0].Protocol,
+                                                           endpoints: PublishedEndpoints));
 
                         if (ReplicaGroupId.Length > 0)
                         {
-                            await locatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                            await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
                                 AdapterId,
                                 ReplicaGroupId,
                                 proxy,
@@ -225,14 +194,14 @@ namespace ZeroC.Ice
                         }
                         else
                         {
-                            await locatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                            await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
                                                                              proxy,
                                                                              cancel: cancel).ConfigureAwait(false);
                         }
                     }
                     else
                     {
-                        await locatorRegistry.RegisterAdapterEndpointsAsync(
+                        await LocatorRegistry.RegisterAdapterEndpointsAsync(
                             AdapterId,
                             ReplicaGroupId,
                             PublishedEndpoints.ToEndpointDataList(),
@@ -645,40 +614,23 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Constructs an object adapter.</summary>
-        public ObjectAdapter(
-            Communicator communicator,
-            string name = "",
-            ObjectAdapterOptions? options = null,
-            bool serializeDispatch = false,
-            TaskScheduler? scheduler = null)
+        public ObjectAdapter(Communicator communicator, ObjectAdapterOptions? options = null)
         {
-            if (name.Length == 0)
-            {
-                name = $"server-{Interlocked.Increment(ref _counter)}";
-            }
             if (options == null)
             {
                 options = new ObjectAdapterOptions();
             }
 
             Communicator = communicator;
-            Name = name;
-            SerializeDispatch = serializeDispatch;
-            TaskScheduler = scheduler;
 
+            AcceptNonSecure = options.AcceptNonSecure;
             AdapterId = options.AdapterId;
-            ReplicaGroupId = options.ReplicaGroupId;
             ColocationScope = options.ColocationScope;
-
-            if (options.Locator is string locator && locator.Length > 0)
-            {
-                _locator = ILocatorPrx.Parse(locator, Communicator);
-                // TODO: locator options (ice1)
-            }
-            else
-            {
-                _locator = Communicator.DefaultLocator;
-            }
+            LocatorRegistry = options.LocatorRegistry;
+            Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
+            ReplicaGroupId = options.ReplicaGroupId;
+            SerializeDispatch = options.SerializeDispatch;
+            TaskScheduler = options.TaskScheduler;
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
@@ -686,8 +638,6 @@ namespace ZeroC.Ice
             {
                 throw new ArgumentException("options.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
             }
-
-            AcceptNonSecure = options.AcceptNonSecure;
 
             if (options.Endpoints.Length > 0)
             {
@@ -950,15 +900,7 @@ namespace ZeroC.Ice
         {
             // At this point, _locator is read-only.
 
-            if (AdapterId.Length == 0 || _locator == null)
-            {
-                return; // nothing to do
-            }
-
-            ILocatorRegistryPrx? locatorRegistry =
-                await Communicator.GetLocatorInfo(_locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-
-            if (locatorRegistry == null)
+            if (AdapterId.Length == 0 || LocatorRegistry == null)
             {
                 return; // nothing to do
             }
@@ -969,7 +911,7 @@ namespace ZeroC.Ice
                 {
                     if (ReplicaGroupId.Length > 0)
                     {
-                        await locatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                        await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
                             AdapterId,
                             ReplicaGroupId,
                             proxy: null,
@@ -977,14 +919,14 @@ namespace ZeroC.Ice
                     }
                     else
                     {
-                        await locatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                        await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
                                                                           proxy: null,
                                                                           cancel: cancel).ConfigureAwait(false);
                     }
                 }
                 else
                 {
-                    await locatorRegistry.UnregisterAdapterEndpointsAsync(
+                    await LocatorRegistry.UnregisterAdapterEndpointsAsync(
                             AdapterId,
                             ReplicaGroupId,
                             cancel: cancel).ConfigureAwait(false);

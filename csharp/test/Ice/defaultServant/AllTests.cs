@@ -14,9 +14,8 @@ namespace ZeroC.Ice.Test.DefaultServant
             TextWriter output = helper.Output;
             Communicator communicator = helper.Communicator;
 
-            ObjectAdapter oa = new ObjectAdapter(communicator,
-                "MyOA",
-                new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
+            await using var oa =
+                new ObjectAdapter(communicator, new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
             await oa.ActivateAsync();
 
             output.Write("testing single category... ");
