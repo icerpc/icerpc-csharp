@@ -33,8 +33,10 @@ jobs:
         reports: 'tests/*/TestResults/*/coverage.cobertura.xml'
         targetdir: 'tests/coverage-report'
         reporttypes: 'Html'
+    - name: Compress reports
+      run: tar cv tests/coverage-report/ | gzip --best > coverage.tar.gz
     - uses: actions/upload-artifact@v2
       with:
         name: coverage-report
-        path: tests/coverage-report/
+        path: coverage.tar.gz
         retention-days: 5
