@@ -138,7 +138,10 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogReceivedData(size, Endpoint.TransportName);
+                using (StartScope())
+                {
+                    Logger.LogReceivedData(size, Endpoint.TransportName);
+                }
             }
         }
 
@@ -180,7 +183,10 @@ namespace ZeroC.Ice
 
             if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogSentData(size, Endpoint.TransportName);
+                using (StartScope())
+                {
+                    Logger.LogSentData(size, Endpoint.TransportName);
+                }
             }
         }
 
@@ -302,26 +308,29 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                if (Endpoint.IsDatagram)
+                using (StartScope())
                 {
-                    if (IsIncoming)
+                    if (Endpoint.IsDatagram)
                     {
-                        Logger.LogStartReceivingDatagrams(Endpoint.TransportName, this);
+                        if (IsIncoming)
+                        {
+                            Logger.LogStartReceivingDatagrams(Endpoint.Transport);
+                        }
+                        else
+                        {
+                            Logger.LogStartSendingDatagrams(Endpoint.Transport);
+                        }
                     }
                     else
                     {
-                        Logger.LogStartSendingDatagrams(Endpoint.TransportName, this);
-                    }
-                }
-                else
-                {
-                    if (IsIncoming)
-                    {
-                        Logger.LogConnectionAccepted(Endpoint.TransportName, this);
-                    }
-                    else
-                    {
-                        Logger.LogConnectionEstablished(Endpoint.TransportName, this);
+                        if (IsIncoming)
+                        {
+                            Logger.LogConnectionAccepted(Endpoint.Transport);
+                        }
+                        else
+                        {
+                            Logger.LogConnectionEstablished(Endpoint.Transport);
+                        }
                     }
                 }
             }

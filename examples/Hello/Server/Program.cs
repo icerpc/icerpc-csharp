@@ -34,9 +34,10 @@ try
         });
 
     await using var communicator = new Communicator(loggerFactory: loggerFactory);
-    await using var adapter = new ObjectAdapter(communicator, "Hello",
+    await using var adapter = new ObjectAdapter(communicator,
         new ObjectAdapterOptions()
         {
+            Name = "Hello",
             Endpoints = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints")
         });
 

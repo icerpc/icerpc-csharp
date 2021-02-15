@@ -21,17 +21,17 @@ namespace ZeroC.Ice
                 GetEventId(TransportEvent.AcceptingConnectionFailed),
                 "failed to accept {Transport} connection");
 
-        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _connectionAccepted =
-            LoggerMessage.Define<string, MultiStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _connectionAccepted =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.ConnectionAccepted),
-                "accepted {Transport} connection {Connectionn}");
+                "accepted {Transport} connection");
 
-        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _connectionEstablished =
-            LoggerMessage.Define<string, MultiStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _connectionEstablished =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.ConnectionEstablished),
-                "established {Transport} connection {Connectionn}");
+                "established {Transport} connection");
 
         private static readonly Action<ILogger, Connection, Exception> _connectionCallbackException =
             LoggerMessage.Define<Connection>(
@@ -127,17 +127,17 @@ namespace ZeroC.Ice
                 GetEventId(TransportEvent.BindingSocketAttempt),
                 "attempting to bind to {TransportName} socket {Socket}");
 
-        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define<string, MultiStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _startReceivingDatagrams =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.StartReceivingDatagrams),
-                "starting to receive {TransportName} datagrams {Socket}");
+                "starting to receive {Transport} datagrams");
 
-        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _startSendingDatagrams =
-            LoggerMessage.Define<string, MultiStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _startSendingDatagrams =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.StartSendingDatagrams),
-                "starting to send {TransportName} datagrams {Socket}");
+                "starting to send {TransportName} datagrams");
 
         private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
@@ -303,11 +303,8 @@ namespace ZeroC.Ice
             Exception ex) =>
             _connectionCallbackException(logger, connection, ex);
 
-        internal static void LogConnectionAccepted(
-            this ILogger logger,
-            string transportName,
-            MultiStreamSocket socket) =>
-            _connectionAccepted(logger, transportName, socket, null!);
+        internal static void LogConnectionAccepted(this ILogger logger, Transport transport) =>
+            _connectionAccepted(logger, transport, null!);
 
         internal static void LogConnectionClosed(
             this ILogger logger,
@@ -316,11 +313,8 @@ namespace ZeroC.Ice
             Exception? exception = null) =>
             _connectionClosed(logger, transportName, socket, exception!);
 
-        internal static void LogConnectionEstablished(
-            this ILogger logger,
-            string transportName,
-            MultiStreamSocket socket) =>
-            _connectionEstablished(logger, transportName, socket, null!);
+        internal static void LogConnectionEstablished(this ILogger logger, Transport transport) =>
+            _connectionEstablished(logger, transport, null!);
 
         internal static void LogConnectionException(
             this ILogger logger,
@@ -375,11 +369,11 @@ namespace ZeroC.Ice
             WSSocket socket) =>
             _sendingWebSocketFrame(logger, transport, opCode, size, socket, null!);
 
-        internal static void LogStartReceivingDatagrams(this ILogger logger, string transport, MultiStreamSocket socket) =>
-            _startReceivingDatagrams(logger, transport, socket, null!);
+        internal static void LogStartReceivingDatagrams(this ILogger logger, Transport transport) =>
+            _startReceivingDatagrams(logger, transport, null!);
 
-        internal static void LogStartSendingDatagrams(this ILogger logger, string transport, MultiStreamSocket socket) =>
-            _startSendingDatagrams(logger, transport, socket, null!);
+        internal static void LogStartSendingDatagrams(this ILogger logger, Transport transport) =>
+            _startSendingDatagrams(logger, transport, null!);
 
         internal static void LogStartAcceptingConnections(this ILogger logger, string transport, IAcceptor acceptor) =>
             _startAcceptingConnections(logger, transport, acceptor, null!);

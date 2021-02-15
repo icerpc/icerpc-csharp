@@ -425,7 +425,10 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogSendingSlicFrame(type, frameSize, streamId);
+                using (StartScope())
+                {
+                    Logger.LogSendingSlicFrame(type, frameSize, streamId);
+                }
             }
 
             // Wait for other packets to be sent.
@@ -585,7 +588,10 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                    using (StartScope())
+                    {
+                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                    }
                 }
 
                 try
