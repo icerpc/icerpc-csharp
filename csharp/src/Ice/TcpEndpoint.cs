@@ -200,14 +200,12 @@ namespace ZeroC.Ice
                                    oaEndpoint);
         }
 
-        protected internal override async ValueTask<Connection> CreateConnectionAsync(
-            bool secureOnly,
+        protected internal override Connection CreateConnection(
             IPEndPoint address,
             object? label,
             CancellationToken cancel)
         {
-            SingleStreamSocket socket = CreateSocket(address, preferNonSecure: !secureOnly);
-            await socket.InitializeAsync(cancel).ConfigureAwait(false);
+            SingleStreamSocket socket = CreateSocket(address);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),
@@ -308,26 +306,10 @@ namespace ZeroC.Ice
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamSocket CreateSocket(
-            EndPoint addr,
-            bool preferNonSecure)
-        {
-            SingleStreamSocket singleStreamSocket = new TcpSocket(Communicator, addr, SourceAddress);
-            if (IsAlwaysSecure || !preferNonSecure)
-            {
-                singleStreamSocket = new SslSocket(Communicator, singleStreamSocket, Host, false);
-            }
-            return singleStreamSocket;
-        }
+        internal virtual SingleStreamSocket CreateSocket(EndPoint addr) =>
+            new TcpSocket(Communicator, addr);
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket, string adapterName, bool preferNonSecure)
-        {
-            SingleStreamSocket singleStreamSocket = new TcpSocket(Communicator, socket);
-            if (IsAlwaysSecure || !preferNonSecure)
-            {
-                singleStreamSocket = new SslSocket(Communicator, singleStreamSocket, adapterName, true);
-            }
-            return singleStreamSocket;
-        }
+        internal virtual SingleStreamSocket CreateSocket(Socket socket) =>
+            new TcpSocket(Communicator, socket);
     }
 }

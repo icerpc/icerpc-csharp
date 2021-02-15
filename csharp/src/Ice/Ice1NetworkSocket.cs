@@ -26,7 +26,7 @@ namespace ZeroC.Ice
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly SingleStreamSocket _socket;
+        private SingleStreamSocket _socket;
         private readonly AsyncSemaphore? _unidirectionalSerializeSemaphore;
 
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)

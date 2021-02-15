@@ -337,6 +337,52 @@ namespace ZeroC.Ice
             }
         }
 
+        internal async Task InitializeAsync(CancellationToken cancel)
+        {
+            try
+            {
+                // Initialize the transport.
+                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+
+                if (!Endpoint.IsDatagram)
+                {
+                    // Create the control stream and send the initialize frame
+                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
+
+                    // Wait for the peer control stream to be accepted and read the initialize frame
+                    SocketStream peerControlStream =
+                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+
+                    // Setup a task to wait for the close frame on the peer's control stream.
+                    _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
+                                 default);
+                }
+
+                Socket.Initialized();
+
+                lock (_mutex)
+                {
+                    if (_state >= ConnectionState.Closed)
+                    {
+                        // This can occur if the communicator or object adapter is disposed while the connection
+                        // initializes.
+                        throw new ConnectionClosedException(isClosedByPeer: false,
+                                                            RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    }
+                    SetState(ConnectionState.Active);
+
+                    // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
+                    // synchronously new frames from this thread.
+                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = AbortAsync(ex);
+                throw;
+            }
+        }
+
         internal void Monitor()
         {
             lock (_mutex)
@@ -379,58 +425,6 @@ namespace ZeroC.Ice
                                                                       RetryPolicy.AfterDelay(TimeSpan.Zero)));
                     }
                 }
-            }
-        }
-
-        internal async Task InitializeAsync(CancellationToken cancel)
-        {
-            try
-            {
-                // Initialize the transport.
-                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
-
-                if (!Endpoint.IsDatagram)
-                {
-                    // Create the control stream and send the initialize frame
-                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
-
-                    // Wait for the peer control stream to be accepted and read the initialize frame
-                    SocketStream peerControlStream =
-                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-
-                    // Setup a task to wait for the close frame on the peer's control stream.
-                    _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                 default);
-                }
-
-                Socket.Initialized();
-
-                lock (_mutex)
-                {
-                    if (_state >= ConnectionState.Closed)
-                    {
-                        // This can occur if the communicator or object adapter is disposed while the connection
-                        // initializes.
-                        throw new ConnectionClosedException(isClosedByPeer: false,
-                                                            RetryPolicy.AfterDelay(TimeSpan.Zero));
-                    }
-                    SetState(ConnectionState.Active);
-
-                    // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
-                    // synchronously new frames from this thread.
-                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                var ex = new ConnectTimeoutException(RetryPolicy.AfterDelay(TimeSpan.Zero));
-                _ = AbortAsync(ex);
-                throw ex;
-            }
-            catch (Exception ex)
-            {
-                _ = AbortAsync(ex);
-                throw;
             }
         }
 

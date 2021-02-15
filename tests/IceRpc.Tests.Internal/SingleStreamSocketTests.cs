@@ -3,6 +3,8 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
@@ -18,22 +20,22 @@ namespace IceRpc.Tests.Internal
         private SingleStreamSocket? _clientSocket;
         private SingleStreamSocket? _serverSocket;
 
-        // Using the Ice1 protocol is important to workaround the Ice2 one-byte peek check done in
-        // AcceptAsync to figure out if it's a secure connection or not.
-        public SingleStreamSocketBaseTest(string transport, bool secure)
-            : base(Protocol.Ice1, transport, secure)
+        public SingleStreamSocketBaseTest(Protocol protocol, string transport, bool secure)
+            : base(protocol, transport, secure)
         {
         }
 
         [SetUp]
         public async Task SetUp()
         {
-            ValueTask<SingleStreamSocket> clientInitialize = SingleStreamSocket(ConnectAsync());
-            _serverSocket = await SingleStreamSocket(AcceptAsync());
-            _clientSocket = await clientInitialize;
+            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
+            ValueTask<SingleStreamSocket> acceptTask = SingleStreamSocket(AcceptAsync());
+
+            _clientSocket = await connectTask;
+            _serverSocket = await acceptTask;
 
             static async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
-               (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+                (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
         [TearDown]
@@ -44,16 +46,17 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    // TODO: investigate why ParallelSocket.All is causing SSL failures
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    [TestFixture("tcp", false)]
-    [TestFixture("ws", false)]
-    [TestFixture("ssl", true)]
-    [TestFixture("wss", true)]
+    [TestFixture(Protocol.Ice2, "tcp", false)]
+    [TestFixture(Protocol.Ice2, "ws", false)]
+    [TestFixture(Protocol.Ice2, "tcp", true)]
+    [TestFixture(Protocol.Ice2, "ws", true)]
+    [TestFixture(Protocol.Ice1, "tcp", false)]
+    [TestFixture(Protocol.Ice1, "ssl", true)]
     public class SingleStreamSocketTests : SingleStreamSocketBaseTest
     {
-        public SingleStreamSocketTests(string transport, bool secure)
-            : base(transport, secure)
+        public SingleStreamSocketTests(Protocol protocol, string transport, bool secure)
+            : base(protocol, transport, secure)
         {
         }
 
@@ -226,11 +229,11 @@ namespace IceRpc.Tests.Internal
     }
 
     [TestFixture("ws", false)]
-    [TestFixture("wss", true)]
+    [TestFixture("ws", true)]
     public class WSSocketTests : SingleStreamSocketBaseTest
     {
         public WSSocketTests(string transport, bool secure)
-            : base(transport, secure)
+            : base(Protocol.Ice2, transport, secure)
         {
         }
 
@@ -249,6 +252,179 @@ namespace IceRpc.Tests.Internal
             ClientSocket.Dispose();
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await serverReceiveTask);
+        }
+    }
+
+    [Parallelizable(scope: ParallelScope.Fixtures)]
+    [TestFixture(Protocol.Ice1, "tcp", false)]
+    [TestFixture(Protocol.Ice1, "ssl", true)]
+    [TestFixture(Protocol.Ice2, "tcp", false)]
+    [TestFixture(Protocol.Ice2, "tcp", true)]
+    [TestFixture(Protocol.Ice2, "ws", false)]
+    [TestFixture(Protocol.Ice2, "ws", true)]
+    [Timeout(5000)]
+    public class AcceptSingleStreamSocketTests : SocketBaseTest
+    {
+        public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
+            : base(protocol, transport, secure)
+        {
+        }
+
+        [Test]
+        public async Task AcceptSingleStreamSocket_Acceptor_AcceptAsync()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+            using SingleStreamSocket serverSocket = await acceptTask;
+        }
+
+        [Test]
+        public async Task AcceptSingleStreamSocket_Acceptor_Constructor_TransportException()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+            Assert.ThrowsAsync<TransportException>(async () => await CreateAcceptorAsync());
+        }
+
+        public async Task AcceptSingleStreamSocket_AcceptAsync()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+
+            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+
+            using SingleStreamSocket serverSocket = await acceptTask;
+
+            SingleStreamSocket socket = await serverSocket.AcceptAsync(ServerEndpoint, default);
+            await connectTask;
+
+            // The SslSocket is returned if a secure connection is requested.
+            Assert.IsTrue(IsSecure ? socket != serverSocket : socket == serverSocket);
+        }
+
+        [Test]
+        public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostException()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+
+            SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+
+            using SingleStreamSocket serverSocket = await acceptTask;
+
+            clientSocket.Dispose();
+
+            AsyncTestDelegate testDelegate;
+            if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
+            {
+                // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
+                await serverSocket.AcceptAsync(ServerEndpoint, default);
+                testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
+            }
+            else
+            {
+                testDelegate = async () => await serverSocket.AcceptAsync(ServerEndpoint, default);
+            }
+            Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
+        }
+
+        [Test]
+        public async Task AcceptSingleStreamSocket_AcceptAsync_OperationCanceledException()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+
+            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+
+            using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
+
+            using var source = new CancellationTokenSource();
+            source.Cancel();
+            ValueTask<SingleStreamSocket> acceptTask = serverSocket.AcceptAsync(ServerEndpoint, source.Token);
+
+            if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
+            {
+                // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
+                await acceptTask;
+            }
+            else
+            {
+                Assert.CatchAsync<OperationCanceledException>(async () => await acceptTask);
+            }
+        }
+
+        private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
+        {
+            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
+            Connection connection =
+                (ClientEndpoint as IPEndpoint)!.CreateConnection(
+                    new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
+            return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        }
+
+        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
+        {
+            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
+            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        }
+    }
+
+    [Parallelizable(scope: ParallelScope.Fixtures)]
+    [TestFixture(Protocol.Ice1, "tcp", false)]
+    [TestFixture(Protocol.Ice1, "ssl", true)]
+    [TestFixture(Protocol.Ice2, "tcp", false)]
+    [TestFixture(Protocol.Ice2, "tcp", true)]
+    [TestFixture(Protocol.Ice2, "ws", false)]
+    [TestFixture(Protocol.Ice2, "ws", true)]
+    [Timeout(5000)]
+    public class ConnectSingleStreamSocketTests : SocketBaseTest
+    {
+        public ConnectSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
+            : base(protocol, transport, secure)
+        {
+        }
+
+        [Test]
+        public async Task ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
+        {
+            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            Assert.ThrowsAsync<ConnectionRefusedException>(
+                async () => await clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default));
+        }
+
+        public async Task ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
+        {
+            using IAcceptor acceptor = await CreateAcceptorAsync();
+
+            using var source = new CancellationTokenSource();
+
+            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            ValueTask<SingleStreamSocket> connectTask =
+                clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
+            source.Cancel();
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await connectTask);
+
+            using SingleStreamSocket clientSocket2 = await CreateClientSocketAsync();
+            Assert.ThrowsAsync<OperationCanceledException>(
+                async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source.Token));
+        }
+
+        private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
+        {
+            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
+            Connection connection =
+                (ClientEndpoint as IPEndpoint)!.CreateConnection(
+                    new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
+            return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        }
+
+        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
+        {
+            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
+            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }
 }

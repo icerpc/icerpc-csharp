@@ -123,7 +123,9 @@ namespace ZeroC.Ice
                         NonSecure.Always => false,
                         _ => true
                     };
-                    connection = await CreateConnectionAsync(secureOnly, address, label, cancel);
+                    connection = CreateConnection(address, label, cancel);
+                    await connection.Socket.ConnectAsync(secureOnly, cancel).ConfigureAwait(false);
+                    Debug.Assert(connection.CanTrust(preferNonSecure));
                     break;
                 }
                 catch (Exception ex)
@@ -139,8 +141,7 @@ namespace ZeroC.Ice
             return connection;
         }
 
-        protected internal abstract ValueTask<Connection> CreateConnectionAsync(
-            bool secureOnly,
+        protected internal abstract Connection CreateConnection(
             IPEndPoint address,
             object? label,
             CancellationToken token);

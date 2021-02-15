@@ -12,9 +12,12 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
-    // ObjectAdapter and establish a connection with a configurable transport.<summary>
+    // ObjectAdapter and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
+        private protected Endpoint ClientEndpoint => _clientEndpoint;
+        private protected Endpoint ServerEndpoint => _serverEndpoint;
+
         private protected bool IsSecure => _secure;
         private protected string TransportName => _transport;
 
@@ -22,6 +25,8 @@ namespace IceRpc.Tests.Internal
         private readonly ObjectAdapter _adapter;
         private readonly Communicator _clientCommunicator;
         private readonly Endpoint _clientEndpoint;
+        // Protects the _acceptor data member
+        private readonly object _mutex = new();
         private static int _nextBasePort;
         private readonly bool _secure;
         private readonly Communicator _serverCommunicator;
@@ -56,6 +61,9 @@ namespace IceRpc.Tests.Internal
                 });
 
             string endpointTransport = transport == "colocated" ? "tcp" : transport;
+
+            // It's important to use "localhost" here and not an IP address since the object adapter will otherwise
+            // create the acceptor in its constructor instead of its ActivateAsync method.
             string endpoint = protocol == Protocol.Ice2 ?
                 $"ice+{endpointTransport}://localhost:{port}" : $"{endpointTransport} -h localhost -p {port}";
 
@@ -66,7 +74,7 @@ namespace IceRpc.Tests.Internal
                 {
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                     ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
-                    Endpoints = endpoint
+                    Endpoints = endpoint,
                 });
 
             _clientCommunicator = new Communicator(
@@ -84,34 +92,62 @@ namespace IceRpc.Tests.Internal
             _serverEndpoint = IObjectPrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
         }
 
-        [OneTimeSetUp]
-        public async Task InitializeAsync()
-        {
-            Endpoint serverEndpoint = (await _serverEndpoint.ExpandHostAsync(default)).First();
-            _acceptor = serverEndpoint.Acceptor(_adapter);
-        }
-
         [OneTimeTearDown]
         public async Task ShutdownAsync()
         {
-            _acceptor!.Dispose();
+            _acceptor?.Dispose();
             await _clientCommunicator.DisposeAsync();
             await _adapter.DisposeAsync();
             await _serverCommunicator.DisposeAsync();
         }
 
+        protected async ValueTask<IAcceptor> CreateAcceptorAsync()
+        {
+            Endpoint serverEndpoint = (await _serverEndpoint.ExpandHostAsync(default)).First();
+            return serverEndpoint.Acceptor(_adapter);
+        }
+
         protected async Task<MultiStreamSocket> ConnectAsync()
         {
+            lock (_mutex)
+            {
+                _acceptor ??= CreateAcceptorAsync().AsTask().Result;
+            }
+
             NonSecure nonSecure = _secure ? NonSecure.Never : NonSecure.Always;
             Connection connection = await _clientEndpoint.ConnectAsync(nonSecure, null, default);
+            if (_clientEndpoint.Protocol == Protocol.Ice2 && !_secure)
+            {
+                // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
+                // a single byte over the socket to figure out if the client establishes a secure/non-secure
+                // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
+                // indefinitely.
+                SingleStreamSocket socket = (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+                var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
+                await socket.SendAsync(buffer, default);
+            }
             Debug.Assert(connection.Endpoint.TransportName == _transport);
             return connection.Socket;
         }
 
         protected async Task<MultiStreamSocket> AcceptAsync()
         {
-            Connection connection = await _acceptor!.AcceptAsync();
+            lock (_mutex)
+            {
+                _acceptor ??= CreateAcceptorAsync().AsTask().Result;
+            }
+
+            Connection connection = await _acceptor.AcceptAsync();
             Debug.Assert(connection.Endpoint.TransportName == _transport);
+            await connection.Socket.AcceptAsync(default);
+            if (_clientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
+            {
+                // If the accepted connection is not secured, we need to read the first byte from the socket.
+                // See above for the reason.
+                Memory<byte> buffer = new byte[1];
+                SingleStreamSocket socket = (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+                await socket.ReceiveAsync(buffer, default);
+            }
             return connection.Socket;
         }
     }

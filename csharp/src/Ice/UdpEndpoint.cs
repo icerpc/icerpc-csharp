@@ -132,15 +132,12 @@ namespace ZeroC.Ice
             }
         }
 
-        protected internal override async ValueTask<Connection> CreateConnectionAsync(
-            bool secureOnly,
+        protected internal override Connection CreateConnection(
             IPEndPoint address,
             object? label,
             CancellationToken cancel)
         {
-            Debug.Assert(secureOnly == false);
-            UdpSocket socket = new(Communicator, address, SourceAddress, MulticastInterface, MulticastTtl);
-            await socket.InitializeAsync(cancel);
+            UdpSocket socket = new(Communicator, address, MulticastInterface, MulticastTtl);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, adapter: null), label, adapter: null);
         }
 

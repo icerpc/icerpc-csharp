@@ -45,8 +45,7 @@ namespace ZeroC.Ice
 
         private bool _closing;
         private readonly Communicator _communicator;
-        private readonly bool _incoming;
-        private readonly string _host;
+        private bool _incoming;
         private string _key;
         private readonly HttpParser _parser;
         private readonly object _mutex = new();
@@ -56,11 +55,18 @@ namespace ZeroC.Ice
         private readonly byte[] _receiveMask = new byte[4];
         private int _receivePayloadLength;
         private int _receivePayloadOffset;
-        private string _resource;
         private readonly string _transportName;
         private readonly byte[] _sendMask;
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
+
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        {
+            await _underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+            WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
+            await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel);
+            return this;
+        }
 
         public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
         {
@@ -75,19 +81,84 @@ namespace ZeroC.Ice
             await SendImplAsync(OpCode.Close, new List<ArraySegment<byte>> { payload }, cancel).ConfigureAwait(false);
         }
 
-        public override async ValueTask InitializeAsync(CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+            Endpoint endpoint,
+            bool secure,
+            CancellationToken cancel)
         {
-            await _underlying.InitializeAsync(cancel).ConfigureAwait(false);
+            await _underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
+            WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
+            await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel);
+            return this;
+        }
+
+        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
+            throw new InvalidOperationException("only supported by datagram transports");
+
+        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        {
+            if (buffer.Length == 0)
+            {
+                throw new ArgumentException($"empty {nameof(buffer)}");
+            }
+
+            // If we've fully read the previous DATA frame payload, read a new frame
+            if (_receivePayloadOffset == _receivePayloadLength)
+            {
+                _receivePayloadLength = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
+                _receivePayloadOffset = 0;
+            }
+
+            if (_receivePayloadLength == 0)
+            {
+                throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+            }
+
+            // Read the payload
+            int length = Math.Min(_receivePayloadLength, buffer.Length);
+            int received = await _underlying.ReceiveAsync(buffer[0..length], cancel).ConfigureAwait(false);
+
+            if (_incoming)
+            {
+                Unmask(buffer, _receivePayloadOffset, received);
+            }
+            _receivePayloadOffset += received;
+            return received;
+        }
+
+        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel) =>
+             SendImplAsync(OpCode.Data, buffers, cancel);
+
+        public override string ToString() => _underlying.ToString()!;
+
+        protected override void Dispose(bool disposing) => _underlying.Dispose();
+
+        internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
+        {
+            _communicator = communicator;
+            _underlying = new BufferedReceiveOverSingleStreamSocket(underlying);
+            _parser = new HttpParser();
+            _receiveLastFrame = true;
+            _sendBuffer = new List<ArraySegment<byte>>();
+            _sendMask = new byte[4];
+            _key = "";
+            _rand = new Random();
+            _transportName = (underlying is SslSocket) ? "wss" : "ws";
+        }
+
+        private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
+        {
+            _incoming = incoming;
 
             try
             {
                 // The server waits for the client's upgrade request, the client sends the upgrade request.
-                if (!_incoming)
+                if (!incoming)
                 {
                     // Compose the upgrade request.
                     var sb = new StringBuilder();
-                    sb.Append("GET " + _resource + " HTTP/1.1\r\n");
-                    sb.Append("Host: " + _host + "\r\n");
+                    sb.Append("GET " + resource + " HTTP/1.1\r\n");
+                    sb.Append("Host: " + host + "\r\n");
                     sb.Append("Upgrade: websocket\r\n");
                     sb.Append("Connection: Upgrade\r\n");
                     sb.Append("Sec-WebSocket-Protocol: " + IceProtocol + "\r\n");
@@ -213,75 +284,6 @@ namespace ZeroC.Ice
                         $"{_transportName} connection HTTP upgrade request accepted\n{this}");
                 }
             }
-        }
-        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            throw new InvalidOperationException("only supported by datagram transports");
-
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            if (buffer.Length == 0)
-            {
-                throw new ArgumentException($"empty {nameof(buffer)}");
-            }
-
-            // If we've fully read the previous DATA frame payload, read a new frame
-            if (_receivePayloadOffset == _receivePayloadLength)
-            {
-                _receivePayloadLength = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
-                _receivePayloadOffset = 0;
-            }
-
-            if (_receivePayloadLength == 0)
-            {
-                throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
-            }
-
-            // Read the payload
-            int length = Math.Min(_receivePayloadLength, buffer.Length);
-            int received = await _underlying.ReceiveAsync(buffer[0..length], cancel).ConfigureAwait(false);
-
-            if (_incoming)
-            {
-                Unmask(buffer, _receivePayloadOffset, received);
-            }
-            _receivePayloadOffset += received;
-            return received;
-        }
-
-        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel) =>
-             SendImplAsync(OpCode.Data, buffers, cancel);
-
-        public override string ToString() => _underlying.ToString()!;
-
-        protected override void Dispose(bool disposing) => _underlying.Dispose();
-
-        internal WSSocket(
-            Communicator communicator,
-            SingleStreamSocket del,
-            string host,
-            string resource)
-            : this(communicator, del)
-        {
-            _host = host;
-            _resource = resource;
-            _incoming = false;
-            _transportName = (del is SslSocket) ? "wss" : "ws";
-        }
-
-        internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
-        {
-            _communicator = communicator;
-            _underlying = new BufferedReceiveOverSingleStreamSocket(underlying);
-            _parser = new HttpParser();
-            _receiveLastFrame = true;
-            _sendBuffer = new List<ArraySegment<byte>>();
-            _sendMask = new byte[4];
-            _key = "";
-            _rand = new Random();
-            _host = "";
-            _resource = "";
-            _incoming = true;
-            _transportName = (underlying is SslSocket) ? "wss" : "ws";
         }
 
         private ArraySegment<byte> PrepareHeaderForSend(OpCode opCode, int payloadLength)
@@ -535,9 +537,6 @@ namespace ZeroC.Ice
             {
                 throw new WebSocketException($"invalid value `{key}' for WebSocket key");
             }
-
-            // Retain the target resource.
-            _resource = _parser.Uri();
 
             return (addProtocol, key);
         }

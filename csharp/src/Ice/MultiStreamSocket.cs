@@ -52,10 +52,22 @@ namespace ZeroC.Ice
         /// <summary>Aborts the socket.</summary>
         public abstract void Abort();
 
+        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
+        /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract ValueTask AcceptAsync(CancellationToken cancel);
+
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
         public abstract ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel);
+
+        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
+        /// to establish the connection and perform  blocking socket level initialization (TLS handshake, etc).
+        /// </summary>
+        /// <param name="secure">Establish a secure connection.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract ValueTask ConnectAsync(bool secure, CancellationToken cancel);
 
         /// <summary>Closes the socket.</summary>
         /// <param name="exception">The exception for which the socket is closed.</param>

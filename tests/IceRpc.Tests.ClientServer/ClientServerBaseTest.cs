@@ -34,15 +34,19 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
-            // TODO disable collocation for ClientServer tests.
+
             ObjectAdapter = new ObjectAdapter(
                 Communicator,
                 "TestAdapter-0",
                 new ObjectAdapterOptions()
                 {
-                    Endpoints = GetTestEndpoint()
+                    Endpoints = GetTestEndpoint(),
+                    ColocationScope = ColocationScope.None
                 });
         }
+
+        [OneTimeSetUp]
+        public async Task InitializeAsync() => await ObjectAdapter.ActivateAsync();
 
         [OneTimeTearDown]
         public async Task DisposeAsync()

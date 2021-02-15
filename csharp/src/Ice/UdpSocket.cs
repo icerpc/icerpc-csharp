@@ -30,7 +30,6 @@ namespace ZeroC.Ice
         private readonly string? _multicastInterface;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
-        private readonly IPEndPoint? _sourceAddr;
 
         public Endpoint Bind(UdpEndpoint endpoint)
         {
@@ -83,25 +82,30 @@ namespace ZeroC.Ice
             return endpoint.Clone((ushort)_addr.Port);
         }
 
+        public override ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel) =>
+            new(this);
+
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
 
-        public override async ValueTask InitializeAsync(CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+            Endpoint endpoint,
+            bool secure,
+            CancellationToken cancel)
         {
-            if (!_incoming)
+            Debug.Assert(!secure);
+            try
             {
-                try
+                IPAddress? sourceAddress = (endpoint as IPEndpoint)?.SourceAddress;
+                if (sourceAddress != null)
                 {
-                    if (_sourceAddr != null)
-                    {
-                        Socket.Bind(_sourceAddr);
-                    }
-
-                    await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                    Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
-                catch (Exception ex)
-                {
-                    throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
-                }
+                await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                return this;
+            }
+            catch (Exception ex)
+            {
+                throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
         }
 
@@ -255,7 +259,6 @@ namespace ZeroC.Ice
         internal UdpSocket(
             Communicator communicator,
             EndPoint addr,
-            IPAddress? sourceAddr,
             string? multicastInterface,
             int multicastTtl)
         {
@@ -263,10 +266,6 @@ namespace ZeroC.Ice
             _addr = (IPEndPoint)addr;
             _multicastInterface = multicastInterface;
             _incoming = false;
-            if (sourceAddr != null)
-            {
-                _sourceAddr = new IPEndPoint(sourceAddr, 0);
-            }
 
             Socket = Network.CreateSocket(true, _addr.AddressFamily);
             try

@@ -29,6 +29,8 @@ namespace ZeroC.Ice
 
         public override void Abort() => _writer.TryComplete();
 
+        public override ValueTask AcceptAsync(CancellationToken cancel) => default;
+
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
@@ -84,6 +86,8 @@ namespace ZeroC.Ice
                 }
             }
         }
+
+        public override ValueTask ConnectAsync(bool secure, CancellationToken cancel) => default;
 
         public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
         {
