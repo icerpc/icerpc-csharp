@@ -401,16 +401,24 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = await CreateAcceptorAsync();
 
             using var source = new CancellationTokenSource();
+            if (!IsSecure && TransportName == "tcp")
+            {
+                // ConnectAsync might complete synchronously with TCP
+            }
+            else
+            {
+                using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+                ValueTask<SingleStreamSocket> connectTask =
+                    clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
+                source.Cancel();
+                Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
+            }
 
-            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-            ValueTask<SingleStreamSocket> connectTask =
-                clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
-
+            using var source2 = new CancellationTokenSource();
+            source2.Cancel();
             using SingleStreamSocket clientSocket2 = await CreateClientSocketAsync();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source.Token));
+                async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source2.Token));
         }
 
         private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
