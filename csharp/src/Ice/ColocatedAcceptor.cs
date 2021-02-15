@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using ColocatedChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
@@ -30,7 +32,16 @@ namespace ZeroC.Ice
 
         public void Dispose() => _writer.Complete();
 
-        public string ToDetailedString() => ToString();
+        public IDisposable? StartScope()
+        {
+            if (_endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
+            {
+                _endpoint.Communicator.Logger.StartCollocatedAcceptorScope(_adapter.Name,
+                                                                           _endpoint.Transport,
+                                                                           _endpoint.Protocol);
+            }
+            return null;
+        }
 
         public override string ToString() =>
             _endpoint.Adapter.Name.Length == 0 ? "unnamed adapter" : _endpoint.Adapter.Name;

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
+
 namespace ZeroC.Ice
 {
     /// <summary>An abstract multi-stream socket which is using a single stream socket for receiving and sending
@@ -20,6 +22,8 @@ namespace ZeroC.Ice
                 Underlying.Dispose();
             }
         }
+
+        internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
 
         protected MultiStreamOverSingleStreamSocket(
             Endpoint endpoint,

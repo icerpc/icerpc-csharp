@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -80,19 +81,16 @@ namespace ZeroC.Ice
 
         public void Dispose() => _socket.CloseNoThrow();
 
-        public string ToDetailedString()
+        public IDisposable? StartScope()
         {
-            var s = new StringBuilder("local address = ");
-            s.Append(ToString());
-
-            List<string> interfaces =
-                Network.GetHostsForEndpointExpand(_addr.Address.ToString(), Network.EnableBoth, true);
-            if (interfaces.Count != 0)
+            if (Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
             {
-                s.Append("\nlocal interfaces = ");
-                s.Append(string.Join(", ", interfaces));
+                Endpoint.Communicator.Logger.StartTcpAcceptorScope(_adapter.Name,
+                                                                   Network.LocalAddrToString(_addr),
+                                                                   Endpoint.Transport,
+                                                                   Endpoint.Protocol);
             }
-            return s.ToString();
+            return null;
         }
 
         public override string ToString() => _addr.ToString();

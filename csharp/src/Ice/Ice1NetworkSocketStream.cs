@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,9 +99,17 @@ namespace ZeroC.Ice
 
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(frame);
+                if (frame is OutgoingRequestFrame request)
+                {
+                    Logger.LogSendingRequest(request);
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                }
             }
         }
     }

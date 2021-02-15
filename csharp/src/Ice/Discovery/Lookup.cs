@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -12,7 +13,7 @@ namespace ZeroC.Ice.Discovery
     internal class Lookup : IAsyncLookup
     {
         private readonly string _domainId;
-
+        private readonly ILogger _logger;
         private readonly LocatorRegistry _registryServant;
 
         public async ValueTask FindAdapterByIdAsync(
@@ -39,8 +40,10 @@ namespace ZeroC.Ice.Discovery
                 }
                 catch (Exception ex)
                 {
-                    current.Communicator.Logger.Warning(
-                        $"Ice discovery failed to send foundAdapterById to `{reply}':\n{ex}");
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogFoundAdapterByIdRequestFailed(reply, ex);
+                    }
                 }
             }
         }
@@ -68,8 +71,10 @@ namespace ZeroC.Ice.Discovery
                 }
                 catch (Exception ex)
                 {
-                    current.Communicator.Logger.Warning(
-                        $"Ice discovery failed to send foundObjectById to `{reply}':\n{ex}");
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogFoundObjectByIdRequestFailed(reply, ex);
+                    }
                 }
             }
         }
@@ -96,8 +101,10 @@ namespace ZeroC.Ice.Discovery
                 }
                 catch (Exception ex)
                 {
-                    current.Communicator.Logger.Warning(
-                        $"Ice discovery failed to send foundAdapterId to `{reply}':\n{ex}");
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogFoundAdapterIdRequestFailed(reply, ex);
+                    }
                 }
             }
         }
@@ -127,8 +134,10 @@ namespace ZeroC.Ice.Discovery
                 }
                 catch (Exception ex)
                 {
-                    current.Communicator.Logger.Warning(
-                        $"Ice discovery failed to send foundWellKnownProxy to `{reply}':\n{ex}");
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogFoundWellKnownProxyReuestFailed(reply, ex);
+                    }
                 }
             }
         }
@@ -137,6 +146,7 @@ namespace ZeroC.Ice.Discovery
         {
             _registryServant = registryServant;
             _domainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "";
+            _logger = communicator.Logger;
         }
     }
 }

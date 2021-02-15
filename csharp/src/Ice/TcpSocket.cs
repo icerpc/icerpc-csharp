@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -18,6 +19,7 @@ namespace ZeroC.Ice
         private readonly EndPoint? _addr;
         private readonly Communicator _communicator;
         private string _desc;
+        private readonly ILogger _logger;
         private readonly IPAddress? _sourceAddr;
 
         public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => new ValueTask();
@@ -127,6 +129,7 @@ namespace ZeroC.Ice
             IPAddress? sourceAddr)
         {
             _communicator = communicator;
+            _logger = communicator.Logger;
             _addr = addr;
             _desc = "";
             _sourceAddr = sourceAddr;
@@ -145,6 +148,7 @@ namespace ZeroC.Ice
         internal TcpSocket(Communicator communicator, Socket fd)
         {
             _communicator = communicator;
+            _logger = communicator.Logger;
             Socket = fd;
             try
             {
@@ -156,6 +160,18 @@ namespace ZeroC.Ice
                 Socket.CloseNoThrow();
                 throw;
             }
+        }
+
+        internal override IDisposable? StartScope(Endpoint endpoint)
+        {
+            if (_logger.IsEnabled(LogLevel.Critical))
+            {
+                return _logger.StartConnectionScope(Network.LocalAddrToString(Network.GetLocalAddress(Socket)),
+                                                    Network.RemoteAddrToString(Network.GetRemoteAddress(Socket)),
+                                                    endpoint.Transport,
+                                                    endpoint.Protocol);
+            }
+            return null;
         }
     }
 }

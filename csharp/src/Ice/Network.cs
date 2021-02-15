@@ -10,6 +10,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -318,10 +319,10 @@ namespace ZeroC.Ice
                 {
                     // Warn if the size that was set is less than the requested size and we have not already warned.
                     BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if (!warningInfo.RcvWarn || rcvSize != warningInfo.RcvSize)
+                    if ((!warningInfo.RcvWarn || rcvSize != warningInfo.RcvSize) &&
+                        communicator.Logger.IsEnabled(LogLevel.Debug))
                     {
-                        communicator.Logger.Warning(
-                            $"{transport} receive buffer size: requested size of {rcvSize} adjusted to {size}");
+                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, rcvSize, size);
                         communicator.SetRcvBufWarnSize(Transport.TCP, rcvSize);
                     }
                 }
@@ -338,10 +339,10 @@ namespace ZeroC.Ice
                 {
                     // Warn if the size that was set is less than the requested size and we have not already warned.
                     BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if (!warningInfo.SndWarn || sndSize != warningInfo.SndSize)
+                    if ((!warningInfo.SndWarn || sndSize != warningInfo.SndSize) &&
+                        communicator.Logger.IsEnabled(LogLevel.Debug))
                     {
-                        communicator.Logger.Warning(
-                            $"{transport} send buffer size: requested size of {sndSize} adjusted to {size}");
+                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, sndSize, size);
                         communicator.SetSndBufWarnSize(Transport.TCP, sndSize);
                     }
                 }
@@ -392,11 +393,6 @@ namespace ZeroC.Ice
         {
             try
             {
-                if (socket == null)
-                {
-                    return "<closed>";
-                }
-
                 EndPoint? remote = GetRemoteAddress(socket);
 
                 var s = new System.Text.StringBuilder();

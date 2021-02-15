@@ -1,0 +1,34 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <Choose>
+        <When Condition="'$(OS)' == 'Windows_NT'">
+            <PropertyGroup>
+                <PackagePath>$(MSBuildThisFileDirectory)..\csharp\lib\zeroc.ice.net.4.0.0-alpha.0.nupkg</PackagePath>
+                <BuildProperties>Configuration=$(Configuration);Platform=Any CPU</BuildProperties>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <PackagePath>$(MSBuildThisFileDirectory)../csharp/lib/zeroc.ice.net.4.0.0-alpha.0.nupkg</PackagePath>
+                <BuildProperties>Configuration=$(Configuration);Platform=Any CPU;IceToolsPath=$(IceHome)/cpp/bin</BuildProperties>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+
+    <Target Name="InstallLocalPackages">
+        <Exec Command="dotnet nuget locals --list global-packages" ConsoleToMSBuild="true" EchoOff="yes">
+            <Output TaskParameter="ConsoleOutput" PropertyName="NuGetGlobalPackages" />
+        </Exec>
+
+        <PropertyGroup>
+            <NuGetGlobalPackages>$(NuGetGlobalPackages.Replace('global-packages: ', ''))</NuGetGlobalPackages>
+        </PropertyGroup>
+        <!-- Run the distribution NuGetPack target to ensure packages are up to date -->
+        <MSBuild Projects="$(MSBuildThisFileDirectory)..\csharp\src\Ice\ice.csproj"
+                 Properties="Platform=x64;Configuration=Debug"
+                 Targets="pack"/>
+
+        <RemoveDir Directories="$(NuGetGlobalPackages)\zeroc.ice.net" Condition="Exists('$(NuGetGlobalPackages)\zeroc.ice.net')"/>
+        <Exec Command="dotnet nuget push $(PackagePath) --source $(NuGetGlobalPackages)" />
+    </Target>
+</Project>

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -53,6 +54,8 @@ namespace ZeroC.Ice
 
         /// <summary>Returns True if the stream is a control stream, False otherwise.</summary>
         public bool IsControl { get; }
+
+        protected ILogger Logger { get; }
 
         protected abstract bool ReceivedEndOfStream { get; }
 
@@ -172,6 +175,7 @@ namespace ZeroC.Ice
             IsControl = _id == 2 || _id == 3;
 
             _socket.AddStream(_id, this, IsControl);
+            Logger = _socket.Endpoint.Communicator.Logger;
         }
 
         /// <summary>Constructs an outgoing stream.</summary>
@@ -181,6 +185,7 @@ namespace ZeroC.Ice
         protected SocketStream(MultiStreamSocket socket, bool bidirectional, bool control)
         {
             _socket = socket;
+            Logger = socket.Endpoint.Communicator.Logger;
             IsBidirectional = bidirectional;
             IsControl = control;
         }
@@ -232,9 +237,16 @@ namespace ZeroC.Ice
                 throw new InvalidDataException($"expected end of stream after GoAway frame");
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(data, frameType);
+                if (_socket.Endpoint.Protocol == Protocol.Ice2)
+                {
+                    Logger.LogReceivedIce2GoAwayFrame();
+                }
+                else
+                {
+                    Logger.LogReceivedIce1CloseConnectionFrame();
+                }
             }
 
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
@@ -266,9 +278,16 @@ namespace ZeroC.Ice
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(data, frameType);
+                if (_socket.Endpoint.Protocol == Protocol.Ice1)
+                {
+                    Logger.LogReceivedIce1ValidateConnectionFrame();
+                }
+                else
+                {
+                    Logger.LogReceivedIce2InitializeFrame();
+                }
             }
 
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
@@ -331,9 +350,12 @@ namespace ZeroC.Ice
                 request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                _socket.TraceFrame(Id, request);
+                using (Logger.StartRequestScope(Id, request))
+                {
+                    Logger.LogReceivedRequest(request);
+                }
             }
 
             return request;
@@ -369,9 +391,9 @@ namespace ZeroC.Ice
                 response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(response);
+                Logger.LogReceivedResponse(Id, response);
             }
 
             return response;
@@ -386,9 +408,9 @@ namespace ZeroC.Ice
             {
                 await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    TraceFrame(new List<ArraySegment<byte>>(), (byte)Ice1FrameType.CloseConnection);
+                    Logger.LogSendingIce1CloseConnectionFrame();
                 }
             }
             else
@@ -401,7 +423,7 @@ namespace ZeroC.Ice
                 }
                 ostr.WriteByte((byte)Ice2FrameType.GoAway);
                 OutputStream.Position sizePos = ostr.StartFixedLengthSize();
-                OutputStream.Position pos = ostr.Tail;
+
                 var goAwayFrameBody = new Ice2GoAwayBody(
                     (ulong)streamIds.Bidirectional,
                     (ulong)streamIds.Unidirectional,
@@ -412,9 +434,9 @@ namespace ZeroC.Ice
 
                 await SendAsync(data, true, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    TraceFrame(data.Slice(pos, ostr.Tail), (byte)Ice2FrameType.GoAway);
+                    Logger.LogSendingIce2GoAwayFrame();
                 }
             }
         }
@@ -425,9 +447,9 @@ namespace ZeroC.Ice
             {
                 await SendAsync(Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    TraceFrame(new List<ArraySegment<byte>>(), (byte)Ice1FrameType.ValidateConnection);
+                    Logger.LogSendIce1ValidateConnectionFrame();
                 }
             }
             else
@@ -456,9 +478,9 @@ namespace ZeroC.Ice
 
                 await SendAsync(data, false, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    TraceFrame(new List<ArraySegment<byte>>(), (byte)Ice2FrameType.Initialize);
+                    Logger.LogSendingIce2InitializeFrame();
                 }
             }
         }
@@ -495,9 +517,6 @@ namespace ZeroC.Ice
             // If there's a stream data writer, we can start streaming the data.
             response.StreamDataWriter?.Invoke(this);
         }
-
-        internal void TraceFrame(object frame, byte type = 0, byte compress = 0) =>
-            _socket.TraceFrame(Id, frame, type, compress);
 
         internal void Release()
         {
@@ -583,9 +602,20 @@ namespace ZeroC.Ice
 
             await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                TraceFrame(frame);
+                if (frame is OutgoingRequestFrame request)
+                {
+                    using (Logger.StartRequestScope(Id, request))
+                    {
+                        Logger.LogSendingRequest(request);
+                    }
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                }
             }
         }
 

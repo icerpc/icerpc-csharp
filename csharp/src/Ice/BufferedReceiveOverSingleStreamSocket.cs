@@ -62,6 +62,8 @@ namespace ZeroC.Ice
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
+        internal override IDisposable? StartScope(Endpoint endpoint) => Underlying.StartScope(endpoint);
+
         internal BufferedReceiveOverSingleStreamSocket(SingleStreamSocket underlying, int bufferSize = 256)
         {
             Underlying = underlying;

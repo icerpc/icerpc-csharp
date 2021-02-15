@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,146 +33,161 @@ namespace ZeroC.Ice
         {
             while (true)
             {
-                // Receive the Ice1 frame header.
-                ArraySegment<byte> buffer;
-                if (Endpoint.IsDatagram)
+                using (StartScope())
                 {
-                    buffer = await _socket.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
-                    if (buffer.Count < Ice1Definitions.HeaderSize)
-                    {
-                        ReceivedInvalidData($"received datagram with {buffer.Count} bytes");
-                        continue;
-                    }
-                    Received(buffer.Count);
-                }
-                else
-                {
-                    buffer = new ArraySegment<byte>(new byte[256], 0, Ice1Definitions.HeaderSize);
-                    await ReceiveAsync(buffer, cancel).ConfigureAwait(false);
-                }
-
-                // Check the header
-                Ice1Definitions.CheckHeader(buffer.AsReadOnlySpan(0, Ice1Definitions.HeaderSize));
-                int size = buffer.AsReadOnlySpan(10, 4).ReadInt();
-                if (size < Ice1Definitions.HeaderSize)
-                {
-                    ReceivedInvalidData($"received ice1 frame with only {size} bytes");
-                    continue;
-                }
-                if (size > IncomingFrameMaxSize)
-                {
-                    ReceivedInvalidData($"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
-                    continue;
-                }
-
-                // Read the remainder of the frame if needed.
-                if (size > buffer.Count)
-                {
+                    // Receive the Ice1 frame header.
+                    ArraySegment<byte> buffer;
                     if (Endpoint.IsDatagram)
                     {
-                        ReceivedInvalidData($"maximum datagram size of {buffer.Count} exceeded");
-                        continue;
-                    }
-
-                    if (size > buffer.Array!.Length)
-                    {
-                        // Allocate a new array and copy the header over.
-                        var tmpBuffer = new ArraySegment<byte>(new byte[size], 0, size);
-                        buffer.AsSpan().CopyTo(tmpBuffer.AsSpan(0, Ice1Definitions.HeaderSize));
-                        buffer = tmpBuffer;
+                        buffer = await _socket.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
+                        if (buffer.Count < Ice1Definitions.HeaderSize)
+                        {
+                            if (Logger.IsEnabled(LogLevel.Warning))
+                            {
+                                Logger.LogReceivedInvalidDatagram(buffer.Count);
+                            }
+                            continue;
+                        }
+                        Received(buffer.Count);
                     }
                     else
                     {
-                        buffer = new ArraySegment<byte>(buffer.Array!, 0, size);
+                        buffer = new ArraySegment<byte>(new byte[256], 0, Ice1Definitions.HeaderSize);
+                        await ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                     }
-                    Debug.Assert(size == buffer.Count);
 
-                    await ReceiveAsync(buffer.Slice(Ice1Definitions.HeaderSize), cancel).ConfigureAwait(false);
-                }
-
-                // Make sure the socket is marked as validated. This flag is necessary because incoming
-                // connection initialization doesn't wait for connection validation message. So the connection
-                // is considered validated on the server side only once the first frame is received. This is
-                // only useful for connection warnings, to prevent a warning from showing up if the server side
-                // connection is closed before the first message is received (which can occur with SSL for
-                // example if the certification validation fails on the client side).
-                IsValidated = true;
-
-                // Parse the received frame and translate it into a stream ID, frame type and frame data. The returned
-                // stream ID can be negative if the Ice1 frame is no longer supported (batch requests).
-                (long streamId, Ice1FrameType frameType, ArraySegment<byte> frame) = ParseFrame(buffer);
-                if (streamId >= 0)
-                {
-                    if (TryGetStream(streamId, out Ice1NetworkSocketStream? stream))
+                    // Check the header
+                    Ice1Definitions.CheckHeader(buffer.AsReadOnlySpan(0, Ice1Definitions.HeaderSize));
+                    int size = buffer.AsReadOnlySpan(10, 4).ReadInt();
+                    if (size < Ice1Definitions.HeaderSize)
                     {
-                        // If this is a known stream, pass the data to the stream.
-                        if (frameType == Ice1FrameType.ValidateConnection)
+                        if (Endpoint.IsDatagram)
                         {
-                            // Except for the validate connection frame, subsequent validate connection messages are
-                            // heartbeats sent by the peer. We just handle it here and don't pass it over the control
-                            // stream which only expect the close frame at this point.
-                            Debug.Assert(stream.IsControl);
+                            if (Logger.IsEnabled(LogLevel.Warning))
+                            {
+                                Logger.LogReceivedInvalidDatagram(size);
+                            }
+                        }
+                        else
+                        {
+                            throw new InvalidDataException($"received ice1 frame with only {size} bytes");
+                        }
+                        continue;
+                    }
+                    if (size > IncomingFrameMaxSize)
+                    {
+                        if (Endpoint.IsDatagram)
+                        {
+                            if (Logger.IsEnabled(LogLevel.Warning))
+                            {
+                                Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                            }
                             continue;
                         }
-                        try
+                        else
                         {
-                            stream.ReceivedFrame(frameType, frame);
-                        }
-                        catch
-                        {
-                            // Ignore, the stream has been aborted
+                            throw new InvalidDataException(
+                                $"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
                         }
                     }
-                    else if (frameType == Ice1FrameType.Request)
+
+                    // Read the remainder of the frame if needed.
+                    if (size > buffer.Count)
                     {
-                        // Create a new input stream for the request. If serialization is enabled, ensure we acquire
-                        // the semaphore first to serialize the dispatching.
-                        try
+                        if (Endpoint.IsDatagram)
                         {
-                            stream = new Ice1NetworkSocketStream(this, streamId);
-                            AsyncSemaphore? semaphore = stream.IsBidirectional ?
-                                _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
-                            if (semaphore != null)
+                            if (Logger.IsEnabled(LogLevel.Debug))
                             {
-                                await semaphore.EnterAsync(cancel).ConfigureAwait(false);
+                                Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
                             }
+                            continue;
+                        }
+
+                        if (size > buffer.Array!.Length)
+                        {
+                            // Allocate a new array and copy the header over.
+                            var tmpBuffer = new ArraySegment<byte>(new byte[size], 0, size);
+                            buffer.AsSpan().CopyTo(tmpBuffer.AsSpan(0, Ice1Definitions.HeaderSize));
+                            buffer = tmpBuffer;
+                        }
+                        else
+                        {
+                            buffer = new ArraySegment<byte>(buffer.Array!, 0, size);
+                        }
+                        Debug.Assert(size == buffer.Count);
+
+                        await ReceiveAsync(buffer.Slice(Ice1Definitions.HeaderSize), cancel).ConfigureAwait(false);
+                    }
+
+                    // Make sure the socket is marked as validated. This flag is necessary because incoming
+                    // connection initialization doesn't wait for connection validation message. So the connection
+                    // is considered validated on the server side only once the first frame is received. This is
+                    // only useful for connection warnings, to prevent a warning from showing up if the server side
+                    // connection is closed before the first message is received (which can occur with SSL for
+                    // example if the certification validation fails on the client side).
+                    IsValidated = true;
+
+                    // Parse the received frame and translate it into a stream ID, frame type and frame data. The returned
+                    // stream ID can be negative if the Ice1 frame is no longer supported (batch requests).
+                    (long streamId, Ice1FrameType frameType, ArraySegment<byte> frame) = ParseFrame(buffer);
+                    if (streamId >= 0)
+                    {
+                        if (TryGetStream(streamId, out Ice1NetworkSocketStream? stream))
+                        {
+                            // If this is a known stream, pass the data to the stream.
+                            if (frameType == Ice1FrameType.ValidateConnection)
+                            {
+                                // Except for the validate connection frame, subsequent validate connection messages are
+                                // heartbeats sent by the peer. We just handle it here and don't pass it over the control
+                                // stream which only expect the close frame at this point.
+                                Debug.Assert(stream.IsControl);
+                                continue;
+                            }
+                            try
+                            {
+                                stream.ReceivedFrame(frameType, frame);
+                            }
+                            catch
+                            {
+                                // Ignore, the stream has been aborted
+                            }
+                        }
+                        else if (frameType == Ice1FrameType.Request)
+                        {
+                            // Create a new input stream for the request. If serialization is enabled, ensure we acquire
+                            // the semaphore first to serialize the dispatching.
+                            try
+                            {
+                                stream = new Ice1NetworkSocketStream(this, streamId);
+                                AsyncSemaphore? semaphore = stream.IsBidirectional ?
+                                    _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
+                                if (semaphore != null)
+                                {
+                                    await semaphore.EnterAsync(cancel).ConfigureAwait(false);
+                                }
+                                stream.ReceivedFrame(frameType, frame);
+                                return stream;
+                            }
+                            catch
+                            {
+                                // Ignore, if the connection is being closed or the stream has been aborted.
+                                stream?.Release();
+                            }
+                        }
+                        else if (frameType == Ice1FrameType.ValidateConnection)
+                        {
+                            // If we received a connection validation frame and the stream is not known, it's the first
+                            // received connection validation message, create the control stream and return it.
+                            stream = new Ice1NetworkSocketStream(this, streamId);
+                            Debug.Assert(stream.IsControl);
                             stream.ReceivedFrame(frameType, frame);
                             return stream;
                         }
-                        catch
+                        else
                         {
-                            // Ignore, if the connection is being closed or the stream has been aborted.
-                            stream?.Release();
+                            // The stream has been disposed, ignore the data.
                         }
                     }
-                    else if (frameType == Ice1FrameType.ValidateConnection)
-                    {
-                        // If we received a connection validation frame and the stream is not known, it's the first
-                        // received connection validation message, create the control stream and return it.
-                        stream = new Ice1NetworkSocketStream(this, streamId);
-                        Debug.Assert(stream.IsControl);
-                        stream.ReceivedFrame(frameType, frame);
-                        return stream;
-                    }
-                    else
-                    {
-                        // The stream has been disposed, ignore the data.
-                    }
-                }
-            }
-
-            void ReceivedInvalidData(string message)
-            {
-                // Invalid data on a datagram connection doesn't kill the connection. The bogus data could be sent by
-                // a bogus or malicious peer. For non-datagram connections however, we raise an exception to abort the
-                // connection.
-                if (!Endpoint.IsDatagram)
-                {
-                    throw new InvalidDataException(message);
-                }
-                else if (Endpoint.Communicator.WarnDatagrams)
-                {
-                    Endpoint.Communicator.Logger.Warning(message);
                 }
             }
         }
@@ -192,11 +207,9 @@ namespace ZeroC.Ice
 
             await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
-            if (Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(0,
-                           ImmutableList<ArraySegment<byte>>.Empty,
-                           (byte)Ice1FrameType.ValidateConnection);
+                Logger.LogSendIce1ValidateConnectionFrame();
             }
         }
 
@@ -336,13 +349,9 @@ namespace ZeroC.Ice
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram)
+                    if (Endpoint.IsDatagram && Logger.IsEnabled(LogLevel.Debug))
                     {
-                        if (Endpoint.Communicator.WarnConnections)
-                        {
-                            Endpoint.Communicator.Logger.Warning(
-                                $"ignoring close connection frame for datagram connection:\n{this}");
-                        }
+                        Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
@@ -367,13 +376,12 @@ namespace ZeroC.Ice
 
                 case Ice1FrameType.RequestBatch:
                 {
-                    if (Endpoint.Communicator.TraceLevels.Protocol >= 1)
-                    {
-                        TraceFrame(0,
-                                   readBuffer.Slice(Ice1Definitions.HeaderSize),
-                                   (byte)Ice1FrameType.RequestBatch);
-                    }
                     int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    if (Logger.IsEnabled(LogLevel.Debug))
+                    {
+                        Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                    }
+
                     if (invokeNum < 0)
                     {
                         throw new InvalidDataException(

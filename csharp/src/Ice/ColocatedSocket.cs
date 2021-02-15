@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -231,6 +232,20 @@ namespace ZeroC.Ice
             {
                 throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
+        }
+
+        internal override IDisposable? StartScope()
+        {
+            if (Logger.IsEnabled(LogLevel.Critical))
+            {
+                Logger.StartCollocatedConnectionScope(
+                    _id,
+                    ((ColocatedEndpoint)Endpoint).Adapter.Name,
+                    IsIncoming,
+                    Endpoint.Transport,
+                    Endpoint.Protocol);
+            }
+            return null;
         }
     }
 }

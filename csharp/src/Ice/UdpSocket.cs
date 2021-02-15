@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,6 +28,7 @@ namespace ZeroC.Ice
         private IPEndPoint _addr;
         private readonly Communicator _communicator;
         private readonly bool _incoming;
+        private readonly ILogger _logger;
         private readonly string? _multicastInterface;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
@@ -252,6 +254,18 @@ namespace ZeroC.Ice
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
+        internal override IDisposable? StartScope(Endpoint endpoint)
+        {
+            if (_logger.IsEnabled(LogLevel.Critical))
+            {
+                return _logger.StartConnectionScope(Network.LocalAddrToString(Network.GetLocalAddress(Socket)),
+                                                    Network.RemoteAddrToString(Network.GetRemoteAddress(Socket)),
+                                                    endpoint.Transport,
+                                                    endpoint.Protocol);
+            }
+            return null;
+        }
+
         // Only for use by UdpEndpoint.
         internal UdpSocket(
             Communicator communicator,
@@ -261,6 +275,7 @@ namespace ZeroC.Ice
             int multicastTtl)
         {
             _communicator = communicator;
+            _logger = communicator.Logger;
             _addr = (IPEndPoint)addr;
             _multicastInterface = multicastInterface;
             _incoming = false;
@@ -302,6 +317,7 @@ namespace ZeroC.Ice
             Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
 
             _communicator = communicator;
+            _logger = communicator.Logger;
             _addr = new IPEndPoint(endpoint.Address, endpoint.Port);
             _multicastInterface = endpoint.MulticastInterface;
             _incoming = true;

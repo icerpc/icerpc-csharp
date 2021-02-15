@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -43,10 +44,9 @@ namespace ZeroC.Ice
             var socket = new UdpSocket(this, Communicator);
             try
             {
-                if (Communicator.TraceLevels.Transport >= 2)
+                if (Communicator.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    Communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"attempting to bind to {TransportName} socket\n{socket}");
+                    Communicator.Logger.LogBindingSocketAttempt(TransportName, socket);
                 }
                 Endpoint endpoint = socket.Bind(this);
                 var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, adapter);

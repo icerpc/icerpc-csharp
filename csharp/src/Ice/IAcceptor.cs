@@ -18,8 +18,8 @@ namespace ZeroC.Ice
         /// <return>The accepted connection.</return>
         ValueTask<Connection> AcceptAsync();
 
-        /// <summary>Get a detailed description of the acceptor.</summary>
-        /// <return>The detailed description.</return>
-        string ToDetailedString();
+        /// <summary>Starts a logical scope to attach info about the current acceptor.</summary>
+        /// <return>A disposable object that ends the logical operation scope on dispose.</return>
+        IDisposable? StartScope();
     }
 }

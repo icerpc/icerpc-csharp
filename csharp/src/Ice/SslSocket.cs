@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +9,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +21,7 @@ namespace ZeroC.Ice
 
         private readonly string? _adapterName;
         private readonly Communicator _communicator;
+        private readonly ILogger _logger;
         private readonly SslEngine _engine;
         private readonly string? _host;
         private readonly bool _incoming;
@@ -79,9 +80,17 @@ namespace ZeroC.Ice
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            if (_engine.SecurityTraceLevel >= 1)
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _engine.TraceStream(_sslStream, ToString());
+                _logger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
+                    {
+                        { "authenticated", $"{_sslStream.IsAuthenticated}" },
+                        { "encrypted", $"{_sslStream.IsEncrypted}" },
+                        { "signed", $"{_sslStream.IsSigned}" },
+                        { "mutually authenticated", $"{_sslStream.IsMutuallyAuthenticated}" },
+                        { "cipher", $"{_sslStream.NegotiatedCipherSuite}" },
+                        { "protocol", $"{_sslStream.SslProtocol}" }
+                    });
             }
 
             // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
@@ -183,6 +192,7 @@ namespace ZeroC.Ice
             bool incoming)
         {
             _communicator = communicator;
+            _logger = communicator.Logger;
             _engine = communicator.SslEngine;
             _underlying = underlying;
             _incoming = incoming;
@@ -224,36 +234,33 @@ namespace ZeroC.Ice
             X509Chain? chain,
             SslPolicyErrors errors)
         {
-            var message = new StringBuilder();
-
             if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) > 0)
             {
                 // For an outgoing connection the peer must always provide a certificate, for an incoming connection
                 // the certificate is only required if the RequireClientCertificate option was set.
                 if (!_incoming || _engine.TlsServerOptions.RequireClientCertificate)
                 {
-                    if (_engine.SecurityTraceLevel >= 1)
+                    if (_logger.IsEnabled(LogLevel.Error))
                     {
-                        _communicator.Logger.Trace(
-                            SslEngine.SecurityTraceCategory,
-                            "SSL certificate validation failed - remote certificate not provided");
+                        _logger.LogTlsRemoteCertificateNotProvided();
                     }
                     return false;
                 }
                 else
                 {
                     errors ^= SslPolicyErrors.RemoteCertificateNotAvailable;
-                    message.Append("\nremote certificate not provided (ignored)");
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogTlsRemoteCertificateNotProvidedIgnored();
+                    }
                 }
             }
 
             if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) > 0)
             {
-                if (_engine.SecurityTraceLevel >= 1)
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _communicator.Logger.Trace(
-                        SslEngine.SecurityTraceCategory,
-                        "SSL certificate validation failed - Hostname mismatch");
+                    _logger.LogTlsHostnameMismatch();
                 }
                 return false;
             }
@@ -316,8 +323,10 @@ namespace ZeroC.Ice
                     {
                         if (status.Status != X509ChainStatusFlags.NoError)
                         {
-                            message.Append("\ncertificate chain error: ");
-                            message.Append(status.Status);
+                            if (_logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogTlsCertificateChainError(status.Status);
+                            }
                             errors |= SslPolicyErrors.RemoteCertificateChainErrors;
                         }
                     }
@@ -333,22 +342,15 @@ namespace ZeroC.Ice
 
             if (errors > 0)
             {
-                if (_engine.SecurityTraceLevel >= 1)
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _communicator.Logger.Trace(
-                        SslEngine.SecurityTraceCategory,
-                        message.Length > 0 ?
-                            $"SSL certificate validation failed: {message}" : "SSL certificate validation failed");
+                    _logger.LogTlsCertificateValidationFailed();
                 }
                 return false;
             }
-
-            if (message.Length > 0 && _engine.SecurityTraceLevel >= 1)
-            {
-                _communicator.Logger.Trace(SslEngine.SecurityTraceCategory,
-                    $"SSL certificate validation status: {message}");
-            }
             return true;
         }
+
+        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
     }
 }

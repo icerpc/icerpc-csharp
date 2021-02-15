@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -146,26 +146,32 @@ namespace ZeroC.Ice
 
         internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            Debug.Assert(frameObject is IncomingRequestFrame);
-            var frame = (IncomingRequestFrame)frameObject;
-
-            if (fin)
+            using (_socket.StartScope())
             {
-                _receivedEndOfStream = true;
-            }
-            else
-            {
-                frame.SocketStream = this;
-                Interlocked.Increment(ref _useCount);
-            }
+                (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+                Debug.Assert(frameObject is IncomingRequestFrame);
+                var frame = (IncomingRequestFrame)frameObject;
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
-            {
-                _socket.TraceFrame(Id, frame);
-            }
+                if (fin)
+                {
+                    _receivedEndOfStream = true;
+                }
+                else
+                {
+                    frame.SocketStream = this;
+                    Interlocked.Increment(ref _useCount);
+                }
 
-            return frame;
+                if (Logger.IsEnabled(LogLevel.Information))
+                {
+                    using (Logger.StartRequestScope(Id, frame))
+                    {
+                        Logger.LogReceivedRequest(frame);
+                    }
+                }
+
+                return frame;
+            }
         }
 
         internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
@@ -199,9 +205,9 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                _socket.TraceFrame(Id, frame);
+                Logger.LogReceivedResponse(Id, frame);
             }
 
             return frame;
@@ -244,9 +250,17 @@ namespace ZeroC.Ice
             await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
                 ConfigureAwait(false);
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(frame);
+                if (frame is OutgoingRequestFrame request)
+                {
+                    Logger.LogSendingRequest(request);
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                }
             }
         }
     }

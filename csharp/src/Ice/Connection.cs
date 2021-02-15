@@ -8,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -223,14 +224,19 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public async Task PingAsync(IProgress<bool>? progress = null, CancellationToken cancel = default)
         {
-            await Socket.PingAsync(cancel).ConfigureAwait(false);
-            progress?.Report(true);
+            using (StartScope())
+            {
+                await Socket.PingAsync(cancel).ConfigureAwait(false);
+                progress?.Report(true);
+            }
         }
 
         /// <summary>Returns a description of the connection as human readable text, suitable for logging or error
         /// messages.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
         public override string ToString() => Socket.ToString()!;
+
+        public IDisposable? StartScope() => Socket.StartScope();
 
         internal Connection(
             Endpoint endpoint,
@@ -367,25 +373,31 @@ namespace ZeroC.Ice
                     //
                     // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because
                     // Monitor is still only called every (IdleTimeout / 2) period.
-                    _ = Socket.PingAsync(CancellationToken.None);
+                    using (Socket.StartScope())
+                    {
+                        _ = Socket.PingAsync(CancellationToken.None);
+                    }
                 }
 
                 if (idleTime > IdleTimeout)
                 {
-                    if (Socket.OutgoingStreamCount > 0)
+                    using (Socket.StartScope())
                     {
-                        // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
-                        // ACM activity in the last period.
-                        _ = AbortAsync(new ConnectionClosedException("connection timed out",
-                                                                     isClosedByPeer: false,
-                                                                     RetryPolicy.AfterDelay(TimeSpan.Zero)));
-                    }
-                    else
-                    {
-                        // The connection is idle, close it.
-                        _ = GoAwayAsync(new ConnectionClosedException("connection idle",
-                                                                      isClosedByPeer: false,
-                                                                      RetryPolicy.AfterDelay(TimeSpan.Zero)));
+                        if (Socket.OutgoingStreamCount > 0)
+                        {
+                            // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
+                            // ACM activity in the last period.
+                            _ = AbortAsync(new ConnectionClosedException("connection timed out",
+                                                                         isClosedByPeer: false,
+                                                                         RetryPolicy.AfterDelay(TimeSpan.Zero)));
+                        }
+                        else
+                        {
+                            // The connection is idle, close it.
+                            _ = GoAwayAsync(new ConnectionClosedException("connection idle",
+                                                                          isClosedByPeer: false,
+                                                                          RetryPolicy.AfterDelay(TimeSpan.Zero)));
+                        }
                     }
                 }
             }
@@ -474,7 +486,7 @@ namespace ZeroC.Ice
                 }
                 catch (Exception ex)
                 {
-                    Communicator.Logger.Error($"connection callback exception:\n{ex}\n{this}");
+                    Communicator.Logger.LogConnectionCallbackException(this, ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -614,10 +626,10 @@ namespace ZeroC.Ice
                 state == ConnectionState.Closed &&
                 !Endpoint.IsDatagram &&
                 ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Communicator.WarnConnections)
+                Communicator.Logger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Communicator.Logger.Warning($"connection exception:\n{exception}\n{this}");
+                Communicator.Logger.LogConnectionException(this, exception);
             }
 
             if (state == ConnectionState.Active)

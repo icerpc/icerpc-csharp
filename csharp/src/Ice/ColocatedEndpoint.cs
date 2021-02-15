@@ -73,7 +73,10 @@ namespace ZeroC.Ice
                 new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
                 label,
                 adapter: null);
-            await connection.InitializeAsync(cancel).ConfigureAwait(false);
+            using (connection.StartScope())
+            {
+                await connection.InitializeAsync(cancel).ConfigureAwait(false);
+            }
             return connection;
         }
 

@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -20,7 +21,7 @@ namespace ZeroC.Ice
 
         internal IReadOnlyDictionary<string, string> Headers => _parser.GetHeaders();
 
-        private enum OpCode : byte
+        internal enum OpCode : byte
         {
             Continuation = 0x0,
             Text = 0x1,
@@ -48,6 +49,7 @@ namespace ZeroC.Ice
         private readonly bool _incoming;
         private readonly string _host;
         private string _key;
+        private readonly ILogger _logger;
         private readonly HttpParser _parser;
         private readonly object _mutex = new object();
         private readonly BufferedReceiveOverSingleStreamSocket _underlying;
@@ -192,25 +194,22 @@ namespace ZeroC.Ice
             }
             catch (Exception ex)
             {
-                if (_communicator.TraceLevels.Transport >= 2)
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"{_transportName} connection HTTP upgrade request failed\n{this}\n{ex}");
+                    _logger.LogHttpUpgradeRequestFailed(_transportName, this, ex);
                 }
                 throw;
             }
 
-            if (_communicator.TraceLevels.Transport >= 1)
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 if (_incoming)
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"accepted {_transportName} connection HTTP upgrade request\n{this}");
+                    _logger.LogHttpUpgradeRequestAccepted(_transportName, this);
                 }
                 else
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"{_transportName} connection HTTP upgrade request accepted\n{this}");
+                    _logger.LogHttpUpgradeRequestSucceed(_transportName, this);
                 }
             }
         }
@@ -250,6 +249,8 @@ namespace ZeroC.Ice
 
         protected override void Dispose(bool disposing) => _underlying.Dispose();
 
+        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
+
         internal WSSocket(
             Communicator communicator,
             SingleStreamSocket del,
@@ -258,6 +259,7 @@ namespace ZeroC.Ice
             : this(communicator, del)
         {
             _host = host;
+            _logger = communicator.Logger;
             _resource = resource;
             _incoming = false;
             _transportName = (del is SslSocket) ? "wss" : "ws";
@@ -266,6 +268,7 @@ namespace ZeroC.Ice
         internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
         {
             _communicator = communicator;
+            _logger = communicator.Logger;
             _underlying = new BufferedReceiveOverSingleStreamSocket(underlying);
             _parser = new HttpParser();
             _receiveLastFrame = true;
@@ -379,10 +382,9 @@ namespace ZeroC.Ice
                     (await _underlying.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
-                if (_communicator.TraceLevels.Transport >= 3)
+                if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"received {_transportName} {opCode} frame with {payloadLength} bytes payload\n{this}");
+                    _logger.LogReceivedWebSocketFrame(_transportName, opCode, payloadLength, this);
                 }
 
                 switch (opCode)
@@ -439,8 +441,7 @@ namespace ZeroC.Ice
                     case OpCode.Pong:
                     {
                         // Read the pong payload.
-                        ReadOnlyMemory<byte> payload =
-                            await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                        _ = await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Nothing to do, this can be received even if we don't send a ping frame if the peer sends
                         // an unidirectional heartbeat.
@@ -652,10 +653,9 @@ namespace ZeroC.Ice
                 Debug.Assert(_sendBuffer.Count == 0);
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
-                if (_communicator.TraceLevels.Transport >= 3)
+                if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"sending {_transportName} {opCode} frame with {size} bytes payload\n{this}");
+                    _logger.LogReceivedWebSocketFrame(_transportName, opCode, size, this);
                 }
 
                 if (_incoming || opCode == OpCode.Pong)

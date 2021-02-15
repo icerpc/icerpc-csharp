@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,6 +17,7 @@ namespace ZeroC.Ice.Discovery
         private readonly string _domainId;
         private readonly int _latencyMultiplier;
 
+        private readonly ILogger _logger;
         private readonly ObjectAdapter _locatorAdapter;
 
         private readonly ILookupPrx _lookup;
@@ -136,6 +138,7 @@ namespace ZeroC.Ice.Discovery
 
         internal Locator(Communicator communicator, DiscoveryServerOptions options)
         {
+            _logger = communicator.Logger;
             Identity locatorIdentity;
 
             if (communicator.DefaultLocator is ILocatorPrx defaultLocator)
@@ -307,9 +310,10 @@ namespace ZeroC.Ice.Discovery
                         if (sendTask.Exception!.InnerExceptions.Count == _lookups.Count)
                         {
                             // All the tasks failed: log warning and return empty result (no retry)
-                            _replyAdapter.Communicator.Logger.Warning(
-                                @$"Ice discovery failed to send lookup request using `{_lookup
-                                    }':\n{sendTask.Exception!.InnerException!}");
+                            if (_logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogLookupRequestFailed(_lookup, sendTask.Exception!.InnerException!);
+                            }
                             replyServant.SetEmptyResult();
                             return await replyServant.Task.ConfigureAwait(false);
                         }
