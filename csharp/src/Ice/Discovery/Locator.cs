@@ -204,26 +204,24 @@ namespace ZeroC.Ice.Discovery
             var registryServant = new LocatorRegistry(communicator);
             _registry = _locatorAdapter.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
 
-            _multicastAdapter =
-                new(communicator,
-                    new()
-                    {
-                        AcceptNonSecure = NonSecure.Always,
-                        ColocationScope = options.ColocationScope,
-                        Endpoints = options.MulticastEndpoints,
-                        Name = "Discovery.Multicast",
-                    });
+            _multicastAdapter = new ObjectAdapter(communicator,
+                                                  new()
+                                                  {
+                                                      AcceptNonSecure = NonSecure.Always,
+                                                      ColocationScope = options.ColocationScope,
+                                                      Endpoints = options.MulticastEndpoints,
+                                                      Name = "Discovery.Multicast",
+                                                  });
 
-            _replyAdapter =
-                new(communicator,
-                    new()
-                    {
-                        AcceptNonSecure = NonSecure.Always,
-                        ColocationScope = options.ColocationScope,
-                        Endpoints = options.ReplyEndpoints,
-                        Name = "Discovery.Reply",
-                        ServerName = options.ReplyServerName
-                    });
+            _replyAdapter = new ObjectAdapter(communicator,
+                                              new()
+                                              {
+                                                  AcceptNonSecure = NonSecure.Always,
+                                                  ColocationScope = options.ColocationScope,
+                                                  Endpoints = options.ReplyEndpoints,
+                                                  Name = "Discovery.Reply",
+                                                  ServerName = options.ReplyServerName
+                                              });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
             IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);
