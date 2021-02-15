@@ -10,8 +10,7 @@ namespace ZeroC.Ice.Test.Alias
         public override async Task RunAsync(string[] args)
         {
             await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new Interface2());
             await adapter.ActivateAsync();

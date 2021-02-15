@@ -26,11 +26,14 @@ namespace ZeroC.Ice.Test.ACM
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             string endpoint = TestHelper.GetTestEndpoint(properties: communicator.GetProperties(), ephemeral: true);
+
             ObjectAdapter adapter = new ObjectAdapter(
                 communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = endpoint },
-                scheduler: schedulerPair.ExclusiveScheduler);
+                new()
+                {
+                    Endpoints = endpoint,
+                    TaskScheduler = schedulerPair.ExclusiveScheduler
+                });
 
             await adapter.ActivateAsync(cancel);
             return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);

@@ -24,9 +24,10 @@ namespace ZeroC.Ice.Test.UDP
 
             var serverName = Communicator.GetProperty("Ice.ServerName") ?? "127.0.0.1";
 
-            await using var adapter = new ObjectAdapter(Communicator,
-                "ControlAdapter",
-                new ObjectAdapterOptions {
+            await using var adapter = new ObjectAdapter(
+                Communicator,
+                new()
+                {
                     Endpoints = GetTestEndpoint(num, Transport),
                     ServerName = serverName
                 });
@@ -36,9 +37,9 @@ namespace ZeroC.Ice.Test.UDP
             ServerReady();
             if (num == 0)
             {
-                ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
-                    "TestAdapter",
-                    new ObjectAdapterOptions
+                var adapter2 = new ObjectAdapter(
+                    Communicator,
+                    new()
                     {
                         AcceptNonSecure = NonSecure.Always,
                         Endpoints = GetTestEndpoint(num, "udp"),
@@ -74,11 +75,11 @@ namespace ZeroC.Ice.Test.UDP
 
             ObjectAdapter mcastAdapter = new ObjectAdapter(
                 Communicator,
-                "McastTestAdapter",
-                new ObjectAdapterOptions
+                new()
                 {
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = endpoint.ToString(),
+                    Name = "McastTestAdapter", // for test script ready check
                     ServerName = serverName
                 });
             mcastAdapter.Add("test", new TestIntf());

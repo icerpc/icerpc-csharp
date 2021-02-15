@@ -1,4 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
+
+using System.Threading.Tasks;
+
 namespace ZeroC.Ice
 {
     public enum ColocationScope
@@ -24,8 +27,9 @@ namespace ZeroC.Ice
 
         public int? IncomingFrameMaxSize { get; set; } // 0 means "infinite", null means use Communicator's value
 
-        public string? Locator { get; set; } // TODO: should it be a proxy? Only needed for locator registry lookup
-                                             // and registration.
+        public ILocatorRegistryPrx? LocatorRegistry { get; set; }
+
+        public string Name { get; set; } = "";
 
         public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
 
@@ -33,7 +37,11 @@ namespace ZeroC.Ice
 
         public string ReplicaGroupId { get; set; } = "";
 
+        public bool SerializeDispatch { get; set; }
+
         // TODO: fix default
         public string ServerName { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
+
+        public TaskScheduler? TaskScheduler { get; set; }
     }
 }

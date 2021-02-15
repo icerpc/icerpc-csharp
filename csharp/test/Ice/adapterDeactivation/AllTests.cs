@@ -27,16 +27,14 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "TransientTestAdapter",
-                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(1) });
+                        new() { Endpoints = helper.GetTestEndpoint(1) });
                 }
 
                 // Use a different port than the first adapter to avoid an "address already in use" error.
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "TransientTestAdapter",
-                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(2) });
+                        new() { Endpoints = helper.GetTestEndpoint(2) });
 
                     TestHelper.Assert(!adapter.ShutdownComplete.IsCompleted);
                     await adapter.DisposeAsync();
@@ -69,11 +67,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "BadAdapter1",
-                        new ObjectAdapterOptions
-                        {
-                            Endpoints = ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0"
-                        });
+                        new() { Endpoints = ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0" });
                     TestHelper.Assert(false);
                 }
                 catch (ArgumentException)
@@ -85,8 +79,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "BadAdapter2",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             Endpoints = ice1 ? "tcp -h 127.0.0.1 -p 0:tcp -h \"::1\" -p 10000" :
                                 "ice+tcp://127.0.0.1:0?alt-endpoint=[::1]:10000"
@@ -106,8 +99,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "DAdapter",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             AcceptNonSecure = ice1 ? NonSecure.Always :
                                 communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
@@ -121,8 +113,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 {
                     await using var adapter = new ObjectAdapter(
                         communicator,
-                        "DAdapter",
-                        new ObjectAdapterOptions
+                        new()
                         {
                             Endpoints = ice1 ? $"{helper.GetTestEndpoint(1)}:{helper.GetTestEndpoint(2)}" :
                                 $"{helper.GetTestEndpoint(1)}?alt-endpoint={helper.GetTestEndpoint(2)}",
@@ -145,8 +136,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 await using var adapter = new ObjectAdapter(
                     communicator,
-                    "PAdapter",
-                    new ObjectAdapterOptions
+                    new()
                     {
                         PublishedEndpoints = ice1 ? "tcp -h localhost -p 12345 -t 30000" : "ice+tcp://localhost:12345"
                     });
@@ -183,14 +173,12 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 await using var adapter1 = new ObjectAdapter(
                     communicator,
-                    "Adpt1",
-                    new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
+                    new() { Endpoints = helper.GetTestEndpoint(10) });
                 try
                 {
                     await using var adapter2 = new ObjectAdapter(
                         communicator,
-                        "Adpt2",
-                        new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(10) });
+                        new() { Endpoints = helper.GetTestEndpoint(10) });
                     TestHelper.Assert(false);
                 }
                 catch

@@ -17,8 +17,7 @@ namespace ZeroC.Ice.Test.Echo
         public override async Task RunAsync(string[] args)
         {
             await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoints = GetTestEndpoint(0) });
 
             var blob = new BlobjectI();
             adapter.AddDefault(blob);

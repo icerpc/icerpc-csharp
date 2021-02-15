@@ -10,18 +10,15 @@ namespace ZeroC.Ice.Test.AMI
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new TestIntf());
             adapter.Add("test2", new TestIntf2());
             // Don't activate OA to ensure collocation is used.
 
-            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
-                "TestAdapter2",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(1) },
-                serializeDispatch: true);
+            ObjectAdapter adapter2 = new ObjectAdapter(
+                Communicator,
+                new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
             adapter2.Add("serialized", new TestIntf());
             // Don't activate OA to ensure collocation is used.

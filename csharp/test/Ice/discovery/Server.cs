@@ -20,10 +20,16 @@ namespace ZeroC.Ice.Test.Discovery
             {
             }
 
+            ILocatorRegistryPrx? locatorRegistry = await Communicator.DefaultLocator!.GetRegistryAsync();
+
             await using var adapter = new ObjectAdapter(
                 Communicator,
-                "ControlAdapter",
-                new ObjectAdapterOptions { AdapterId = $"control{num}", Endpoints = GetTestEndpoint(num) });
+                new()
+                {
+                    AdapterId = $"control{num}",
+                    Endpoints = GetTestEndpoint(num),
+                    LocatorRegistry = locatorRegistry
+                });
 
             adapter.Add($"controller{num}", new Controller());
             adapter.Add($"faceted-controller{num}#abc", new Controller());

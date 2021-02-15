@@ -9,9 +9,7 @@ namespace ZeroC.Ice.Test.SeqMapping
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new AsyncMyClass());
             await adapter.ActivateAsync();

@@ -633,7 +633,7 @@ namespace ZeroC.Ice.Test.Location
 
             await using var adapter = new ObjectAdapter(
                 communicator,
-                options: new ObjectAdapterOptions { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
+                new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
             var id = new Identity(Guid.NewGuid().ToString(), "");
             adapter.Add(id, new Hello());

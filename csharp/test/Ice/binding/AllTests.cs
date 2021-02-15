@@ -466,7 +466,7 @@ namespace ZeroC.Ice.Test.Binding
                 foreach (ObjectAdapterOptions p in serverOptions)
                 {
                     await using var serverCommunicator = new Communicator();
-                    await using var oa = new ObjectAdapter(serverCommunicator, "Adapter", p);
+                    await using var oa = new ObjectAdapter(serverCommunicator, p);
                     await oa.ActivateAsync();
 
                     IObjectPrx prx = oa.CreateProxy("dummy", IObjectPrx.Factory);
@@ -489,14 +489,14 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoint = getEndpoint("::0");
                     await using var oa = new ObjectAdapter(
                         serverCommunicator,
-                        options: new ObjectAdapterOptions { Endpoints = endpoint });
+                        new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     try
                     {
                         await using var ipv4OA = new ObjectAdapter(
                             serverCommunicator,
-                            options: new ObjectAdapterOptions { Endpoints = getEndpoint("0.0.0.0") });
+                            new() { Endpoints = getEndpoint("0.0.0.0") });
                         await ipv4OA.ActivateAsync();
                         TestHelper.Assert(false);
                     }
@@ -523,7 +523,7 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoint = getEndpoint("::0") + (ice1 ? " --ipv6Only" : "?ipv6-only=true");
                     await using var oa = new ObjectAdapter(
                         serverCommunicator,
-                        options: new ObjectAdapterOptions { Endpoints = endpoint });
+                        new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
@@ -531,7 +531,7 @@ namespace ZeroC.Ice.Test.Binding
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
                         await using var ipv4OA = new ObjectAdapter(
                                 serverCommunicator,
-                                options: new ObjectAdapterOptions { Endpoints = ipv4Endpoint });
+                                new() { Endpoints = ipv4Endpoint });
                         await ipv4OA.ActivateAsync();
                     }
 
@@ -554,7 +554,7 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
                     await using var oa = new ObjectAdapter(
                         serverCommunicator,
-                        options: new ObjectAdapterOptions { Endpoints = endpoint });
+                        new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     try
@@ -562,7 +562,7 @@ namespace ZeroC.Ice.Test.Binding
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
                         await using var ipv4OA = new ObjectAdapter(
                             serverCommunicator,
-                            options: new ObjectAdapterOptions { Endpoints = ipv4Endpoint });
+                            new() { Endpoints = ipv4Endpoint });
                         await ipv4OA.ActivateAsync();
                         TestHelper.Assert(false);
                     }

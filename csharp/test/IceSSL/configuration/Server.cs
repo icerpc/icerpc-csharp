@@ -18,8 +18,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 
             await using var adapter = new ObjectAdapter(
                 Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions
+                new()
                 {
                     AcceptNonSecure = NonSecure.Always,
                     ColocationScope = ColocationScope.Communicator,
