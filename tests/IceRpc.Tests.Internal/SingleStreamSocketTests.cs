@@ -395,6 +395,7 @@ namespace IceRpc.Tests.Internal
                 async () => await clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default));
         }
 
+        [Test]
         public async Task ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
         {
             using IAcceptor acceptor = await CreateAcceptorAsync();
@@ -405,10 +406,10 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamSocket> connectTask =
                 clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
             source.Cancel();
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await connectTask);
+            Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
 
             using SingleStreamSocket clientSocket2 = await CreateClientSocketAsync();
-            Assert.ThrowsAsync<OperationCanceledException>(
+            Assert.CatchAsync<OperationCanceledException>(
                 async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source.Token));
         }
 
@@ -419,12 +420,6 @@ namespace IceRpc.Tests.Internal
                 (ClientEndpoint as IPEndpoint)!.CreateConnection(
                     new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
-
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
-        {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
-            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }
 }
