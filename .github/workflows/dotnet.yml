@@ -36,4 +36,5 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: coverage-report
-        path: tests/coverage-report/ # or path/to/artifact
+        path: tests/coverage-report/
+        retention-days: 5
