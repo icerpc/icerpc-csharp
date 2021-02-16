@@ -255,14 +255,17 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                if (frame is OutgoingRequestFrame request)
+                using (_socket.StartScope())
                 {
-                    Logger.LogSendingRequest(request);
-                }
-                else
-                {
-                    Debug.Assert(frame is OutgoingResponseFrame);
-                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    if (frame is OutgoingRequestFrame request)
+                    {
+                        Logger.LogSendingRequest(request);
+                    }
+                    else
+                    {
+                        Debug.Assert(frame is OutgoingResponseFrame);
+                        Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    }
                 }
             }
         }

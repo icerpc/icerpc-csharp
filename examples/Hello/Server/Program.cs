@@ -4,7 +4,6 @@ using Demo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
 using ZeroC.Ice;
 
 try
@@ -13,7 +12,7 @@ try
        .AddJsonFile("appsettings.json", optional: true)
        .Build();
 
-    var loggerFactory = LoggerFactory.Create(
+    using var loggerFactory = LoggerFactory.Create(
         builder =>
         {
             builder.AddConfiguration(configuration.GetSection("Logging"));

@@ -321,8 +321,8 @@ namespace ZeroC.Ice
 
                     // Write the close frame
                     await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
-                                                                exception.Message,
-                                                                cancel).ConfigureAwait(false);
+                                                               exception.Message,
+                                                               cancel).ConfigureAwait(false);
 
                     // Make sure to yield to release the mutex. It's important to not hold the mutex because the
                     // loop below waits for AbortAsync to be called and AbortAsync requires to lock the mutex.

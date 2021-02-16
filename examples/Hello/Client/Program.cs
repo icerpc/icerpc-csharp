@@ -12,7 +12,7 @@ IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true)
     .Build();
 
-var loggerFactory = LoggerFactory.Create(
+using var loggerFactory = LoggerFactory.Create(
     builder =>
     {
         builder.AddConfiguration(configuration.GetSection("Logging"));

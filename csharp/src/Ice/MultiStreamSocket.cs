@@ -340,7 +340,10 @@ namespace ZeroC.Ice
         internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             SocketStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
-            await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+            using (StartScope())
+            {
+                await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+            }
             return stream;
         }
 

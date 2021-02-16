@@ -439,7 +439,10 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogSendingIce2GoAwayFrame();
+                    using (_socket.StartScope())
+                    {
+                        Logger.LogSendingIce2GoAwayFrame();
+                    }
                 }
             }
         }
@@ -483,7 +486,10 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogSendingIce2InitializeFrame();
+                    using (_socket.StartScope())
+                    {
+                        Logger.LogSendingIce2InitializeFrame();
+                    }
                 }
             }
         }
@@ -607,17 +613,20 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                if (frame is OutgoingRequestFrame request)
+                using (_socket.StartScope())
                 {
-                    using (Logger.StartRequestScope(Id, request))
+                    if (frame is OutgoingRequestFrame request)
                     {
-                        Logger.LogSendingRequest(request);
+                        using (Logger.StartRequestScope(Id, request))
+                        {
+                            Logger.LogSendingRequest(request);
+                        }
                     }
-                }
-                else
-                {
-                    Debug.Assert(frame is OutgoingResponseFrame);
-                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    else
+                    {
+                        Debug.Assert(frame is OutgoingResponseFrame);
+                        Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    }
                 }
             }
         }
