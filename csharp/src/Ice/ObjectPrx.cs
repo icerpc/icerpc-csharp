@@ -1465,8 +1465,11 @@ namespace ZeroC.Ice
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
 
-                    // Send the request and wait for the sending to complete.
-                    await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+                    using (connection.StartScope())
+                    {
+                        // Send the request and wait for the sending to complete.
+                        await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+                    }
 
                     // The request is sent, notify the progress callback.
                     // TODO: Get rid of the sentSynchronously parameter which is always false now?

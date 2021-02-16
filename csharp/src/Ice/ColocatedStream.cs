@@ -205,9 +205,12 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                Logger.LogReceivedResponse(Id, frame);
+                using (_socket.StartScope())
+                {
+                    Logger.LogReceivedResponse(Id, frame);
+                }
             }
 
             return frame;
@@ -250,7 +253,7 @@ namespace ZeroC.Ice
             await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
                 ConfigureAwait(false);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {

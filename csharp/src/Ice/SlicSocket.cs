@@ -723,7 +723,10 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                using (StartScope())
+                {
+                    Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                }
             }
 
             // The size check doesn't include the stream ID length

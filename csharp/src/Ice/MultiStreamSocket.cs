@@ -1,14 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -140,7 +138,7 @@ namespace ZeroC.Ice
             {
                 using (StartScope())
                 {
-                    Logger.LogReceivedData(size, Endpoint.TransportName);
+                    Logger.LogReceivedData(size, Endpoint.Transport);
                 }
             }
         }
@@ -185,7 +183,7 @@ namespace ZeroC.Ice
             {
                 using (StartScope())
                 {
-                    Logger.LogSentData(size, Endpoint.TransportName);
+                    Logger.LogSentData(size, Endpoint.Transport);
                 }
             }
         }
@@ -209,31 +207,34 @@ namespace ZeroC.Ice
 
         internal void Abort(Exception exception)
         {
-            // Abort the transport.
-            Abort();
-
-            // Consider the abort as graceful if the streams were already aborted.
-            bool graceful;
-            lock (_mutex)
+            using (StartScope())
             {
-                graceful = _streamsAborted;
-            }
+                // Abort the transport.
+                Abort();
 
-            // Abort the streams if not already done. It's important to call this again even if has already been
-            // called previously by graceful connection closure. Not all the streams might have been aborted and
-            // at this point we want to make sure all the streams are aborted.
-            AbortStreams(exception);
-
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                // Trace the cause of unexpected connection closures
-                if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
+                // Consider the abort as graceful if the streams were already aborted.
+                bool graceful;
+                lock (_mutex)
                 {
-                    Logger.LogConnectionClosed(Endpoint.TransportName, this, exception);
+                    graceful = _streamsAborted;
                 }
-                else
+
+                // Abort the streams if not already done. It's important to call this again even if has already been
+                // called previously by graceful connection closure. Not all the streams might have been aborted and
+                // at this point we want to make sure all the streams are aborted.
+                AbortStreams(exception);
+
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogConnectionClosed(Endpoint.TransportName, this);
+                    // Trace the cause of unexpected connection closures
+                    if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
+                    {
+                        Logger.LogConnectionClosed(Endpoint.Transport, exception);
+                    }
+                    else
+                    {
+                        Logger.LogConnectionClosed(Endpoint.Transport);
+                    }
                 }
             }
         }

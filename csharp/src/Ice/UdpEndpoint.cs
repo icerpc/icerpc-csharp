@@ -46,7 +46,7 @@ namespace ZeroC.Ice
             {
                 if (Communicator.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    Communicator.Logger.LogBindingSocketAttempt(TransportName, socket);
+                    Communicator.Logger.LogBindingSocketAttempt(Transport);
                 }
                 Endpoint endpoint = socket.Bind(this);
                 var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, adapter);

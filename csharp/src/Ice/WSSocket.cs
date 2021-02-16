@@ -59,7 +59,7 @@ namespace ZeroC.Ice
         private int _receivePayloadLength;
         private int _receivePayloadOffset;
         private string _resource;
-        private readonly string _transportName;
+        private readonly Transport _transport;
         private readonly byte[] _sendMask;
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
@@ -196,7 +196,7 @@ namespace ZeroC.Ice
             {
                 if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogHttpUpgradeRequestFailed(_transportName, this, ex);
+                    _logger.LogHttpUpgradeRequestFailed(_transport, ex);
                 }
                 throw;
             }
@@ -205,11 +205,11 @@ namespace ZeroC.Ice
             {
                 if (_incoming)
                 {
-                    _logger.LogHttpUpgradeRequestAccepted(_transportName, this);
+                    _logger.LogHttpUpgradeRequestAccepted(_transport);
                 }
                 else
                 {
-                    _logger.LogHttpUpgradeRequestSucceed(_transportName, this);
+                    _logger.LogHttpUpgradeRequestSucceed(_transport);
                 }
             }
         }
@@ -262,7 +262,7 @@ namespace ZeroC.Ice
             _logger = communicator.Logger;
             _resource = resource;
             _incoming = false;
-            _transportName = (del is SslSocket) ? "wss" : "ws";
+            _transport = (del is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
         internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
@@ -279,7 +279,7 @@ namespace ZeroC.Ice
             _host = "";
             _resource = "";
             _incoming = true;
-            _transportName = (underlying is SslSocket) ? "wss" : "ws";
+            _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
         private ArraySegment<byte> PrepareHeaderForSend(OpCode opCode, int payloadLength)
@@ -384,7 +384,7 @@ namespace ZeroC.Ice
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogReceivedWebSocketFrame(_transportName, opCode, payloadLength, this);
+                    _logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
                 }
 
                 switch (opCode)
@@ -655,7 +655,7 @@ namespace ZeroC.Ice
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogReceivedWebSocketFrame(_transportName, opCode, size, this);
+                    _logger.LogReceivedWebSocketFrame(_transport, opCode, size);
                 }
 
                 if (_incoming || opCode == OpCode.Pong)

@@ -99,7 +99,7 @@ namespace ZeroC.Ice
 
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {

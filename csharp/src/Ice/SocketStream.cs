@@ -391,9 +391,12 @@ namespace ZeroC.Ice
                 response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                Logger.LogReceivedResponse(Id, response);
+                using (_socket.StartScope())
+                {
+                    Logger.LogReceivedResponse(Id, response);
+                }
             }
 
             return response;

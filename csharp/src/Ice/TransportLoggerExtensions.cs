@@ -39,11 +39,11 @@ namespace ZeroC.Ice
                 GetEventId(TransportEvent.ConnectionCallbackException),
                 "connection callback exception {Connection}");
 
-        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _connectionClosed =
-            LoggerMessage.Define<string, MultiStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _connectionClosed =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.ConnectionClosed),
-                "closed {Transport} connection {Connection}");
+                "closed {Transport} connection");
 
         private static readonly Action<ILogger, Connection, Exception> _connectionException =
             LoggerMessage.Define<Connection>(
@@ -51,23 +51,23 @@ namespace ZeroC.Ice
                 GetEventId(TransportEvent.ConnectionException),
                 "connection exception {Connection}");
 
-        private static readonly Action<ILogger, string, WSSocket, Exception> _httpUpgradeRequestAccepted =
-            LoggerMessage.Define<string, WSSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestAccepted =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Error,
                 GetEventId(TransportEvent.HttpUpgradeRequestFailed),
-                "accepted {Transport} connection HTTP upgrade request {Socket}");
+                "accepted {Transport} connection HTTP upgrade request");
 
-        private static readonly Action<ILogger, string, WSSocket, Exception> _httpUpgradeRequestFailed =
-            LoggerMessage.Define<string, WSSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestFailed =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Error,
                 GetEventId(TransportEvent.HttpUpgradeRequestFailed),
-                "{Transport} connection HTTP upgrade request failed {Socket}");
+                "{Transport} connection HTTP upgrade request failed");
 
-        private static readonly Action<ILogger, string, WSSocket, Exception> _httpUpgradeRequestSucceed =
-            LoggerMessage.Define<string, WSSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestSucceed =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.HttpUpgradeRequestSucceed),
-                "{Transport} connection HTTP upgrade request succee {Socket}");
+                "{Transport} connection HTTP upgrade request succeed");
 
         private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
             LoggerMessage.Define<int>(
@@ -81,51 +81,51 @@ namespace ZeroC.Ice
                 GetEventId(TransportEvent.ObjectAdapterPublishedEndpoints),
                 "published endpoints for object adapter {Name}: {Endpoints}");
 
-        private static readonly Action<ILogger, string, WSSocket.OpCode, int, WSSocket, Exception> _receivedWebSocketFrame =
-            LoggerMessage.Define<string, WSSocket.OpCode, int, WSSocket>(
-                LogLevel.Error,
+        private static readonly Action<ILogger, Transport, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
+            LoggerMessage.Define<Transport, WSSocket.OpCode, int>(
+                LogLevel.Debug,
                 GetEventId(TransportEvent.ReceivedWebSocketFrame),
-                "received {Transport} {OpCode} frame with {Size} bytes payload {Socket}");
+                "received {Transport} {OpCode} frame with {Size} bytes payload");
 
-        private static readonly Action<ILogger, string, WSSocket.OpCode, int, WSSocket, Exception> _sendingWebSocketFrame =
-            LoggerMessage.Define<string, WSSocket.OpCode, int, WSSocket>(
-                LogLevel.Error,
+        private static readonly Action<ILogger, Transport, WSSocket.OpCode, int, Exception> _sendingWebSocketFrame =
+            LoggerMessage.Define<Transport, WSSocket.OpCode, int>(
+                LogLevel.Debug,
                 GetEventId(TransportEvent.SendingWebSocketFrame),
-                "sending {Transport} {OpCode} frame with {Size} bytes payload {Socket}");
+                "sending {Transport} {OpCode} frame with {Size} bytes payload");
 
-        private static readonly Action<ILogger, string, IAcceptor, Exception> _startAcceptingConnections =
-            LoggerMessage.Define<string, IAcceptor>(
+        private static readonly Action<ILogger, Transport, IAcceptor, Exception> _startAcceptingConnections =
+            LoggerMessage.Define<Transport, IAcceptor>(
                 LogLevel.Information,
                 GetEventId(TransportEvent.StartAcceptingConnections),
-                "start accepting {TransportName} connections at {Acceptor}");
+                "start accepting {Transport} connections at {Acceptor}");
 
-        private static readonly Action<ILogger, string, IAcceptor, Exception> _stopAcceptingConnections =
-            LoggerMessage.Define<string, IAcceptor>(
+        private static readonly Action<ILogger, Transport, IAcceptor, Exception> _stopAcceptingConnections =
+            LoggerMessage.Define<Transport, IAcceptor>(
                 LogLevel.Information,
                 GetEventId(TransportEvent.StartAcceptingConnections),
-                "stop accepting {TransportName} connections at {Acceptor}");
+                "stop accepting {Transport} connections at {Acceptor}");
 
         private static readonly Action<ILogger, Exception> _pingEventHanderException = LoggerMessage.Define(
             LogLevel.Error,
             GetEventId(TransportEvent.PingEventHandlerException),
             "ping event handler raised an exception");
 
-        private static readonly Action<ILogger, int, string, Exception> _receivedData =
-            LoggerMessage.Define<int, string>(
+        private static readonly Action<ILogger, int, Transport, Exception> _receivedData =
+            LoggerMessage.Define<int, Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.ReceivedData),
                 "received {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, int, string, Exception> _sentData = LoggerMessage.Define<int, string>(
+        private static readonly Action<ILogger, int, Transport, Exception> _sentData = LoggerMessage.Define<int, Transport>(
             LogLevel.Debug,
             GetEventId(TransportEvent.SentData),
-            "sent {Size} bytes via {TransportName}");
+            "sent {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, string, SingleStreamSocket, Exception> _bindingSocketAttempt =
-            LoggerMessage.Define<string, SingleStreamSocket>(
+        private static readonly Action<ILogger, Transport, Exception> _bindingSocketAttempt =
+            LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.BindingSocketAttempt),
-                "attempting to bind to {TransportName} socket {Socket}");
+                "attempting to bind to {Transport} socket");
 
         private static readonly Action<ILogger, Transport, Exception> _startReceivingDatagrams =
             LoggerMessage.Define<Transport>(
@@ -137,7 +137,7 @@ namespace ZeroC.Ice
             LoggerMessage.Define<Transport>(
                 LogLevel.Debug,
                 GetEventId(TransportEvent.StartSendingDatagrams),
-                "starting to send {TransportName} datagrams");
+                "starting to send {Transport} datagrams");
 
         private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
@@ -179,7 +179,7 @@ namespace ZeroC.Ice
             LoggerMessage.Define<int>(
                 LogLevel.Information,
                 GetEventId(TransportEvent.ReceivedIce1RequestBatchFrame),
-                "received ice1 request batch frame: number of requests = `{Requests}'");
+                "received ice1 request batch frame: number of requests = `{NumberOfRequests}'");
 
         private static readonly Action<ILogger, string, string, string, bool, SortedDictionary<string, string>, Exception> _receivedIce1RequestFrame =
             LoggerMessage.Define<string, string, string, bool, SortedDictionary<string, string>>(
@@ -195,19 +195,19 @@ namespace ZeroC.Ice
                 "sending ice1 request frame: operation = {Operation}, identity = {Identity}, facet = {Facet}, " +
                 "idempotent = {Idempotent}, context = {Context}");
 
-        private static readonly Func<ILogger, Encoding, int, (int, string), IDisposable> _ice1RequestsScope =
-            LoggerMessage.DefineScope<Encoding, int, (int, string)>(
+        private static readonly Func<ILogger, Encoding, int, int, IDisposable> _ice1RequestsScope =
+            LoggerMessage.DefineScope<Encoding, int, int>(
                 "request: encoding {Encoding}, frame size = {FrameSize}, request ID = {RequestID}");
 
-        private static readonly Action<ILogger, ResultType, (int, string), Exception> _receivedIce1ResponseFrame =
-            LoggerMessage.Define<ResultType, (int, string)>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, ResultType, int, Exception> _receivedIce1ResponseFrame =
+            LoggerMessage.Define<ResultType, int>(
+                LogLevel.Information,
                 GetEventId(TransportEvent.ReceivedIce1ResponseFrame),
                 "received ice1 response frame: result = {Result}, request ID = {RequestID}");
 
-        private static readonly Action<ILogger, ResultType, (int, string), Exception> _sendingIce1ResponseFrame =
-            LoggerMessage.Define<ResultType, (int, string)>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, ResultType, int, Exception> _sendingIce1ResponseFrame =
+            LoggerMessage.Define<ResultType, int>(
+                LogLevel.Information,
                 GetEventId(TransportEvent.SendingIce1ResponseFrame),
                 "sending ice1 response frame: result = {Result}, request ID = {RequestID}");
 
@@ -226,26 +226,26 @@ namespace ZeroC.Ice
             LoggerMessage.DefineScope<string, string, Transport, Protocol>(
                 "acceptor: adapter = {AdapterName}, local address = {LocalAddress}, transport = {Transport}, protocol = {Protocol}");
 
-        private static readonly Action<ILogger, string, string, string, bool, IReadOnlyDictionary<string, string>, Exception> _sendingIce2RequestFrame =
-            LoggerMessage.Define<string, string, string, bool, IReadOnlyDictionary<string, string>>(
+        private static readonly Action<ILogger, string, string, string, bool, IEnumerable<KeyValuePair<string, string>>, Exception> _sendingIce2RequestFrame =
+            LoggerMessage.Define<string, string, string, bool, IEnumerable<KeyValuePair<string, string>>>(
                 LogLevel.Information,
                 GetEventId(TransportEvent.SendingIce2RequestFrame),
                 "sending ice2 request frame: operation = {Operation}, identity = {Identity}, facet = {Facet}, " +
                 "idempotent = {Idempotent}, context = {Context}");
 
-        private static readonly Func<ILogger, Encoding, int, (long, string), IDisposable> _ice2RequestScope =
-            LoggerMessage.DefineScope<Encoding, int, (long, string)>(
+        private static readonly Func<ILogger, Encoding, int, long, IDisposable> _ice2RequestScope =
+            LoggerMessage.DefineScope<Encoding, int, long>(
                 "request: encoding {Encoding}, frame size = {FrameSize}, stream ID = {StreamID}");
 
-        private static readonly Action<ILogger, ResultType, (long, string), Exception> _receivedIce2ResponseFrame =
-            LoggerMessage.Define<ResultType, (long, string)>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, ResultType, long, Exception> _receivedIce2ResponseFrame =
+            LoggerMessage.Define<ResultType, long>(
+                LogLevel.Information,
                 GetEventId(TransportEvent.ReceivedIce2ResponseFrame),
                 "received ice2 response frame: result = {Result}, stream ID = {StreamID}");
 
-        private static readonly Action<ILogger, ResultType, (long, string), Exception> _sendingIce2ResponseFrame =
-            LoggerMessage.Define<ResultType, (long, string)>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, ResultType, long, Exception> _sendingIce2ResponseFrame =
+            LoggerMessage.Define<ResultType, long>(
+                LogLevel.Information,
                 GetEventId(TransportEvent.SendingIce2ResponseFrame),
                 "sending ice2 response frame: result = {Result}, stream ID = {StreamID}");
 
@@ -308,10 +308,9 @@ namespace ZeroC.Ice
 
         internal static void LogConnectionClosed(
             this ILogger logger,
-            string transportName,
-            MultiStreamSocket socket,
+            Transport transport,
             Exception? exception = null) =>
-            _connectionClosed(logger, transportName, socket, exception!);
+            _connectionClosed(logger, transport, exception!);
 
         internal static void LogConnectionEstablished(this ILogger logger, Transport transport) =>
             _connectionEstablished(logger, transport, null!);
@@ -324,22 +323,19 @@ namespace ZeroC.Ice
 
         internal static void LogHttpUpgradeRequestAccepted(
             this ILogger logger,
-            string transport,
-            WSSocket socket) =>
-            _httpUpgradeRequestAccepted(logger, transport, socket, null!);
+            Transport transport) =>
+            _httpUpgradeRequestAccepted(logger, transport, null!);
 
         internal static void LogHttpUpgradeRequestFailed(
             this ILogger logger,
-            string transport,
-            WSSocket socket,
+            Transport transport,
             Exception ex) =>
-            _httpUpgradeRequestFailed(logger, transport, socket, ex);
+            _httpUpgradeRequestFailed(logger, transport, ex);
 
         internal static void LogHttpUpgradeRequestSucceed(
             this ILogger logger,
-            string transport,
-            WSSocket socket) =>
-            _httpUpgradeRequestSucceed(logger, transport, socket, null!);
+            Transport transport) =>
+            _httpUpgradeRequestSucceed(logger, transport, null!);
 
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
@@ -355,19 +351,17 @@ namespace ZeroC.Ice
 
         internal static void LogReceivedWebSocketFrame(
             this ILogger logger,
-            string transport,
+            Transport transport,
             WSSocket.OpCode opCode,
-            int size,
-            WSSocket socket) =>
-            _receivedWebSocketFrame(logger, transport, opCode, size, socket, null!);
+            int size) =>
+            _receivedWebSocketFrame(logger, transport, opCode, size, null!);
 
         internal static void LogSendingWebSocketFrame(
             this ILogger logger,
-            string transport,
+            Transport transport,
             WSSocket.OpCode opCode,
-            int size,
-            WSSocket socket) =>
-            _sendingWebSocketFrame(logger, transport, opCode, size, socket, null!);
+            int size) =>
+            _sendingWebSocketFrame(logger, transport, opCode, size, null!);
 
         internal static void LogStartReceivingDatagrams(this ILogger logger, Transport transport) =>
             _startReceivingDatagrams(logger, transport, null!);
@@ -375,23 +369,23 @@ namespace ZeroC.Ice
         internal static void LogStartSendingDatagrams(this ILogger logger, Transport transport) =>
             _startSendingDatagrams(logger, transport, null!);
 
-        internal static void LogStartAcceptingConnections(this ILogger logger, string transport, IAcceptor acceptor) =>
+        internal static void LogStartAcceptingConnections(this ILogger logger, Transport transport, IAcceptor acceptor) =>
             _startAcceptingConnections(logger, transport, acceptor, null!);
 
-        internal static void LogStopAcceptingConnections(this ILogger logger, string transport, IAcceptor acceptor) =>
+        internal static void LogStopAcceptingConnections(this ILogger logger, Transport transport, IAcceptor acceptor) =>
             _stopAcceptingConnections(logger, transport, acceptor, null!);
 
         internal static void LogPingEventHandlerException(this ILogger logger, Exception exception) =>
             _pingEventHanderException(logger, exception);
 
-        internal static void LogReceivedData(this ILogger logger, int size, string transport) =>
+        internal static void LogReceivedData(this ILogger logger, int size, Transport transport) =>
             _receivedData(logger, size, transport, null!);
 
-        internal static void LogSentData(this ILogger logger, int size, string transport) =>
+        internal static void LogSentData(this ILogger logger, int size, Transport transport) =>
             _sentData(logger, size, transport, null!);
 
-        internal static void LogBindingSocketAttempt(this ILogger logger, string transport, SingleStreamSocket socket) =>
-            _bindingSocketAttempt(logger, transport, socket, null!);
+        internal static void LogBindingSocketAttempt(this ILogger logger, Transport transport) =>
+            _bindingSocketAttempt(logger, transport, null!);
 
         internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
             _receivedDatagramExceededIncomingFrameMaxSize(logger, size, null!);
@@ -435,7 +429,7 @@ namespace ZeroC.Ice
                 return _ice2RequestScope(logger,
                                          request.PayloadEncoding,
                                          request.PayloadSize,
-                                         GetIce2StreamID(streamId));
+                                         streamId);
             }
         }
 
@@ -455,7 +449,7 @@ namespace ZeroC.Ice
                 return _ice2RequestScope(logger,
                                          request.PayloadEncoding,
                                          request.PayloadSize,
-                                         GetIce2StreamID(streamId));
+                                         streamId);
             }
         }
 
@@ -515,7 +509,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                _sendingIce2ResponseFrame(logger, response.ResultType, GetIce2StreamID(streamId), null!);
+                _sendingIce2ResponseFrame(logger, response.ResultType, streamId, null!);
             }
         }
 
@@ -527,7 +521,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                _receivedIce2ResponseFrame(logger, response.ResultType, GetIce2StreamID(streamId), null!);
+                _receivedIce2ResponseFrame(logger, response.ResultType, streamId, null!);
             }
         }
 
@@ -539,7 +533,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                _receivedIce2ResponseFrame(logger, response.ResultType, GetIce2StreamID(streamId), null!);
+                _receivedIce2ResponseFrame(logger, response.ResultType, streamId, null!);
             }
         }
 
@@ -579,24 +573,8 @@ namespace ZeroC.Ice
             Protocol protocol) =>
             _tcpAcceptorScope(logger, adapterName, locallAdress, transport, protocol);
 
-        private static (int, string) GetIce1RequestID(long streamId)
-        {
-            int requestId = streamId % 4 < 2 ? (int)(streamId >> 2) + 1 : 0;
-            return (requestId, requestId == 0 ? "oneway" : "");
-        }
-
-        private static (long, string) GetIce2StreamID(long streamId)
-        {
-            string description = (streamId % 4) switch
-            {
-                0 => "(client-initiated, bidirectional)",
-                1 => "(server-initiated, bidirectional)",
-                2 => "(client-initiated, unidirectional)",
-                3 => "(server-initiated, unidirectional)",
-                _ => throw new InvalidArgumentException(nameof(streamId))
-            };
-            return (streamId, description);
-        }
+        private static int GetIce1RequestID(long streamId) =>
+            streamId % 4 < 2 ? (int)(streamId >> 2) + 1 : 0;
 
         private static EventId GetEventId(TransportEvent e) => new EventId((int)e, e.ToString());
 

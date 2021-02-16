@@ -48,7 +48,7 @@ namespace ZeroC.Ice
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogStartAcceptingConnections(Endpoint.TransportName, _acceptor);
+                _logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
@@ -78,7 +78,7 @@ namespace ZeroC.Ice
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogStopAcceptingConnections(Endpoint.TransportName, _acceptor);
+                _logger.LogStopAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without

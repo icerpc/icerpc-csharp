@@ -198,7 +198,7 @@ namespace ZeroC.Ice
             {
                 return socket.LocalEndPoint;
             }
-            catch (SocketException)
+            catch
             {
             }
             return null;
