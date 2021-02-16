@@ -183,13 +183,13 @@ namespace ZeroC.Ice
                     else
                     {
                         // Connection not trusted, abort it.
-                        await connection.AbortAsync();
+                        await connection.AbortAsync().ConfigureAwait(false);
                     }
                 }
                 catch
                 {
                     // Failed incoming connection, abort the connection.
-                    await connection.AbortAsync();
+                    await connection.AbortAsync().ConfigureAwait(false);
                 }
             }
         }

@@ -9,18 +9,17 @@ namespace ZeroC.Ice
     /// data.</summary>
     internal abstract class MultiStreamOverSingleStreamSocket : MultiStreamSocket
     {
-        internal SingleStreamSocket Underlying => _socket;
-        private SingleStreamSocket _socket;
+        internal SingleStreamSocket Underlying { get; private set; }
 
         public override string ToString() => Underlying.ToString()!;
 
         public override void Abort() => Underlying.Dispose();
 
         public override async ValueTask AcceptAsync(CancellationToken cancel) =>
-            _socket = await _socket.AcceptAsync(Endpoint, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.AcceptAsync(Endpoint, cancel).ConfigureAwait(false);
 
         public override async ValueTask ConnectAsync(bool secure, CancellationToken cancel) =>
-            _socket = await _socket.ConnectAsync(Endpoint, secure, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.ConnectAsync(Endpoint, secure, cancel).ConfigureAwait(false);
 
         protected override void Dispose(bool disposing)
         {
@@ -35,6 +34,6 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             ObjectAdapter? adapter,
             SingleStreamSocket socket)
-            : base(endpoint, adapter) => _socket = socket;
+            : base(endpoint, adapter) => Underlying = socket;
     }
 }

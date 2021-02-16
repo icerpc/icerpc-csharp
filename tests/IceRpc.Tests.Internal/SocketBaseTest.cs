@@ -15,23 +15,20 @@ namespace IceRpc.Tests.Internal
     // ObjectAdapter and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
-        private protected Endpoint ClientEndpoint => _clientEndpoint;
-        private protected Endpoint ServerEndpoint => _serverEndpoint;
+        private protected Endpoint ClientEndpoint { get; }
+        private protected Endpoint ServerEndpoint { get; }
 
-        private protected bool IsSecure => _secure;
-        private protected string TransportName => _transport;
+        private protected bool IsSecure { get; }
+        private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
         private readonly ObjectAdapter _adapter;
         private readonly Communicator _clientCommunicator;
-        private readonly Endpoint _clientEndpoint;
+
         // Protects the _acceptor data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
-        private readonly bool _secure;
         private readonly Communicator _serverCommunicator;
-        private readonly Endpoint _serverEndpoint;
-        private readonly string _transport;
 
         public SocketBaseTest(Protocol protocol, string transport, bool secure)
         {
@@ -42,8 +39,8 @@ namespace IceRpc.Tests.Internal
             }
             port += Interlocked.Add(ref _nextBasePort, 1);
 
-            _transport = transport;
-            _secure = secure;
+            TransportName = transport;
+            IsSecure = secure;
 
             _serverCommunicator = new Communicator(
                 new Dictionary<string, string>
@@ -87,8 +84,8 @@ namespace IceRpc.Tests.Internal
                 });
 
             var proxy = _adapter.CreateProxy("dummy", IObjectPrx.Factory);
-            _clientEndpoint = IObjectPrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
-            _serverEndpoint = IObjectPrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
+            ClientEndpoint = IObjectPrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
+            ServerEndpoint = IObjectPrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
         }
 
         [OneTimeTearDown]
@@ -102,7 +99,7 @@ namespace IceRpc.Tests.Internal
 
         protected async ValueTask<IAcceptor> CreateAcceptorAsync()
         {
-            Endpoint serverEndpoint = (await _serverEndpoint.ExpandHostAsync(default)).First();
+            Endpoint serverEndpoint = (await ServerEndpoint.ExpandHostAsync(default)).First();
             return serverEndpoint.Acceptor(_adapter);
         }
 
@@ -113,9 +110,9 @@ namespace IceRpc.Tests.Internal
                 _acceptor ??= CreateAcceptorAsync().AsTask().Result;
             }
 
-            NonSecure nonSecure = _secure ? NonSecure.Never : NonSecure.Always;
-            Connection connection = await _clientEndpoint.ConnectAsync(nonSecure, null, default);
-            if (_clientEndpoint.Protocol == Protocol.Ice2 && !_secure)
+            NonSecure nonSecure = IsSecure ? NonSecure.Never : NonSecure.Always;
+            Connection connection = await ClientEndpoint.ConnectAsync(nonSecure, null, default);
+            if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
                 // a single byte over the socket to figure out if the client establishes a secure/non-secure
@@ -125,7 +122,7 @@ namespace IceRpc.Tests.Internal
                 var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
                 await socket.SendAsync(buffer, default);
             }
-            Debug.Assert(connection.Endpoint.TransportName == _transport);
+            Debug.Assert(connection.Endpoint.TransportName == TransportName);
             return connection.Socket;
         }
 
@@ -137,9 +134,9 @@ namespace IceRpc.Tests.Internal
             }
 
             Connection connection = await _acceptor.AcceptAsync();
-            Debug.Assert(connection.Endpoint.TransportName == _transport);
+            Debug.Assert(connection.Endpoint.TransportName == TransportName);
             await connection.Socket.AcceptAsync(default);
-            if (_clientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
+            if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
             {
                 // If the accepted connection is not secured, we need to read the first byte from the socket.
                 // See above for the reason.

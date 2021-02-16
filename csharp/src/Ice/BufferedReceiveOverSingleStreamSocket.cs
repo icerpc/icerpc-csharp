@@ -21,15 +21,14 @@ namespace ZeroC.Ice
         public override Socket? Socket => Underlying.Socket;
         public override SslStream? SslStream => Underlying.SslStream;
 
-        internal SingleStreamSocket Underlying => _underlying;
+        internal SingleStreamSocket Underlying { get; private set; }
 
         // The buffered data.
         private ArraySegment<byte> _buffer;
-        private SingleStreamSocket _underlying;
 
         public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            _underlying = await Underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -41,7 +40,7 @@ namespace ZeroC.Ice
             bool secure,
             CancellationToken cancel)
         {
-            _underlying = await Underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -78,7 +77,7 @@ namespace ZeroC.Ice
 
         internal BufferedReceiveOverSingleStreamSocket(SingleStreamSocket underlying, int bufferSize = 256)
         {
-            _underlying = underlying;
+            Underlying = underlying;
 
             // The _buffer data member holds the buffered data. There's no buffered data until we receive data
             // from the underlying socket so the array segment point to an empty segment.

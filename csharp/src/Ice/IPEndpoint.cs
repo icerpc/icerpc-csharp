@@ -144,7 +144,7 @@ namespace ZeroC.Ice
         protected internal abstract Connection CreateConnection(
             IPEndPoint address,
             object? label,
-            CancellationToken token);
+            CancellationToken cancel);
 
         protected internal override void WriteOptions(OutputStream ostr)
         {

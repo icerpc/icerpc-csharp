@@ -95,8 +95,7 @@ namespace ZeroC.Ice
             Debug.Assert(!secure);
             try
             {
-                IPAddress? sourceAddress = (endpoint as IPEndpoint)?.SourceAddress;
-                if (sourceAddress != null)
+                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
                 {
                     Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }

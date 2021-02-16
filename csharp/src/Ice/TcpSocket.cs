@@ -57,10 +57,6 @@ namespace ZeroC.Ice
                     return this;
                 }
             }
-            catch (SocketException) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(cancel);
-            }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
                 throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -111,10 +107,6 @@ namespace ZeroC.Ice
                     return this;
                 }
             }
-            catch (SocketException) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(cancel);
-            }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
                 throw new ConnectionRefusedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -122,6 +114,14 @@ namespace ZeroC.Ice
             catch (SocketException ex)
             {
                 throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
+            }
+            catch (Exception ex)
+            {
+                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
         }
 
@@ -140,10 +140,6 @@ namespace ZeroC.Ice
             {
                 received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
-            catch (SocketException) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(cancel);
-            }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
                 throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -151,6 +147,10 @@ namespace ZeroC.Ice
             catch (OperationCanceledException)
             {
                 throw;
+            }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
             }
             catch (Exception ex)
             {
@@ -168,11 +168,8 @@ namespace ZeroC.Ice
             try
             {
                 // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (SocketException) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(cancel);
+                using CancellationTokenRegistration registration = cancel.Register(() => Socket.CloseNoThrow());
+                return await Socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -181,6 +178,10 @@ namespace ZeroC.Ice
             catch (OperationCanceledException)
             {
                 throw;
+            }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
             }
             catch (Exception ex)
             {
