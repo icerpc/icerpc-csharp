@@ -30,13 +30,6 @@ namespace ZeroC.Ice
         /// <value>The communicator.</value>
         public Communicator Communicator { get; }
 
-        /// <summary>The dispatch interceptors of this object adapter.</summary>
-        public ImmutableList<DispatchInterceptor> DispatchInterceptors
-        {
-            get => _dispatchInterceptors;
-            set => _dispatchInterceptors = value;
-        }
-
         /// <summary>Returns the endpoints this object adapter is listening on.</summary>
         /// <returns>The endpoints configured on the object adapter; for IP endpoints, port 0 is substituted by the
         /// actual port selected by the operating system.</returns>
@@ -89,13 +82,17 @@ namespace ZeroC.Ice
         private readonly bool _datagramOnly;
 
         private readonly Dictionary<string, IObject> _defaultServantMap = new();
-        private volatile ImmutableList<DispatchInterceptor> _dispatchInterceptors =
-            ImmutableList<DispatchInterceptor>.Empty;
+
+        private readonly IList<Func<Dispatcher, Dispatcher>> _dispatchInterceptorList =
+            new List<Func<Dispatcher, Dispatcher>>();
+
+        private Dispatcher _dispatchPipeline;
 
         private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
+        // protects _activateTask, _dispatchInterceptorList, _identityServantMap,
         private readonly object _mutex = new();
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -234,6 +231,20 @@ namespace ZeroC.Ice
                 sb.AppendEndpointList(PublishedEndpoints);
                 Communicator.Logger.Trace(TraceLevels.TransportCategory, sb.ToString());
             }
+
+            // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf request
+            // delegate.
+            _dispatchPipeline = async (request, current, cancel) =>
+            {
+                Debug.Assert(current.Adapter == this);
+                IObject? servant = Find(current.Identity, current.Facet);
+                if (servant == null)
+                {
+                    throw new ObjectNotExistException(RetryPolicy.OtherReplica);
+                }
+
+                return await servant.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+            };
         }
 
         /// <summary>Activates this object adapter. After activation, the object adapter can dispatch requests received
@@ -270,6 +281,11 @@ namespace ZeroC.Ice
                 if (_activateTask != null)
                 {
                     throw new InvalidOperationException($"object adapter {Name} already activated");
+                }
+
+                foreach (Func<Dispatcher, Dispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
+                {
+                    _dispatchPipeline = dispatchInterceptor(_dispatchPipeline);
                 }
 
                 if (expandedEndpoints != null)
@@ -747,6 +763,25 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Adds a dispatch interceptor to the request dispatch pipeline.</summary>
+        /// <param name="dispatchInterceptor">The dispatch interceptor to add.</param>
+        /// <returns>This object adapter.</returns>
+        public ObjectAdapter Use(Func<Dispatcher, Dispatcher> dispatchInterceptor)
+        {
+            lock (_mutex)
+            {
+                if (_activateTask != null)
+                {
+                    throw new InvalidOperationException(
+                        "cannot add an dispatchInterceptor to an object adapter after activation");
+                }
+
+                _dispatchInterceptorList.Add(dispatchInterceptor);
+                return this;
+            }
+        }
+
+        /// <summary>Runs the request dispatch pipeline in a try/catch block</summary>
         internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,
             Current current,
@@ -754,30 +789,7 @@ namespace ZeroC.Ice
         {
             try
             {
-                Debug.Assert(current.Adapter == this);
-                IObject? servant = Find(current.Identity, current.Facet);
-                if (servant == null)
-                {
-                    throw new ObjectNotExistException(RetryPolicy.OtherReplica);
-                }
-
-                ValueTask<OutgoingResponseFrame> DispatchAsync(IReadOnlyList<DispatchInterceptor> interceptors, int i)
-                {
-                    if (i < interceptors.Count)
-                    {
-                        DispatchInterceptor interceptor = interceptors[i++];
-                        return interceptor(request,
-                                           current,
-                                           (request, current, cancel) => DispatchAsync(interceptors, i),
-                                           cancel);
-                    }
-                    else
-                    {
-                        return servant.DispatchAsync(request, current, cancel);
-                    }
-                }
-
-                return await DispatchAsync(_dispatchInterceptors, 0).ConfigureAwait(false);
+                return await _dispatchPipeline(request, current, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
