@@ -11,8 +11,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
         public override async Task RunAsync(string[] args)
         {
             await using var adapter = new ObjectAdapter(Communicator,
-                "TestAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("Test", new TestIntf());
             await adapter.ActivateAsync();

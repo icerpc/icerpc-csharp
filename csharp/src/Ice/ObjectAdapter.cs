@@ -42,31 +42,11 @@ namespace ZeroC.Ice
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
-        /// <summary>The locator proxy associated with this object adapter, if any. The object adapter registers itself
-        /// with the locator registry associated with this locator during activation.</summary>
-        /// <value>The locator proxy.</value>
-        public ILocatorPrx? Locator
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _locator;
-                }
-            }
-
-            set
-            {
-                lock (_mutex)
-                {
-                    if (_activateTask != null)
-                    {
-                        throw new InvalidOperationException("cannot set the locator proxy during or after activation");
-                    }
-                    _locator = value;
-                }
-            }
-        }
+        /// <summary>The locator registry proxy associated with this object adapter, if any. An indirect object adapter
+        /// registers itself with the locator registry associated during activation, and unregisters during shutdown.
+        /// </summary>
+        /// <value>The locator registry proxy.</value>
+        public ILocatorRegistryPrx? LocatorRegistry { get; }
 
         /// <summary>Returns the name of this object adapter. This name is used for logging.</summary>
         /// <value>The object adapter's name.</value>
@@ -116,570 +96,30 @@ namespace ZeroC.Ice
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
-        private ILocatorPrx? _locator;
         private readonly object _mutex = new();
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private Lazy<Task>? _shutdownTask;
 
-        /// <summary>Activates this object adapter. After activation, the object adapter can dispatch requests received
-        /// through its endpoints. Also registers this object adapter with the locator (if set).</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A task that completes when the activation completes.</returns>
-        public async Task ActivateAsync(CancellationToken cancel = default)
-        {
-            List<Endpoint>? expandedEndpoints = null;
-            if (Endpoints.Any(endpoint => endpoint.HasDnsHost))
-            {
-                expandedEndpoints = new();
-                foreach (Endpoint endpoint in Endpoints)
-                {
-                    if (endpoint.HasDnsHost)
-                    {
-                        expandedEndpoints.AddRange(await endpoint.ExpandHostAsync(cancel).ConfigureAwait(false));
-                    }
-                    else
-                    {
-                        expandedEndpoints.Add(endpoint);
-                    }
-                }
-            }
-
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-
-                // Activating twice the object adapter is incorrect
-                if (_activateTask != null)
-                {
-                    throw new InvalidOperationException($"object adapter {Name} already activated");
-                }
-
-                if (expandedEndpoints != null)
-                {
-                    Debug.Assert(_incomingConnectionFactories.Count == 0);
-
-                    _incomingConnectionFactories.AddRange(
-                        expandedEndpoints.Select<Endpoint, IncomingConnectionFactory>(
-                            endpoint =>
-                            endpoint.IsDatagram ?
-                                new DatagramIncomingConnectionFactory(this, endpoint) :
-                                new AcceptorIncomingConnectionFactory(this, endpoint)));
-                }
-
-                // Activate the incoming connection factories to start accepting connections
-                foreach (IncomingConnectionFactory factory in _incomingConnectionFactories)
-                {
-                    factory.Activate();
-                }
-
-                _activateTask = PerformActivateAsync(cancel);
-            }
-
-            await _activateTask.ConfigureAwait(false);
-
-            if ((Communicator.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false) && Name.Length > 0)
-            {
-                Console.Out.WriteLine($"{Name} ready");
-            }
-
-            async Task PerformActivateAsync(CancellationToken cancel)
-            {
-                // Register the published endpoints with the locator registry.
-
-                // _locator and _publishedEndpoints are read-only at this point.
-                if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || _locator == null)
-                {
-                    return; // nothing to do
-                }
-
-                ILocatorRegistryPrx? locatorRegistry =
-                    await Communicator.GetLocatorInfo(_locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-
-                if (locatorRegistry == null)
-                {
-                    return; // nothing to do
-                }
-
-                try
-                {
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        IObjectPrx proxy = IObjectPrx.Factory(
-                            new Reference(Communicator,
-                                          Protocol.GetEncoding(),
-                                          PublishedEndpoints,
-                                          facet: "",
-                                          new Identity("dummy", ""),
-                                          location: ImmutableArray<string>.Empty,
-                                          oneway: false,
-                                          protocol: PublishedEndpoints[0].Protocol));
-                        if (ReplicaGroupId.Length > 0)
-                        {
-                            await locatorRegistry.SetReplicatedAdapterDirectProxyAsync(
-                                AdapterId,
-                                ReplicaGroupId,
-                                proxy,
-                                cancel: cancel).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await locatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
-                                                                             proxy,
-                                                                             cancel: cancel).ConfigureAwait(false);
-                        }
-                    }
-                    else
-                    {
-                        await locatorRegistry.RegisterAdapterEndpointsAsync(
-                            AdapterId,
-                            ReplicaGroupId,
-                            PublishedEndpoints.ToEndpointDataList(),
-                            cancel: cancel).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (Communicator.TraceLevels.Locator >= 1)
-                    {
-                        var sb = new StringBuilder("failed to register the endpoints of object adapter `");
-                        sb.Append(Name);
-                        sb.Append("' with the locator registry:\n");
-                        sb.Append(ex);
-                        Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-                    }
-                    throw;
-                }
-
-                if (Communicator.TraceLevels.Locator >= 1)
-                {
-                    var sb = new StringBuilder("registered the endpoints of object adapter `");
-                    sb.Append(Name);
-                    sb.Append("' with the locator registry\nendpoints = ");
-                    sb.AppendEndpointList(PublishedEndpoints);
-
-                    Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public ValueTask DisposeAsync() => new(ShutdownAsync());
-
-        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
-        /// servants currently in the ASM.</summary>
-        /// <param name="identity">The identity of the Ice object.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IObject? Find(Identity identity, string facet = "")
-        {
-            lock (_mutex)
-            {
-                if (!_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
-                {
-                    if (!_categoryServantMap.TryGetValue((identity.Category, facet), out servant))
-                    {
-                        _defaultServantMap.TryGetValue(facet, out servant);
-                    }
-                }
-                return servant;
-            }
-        }
-
-        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
-        /// servants currently in the ASM.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IObject? Find(string identityAndFacet)
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Find(identity, facet);
-        }
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public T Add<T>(Identity identity, string facet, IObject servant, ProxyFactory<T> proxyFactory)
-            where T : class, IObjectPrx
-        {
-            Add(identity, facet, servant);
-            return CreateProxy(identity, facet, proxyFactory);
-        }
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, string facet, IObject servant)
-        {
-            CheckIdentity(identity);
-            lock (_mutex)
-            {
-                // We check for deactivation here because we don't want to keep this servant when the adapter is being
-                // deactivated or destroyed. In other languages, notably C++, keeping such a servant could lead to
-                // circular references and leaks.
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-                _identityServantMap.Add((identity, facet), servant);
-            }
-        }
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(string, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public T Add<T>(string identityAndFacet, IObject servant, ProxyFactory<T> proxyFactory)
-            where T : class, IObjectPrx
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Add(identity, facet, servant, proxyFactory);
-        }
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(string identityAndFacet, IObject servant)
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            Add(identity, facet, servant);
-        }
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and the default (empty) facet.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public T Add<T>(Identity identity, IObject servant, ProxyFactory<T> proxyFactory)
-            where T : class, IObjectPrx =>
-            Add(identity, "", servant, proxyFactory);
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// identity and the default (empty) facet.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, IObject servant) => Add(identity, "", servant);
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
-        /// and the provided facet. This method creates the unique identity with a UUID name and an empty category.
-        /// </summary>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.
-        /// </param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public T AddWithUUID<T>(string facet, IObject servant, ProxyFactory<T> proxyFactory)
-            where T : class, IObjectPrx =>
-            Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
-
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
-        /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
-        /// category.</summary>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public T AddWithUUID<T>(IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx =>
-            AddWithUUID("", servant, proxyFactory);
-
-        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
-        /// <param name="identity">The identity of the Ice object.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? Remove(Identity identity, string facet = "")
-        {
-            lock (_mutex)
-            {
-                if (_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
-                {
-                    _identityServantMap.Remove((identity, facet));
-                }
-                return servant;
-            }
-        }
-
-        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? Remove(string identityAndFacet)
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Remove(identity, facet);
-        }
-
-        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
-        /// as key the provided category and facet.</summary>
-        /// <param name="category">The object identity category.</param>
-        /// <param name="facet">The facet.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, string facet, IObject servant)
-        {
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-                _categoryServantMap.Add((category, facet), servant);
-            }
-        }
-
-        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
-        /// as key the provided category and the default (empty) facet.</summary>
-        /// <param name="category">The object identity category.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, IObject servant) =>
-            AddDefaultForCategory(category, "", servant);
-
-        /// <summary>Removes a category-specific default servant previously added to the Active Servant Map (ASM) using
-        /// AddDefaultForCategory.</summary>
-        /// <param name="category">The category associated with this default servant.</param>
-        /// <param name="facet">The facet.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? RemoveDefaultForCategory(string category, string facet = "")
-        {
-            lock (_mutex)
-            {
-                if (_categoryServantMap.TryGetValue((category, facet), out IObject? servant))
-                {
-                    _categoryServantMap.Remove((category, facet));
-                }
-                return servant;
-            }
-        }
-
-        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the provided
-        /// facet.</summary>
-        /// <param name="facet">The facet.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(string facet, IObject servant)
-        {
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-                _defaultServantMap.Add(facet, servant);
-            }
-        }
-
-        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the default
-        /// (empty) facet.</summary>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(IObject servant) => AddDefault("", servant);
-
-        /// <summary>Removes a default servant previously added to the Active Servant Map (ASM) using AddDefault.
-        /// </summary>
-        /// <param name="facet">The facet.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? RemoveDefault(string facet = "")
-        {
-            lock (_mutex)
-            {
-                if (_defaultServantMap.TryGetValue(facet, out IObject? servant))
-                {
-                    _defaultServantMap.Remove(facet);
-                }
-                return servant;
-            }
-        }
-
-        /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
-        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
-        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no adapter
-        /// ID is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
-        /// <param name="identity">The object's identity.</param>
-        /// <param name="facet">The facet.</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx
-        {
-            CheckIdentity(identity);
-
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
-                }
-
-                ImmutableArray<string> location = ReplicaGroupId.Length > 0 ? ImmutableArray.Create(ReplicaGroupId) :
-                    AdapterId.Length > 0 ? ImmutableArray.Create(AdapterId) : ImmutableArray<string>.Empty;
-
-                Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
-
-                return factory(new Reference(Communicator,
-                                             protocol.GetEncoding(),
-                                             endpoints: AdapterId.Length == 0 ?
-                                                PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
-                                             facet,
-                                             identity,
-                                             location,
-                                             oneway: _datagramOnly,
-                                             protocol));
-            }
-        }
-
-        /// <summary>Creates a proxy for the object with the given identity. If this object adapter is configured with
-        /// an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group id is also
-        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
-        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
-        /// <param name="identity">The object's identity.</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity.</returns>
-        public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IObjectPrx =>
-            CreateProxy(identity, "", factory);
-
-        /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
-        /// configured with an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group
-        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
-        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(string identityAndFacet, ProxyFactory<T> factory) where T : class, IObjectPrx
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return CreateProxy(identity, facet, factory);
-        }
-
-        /// <summary>Shuts down this object adapter. Once shut down, an object adapter is disposed and can no longer be
-        /// used. This method can be safely called multiple times and always returns the same task.</summary>
-        public Task ShutdownAsync()
-        {
-            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
-            // synchronously) after releasing the lock.
-            lock (_mutex)
-            {
-                _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
-            }
-            return _shutdownTask.Value;
-
-            async Task PerformShutdownAsync()
-            {
-                try
-                {
-                    if (ColocationScope != ColocationScope.None)
-                    {
-                        // no longer available for coloc connections.
-                        ObjectAdapterRegistry.UnregisterObjectAdapter(this);
-                    }
-
-                    // Synchronously shuts down the incoming connection factories to stop accepting new incoming
-                    // requests or connections. This ensures that once ShutdownAsync returns, no new requests will be
-                    // dispatched. Calling ToArray is important here to ensure that all the ShutdownAsync calls are
-                    // executed before we eventually hit an await (we want to make that once ShutdownAsync returns a
-                    // Task, all the connections started closing).
-                    // Once _shutdownTask is non null, _incomingConnectionfactories cannot change, so no need to lock
-                    // _mutex.
-                    Task[] tasks = _incomingConnectionFactories.Select(factory => factory.ShutdownAsync()).ToArray();
-
-                    // Wait for activation to complete. This is necessary avoid out of order locator updates.
-                    // _activateTask is readonly once _shutdownTask is non null.
-                    if (_activateTask != null)
-                    {
-                        try
-                        {
-                            await _activateTask.ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // Ignore
-                        }
-                    }
-
-                    try
-                    {
-                        await UnregisterEndpointsAsync(default).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // We can't throw exceptions in deactivate so we ignore failures to unregister endpoints
-                    }
-
-                    if (_colocatedConnectionFactory != null)
-                    {
-                        await _colocatedConnectionFactory.ShutdownAsync().ConfigureAwait(false);
-                    }
-
-                    // Wait for the incoming connection factories to be shut down.
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
-                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
-                    // using Result or Wait()), ShutdownAsync will complete.
-                    _shutdownCompleteSource.TrySetResult(null);
-                }
-            }
-        }
-
         /// <summary>Constructs an object adapter.</summary>
-        public ObjectAdapter(
-            Communicator communicator,
-            string name = "",
-            ObjectAdapterOptions? options = null,
-            bool serializeDispatch = false,
-            TaskScheduler? scheduler = null)
+        public ObjectAdapter(Communicator communicator, ObjectAdapterOptions? options = null)
         {
-            if (name.Length == 0)
-            {
-                name = $"server-{Interlocked.Increment(ref _counter)}";
-            }
             if (options == null)
             {
                 options = new ObjectAdapterOptions();
             }
 
             Communicator = communicator;
-            Name = name;
-            SerializeDispatch = serializeDispatch;
-            TaskScheduler = scheduler;
 
+            AcceptNonSecure = options.AcceptNonSecure;
             AdapterId = options.AdapterId;
-            ReplicaGroupId = options.ReplicaGroupId;
             ColocationScope = options.ColocationScope;
-
-            if (options.Locator is string locator && locator.Length > 0)
-            {
-                _locator = ILocatorPrx.Parse(locator, Communicator);
-                // TODO: locator options (ice1)
-            }
-            else
-            {
-                _locator = Communicator.DefaultLocator;
-            }
+            LocatorRegistry = options.LocatorRegistry;
+            Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
+            ReplicaGroupId = options.ReplicaGroupId;
+            SerializeDispatch = options.SerializeDispatch;
+            TaskScheduler = options.TaskScheduler;
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
@@ -687,8 +127,6 @@ namespace ZeroC.Ice
             {
                 throw new ArgumentException("options.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
             }
-
-            AcceptNonSecure = options.AcceptNonSecure;
 
             if (options.Endpoints.Length > 0)
             {
@@ -798,6 +236,517 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Activates this object adapter. After activation, the object adapter can dispatch requests received
+        /// through its endpoints. Also registers this object adapter with the locator (if set).</summary>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A task that completes when the activation completes.</returns>
+        public async Task ActivateAsync(CancellationToken cancel = default)
+        {
+            List<Endpoint>? expandedEndpoints = null;
+            if (Endpoints.Any(endpoint => endpoint.HasDnsHost))
+            {
+                expandedEndpoints = new();
+                foreach (Endpoint endpoint in Endpoints)
+                {
+                    if (endpoint.HasDnsHost)
+                    {
+                        expandedEndpoints.AddRange(await endpoint.ExpandHostAsync(cancel).ConfigureAwait(false));
+                    }
+                    else
+                    {
+                        expandedEndpoints.Add(endpoint);
+                    }
+                }
+            }
+
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                }
+
+                // Activating twice the object adapter is incorrect
+                if (_activateTask != null)
+                {
+                    throw new InvalidOperationException($"object adapter {Name} already activated");
+                }
+
+                if (expandedEndpoints != null)
+                {
+                    Debug.Assert(_incomingConnectionFactories.Count == 0);
+
+                    _incomingConnectionFactories.AddRange(
+                        expandedEndpoints.Select<Endpoint, IncomingConnectionFactory>(
+                            endpoint =>
+                            endpoint.IsDatagram ?
+                                new DatagramIncomingConnectionFactory(this, endpoint) :
+                                new AcceptorIncomingConnectionFactory(this, endpoint)));
+                }
+
+                // Activate the incoming connection factories to start accepting connections
+                foreach (IncomingConnectionFactory factory in _incomingConnectionFactories)
+                {
+                    factory.Activate();
+                }
+
+                _activateTask = PerformActivateAsync(cancel);
+            }
+
+            await _activateTask.ConfigureAwait(false);
+
+            if ((Communicator.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false) && Name.Length > 0)
+            {
+                Console.Out.WriteLine($"{Name} ready");
+            }
+
+            async Task PerformActivateAsync(CancellationToken cancel)
+            {
+                // Register the published endpoints with the locator registry.
+
+                if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || LocatorRegistry == null)
+                {
+                    return; // nothing to do
+                }
+
+                try
+                {
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        var proxy = IObjectPrx.Factory(new(Communicator,
+                                                           new Identity("dummy", ""),
+                                                           PublishedEndpoints[0].Protocol,
+                                                           endpoints: PublishedEndpoints));
+
+                        if (ReplicaGroupId.Length > 0)
+                        {
+                            await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                                AdapterId,
+                                ReplicaGroupId,
+                                proxy,
+                                cancel: cancel).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                                                                             proxy,
+                                                                             cancel: cancel).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        await LocatorRegistry.RegisterAdapterEndpointsAsync(
+                            AdapterId,
+                            ReplicaGroupId,
+                            PublishedEndpoints.ToEndpointDataList(),
+                            cancel: cancel).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (Communicator.TraceLevels.Locator >= 1)
+                    {
+                        var sb = new StringBuilder("failed to register the endpoints of object adapter `");
+                        sb.Append(Name);
+                        sb.Append("' with the locator registry:\n");
+                        sb.Append(ex);
+                        Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
+                    }
+                    throw;
+                }
+
+                if (Communicator.TraceLevels.Locator >= 1)
+                {
+                    var sb = new StringBuilder("registered the endpoints of object adapter `");
+                    sb.Append(Name);
+                    sb.Append("' with the locator registry\nendpoints = ");
+                    sb.AppendEndpointList(PublishedEndpoints);
+
+                    Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
+                }
+            }
+        }
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
+        /// ArgumentException.</summary>
+        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
+        /// be empty.</param>
+        /// <param name="facet">The facet of the Ice object.</param>
+        /// <param name="servant">The servant to add.</param>
+        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>. </param>
+        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        public T Add<T>(
+            Identity identity,
+            string facet,
+            IObject servant,
+            ProxyFactory<T> proxyFactory) where T : class, IObjectPrx
+        {
+            Add(identity, facet, servant);
+            return CreateProxy(identity, facet, proxyFactory);
+        }
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
+        /// ArgumentException.</summary>
+        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
+        /// be empty.</param>
+        /// <param name="facet">The facet of the Ice object.</param>
+        /// <param name="servant">The servant to add.</param>
+        public void Add(Identity identity, string facet, IObject servant)
+        {
+            CheckIdentity(identity);
+            lock (_mutex)
+            {
+                // We check for deactivation here because we don't want to keep this servant when the adapter is being
+                // deactivated or destroyed. In other languages, notably C++, keeping such a servant could lead to
+                // circular references and leaks.
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                }
+                _identityServantMap.Add((identity, facet), servant);
+            }
+        }
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
+        /// ArgumentException.</summary>
+        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <param name="servant">The servant to add.</param>
+        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
+        /// for this parameter. See <see cref="CreateProxy{T}(string, ProxyFactory{T})"/>.</param>
+        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        public T Add<T>(string identityAndFacet, IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx
+        {
+            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            return Add(identity, facet, servant, proxyFactory);
+        }
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
+        /// ArgumentException.</summary>
+        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <param name="servant">The servant to add.</param>
+        public void Add(string identityAndFacet, IObject servant)
+        {
+            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            Add(identity, facet, servant);
+        }
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and the default (empty) facet.</summary>
+        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
+        /// be empty.</param>
+        /// <param name="servant">The servant to add.</param>
+        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
+        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
+        public T Add<T>(Identity identity, IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx =>
+            Add(identity, "", servant, proxyFactory);
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// identity and the default (empty) facet.</summary>
+        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
+        /// be empty.</param>
+        /// <param name="servant">The servant to add.</param>
+        public void Add(Identity identity, IObject servant) => Add(identity, "", servant);
+
+        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// facet.</summary>
+        /// <param name="facet">The facet.</param>
+        /// <param name="servant">The default servant to add.</param>
+        public void AddDefault(string facet, IObject servant)
+        {
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                }
+                _defaultServantMap.Add(facet, servant);
+            }
+        }
+
+        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the default
+        /// (empty) facet.</summary>
+        /// <param name="servant">The default servant to add.</param>
+        public void AddDefault(IObject servant) => AddDefault("", servant);
+
+        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
+        /// as key the provided category and facet.</summary>
+        /// <param name="category">The object identity category.</param>
+        /// <param name="facet">The facet.</param>
+        /// <param name="servant">The default servant to add.</param>
+        public void AddDefaultForCategory(string category, string facet, IObject servant)
+        {
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                }
+                _categoryServantMap.Add((category, facet), servant);
+            }
+        }
+
+        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
+        /// as key the provided category and the default (empty) facet.</summary>
+        /// <param name="category">The object identity category.</param>
+        /// <param name="servant">The default servant to add.</param>
+        public void AddDefaultForCategory(string category, IObject servant) =>
+            AddDefaultForCategory(category, "", servant);
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
+        /// and the provided facet. This method creates the unique identity with a UUID name and an empty category.
+        /// </summary>
+        /// <param name="facet">The facet of the Ice object.</param>
+        /// <param name="servant">The servant to add.</param>
+        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.
+        /// </param>
+        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        public T AddWithUUID<T>(string facet, IObject servant, ProxyFactory<T> proxyFactory)
+            where T : class, IObjectPrx =>
+            Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
+
+        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
+        /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
+        /// category.</summary>
+        /// <param name="servant">The servant to add.</param>
+        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
+        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
+        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
+        public T AddWithUUID<T>(IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx =>
+            AddWithUUID("", servant, proxyFactory);
+
+          /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
+        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
+        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no adapter
+        /// ID is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// <param name="identity">The object's identity.</param>
+        /// <param name="facet">The facet.</param>
+        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// desired proxy type.</param>
+        /// <returns>A proxy for the object with the given identity and facet.</returns>
+        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx
+        {
+            CheckIdentity(identity);
+
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                }
+
+                ImmutableArray<string> location = ReplicaGroupId.Length > 0 ? ImmutableArray.Create(ReplicaGroupId) :
+                    AdapterId.Length > 0 ? ImmutableArray.Create(AdapterId) : ImmutableArray<string>.Empty;
+
+                Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
+
+                var options = new ObjectPrxOptions(
+                    Communicator,
+                    identity,
+                    protocol,
+                    endpoints: AdapterId.Length == 0 ? PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
+                    facet: facet,
+                    location: location,
+                    oneway: _datagramOnly);
+
+                return factory(options);
+            }
+        }
+
+        /// <summary>Creates a proxy for the object with the given identity. If this object adapter is configured with
+        /// an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group id is also
+        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
+        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// <param name="identity">The object's identity.</param>
+        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// desired proxy type.</param>
+        /// <returns>A proxy for the object with the given identity.</returns>
+        public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IObjectPrx =>
+            CreateProxy(identity, "", factory);
+
+        /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
+        /// configured with an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group
+        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
+        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// desired proxy type.</param>
+        /// <returns>A proxy for the object with the given identity and facet.</returns>
+        public T CreateProxy<T>(string identityAndFacet, ProxyFactory<T> factory) where T : class, IObjectPrx
+        {
+            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            return CreateProxy(identity, facet, factory);
+        }
+
+        /// <inheritdoc/>
+        public ValueTask DisposeAsync() => new(ShutdownAsync());
+
+        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
+        /// servants currently in the ASM.</summary>
+        /// <param name="identity">The identity of the Ice object.</param>
+        /// <param name="facet">The facet of the Ice object.</param>
+        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
+        public IObject? Find(Identity identity, string facet = "")
+        {
+            lock (_mutex)
+            {
+                if (!_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
+                {
+                    if (!_categoryServantMap.TryGetValue((identity.Category, facet), out servant))
+                    {
+                        _defaultServantMap.TryGetValue(facet, out servant);
+                    }
+                }
+                return servant;
+            }
+        }
+
+        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
+        /// servants currently in the ASM.</summary>
+        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
+        public IObject? Find(string identityAndFacet)
+        {
+            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            return Find(identity, facet);
+        }
+
+        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
+        /// <param name="identity">The identity of the Ice object.</param>
+        /// <param name="facet">The facet of the Ice object.</param>
+        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        public IObject? Remove(Identity identity, string facet = "")
+        {
+            lock (_mutex)
+            {
+                if (_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
+                {
+                    _identityServantMap.Remove((identity, facet));
+                }
+                return servant;
+            }
+        }
+
+        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
+        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        public IObject? Remove(string identityAndFacet)
+        {
+            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
+            return Remove(identity, facet);
+        }
+
+        /// <summary>Removes a default servant previously added to the Active Servant Map (ASM) using AddDefault.
+        /// </summary>
+        /// <param name="facet">The facet.</param>
+        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        public IObject? RemoveDefault(string facet = "")
+        {
+            lock (_mutex)
+            {
+                if (_defaultServantMap.TryGetValue(facet, out IObject? servant))
+                {
+                    _defaultServantMap.Remove(facet);
+                }
+                return servant;
+            }
+        }
+
+        /// <summary>Removes a category-specific default servant previously added to the Active Servant Map (ASM) using
+        /// AddDefaultForCategory.</summary>
+        /// <param name="category">The category associated with this default servant.</param>
+        /// <param name="facet">The facet.</param>
+        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        public IObject? RemoveDefaultForCategory(string category, string facet = "")
+        {
+            lock (_mutex)
+            {
+                if (_categoryServantMap.TryGetValue((category, facet), out IObject? servant))
+                {
+                    _categoryServantMap.Remove((category, facet));
+                }
+                return servant;
+            }
+        }
+
+        /// <summary>Shuts down this object adapter. Once shut down, an object adapter is disposed and can no longer be
+        /// used. This method can be safely called multiple times and always returns the same task.</summary>
+        public Task ShutdownAsync()
+        {
+            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
+            // synchronously) after releasing the lock.
+            lock (_mutex)
+            {
+                _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
+            }
+            return _shutdownTask.Value;
+
+            async Task PerformShutdownAsync()
+            {
+                try
+                {
+                    if (ColocationScope != ColocationScope.None)
+                    {
+                        // no longer available for coloc connections.
+                        ObjectAdapterRegistry.UnregisterObjectAdapter(this);
+                    }
+
+                    // Synchronously shuts down the incoming connection factories to stop accepting new incoming
+                    // requests or connections. This ensures that once ShutdownAsync returns, no new requests will be
+                    // dispatched. Calling ToArray is important here to ensure that all the ShutdownAsync calls are
+                    // executed before we eventually hit an await (we want to make that once ShutdownAsync returns a
+                    // Task, all the connections started closing).
+                    // Once _shutdownTask is non null, _incomingConnectionfactories cannot change, so no need to lock
+                    // _mutex.
+                    Task[] tasks = _incomingConnectionFactories.Select(factory => factory.ShutdownAsync()).ToArray();
+
+                    // Wait for activation to complete. This is necessary avoid out of order locator updates.
+                    // _activateTask is readonly once _shutdownTask is non null.
+                    if (_activateTask != null)
+                    {
+                        try
+                        {
+                            await _activateTask.ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // Ignore
+                        }
+                    }
+
+                    try
+                    {
+                        await UnregisterEndpointsAsync(default).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // We can't throw exceptions in deactivate so we ignore failures to unregister endpoints
+                    }
+
+                    if (_colocatedConnectionFactory != null)
+                    {
+                        await _colocatedConnectionFactory.ShutdownAsync().ConfigureAwait(false);
+                    }
+
+                    // Wait for the incoming connection factories to be shut down.
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
+                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
+                    // using Result or Wait()), ShutdownAsync will complete.
+                    _shutdownCompleteSource.TrySetResult(null);
+                }
+            }
+        }
+
         internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,
             Current current,
@@ -877,31 +826,31 @@ namespace ZeroC.Ice
             }
         }
 
-        internal Endpoint? GetColocatedEndpoint(Reference reference)
+        internal Endpoint? GetColocatedEndpoint(ObjectPrx proxy)
         {
             Debug.Assert(ColocationScope != ColocationScope.None);
 
-            if (ColocationScope == ColocationScope.Communicator && Communicator != reference.Communicator)
+            if (ColocationScope == ColocationScope.Communicator && Communicator != proxy.Communicator)
             {
                 return null;
             }
 
-            if (reference.Protocol != Protocol)
+            if (proxy.Protocol != Protocol)
             {
                 return null;
             }
 
             bool isLocal = false;
 
-            if (reference.IsWellKnown)
+            if (proxy.IsWellKnown)
             {
-                isLocal = Find(reference.Identity, reference.Facet) != null;
+                isLocal = Find(proxy.Identity, proxy.Facet) != null;
             }
-            else if (reference.IsIndirect)
+            else if (proxy.IsIndirect)
             {
-                // Reference is local if the reference's location matches this adapter ID or replica group ID.
-                isLocal = reference.Location.Count == 1 &&
-                    (reference.Location[0] == AdapterId || reference.Location[0] == ReplicaGroupId);
+                // proxy is local if the proxy's location matches this adapter ID or replica group ID.
+                isLocal = proxy.Location.Count == 1 &&
+                    (proxy.Location[0] == AdapterId || proxy.Location[0] == ReplicaGroupId);
             }
             else
             {
@@ -909,7 +858,7 @@ namespace ZeroC.Ice
                 {
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
                     // adapter's incoming connection factories are considered local.
-                    isLocal = _shutdownTask == null && reference.Endpoints.Any(endpoint =>
+                    isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
                         PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
                 }
@@ -951,15 +900,7 @@ namespace ZeroC.Ice
         {
             // At this point, _locator is read-only.
 
-            if (AdapterId.Length == 0 || _locator == null)
-            {
-                return; // nothing to do
-            }
-
-            ILocatorRegistryPrx? locatorRegistry =
-                await Communicator.GetLocatorInfo(_locator)!.GetLocatorRegistryAsync(cancel).ConfigureAwait(false);
-
-            if (locatorRegistry == null)
+            if (AdapterId.Length == 0 || LocatorRegistry == null)
             {
                 return; // nothing to do
             }
@@ -970,7 +911,7 @@ namespace ZeroC.Ice
                 {
                     if (ReplicaGroupId.Length > 0)
                     {
-                        await locatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                        await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
                             AdapterId,
                             ReplicaGroupId,
                             proxy: null,
@@ -978,14 +919,14 @@ namespace ZeroC.Ice
                     }
                     else
                     {
-                        await locatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                        await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
                                                                           proxy: null,
                                                                           cancel: cancel).ConfigureAwait(false);
                     }
                 }
                 else
                 {
-                    await locatorRegistry.UnregisterAdapterEndpointsAsync(
+                    await LocatorRegistry.UnregisterAdapterEndpointsAsync(
                             AdapterId,
                             ReplicaGroupId,
                             cancel: cancel).ConfigureAwait(false);

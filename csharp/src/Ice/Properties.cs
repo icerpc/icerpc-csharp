@@ -181,7 +181,7 @@ namespace ZeroC.Ice
             {
                 try
                 {
-                    return factory(Reference.Parse(value, communicator, name));
+                    return ObjectPrx.Parse(value, communicator, factory, name);
                 }
                 catch (FormatException ex)
                 {

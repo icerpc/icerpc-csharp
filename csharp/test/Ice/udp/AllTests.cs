@@ -63,9 +63,9 @@ namespace ZeroC.Ice.Test.UDP
         {
             Communicator communicator = helper.Communicator;
 
-            ObjectAdapter adapter = new ObjectAdapter(communicator,
-                "ReplyAdapter",
-                new ObjectAdapterOptions
+            ObjectAdapter adapter = new ObjectAdapter(
+                communicator,
+                new()
                 {
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = helper.GetTestEndpoint(0, "udp", true),

@@ -201,7 +201,7 @@ namespace ZeroC.Ice
             {
                 Network.SetBufSize(Socket, _communicator, Transport.TCP);
             }
-            catch (Exception)
+            catch
             {
                 Socket.CloseNoThrow();
                 throw;
@@ -216,7 +216,7 @@ namespace ZeroC.Ice
             {
                 Network.SetBufSize(Socket, _communicator, Transport.TCP);
             }
-            catch (Exception)
+            catch
             {
                 Socket.CloseNoThrow();
                 throw;

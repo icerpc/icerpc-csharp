@@ -34,11 +34,9 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
-
-            ObjectAdapter = new ObjectAdapter(
+            ObjectAdapter = new(
                 Communicator,
-                "TestAdapter-0",
-                new ObjectAdapterOptions()
+                new()
                 {
                     Endpoints = GetTestEndpoint(),
                     ColocationScope = ColocationScope.None

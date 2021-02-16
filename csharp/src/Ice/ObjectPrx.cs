@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -14,42 +15,46 @@ using ZeroC.Ice.Instrumentation;
 
 namespace ZeroC.Ice
 {
-    /// <summary>Reference is an Ice-internal but publicly visible class. Each Ice proxy has a single Reference.
-    /// Reference represents the untyped implementation of a proxy. Multiples proxies that point to the same Ice object
-    /// and share the same proxy options can share the same Reference object, even if these proxies have different
-    /// types.</summary>
-    public sealed class Reference : IEquatable<Reference>
+    /// <summary>The base class for all proxies. It's a publicly visible Ice-internal class. Applications should
+    /// not use it directly.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ObjectPrx : IObjectPrx, IEquatable<ObjectPrx>
     {
-        internal string AdapterId => Location.Count == 0 ? "" : Location[0];
-        internal bool CacheConnection { get; } = true;
-        internal Communicator Communicator { get; }
-        internal IReadOnlyDictionary<string, string> Context { get; }
-        internal Encoding Encoding { get; }
-        internal IReadOnlyList<Endpoint> Endpoints { get; }
-        internal string Facet { get; }
-        internal Identity Identity { get; }
+        public bool CacheConnection { get; } = true;
+        public Communicator Communicator { get; }
+        public IReadOnlyDictionary<string, string> Context { get; } = ImmutableDictionary<string, string>.Empty;
+        public Encoding Encoding { get; }
+        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
+        public string Facet { get; } = "";
+        public Identity Identity { get; }
 
-        internal IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
+        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; } =
+            ImmutableList<InvocationInterceptor>.Empty;
 
-        internal TimeSpan InvocationTimeout => _invocationTimeout ?? Communicator.DefaultInvocationTimeout;
-        internal bool IsFixed { get; }
+        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? Communicator.DefaultInvocationTimeout;
+        public bool IsFixed { get; }
         internal bool IsIndirect => Endpoints.Count == 0 && !IsFixed;
 
-        internal bool IsOneway { get; }
+        public bool IsOneway { get; }
 
-        internal bool IsRelative { get; }
+        public bool IsRelative { get; }
 
         internal bool IsWellKnown => IsIndirect && Location.Count == 0;
-        internal object? Label { get; }
-        internal IReadOnlyList<string> Location { get; }
+        public object? Label { get; }
+        public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
 
-        internal TimeSpan LocatorCacheTimeout => _locatorCacheTimeout ?? Communicator.DefaultLocatorCacheTimeout;
+        public TimeSpan LocatorCacheTimeout => _locatorCacheTimeoutOverride ?? Communicator.DefaultLocatorCacheTimeout;
+
+        public ILocatorPrx? Locator => LocatorInfo?.Locator;
+
+        public bool PreferExistingConnection =>
+            _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
+        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.DefaultPreferNonSecure;
+        public Protocol Protocol { get; }
+
+        ObjectPrx IObjectPrx.Impl => this;
 
         internal LocatorInfo? LocatorInfo { get; }
-        internal bool PreferExistingConnection =>
-            _preferExistingConnection ?? Communicator.DefaultPreferExistingConnection;
-        internal NonSecure PreferNonSecure => _preferNonSecure ?? Communicator.DefaultPreferNonSecure;
-        internal Protocol Protocol { get; }
 
         // Sub-properties for ice1 proxies
         private static readonly string[] _suffixes =
@@ -63,19 +68,23 @@ namespace ZeroC.Ice
             "Context\\..*"
         };
 
-        private int _hashCode;
+        private volatile Connection? _connection;
+        private int _hashCode; // cached hash code value
 
-        private volatile Connection? _connection; // readonly when IsFixed is true
-        private readonly TimeSpan? _invocationTimeout;
-        private readonly TimeSpan? _locatorCacheTimeout;
-        private readonly bool? _preferExistingConnection;
-        private readonly NonSecure? _preferNonSecure;
+        // The various Override fields override the value from the communicator. When null, they are not included in
+        // the ToString()/ToProperty() representation.
+
+        private readonly TimeSpan? _invocationTimeoutOverride;
+        private readonly TimeSpan? _locatorCacheTimeoutOverride;
+
+        private readonly bool? _preferExistingConnectionOverride;
+        private readonly NonSecure? _preferNonSecureOverride;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
-        public static bool operator ==(Reference? lhs, Reference? rhs)
+        public static bool operator ==(ObjectPrx? lhs, ObjectPrx? rhs)
         {
             if (ReferenceEquals(lhs, rhs))
             {
@@ -93,11 +102,15 @@ namespace ZeroC.Ice
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
-        public static bool operator !=(Reference? lhs, Reference? rhs) => !(lhs == rhs);
+        public static bool operator !=(ObjectPrx? lhs, ObjectPrx? rhs) => !(lhs == rhs);
 
-        /// <summary>Creates a reference from a string and a communicator. This an Ice-internal publicly visible static
-        /// method.</summary>
-        public static Reference Parse(string s, Communicator communicator, string? propertyPrefix = null)
+        /// <summary>Creates a proxy from a string and a communicator.</summary>
+        public static T Parse<T>(
+            string s,
+            Communicator communicator,
+            ProxyFactory<T> factory,
+            string? propertyPrefix = null)
+            where T : class, IObjectPrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
@@ -212,8 +225,8 @@ namespace ZeroC.Ice
                     label = communicator.GetProperty($"{propertyPrefix}.Label");
 
                     property = $"{propertyPrefix}.Locator";
-                    locatorInfo = communicator.GetLocatorInfo(
-                        communicator.GetPropertyAsProxy(property, ILocatorPrx.Factory));
+                    locatorInfo =
+                        communicator.GetLocatorInfo(communicator.GetPropertyAsProxy(property, ILocatorPrx.Factory));
 
                     if (locatorInfo != null && endpoints.Count > 0)
                     {
@@ -246,39 +259,36 @@ namespace ZeroC.Ice
                 }
             }
 
-            return new Reference(cacheConnection: cacheConnection ?? true,
-                                 communicator: communicator,
-                                 context: context ?? communicator.DefaultContext,
-                                 encoding: encoding,
-                                 endpoints: endpoints,
-                                 facet: facet,
-                                 identity: identity,
-                                 invocationInterceptors: communicator.DefaultInvocationInterceptors,
-                                 invocationTimeout: invocationTimeout,
-                                 label: null,
-                                 location: location,
-                                 locatorCacheTimeout: locatorCacheTimeout,
-                                 locatorInfo: locatorInfo ??
-                                    (endpoints.Count == 0 ?
-                                        communicator.GetLocatorInfo(communicator.DefaultLocator) : null),
-                                 oneway: oneway,
-                                 preferExistingConnection: preferExistingConnection,
-                                 preferNonSecure: preferNonSecure,
-                                 protocol: protocol,
-                                 relative: relative ?? false);
+            var options = new ObjectPrxOptions(
+                communicator,
+                identity,
+                protocol,
+                cacheConnection: cacheConnection ?? true,
+                context: context,
+                encoding: encoding,
+                endpoints: endpoints,
+                facet: facet,
+                invocationTimeout: invocationTimeout,
+                location: location,
+                locatorCacheTimeout: locatorCacheTimeout,
+                locatorInfo: locatorInfo ??
+                    (endpoints.Count == 0 ? communicator.GetLocatorInfo(communicator.DefaultLocator) : null),
+                oneway: oneway,
+                preferExistingConnection: preferExistingConnection,
+                preferNonSecure: preferNonSecure,
+                relative: relative ?? false);
+
+            return factory(options);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => Equals(obj as Reference);
-
-        /// <inheritdoc/>
-        public bool Equals(Reference? other)
+        public bool Equals(ObjectPrx? other)
         {
             if (other == null)
             {
                 return false;
             }
-            if (ReferenceEquals(this, other))
+            else if (ReferenceEquals(this, other))
             {
                 return true;
             }
@@ -315,7 +325,7 @@ namespace ZeroC.Ice
                 {
                     return false;
                 }
-                if (_locatorCacheTimeout != other._locatorCacheTimeout)
+                if (_locatorCacheTimeoutOverride != other._locatorCacheTimeoutOverride)
                 {
                     return false;
                 }
@@ -323,11 +333,11 @@ namespace ZeroC.Ice
                 {
                     return false;
                 }
-                if (_preferExistingConnection != other._preferExistingConnection)
+                if (_preferExistingConnectionOverride != other._preferExistingConnectionOverride)
                 {
                     return false;
                 }
-                if (_preferNonSecure != other._preferNonSecure)
+                if (_preferNonSecureOverride != other._preferNonSecureOverride)
                 {
                     return false;
                 }
@@ -354,7 +364,7 @@ namespace ZeroC.Ice
             {
                 return false;
             }
-            if (_invocationTimeout != other._invocationTimeout)
+            if (_invocationTimeoutOverride != other._invocationTimeoutOverride)
             {
                 return false;
             }
@@ -379,11 +389,17 @@ namespace ZeroC.Ice
         }
 
         /// <inheritdoc/>
+        public bool Equals(IObjectPrx? other) => Equals(other?.Impl);
+
+        /// <inheritdoc/>
+        public override bool Equals(object? other) => Equals(other as ObjectPrx);
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             if (_hashCode != 0)
             {
-                // Already computed, return cached value:
+                // Already computed, return cached value.
                 return _hashCode;
             }
             else
@@ -397,7 +413,7 @@ namespace ZeroC.Ice
                 hash.Add(Facet);
                 hash.Add(Identity);
                 hash.Add(InvocationInterceptors.GetSequenceHashCode());
-                hash.Add(_invocationTimeout);
+                hash.Add(_invocationTimeoutOverride);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
                 hash.Add(IsRelative);
@@ -413,10 +429,10 @@ namespace ZeroC.Ice
                     hash.Add(Endpoints.GetSequenceHashCode());
                     hash.Add(Label);
                     hash.Add(Location.GetSequenceHashCode());
-                    hash.Add(_locatorCacheTimeout);
+                    hash.Add(_locatorCacheTimeoutOverride);
                     hash.Add(LocatorInfo);
-                    hash.Add(_preferExistingConnection);
-                    hash.Add(_preferNonSecure);
+                    hash.Add(_preferExistingConnectionOverride);
+                    hash.Add(_preferNonSecureOverride);
                 }
 
                 int hashCode = hash.ToHashCode();
@@ -427,6 +443,60 @@ namespace ZeroC.Ice
                 }
                 _hashCode = hashCode;
                 return _hashCode;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void IceWrite(OutputStream ostr)
+        {
+            if (IsFixed)
+            {
+                throw new NotSupportedException("cannot marshal a fixed proxy");
+            }
+
+            InvocationMode invocationMode = IsOneway ? InvocationMode.Oneway : InvocationMode.Twoway;
+            if (Protocol == Protocol.Ice1 && IsOneway && Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
+            {
+                invocationMode = InvocationMode.Datagram;
+            }
+
+            if (ostr.Encoding == Encoding.V11)
+            {
+                if (IsRelative)
+                {
+                    throw new NotSupportedException("cannot marshal a relative proxy with the 1.1 encoding");
+                }
+
+                Identity.IceWrite(ostr);
+                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
+                ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
+
+                if (Endpoints.Count == 0)
+                {
+                    // If Location holds more than 1 segment, the extra segments are not marshaled.
+                    ostr.WriteString(Location.Count == 0 ? "" : Location[0]);
+                }
+            }
+            else
+            {
+                Debug.Assert(ostr.Encoding == Encoding.V20);
+
+                ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct :
+                    IsRelative ? ProxyKind20.IndirectRelative : ProxyKind20.Indirect);
+
+                IReadOnlyList<string> location = Location;
+                if (IsRelative && location.Count > 1)
+                {
+                    // Reduce location to its last segment
+                    location = ImmutableArray.Create(location[^1]);
+                }
+
+                ostr.WriteProxyData20(Identity, Protocol, Encoding, location, invocationMode, Facet);
+
+                if (Endpoints.Count > 0)
+                {
+                    ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
+                }
             }
         }
 
@@ -597,7 +667,7 @@ namespace ZeroC.Ice
                     sb.Append("fixed=true");
                 }
 
-                if (_invocationTimeout is TimeSpan invocationTimeout)
+                if (_invocationTimeoutOverride is TimeSpan invocationTimeout)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("invocation-timeout=");
@@ -611,21 +681,21 @@ namespace ZeroC.Ice
                     sb.Append(Uri.EscapeDataString(label));
                 }
 
-                if (_locatorCacheTimeout is TimeSpan locatorCacheTimeout)
+                if (_locatorCacheTimeoutOverride is TimeSpan locatorCacheTimeout)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("locator-cache-timeout=");
                     sb.Append(TimeSpanExtensions.ToPropertyValue(locatorCacheTimeout));
                 }
 
-                if (_preferExistingConnection is bool preferExistingConnection)
+                if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("prefer-existing-connection=");
                     sb.Append(preferExistingConnection ? "true" : "false");
                 }
 
-                if (_preferNonSecure is NonSecure preferNonSecure)
+                if (_preferNonSecureOverride is NonSecure preferNonSecure)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("prefer-non-secure=");
@@ -683,13 +753,43 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Constructs a new proxy class instance with the specified options. The options must be validated
+        /// by the caller and all dictionaries / lists must be safe to reference as-is.</summary>
+        protected internal ObjectPrx(ObjectPrxOptions options)
+        {
+            CacheConnection = options.CacheConnection;
+            Communicator = options.Communicator;
+            Context = options.Context;
+            Encoding = options.Encoding;
+            Endpoints = options.Endpoints;
+            Facet = options.Facet;
+            Identity = options.Identity;
+            InvocationInterceptors = options.InvocationInterceptors;
+            IsFixed = options.Connection != null; // auto-computed
+            IsOneway = options.IsOneway;
+            IsRelative = options.IsRelative;
+            Label = options.Label;
+            Location = options.Location;
+            LocatorInfo = options.LocatorInfo;
+            Protocol = options.Protocol;
+            _connection = options.Connection;
+            _invocationTimeoutOverride = options.InvocationTimeoutOverride;
+            _locatorCacheTimeoutOverride = options.LocatorCacheTimeoutOverride;
+            _preferExistingConnectionOverride = options.PreferExistingConnectionOverride;
+            _preferNonSecureOverride = options.PreferNonSecureOverride;
+        }
+
+        /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
+        /// proxy classes must override this method.</summary>
+        protected virtual ObjectPrx IceClone(ObjectPrxOptions options) => new(options);
+
         internal static Task<IncomingResponseFrame> InvokeAsync(
             IObjectPrx proxy,
             OutgoingRequestFrame request,
             bool oneway,
             IProgress<bool>? progress = null)
         {
-            IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.IceReference.InvocationInterceptors;
+            IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.InvocationInterceptors;
 
             return InvokeWithInterceptorsAsync(proxy,
                                                request,
@@ -721,8 +821,8 @@ namespace ZeroC.Ice
                 else
                 {
                     // After we went down the interceptor chain make the invocation.
-                    Reference reference = proxy.IceReference;
-                    Communicator communicator = reference.Communicator;
+                    ObjectPrx impl = proxy.Impl;
+                    Communicator communicator = impl.Communicator;
                     // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
                     // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
                     // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
@@ -741,12 +841,12 @@ namespace ZeroC.Ice
                     observer?.Attach();
                     try
                     {
-                        return await reference.PerformInvokeAsync(request,
-                                                                  oneway,
-                                                                  progress,
-                                                                  releaseRequestAfterSent,
-                                                                  observer,
-                                                                  cancel).ConfigureAwait(false);
+                        return await impl.PerformInvokeAsync(request,
+                                                             oneway,
+                                                             progress,
+                                                             releaseRequestAfterSent,
+                                                             observer,
+                                                             cancel).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -762,10 +862,11 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Reads a reference from the input stream.</summary>
+        /// <summary>Reads a proxy from the input stream.</summary>
         /// <param name="istr">The input stream to read from.</param>
-        /// <returns>The reference read from the stream (can be null).</returns>
-        internal static Reference? Read(InputStream istr)
+        /// <param name="factory">The proxy factory.</param>
+        /// <returns>The proxy read from the stream (can be null).</returns>
+        internal static T? Read<T>(InputStream istr, ProxyFactory<T> factory) where T : class, IObjectPrx
         {
             if (istr.Encoding == Encoding.V11)
             {
@@ -807,15 +908,20 @@ namespace ZeroC.Ice
 
                 string location0 = endpoints.Length == 0 ? istr.ReadString() : "";
 
-                return new Reference(istr.Communicator!,
-                                     proxyData.Encoding,
-                                     endpoints,
-                                     proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                                     identity,
-                                     location: location0.Length > 0 ?
-                                        ImmutableArray.Create(location0) : ImmutableArray<string>.Empty,
-                                     oneway: proxyData.InvocationMode != InvocationMode.Twoway,
-                                     proxyData.Protocol);
+                Communicator communicator = istr.Communicator!;
+
+                var options = new ObjectPrxOptions(
+                    communicator,
+                    identity,
+                    proxyData.Protocol,
+                    encoding: proxyData.Encoding,
+                    endpoints: endpoints,
+                    facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
+                    location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
+                    locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
+                    oneway: proxyData.InvocationMode != InvocationMode.Twoway);
+
+                return factory(options);
             }
             else
             {
@@ -853,19 +959,20 @@ namespace ZeroC.Ice
                         }
 
                         // TODO: location is missing
-                        return new Reference(context: connection.Communicator.CurrentContext,
-                                             encoding: proxyData.Encoding ?? Encoding.V20,
-                                             facet: proxyData.Facet ?? "",
-                                             fixedConnection: connection,
-                                             identity: proxyData.Identity,
-                                             invocationInterceptors:
-                                                connection.Communicator.DefaultInvocationInterceptors,
-                                             invocationTimeout: null,
-                                             oneway: false);
+
+                        var options = new ObjectPrxOptions(
+                            connection.Communicator,
+                            proxyData.Identity,
+                            protocol,
+                            encoding: proxyData.Encoding ?? Encoding.V20,
+                            facet: proxyData.Facet ?? "",
+                            fixedConnection: connection);
+
+                        return factory(options);
                     }
                     else
                     {
-                        Reference? source = istr.Reference;
+                        ObjectPrx? source = istr.SourceProxy;
 
                         if (source == null)
                         {
@@ -902,7 +1009,8 @@ namespace ZeroC.Ice
                             }
                         }
 
-                        return source.Clone(encoding: proxyData.Encoding ?? Encoding.V20,
+                        return source.Clone(factory,
+                                            encoding: proxyData.Encoding ?? Encoding.V20,
                                             facet: proxyData.Facet ?? "",
                                             identity: proxyData.Identity,
                                             location: location);
@@ -915,86 +1023,45 @@ namespace ZeroC.Ice
                     // sequence), for a total of 7 bytes.
                     IReadOnlyList<Endpoint> endpoints = proxyKind == ProxyKind20.Direct ?
                         istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
-                        ImmutableArray<Endpoint>.Empty;
+                        ImmutableList<Endpoint>.Empty;
 
-                    return new Reference(istr.Communicator!,
-                                         proxyData.Encoding ?? Encoding.V20,
-                                         endpoints,
-                                         proxyData.Facet ?? "",
-                                         proxyData.Identity,
-                                         (IReadOnlyList<string>?)proxyData.Location ?? ImmutableArray<string>.Empty,
-                                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) !=
-                                            InvocationMode.Twoway,
-                                         protocol);
+                    Communicator communicator = istr.Communicator!;
+
+                    var options = new ObjectPrxOptions(
+                        communicator,
+                        proxyData.Identity,
+                        protocol,
+                        encoding: proxyData.Encoding ?? Encoding.V20,
+                        endpoints: endpoints,
+                        facet: proxyData.Facet ?? "",
+                        location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
+                        locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
+                        oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
+
+                    return factory(options);
                 }
             }
         }
 
-        // Helper constructor for non-fixed references. Uses the communicator's defaults.
-        internal Reference(
-            Communicator communicator,
-            Encoding encoding,
-            IReadOnlyList<Endpoint> endpoints, // already a copy provided by Ice
-            string facet,
-            Identity identity,
-            IReadOnlyList<string> location, // already a copy provided by Ice
-            bool oneway,
-            Protocol protocol)
-            : this(cacheConnection: true,
-                   communicator: communicator,
-                   context: communicator.DefaultContext,
-                   encoding: encoding,
-                   endpoints: endpoints,
-                   facet: facet,
-                   identity: identity,
-                   invocationInterceptors: communicator.DefaultInvocationInterceptors,
-                   invocationTimeout: null,
-                   label: null,
-                   location: location,
-                   locatorCacheTimeout: null,
-                   locatorInfo: communicator.GetLocatorInfo(communicator.DefaultLocator),
-                   oneway: oneway,
-                   preferExistingConnection: null,
-                   preferNonSecure: null,
-                   protocol: protocol,
-                   relative: false)
-        {
-        }
+        /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
+        internal ObjectPrx Clone(ObjectPrxOptions options) => IceClone(options);
 
-        // Helper constructor for fixed references. Uses the communicator's defaults.
-        internal Reference(Connection fixedConnection, Identity identity, string facet)
-            : this(context: fixedConnection.Communicator.DefaultContext,
-                   encoding: fixedConnection.Protocol.GetEncoding(),
-                   facet: facet,
-                   fixedConnection: fixedConnection,
-                   identity: identity,
-                   invocationInterceptors: ImmutableList<InvocationInterceptor>.Empty,
-                   invocationTimeout: null,
-                   oneway: fixedConnection.Endpoint.IsDatagram)
-        {
-        }
-
-        private void ClearConnection(Connection connection)
-        {
-            Debug.Assert(!IsFixed);
-            Interlocked.CompareExchange(ref _connection, null, connection);
-        }
-
-        internal Reference Clone(
+        /// <summary>Computes the options used by the implementation of Proxy.Clone.</summary>
+        internal ObjectPrxOptions CreateCloneOptions(
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocator = false,
-            IReadOnlyDictionary<string, string>? context = null, // can be provided by app
+            IReadOnlyDictionary<string, string>? context = null, // can be provided by app, needs to be copied
             Encoding? encoding = null,
-            IEnumerable<Endpoint>? endpoints = null, // from app
+            IEnumerable<Endpoint>? endpoints = null, // from app, needs to be copied
             string? facet = null,
             Connection? fixedConnection = null,
             Identity? identity = null,
             string? identityAndFacet = null,
-            IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app
+            IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app, needs to be copied
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            IEnumerable<string>? location = null, // from app
+            IEnumerable<string>? location = null, // from app, needs to be copied
             ILocatorPrx? locator = null,
             TimeSpan? locatorCacheTimeout = null,
             bool? oneway = null,
@@ -1002,294 +1069,82 @@ namespace ZeroC.Ice
             NonSecure? preferNonSecure = null,
             bool? relative = null)
         {
-            // Check for incompatible arguments
-            if (locator != null && clearLocator)
-            {
-                throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
-            }
-
-            if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
-            {
-                throw new ArgumentException("0 is not a valid value for invocationTimeout", nameof(invocationTimeout));
-            }
-
-            if (identityAndFacet != null && facet != null)
-            {
-                throw new ArgumentException($"cannot set both {nameof(facet)} and {nameof(identityAndFacet)}");
-            }
-
-            if (identityAndFacet != null && identity != null)
-            {
-                throw new ArgumentException($"cannot set both {nameof(identity)} and {nameof(identityAndFacet)}");
-            }
-
             if (identityAndFacet != null)
             {
+                if (facet != null)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(facet)}",
+                                                nameof(facet));
+                }
+
+                if (identity != null)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(identity)}",
+                                                nameof(identity));
+                }
+
                 (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             }
 
+            (IReadOnlyList<Endpoint>? newEndpoints, IReadOnlyList<string>? newLocation, LocatorInfo? locatorInfo) =
+                ValidateCloneArgs(cacheConnection,
+                                  clearLabel,
+                                  clearLocator,
+                                  endpoints,
+                                  fixedConnection,
+                                  invocationTimeout,
+                                  label,
+                                  location,
+                                  locator,
+                                  locatorCacheTimeout,
+                                  preferExistingConnection,
+                                  preferNonSecure,
+                                  relative);
+
             if (IsFixed || fixedConnection != null)
             {
-                // Note that Clone does not allow to clear the fixedConnection
+                fixedConnection ??= _connection;
+                Debug.Assert(fixedConnection != null);
 
-                // Make sure that all arguments incompatible with fixed references are null
-                if (cacheConnection != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the connection caching configuration of a fixed proxy",
-                        nameof(cacheConnection));
-                }
-                if (endpoints != null)
-                {
-                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(endpoints));
-                }
-                if (clearLabel)
-                {
-                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(clearLabel));
-                }
-                else if (label != null)
-                {
-                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(label));
-                }
-                if (location != null)
-                {
-                    throw new ArgumentException("cannot change the location of a fixed proxy", nameof(location));
-                }
-                if (locator != null)
-                {
-                    throw new ArgumentException("cannot change the locator of a fixed proxy", nameof(locator));
-                }
-                else if (clearLocator)
-                {
-                    throw new ArgumentException("cannot change the locator of a fixed proxy", nameof(clearLocator));
-                }
-                if (locatorCacheTimeout != null)
-                {
-                    throw new ArgumentException(
-                        "cannot set locator cache timeout on a fixed proxy",
-                        nameof(locatorCacheTimeout));
-                }
-                if (preferExistingConnection != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the prefer-existing-connection configuration of a fixed proxy",
-                        nameof(preferExistingConnection));
-                }
-                if (preferNonSecure != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the prefer non-secure configuration of a fixed proxy",
-                        nameof(preferNonSecure));
-                }
-                if (relative ?? false)
-                {
-                    throw new ArgumentException("cannot convert a fixed proxy into a relative proxy", nameof(relative));
-                }
-
-                var clone = new Reference(
-                    context?.ToImmutableSortedDictionary() ?? Context,
-                    encoding ?? Encoding,
-                    facet ?? Facet,
-                    (fixedConnection ?? _connection)!,
-                    identity ?? Identity,
-                    invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                    invocationTimeout ?? _invocationTimeout,
-                    oneway: oneway ?? IsOneway);
-                return clone == this ? this : clone;
+                return new(Communicator,
+                           identity ?? Identity,
+                           Protocol,
+                           context: context?.ToImmutableSortedDictionary() ?? Context,
+                           encoding: encoding ?? Encoding,
+                           facet: facet ?? Facet,
+                           fixedConnection: fixedConnection,
+                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
+                           oneway: fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway));
             }
             else
             {
-                // Non-fixed reference
-                if (endpoints?.FirstOrDefault(endpoint => endpoint.Protocol != Protocol) is Endpoint endpoint)
-                {
-                    throw new ArgumentException($"the protocol of endpoint `{endpoint}' is not {Protocol}",
-                                                nameof(endpoints));
-                }
-
-                if (location != null && location.Any(segment => segment.Length == 0))
-                {
-                    throw new ArgumentException($"invalid location `{location}' with an empty segment",
-                                                nameof(location));
-                }
-
-                if (label != null && clearLabel)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
-                }
-
-                if (locator != null && clearLocator)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
-                }
-
-                if (locatorCacheTimeout != null &&
-                    locatorCacheTimeout < TimeSpan.Zero && locatorCacheTimeout != Timeout.InfiniteTimeSpan)
-                {
-                    throw new ArgumentException(
-                        $"invalid {nameof(locatorCacheTimeout)}: {locatorCacheTimeout}", nameof(locatorCacheTimeout));
-                }
-
-                IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableArray();
-                IReadOnlyList<string>? newLocation = location?.ToImmutableArray();
-
-                if (Protocol == Protocol.Ice1)
-                {
-                    if (newLocation?.Count > 0 && newEndpoints?.Count > 0)
-                    {
-                        throw new ArgumentException(
-                            @$"cannot set both a non-empty {nameof(location)} and a non-empty {
-                                nameof(endpoints)} on an ice1 proxy",
-                            nameof(location));
-                    }
-
-                    if (newLocation?.Count > 0)
-                    {
-                        if (newLocation.Count > 1)
-                        {
-                            throw new ArgumentException(
-                                $"{nameof(location)} is limited to a single segment for ice1 proxies",
-                                nameof(location));
-                        }
-                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
-                    }
-                    else if (newEndpoints?.Count > 0)
-                    {
-                        newLocation = ImmutableArray<string>.Empty; // make sure the clone's location is empty
-                    }
-                }
-
-                if (relative ?? IsRelative)
-                {
-                    if (newEndpoints?.Count > 0)
-                    {
-                        throw new ArgumentException("a relative proxy cannot have endpoints", nameof(relative));
-                    }
-                    else
-                    {
-                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
-                    }
-                }
-
-                newEndpoints ??= Endpoints;
-
-                LocatorInfo? locatorInfo = LocatorInfo;
-                if (locator != null)
-                {
-                    if (newEndpoints.Count > 0)
-                    {
-                        throw new ArgumentException($"cannot set {nameof(locator)} on a direct proxy",
-                                                    nameof(locator));
-                    }
-
-                    locatorInfo = Communicator.GetLocatorInfo(locator);
-                }
-                else if (clearLocator || newEndpoints.Count > 0)
-                {
-                    locatorInfo = null;
-                }
-
-                if (locatorCacheTimeout != null)
-                {
-                    if (newEndpoints.Count > 0)
-                    {
-                        throw new ArgumentException($"cannot set {nameof(locatorCacheTimeout)} on a direct proxy",
-                                                    nameof(locatorCacheTimeout));
-                    }
-                    if (locatorInfo == null)
-                    {
-                        throw new ArgumentException($"cannot set {nameof(locatorCacheTimeout)} without a locator",
-                                                    nameof(locatorCacheTimeout));
-                    }
-                }
-
-                var clone = new Reference(cacheConnection ?? CacheConnection,
-                                          Communicator,
-                                          context?.ToImmutableSortedDictionary() ?? Context,
-                                          encoding ?? Encoding,
-                                          newEndpoints,
-                                          facet ?? Facet,
-                                          identity ?? Identity,
-                                          invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                                          invocationTimeout ?? _invocationTimeout,
-                                          clearLabel ? null : label ?? Label,
-                                          newLocation ?? Location,
-                                          locatorCacheTimeout ?? (locatorInfo != null ? _locatorCacheTimeout : null),
-                                          locatorInfo, // no fallback otherwise breaks clearLocator
-                                          oneway ?? IsOneway,
-                                          preferExistingConnection ?? _preferExistingConnection,
-                                          preferNonSecure ?? _preferNonSecure,
-                                          Protocol,
-                                          relative ?? IsRelative);
-
-                return clone == this ? this : clone;
+                return new(Communicator,
+                           identity ?? Identity,
+                           Protocol,
+                           cacheConnection: cacheConnection ?? CacheConnection,
+                           context: context?.ToImmutableSortedDictionary() ?? Context,
+                           encoding: encoding ?? Encoding,
+                           endpoints: newEndpoints,
+                           facet: facet ?? Facet,
+                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
+                           label: clearLabel ? null : label ?? Label,
+                           location: newLocation ?? Location,
+                           locatorCacheTimeout:
+                                locatorCacheTimeout ?? (locatorInfo != null ? _locatorCacheTimeoutOverride : null),
+                           locatorInfo: locatorInfo, // no fallback otherwise breaks clearLocator
+                           oneway: oneway ?? IsOneway,
+                           preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
+                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride,
+                           relative: relative ?? IsRelative);
             }
         }
 
-        private async ValueTask<(List<Endpoint> Endpoints, TimeSpan EndpointsAge)> ComputeEndpointsAsync(
-            TimeSpan endpointsMaxAge,
-            bool oneway,
-            CancellationToken cancel)
-        {
-            Debug.Assert(!IsFixed);
-
-            if (ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
-            {
-                return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
-            }
-
-            IReadOnlyList<Endpoint>? endpoints = ImmutableArray<Endpoint>.Empty;
-            TimeSpan endpointsAge = TimeSpan.Zero;
-
-            // Get the proxy's endpoint or query the locator to get endpoints
-            if (Endpoints.Count > 0)
-            {
-                endpoints = Endpoints.ToList();
-            }
-            else if (LocatorInfo != null)
-            {
-                (endpoints, endpointsAge) =
-                    await LocatorInfo.ResolveIndirectReferenceAsync(this,
-                                                                    endpointsMaxAge,
-                                                                    cancel).ConfigureAwait(false);
-            }
-
-            // Apply overrides and filter endpoints
-            var filteredEndpoints = endpoints.Where(endpoint =>
-            {
-                // Filter out opaque and universal endpoints
-                if (endpoint is OpaqueEndpoint || endpoint is UniversalEndpoint)
-                {
-                    return false;
-                }
-
-                // With ice1 when secure endpoint is required filter out all non-secure endpoints.
-                if (Protocol == Protocol.Ice1 && PreferNonSecure == NonSecure.Never && !endpoint.IsAlwaysSecure)
-                {
-                    return false;
-                }
-
-                // Filter out datagram endpoints when oneway is false.
-                if (endpoint.IsDatagram)
-                {
-                    return oneway;
-                }
-
-                return true;
-            }).ToList();
-
-            if (filteredEndpoints.Count == 0)
-            {
-                throw new NoEndpointException(ToString());
-            }
-
-            if (filteredEndpoints.Count > 1)
-            {
-                filteredEndpoints = Communicator.OrderEndpointsByTransportFailures(filteredEndpoints);
-            }
-            return (filteredEndpoints, endpointsAge);
-        }
+        /// <summary>Provides the implementation of <see cref="Proxy.GetCachedConnection"/>.</summary>
         internal Connection? GetCachedConnection() => _connection;
 
+        /// <summary>Provides the implementation of <see cref="Proxy.GetConnectionAsync"/>.</summary>
         internal async ValueTask<Connection> GetConnectionAsync(CancellationToken cancel)
         {
             Connection? connection = _connection;
@@ -1364,6 +1219,7 @@ namespace ZeroC.Ice
             return connection;
         }
 
+        /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IObjectPrx, string)"/>.</summary>
         internal Dictionary<string, string> ToProperty(string prefix)
         {
             if (IsFixed)
@@ -1382,7 +1238,7 @@ namespace ZeroC.Ice
 
                 // We don't output context as this would require hard-to-generate escapes.
 
-                if (_invocationTimeout is TimeSpan invocationTimeout)
+                if (_invocationTimeoutOverride is TimeSpan invocationTimeout)
                 {
                     // For ice2 the invocation timeout is included in the URI
                     properties[$"{prefix}.InvocationTimeout"] = invocationTimeout.ToPropertyValue();
@@ -1399,15 +1255,15 @@ namespace ZeroC.Ice
                         properties[entry.Key] = entry.Value;
                     }
                 }
-                if (_locatorCacheTimeout is TimeSpan locatorCacheTimeout)
+                if (_locatorCacheTimeoutOverride is TimeSpan locatorCacheTimeout)
                 {
                     properties[$"{prefix}.LocatorCacheTimeout"] = locatorCacheTimeout.ToPropertyValue();
                 }
-                if (_preferExistingConnection is bool preferExistingConnection)
+                if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
                     properties[$"{prefix}.PreferExistingConnection"] = preferExistingConnection ? "true" : "false";
                 }
-                if (_preferNonSecure is NonSecure preferNonSecure)
+                if (_preferNonSecureOverride is NonSecure preferNonSecure)
                 {
                     properties[$"{prefix}.PreferNonSecure"] = preferNonSecure.ToString();
                 }
@@ -1419,60 +1275,6 @@ namespace ZeroC.Ice
             // else, only a single property in the dictionary
 
             return properties;
-        }
-
-        // Marshal the non-null reference.
-        internal void Write(OutputStream ostr)
-        {
-            if (IsFixed)
-            {
-                throw new NotSupportedException("cannot marshal a fixed proxy");
-            }
-
-            InvocationMode invocationMode = IsOneway ? InvocationMode.Oneway : InvocationMode.Twoway;
-            if (Protocol == Protocol.Ice1 && IsOneway && Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
-            {
-                invocationMode = InvocationMode.Datagram;
-            }
-
-            if (ostr.Encoding == Encoding.V11)
-            {
-                if (IsRelative)
-                {
-                    throw new NotSupportedException("cannot marshal a relative proxy with the 1.1 encoding");
-                }
-
-                Identity.IceWrite(ostr);
-                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
-                ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
-
-                if (Endpoints.Count == 0)
-                {
-                    // If Location holds more than 1 segment, the extra segments are not marshaled.
-                    ostr.WriteString(Location.Count == 0 ? "" : Location[0]);
-                }
-            }
-            else
-            {
-                Debug.Assert(ostr.Encoding == Encoding.V20);
-
-                ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct :
-                    IsRelative ? ProxyKind20.IndirectRelative : ProxyKind20.Indirect);
-
-                IReadOnlyList<string> location = Location;
-                if (IsRelative && location.Count > 1)
-                {
-                    // Reduce location to its last segment
-                    location = ImmutableArray.Create(location[^1]);
-                }
-
-                ostr.WriteProxyData20(Identity, Protocol, Encoding, location, invocationMode, Facet);
-
-                if (Endpoints.Count > 0)
-                {
-                    ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
-                }
-            }
         }
 
         private static void CheckForUnknownProperties(string prefix, Communicator communicator)
@@ -1521,89 +1323,72 @@ namespace ZeroC.Ice
             }
         }
 
-        // Constructor for non-fixed references, not bound to a connection
-        private Reference(
-            bool cacheConnection,
-            Communicator communicator,
-            IReadOnlyDictionary<string, string> context, // already a copy provided by Ice
-            Encoding encoding,
-            IReadOnlyList<Endpoint> endpoints, // already a copy provided by Ice
-            string facet,
-            Identity identity,
-            IReadOnlyList<InvocationInterceptor> invocationInterceptors, // already a copy provided by Ice
-            TimeSpan? invocationTimeout,
-            object? label,
-            IReadOnlyList<string> location, // already a copy provided by Ice
-            TimeSpan? locatorCacheTimeout,
-            LocatorInfo? locatorInfo,
-            bool oneway,
-            bool? preferExistingConnection,
-            NonSecure? preferNonSecure,
-            Protocol protocol,
-            bool relative)
+        private void ClearConnection(Connection connection)
         {
-            CacheConnection = cacheConnection;
-            Communicator = communicator;
-
-            Context = context;
-            Encoding = encoding;
-            Endpoints = endpoints;
-            Facet = facet;
-            Identity = identity;
-            InvocationInterceptors = invocationInterceptors;
-            _invocationTimeout = invocationTimeout;
-            IsOneway = oneway;
-            IsRelative = relative;
-            Label = label;
-            Location = location;
-            _locatorCacheTimeout = locatorCacheTimeout;
-            LocatorInfo = locatorInfo;
-            _preferExistingConnection = preferExistingConnection;
-            _preferNonSecure = preferNonSecure;
-            Protocol = protocol;
-
-            if (Protocol == Protocol.Ice1)
-            {
-                Debug.Assert(location.Count <= 1);
-                Debug.Assert(location.Count == 0 || endpoints.Count == 0);
-            }
-
-            Debug.Assert(!IsRelative || Endpoints.Count == 0);
-            Debug.Assert(location.Count == 0 || location[0].Length > 0); // first segment cannot be empty
-            Debug.Assert(!Endpoints.Any(endpoint => endpoint.Protocol != Protocol));
-            Debug.Assert(invocationTimeout != TimeSpan.Zero);
+            Debug.Assert(!IsFixed);
+            Interlocked.CompareExchange(ref _connection, null, connection);
         }
 
-        // Constructor for fixed references.
-        private Reference(
-            IReadOnlyDictionary<string, string> context, // already a copy provided by Ice
-            Encoding encoding,
-            string facet,
-            Connection fixedConnection,
-            Identity identity,
-            IReadOnlyList<InvocationInterceptor> invocationInterceptors, // already a copy provided by Ice
-            TimeSpan? invocationTimeout,
-            bool oneway)
+        private async ValueTask<(List<Endpoint> Endpoints, TimeSpan EndpointsAge)> ComputeEndpointsAsync(
+            TimeSpan endpointsMaxAge,
+            bool oneway,
+            CancellationToken cancel)
         {
-            Communicator = fixedConnection.Communicator;
-            Label = null;
-            Context = context;
-            Encoding = encoding;
-            Endpoints = Array.Empty<Endpoint>();
-            Facet = facet;
-            Identity = identity;
-            InvocationInterceptors = invocationInterceptors;
-            _invocationTimeout = invocationTimeout;
-            IsFixed = true;
-            IsOneway = oneway;
-            IsRelative = false;
-            Location = ImmutableArray<string>.Empty;
-            _locatorCacheTimeout = null;
-            LocatorInfo = null;
-            Protocol = fixedConnection.Protocol;
+            Debug.Assert(!IsFixed);
 
-            _connection = fixedConnection;
-            Debug.Assert(invocationTimeout != TimeSpan.Zero);
+            if (ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            {
+                return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
+            }
+
+            IReadOnlyList<Endpoint>? endpoints = ImmutableArray<Endpoint>.Empty;
+            TimeSpan endpointsAge = TimeSpan.Zero;
+
+            // Get the proxy's endpoint or query the locator to get endpoints
+            if (Endpoints.Count > 0)
+            {
+                endpoints = Endpoints.ToList();
+            }
+            else if (LocatorInfo != null)
+            {
+                (endpoints, endpointsAge) =
+                    await LocatorInfo.ResolveIndirectProxyAsync(this, endpointsMaxAge, cancel).ConfigureAwait(false);
+            }
+
+            // Apply overrides and filter endpoints
+            var filteredEndpoints = endpoints.Where(endpoint =>
+            {
+                // Filter out opaque and universal endpoints
+                if (endpoint is OpaqueEndpoint || endpoint is UniversalEndpoint)
+                {
+                    return false;
+                }
+
+                // With ice1 when secure endpoint is required filter out all non-secure endpoints.
+                if (Protocol == Protocol.Ice1 && PreferNonSecure == NonSecure.Never && !endpoint.IsAlwaysSecure)
+                {
+                    return false;
+                }
+
+                // Filter out datagram endpoints when oneway is false.
+                if (endpoint.IsDatagram)
+                {
+                    return oneway;
+                }
+
+                return true;
+            }).ToList();
+
+            if (filteredEndpoints.Count == 0)
+            {
+                throw new NoEndpointException(ToString());
+            }
+
+            if (filteredEndpoints.Count > 1)
+            {
+                filteredEndpoints = Communicator.OrderEndpointsByTransportFailures(filteredEndpoints);
+            }
+            return (filteredEndpoints, endpointsAge);
         }
 
         private async Task<IncomingResponseFrame> PerformInvokeAsync(
@@ -1884,6 +1669,198 @@ namespace ZeroC.Ice
                 sb.Append("\nexception = ");
                 sb.Append(exception?.ToString() ?? "\nexception = remote exception");
                 Communicator.Logger.Trace(TraceLevels.RetryCategory, sb.ToString());
+            }
+        }
+
+        private (IReadOnlyList<Endpoint> NewEndpoints, IReadOnlyList<string>? NewLocation, LocatorInfo? LocatorInfo) ValidateCloneArgs(
+            bool? cacheConnection,
+            bool clearLabel,
+            bool clearLocator,
+            IEnumerable<Endpoint>? endpoints,
+            Connection? fixedConnection,
+            TimeSpan? invocationTimeout,
+            object? label,
+            IEnumerable<string>? location,
+            ILocatorPrx? locator,
+            TimeSpan? locatorCacheTimeout,
+            bool? preferExistingConnection,
+            NonSecure? preferNonSecure,
+            bool? relative)
+        {
+            // Check for incompatible arguments
+            if (locator != null && clearLocator)
+            {
+                throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
+            }
+
+            if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
+            {
+                throw new ArgumentException("0 is not a valid value for invocationTimeout", nameof(invocationTimeout));
+            }
+
+            if (IsFixed || fixedConnection != null)
+            {
+                // Make sure that all arguments incompatible with fixed references are null
+                if (cacheConnection != null)
+                {
+                    throw new ArgumentException(
+                        "cannot change the connection caching configuration of a fixed proxy",
+                        nameof(cacheConnection));
+                }
+                if (endpoints != null)
+                {
+                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(endpoints));
+                }
+                if (clearLabel)
+                {
+                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(clearLabel));
+                }
+                else if (label != null)
+                {
+                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(label));
+                }
+                if (location != null)
+                {
+                    throw new ArgumentException("cannot change the location of a fixed proxy", nameof(location));
+                }
+                if (locator != null)
+                {
+                    throw new ArgumentException("cannot change the locator of a fixed proxy", nameof(locator));
+                }
+                else if (clearLocator)
+                {
+                    throw new ArgumentException("cannot change the locator of a fixed proxy", nameof(clearLocator));
+                }
+                if (locatorCacheTimeout != null)
+                {
+                    throw new ArgumentException(
+                        "cannot set locator cache timeout on a fixed proxy",
+                        nameof(locatorCacheTimeout));
+                }
+                if (preferExistingConnection != null)
+                {
+                    throw new ArgumentException(
+                        "cannot change the prefer-existing-connection configuration of a fixed proxy",
+                        nameof(preferExistingConnection));
+                }
+                if (preferNonSecure != null)
+                {
+                    throw new ArgumentException(
+                        "cannot change the prefer non-secure configuration of a fixed proxy",
+                        nameof(preferNonSecure));
+                }
+                if (relative ?? false)
+                {
+                    throw new ArgumentException("cannot convert a fixed proxy into a relative proxy", nameof(relative));
+                }
+                return (ImmutableList<Endpoint>.Empty, null, null);
+            }
+            else
+            {
+                // Non-fixed reference
+                if (endpoints?.FirstOrDefault(endpoint => endpoint.Protocol != Protocol) is Endpoint endpoint)
+                {
+                    throw new ArgumentException($"the protocol of endpoint `{endpoint}' is not {Protocol}",
+                                                nameof(endpoints));
+                }
+
+                if (location != null && location.Any(segment => segment.Length == 0))
+                {
+                    throw new ArgumentException($"invalid location `{location}' with an empty segment",
+                                                nameof(location));
+                }
+
+                if (label != null && clearLabel)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
+                }
+
+                if (locator != null && clearLocator)
+                {
+                    throw new ArgumentException($"cannot set both {nameof(locator)} and {nameof(clearLocator)}");
+                }
+
+                if (locatorCacheTimeout != null &&
+                    locatorCacheTimeout < TimeSpan.Zero && locatorCacheTimeout != Timeout.InfiniteTimeSpan)
+                {
+                    throw new ArgumentException(
+                        $"invalid {nameof(locatorCacheTimeout)}: {locatorCacheTimeout}", nameof(locatorCacheTimeout));
+                }
+
+                IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableArray();
+                IReadOnlyList<string>? newLocation = location?.ToImmutableArray();
+
+                if (Protocol == Protocol.Ice1)
+                {
+                    if (newLocation?.Count > 0 && newEndpoints?.Count > 0)
+                    {
+                        throw new ArgumentException(
+                            @$"cannot set both a non-empty {nameof(location)} and a non-empty {nameof(endpoints)
+                            } on an ice1 proxy",
+                            nameof(location));
+                    }
+
+                    if (newLocation?.Count > 0)
+                    {
+                        if (newLocation.Count > 1)
+                        {
+                            throw new ArgumentException(
+                                $"{nameof(location)} is limited to a single segment for ice1 proxies",
+                                nameof(location));
+                        }
+                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
+                    }
+                    else if (newEndpoints?.Count > 0)
+                    {
+                        newLocation = ImmutableArray<string>.Empty; // make sure the clone's location is empty
+                    }
+                }
+
+                if (relative ?? IsRelative)
+                {
+                    if (newEndpoints?.Count > 0)
+                    {
+                        throw new ArgumentException("a relative proxy cannot have endpoints", nameof(relative));
+                    }
+                    else
+                    {
+                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
+                    }
+                }
+
+                newEndpoints ??= Endpoints;
+
+                LocatorInfo? locatorInfo = LocatorInfo;
+                if (locator != null)
+                {
+                    if (newEndpoints.Count > 0)
+                    {
+                        throw new ArgumentException($"cannot set {nameof(locator)} on a direct proxy",
+                                                    nameof(locator));
+                    }
+
+                    locatorInfo = Communicator.GetLocatorInfo(locator);
+                }
+                else if (clearLocator || newEndpoints.Count > 0)
+                {
+                    locatorInfo = null;
+                }
+
+                if (locatorCacheTimeout != null)
+                {
+                    if (newEndpoints.Count > 0)
+                    {
+                        throw new ArgumentException($"cannot set {nameof(locatorCacheTimeout)} on a direct proxy",
+                                                    nameof(locatorCacheTimeout));
+                    }
+                    if (locatorInfo == null)
+                    {
+                        throw new ArgumentException($"cannot set {nameof(locatorCacheTimeout)} without a locator",
+                                                    nameof(locatorCacheTimeout));
+                    }
+                }
+
+                return (newEndpoints, newLocation, locatorInfo);
             }
         }
     }

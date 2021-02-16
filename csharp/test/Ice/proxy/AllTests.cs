@@ -406,8 +406,7 @@ namespace ZeroC.Ice.Test.Proxy
             // TODO: why are we testing this here?
             try
             {
-                await using var badOa =
-                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = " : " });
+                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = " : " });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -416,8 +415,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa =
-                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = "tcp: "});
+                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = "tcp: "});
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -426,8 +424,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa =
-                    new ObjectAdapter(communicator, "BadAdapter", new ObjectAdapterOptions { Endpoints = ":tcp" });
+                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = ":tcp" });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -1034,8 +1031,7 @@ namespace ZeroC.Ice.Test.Proxy
                 // The Clone(encoding: Encoding.V20) are only for ice1; with ice2, it's the default encoding. We need
                 // to marshal all relative proxies with the 2.0 encoding.
 
-                await using ObjectAdapter oa = new ObjectAdapter(communicator,
-                     options: new ObjectAdapterOptions { Protocol = helper.Protocol });
+                await using ObjectAdapter oa = new ObjectAdapter(communicator, new() { Protocol = helper.Protocol });
                 (await cl.GetConnectionAsync()).Adapter = oa;
                 ICallbackPrx callback = oa.AddWithUUID(
                     new Callback((relativeTest, current, cancel) =>

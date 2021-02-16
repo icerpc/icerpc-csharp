@@ -67,10 +67,9 @@ namespace IceRpc.Tests.Internal
             string endpoint = protocol == Protocol.Ice2 ?
                 $"ice+{endpointTransport}://localhost:{port}" : $"{endpointTransport} -h localhost -p {port}";
 
-            _adapter = new ObjectAdapter(
+            _adapter = new(
                 _serverCommunicator,
-                "TestAdapter-0",
-                new ObjectAdapterOptions()
+                new()
                 {
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                     ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,

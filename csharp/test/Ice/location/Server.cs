@@ -12,9 +12,7 @@ namespace ZeroC.Ice.Test.Location
         {
             // Register the server manager. The server manager creates a new 'server' (a server isn't a different
             // process, it's just a new communicator and object adapter).
-            await using var adapter = new ObjectAdapter(Communicator,
-                "ServerManagerAdapter",
-                new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             // We also register a sample server locator which implements the locator interface, this locator is used by
             // the clients and the 'servers' created with the server manager interface.

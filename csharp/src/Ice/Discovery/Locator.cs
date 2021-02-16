@@ -158,21 +158,6 @@ namespace ZeroC.Ice.Discovery
                 throw new ArgumentException("options.ColocationScope cannot be set to None", nameof(options));
             }
 
-            var multicastOptions = new ObjectAdapterOptions
-            {
-                AcceptNonSecure = NonSecure.Always,
-                ColocationScope = options.ColocationScope,
-                Endpoints = options.MulticastEndpoints,
-            };
-
-            var replyOptions = new ObjectAdapterOptions
-            {
-                AcceptNonSecure = NonSecure.Always,
-                ColocationScope = options.ColocationScope,
-                Endpoints = options.ReplyEndpoints,
-                ServerName = options.ReplyServerName
-            };
-
             _timeout = options.Timeout;
             if (_timeout == Timeout.InfiniteTimeSpan)
             {
@@ -212,16 +197,31 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = new(communicator,
-                                  options: new ObjectAdapterOptions { ColocationScope = options.ColocationScope });
+            _locatorAdapter = new(communicator, options: new() { ColocationScope = options.ColocationScope });
             _locatorAdapter.Add(locatorIdentity, this);
 
             // Setup locator registry.
             var registryServant = new LocatorRegistry(communicator);
             _registry = _locatorAdapter.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
 
-            _multicastAdapter = new(communicator, "Discovery.Multicast", multicastOptions);
-            _replyAdapter = new(communicator, "Discovery.Reply", replyOptions);
+            _multicastAdapter = new ObjectAdapter(communicator,
+                                                  new()
+                                                  {
+                                                      AcceptNonSecure = NonSecure.Always,
+                                                      ColocationScope = options.ColocationScope,
+                                                      Endpoints = options.MulticastEndpoints,
+                                                      Name = "Discovery.Multicast",
+                                                  });
+
+            _replyAdapter = new ObjectAdapter(communicator,
+                                              new()
+                                              {
+                                                  AcceptNonSecure = NonSecure.Always,
+                                                  ColocationScope = options.ColocationScope,
+                                                  Endpoints = options.ReplyEndpoints,
+                                                  Name = "Discovery.Reply",
+                                                  ServerName = options.ReplyServerName
+                                              });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
             IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);

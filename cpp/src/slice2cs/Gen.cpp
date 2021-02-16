@@ -2364,6 +2364,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     InterfaceList bases = p->bases();
 
     string name = interfaceName(p) + "Prx";
+    string impl = "_" + name.substr(1);
+
     //
     // Proxy static methods
     //
@@ -2371,9 +2373,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new ZeroC.Ice.ProxyFactory<" << name << "> Factory =";
     _out.inc();
-    _out << nl << "(reference) => new _" << p->name() << "Prx(reference);";
+    _out << nl << "options => new " << impl << "(options);";
     _out.dec();
-
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"ZeroC.Ice.InputStreamReader{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
@@ -2399,28 +2400,27 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, ZeroC.Ice.Communicator communicator) => "
-         << "new _" << p->name() << "Prx(ZeroC.Ice.Reference.Parse(s, communicator));";
+         << "ZeroC.Ice.ObjectPrx.Parse(s, communicator, Factory);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
          << "\"/> equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
     _out << nl << "/// <param name=\"communicator\">The communicator for the new proxy</param>";
-    _out << nl << "/// <param name=\"prx\">When this method returns it contains the new proxy, if the conversion "
+    _out << nl << "/// <param name=\"proxy\">When this method returns it contains the new proxy, if the conversion "
          << "succeeded or null if the conversion failed.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
-    _out << nl << "public static bool TryParse("
-         << "string s, ZeroC.Ice.Communicator communicator, "
-         << "out " <<name << "? prx)";
+    _out << nl << "public static bool TryParse(string s, ZeroC.Ice.Communicator communicator, out "
+        << name << "? proxy)";
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "prx = new _" << p->name() << "Prx(ZeroC.Ice.Reference.Parse(s, communicator));";
+    _out << nl << "proxy = ZeroC.Ice.ObjectPrx.Parse(s, communicator, Factory);";
     _out << eb;
-    _out << nl << "catch (global::System.Exception)";
+    _out << nl << "catch";
     _out << sb;
-    _out << nl << "prx = null;";
+    _out << nl << "proxy = null;";
     _out << nl << "return false;";
     _out << eb;
     _out << nl << "return true;";
@@ -2428,26 +2428,21 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
 
     _out << eb;
 
-    //
-    // Proxy instance
-    //
+    // Proxy class
     _out << sp;
-    _out << nl << "internal sealed class _" << p->name() << "Prx : ZeroC.Ice.ObjectPrx, "
-         << name;
+    _out << nl << "internal sealed class " << impl << " : ZeroC.Ice.ObjectPrx, " << name;
     _out << sb;
-
-    _out << sp;
-    _out << nl << "internal _" << p->name() << "Prx(ZeroC.Ice.Reference reference)";
+    _out << nl << "protected override ZeroC.Ice.ObjectPrx IceClone(ZeroC.Ice.ObjectPrxOptions options) =>";
     _out.inc();
-    _out << nl << ": base(reference)";
+    _out << nl << "new " << impl << "(options);";
+    _out.dec();
+    _out << sp;
+    _out << nl << "internal " << impl << "(ZeroC.Ice.ObjectPrxOptions options)";
+    _out.inc();
+    _out << nl << ": base(options)";
     _out.dec();
     _out << sb;
     _out << eb;
-
-    _out << sp;
-    _out << nl << "ZeroC.Ice.IObjectPrx ZeroC.Ice.IObjectPrx.IceClone(ZeroC.Ice.Reference reference) => new _"
-         << p->name() << "Prx(reference);";
-
     _out << eb;
 }
 
