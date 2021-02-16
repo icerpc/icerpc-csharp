@@ -276,28 +276,31 @@ namespace ZeroC.Ice
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            try
+            using (StartScope())
             {
-                Task goAwayTask;
-                lock (_mutex)
+                try
                 {
-                    if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
+                    Task goAwayTask;
+                    lock (_mutex)
                     {
-                        SetState(ConnectionState.Closing, exception);
-                        _closeTask ??= PerformGoAwayAsync(exception);
-                        Debug.Assert(_closeTask != null);
+                        if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
+                        {
+                            SetState(ConnectionState.Closing, exception);
+                            _closeTask ??= PerformGoAwayAsync(exception);
+                            Debug.Assert(_closeTask != null);
+                        }
+                        goAwayTask = _closeTask ?? AbortAsync(exception);
                     }
-                    goAwayTask = _closeTask ?? AbortAsync(exception);
+                    await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
                 }
-                await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore
-            }
-            catch (Exception ex)
-            {
-                Debug.Assert(false, $"unexpected exception {ex}");
+                catch (OperationCanceledException)
+                {
+                    // Ignore
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception {ex}");
+                }
             }
 
             async Task PerformGoAwayAsync(Exception exception)
@@ -355,47 +358,50 @@ namespace ZeroC.Ice
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            try
+            using (StartScope())
             {
-                // Initialize the transport.
-                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
-
-                if (!Endpoint.IsDatagram)
+                try
                 {
-                    // Create the control stream and send the initialize frame
-                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    // Initialize the transport.
+                    await Socket.InitializeAsync(cancel).ConfigureAwait(false);
 
-                    // Wait for the peer control stream to be accepted and read the initialize frame
-                    SocketStream peerControlStream =
-                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-
-                    // Setup a task to wait for the close frame on the peer's control stream.
-                    _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                 default);
-                }
-
-                Socket.Initialized();
-
-                lock (_mutex)
-                {
-                    if (_state >= ConnectionState.Closed)
+                    if (!Endpoint.IsDatagram)
                     {
-                        // This can occur if the communicator or object adapter is disposed while the connection
-                        // initializes.
-                        throw new ConnectionClosedException(isClosedByPeer: false,
-                                                            RetryPolicy.AfterDelay(TimeSpan.Zero));
-                    }
-                    SetState(ConnectionState.Active);
+                        // Create the control stream and send the initialize frame
+                        _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
-                    // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
-                    // synchronously new frames from this thread.
-                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                        // Wait for the peer control stream to be accepted and read the initialize frame
+                        SocketStream peerControlStream =
+                            await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+
+                        // Setup a task to wait for the close frame on the peer's control stream.
+                        _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
+                                     default);
+                    }
+
+                    Socket.Initialized();
+
+                    lock (_mutex)
+                    {
+                        if (_state >= ConnectionState.Closed)
+                        {
+                            // This can occur if the communicator or object adapter is disposed while the connection
+                            // initializes.
+                            throw new ConnectionClosedException(isClosedByPeer: false,
+                                                                RetryPolicy.AfterDelay(TimeSpan.Zero));
+                        }
+                        SetState(ConnectionState.Active);
+
+                        // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
+                        // synchronously new frames from this thread.
+                        _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _ = AbortAsync(ex);
-                throw;
+                catch (Exception ex)
+                {
+                    _ = AbortAsync(ex);
+                    throw;
+                }
             }
         }
 
