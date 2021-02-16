@@ -12,10 +12,6 @@ namespace ZeroC.Ice
             GetEventId(DispatchEvent.DispatchException),
             "dispatch exception");
 
-        private static readonly Func<ILogger, string, Identity, string, IDisposable> _startDispatchScope =
-            LoggerMessage.DefineScope<string, Identity, string>(
-                "dispatching operation `{Operation}' on object with identity `{Identity}#{Facet}' invoked from remote endpoint `TODO'");
-
         /// <summary>This scope is activated when the connection is used to read or write data.</summary>
         private static readonly Func<ILogger, long, string, bool, Transport, Protocol, IDisposable> _collocatedConnectionScope =
             LoggerMessage.DefineScope<long, string, bool, Transport, Protocol>(
@@ -26,15 +22,6 @@ namespace ZeroC.Ice
             LoggerMessage.DefineScope<string, string, Transport, Protocol>(
                 "connection: local address = {LocalAddress}, remote address = {RemoteAddress}, " +
                 "transport = {Transport}, protocol = {Protocol}");
-
-        // TODO pass identityAndFacet as a string
-        // TODO pass remote endpoint
-        internal static IDisposable StartDispatchScope(
-            this ILogger logger,
-            string operation,
-            Identity identity,
-            string facet) =>
-            _startDispatchScope(logger, operation, identity, facet);
 
         internal static IDisposable StartCollocatedConnectionScope(
             this ILogger logger,

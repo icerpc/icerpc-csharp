@@ -103,7 +103,10 @@ namespace ZeroC.Ice
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    Logger.LogSendingRequest(request);
+                    using (Logger.StartRequestScope(Id, request))
+                    {
+                        Logger.LogSendingRequest(request);
+                    }
                 }
                 else
                 {

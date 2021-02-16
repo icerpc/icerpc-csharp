@@ -676,6 +676,18 @@ namespace ZeroC.Ice
                 GetEventId(Event.UnknownProperty),
                 "found unknown properties {Properties} for proxy {Proxy}");
 
+        private static readonly Action<ILogger, string, Exception> _warnProxySecureOptionHasNoEffect =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                GetEventId(Event.WarnProxySecureOptionHasNoEffect),
+                "warning while parsing {Proxy}: the -s proxy option no longer has any effect");
+
+        private static readonly Action<ILogger, string, Exception> _warnDeprecatedProperty =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                GetEventId(Event.WarnDeprecatedProperty),
+                "deprecated property {Property}");
+
         internal static void LogDeprecatedProperty(this ILogger logger, string property) =>
             _deprecatedProperty(logger, property, null!);
 
@@ -688,6 +700,11 @@ namespace ZeroC.Ice
         internal static void LogUnknownProxyProperty(this ILogger logger, string proxy, IReadOnlyList<string> properties) =>
             _unknownProxyProperty(logger, proxy, properties, null!);
 
+        internal static void LogWarnDeprecatedProperty(this ILogger logger, string property) =>
+            _warnDeprecatedProperty(logger, property, null!);
+        internal static void LogWarnProxySecureOptionHasNoEffect(this ILogger logger, string proxy) =>
+            _warnProxySecureOptionHasNoEffect(logger, proxy, null!);
+
         private static EventId GetEventId(Event e) => new EventId((int)e, e.ToString());
 
         private enum Event
@@ -695,7 +712,9 @@ namespace ZeroC.Ice
             DeprecatedProperty,
             DeprecatedPropertyBy,
             UnknownProperty,
-            UnknownProxyProperty
+            UnknownProxyProperty,
+            WarnProxySecureOptionHasNoEffect,
+            WarnDeprecatedProperty,
         }
     }
 
