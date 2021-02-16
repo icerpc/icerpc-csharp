@@ -393,10 +393,7 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                using (_socket.StartScope())
-                {
-                    Logger.LogReceivedResponse(Id, response);
-                }
+                Logger.LogReceivedResponse(Id, response);
             }
 
             return response;
@@ -439,10 +436,7 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    using (_socket.StartScope())
-                    {
-                        Logger.LogSendingIce2GoAwayFrame();
-                    }
+                    Logger.LogSendingIce2GoAwayFrame();
                 }
             }
         }
@@ -486,10 +480,7 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    using (_socket.StartScope())
-                    {
-                        Logger.LogSendingIce2InitializeFrame();
-                    }
+                    Logger.LogSendingIce2InitializeFrame();
                 }
             }
         }
@@ -613,20 +604,14 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                using (_socket.StartScope())
+                if (frame is OutgoingRequestFrame request)
                 {
-                    if (frame is OutgoingRequestFrame request)
-                    {
-                        using (Logger.StartRequestScope(Id, request))
-                        {
-                            Logger.LogSendingRequest(request);
-                        }
-                    }
-                    else
-                    {
-                        Debug.Assert(frame is OutgoingResponseFrame);
-                        Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
-                    }
+                    Logger.LogSendingRequest(request);
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
                 }
             }
         }

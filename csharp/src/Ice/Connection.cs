@@ -130,7 +130,8 @@ namespace ZeroC.Ice
             }
         }
 
-        private protected MultiStreamSocket Socket { get; }
+        // This property should be private protected, it's internal instead for testing purpose.
+        internal MultiStreamSocket Socket { get; }
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private volatile ObjectAdapter? _adapter;
@@ -352,63 +353,13 @@ namespace ZeroC.Ice
             }
         }
 
-        internal void Monitor()
-        {
-            lock (_mutex)
-            {
-                if (_state != ConnectionState.Active)
-                {
-                    return;
-                }
-
-                TimeSpan idleTime = Time.Elapsed - Socket.LastActivity;
-
-                if (idleTime > IdleTimeout / 4 && (KeepAlive || Socket.IncomingStreamCount > 0))
-                {
-                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
-                    // sooner than really needed is safer to ensure that the receiver will receive the ping in
-                    // time. Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't
-                    // enough since Monitor is called only every (IdleTimeout / 2) period. We also send a ping if
-                    // dispatch are in progress to notify the peer that we're still alive.
-                    //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because
-                    // Monitor is still only called every (IdleTimeout / 2) period.
-                    using (Socket.StartScope())
-                    {
-                        _ = Socket.PingAsync(CancellationToken.None);
-                    }
-                }
-
-                if (idleTime > IdleTimeout)
-                {
-                    using (Socket.StartScope())
-                    {
-                        if (Socket.OutgoingStreamCount > 0)
-                        {
-                            // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
-                            // ACM activity in the last period.
-                            _ = AbortAsync(new ConnectionClosedException("connection timed out",
-                                                                         isClosedByPeer: false,
-                                                                         RetryPolicy.AfterDelay(TimeSpan.Zero)));
-                        }
-                        else
-                        {
-                            // The connection is idle, close it.
-                            _ = GoAwayAsync(new ConnectionClosedException("connection idle",
-                                                                          isClosedByPeer: false,
-                                                                          RetryPolicy.AfterDelay(TimeSpan.Zero)));
-                        }
-                    }
-                }
-            }
-        }
-
         internal async Task InitializeAsync(CancellationToken cancel)
         {
             try
             {
                 // Initialize the transport.
                 await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+
                 if (!Endpoint.IsDatagram)
                 {
                     // Create the control stream and send the initialize frame
@@ -441,16 +392,55 @@ namespace ZeroC.Ice
                     _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                var ex = new ConnectTimeoutException(RetryPolicy.AfterDelay(TimeSpan.Zero));
-                _ = AbortAsync(ex);
-                throw ex;
-            }
             catch (Exception ex)
             {
                 _ = AbortAsync(ex);
                 throw;
+            }
+        }
+
+        internal void Monitor()
+        {
+            lock (_mutex)
+            {
+                if (_state != ConnectionState.Active)
+                {
+                    return;
+                }
+
+                TimeSpan idleTime = Time.Elapsed - Socket.LastActivity;
+
+                if (idleTime > IdleTimeout / 4 && (KeepAlive || Socket.IncomingStreamCount > 0))
+                {
+                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
+                    // sooner than really needed is safer to ensure that the receiver will receive the ping in
+                    // time. Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't
+                    // enough since Monitor is called only every (IdleTimeout / 2) period. We also send a ping if
+                    // dispatch are in progress to notify the peer that we're still alive.
+                    //
+                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because
+                    // Monitor is still only called every (IdleTimeout / 2) period.
+                    _ = Socket.PingAsync(CancellationToken.None);
+                }
+
+                if (idleTime > IdleTimeout)
+                {
+                    if (Socket.OutgoingStreamCount > 0)
+                    {
+                        // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
+                        // ACM activity in the last period.
+                        _ = AbortAsync(new ConnectionClosedException("connection timed out",
+                                                                     isClosedByPeer: false,
+                                                                     RetryPolicy.AfterDelay(TimeSpan.Zero)));
+                    }
+                    else
+                    {
+                        // The connection is idle, close it.
+                        _ = GoAwayAsync(new ConnectionClosedException("connection idle",
+                                                                      isClosedByPeer: false,
+                                                                      RetryPolicy.AfterDelay(TimeSpan.Zero)));
+                    }
+                }
             }
         }
 

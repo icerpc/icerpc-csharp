@@ -17,6 +17,8 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         public static async Task WaitAsync(this Task task, CancellationToken cancel)
         {
+            cancel.ThrowIfCancellationRequested();
+
             // Optimization: if the given task is already completed or the cancellation token is not cancelable,
             // not need to wait for these two.
             if (cancel.CanBeCanceled && !task.IsCompleted)
@@ -32,6 +34,8 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         internal static async ValueTask<T> WaitAsync<T>(this ValueTask<T> task, CancellationToken cancel)
         {
+            cancel.ThrowIfCancellationRequested();
+
             // Optimization: if the given task is already completed or the cancellation token is not cancelable,
             // not need to wait for these two.
             if (cancel.CanBeCanceled && !task.IsCompleted)
@@ -52,6 +56,8 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         internal static async Task<T> WaitAsync<T>(this Task<T> task, CancellationToken cancel)
         {
+            cancel.ThrowIfCancellationRequested();
+
             // Optimization: if the given task is already completed or the cancellation token is not cancelable,
             // not need to wait for these two.
             if (cancel.CanBeCanceled && !task.IsCompleted)

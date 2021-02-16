@@ -15,11 +15,11 @@ namespace ZeroC.Ice
 
         public override string? this[string option] => option == "resource" ? Resource : base[option];
 
+        protected internal override bool HasOptions => Data.Options.Length > 0 || base.HasOptions;
+
         /// <summary>A URI specifying the resource associated with this endpoint. The value is passed as the target for
         /// GET in the WebSocket upgrade request.</summary>
-        private string Resource => Data.Options.Length > 0 ? Data.Options[0] : "/";
-
-        protected internal override bool HasOptions => Data.Options.Length > 0 || base.HasOptions;
+        internal string Resource => Data.Options.Length > 0 ? Data.Options[0] : "/";
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
@@ -165,13 +165,11 @@ namespace ZeroC.Ice
             return new WSEndpoint(data, options, communicator, oaEndpoint);
         }
 
-        internal override SingleStreamSocket CreateSocket(
-            EndPoint addr,
-            bool preferNonSecure) =>
-            new WSSocket(Communicator, base.CreateSocket(addr, preferNonSecure), Host, Resource);
+        internal override SingleStreamSocket CreateSocket(EndPoint addr) =>
+            new WSSocket(Communicator, base.CreateSocket(addr));
 
-        internal override SingleStreamSocket CreateSocket(Socket socket, string adapterName, bool preferNonSecure) =>
-            new WSSocket(Communicator, base.CreateSocket(socket, adapterName, preferNonSecure));
+        internal override SingleStreamSocket CreateSocket(Socket socket) =>
+            new WSSocket(Communicator, base.CreateSocket(socket));
 
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,

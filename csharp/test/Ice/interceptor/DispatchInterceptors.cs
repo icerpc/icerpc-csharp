@@ -20,7 +20,7 @@ namespace ZeroC.Ice.Test.Interceptor
 
         public static async ValueTask ActivateAsync(ObjectAdapter adapter)
         {
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
+            adapter.Use(async (request, current, next, cancel) =>
             {
                 if (current.Context.TryGetValue("raiseBeforeDispatch", out string? context))
                 {
@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     }
                 }
 
-                OutgoingResponseFrame response = await next(request, current, cancel);
+                OutgoingResponseFrame response = await next();
 
                 if (current.Context.TryGetValue("raiseAfterDispatch", out context))
                 {
@@ -51,15 +51,15 @@ namespace ZeroC.Ice.Test.Interceptor
                 return response;
             });
 
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
-                {
+            adapter.Use(async (request, current, next, cancel) =>
+            {
                     if (current.Operation == "addWithRetry")
                     {
                         for (int i = 0; i < 10; ++i)
                         {
                             try
                             {
-                                await next(request, current, cancel).ConfigureAwait(false);
+                                await next();
                                 TestHelper.Assert(false);
                             }
                             catch (RetryException)
@@ -69,24 +69,24 @@ namespace ZeroC.Ice.Test.Interceptor
                         }
                         current.Context["retry"] = "no";
                     }
-                    return await next(request, current, cancel);
-                });
+                    return await next();
+            });
 
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
+            adapter.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Context.TryGetValue("retry", out string? context) && context.Equals("yes"))
                     {
                         // Retry the dispatch to ensure that abandoning the result of the dispatch works fine and is
                         // thread-safe
-                        ValueTask<OutgoingResponseFrame> vt1 = next(request, current, cancel);
-                        ValueTask<OutgoingResponseFrame> vt2 = next(request, current, cancel);
-                        await vt1.ConfigureAwait(false);
-                        return await vt2.ConfigureAwait(false);
+                        ValueTask<OutgoingResponseFrame> vt1 = next();
+                        ValueTask<OutgoingResponseFrame> vt2 = next();
+                        await vt1;
+                        return await vt2;
                     }
-                    return await next(request, current, cancel);
+                    return await next();
                 });
 
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
+            adapter.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "opWithBinaryContext" && request.Protocol == Protocol.Ice2)
                     {
@@ -122,23 +122,23 @@ namespace ZeroC.Ice.Test.Interceptor
                             TestHelper.Assert(Enumerable.Range(0, 10).Select(i => $"string-{i}").SequenceEqual(s2));
                         }
                     }
-                    return await next(request, current, cancel);
+                    return await next();
                 });
 
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(async (request, current, next, cancel) =>
+            adapter.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "op1")
                     {
                         LocalContext.Value = int.Parse(current.Context["local-user"]);
                         if (request.Protocol == Protocol.Ice2)
                         {
-                            OutgoingResponseFrame response = await next(request, current, cancel);
+                            OutgoingResponseFrame response = await next();
                             response.BinaryContextOverride.Add(110, ostr => ostr.WriteInt(110));
                             response.BinaryContextOverride.Add(120, ostr => ostr.WriteInt(120));
                             return response;
                         }
                     }
-                    return await next(request, current, cancel);
+                    return await next();
                 });
 
             await adapter.ActivateAsync();

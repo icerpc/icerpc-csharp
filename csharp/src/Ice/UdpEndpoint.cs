@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
@@ -131,12 +133,11 @@ namespace ZeroC.Ice
         }
 
         protected internal override Connection CreateConnection(
-            bool secureOnly,
             IPEndPoint address,
-            object? label)
+            object? label,
+            CancellationToken cancel)
         {
-            Debug.Assert(secureOnly == false);
-            UdpSocket socket = new(Communicator, address, SourceAddress, MulticastInterface, MulticastTtl);
+            UdpSocket socket = new(Communicator, address, MulticastInterface, MulticastTtl);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, adapter: null), label, adapter: null);
         }
 

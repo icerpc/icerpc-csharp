@@ -58,10 +58,22 @@ namespace ZeroC.Ice
         /// <summary>Aborts the socket.</summary>
         public abstract void Abort();
 
+        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
+        /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract ValueTask AcceptAsync(CancellationToken cancel);
+
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
         public abstract ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel);
+
+        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
+        /// to establish the connection and perform  blocking socket level initialization (TLS handshake, etc).
+        /// </summary>
+        /// <param name="secure">Establish a secure connection.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract ValueTask ConnectAsync(bool secure, CancellationToken cancel);
 
         /// <summary>Closes the socket.</summary>
         /// <param name="exception">The exception for which the socket is closed.</param>
@@ -136,10 +148,7 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                using (StartScope())
-                {
-                    Logger.LogReceivedData(size, Endpoint.Transport);
-                }
+                Logger.LogReceivedData(size, Endpoint.Transport);
             }
         }
 
@@ -181,10 +190,7 @@ namespace ZeroC.Ice
 
             if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
             {
-                using (StartScope())
-                {
-                    Logger.LogSentData(size, Endpoint.Transport);
-                }
+                Logger.LogSentData(size, Endpoint.Transport);
             }
         }
 
@@ -207,34 +213,31 @@ namespace ZeroC.Ice
 
         internal void Abort(Exception exception)
         {
-            using (StartScope())
+            // Abort the transport.
+            Abort();
+
+            // Consider the abort as graceful if the streams were already aborted.
+            bool graceful;
+            lock (_mutex)
             {
-                // Abort the transport.
-                Abort();
+                graceful = _streamsAborted;
+            }
 
-                // Consider the abort as graceful if the streams were already aborted.
-                bool graceful;
-                lock (_mutex)
+            // Abort the streams if not already done. It's important to call this again even if has already been
+            // called previously by graceful connection closure. Not all the streams might have been aborted and
+            // at this point we want to make sure all the streams are aborted.
+            AbortStreams(exception);
+
+            if (Logger.IsEnabled(LogLevel.Debug))
+            {
+                // Trace the cause of unexpected connection closures
+                if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
                 {
-                    graceful = _streamsAborted;
+                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
                 }
-
-                // Abort the streams if not already done. It's important to call this again even if has already been
-                // called previously by graceful connection closure. Not all the streams might have been aborted and
-                // at this point we want to make sure all the streams are aborted.
-                AbortStreams(exception);
-
-                if (Logger.IsEnabled(LogLevel.Debug))
+                else
                 {
-                    // Trace the cause of unexpected connection closures
-                    if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
-                    {
-                        Logger.LogConnectionClosed(Endpoint.Transport, exception);
-                    }
-                    else
-                    {
-                        Logger.LogConnectionClosed(Endpoint.Transport);
-                    }
+                    Logger.LogConnectionClosed(Endpoint.Transport);
                 }
             }
         }
@@ -309,29 +312,26 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                using (StartScope())
+                if (Endpoint.IsDatagram)
                 {
-                    if (Endpoint.IsDatagram)
+                    if (IsIncoming)
                     {
-                        if (IsIncoming)
-                        {
-                            Logger.LogStartReceivingDatagrams(Endpoint.Transport);
-                        }
-                        else
-                        {
-                            Logger.LogStartSendingDatagrams(Endpoint.Transport);
-                        }
+                        Logger.LogStartReceivingDatagrams(Endpoint.Transport);
                     }
                     else
                     {
-                        if (IsIncoming)
-                        {
-                            Logger.LogConnectionAccepted(Endpoint.Transport);
-                        }
-                        else
-                        {
-                            Logger.LogConnectionEstablished(Endpoint.Transport);
-                        }
+                        Logger.LogStartSendingDatagrams(Endpoint.Transport);
+                    }
+                }
+                else
+                {
+                    if (IsIncoming)
+                    {
+                        Logger.LogConnectionAccepted(Endpoint.Transport);
+                    }
+                    else
+                    {
+                        Logger.LogConnectionEstablished(Endpoint.Transport);
                     }
                 }
             }
@@ -340,10 +340,7 @@ namespace ZeroC.Ice
         internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             SocketStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
-            using (StartScope())
-            {
-                await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-            }
+            await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
 

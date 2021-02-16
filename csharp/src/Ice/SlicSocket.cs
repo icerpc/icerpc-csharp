@@ -245,9 +245,6 @@ namespace ZeroC.Ice
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
-            // Initialize the underlying transport
-            await _socket.InitializeAsync(cancel).ConfigureAwait(false);
-
             if (IsIncoming)
             {
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
@@ -425,10 +422,7 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                using (StartScope())
-                {
-                    Logger.LogSendingSlicFrame(type, frameSize, streamId);
-                }
+                Logger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -588,10 +582,7 @@ namespace ZeroC.Ice
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    using (StartScope())
-                    {
-                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
-                    }
+                    Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                 }
 
                 try
@@ -723,10 +714,7 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Debug))
             {
-                using (StartScope())
-                {
-                    Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
-                }
+                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length

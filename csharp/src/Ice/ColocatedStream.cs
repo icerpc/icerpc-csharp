@@ -146,32 +146,29 @@ namespace ZeroC.Ice
 
         internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            using (_socket.StartScope())
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+            Debug.Assert(frameObject is IncomingRequestFrame);
+            var frame = (IncomingRequestFrame)frameObject;
+
+            if (fin)
             {
-                (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-                Debug.Assert(frameObject is IncomingRequestFrame);
-                var frame = (IncomingRequestFrame)frameObject;
-
-                if (fin)
-                {
-                    _receivedEndOfStream = true;
-                }
-                else
-                {
-                    frame.SocketStream = this;
-                    Interlocked.Increment(ref _useCount);
-                }
-
-                if (Logger.IsEnabled(LogLevel.Information))
-                {
-                    using (Logger.StartRequestScope(Id, frame))
-                    {
-                        Logger.LogReceivedRequest(frame);
-                    }
-                }
-
-                return frame;
+                _receivedEndOfStream = true;
             }
+            else
+            {
+                frame.SocketStream = this;
+                Interlocked.Increment(ref _useCount);
+            }
+
+            if (Logger.IsEnabled(LogLevel.Information))
+            {
+                using (Logger.StartRequestScope(Id, frame))
+                {
+                    Logger.LogReceivedRequest(frame);
+                }
+            }
+
+            return frame;
         }
 
         internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
@@ -207,10 +204,7 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                using (_socket.StartScope())
-                {
-                    Logger.LogReceivedResponse(Id, frame);
-                }
+                Logger.LogReceivedResponse(Id, frame);
             }
 
             return frame;
@@ -255,17 +249,14 @@ namespace ZeroC.Ice
 
             if (Logger.IsEnabled(LogLevel.Information))
             {
-                using (_socket.StartScope())
+                if (frame is OutgoingRequestFrame request)
                 {
-                    if (frame is OutgoingRequestFrame request)
-                    {
-                        Logger.LogSendingRequest(request);
-                    }
-                    else
-                    {
-                        Debug.Assert(frame is OutgoingResponseFrame);
-                        Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
-                    }
+                    Logger.LogSendingRequest(request);
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
                 }
             }
         }
