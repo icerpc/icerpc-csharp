@@ -232,8 +232,7 @@ namespace ZeroC.Ice
                 Communicator.Logger.Trace(TraceLevels.TransportCategory, sb.ToString());
             }
 
-            // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf request
-            // delegate.
+            // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
             _dispatchPipeline = async (request, current, cancel) =>
             {
                 Debug.Assert(current.Adapter == this);
@@ -763,7 +762,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Adds a dispatch interceptor to the request dispatch pipeline.</summary>
+        /// <summary>Adds a dispatch interceptor to the dispatch pipeline.</summary>
         /// <param name="dispatchInterceptor">The dispatch interceptor to add.</param>
         /// <returns>This object adapter.</returns>
         public ObjectAdapter Use(Func<Dispatcher, Dispatcher> dispatchInterceptor)
