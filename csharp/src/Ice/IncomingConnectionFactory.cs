@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ZeroC.Ice
@@ -116,7 +117,7 @@ namespace ZeroC.Ice
         {
             while (true)
             {
-                Connection? connection = null;
+                Connection connection;
                 try
                 {
                     connection = await _acceptor.AcceptAsync();
@@ -126,30 +127,9 @@ namespace ZeroC.Ice
                         _communicator.Logger.Trace(TraceLevels.TransportCategory,
                             $"trying to accept {Endpoint.TransportName} connection\n{connection}");
                     }
-
-                    lock (_mutex)
-                    {
-                        if (_shutdown)
-                        {
-                            throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_adapter.Name}");
-                        }
-
-                        _connections.Add(connection);
-
-                        // We don't wait for the connection to be activated. This could take a while for some transports
-                        // such as TLS based transports where the handshake requires few round trips between the client
-                        // and server.
-                        _ = connection.InitializeAsync(default);
-                    }
-                    // Set the callback used to remove the connection from the factory.
-                    connection.Remove = connection => Remove(connection);
                 }
                 catch (Exception exception)
                 {
-                    if (connection != null)
-                    {
-                        await connection.GoAwayAsync(exception);
-                    }
                     if (_shutdown)
                     {
                         return;
@@ -161,6 +141,55 @@ namespace ZeroC.Ice
                     _communicator.Logger.Error($"failed to accept connection:\n{exception}\n{_acceptor}");
                     await Task.Delay(TimeSpan.FromSeconds(1));
                     continue;
+                }
+
+                lock (_mutex)
+                {
+                    if (_shutdown)
+                    {
+                        connection.AbortAsync();
+                        return;
+                    }
+
+                    _connections.Add(connection);
+
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client
+                    // and server. Waiting could also cause a security issue if the client doesn't respond to the
+                    // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                    _ = AcceptConnectionAsync(connection);
+                }
+
+                // Set the callback used to remove the connection from the factory.
+                connection.Remove = connection => Remove(connection);
+            }
+
+            async Task AcceptConnectionAsync(Connection connection)
+            {
+                using var source = new CancellationTokenSource(_communicator.ConnectTimeout);
+                CancellationToken cancel = source.Token;
+                try
+                {
+                    // Perform socket level initialization (handshake, etc)
+                    await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
+
+                    // Check if the established connection can be trusted according to the adapter non-secure
+                    // setting.
+                    if (connection.CanTrust(_adapter.AcceptNonSecure))
+                    {
+                        // Perform protocol level initialization
+                        await connection.InitializeAsync(cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Connection not trusted, abort it.
+                        await connection.AbortAsync().ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    // Failed incoming connection, abort the connection.
+                    await connection.AbortAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -186,11 +215,8 @@ namespace ZeroC.Ice
         {
         }
 
-        internal override Task ShutdownAsync()
-        {
-            var exception =
-                new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_connection.Adapter!.Name}");
-            return _connection.GoAwayAsync(exception);
-        }
+        internal override Task ShutdownAsync() =>
+            _connection.GoAwayAsync(
+                new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_connection.Adapter!.Name}"));
     }
 }

@@ -42,7 +42,6 @@ namespace ZeroC.IceSSL.Test.Configuration
         CreateProperties(Dictionary<string, string> defaultProperties, string? cert = null, string? ca = null)
         {
             var properties = new Dictionary<string, string>(defaultProperties);
-
             properties["Ice.AcceptNonSecure"] = "Never";
 
             if (defaultProperties.TryGetValue("IceSSL.DefaultDir", out string? value))

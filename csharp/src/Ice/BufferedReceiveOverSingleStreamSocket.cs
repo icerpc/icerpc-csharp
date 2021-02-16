@@ -21,15 +21,28 @@ namespace ZeroC.Ice
         public override Socket? Socket => Underlying.Socket;
         public override SslStream? SslStream => Underlying.SslStream;
 
-        internal SingleStreamSocket Underlying { get; }
+        internal SingleStreamSocket Underlying { get; private set; }
 
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        {
+            Underlying = await Underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+            return this;
+        }
+
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
             Underlying.CloseAsync(exception, cancel);
 
-        public override ValueTask InitializeAsync(CancellationToken cancel) => Underlying.InitializeAsync(cancel);
+        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+            Endpoint endpoint,
+            bool secure,
+            CancellationToken cancel)
+        {
+            Underlying = await Underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
+            return this;
+        }
 
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             Underlying.ReceiveDatagramAsync(cancel);
@@ -49,7 +62,7 @@ namespace ZeroC.Ice
             // Then, read the reminder from the underlying transport.
             if (received < buffer.Length)
             {
-                received += await Underlying.ReceiveAsync(buffer.Slice(received), cancel).ConfigureAwait(false);
+                received += await Underlying.ReceiveAsync(buffer[received..], cancel).ConfigureAwait(false);
             }
             return received;
         }

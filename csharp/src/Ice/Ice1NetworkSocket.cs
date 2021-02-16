@@ -26,7 +26,7 @@ namespace ZeroC.Ice
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly SingleStreamSocket _socket;
+        private SingleStreamSocket _socket;
         private readonly AsyncSemaphore? _unidirectionalSerializeSemaphore;
 
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
@@ -183,8 +183,7 @@ namespace ZeroC.Ice
         public override SocketStream CreateStream(bool bidirectional, bool control) =>
             new Ice1NetworkSocketStream(this, bidirectional, control);
 
-        public override ValueTask InitializeAsync(CancellationToken cancel) =>
-            _socket.InitializeAsync(cancel);
+        public override ValueTask InitializeAsync(CancellationToken cancel) => default;
 
         public override async Task PingAsync(CancellationToken cancel)
         {

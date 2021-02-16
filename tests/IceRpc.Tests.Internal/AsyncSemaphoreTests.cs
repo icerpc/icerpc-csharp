@@ -9,7 +9,7 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class AsyncSemaphoresTests
+    public class AsyncSemaphoreTests
     {
         [TestCase(1)]
         [TestCase(2)]
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
         public void AsyncSemaphore_EnterAsync_Cancellation0()
         {
             var semaphore = new AsyncSemaphore(1);
-            var source = new CancellationTokenSource();
+            using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(source.Token));
         }
@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Internal
         public async Task AsyncSemaphore_EnterAsync_Cancellation1(int timeout)
         {
             var semaphore = new AsyncSemaphore(1);
-            var source = new CancellationTokenSource(timeout);
+            using var source = new CancellationTokenSource(timeout);
             await semaphore.EnterAsync();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await semaphore.EnterAsync(source.Token));
         }

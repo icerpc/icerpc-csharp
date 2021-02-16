@@ -91,17 +91,22 @@ namespace ZeroC.Ice
                 NonSecure preferNonSecure,
                 object? label)
             {
+                Debug.Assert(ConnectTimeout > TimeSpan.Zero);
+                using var source = new CancellationTokenSource(ConnectTimeout);
+                using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
+                    source.Token,
+                    endpoint.Communicator.CancellationToken);
+                CancellationToken cancel = linkedSource.Token;
+
                 try
                 {
-                    Debug.Assert(ConnectTimeout > TimeSpan.Zero);
-                    using var source = new CancellationTokenSource(ConnectTimeout);
-                    using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
-                        source.Token,
-                        endpoint.Communicator.CancellationToken);
-                    CancellationToken cancel = linkedSource.Token;
                     Connection connection = await endpoint.ConnectAsync(preferNonSecure,
                                                                         label,
                                                                         cancel).ConfigureAwait(false);
+
+                    // Perform protocol level initialization.
+                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
+
                     lock (_mutex)
                     {
                         if (_shutdownTask != null)
@@ -149,6 +154,18 @@ namespace ZeroC.Ice
                     // Set the callback used to remove the connection from the factory.
                     connection.Remove = connection => Remove(connection);
                     return connection;
+                }
+                catch (OperationCanceledException)
+                {
+                    if (source.IsCancellationRequested)
+                    {
+                        _transportFailures[endpoint] = DateTime.Now;
+                        throw new ConnectTimeoutException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
                 catch (TransportException)
                 {

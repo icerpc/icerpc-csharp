@@ -19,16 +19,6 @@ namespace ZeroC.Ice
         /// <summary>Gets the optional SslStream associated with this socket.</summary>
         public abstract SslStream? SslStream { get; }
 
-        /// <summary>Checks if the socket can send messages of the given size. Throw if the message is too large.
-        /// </summary>
-        /// <param name="size">The size of the message to check.</param>
-        // TODO: Remove this? This is used to ensure the user doesn't try to send a message which is larger
-        // than the datagram size... UDP users would be better of not sending large datagrams instead of us
-        // trying to softly error if the user sends a large datagram.
-        public virtual void CheckSendSize(int size)
-        {
-        }
-
         /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
         /// of the connection closure.</summary>
         /// <param name="exception">The reason of the connection closure.</param>
@@ -42,10 +32,26 @@ namespace ZeroC.Ice
             GC.SuppressFinalize(this);
         }
 
-        /// <summary>Initializes the socket. This is called to initialize the socket during connection establishment
-        /// or when a new connection is accepted.</summary>
+        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
+        /// to perform socket level initialization (TLS handshake, etc).</summary>
+        /// <param name="endpoint">The endpoint used to create the socket.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask InitializeAsync(CancellationToken cancel);
+        /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
+        /// implementation might return a different socket based on information read on the socket.</returns>
+        public abstract ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel);
+
+        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
+        /// to establish the connection and perform socket level initialization (TLS handshake, etc).
+        /// </summary>
+        /// <param name="endpoint">The endpoint used to create the socket.</param>
+        /// <param name="secure">Establish a secure connection.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
+        /// implementation might return a different socket based on information read on the socket.</returns>
+        public abstract ValueTask<SingleStreamSocket> ConnectAsync(
+            Endpoint endpoint,
+            bool secure,
+            CancellationToken cancel);
 
         /// <summary>Receives a new datagram from the connection, only supported for datagram connections.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

@@ -9,7 +9,7 @@ namespace IceRpc.Tests
     /// </summary>
     public abstract class TestData : IEnumerable<object[]>
     {
-        private readonly List<object?[]> _data = new List<object?[]>();
+        private readonly List<object?[]> _data = new();
         protected void AddRow(params object?[] values) => _data.Add(values);
         public IEnumerator<object[]> GetEnumerator() => _data.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
