@@ -27,6 +27,7 @@ namespace ZeroC.Ice
 
         public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
         {
+            // The endpoint host is only use for client-side authentication.
             await AuthenticateAsync(host: null, cancel).ConfigureAwait(false);
             return this;
         }
@@ -142,25 +143,27 @@ namespace ZeroC.Ice
             {
                 if (host == null)
                 {
+                    // Server-side connection
                     SslServerAuthenticationOptions options = new();
                     options.ServerCertificate = _engine.TlsServerOptions.ServerCertificate;
                     options.ClientCertificateRequired = _engine.TlsServerOptions.RequireClientCertificate;
                     options.EnabledSslProtocols = _engine.TlsServerOptions.EnabledSslProtocols!.Value;
                     options.RemoteCertificateValidationCallback =
                         _engine.TlsServerOptions.ClientCertificateValidationCallback ??
-                        GetRemoteCertificateValidationCallback(host);
+                        GetRemoteCertificateValidationCallback(incoming: true);
                     options.CertificateRevocationCheckMode = X509RevocationMode.NoCheck;
                     await _sslStream.AuthenticateAsServerAsync(options, cancel).ConfigureAwait(false);
                 }
                 else
                 {
+                    // Client-side connection
                     SslClientAuthenticationOptions options = new();
                     options.TargetHost = host;
                     options.ClientCertificates = _engine.TlsClientOptions.ClientCertificates;
                     options.EnabledSslProtocols = _engine.TlsClientOptions.EnabledSslProtocols!.Value;
                     options.RemoteCertificateValidationCallback =
                         _engine.TlsClientOptions.ServerCertificateValidationCallback ??
-                        GetRemoteCertificateValidationCallback(host);
+                        GetRemoteCertificateValidationCallback(incoming: false);
                     options.LocalCertificateSelectionCallback =
                         _engine.TlsClientOptions.ClientCertificateSelectionCallback ??
                         (options.ClientCertificates?.Count > 0 ?
@@ -214,7 +217,7 @@ namespace ZeroC.Ice
             return certs[0];
         }
 
-        private RemoteCertificateValidationCallback GetRemoteCertificateValidationCallback(string? host)
+        private RemoteCertificateValidationCallback GetRemoteCertificateValidationCallback(bool incoming)
         {
             return (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors) =>
             {
@@ -224,7 +227,7 @@ namespace ZeroC.Ice
                 {
                     // For an outgoing connection the peer must always provide a certificate, for an incoming connection
                     // the certificate is only required if the RequireClientCertificate option was set.
-                    if (host != null || _engine.TlsServerOptions.RequireClientCertificate)
+                    if (!incoming || _engine.TlsServerOptions.RequireClientCertificate)
                     {
                         if (_engine.SecurityTraceLevel >= 1)
                         {
@@ -252,11 +255,11 @@ namespace ZeroC.Ice
                     return false;
                 }
 
-                X509Certificate2Collection? trustedCertificateAuthorities = host == null ?
+                X509Certificate2Collection? trustedCertificateAuthorities = incoming ?
                     _engine.TlsServerOptions.ClientCertificateCertificateAuthorities :
                     _engine.TlsClientOptions.ServerCertificateCertificateAuthorities;
 
-                bool useMachineContext = host == null ?
+                bool useMachineContext = incoming ?
                     _engine.TlsServerOptions.UseMachineContext : _engine.TlsClientOptions.UseMachineContext;
 
                 bool buildCustomChain =
@@ -273,7 +276,8 @@ namespace ZeroC.Ice
                         if (trustedCertificateAuthorities != null)
                         {
                             // We need to set this flag to be able to use a certificate authority from the extra store.
-                            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                            chain.ChainPolicy.VerificationFlags =
+                                X509VerificationFlags.AllowUnknownCertificateAuthority;
                             foreach (X509Certificate2 cert in trustedCertificateAuthorities)
                             {
                                 chain.ChainPolicy.ExtraStore.Add(cert);
@@ -288,8 +292,8 @@ namespace ZeroC.Ice
 
                         if (trustedCertificateAuthorities != null)
                         {
-                            // Untrusted root is OK when using our custom chain engine if the CA certificate is present in
-                            // the chain policy extra store.
+                            // Untrusted root is OK when using our custom chain engine if the CA certificate is
+                            // present in the chain policy extra store.
                             X509ChainElement root = chain.ChainElements[^1];
                             if (chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
                                 chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
@@ -332,14 +336,16 @@ namespace ZeroC.Ice
                         _communicator.Logger.Trace(
                             SslEngine.SecurityTraceCategory,
                             message.Length > 0 ?
-                                $"SSL certificate validation failed: {message}" : "SSL certificate validation failed");
+                                $"SSL certificate validation failed: {message}" :
+                                "SSL certificate validation failed");
                     }
                     return false;
                 }
 
                 if (message.Length > 0 && _engine.SecurityTraceLevel >= 1)
                 {
-                    _communicator.Logger.Trace(SslEngine.SecurityTraceCategory,
+                    _communicator.Logger.Trace(
+                        SslEngine.SecurityTraceCategory,
                         $"SSL certificate validation status: {message}");
                 }
                 return true;

@@ -38,7 +38,7 @@ namespace ZeroC.Ice
                     int received = await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
                     if (received == 0)
                     {
-                        throw new ConnectionLostException();
+                        throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
                     }
                     Debug.Assert(received == 1);
                     secure = buffer.Array![0] == TlsHandshakeRecord;

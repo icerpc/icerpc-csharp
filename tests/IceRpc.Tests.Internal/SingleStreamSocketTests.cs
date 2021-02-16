@@ -3,14 +3,15 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
 
 namespace IceRpc.Tests.Internal
 {
+    [Timeout(10000)]
     public class SingleStreamSocketBaseTest : SocketBaseTest
     {
         protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
@@ -46,6 +47,8 @@ namespace IceRpc.Tests.Internal
         }
     }
 
+    // Test the varions single socket implementations. We don't test Ice1 + WS here as it doesn't really
+    // provide additional test coverage given that the WS socket has no protocol specific code.
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "ws", false)]
@@ -228,6 +231,8 @@ namespace IceRpc.Tests.Internal
         }
     }
 
+    // Test graceful close WS implementation. CloseAsync methods are no-ops for TCP/SSL and complete immediately
+    // rather than waiting for the peer close notification so we can't test them like we do for WS.
     [TestFixture("ws", false)]
     [TestFixture("ws", true)]
     public class WSSocketTests : SingleStreamSocketBaseTest
@@ -256,13 +261,12 @@ namespace IceRpc.Tests.Internal
     }
 
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    [TestFixture(Protocol.Ice1, "tcp", false)]
-    [TestFixture(Protocol.Ice1, "ssl", true)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
     [TestFixture(Protocol.Ice2, "ws", false)]
     [TestFixture(Protocol.Ice2, "ws", true)]
-    [Timeout(5000)]
+    [TestFixture(Protocol.Ice1, "tcp", false)]
+    [TestFixture(Protocol.Ice1, "ssl", true)]
     public class AcceptSingleStreamSocketTests : SocketBaseTest
     {
         public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
@@ -304,6 +308,8 @@ namespace IceRpc.Tests.Internal
             Assert.IsTrue(IsSecure ? socket != serverSocket : socket == serverSocket);
         }
 
+        // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
+        // example the server SSL handshake completes before the RST is received.
         [Test]
         public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostException()
         {
@@ -311,7 +317,12 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
             SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+
+            // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
+            // connections and AcceptAsync would sometime succeed.
+            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
+            var endpoint = new IPEndPoint(addresses[0], ClientEndpoint.Port);
+            await clientSocket.Socket!.ConnectAsync(endpoint).ConfigureAwait(false);
 
             using SingleStreamSocket serverSocket = await acceptTask;
 
