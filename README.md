@@ -14,3 +14,26 @@ case you need to use `IceRpc.sln` solution file.
 
 Visual Studio Code users can install [.NET Core Test Explorer](https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer)
 plug-in to run tests from it.
+
+
+# Building Example Programs
+
+You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example
+programs are configured to use IceRCP NuGet package.
+
+If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you need
+to first build and install the NuGet package, this can be done by running the following command:
+
+```
+dotnet msbuild build\build.proj /t:InstallLocalPackages
+```
+
+
+If you want to build all examples run:
+
+```
+dotnet msbuild build\build.proj /t:BuildExamples
+```
+
+The above command first build IceRPC NuGet package, installs it locally and then build all solution files,
+under examples directory.

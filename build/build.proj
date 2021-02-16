@@ -23,12 +23,20 @@
         <PropertyGroup>
             <NuGetGlobalPackages>$(NuGetGlobalPackages.Replace('global-packages: ', ''))</NuGetGlobalPackages>
         </PropertyGroup>
-        <!-- Run the distribution NuGetPack target to ensure packages are up to date -->
+        <!-- Run the distribution restore and pack targets to ensure packages are up to date -->
         <MSBuild Projects="$(MSBuildThisFileDirectory)..\csharp\src\Ice\ice.csproj"
                  Properties="Platform=x64;Configuration=Debug"
-                 Targets="pack"/>
+                 Targets="build;pack"/>
 
         <RemoveDir Directories="$(NuGetGlobalPackages)\zeroc.ice.net" Condition="Exists('$(NuGetGlobalPackages)\zeroc.ice.net')"/>
         <Exec Command="dotnet nuget push $(PackagePath) --source $(NuGetGlobalPackages)" />
+    </Target>
+
+    <ItemGroup>
+        <ExampleSolution Include="$(MSBuildThisFileDirectory)..\examples\**\*.sln" />
+    </ItemGroup>
+
+    <Target Name="BuildExamples" DependsOnTargets="InstallLocalPackages">
+        <MSBuild Projects="@(ExampleSolution)" Targets="restore;build" />
     </Target>
 </Project>
