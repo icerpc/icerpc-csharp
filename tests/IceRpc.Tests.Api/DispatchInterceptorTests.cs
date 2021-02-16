@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -18,11 +17,8 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var adapter = new ObjectAdapter(communicator)
-            {
-                DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                    (request, current, next, cancel) => throw new ArgumentException())
-            };
+            await using var adapter = new ObjectAdapter(communicator);
+            adapter.Use((request, current, next, cancel) => throw new ArgumentException());
             var service = new TestService();
             var prx = adapter.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
             await adapter.ActivateAsync();
@@ -38,21 +34,21 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var adapter = new ObjectAdapter(communicator);
             var interceptorCalls = new List<string>();
-            adapter.DispatchInterceptors = ImmutableList.Create<DispatchInterceptor>(
-                async (request, current, next, cancel) =>
-                {
-                    interceptorCalls.Add("DispatchInterceptors -> 0");
-                    var result = await next(request, current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 0");
-                    return result;
-                },
-                async (request, current, next, cancel) =>
-                {
-                    interceptorCalls.Add("DispatchInterceptors -> 1");
-                    var result = await next(request, current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 1");
-                    return result;
-                });
+
+            // Simple dispatch interceptor followed by regular dispatch interceptor
+            adapter.Use(async (request, current, next, cancel) =>
+            {
+                interceptorCalls.Add("DispatchInterceptors -> 0");
+                var result = await next();
+                interceptorCalls.Add("DispatchInterceptors <- 0");
+                return result;
+            }).Use(next => async (request, current, cancel) =>
+            {
+                interceptorCalls.Add("DispatchInterceptors -> 1");
+                var result = await next(request, current, cancel);
+                interceptorCalls.Add("DispatchInterceptors <- 1");
+                return result;
+            });
             var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
             await adapter.ActivateAsync();
 

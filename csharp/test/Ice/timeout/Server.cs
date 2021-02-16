@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.Timeout
                                                         });
 
             adapter.Add("timeout", new Timeout());
-            adapter.DispatchInterceptors = adapter.DispatchInterceptors.Add(
+            adapter.Use(
                 (request, current, next, cancel) =>
                 {
                     if (current.Operation == "checkDeadline")
@@ -32,7 +32,7 @@ namespace ZeroC.Ice.Test.Timeout
                             current.Context["deadline"] = value.Read(istr => istr.ReadVarLong()).ToString();
                         }
                     }
-                    return next(request, current, cancel);
+                    return next();
                 });
 
             await adapter.ActivateAsync();
