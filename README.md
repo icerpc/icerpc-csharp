@@ -25,14 +25,14 @@ If you want to use the IceRPC distribution from this repository instead of IceRP
 to first build and install the NuGet package, this can be done by running the following command:
 
 ```
-dotnet msbuild build/build.proj /t:InstallLocalPackages
+dotnet msbuild build/build.proj /t:InstallLocalPackages /restore
 ```
 
 
 If you want to build all examples run:
 
 ```
-dotnet msbuild build/build.proj /t:BuildExamples
+dotnet msbuild build/build.proj /t:BuildExamples /restore
 ```
 
 The above command first build IceRPC NuGet package, installs it locally and then build all solution files,
