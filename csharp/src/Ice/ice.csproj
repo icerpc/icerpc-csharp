@@ -98,7 +98,7 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0.0" />
       <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All" />
-      <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" PrivateAssets="All" />
+      <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
       <SliceCompile Include="..\..\..\slice\Ice\BuiltinSequences.ice" />
