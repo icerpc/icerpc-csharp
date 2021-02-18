@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,6 +11,8 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ZeroC.Ice
 {
@@ -120,9 +120,6 @@ namespace ZeroC.Ice
         /// communicator.</summary>
         public TimeSpan DefaultLocatorCacheTimeout { get; }
 
-        /// <summary>The logger for this communicator.</summary>
-        public ILogger Logger { get; }
-
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
         public Instrumentation.ICommunicatorObserver? Observer { get; }
@@ -155,6 +152,10 @@ namespace ZeroC.Ice
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
         internal bool KeepAlive { get; }
+        /// <summary>The default logger for this communicator.</summary>
+        internal ILogger Logger { get; }
+        internal ILogger LocationLogger { get; }
+        internal ILoggerFactory LoggerFactory { get; }
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
         internal int SlicPacketMaxSize { get; }
@@ -163,9 +164,12 @@ namespace ZeroC.Ice
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
+        internal ILogger ProtocolLogger { get; }
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
+        internal ILogger SecurityLogger { get; }
         internal SslEngine SslEngine { get; }
+        internal ILogger TransportLogger { get; }
         internal bool WarnConnections { get; }
         internal bool WarnDatagrams { get; }
         internal bool WarnUnknownProperties { get; }
@@ -302,7 +306,12 @@ namespace ZeroC.Ice
             TlsClientOptions? tlsClientOptions = null,
             TlsServerOptions? tlsServerOptions = null)
         {
-            Logger = loggerFactory?.CreateLogger("ZeroC.Ice") ?? NullLogger.Instance;
+            LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            Logger = LoggerFactory.CreateLogger("IceRpc");
+            LocationLogger = LoggerFactory.CreateLogger("IceRpc.Location");
+            TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
+            ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
+            SecurityLogger = LoggerFactory.CreateLogger("IceRpc.Security");
             Observer = observer;
 
             // clone properties as we don't want to modify the properties given to this constructor

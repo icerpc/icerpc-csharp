@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -97,16 +98,22 @@ namespace ZeroC.Ice
                 // If the endpoint is always secured or if a secure is requested, create an SslSocket and return
                 // it from this method. The caller is responsible for using the returned SslSocket instead of
                 // using this TcpSocket.
+
+                SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    var sslSocket = new SslSocket(endpoint.Communicator, this);
-                    await sslSocket.ConnectAsync(endpoint, true, cancel);
-                    return sslSocket;
+                    socket = new SslSocket(endpoint.Communicator, this);
+                    await socket.ConnectAsync(endpoint, true, cancel);
                 }
-                else
+
+                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    return this;
+                    endpoint.Communicator.TransportLogger.LogConnectionEstablished(
+                        endpoint.Transport,
+                        Network.LocalAddrToString(Socket),
+                        Network.RemoteAddrToString(Socket));
                 }
+                return socket;
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {

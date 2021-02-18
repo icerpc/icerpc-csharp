@@ -40,13 +40,6 @@ namespace ZeroC.Ice
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
 
-        /// <summary>Creates an scope that attachs info about the stream socket being used, the scope last until the
-        /// returned object is dispose of.</summary>
-        /// <returns>A disposable that can be used to cleanup the scope.</returns>
-        internal abstract IDisposable? StartScope();
-
-        private protected ILogger Logger { get; }
-
         private int _incomingStreamCount;
         // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
         private readonly object _mutex = new();
@@ -113,7 +106,6 @@ namespace ZeroC.Ice
             IsIncoming = adapter != null;
             IncomingFrameMaxSize = adapter?.IncomingFrameMaxSize ?? Endpoint.Communicator.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
-            Logger = Endpoint.Communicator.Logger;
         }
 
         /// <summary>Releases the resources used by the socket.</summary>
@@ -146,9 +138,9 @@ namespace ZeroC.Ice
                 LastActivity = Time.Elapsed;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogReceivedData(size, Endpoint.Transport);
+                Endpoint.Communicator.TransportLogger.LogReceivedData(size, Endpoint.Transport);
             }
         }
 
@@ -168,9 +160,9 @@ namespace ZeroC.Ice
                     }
                     catch (Exception ex)
                     {
-                        if (Logger.IsEnabled(LogLevel.Error))
+                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Error))
                         {
-                            Logger.LogPingEventHandlerException(ex);
+                            Endpoint.Communicator.TransportLogger.LogPingEventHandlerException(ex);
                         }
                     }
                 });
@@ -188,9 +180,9 @@ namespace ZeroC.Ice
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
+            if (size > 0 && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogSentData(size, Endpoint.Transport);
+                Endpoint.Communicator.TransportLogger.LogSentData(size, Endpoint.Transport);
             }
         }
 
@@ -228,16 +220,16 @@ namespace ZeroC.Ice
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
                 // Trace the cause of unexpected connection closures
                 if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
                 {
-                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
+                    Endpoint.Communicator.TransportLogger.LogConnectionClosed(Endpoint.Transport, exception);
                 }
                 else
                 {
-                    Logger.LogConnectionClosed(Endpoint.Transport);
+                    Endpoint.Communicator.TransportLogger.LogConnectionClosed(Endpoint.Transport);
                 }
             }
         }
@@ -310,28 +302,29 @@ namespace ZeroC.Ice
                 LastActivity = Time.Elapsed;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            ILogger transportLogger = Endpoint.Communicator.TransportLogger;
+            if (transportLogger.IsEnabled(LogLevel.Debug))
             {
                 if (Endpoint.IsDatagram)
                 {
                     if (IsIncoming)
                     {
-                        Logger.LogStartReceivingDatagrams(Endpoint.Transport);
+                        transportLogger.LogStartReceivingDatagrams(Endpoint.Transport);
                     }
                     else
                     {
-                        Logger.LogStartSendingDatagrams(Endpoint.Transport);
+                        transportLogger.LogStartSendingDatagrams(Endpoint.Transport);
                     }
                 }
                 else
                 {
                     if (IsIncoming)
                     {
-                        Logger.LogConnectionAccepted(Endpoint.Transport);
+                        transportLogger.LogConnectionAccepted(Endpoint.Transport);
                     }
                     else
                     {
-                        Logger.LogConnectionEstablished(Endpoint.Transport);
+                        transportLogger.LogConnectionEstablished(Endpoint.Transport);
                     }
                 }
             }

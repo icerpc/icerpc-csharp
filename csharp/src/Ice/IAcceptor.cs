@@ -18,9 +18,5 @@ namespace ZeroC.Ice
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
         ValueTask<Connection> AcceptAsync();
-
-        /// <summary>Starts a logical scope to attach info about the current acceptor.</summary>
-        /// <return>A disposable object that ends the logical operation scope on dispose.</return>
-        IDisposable? StartScope();
     }
 }

@@ -6,129 +6,146 @@ using System.Collections.Generic;
 
 namespace ZeroC.Ice
 {
-    internal static partial class LocationLoggerExtensions
+    internal static class LocationLoggerExtensions
     {
+        private const int ClearLocationEndpoints = 0;
+        private const int ClearWellKnownProxyEndpoints = 1;
+        private const int ClearWellKnownProxyWithoutEndpoints = 2;
+        private const int CouldNotFindEndpointsForLocation = 3;
+        private const int CouldNotFindEndpointsForWellKnownProxy = 4;
+        private const int FoundEntryForLocationInLocatorCache = 5;
+        private const int FoundEntryForWellKnownProxyInLocatorCache = 6;
+        private const int InvalidProxyResolvingLocation = 7;
+        private const int InvalidProxyResolvingProxy = 8;
+        private const int RegisterObjectAdapterEndpointsFailure = 9;
+        private const int RegisterObjectAdapterEndpointsSuccess = 10;
+        private const int ResolveLocationFailure = 11;
+        private const int ResolveWellKnownProxyEndpointsFailure = 12;
+        private const int ResolvedLocation = 13;
+        private const int ResolvedWellKnownProxy = 14;
+        private const int ResolvingLocation = 15;
+        private const int ResolvingWellKnownProxy = 16;
+        private const int UnregisterObjectAdapterEndpointsFailure = 17;
+        private const int UnregisterObjectAdapterEndpointsSuccess = 18;
+
         private static readonly Action<ILogger, string, Protocol, IReadOnlyList<Endpoint>, Exception> _clearLocationEndpoints =
             LoggerMessage.Define<string, Protocol, IReadOnlyList<Endpoint>>(
                 LogLevel.Trace,
-                GetEventId(LocationEvent.ClearLocationEndpoints),
+                new EventId(ClearLocationEndpoints, nameof(ClearLocationEndpoints)),
                 "removed endpoints for location from locator cache location = {Location}, protocol = {Protocol}, " +
                 "endpoints = {Endpoints}");
 
         private static readonly Action<ILogger, ObjectPrx, IReadOnlyList<Endpoint>, Exception> _clearWellKnownProxyEndpoints =
             LoggerMessage.Define<ObjectPrx, IReadOnlyList<Endpoint>>(
                 LogLevel.Trace,
-                GetEventId(LocationEvent.ClearWellKnownProxyEndpoints),
+                new EventId(ClearWellKnownProxyEndpoints, nameof(ClearWellKnownProxyEndpoints)),
                 "removed well-known proxy with endpoints from locator cache well-known proxy = {Proxy}, " +
                 "endpoints {Endpoints}");
 
         private static readonly Action<ILogger, ObjectPrx, string, Exception> _clearWellKnownProxyWithoutEndpoints =
             LoggerMessage.Define<ObjectPrx, string>(
                 LogLevel.Trace,
-                GetEventId(LocationEvent.ClearWellKnownProxyWithoutEndpoints),
+                new EventId(ClearWellKnownProxyWithoutEndpoints, nameof(ClearWellKnownProxyWithoutEndpoints)),
                 "removed well-known proxy without endpoints from locator cache proxy = {Proxy}, location = {Location}");
 
         private static readonly Action<ILogger, string, Exception> _couldNotFindEndpointsForLocation =
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.CouldNotFindEndpointsForLocation),
+                new EventId(CouldNotFindEndpointsForLocation, nameof(CouldNotFindEndpointsForLocation)),
                 "could not find endpoint(s) for location = {Location}");
 
         private static readonly Action<ILogger, ObjectPrx, Exception> _couldNotFindEndpointsForWellKnownProxy =
             LoggerMessage.Define<ObjectPrx>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.CouldNotFindEndpointsForWellKnownProxy),
+                new EventId(CouldNotFindEndpointsForWellKnownProxy, nameof(CouldNotFindEndpointsForWellKnownProxy)),
                 "could not find endpoint(s) for well-known proxy = {Proxy}");
 
         private static readonly Action<ILogger, string, Protocol, IReadOnlyList<Endpoint>, Exception> _foundEntryForLocationInLocatorCache =
             LoggerMessage.Define<string, Protocol, IReadOnlyList<Endpoint>>(
                 LogLevel.Trace,
-                GetEventId(LocationEvent.FoundEntryForLocationInLocatorCache),
+                new EventId(FoundEntryForLocationInLocatorCache, nameof(FoundEntryForLocationInLocatorCache)),
                 "found entry for location in locator cache");
 
         private static readonly Action<ILogger, ObjectPrx, IReadOnlyList<Endpoint>, Exception> _foundEntryForWellKnownProxyInLocatorCache =
             LoggerMessage.Define<ObjectPrx, IReadOnlyList<Endpoint>>(
                 LogLevel.Trace,
-                GetEventId(LocationEvent.FoundEntryForWellKnownProxyInLocatorCache),
+                new EventId(FoundEntryForWellKnownProxyInLocatorCache,
+                            nameof(FoundEntryForWellKnownProxyInLocatorCache)),
                 "found entry for well-known proxy in locator cache well-known proxy = {Proxy}, " +
                 "endpoints = {Endpoints}");
-
-        private static readonly Action<ILogger, Exception> _getLocatorRegistryFailure = LoggerMessage.Define(
-            LogLevel.Error,
-            GetEventId(LocationEvent.GetLocatorRegistryFailure),
-            "failed to retrieve locator registry");
 
         private static readonly Action<ILogger, string, ObjectPrx, Exception> _invalidProxyResolvingLocation =
             LoggerMessage.Define<string, ObjectPrx>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.InvalidProxyResolvingLocation),
+                new EventId(InvalidProxyResolvingLocation, nameof(InvalidProxyResolvingLocation)),
                 "locator returned an invalid proxy when resolving location = {Location}, received = {Proxy}");
 
         private static readonly Action<ILogger, ObjectPrx, ObjectPrx, Exception> _invalidProxyResolvingProxy =
             LoggerMessage.Define<ObjectPrx, ObjectPrx>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.InvalidProxyResolvingProxy),
+                new EventId(InvalidProxyResolvingProxy, nameof(InvalidProxyResolvingProxy)),
                 "locator returned an invalid proxy when resolving proxy = {Proxy}, received = {Received}");
 
         private static readonly Action<ILogger, string, Exception> _registerObjectAdapterEndpointsFailure =
             LoggerMessage.Define<string>(
                 LogLevel.Error,
-                GetEventId(LocationEvent.RegisterObjectAdapterEndpointsFailure),
+                new EventId(RegisterObjectAdapterEndpointsFailure, nameof(RegisterObjectAdapterEndpointsFailure)),
                 "failed to register the endpoints of object adapter {ObjectAdapter} with the locator registry");
 
         private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _registerObjectAdapterEndpointsSuccess =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.RegisterObjectAdapterEndpointsSuccess),
-                "registered the endpoints of object adapter {ObjectAdapter} with the locator registry endpoints = {Endpoints}");
+                new EventId(RegisterObjectAdapterEndpointsSuccess, nameof(RegisterObjectAdapterEndpointsSuccess)),
+                "registered the endpoints of object adapter {ObjectAdapter} with the locator registry " +
+                "endpoints = {Endpoints}");
 
-        private static readonly Action<ILogger, string, Exception> _resolveLocationFailure = LoggerMessage.Define<string>(
-            LogLevel.Debug,
-            GetEventId(LocationEvent.ResolveLocationFailure),
-            "failure resolving location {Location}");
+        private static readonly Action<ILogger, string, Exception> _resolveLocationFailure =
+            LoggerMessage.Define<string>(
+                LogLevel.Debug,
+                new EventId(ResolveLocationFailure, nameof(ResolveLocationFailure)),
+                "failure resolving location {Location}");
 
         private static readonly Action<ILogger, ObjectPrx, Exception> _resolveWellKnownProxyEndpointsFailure =
             LoggerMessage.Define<ObjectPrx>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.ResolveWellKnownProxyEndpointsFailure),
+                new EventId(ResolveWellKnownProxyEndpointsFailure, nameof(ResolveWellKnownProxyEndpointsFailure)),
                 "failure resolving endpoints for well-known proxy {Proxy}");
 
         private static readonly Action<ILogger, string, Protocol, IReadOnlyList<Endpoint>, Exception> _resolvedLocation =
             LoggerMessage.Define<string, Protocol, IReadOnlyList<Endpoint>>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.ResolvedLocation),
+                new EventId(ResolvedLocation, nameof(ResolvedLocation)),
                 "resolved location using locator, adding to locator cache location = {Location}, " +
                 "protocol = {Protocol}, endpoints = {Endpoints}");
 
         private static readonly Action<ILogger, ObjectPrx, IReadOnlyList<Endpoint>, Exception> _resolvedWellKnownProxy =
             LoggerMessage.Define<ObjectPrx, IReadOnlyList<Endpoint>>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.ResolvedWellKnownProxy),
+                new EventId(ResolvedWellKnownProxy, nameof(ResolvedWellKnownProxy)),
                 "resolved well-known proxy using locator, adding to locator cache");
 
         private static readonly Action<ILogger, string, Exception> _resolvingLocation = LoggerMessage.Define<string>(
             LogLevel.Debug,
-            GetEventId(LocationEvent.ResolvingLocation),
+            new EventId(ResolvingLocation, nameof(ResolvingLocation)),
             "resolving location {Location}");
 
-        private static readonly Action<ILogger, ObjectPrx, Exception> _resolvingWellKnownProxy = LoggerMessage.Define<ObjectPrx>(
-            LogLevel.Debug,
-            GetEventId(LocationEvent.ResolvingWellKnownProxy),
-            "resolving well-known object {Proxy}");
+        private static readonly Action<ILogger, ObjectPrx, Exception> _resolvingWellKnownProxy =
+            LoggerMessage.Define<ObjectPrx>(
+                LogLevel.Debug,
+                new EventId(ResolvingWellKnownProxy, nameof(ResolvingWellKnownProxy)),
+                "resolving well-known object {Proxy}");
 
         private static readonly Action<ILogger, string, Exception> _unregisterObjectAdapterEndpointsFailure =
             LoggerMessage.Define<string>(
                 LogLevel.Error,
-                GetEventId(LocationEvent.UnregisterObjectAdapterEndpointsFailure),
+                new EventId(UnregisterObjectAdapterEndpointsFailure, nameof(UnregisterObjectAdapterEndpointsFailure)),
                 "failed to unregister the endpoints of object adapter {ObjectAdapter} from the locator registry");
 
         private static readonly Action<ILogger, string, Exception> _unregisterObjectAdapterEndpointsSuccess =
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
-                GetEventId(LocationEvent.UnregisterObjectAdapterEndpointsSuccess),
+                new EventId(UnregisterObjectAdapterEndpointsSuccess, nameof(UnregisterObjectAdapterEndpointsSuccess)),
                 "unregistered the endpoints of object adapter {ObjectAdapter} from the locator registry");
-
-        private static EventId GetEventId(LocationEvent e) => new EventId((int)e, e.ToString());
 
         internal static void LogClearLocationEndpoints(
             this ILogger logger,
@@ -149,9 +166,7 @@ namespace ZeroC.Ice
             IReadOnlyList<string> location) =>
             _clearWellKnownProxyWithoutEndpoints(logger, proxy, location.ToLocationString(), null!);
 
-        internal static void LogCouldNotFindEndpointsForLocation(
-            this ILogger logger,
-            IReadOnlyList<string> location) =>
+        internal static void LogCouldNotFindEndpointsForLocation(this ILogger logger, IReadOnlyList<string> location) =>
             _couldNotFindEndpointsForLocation(logger, location.ToLocationString(), null!);
 
         internal static void LogCouldNotFindEndpointsForWellKnownProxy(this ILogger logger, ObjectPrx proxy) =>
@@ -170,19 +185,10 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint> endpoints) =>
             _foundEntryForWellKnownProxyInLocatorCache(logger, proxy, endpoints, null!);
 
-        internal static void LogGetLocatorRegistryFailure(this ILogger logger, Exception ex) =>
-            _getLocatorRegistryFailure(logger, ex);
-
-        internal static void LogInvalidProxyResolvingLocation(
-            this ILogger logger,
-            string location,
-            ObjectPrx proxy) =>
+        internal static void LogInvalidProxyResolvingLocation(this ILogger logger, string location, ObjectPrx proxy) =>
             _invalidProxyResolvingLocation(logger, location, proxy, null!);
 
-        internal static void LogInvalidProxyResolvingProxy(
-            this ILogger logger,
-            ObjectPrx proxy,
-            ObjectPrx received) =>
+        internal static void LogInvalidProxyResolvingProxy(this ILogger logger, ObjectPrx proxy, ObjectPrx received) =>
             _invalidProxyResolvingProxy(logger, proxy, received, null!);
 
         internal static void LogRegisterObjectAdapterEndpointsFailure(
@@ -225,9 +231,7 @@ namespace ZeroC.Ice
         internal static void LogResolvingLocation(this ILogger logger, IReadOnlyList<string> location) =>
             _resolvingLocation(logger, location.ToLocationString(), null!);
 
-        internal static void LogResolvingWellKnownProxy(
-            this ILogger logger,
-            ObjectPrx proxy) =>
+        internal static void LogResolvingWellKnownProxy(this ILogger logger, ObjectPrx proxy) =>
             _resolvingWellKnownProxy(logger, proxy, null!);
 
         internal static void LogUnregisterObjectAdapterEndpointsFailure(
@@ -238,29 +242,5 @@ namespace ZeroC.Ice
 
         internal static void LogUnregisterObjectAdapterEndpointsSuccess(this ILogger logger, ObjectAdapter adapter) =>
             _unregisterObjectAdapterEndpointsSuccess(logger, adapter.Name, null!);
-
-        private enum LocationEvent
-        {
-            ClearLocationEndpoints = 10001,
-            ClearWellKnownProxyEndpoints,
-            ClearWellKnownProxyWithoutEndpoints,
-            CouldNotFindEndpointsForLocation,
-            CouldNotFindEndpointsForWellKnownProxy,
-            FoundEntryForLocationInLocatorCache,
-            FoundEntryForWellKnownProxyInLocatorCache,
-            GetLocatorRegistryFailure,
-            InvalidProxyResolvingLocation,
-            InvalidProxyResolvingProxy,
-            RegisterObjectAdapterEndpointsFailure,
-            RegisterObjectAdapterEndpointsSuccess,
-            ResolveLocationFailure,
-            ResolveWellKnownProxyEndpointsFailure,
-            ResolvedLocation,
-            ResolvedWellKnownProxy,
-            ResolvingLocation,
-            ResolvingWellKnownProxy,
-            UnregisterObjectAdapterEndpointsFailure,
-            UnregisterObjectAdapterEndpointsSuccess,
-        }
     }
 }

@@ -2,6 +2,8 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
@@ -236,20 +238,6 @@ namespace ZeroC.Ice
             {
                 throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
-        }
-
-        internal override IDisposable? StartScope()
-        {
-            if (Logger.IsEnabled(LogLevel.Critical))
-            {
-                Logger.StartCollocatedConnectionScope(
-                    _id,
-                    ((ColocatedEndpoint)Endpoint).Adapter.Name,
-                    IsIncoming,
-                    Endpoint.Transport,
-                    Endpoint.Protocol);
-            }
-            return null;
         }
     }
 }

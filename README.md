@@ -19,21 +19,18 @@ plug-in to run tests from it.
 # Building Example Programs
 
 You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example
-programs are configured to use IceRCP NuGet package.
+programs are configured to use IceRCP NuGet packages.
 
-If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you need
-to first build and install the NuGet package, this can be done by running the following command:
-
-```
-dotnet msbuild build/build.proj /t:InstallLocalPackages /restore
-```
-
-
-If you want to build all examples run:
+If you want to build all examples at once run:
 
 ```
 dotnet msbuild build/build.proj /t:BuildExamples /restore
 ```
 
-The above command first build IceRPC NuGet package, installs it locally and then build all solution files,
-under examples directory.
+If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you need
+to build and install the NuGet package from this repository before building the examples, this can be done by running the 
+following command:
+
+```
+dotnet msbuild build/build.proj /t:InstallLocalPackages /restore
+```

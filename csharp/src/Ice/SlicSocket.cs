@@ -420,9 +420,9 @@ namespace ZeroC.Ice
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogSendingSlicFrame(type, frameSize, streamId);
+                Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -580,9 +580,9 @@ namespace ZeroC.Ice
                 headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                 buffer[0] = headerData;
 
-                if (Logger.IsEnabled(LogLevel.Debug))
+                if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                    Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                 }
 
                 try
@@ -712,9 +712,9 @@ namespace ZeroC.Ice
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                Endpoint.Communicator.TransportLogger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length

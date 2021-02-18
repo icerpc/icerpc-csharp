@@ -160,12 +160,10 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (Logger.IsEnabled(LogLevel.Information))
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
-                using (Logger.StartRequestScope(Id, frame))
-                {
-                    Logger.LogReceivedRequest(frame);
-                }
+                protocolLogger.LogReceivedRequest(frame, Id);
             }
 
             return frame;
@@ -202,9 +200,10 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (Logger.IsEnabled(LogLevel.Information))
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
-                Logger.LogReceivedResponse(Id, frame);
+                protocolLogger.LogReceivedResponse(Id, frame);
             }
 
             return frame;
@@ -247,19 +246,17 @@ namespace ZeroC.Ice
             await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
                 ConfigureAwait(false);
 
-            if (Logger.IsEnabled(LogLevel.Information))
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using (Logger.StartRequestScope(Id, request))
-                    {
-                        Logger.LogSendingRequest(request);
-                    }
+                    protocolLogger.LogSendingRequest(request, Id);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    protocolLogger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
                 }
             }
         }

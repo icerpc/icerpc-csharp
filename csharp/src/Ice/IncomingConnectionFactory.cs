@@ -108,92 +108,73 @@ namespace ZeroC.Ice
             Justification = "Ensure continuations execute on the object adapter scheduler if it is set")]
         private async ValueTask AcceptAsync()
         {
-            using (_acceptor.StartScope())
+            while (true)
             {
-                while (true)
+                Connection connection;
+                try
                 {
-                    Connection connection;
-                    try
-                    {
-                        connection = await _acceptor.AcceptAsync();
-
-                        if (_communicator.Logger.IsEnabled(LogLevel.Debug))
-                        {
-                            using (connection.StartScope())
-                            {
-                                _communicator.Logger.LogAcceptingConnection(Endpoint.Transport);
-                            }
-                        }
-                    }
-                    catch (Exception exception)
-                    {
-                        if (_shutdown)
-                        {
-                            return;
-                        }
-
-                        // We print an error and wait for one second to avoid running in a tight loop in case the
-                        // failures occurs immediately again. Failures here are unexpected and could be considered
-                        // fatal.
-                        if (_communicator.Logger.IsEnabled(LogLevel.Error))
-                        {
-                            _communicator.Logger.LogAcceptingConnectionFailed(Endpoint.Transport, exception);
-                        }
-                        await Task.Delay(TimeSpan.FromSeconds(1));
-                        continue;
-                    }
-
-                    lock (_mutex)
-                    {
-                        if (_shutdown)
-                        {
-                            connection.AbortAsync();
-                            return;
-                        }
-
-                        _connections.Add(connection);
-
-                        // We don't wait for the connection to be activated. This could take a while for some transports
-                        // such as TLS based transports where the handshake requires few round trips between the client
-                        // and server. Waiting could also cause a security issue if the client doesn't respond to the
-                        // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                        _ = AcceptConnectionAsync(connection);
-                    }
-
-                    // Set the callback used to remove the connection from the factory.
-                    connection.Remove = connection => Remove(connection);
+                    connection = await _acceptor.AcceptAsync();
                 }
+                catch (Exception)
+                {
+                    if (_shutdown)
+                    {
+                        return;
+                    }
+
+                    // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
+                    // again. Failures here are unexpected and could be considered fatal.
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    continue;
+                }
+
+                lock (_mutex)
+                {
+                    if (_shutdown)
+                    {
+                        connection.AbortAsync();
+                        return;
+                    }
+
+                    _connections.Add(connection);
+
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client
+                    // and server. Waiting could also cause a security issue if the client doesn't respond to the
+                    // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                    _ = AcceptConnectionAsync(connection);
+                }
+
+                // Set the callback used to remove the connection from the factory.
+                connection.Remove = connection => Remove(connection);
             }
 
             async Task AcceptConnectionAsync(Connection connection)
             {
-                using (connection.StartScope())
+                using var source = new CancellationTokenSource(_communicator.ConnectTimeout);
+                CancellationToken cancel = source.Token;
+                try
                 {
-                    using var source = new CancellationTokenSource(_communicator.ConnectTimeout);
-                    CancellationToken cancel = source.Token;
-                    try
-                    {
-                        // Perform socket level initialization (handshake, etc)
-                        await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
+                    // Perform socket level initialization (handshake, etc)
+                    await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
 
-                        // Check if the established connection can be trusted according to the adapter non-secure
-                        // setting.
-                        if (connection.CanTrust(_adapter.AcceptNonSecure))
-                        {
-                            // Perform protocol level initialization
-                            await connection.InitializeAsync(cancel).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // Connection not trusted, abort it.
-                            await connection.AbortAsync().ConfigureAwait(false);
-                        }
-                    }
-                    catch
+                    // Check if the established connection can be trusted according to the adapter non-secure
+                    // setting.
+                    if (connection.CanTrust(_adapter.AcceptNonSecure))
                     {
-                        // Failed incoming connection, abort the connection.
+                        // Perform protocol level initialization
+                        await connection.InitializeAsync(cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
                     }
+                }
+                catch
+                {
+                    // Failed incoming connection, abort the connection.
+                    await connection.AbortAsync().ConfigureAwait(false);
                 }
             }
         }

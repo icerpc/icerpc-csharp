@@ -1461,44 +1461,42 @@ namespace ZeroC.Ice
                     }
 
                     cancel.ThrowIfCancellationRequested();
-                    using (connection.StartScope())
+
+                    // Create the outgoing stream.
+                    stream = connection.CreateStream(!oneway);
+
+                    // Send the request and wait for the sending to complete.
+                    await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+
+                    // The request is sent, notify the progress callback.
+                    // TODO: Get rid of the sentSynchronously parameter which is always false now?
+                    if (progress != null)
                     {
-                        // Create the outgoing stream.
-                        stream = connection.CreateStream(!oneway);
-
-                        // Send the request and wait for the sending to complete.
-                        await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
-
-                        // The request is sent, notify the progress callback.
-                        // TODO: Get rid of the sentSynchronously parameter which is always false now?
-                        if (progress != null)
-                        {
-                            progress.Report(false);
-                            progress = null; // Only call the progress callback once (TODO: revisit this?)
-                        }
-                        if (releaseRequestAfterSent)
-                        {
-                            // TODO release the request
-                        }
-                        sent = true;
-                        exception = null;
-                        response?.Dispose();
-
-                        if (oneway)
-                        {
-                            return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
-                        }
-
-                        // Wait for the reception of the response.
-                        response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
-
-                        // If success, just return the response!
-                        if (response.ResultType == ResultType.Success)
-                        {
-                            return response;
-                        }
-                        observer?.RemoteException();
+                        progress.Report(false);
+                        progress = null; // Only call the progress callback once (TODO: revisit this?)
                     }
+                    if (releaseRequestAfterSent)
+                    {
+                        // TODO release the request
+                    }
+                    sent = true;
+                    exception = null;
+                    response?.Dispose();
+
+                    if (oneway)
+                    {
+                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
+                    }
+
+                    // Wait for the reception of the response.
+                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+
+                    // If success, just return the response!
+                    if (response.ResultType == ResultType.Success)
+                    {
+                        return response;
+                    }
+                    observer?.RemoteException();
                 }
                 catch (NoEndpointException ex) when (endpointsAge == TimeSpan.Zero)
                 {
@@ -1574,29 +1572,27 @@ namespace ZeroC.Ice
                 }
                 else
                 {
+                    ILogger protocolLogger = Communicator.ProtocolLogger;
                     tryAgain = true;
-                    if (Communicator.Logger.IsEnabled(LogLevel.Debug))
+                    if (protocolLogger.IsEnabled(LogLevel.Debug))
                     {
                         if (connection != null)
                         {
-                            using (connection.StartScope())
-                            {
-                                Communicator.Logger.LogRetryRequestInvocation(retryPolicy,
-                                                                              attempt,
-                                                                              Communicator.InvocationMaxAttempts,
-                                                                              exception);
-                            }
+                            protocolLogger.LogRetryRequestInvocation(retryPolicy,
+                                                                     attempt,
+                                                                     Communicator.InvocationMaxAttempts,
+                                                                     exception);
                         }
                         else if (triedAllEndpoints)
                         {
-                            Communicator.Logger.LogRetryConnectionEstablishment(retryPolicy,
-                                                                                attempt,
-                                                                                Communicator.InvocationMaxAttempts,
-                                                                                exception);
+                            protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
+                                                                           attempt,
+                                                                           Communicator.InvocationMaxAttempts,
+                                                                           exception);
                         }
                         else
                         {
-                            Communicator.Logger.LogRetryConnectionEstablishment(exception);
+                            Communicator.ProtocolLogger.LogRetryConnectionEstablishment(exception);
                         }
                     }
 

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,9 +8,9 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -188,9 +187,9 @@ namespace ZeroC.Ice
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            if (_communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (_communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
             {
-                _communicator.Logger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
+                _communicator.SecurityLogger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
                     {
                         { "authenticated", $"{_sslStream.IsAuthenticated}" },
                         { "encrypted", $"{_sslStream.IsEncrypted}" },
@@ -239,27 +238,27 @@ namespace ZeroC.Ice
                     // set.
                     if (!incoming || _engine.TlsServerOptions.RequireClientCertificate)
                     {
-                        if (_communicator.Logger.IsEnabled(LogLevel.Error))
+                        if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
                         {
-                            _communicator.Logger.LogTlsRemoteCertificateNotProvided();
+                            _communicator.SecurityLogger.LogTlsRemoteCertificateNotProvided();
                         }
                         return false;
                     }
                     else
                     {
                         errors ^= SslPolicyErrors.RemoteCertificateNotAvailable;
-                        if (_communicator.Logger.IsEnabled(LogLevel.Debug))
+                        if (_communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
                         {
-                            _communicator.Logger.LogTlsRemoteCertificateNotProvidedIgnored();
+                            _communicator.SecurityLogger.LogTlsRemoteCertificateNotProvidedIgnored();
                         }
                     }
                 }
 
                 if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) > 0)
                 {
-                    if (_communicator.Logger.IsEnabled(LogLevel.Error))
+                    if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
                     {
-                        _communicator.Logger.LogTlsHostnameMismatch();
+                        _communicator.SecurityLogger.LogTlsHostnameMismatch();
                     }
                     return false;
                 }
@@ -323,9 +322,9 @@ namespace ZeroC.Ice
                         {
                             if (status.Status != X509ChainStatusFlags.NoError)
                             {
-                                if (_communicator.Logger.IsEnabled(LogLevel.Error))
+                                if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
                                 {
-                                    _communicator.Logger.LogTlsCertificateChainError(status.Status);
+                                    _communicator.SecurityLogger.LogTlsCertificateChainError(status.Status);
                                 }
                                 errors |= SslPolicyErrors.RemoteCertificateChainErrors;
                             }
@@ -342,9 +341,9 @@ namespace ZeroC.Ice
 
                 if (errors > 0)
                 {
-                    if (_communicator.Logger.IsEnabled(LogLevel.Error))
+                    if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
                     {
-                        _communicator.Logger.LogTlsCertificateValidationFailed();
+                        _communicator.SecurityLogger.LogTlsCertificateValidationFailed();
                     }
                     return false;
                 }

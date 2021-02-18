@@ -32,17 +32,6 @@ namespace ZeroC.Ice
 
         public void Dispose() => _writer.Complete();
 
-        public IDisposable? StartScope()
-        {
-            if (_endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
-            {
-                _endpoint.Communicator.Logger.StartCollocatedAcceptorScope(_adapter.Name,
-                                                                           _endpoint.Transport,
-                                                                           _endpoint.Protocol);
-            }
-            return null;
-        }
-
         public override string ToString() =>
             _endpoint.Adapter.Name.Length == 0 ? "unnamed adapter" : _endpoint.Adapter.Name;
 

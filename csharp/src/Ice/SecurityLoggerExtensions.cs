@@ -7,39 +7,46 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ZeroC.Ice
 {
-    internal static class TlsLoggerExtensions
+    internal static class SecurityLoggerExtensions
     {
+        private const int TlsCertificateChainError = 0;
+        private const int TlsCertificateValidationFailed = 1;
+        private const int TlsConnectionCreated = 2;
+        private const int TlsHostnameMismatch = 3;
+        private const int TlsRemoteCertificateNotProvided = 4;
+        private const int TlsRemoteCertificateNotProvidedIgnored = 5;
+
         private static readonly Action<ILogger, X509ChainStatusFlags, Exception> _tlsCertificateChainError =
             LoggerMessage.Define<X509ChainStatusFlags>(
                 LogLevel.Error,
-                GetEventId(TlsEvent.TlsCertificateChainError),
+                new EventId(TlsCertificateChainError, nameof(TlsCertificateChainError)),
                 "Tls certificate chain error {Status}");
 
         private static readonly Action<ILogger, Exception> _tlsCertificateValidationFailed = LoggerMessage.Define(
             LogLevel.Error,
-            GetEventId(TlsEvent.TlsCertificateValidationFailed),
+            new EventId(TlsCertificateValidationFailed, nameof(TlsCertificateValidationFailed)),
             "Tls certificate validation failed {Status}");
 
         private static readonly Action<ILogger, string, Dictionary<string, string>, Exception> _tlsConnectionCreated =
             LoggerMessage.Define<string, Dictionary<string, string>>(
                 LogLevel.Error,
-                GetEventId(TlsEvent.TlsConnectionCreated),
+                new EventId(TlsConnectionCreated, nameof(TlsConnectionCreated)),
                 "Tls connection summary {Description} {TlsConnectionInfo}");
 
         private static readonly Action<ILogger, Exception> _tlsHostnameMismatch = LoggerMessage.Define(
             LogLevel.Error,
-            GetEventId(TlsEvent.TlsHostnameMismatch),
+            new EventId(TlsHostnameMismatch, nameof(TlsHostnameMismatch)),
             "Tls certificate validation failed - Hostname mismatch");
 
         private static readonly Action<ILogger, Exception> _tlsRemoteCertificateNotProvided = LoggerMessage.Define(
             LogLevel.Error,
-            GetEventId(TlsEvent.TlsRemoteCertificateNotProvided),
+            new EventId(TlsRemoteCertificateNotProvided, nameof(TlsRemoteCertificateNotProvided)),
             "Tls certificate validation failed - remote certificate not provided");
 
         private static readonly Action<ILogger, Exception> _tlsRemoteCertificateNotProvidedIgnored =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                GetEventId(TlsEvent.TlsRemoteCertificateNotProvidedIgnored),
+                new EventId(TlsRemoteCertificateNotProvidedIgnored, nameof(TlsRemoteCertificateNotProvidedIgnored)),
                 "Tls certificate validation failed - remote certificate not provided (ignored)");
 
         internal static void LogTlsCertificateChainError(this ILogger logger, X509ChainStatusFlags status) =>
@@ -61,17 +68,5 @@ namespace ZeroC.Ice
 
         internal static void LogTlsRemoteCertificateNotProvidedIgnored(this ILogger logger) =>
             _tlsRemoteCertificateNotProvidedIgnored(logger, null!);
-
-        private static EventId GetEventId(TlsEvent e) => new EventId((int)e, e.ToString());
-
-        private enum TlsEvent
-        {
-            TlsCertificateChainError,
-            TlsCertificateValidationFailed,
-            TlsConnectionCreated,
-            TlsHostnameMismatch,
-            TlsRemoteCertificateNotProvided,
-            TlsRemoteCertificateNotProvidedIgnored
-        }
     }
 }

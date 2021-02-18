@@ -1,11 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -225,19 +227,14 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public async Task PingAsync(IProgress<bool>? progress = null, CancellationToken cancel = default)
         {
-            using (StartScope())
-            {
-                await Socket.PingAsync(cancel).ConfigureAwait(false);
-                progress?.Report(true);
-            }
+            await Socket.PingAsync(cancel).ConfigureAwait(false);
+            progress?.Report(true);
         }
 
         /// <summary>Returns a description of the connection as human readable text, suitable for logging or error
         /// messages.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
         public override string ToString() => Socket.ToString()!;
-
-        public IDisposable? StartScope() => Socket.StartScope();
 
         internal Connection(
             Endpoint endpoint,
@@ -276,31 +273,28 @@ namespace ZeroC.Ice
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            using (StartScope())
+            try
             {
-                try
+                Task goAwayTask;
+                lock (_mutex)
                 {
-                    Task goAwayTask;
-                    lock (_mutex)
+                    if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
                     {
-                        if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
-                        {
-                            SetState(ConnectionState.Closing, exception);
-                            _closeTask ??= PerformGoAwayAsync(exception);
-                            Debug.Assert(_closeTask != null);
-                        }
-                        goAwayTask = _closeTask ?? AbortAsync(exception);
+                        SetState(ConnectionState.Closing, exception);
+                        _closeTask ??= PerformGoAwayAsync(exception);
+                        Debug.Assert(_closeTask != null);
                     }
-                    await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
+                    goAwayTask = _closeTask ?? AbortAsync(exception);
                 }
-                catch (OperationCanceledException)
-                {
-                    // Ignore
-                }
-                catch (Exception ex)
-                {
-                    Debug.Assert(false, $"unexpected exception {ex}");
-                }
+                await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore
+            }
+            catch (Exception ex)
+            {
+                Debug.Assert(false, $"unexpected exception {ex}");
             }
 
             async Task PerformGoAwayAsync(Exception exception)
@@ -358,52 +352,51 @@ namespace ZeroC.Ice
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            using (StartScope())
+            try
             {
-                try
+                // Initialize the transport.
+                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+
+                if (!Endpoint.IsDatagram)
                 {
-                    // Initialize the transport.
-                    await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+                    // Create the control stream and send the initialize frame
+                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
-                    if (!Endpoint.IsDatagram)
-                    {
-                        // Create the control stream and send the initialize frame
-                        _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    // Wait for the peer control stream to be accepted and read the initialize frame
+                    SocketStream peerControlStream =
+                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
 
-                        // Wait for the peer control stream to be accepted and read the initialize frame
-                        SocketStream peerControlStream =
-                            await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-
-                        // Setup a task to wait for the close frame on the peer's control stream.
-                        _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                     default);
-                    }
-
-                    Socket.Initialized();
-
-                    lock (_mutex)
-                    {
-                        if (_state >= ConnectionState.Closed)
-                        {
-                            // This can occur if the communicator or object adapter is disposed while the connection
-                            // initializes.
-                            throw new ConnectionClosedException(isClosedByPeer: false,
-                                                                RetryPolicy.AfterDelay(TimeSpan.Zero));
-                        }
-                        SetState(ConnectionState.Active);
-
-                        // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
-                        // synchronously new frames from this thread.
-                        _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
-                    }
+                    // Setup a task to wait for the close frame on the peer's control stream.
+                    _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
+                                    default);
                 }
-                catch (Exception ex)
+
+                Socket.Initialized();
+
+                lock (_mutex)
                 {
-                    _ = AbortAsync(ex);
-                    throw;
+                    if (_state >= ConnectionState.Closed)
+                    {
+                        // This can occur if the communicator or object adapter is disposed while the connection
+                        // initializes.
+                        throw new ConnectionClosedException(isClosedByPeer: false,
+                                                            RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    }
+                    SetState(ConnectionState.Active);
+
+                    // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
+                    // synchronously new frames from this thread.
+                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
                 }
             }
+            catch (Exception ex)
+            {
+                _ = AbortAsync(ex);
+                throw;
+            }
         }
+
+        internal abstract IReadOnlyList<KeyValuePair<string, object>> LogScope();
 
         internal void Monitor()
         {
@@ -723,6 +716,63 @@ namespace ZeroC.Ice
         }
 
         internal override bool CanTrust(NonSecure preferNonSecure) => true;
+
+        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
+
+        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
+        {
+            private const string TransportKey = "Transport";
+            private const string ProtocolKey = "Protocol";
+            private const string IncomingKey = "Incoming";
+            private const string ObjectAdapterKey = "ObjectAdapter";
+
+            private string? _cached;
+            private ColocatedConnection _connection;
+
+            internal Scope(ColocatedConnection connection) => _connection = connection;
+
+            public KeyValuePair<string, object> this[int index] =>
+                index switch
+                {
+                    0 => new KeyValuePair<string, object>(TransportKey, _connection.Endpoint.Transport),
+                    1 => new KeyValuePair<string, object>(ProtocolKey, _connection.Endpoint.Protocol),
+                    2 => new KeyValuePair<string, object>(IncomingKey, _connection.IsIncoming),
+                    3 => _connection.Adapter is ObjectAdapter adapter ?
+                        new KeyValuePair<string, object>(ObjectAdapterKey, adapter.Name) :
+                        throw new ArgumentException(nameof(index)),
+                    _ => throw new ArgumentOutOfRangeException(nameof(index))
+                };
+
+            public int Count => _connection.Adapter == null ? 3 : 4;
+
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            {
+                for (var i = 0; i < Count; ++i)
+                {
+                    yield return this[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public override string ToString()
+            {
+                if (_cached == null)
+                {
+                    var sb = new StringBuilder();
+                    if (_connection.Adapter is ObjectAdapter adapter)
+                    {
+                        sb.Append("object adapter = ").Append(adapter.Name).Append(", ");
+                    }
+                    sb.Append("incoming = ").Append(_connection.IsIncoming).Append(", ");
+                    sb.Append("transport = ").Append(_connection.Endpoint.Transport).Append(", ");
+                    sb.Append("protocol = ").Append(_connection.Endpoint.Protocol);
+                    _cached = sb.ToString();
+                }
+
+                return _cached;
+            }
+        }
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -779,6 +829,61 @@ namespace ZeroC.Ice
                 _ => false
             };
             return trusted;
+        }
+
+        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
+
+        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
+        {
+            private const string LocalAddressKey = "LocalAddress";
+            private const string RemoteAddressKey = "RemoteAddress";
+            private const string TransportKey = "Transport";
+            private const string ProtocolKey = "Protocol";
+
+            private string? _cached;
+            private Endpoint _endpoint;
+            private string _localAddress;
+            private string _remoteAddress;
+
+            internal Scope(IPConnection connection)
+            {
+                _localAddress = Network.LocalAddrToString(connection.LocalEndpoint);
+                _remoteAddress = Network.RemoteAddrToString(connection.RemoteEndpoint);
+                _endpoint = connection.Endpoint;
+            }
+
+            public KeyValuePair<string, object> this[int index] =>
+                index switch
+                {
+                    0 => new KeyValuePair<string, object>(LocalAddressKey, _localAddress),
+                    1 => new KeyValuePair<string, object>(RemoteAddressKey, _remoteAddress),
+                    2 => new KeyValuePair<string, object>(TransportKey, _endpoint.Transport),
+                    3 => new KeyValuePair<string, object>(ProtocolKey, _endpoint.Protocol),
+                    _ => throw new ArgumentOutOfRangeException(nameof(index))
+                };
+
+            public int Count => 4;
+
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            {
+                for (var i = 0; i < Count; ++i)
+                {
+                    yield return this[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public override string ToString()
+            {
+                if (_cached == null)
+                {
+                    _cached = @$"local address = {_localAddress}, remote address = {_remoteAddress
+                        }, transport = {_endpoint.Transport}, protocol = {_endpoint.Protocol}";
+                }
+
+                return _cached;
+            }
         }
     }
 

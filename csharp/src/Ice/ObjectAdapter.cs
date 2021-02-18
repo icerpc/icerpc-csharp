@@ -921,16 +921,16 @@ namespace ZeroC.Ice
             }
             catch (Exception ex)
             {
-                if (Communicator.Logger.IsEnabled(LogLevel.Error))
+                if (Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                 {
-                    Communicator.Logger.LogUnregisterObjectAdapterEndpointsFailure(this, ex);
+                    Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsFailure(this, ex);
                 }
                 throw;
             }
 
-            if (Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.Logger.LogUnregisterObjectAdapterEndpointsSuccess(this);
+                Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsSuccess(this);
             }
         }
     }

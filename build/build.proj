@@ -32,7 +32,7 @@
         <Exec Command="dotnet nuget push $(MSBuildThisFileDirectory)../csharp/lib/@(PackageName).$(PackageVersion).nupkg --source $(NuGetGlobalPackages)" />
     </Target>
 
-    <Target Name="BuildExamples" DependsOnTargets="InstallLocalPackages">
+    <Target Name="BuildExamples">
         <MSBuild Projects="@(ExampleSolution)" Targets="build" />
     </Target>
 

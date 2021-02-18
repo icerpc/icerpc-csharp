@@ -1,14 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -22,29 +19,43 @@ namespace ZeroC.Ice
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-            var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
+            ILogger transportLogger = _adapter.Communicator.TransportLogger;
+
+            try
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
-                _ => new SlicSocket(socket, Endpoint, _adapter)
-            };
-            return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
+                if (transportLogger.IsEnabled(LogLevel.Debug))
+                {
+                    transportLogger.LogAcceptingConnection(Endpoint.Transport, Network.LocalAddrToString(_addr));
+                }
+
+                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+
+                if (transportLogger.IsEnabled(LogLevel.Debug))
+                {
+                    transportLogger.LogConnectionAccepted(Endpoint.Transport,
+                                                          Network.LocalAddrToString(fd),
+                                                          Network.RemoteAddrToString(fd));
+                }
+
+                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
+                MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
+                {
+                    Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
+                    _ => new SlicSocket(socket, Endpoint, _adapter)
+                };
+                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
+            }
+            catch (Exception ex)
+            {
+                if (transportLogger.IsEnabled(LogLevel.Error))
+                {
+                    transportLogger.LogAcceptingConnectionFailed(Endpoint.Transport, ex);
+                }
+                throw;
+            }
         }
 
         public void Dispose() => _socket.CloseNoThrow();
-
-        public IDisposable? StartScope()
-        {
-            if (Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
-            {
-                Endpoint.Communicator.Logger.StartTcpAcceptorScope(_adapter.Name,
-                                                                   Network.LocalAddrToString(_addr),
-                                                                   Endpoint.Transport,
-                                                                   Endpoint.Protocol);
-            }
-            return null;
-        }
 
         public override string ToString() => _addr.ToString();
 

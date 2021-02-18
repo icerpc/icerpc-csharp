@@ -302,7 +302,11 @@ namespace ZeroC.Ice
             return false;
         }
 
+        internal static string LocalAddrToString(Socket socket) => LocalAddrToString(GetLocalAddress(socket));
+
         internal static string LocalAddrToString(EndPoint? endpoint) => endpoint?.ToString() ?? "<not bound>";
+
+        internal static string RemoteAddrToString(Socket socket) => RemoteAddrToString(GetRemoteAddress(socket));
 
         internal static string RemoteAddrToString(EndPoint? endpoint) => endpoint?.ToString() ?? "<not connected>";
 

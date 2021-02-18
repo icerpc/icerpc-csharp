@@ -99,19 +99,17 @@ namespace ZeroC.Ice
 
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
-            if (Logger.IsEnabled(LogLevel.Information))
+            ILogger logger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using (Logger.StartRequestScope(Id, request))
-                    {
-                        Logger.LogSendingRequest(request);
-                    }
+                    logger.LogSendingRequest(request, Id);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    Logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    logger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
                 }
             }
         }

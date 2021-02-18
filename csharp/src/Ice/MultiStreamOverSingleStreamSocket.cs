@@ -36,7 +36,5 @@ namespace ZeroC.Ice
             ObjectAdapter? adapter,
             SingleStreamSocket socket)
             : base(endpoint, adapter) => Underlying = socket;
-
-        internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }
 }
