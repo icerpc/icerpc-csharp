@@ -19,7 +19,11 @@ namespace ZeroC.Ice.Test.Location
 
             bool ice1 = helper.Protocol == Protocol.Ice1;
             var manager = IServerManagerPrx.Parse(helper.GetTestProxy("ServerManager", 0), communicator);
-            var locator = communicator.DefaultLocator!.Clone(ITestLocatorPrx.Factory);
+            var locator =
+                ILocatorPrx.Parse(helper.GetTestProxy("locator", 0), communicator).Clone(ITestLocatorPrx.Factory);
+
+            ILocationResolver locationResolver = new LocationResolver(locator);
+            communicator.DefaultLocationResolver = locationResolver;
 
             var registry = locator.GetRegistry()!.Clone(ITestLocatorRegistryPrx.Factory);
             TestHelper.Assert(registry != null);
@@ -49,20 +53,20 @@ namespace ZeroC.Ice.Test.Location
             }
             output.WriteLine("ok");
 
-            output.Write("testing ice_locator and ice_getLocator... ");
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, communicator.DefaultLocator!));
-            var anotherLocator =
-                ILocatorPrx.Parse(ice1 ? "anotherLocator" : "ice:anotherLocator", communicator);
-            base1 = base1.Clone(locator: anotherLocator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, anotherLocator));
-            communicator.DefaultLocator = null;
+            output.Write("testing LocationResolver... ");
+            TestHelper.Assert(base1.LocationResolver == communicator.DefaultLocationResolver);
+            var anotherLocationResolver =
+                new LocationResolver(ILocatorPrx.Parse(ice1 ? "anotherLocator" : "ice:anotherLocator", communicator));
+            base1 = base1.Clone(locationResolver: anotherLocationResolver);
+            TestHelper.Assert(base1.LocationResolver == anotherLocationResolver);
+            communicator.DefaultLocationResolver = null;
             base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
-            TestHelper.Assert(base1.Locator == null);
-            base1 = base1.Clone(locator: anotherLocator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, anotherLocator));
-            communicator.DefaultLocator = locator;
+            TestHelper.Assert(base1.LocationResolver == null);
+            base1 = base1.Clone(locationResolver: anotherLocationResolver);
+            TestHelper.Assert(base1.LocationResolver == anotherLocationResolver);
+            communicator.DefaultLocationResolver = locationResolver;
             base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, communicator.DefaultLocator!));
+            TestHelper.Assert(base1.LocationResolver == communicator.DefaultLocationResolver);
             output.WriteLine("ok");
 
             output.Write("starting server... ");
@@ -504,9 +508,8 @@ namespace ZeroC.Ice.Test.Location
             output.Write("testing locator cache background updates... ");
             output.Flush();
             {
-                Dictionary<string, string> properties = communicator.GetProperties();
-                properties["Ice.BackgroundLocatorCacheUpdates"] = "1";
-                await using Communicator ic = TestHelper.CreateCommunicator(properties);
+                await using Communicator ic = TestHelper.CreateCommunicator(communicator.GetProperties());
+                ic.DefaultLocationResolver = new LocationResolver(locator, true);
 
                 RegisterAdapterEndpoints(
                     registry,

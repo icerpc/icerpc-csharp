@@ -285,10 +285,10 @@ namespace ZeroC.Ice.Test.Discovery
 
                 {
                     await using var comm = new Communicator(communicator.GetProperties());
-                    TestHelper.Assert(comm.DefaultLocator != null);
 
                     discoveryServerOptions.Lookup = $"udp -h {multicast} --interface unknown"; // invalid value
                     await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+                    comm.DefaultLocationResolver = new LocationResolver(discoveryServer.Locator);
 
                     try
                     {
@@ -304,7 +304,6 @@ namespace ZeroC.Ice.Test.Discovery
                 }
                 {
                     await using var comm = new Communicator(communicator.GetProperties());
-                    TestHelper.Assert(comm.DefaultLocator != null);
 
                     string port = $"{helper.BasePort + 10}";
                     string intf = helper.Host.Contains(":") ? $"\"{helper.Host}\"" : helper.Host;
@@ -316,6 +315,7 @@ namespace ZeroC.Ice.Test.Discovery
                     }
 
                     await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+                    comm.DefaultLocationResolver = new LocationResolver(discoveryServer.Locator);
 
                     await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                         IcePingAsync();

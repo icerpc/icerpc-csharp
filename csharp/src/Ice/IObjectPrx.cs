@@ -176,9 +176,8 @@ namespace ZeroC.Ice
         /// <summary>Gets the location of this proxy. Ice uses this location to find the target object.</summary>
         public IReadOnlyList<string> Location { get; }
 
-        /// <summary>The locator associated with this proxy. This property is null when no locator is associated with
-        /// this proxy.</summary>
-        public ILocatorPrx? Locator { get; }
+        /// <summary>The location resolver associated with this proxy.</summary>
+        public ILocationResolver? LocationResolver { get; }
 
         /// <summary>The locator cache timeout of this proxy.</summary>
         public TimeSpan LocatorCacheTimeout { get; }

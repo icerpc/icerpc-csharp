@@ -18,7 +18,7 @@ namespace ZeroC.Ice
     /// locator info instance per locator proxy set either with Ice.Default.Locator or the proxy's Locator property. It
     /// caches the locator registry proxy and keeps track of requests to the locator to prevent multiple concurrent
     /// identical requests.</summary>
-    internal sealed class LocatorInfo
+    public sealed class LocationResolver : ILocationResolver
     {
         internal ILocatorPrx Locator { get; }
 
@@ -41,13 +41,13 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Identity, string, Protocol), Task<(EndpointList, Location)>> _wellKnownProxyRequests =
             new();
 
-        internal LocatorInfo(ILocatorPrx locator, bool background)
+        public LocationResolver(ILocatorPrx locator, bool background = false)
         {
             Locator = locator;
             _background = background;
         }
 
-        internal void ClearCache(ObjectPrx proxy)
+        public void ClearCache(ObjectPrx proxy)
         {
             Debug.Assert(proxy.IsIndirect);
 
@@ -87,7 +87,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Resolves an indirect proxy using the locator proxy or cache.</summary>
-        internal async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveIndirectProxyAsync(
+        public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveIndirectProxyAsync(
             ObjectPrx proxy,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel)

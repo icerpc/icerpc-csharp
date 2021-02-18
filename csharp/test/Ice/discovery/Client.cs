@@ -41,6 +41,7 @@ namespace ZeroC.Ice.Test.Discovery
             };
 
             await using var discoveryServer = new DiscoveryServer(communicator, discoveryServerOptions);
+            communicator.DefaultLocationResolver = new LocationResolver(discoveryServer.Locator);
             await discoveryServer.ActivateAsync();
 
             return await RunTestAsync<Client>(communicator, args);
