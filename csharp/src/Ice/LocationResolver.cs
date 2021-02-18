@@ -14,14 +14,16 @@ using Location = System.Collections.Generic.IReadOnlyList<string>;
 
 namespace ZeroC.Ice
 {
-    /// <summary>The locator info class caches information specific to a given locator proxy. The communicator holds a
-    /// locator info instance per locator proxy set either with Ice.Default.Locator or the proxy's Locator property. It
-    /// caches the locator registry proxy and keeps track of requests to the locator to prevent multiple concurrent
-    /// identical requests.</summary>
+    public sealed class LocationResolverOptions
+    {
+        public bool Background { get; set; }
+
+        public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
+    }
+
+    /// <summary>The default implementation of ILocationResolver, using a locator proxy.</summary>
     public sealed class LocationResolver : ILocationResolver
     {
-        internal ILocatorPrx Locator { get; }
-
         private static readonly IEqualityComparer<(Location, Protocol)> _locationComparer = new LocationComparer();
 
         private readonly bool _background;
@@ -32,8 +34,12 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Location, Protocol), Task<EndpointList>> _locationRequests =
             new(_locationComparer);
 
+        private readonly ILocatorPrx _locator;
+
         // _mutex protects _locationRequests and _wellKnownProxyRequests
         private readonly object _mutex = new();
+
+        private readonly TimeSpan _ttl;
 
         private readonly ConcurrentDictionary<(Identity, string, Protocol), (TimeSpan InsertionTime, EndpointList Endpoints, Location Location)> _wellKnownProxyCache =
             new();
@@ -41,12 +47,25 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Identity, string, Protocol), Task<(EndpointList, Location)>> _wellKnownProxyRequests =
             new();
 
-        public LocationResolver(ILocatorPrx locator, bool background = false)
+        /// <summary>Constructs a location resolver.</summary>
+        /// <param name="locator">The locator proxy.</param>
+        /// <param name="options">Options to configure this location resolver.See <see cref="LocationResolverOptions"/>.
+        /// </param>
+        public LocationResolver(ILocatorPrx locator, LocationResolverOptions options)
         {
-            Locator = locator;
-            _background = background;
+            _locator = locator;
+            _background = options.Background;
+            _ttl = options.Ttl;
         }
 
+        /// <summary>Constructs a location resolver using the default options.</summary>
+        /// <param name="locator">The locator proxy.</param>
+        public LocationResolver(ILocatorPrx locator)
+            : this(locator, new LocationResolverOptions())
+        {
+        }
+
+        /// <inheritdoc/>
         public void ClearCache(ObjectPrx proxy)
         {
             Debug.Assert(proxy.IsIndirect);
@@ -86,7 +105,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Resolves an indirect proxy using the locator proxy or cache.</summary>
+        /// <inheritdoc/>
         public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveIndirectProxyAsync(
             ObjectPrx proxy,
             TimeSpan endpointsMaxAge,
@@ -101,11 +120,11 @@ namespace ZeroC.Ice
             if (proxy.IsWellKnown)
             {
                 // First, we check the cache.
-                if (proxy.LocatorCacheTimeout != TimeSpan.Zero)
+                if (_ttl != TimeSpan.Zero)
                 {
                     (endpoints, location, wellKnownLocationAge) = GetResolvedWellKnownProxyFromCache(proxy);
                 }
-                bool expired = CheckExpired(wellKnownLocationAge, proxy.LocatorCacheTimeout);
+                bool expired = CheckExpired(wellKnownLocationAge, _ttl);
                 // If no endpoints are returned from the cache, or if the cache returned an expired endpoint and
                 // background updates are disabled, or if the caller is requesting a more recent endpoint than the
                 // one returned from the cache, we try to resolve the endpoint again.
@@ -130,12 +149,12 @@ namespace ZeroC.Ice
             {
                 Debug.Assert(endpoints.Count == 0);
 
-                if (proxy.LocatorCacheTimeout != TimeSpan.Zero)
+                if (_ttl != TimeSpan.Zero)
                 {
                     (endpoints, endpointsAge) = GetResolvedLocationFromCache(location, proxy.Protocol);
                 }
 
-                bool expired = CheckExpired(endpointsAge, proxy.LocatorCacheTimeout);
+                bool expired = CheckExpired(endpointsAge, _ttl);
                 if (endpoints.Count == 0 ||
                     (!_background && expired) ||
                     endpointsAge >= endpointsMaxAge ||
@@ -365,7 +384,7 @@ namespace ZeroC.Ice
                         IObjectPrx? proxy = null;
                         try
                         {
-                            proxy = await Locator.FindAdapterByIdAsync(
+                            proxy = await _locator.FindAdapterByIdAsync(
                                 location[0],
                                 cancel: CancellationToken.None).ConfigureAwait(false);
                         }
@@ -393,7 +412,7 @@ namespace ZeroC.Ice
                         EndpointData[] dataArray;
 
                         // This will throw OperationNotExistException if it's an old Locator, and that's fine.
-                        dataArray = await Locator.ResolveLocationAsync(
+                        dataArray = await _locator.ResolveLocationAsync(
                             location,
                             cancel: CancellationToken.None).ConfigureAwait(false);
 
@@ -478,7 +497,7 @@ namespace ZeroC.Ice
                         IObjectPrx? obj = null;
                         try
                         {
-                            obj = await Locator.FindObjectByIdAsync(
+                            obj = await _locator.FindObjectByIdAsync(
                                 proxy.Identity,
                                 proxy.Facet,
                                 cancel: CancellationToken.None).ConfigureAwait(false);
@@ -506,7 +525,7 @@ namespace ZeroC.Ice
                     else
                     {
                         EndpointData[] dataArray;
-                        (dataArray, location) = await Locator.ResolveWellKnownProxyAsync(
+                        (dataArray, location) = await _locator.ResolveWellKnownProxyAsync(
                             proxy.Identity,
                             proxy.Facet,
                             cancel: CancellationToken.None).ConfigureAwait(false);
