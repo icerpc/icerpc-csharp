@@ -529,11 +529,15 @@ namespace ZeroC.Ice.Test.Location
                 count += 3;
                 TestHelper.Assert(count == locator.GetRequestCount());
 
-                registry.AddObject(IObjectPrx.Parse(helper.GetTestProxy("test3", 99), communicator));
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
                     .Clone(locationResolver: oneBResolver).IcePingAsync(); // 1s timeout.
                 await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
                     .Clone(locationResolver: oneBResolver).IcePingAsync(); // 1s timeout.
+
+                registry.AddObject(IObjectPrx.Parse(helper.GetTestProxy("test3", 99), communicator));
+                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                    .Clone(locationResolver: oneBResolver).IcePingAsync();
+
                 count += 3;
                 TestHelper.Assert(count == locator.GetRequestCount());
 
