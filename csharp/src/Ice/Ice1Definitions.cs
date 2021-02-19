@@ -139,7 +139,7 @@ namespace ZeroC.Ice
                     {
                         if (proxy.IsWellKnown)
                         {
-                            proxy.LocationResolver?.ClearCache(proxy);
+                            proxy.LocationResolver?.ClearCache(proxy.Identity, proxy.Facet, proxy.Protocol);
                         }
                         return RetryPolicy.OtherReplica;
                     }

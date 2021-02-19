@@ -464,7 +464,7 @@ namespace ZeroC.Ice.Test.Location
             try
             {
                 var prx = IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator);
-                communicator.DefaultLocationResolver.ClearCache((prx as ObjectPrx)!);
+                communicator.DefaultLocationResolver.ClearCache(prx.Location, prx.Protocol);
                 await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }
@@ -474,7 +474,7 @@ namespace ZeroC.Ice.Test.Location
             try
             {
                 var prx = IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator);
-                communicator.DefaultLocationResolver.ClearCache((prx as ObjectPrx)!);
+                communicator.DefaultLocationResolver.ClearCache(prx.Identity, prx.Facet, prx.Protocol);
                 await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }

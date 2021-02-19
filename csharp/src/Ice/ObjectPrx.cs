@@ -1270,17 +1270,30 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint>? endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan endpointsAge = TimeSpan.Zero;
 
-            // Get the proxy's endpoint or query the locator to get endpoints
+            // Get the proxy's endpoint or query the location resolver to get endpoints
             if (Endpoints.Count > 0)
             {
                 endpoints = Endpoints.ToList();
             }
             else if (LocationResolver is ILocationResolver locationResolver)
             {
-                (endpoints, endpointsAge) = await locationResolver.ResolveIndirectProxyAsync(
-                    this,
-                    endpointsMaxAge,
-                    cancel).ConfigureAwait(false);
+                if (Location.Count == 0)
+                {
+                    (endpoints, endpointsAge) = await locationResolver.ResolveWellKnownProxyAsync(
+                        Identity,
+                        Facet,
+                        Protocol,
+                        endpointsMaxAge,
+                        cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    (endpoints, endpointsAge) = await locationResolver.ResolveLocationAsync(
+                        Location,
+                        Protocol,
+                        endpointsMaxAge,
+                        cancel).ConfigureAwait(false);
+                }
             }
 
             // Apply overrides and filter endpoints
