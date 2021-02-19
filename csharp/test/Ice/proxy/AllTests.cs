@@ -703,10 +703,10 @@ namespace ZeroC.Ice.Test.Proxy
                 preferExistingConnection: false,
                 preferNonSecure: NonSecure.Always);
 
-            // TODO: LocationResolver should reject indirect locators.
-            ILocationResolver locationResolver = new LocationResolver(locator);
+            // TODO: LocationService should reject indirect locators.
+            ILocationService locationService = new LocationService(locator);
 
-            b1 = b1.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationResolver: locationResolver);
+            b1 = b1.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationService: locationService);
 
             proxyProps = b1.ToProperty("Test");
 
@@ -762,7 +762,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                baseProxy.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationResolver: locationResolver);
+                baseProxy.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationService: locationService);
             }
             catch (ArgumentException)
             {
@@ -795,13 +795,13 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(Equals(compObj.Clone(label: "id1").Label, "id1"));
             TestHelper.Assert(Equals(compObj.Clone(label: "id2").Label, "id2"));
 
-            var loc1 = new LocationResolver(ILocatorPrx.Parse("ice+tcp://host:10000/loc1", communicator));
-            var loc2 = new LocationResolver(ILocatorPrx.Parse("ice+tcp://host:10000/loc2", communicator));
-            TestHelper.Assert(compObj.Clone(clearLocationResolver: true).Equals(compObj.Clone(clearLocationResolver: true)));
-            TestHelper.Assert(compObj.Clone(locationResolver: loc1).Equals(compObj.Clone(locationResolver: loc1)));
-            TestHelper.Assert(!compObj.Clone(locationResolver: loc1).Equals(compObj.Clone(clearLocationResolver: true)));
-            TestHelper.Assert(!compObj.Clone(clearLocationResolver: true).Equals(compObj.Clone(locationResolver: loc2)));
-            TestHelper.Assert(!compObj.Clone(locationResolver: loc1).Equals(compObj.Clone(locationResolver: loc2)));
+            var loc1 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc1", communicator));
+            var loc2 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc2", communicator));
+            TestHelper.Assert(compObj.Clone(clearLocationService: true).Equals(compObj.Clone(clearLocationService: true)));
+            TestHelper.Assert(compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc1)));
+            TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(clearLocationService: true)));
+            TestHelper.Assert(!compObj.Clone(clearLocationService: true).Equals(compObj.Clone(locationService: loc2)));
+            TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc2)));
 
             var ctx1 = new Dictionary<string, string>
             {
@@ -833,8 +833,8 @@ namespace ZeroC.Ice.Test.Proxy
             compObj2 = IObjectPrx.Parse("ice:MyAdapter2//foo", communicator);
             TestHelper.Assert(!compObj1.Equals(compObj2));
 
-            TestHelper.Assert(compObj1.Clone(locationResolver: locationResolver).Equals(
-                compObj1.Clone(locationResolver: locationResolver)));
+            TestHelper.Assert(compObj1.Clone(locationService: locationService).Equals(
+                compObj1.Clone(locationService: locationService)));
 
             compObj1 = IObjectPrx.Parse("ice+tcp://127.0.0.1:10000/foo", communicator);
             compObj2 = IObjectPrx.Parse("ice:MyAdapter1//foo", communicator);

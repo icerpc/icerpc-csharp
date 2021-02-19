@@ -38,7 +38,7 @@ namespace ZeroC.Ice
 
         public object? Label { get; }
         public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
-        public ILocationResolver? LocationResolver { get; }
+        public ILocationService? LocationService { get; }
 
         public bool PreferExistingConnection =>
             _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
@@ -228,7 +228,7 @@ namespace ZeroC.Ice
                 facet: facet,
                 invocationTimeout: invocationTimeout,
                 location: location,
-                locationResolver: endpoints.Count > 0 ? null : communicator.DefaultLocationResolver,
+                locationService: endpoints.Count > 0 ? null : communicator.DefaultLocationService,
                 oneway: oneway,
                 preferExistingConnection: preferExistingConnection,
                 preferNonSecure: preferNonSecure,
@@ -281,7 +281,7 @@ namespace ZeroC.Ice
                 {
                     return false;
                 }
-                if (LocationResolver != other.LocationResolver)
+                if (LocationService != other.LocationService)
                 {
                     return false;
                 }
@@ -381,7 +381,7 @@ namespace ZeroC.Ice
                     hash.Add(Endpoints.GetSequenceHashCode());
                     hash.Add(Label);
                     hash.Add(Location.GetSequenceHashCode());
-                    hash.Add(LocationResolver);
+                    hash.Add(LocationService);
                     hash.Add(_preferExistingConnectionOverride);
                     hash.Add(_preferNonSecureOverride);
                 }
@@ -714,7 +714,7 @@ namespace ZeroC.Ice
             IsRelative = options.IsRelative;
             Label = options.Label;
             Location = options.Location;
-            LocationResolver = options.LocationResolver;
+            LocationService = options.LocationService;
             Protocol = options.Protocol;
             _connection = options.Connection;
             _invocationTimeoutOverride = options.InvocationTimeoutOverride;
@@ -861,7 +861,7 @@ namespace ZeroC.Ice
                     endpoints: endpoints,
                     facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                     location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
-                    locationResolver: communicator.DefaultLocationResolver,
+                    locationService: communicator.DefaultLocationService,
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
                 return factory(options);
@@ -978,7 +978,7 @@ namespace ZeroC.Ice
                         endpoints: endpoints,
                         facet: proxyData.Facet ?? "",
                         location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
-                        locationResolver: communicator.DefaultLocationResolver,
+                        locationService: communicator.DefaultLocationService,
                         oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
 
                     return factory(options);
@@ -993,7 +993,7 @@ namespace ZeroC.Ice
         internal ObjectPrxOptions CreateCloneOptions(
             bool? cacheConnection = null,
             bool clearLabel = false,
-            bool clearLocationResolver = false,
+            bool clearLocationService = false,
             IReadOnlyDictionary<string, string>? context = null, // can be provided by app, needs to be copied
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null, // from app, needs to be copied
@@ -1005,7 +1005,7 @@ namespace ZeroC.Ice
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null, // from app, needs to be copied
-            ILocationResolver? locationResolver = null,
+            ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -1031,13 +1031,13 @@ namespace ZeroC.Ice
             (IReadOnlyList<Endpoint>? newEndpoints, IReadOnlyList<string>? newLocation) =
                 ValidateCloneArgs(cacheConnection,
                                   clearLabel,
-                                  clearLocationResolver,
+                                  clearLocationService,
                                   endpoints,
                                   fixedConnection,
                                   invocationTimeout,
                                   label,
                                   location,
-                                  locationResolver,
+                                  locationService,
                                   preferExistingConnection,
                                   preferNonSecure,
                                   relative);
@@ -1072,7 +1072,7 @@ namespace ZeroC.Ice
                            invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
                            label: clearLabel ? null : label ?? Label,
                            location: newLocation ?? Location,
-                           locationResolver: clearLocationResolver ? null : locationResolver ?? LocationResolver,
+                           locationService: clearLocationService ? null : locationService ?? LocationService,
                            oneway: oneway ?? IsOneway,
                            preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
                            preferNonSecure: preferNonSecure ?? _preferNonSecureOverride,
@@ -1271,16 +1271,16 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint>? endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan endpointsAge = TimeSpan.Zero;
 
-            // Get the proxy's endpoint or query the location resolver to get endpoints
+            // Get the proxy's endpoint or query the location service to get endpoints
             if (Endpoints.Count > 0)
             {
                 endpoints = Endpoints.ToList();
             }
-            else if (LocationResolver is ILocationResolver locationResolver)
+            else if (LocationService is ILocationService locationService)
             {
                 if (Location.Count == 0)
                 {
-                    (endpoints, endpointsAge) = await locationResolver.ResolveWellKnownProxyAsync(
+                    (endpoints, endpointsAge) = await locationService.ResolveWellKnownProxyAsync(
                         Identity,
                         Facet,
                         Protocol,
@@ -1289,7 +1289,7 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    (endpoints, endpointsAge) = await locationResolver.ResolveLocationAsync(
+                    (endpoints, endpointsAge) = await locationService.ResolveLocationAsync(
                         Location,
                         Protocol,
                         endpointsMaxAge,
@@ -1617,21 +1617,21 @@ namespace ZeroC.Ice
         private (IReadOnlyList<Endpoint> NewEndpoints, IReadOnlyList<string>? NewLocation) ValidateCloneArgs(
             bool? cacheConnection,
             bool clearLabel,
-            bool clearLocationResolver,
+            bool clearLocationService,
             IEnumerable<Endpoint>? endpoints,
             Connection? fixedConnection,
             TimeSpan? invocationTimeout,
             object? label,
             IEnumerable<string>? location,
-            ILocationResolver? locationResolver,
+            ILocationService? locationService,
             bool? preferExistingConnection,
             NonSecure? preferNonSecure,
             bool? relative)
         {
             // Check for incompatible arguments
-            if (locationResolver != null && clearLocationResolver)
+            if (locationService != null && clearLocationService)
             {
-                throw new ArgumentException($"cannot set both {nameof(locationResolver)} and {nameof(clearLocationResolver)}");
+                throw new ArgumentException($"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
             }
 
             if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
@@ -1664,13 +1664,13 @@ namespace ZeroC.Ice
                 {
                     throw new ArgumentException("cannot change the location of a fixed proxy", nameof(location));
                 }
-                if (locationResolver != null)
+                if (locationService != null)
                 {
-                    throw new ArgumentException("cannot change the location resolver of a fixed proxy", nameof(locationResolver));
+                    throw new ArgumentException("cannot change the location service of a fixed proxy", nameof(locationService));
                 }
-                else if (clearLocationResolver)
+                else if (clearLocationService)
                 {
-                    throw new ArgumentException("cannot change the location resolver of a fixed proxy", nameof(clearLocationResolver));
+                    throw new ArgumentException("cannot change the location service of a fixed proxy", nameof(clearLocationService));
                 }
                 if (preferExistingConnection != null)
                 {
@@ -1710,9 +1710,9 @@ namespace ZeroC.Ice
                     throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
                 }
 
-                if (locationResolver != null && clearLocationResolver)
+                if (locationService != null && clearLocationService)
                 {
-                    throw new ArgumentException($"cannot set both {nameof(locationResolver)} and {nameof(clearLocationResolver)}");
+                    throw new ArgumentException($"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
                 }
 
                 IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableArray();
@@ -1758,12 +1758,12 @@ namespace ZeroC.Ice
 
                 newEndpoints ??= Endpoints;
 
-                if (locationResolver != null)
+                if (locationService != null)
                 {
                     if (newEndpoints.Count > 0)
                     {
-                        throw new ArgumentException($"cannot set {nameof(locationResolver)} on a direct proxy",
-                                                    nameof(locationResolver));
+                        throw new ArgumentException($"cannot set {nameof(locationService)} on a direct proxy",
+                                                    nameof(locationService));
                     }
                 }
 

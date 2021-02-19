@@ -14,8 +14,8 @@ using Location = System.Collections.Generic.IReadOnlyList<string>;
 
 namespace ZeroC.Ice
 {
-    /// <summary>An options class for configuring a <see cref="LocationResolver"/>.</summary>
-    public sealed class LocationResolverOptions
+    /// <summary>An options class for configuring a <see cref="LocationService"/>.</summary>
+    public sealed class LocationServiceOptions
     {
         /// <summary>When true, if a Resolve method finds a stale cache entry, it returns the stale entry's endpoint(s)
         /// and executes a call "in the background" to refresh this entry. The default is false, meaning the Resolve
@@ -27,8 +27,9 @@ namespace ZeroC.Ice
         public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
     }
 
-    /// <summary>The default implementation of <see cref="ILocationResolver"/>.</summary>
-    public sealed class LocationResolver : ILocationResolver
+    /// <summary>The default implementation of <see cref="ILocationService"/>. It relies on a <see cref="ILocatorPrx"/>.
+    /// </summary>
+    public sealed class LocationService : ILocationService
     {
         private static readonly IEqualityComparer<(Location, Protocol)> _locationComparer = new LocationComparer();
 
@@ -53,21 +54,21 @@ namespace ZeroC.Ice
         private readonly Dictionary<(Identity, string, Protocol), Task<(EndpointList, Location)>> _wellKnownProxyRequests =
             new();
 
-        /// <summary>Constructs a location resolver.</summary>
+        /// <summary>Constructs a location service.</summary>
         /// <param name="locator">The locator proxy.</param>
-        /// <param name="options">Options to configure this location resolver.See <see cref="LocationResolverOptions"/>.
+        /// <param name="options">Options to configure this location service.See <see cref="LocationServiceOptions"/>.
         /// </param>
-        public LocationResolver(ILocatorPrx locator, LocationResolverOptions options)
+        public LocationService(ILocatorPrx locator, LocationServiceOptions options)
         {
             _locator = locator;
             _background = options.Background;
             _ttl = options.Ttl;
         }
 
-        /// <summary>Constructs a location resolver using the default options.</summary>
+        /// <summary>Constructs a location service using the default options.</summary>
         /// <param name="locator">The locator proxy.</param>
-        public LocationResolver(ILocatorPrx locator)
-            : this(locator, new LocationResolverOptions())
+        public LocationService(ILocatorPrx locator)
+            : this(locator, new LocationServiceOptions())
         {
         }
 

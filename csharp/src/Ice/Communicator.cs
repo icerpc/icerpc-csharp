@@ -93,11 +93,11 @@ namespace ZeroC.Ice
             set => _defaultInvocationInterceptors = value;
         }
 
-        /// <summary>The default location resolver for this communicator.</summary>
-        public ILocationResolver? DefaultLocationResolver
+        /// <summary>The default location service for this communicator.</summary>
+        public ILocationService? DefaultLocationService
         {
-            get => _defaultLocationResolver;
-            set => _defaultLocationResolver = value;
+            get => _defaultLocationService;
+            set => _defaultLocationService = value;
         }
 
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
@@ -187,7 +187,7 @@ namespace ZeroC.Ice
             ImmutableSortedDictionary<string, string>.Empty;
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
-        private volatile ILocationResolver? _defaultLocationResolver;
+        private volatile ILocationService? _defaultLocationService;
         private Task? _shutdownTask;
 
         private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =

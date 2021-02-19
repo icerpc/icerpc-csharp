@@ -9,9 +9,9 @@ using Location = System.Collections.Generic.IReadOnlyList<string>;
 
 namespace ZeroC.Ice
 {
-    /// <summary>A location resolver retrieves the endpoints of indirect proxies and optionally maintains a cache for
+    /// <summary>A location service retrieves the endpoints of indirect proxies and optionally maintains a cache for
     /// faster resolutions.</summary>
-    public interface ILocationResolver
+    public interface ILocationService
     {
         /// <summary>Clears the cache entry (if any) for this location.</summary>
         /// <param name="location">The location.</param>

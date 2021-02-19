@@ -37,7 +37,7 @@ namespace ZeroC.Ice
 
         internal readonly IReadOnlyList<string> Location;
 
-        internal readonly ILocationResolver? LocationResolver;
+        internal readonly ILocationService? LocationService;
         internal readonly bool? PreferExistingConnectionOverride;
 
         internal readonly NonSecure? PreferNonSecureOverride;
@@ -57,7 +57,7 @@ namespace ZeroC.Ice
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IReadOnlyList<string>? location = null,
-            ILocationResolver? locationResolver = null,
+            ILocationService? locationService = null,
             bool oneway = false,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -77,7 +77,7 @@ namespace ZeroC.Ice
             IsRelative = relative;
             Label = label;
             Location = location ?? ImmutableList<string>.Empty;
-            LocationResolver = locationResolver;
+            LocationService = locationService;
             PreferExistingConnectionOverride = preferExistingConnection;
             PreferNonSecureOverride = preferNonSecure;
             Protocol = protocol;

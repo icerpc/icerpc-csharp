@@ -32,7 +32,7 @@ namespace ZeroC.Ice.Test.Discovery
             };
 
             await using var discoveryServer = new DiscoveryServer(Communicator, discoveryServerOptions);
-            Communicator.DefaultLocationResolver = new LocationResolver(discoveryServer.Locator);
+            Communicator.DefaultLocationService = new LocationService(discoveryServer.Locator);
             await discoveryServer.ActivateAsync();
 
             ILocatorRegistryPrx? locatorRegistry = await discoveryServer.Locator.GetRegistryAsync();

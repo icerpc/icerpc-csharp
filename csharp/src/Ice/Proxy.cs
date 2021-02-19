@@ -43,8 +43,8 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory used to specify the desired proxy type.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
-        /// <param name="clearLocationResolver">When set to true, the clone does not have an associated location
-        ///  resolver (optional).</param>
+        /// <param name="clearLocationService">When set to true, the clone does not have an associated location service
+        /// (optional).</param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -58,7 +58,7 @@ namespace ZeroC.Ice
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
-        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
+        /// <param name="locationService">The location service of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
@@ -71,7 +71,7 @@ namespace ZeroC.Ice
             ProxyFactory<T> factory,
             bool? cacheConnection = null,
             bool clearLabel = false,
-            bool clearLocationResolver = false,
+            bool clearLocationService = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -83,7 +83,7 @@ namespace ZeroC.Ice
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null,
-            ILocationResolver? locationResolver = null,
+            ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -91,7 +91,7 @@ namespace ZeroC.Ice
         {
             T clone = factory(proxy.Impl.CreateCloneOptions(cacheConnection,
                                                             clearLabel,
-                                                            clearLocationResolver,
+                                                            clearLocationService,
                                                             context,
                                                             encoding,
                                                             endpoints,
@@ -103,7 +103,7 @@ namespace ZeroC.Ice
                                                             invocationTimeout,
                                                             label,
                                                             location,
-                                                            locationResolver,
+                                                            locationService,
                                                             oneway,
                                                             preferExistingConnection,
                                                             preferNonSecure,
@@ -117,9 +117,8 @@ namespace ZeroC.Ice
         /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
-        /// <param name="clearLocationResolver">When set to true, the clone does not have an associated location
-        /// resolver (optional).
-        /// </param>
+        /// <param name="clearLocationService">When set to true, the clone does not have an associated location service
+        /// (optional).</param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -130,7 +129,7 @@ namespace ZeroC.Ice
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
-        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
+        /// <param name="locationService">The location service of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
@@ -142,7 +141,7 @@ namespace ZeroC.Ice
             this T proxy,
             bool? cacheConnection = null,
             bool clearLabel = false,
-            bool clearLocationResolver = false,
+            bool clearLocationService = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -151,7 +150,7 @@ namespace ZeroC.Ice
             TimeSpan? invocationTimeout = null,
             object? label = null,
             IEnumerable<string>? location = null,
-            ILocationResolver? locationResolver = null,
+            ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -160,7 +159,7 @@ namespace ZeroC.Ice
             ObjectPrx impl = proxy.Impl;
             ObjectPrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
                                                                  clearLabel,
-                                                                 clearLocationResolver,
+                                                                 clearLocationService,
                                                                  context,
                                                                  encoding,
                                                                  endpoints,
@@ -172,7 +171,7 @@ namespace ZeroC.Ice
                                                                  invocationTimeout,
                                                                  label,
                                                                  location,
-                                                                 locationResolver,
+                                                                 locationService,
                                                                  oneway,
                                                                  preferExistingConnection,
                                                                  preferNonSecure,

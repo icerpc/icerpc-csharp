@@ -29,7 +29,7 @@ namespace ZeroC.Ice.Test.Discovery
             };
 
             await using var discoveryServer = new DiscoveryServer(communicator, discoveryServerOptions);
-            communicator.DefaultLocationResolver = new LocationResolver(discoveryServer.Locator);
+            communicator.DefaultLocationService = new LocationService(discoveryServer.Locator);
             await discoveryServer.ActivateAsync();
 
             var proxies = new List<IControllerPrx>();
@@ -193,9 +193,9 @@ namespace ZeroC.Ice.Test.Discovery
                     "oa3"
                 };
 
-                // Replace locator resolver to change the cache ttl.
-                communicator.DefaultLocationResolver =
-                    new LocationResolver(discoveryServer.Locator, new() { Ttl = TimeSpan.Zero });
+                // Replace location service to change the cache ttl.
+                communicator.DefaultLocationService =
+                    new LocationService(discoveryServer.Locator, new() { Ttl = TimeSpan.Zero });
 
                 // Check that the well known object is reachable with all replica group members
                 ITestIntfPrx intf = ITestIntfPrx.Parse(ice1 ? "object" : "ice:object", communicator).Clone(
@@ -306,7 +306,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                     discoveryServerOptions.Lookup = $"udp -h {multicast} --interface unknown"; // invalid value
                     await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
-                    comm.DefaultLocationResolver = new LocationResolver(discoveryServer2.Locator);
+                    comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
                     try
                     {
@@ -333,7 +333,7 @@ namespace ZeroC.Ice.Test.Discovery
                     }
 
                     await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
-                    comm.DefaultLocationResolver = new LocationResolver(discoveryServer2.Locator);
+                    comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
                     await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                         IcePingAsync();
