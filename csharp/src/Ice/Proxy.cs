@@ -59,7 +59,6 @@ namespace ZeroC.Ice
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
         /// <param name="locationResolver">The location resolver of the clone (optional).</param>
-        /// <param name="locatorCacheTimeout">The locator cache timeout of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
@@ -85,7 +84,6 @@ namespace ZeroC.Ice
             object? label = null,
             IEnumerable<string>? location = null,
             ILocationResolver? locationResolver = null,
-            TimeSpan? locatorCacheTimeout = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -106,7 +104,6 @@ namespace ZeroC.Ice
                                                             label,
                                                             location,
                                                             locationResolver,
-                                                            locatorCacheTimeout,
                                                             oneway,
                                                             preferExistingConnection,
                                                             preferNonSecure,
@@ -134,7 +131,6 @@ namespace ZeroC.Ice
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="location">The location of the clone (optional).</param>
         /// <param name="locationResolver">The location resolver of the clone (optional).</param>
-        /// <param name="locatorCacheTimeout">The locator cache timeout of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
@@ -156,7 +152,6 @@ namespace ZeroC.Ice
             object? label = null,
             IEnumerable<string>? location = null,
             ILocationResolver? locationResolver = null,
-            TimeSpan? locatorCacheTimeout = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -178,7 +173,6 @@ namespace ZeroC.Ice
                                                                  label,
                                                                  location,
                                                                  locationResolver,
-                                                                 locatorCacheTimeout,
                                                                  oneway,
                                                                  preferExistingConnection,
                                                                  preferNonSecure,

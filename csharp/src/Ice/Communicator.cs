@@ -113,10 +113,6 @@ namespace ZeroC.Ice
         /// </summary>
         public TimeSpan DefaultInvocationTimeout { get; }
 
-        /// <summary>Gets the default value for the locator cache timeout used by proxies created with this
-        /// communicator.</summary>
-        public TimeSpan DefaultLocatorCacheTimeout { get; }
-
         /// <summary>The logger for this communicator.</summary>
         public ILogger Logger
         {
@@ -425,10 +421,6 @@ namespace ZeroC.Ice
                         $"invalid IP address set for Ice.Default.SourceAddress: `{address}'", ex);
                 }
             }
-
-            // For locator cache timeout, 0 means disable locator cache.
-            DefaultLocatorCacheTimeout =
-                this.GetPropertyAsTimeSpan("Ice.Default.LocatorCacheTimeout") ?? Timeout.InfiniteTimeSpan;
 
             CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
             if (CloseTimeout == TimeSpan.Zero)

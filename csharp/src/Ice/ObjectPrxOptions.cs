@@ -38,8 +38,6 @@ namespace ZeroC.Ice
         internal readonly IReadOnlyList<string> Location;
 
         internal readonly ILocationResolver? LocationResolver;
-
-        internal readonly TimeSpan? LocatorCacheTimeoutOverride;
         internal readonly bool? PreferExistingConnectionOverride;
 
         internal readonly NonSecure? PreferNonSecureOverride;
@@ -60,7 +58,6 @@ namespace ZeroC.Ice
             object? label = null,
             IReadOnlyList<string>? location = null,
             ILocationResolver? locationResolver = null,
-            TimeSpan? locatorCacheTimeout = null,
             bool oneway = false,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -79,7 +76,6 @@ namespace ZeroC.Ice
             IsOneway = oneway;
             IsRelative = relative;
             Label = label;
-            LocatorCacheTimeoutOverride = locatorCacheTimeout;
             Location = location ?? ImmutableList<string>.Empty;
             LocationResolver = locationResolver;
             PreferExistingConnectionOverride = preferExistingConnection;

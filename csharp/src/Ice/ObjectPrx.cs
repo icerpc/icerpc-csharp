@@ -42,8 +42,6 @@ namespace ZeroC.Ice
         public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
         public ILocationResolver? LocationResolver { get; }
 
-        public TimeSpan LocatorCacheTimeout => _locatorCacheTimeoutOverride ?? Communicator.DefaultLocatorCacheTimeout;
-
         public bool PreferExistingConnection =>
             _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
         public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.DefaultPreferNonSecure;
@@ -56,8 +54,6 @@ namespace ZeroC.Ice
         {
             "CacheConnection",
             "InvocationTimeout",
-            "LocatorCacheTimeout",
-            "Locator",
             "PreferNonSecure",
             "Relative",
             "Context\\..*"
@@ -70,7 +66,6 @@ namespace ZeroC.Ice
         // the ToString()/ToProperty() representation.
 
         private readonly TimeSpan? _invocationTimeoutOverride;
-        private readonly TimeSpan? _locatorCacheTimeoutOverride;
 
         private readonly bool? _preferExistingConnectionOverride;
         private readonly NonSecure? _preferNonSecureOverride;
@@ -125,7 +120,6 @@ namespace ZeroC.Ice
             bool oneway = false;
             bool? preferExistingConnection = null;
             NonSecure? preferNonSecure = null;
-            TimeSpan? locatorCacheTimeout = null;
             Protocol protocol;
             bool? relative = null;
 
@@ -173,15 +167,9 @@ namespace ZeroC.Ice
                  context,
                  invocationTimeout,
                  label,
-                 locatorCacheTimeout,
                  preferExistingConnection,
                  preferNonSecure,
                  relative) = proxyOptions;
-
-                if (locatorCacheTimeout != null && communicator.DefaultLocationResolver == null)
-                {
-                    throw new FormatException("cannot set locator-cache-timeout without a location resolver");
-                }
             }
             else
             {
@@ -218,17 +206,6 @@ namespace ZeroC.Ice
 
                     label = communicator.GetProperty($"{propertyPrefix}.Label");
 
-                    property = $"{propertyPrefix}.LocatorCacheTimeout";
-                    locatorCacheTimeout = communicator.GetPropertyAsTimeSpan(property);
-
-                    if (locatorCacheTimeout != null)
-                    {
-                        if (endpoints.Count > 0)
-                        {
-                            throw new InvalidConfigurationException($"{property}: proxy has endpoints");
-                        }
-                    }
-
                     preferNonSecure = communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
                     relative = communicator.GetPropertyAsBool($"{propertyPrefix}.Relative");
 
@@ -251,7 +228,6 @@ namespace ZeroC.Ice
                 invocationTimeout: invocationTimeout,
                 location: location,
                 locationResolver: endpoints.Count > 0 ? null : communicator.DefaultLocationResolver,
-                locatorCacheTimeout: locatorCacheTimeout,
                 oneway: oneway,
                 preferExistingConnection: preferExistingConnection,
                 preferNonSecure: preferNonSecure,
@@ -301,10 +277,6 @@ namespace ZeroC.Ice
                     return false;
                 }
                 if (!Location.SequenceEqual(other.Location))
-                {
-                    return false;
-                }
-                if (_locatorCacheTimeoutOverride != other._locatorCacheTimeoutOverride)
                 {
                     return false;
                 }
@@ -408,7 +380,6 @@ namespace ZeroC.Ice
                     hash.Add(Endpoints.GetSequenceHashCode());
                     hash.Add(Label);
                     hash.Add(Location.GetSequenceHashCode());
-                    hash.Add(_locatorCacheTimeoutOverride);
                     hash.Add(LocationResolver);
                     hash.Add(_preferExistingConnectionOverride);
                     hash.Add(_preferNonSecureOverride);
@@ -660,13 +631,6 @@ namespace ZeroC.Ice
                     sb.Append(Uri.EscapeDataString(label));
                 }
 
-                if (_locatorCacheTimeoutOverride is TimeSpan locatorCacheTimeout)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("locator-cache-timeout=");
-                    sb.Append(TimeSpanExtensions.ToPropertyValue(locatorCacheTimeout));
-                }
-
                 if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -753,7 +717,6 @@ namespace ZeroC.Ice
             Protocol = options.Protocol;
             _connection = options.Connection;
             _invocationTimeoutOverride = options.InvocationTimeoutOverride;
-            _locatorCacheTimeoutOverride = options.LocatorCacheTimeoutOverride;
             _preferExistingConnectionOverride = options.PreferExistingConnectionOverride;
             _preferNonSecureOverride = options.PreferNonSecureOverride;
         }
@@ -1042,7 +1005,6 @@ namespace ZeroC.Ice
             object? label = null,
             IEnumerable<string>? location = null, // from app, needs to be copied
             ILocationResolver? locationResolver = null,
-            TimeSpan? locatorCacheTimeout = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null,
@@ -1075,7 +1037,6 @@ namespace ZeroC.Ice
                                   label,
                                   location,
                                   locationResolver,
-                                  locatorCacheTimeout,
                                   preferExistingConnection,
                                   preferNonSecure,
                                   relative);
@@ -1110,7 +1071,6 @@ namespace ZeroC.Ice
                            invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
                            label: clearLabel ? null : label ?? Label,
                            location: newLocation ?? Location,
-                           locatorCacheTimeout: locatorCacheTimeout ?? _locatorCacheTimeoutOverride,
                            locationResolver: clearLocationResolver ? null : locationResolver ?? LocationResolver,
                            oneway: oneway ?? IsOneway,
                            preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
@@ -1224,10 +1184,6 @@ namespace ZeroC.Ice
                 if (Label?.ToString() is string label && label.Length > 0)
                 {
                     properties[$"{prefix}.Label"] = label;
-                }
-                if (_locatorCacheTimeoutOverride is TimeSpan locatorCacheTimeout)
-                {
-                    properties[$"{prefix}.LocatorCacheTimeout"] = locatorCacheTimeout.ToPropertyValue();
                 }
                 if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
@@ -1654,7 +1610,6 @@ namespace ZeroC.Ice
             object? label,
             IEnumerable<string>? location,
             ILocationResolver? locationResolver,
-            TimeSpan? locatorCacheTimeout,
             bool? preferExistingConnection,
             NonSecure? preferNonSecure,
             bool? relative)
@@ -1703,12 +1658,6 @@ namespace ZeroC.Ice
                 {
                     throw new ArgumentException("cannot change the location resolver of a fixed proxy", nameof(clearLocationResolver));
                 }
-                if (locatorCacheTimeout != null)
-                {
-                    throw new ArgumentException(
-                        "cannot set locator cache timeout on a fixed proxy",
-                        nameof(locatorCacheTimeout));
-                }
                 if (preferExistingConnection != null)
                 {
                     throw new ArgumentException(
@@ -1750,13 +1699,6 @@ namespace ZeroC.Ice
                 if (locationResolver != null && clearLocationResolver)
                 {
                     throw new ArgumentException($"cannot set both {nameof(locationResolver)} and {nameof(clearLocationResolver)}");
-                }
-
-                if (locatorCacheTimeout != null &&
-                    locatorCacheTimeout < TimeSpan.Zero && locatorCacheTimeout != Timeout.InfiniteTimeSpan)
-                {
-                    throw new ArgumentException(
-                        $"invalid {nameof(locatorCacheTimeout)}: {locatorCacheTimeout}", nameof(locatorCacheTimeout));
                 }
 
                 IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableArray();
@@ -1808,15 +1750,6 @@ namespace ZeroC.Ice
                     {
                         throw new ArgumentException($"cannot set {nameof(locationResolver)} on a direct proxy",
                                                     nameof(locationResolver));
-                    }
-                }
-
-                if (locatorCacheTimeout != null)
-                {
-                    if (newEndpoints.Count > 0)
-                    {
-                        throw new ArgumentException($"cannot set {nameof(locatorCacheTimeout)} on a direct proxy",
-                                                    nameof(locatorCacheTimeout));
                     }
                 }
 

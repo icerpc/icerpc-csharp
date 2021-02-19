@@ -179,9 +179,6 @@ namespace ZeroC.Ice
         /// <summary>The location resolver associated with this proxy.</summary>
         public ILocationResolver? LocationResolver { get; }
 
-        /// <summary>The locator cache timeout of this proxy.</summary>
-        public TimeSpan LocatorCacheTimeout { get; }
-
         /// <summary>Indicates whether or not this proxy prefers using an existing connection over creating a new one.
         /// When <c>true</c> the proxy will prefer reusing an active connection to any of its endpoints, otherwise
         /// endpoints are checked in order trying to get an active connection to the first endpoint, and if one doesn't
