@@ -336,21 +336,26 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint)
+        internal override IDisposable? StartScope(Endpoint endpoint)
         {
-            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical))
+            // If any of the logger is enable we create the scope
+            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.Logger.IsEnabled(LogLevel.Critical))
             {
                 IReadOnlyList<string> interfaces = GetLocalInterfaces();
                 if (MulticastAddress != null)
                 {
-                    return logger.StartMulticastSocketScope(endpoint.Transport,
-                                                            Network.LocalAddrToString(Socket),
-                                                            MulticastAddress.ToString(),
-                                                            interfaces);
+                    return _communicator.Logger.StartMulticastSocketScope(endpoint.Transport,
+                                                                          Network.LocalAddrToString(Socket),
+                                                                          MulticastAddress.ToString(),
+                                                                          interfaces);
                 }
                 else
                 {
-                    return logger.StartDatagramSocketScope(
+                    return _communicator.Logger.StartDatagramSocketScope(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
                         _peerAddr?.ToString() ?? Network.RemoteAddrToString(Socket),

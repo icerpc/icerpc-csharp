@@ -238,13 +238,18 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint)
+        internal override IDisposable? StartScope(Endpoint endpoint)
         {
-            if (logger.IsEnabled(LogLevel.Critical))
+            // If any of the logger is enable we create the scope
+            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.Logger.IsEnabled(LogLevel.Critical))
             {
-                return logger.StartSocketScope(endpoint.Transport,
-                                               Network.LocalAddrToString(Socket),
-                                               Network.RemoteAddrToString(Socket));
+                return _communicator.Logger.StartSocketScope(endpoint.Transport,
+                                                             Network.LocalAddrToString(Socket),
+                                                             Network.RemoteAddrToString(Socket));
             }
             return null;
         }

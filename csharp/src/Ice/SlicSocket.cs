@@ -598,7 +598,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartSocketScope(ILogger logger) => _socket.StartScope(logger, Endpoint);
+        internal override IDisposable? StartSocketScope() => _socket.StartScope(Endpoint);
 
         private void ReadParameters(InputStream istr)
         {

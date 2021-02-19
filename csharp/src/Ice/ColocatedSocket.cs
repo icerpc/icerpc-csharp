@@ -238,6 +238,6 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartSocketScope(ILogger logger) => null;
+        internal override IDisposable? StartSocketScope() => null;
     }
 }

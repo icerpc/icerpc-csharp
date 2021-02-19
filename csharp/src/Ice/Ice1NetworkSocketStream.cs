@@ -104,7 +104,7 @@ namespace ZeroC.Ice
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using (_socket.StartSocketScope(logger))
+                    using (_socket.StartSocketScope())
                     {
                         logger.LogSendingRequest(request, Id);
                     }
