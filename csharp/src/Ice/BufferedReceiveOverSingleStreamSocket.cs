@@ -7,6 +7,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -130,6 +131,9 @@ namespace ZeroC.Ice
 
             _buffer = new ArraySegment<byte>(_buffer.Array!, _buffer.Offset - bytes, _buffer.Count + bytes);
         }
+
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint) =>
+            Underlying.StartScope(logger, endpoint);
 
         private async ValueTask ReceiveInBufferAsync(int byteCount, CancellationToken cancel = default)
         {

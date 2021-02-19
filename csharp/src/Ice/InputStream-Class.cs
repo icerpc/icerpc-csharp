@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -735,12 +736,11 @@ namespace ZeroC.Ice
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            if (Communicator.TraceLevels.Slicing > 0)
+            if (Communicator.Logger.IsEnabled(LogLevel.Debug))
             {
                 string printableId = typeId ?? compactId?.ToString() ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                Communicator.Logger.Trace(TraceLevels.SlicingCategory,
-                    $"slicing unknown {kind} type `{printableId}'");
+                Communicator.Logger.LogSlicingUnknownType(kind, printableId);
             }
 
             bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;

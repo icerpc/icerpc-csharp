@@ -24,7 +24,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.6" PrivateAssets="All"/>
+        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All"/>
     </ItemGroup>
 
     <!-- Import Ice version settings -->

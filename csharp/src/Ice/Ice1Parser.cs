@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -344,8 +345,11 @@ namespace ZeroC.Ice
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -s option in `{s}'");
                         }
-                        communicator.Logger.Warning(
-                            $"while parsing `{s}': the `-s' proxy option no longer has any effect");
+
+                        if (communicator.Logger.IsEnabled(LogLevel.Warning))
+                        {
+                            communicator.Logger.LogWarnProxySecureOptionHasNoEffect(s);
+                        }
                         break;
 
                     case 'e':

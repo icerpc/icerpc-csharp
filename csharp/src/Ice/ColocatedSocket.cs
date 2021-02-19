@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -236,5 +237,7 @@ namespace ZeroC.Ice
                 throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
         }
+
+        internal override IDisposable? StartSocketScope(ILogger logger) => null;
     }
 }

@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,7 +40,10 @@ namespace ZeroC.Ice
                     buffer = await _socket.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
-                        ReceivedInvalidData($"received datagram with {buffer.Count} bytes");
+                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        {
+                            Endpoint.Communicator.TransportLogger.LogReceivedInvalidDatagram(buffer.Count);
+                        }
                         continue;
                     }
                     Received(buffer.Count);
@@ -56,13 +59,34 @@ namespace ZeroC.Ice
                 int size = buffer.AsReadOnlySpan(10, 4).ReadInt();
                 if (size < Ice1Definitions.HeaderSize)
                 {
-                    ReceivedInvalidData($"received ice1 frame with only {size} bytes");
+                    if (Endpoint.IsDatagram)
+                    {
+                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        {
+                            Endpoint.Communicator.TransportLogger.LogReceivedInvalidDatagram(size);
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"received ice1 frame with only {size} bytes");
+                    }
                     continue;
                 }
                 if (size > IncomingFrameMaxSize)
                 {
-                    ReceivedInvalidData($"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
-                    continue;
+                    if (Endpoint.IsDatagram)
+                    {
+                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        {
+                            Endpoint.Communicator.TransportLogger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                        }
+                        continue;
+                    }
+                    else
+                    {
+                        throw new InvalidDataException(
+                            $"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
+                    }
                 }
 
                 // Read the remainder of the frame if needed.
@@ -70,7 +94,10 @@ namespace ZeroC.Ice
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        ReceivedInvalidData($"maximum datagram size of {buffer.Count} exceeded");
+                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                        {
+                            Endpoint.Communicator.TransportLogger.LogMaximumDatagramSizeExceeded(buffer.Count);
+                        }
                         continue;
                     }
 
@@ -160,21 +187,6 @@ namespace ZeroC.Ice
                     }
                 }
             }
-
-            void ReceivedInvalidData(string message)
-            {
-                // Invalid data on a datagram connection doesn't kill the connection. The bogus data could be sent by
-                // a bogus or malicious peer. For non-datagram connections however, we raise an exception to abort the
-                // connection.
-                if (!Endpoint.IsDatagram)
-                {
-                    throw new InvalidDataException(message);
-                }
-                else if (Endpoint.Communicator.WarnDatagrams)
-                {
-                    Endpoint.Communicator.Logger.Warning(message);
-                }
-            }
         }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
@@ -191,11 +203,9 @@ namespace ZeroC.Ice
 
             await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
-            if (Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
-                TraceFrame(0,
-                           ImmutableList<ArraySegment<byte>>.Empty,
-                           (byte)Ice1FrameType.ValidateConnection);
+                Endpoint.Communicator.ProtocolLogger.LogSendIce1ValidateConnectionFrame();
             }
         }
 
@@ -304,6 +314,8 @@ namespace ZeroC.Ice
             }
         }
 
+        internal override IDisposable? StartSocketScope(ILogger logger) => _socket.StartScope(logger, Endpoint);
+
         private long AllocateId(bool bidirectional)
         {
             // Allocate a new ID according to the Quic numbering scheme.
@@ -335,13 +347,9 @@ namespace ZeroC.Ice
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram)
+                    if (Endpoint.IsDatagram && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                     {
-                        if (Endpoint.Communicator.WarnConnections)
-                        {
-                            Endpoint.Communicator.Logger.Warning(
-                                $"ignoring close connection frame for datagram connection:\n{this}");
-                        }
+                            Endpoint.Communicator.TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
@@ -366,13 +374,12 @@ namespace ZeroC.Ice
 
                 case Ice1FrameType.RequestBatch:
                 {
-                    if (Endpoint.Communicator.TraceLevels.Protocol >= 1)
-                    {
-                        TraceFrame(0,
-                                   readBuffer.Slice(Ice1Definitions.HeaderSize),
-                                   (byte)Ice1FrameType.RequestBatch);
-                    }
                     int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                    {
+                            Endpoint.Communicator.ProtocolLogger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                    }
+
                     if (invokeNum < 0)
                     {
                         throw new InvalidDataException(

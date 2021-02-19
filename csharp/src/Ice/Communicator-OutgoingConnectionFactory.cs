@@ -49,7 +49,7 @@ namespace ZeroC.Ice
 
                         if (connection != null)
                         {
-                            // TODO should CollocatedConnection.IsSecure return always true?, currently IsSecure
+                            // TODO should ColocatedConnection.IsSecure return always true?, currently IsSecure
                             // is only true for SSL connections.
                             Debug.Assert(preferNonSecure != NonSecure.Never ||
                                          connection is ColocatedConnection ||

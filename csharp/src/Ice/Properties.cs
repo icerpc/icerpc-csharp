@@ -312,8 +312,6 @@ namespace ZeroC.Ice
                     dotPos = pattern.IndexOf('.');
                     Debug.Assert(dotPos != -1);
                     string propPrefix = pattern.Substring(1, dotPos - 2);
-                    bool mismatchCase = false;
-                    string otherKey = "";
                     if (!propPrefix.Equals(prefix, StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
@@ -329,7 +327,10 @@ namespace ZeroC.Ice
                         {
                             if (prop.Deprecated)
                             {
-                                communicator.Logger.Warning($"deprecated property: `{name}'");
+                                if (communicator.Logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning))
+                                {
+                                    communicator.Logger.LogWarnDeprecatedProperty(name);
+                                }
                                 string? deprecatedBy = prop.DeprecatedBy;
                                 if (deprecatedBy != null)
                                 {
@@ -338,27 +339,10 @@ namespace ZeroC.Ice
                             }
                             break;
                         }
-
-                        if (!found)
-                        {
-                            r = new Regex(prop.Pattern.ToUpperInvariant());
-                            m = r.Match(name.ToUpperInvariant());
-                            if (m.Success)
-                            {
-                                found = true;
-                                mismatchCase = true;
-                                otherKey = prop.Pattern.Replace("\\", "").Replace("^", "").Replace("$", "");
-                                break;
-                            }
-                        }
                     }
                     if (!found)
                     {
-                        communicator.Logger.Warning($"unknown property: `{name}'");
-                    }
-                    else if (mismatchCase)
-                    {
-                        communicator.Logger.Warning($"unknown property: `{name}'; did you mean `{otherKey}'");
+                        communicator.Logger.LogUnknownProperty(name);
                     }
                 }
             }

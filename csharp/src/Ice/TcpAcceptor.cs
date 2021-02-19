@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -21,32 +19,39 @@ namespace ZeroC.Ice
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-            var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
+            ILogger transportLogger = _adapter.Communicator.TransportLogger;
+
+            try
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
-                _ => new SlicSocket(socket, Endpoint, _adapter)
-            };
-            return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
+                if (transportLogger.IsEnabled(LogLevel.Debug))
+                {
+                    transportLogger.LogAcceptingConnection(Endpoint.Transport, Network.LocalAddrToString(_addr));
+                }
+
+                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+
+                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
+                MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
+                {
+                    Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
+                    _ => new SlicSocket(socket, Endpoint, _adapter)
+                };
+                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
+            }
+            catch (Exception ex)
+            {
+                if (transportLogger.IsEnabled(LogLevel.Error))
+                {
+                    transportLogger.LogAcceptingConnectionFailed(
+                        Endpoint.Transport,
+                        Network.LocalAddrToString(_addr),
+                        ex);
+                }
+                throw;
+            }
         }
 
         public void Dispose() => _socket.CloseNoThrow();
-
-        public string ToDetailedString()
-        {
-            var s = new StringBuilder("local address = ");
-            s.Append(ToString());
-
-            List<string> interfaces =
-                Network.GetHostsForEndpointExpand(_addr.Address.ToString(), Network.EnableBoth, true);
-            if (interfaces.Count != 0)
-            {
-                s.Append("\nlocal interfaces = ");
-                s.Append(string.Join(", ", interfaces));
-            }
-            return s.ToString();
-        }
 
         public override string ToString() => _addr.ToString();
 

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -77,13 +78,9 @@ namespace ZeroC.Ice
         {
             if (_locationCache.TryRemove((location, protocol), out (TimeSpan _, EndpointList Endpoints) entry))
             {
-                if (_locator.Communicator.TraceLevels.Locator >= 2)
+                if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                 {
-                    Trace("removed endpoints for location from locator cache",
-                          location,
-                          protocol,
-                          entry.Endpoints,
-                          _locator.Communicator);
+                    _locator.Communicator.LocationLogger.LogClearLocationEndpoints(location[0], protocol, entry.Endpoints);
                 }
             }
         }
@@ -97,25 +94,26 @@ namespace ZeroC.Ice
             {
                 if (entry.Endpoints.Count > 0)
                 {
-                    if (_locator.Communicator.TraceLevels.Locator >= 2)
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                     {
-                        Trace("removed well-known proxy with endpoints from locator cache",
-                              identity,
-                              facet,
-                              entry.Endpoints,
-                              _locator.Communicator);
+                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyEndpoints(
+                            identity,
+                            facet,
+                            protocol,
+                            entry.Endpoints);
                     }
                 }
                 else
                 {
                     Debug.Assert(entry.Location.Count > 0);
-                    if (_locator.Communicator.TraceLevels.Locator >= 2)
+
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                     {
-                        Trace("removed well-known proxy without endpoints from locator cache",
-                              identity,
-                              facet,
-                              entry.Location,
-                              _locator.Communicator);
+                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyWithoutEndpoints(
+                            identity,
+                            facet,
+                            protocol,
+                            entry.Location);
                     }
 
                     ClearCache(entry.Location, protocol);
@@ -155,27 +153,6 @@ namespace ZeroC.Ice
                 // are configured, we obtain new endpoints but continue using the stale endpoints to not block the
                 // caller.
                 _ = ResolveLocationAsync(location, protocol, cancel: default);
-            }
-
-            if (_locator.Communicator.TraceLevels.Locator >= 1)
-            {
-                if (endpoints.Count > 0)
-                {
-                    Trace(endpointsAge != TimeSpan.Zero ?
-                            $"found entry for location in locator cache" :
-                            $"resolved location using locator, adding to locator cache",
-                          location,
-                          protocol,
-                          endpoints,
-                          _locator.Communicator);
-                }
-            }
-            else
-            {
-                var sb = new System.Text.StringBuilder();
-                sb.Append("could not find endpoint(s) for location ");
-                sb.Append(location);
-                _locator.Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
             }
 
             return (endpoints, endpointsAge);
@@ -244,24 +221,44 @@ namespace ZeroC.Ice
                 }
             }
 
-            if (_locator.Communicator.TraceLevels.Locator >= 1)
+            var logger = Locator.Communicator.LocationLogger;
+            if (logger.IsEnabled(LogLevel.Debug))
             {
                 if (endpoints.Count > 0)
                 {
-                   Trace(wellKnownAge != TimeSpan.Zero ?
-                            $"found entry for well-known proxy in locator cache" :
-                            $"resolved well-known proxy using locator, adding to locator cache",
-                        identity,
-                        facet,
-                        endpoints,
-                        _locator.Communicator);
+                    if (proxy.IsWellKnown)
+                    {
+                        if (wellKnownLocationAge == TimeSpan.Zero)
+                        {
+                            logger.LogResolvedWellKnownProxy(proxy, endpoints);
+                        }
+                        else
+                        {
+                            logger.LogFoundEntryForWellKnownProxyInLocatorCache(proxy, endpoints);
+                        }
+                    }
+                    else
+                    {
+                        if (endpointsAge == TimeSpan.Zero)
+                        {
+                            logger.LogResolvedLocation(location, proxy.Protocol, endpoints);
+                        }
+                        else
+                        {
+                            logger.LogFoundEntryForLocationInLocatorCache(location, proxy.Protocol, endpoints);
+                        }
+                    }
                 }
                 else
                 {
-                    var sb = new System.Text.StringBuilder();
-                    sb.Append("could not find endpoint(s) for well-known proxy ");
-                    sb.Append(identity);
-                    _locator.Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
+                    if (proxy.Location.Count > 0)
+                    {
+                        logger.LogCouldNotFindEndpointsForLocation(proxy.Location);
+                    }
+                    else
+                    {
+                        logger.LogCouldNotFindEndpointsForWellKnownProxy(proxy);
+                    }
                 }
             }
 
@@ -270,86 +267,6 @@ namespace ZeroC.Ice
 
         private static bool CheckExpired(TimeSpan age, TimeSpan maxAge) =>
             maxAge != Timeout.InfiniteTimeSpan && age > maxAge;
-
-        private static void Trace(
-            string msg,
-            Location location,
-            Protocol protocol,
-            EndpointList endpoints,
-            Communicator communicator)
-        {
-            var sb = new System.Text.StringBuilder(msg);
-            sb.Append("\nlocation = ");
-            sb.Append(location.ToLocationString());
-            sb.Append("\nprotocol = ");
-            sb.Append(protocol.GetName());
-            sb.Append("\nendpoints = ");
-            sb.AppendEndpointList(endpoints);
-            communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-        }
-
-        private static void Trace(
-            string msg,
-            Identity identity,
-            string facet,
-            EndpointList endpoints,
-            Communicator communicator)
-        {
-            var sb = new System.Text.StringBuilder(msg);
-            sb.Append("\nwell-known proxy = ");
-            sb.Append(identity);
-            if (facet.Length > 0)
-            {
-                sb.Append(" facet: ");
-                sb.Append(facet);
-            }
-            sb.Append("\nendpoints = ");
-            sb.AppendEndpointList(endpoints);
-            communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-        }
-
-        private static void Trace(
-            string msg,
-            Identity identity,
-            string facet,
-            Location location,
-            Communicator communicator)
-        {
-            var sb = new System.Text.StringBuilder(msg);
-            sb.Append("\nwell-known proxy = ");
-            sb.Append(identity);
-            if (facet.Length > 0)
-            {
-                sb.Append(" facet: ");
-                sb.Append(facet);
-            }
-            sb.Append("\nlocation = ");
-            sb.Append(location.ToLocationString());
-            communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-        }
-
-        private static void TraceInvalid(Location location, ObjectPrx invalidObjectPrx)
-        {
-            var sb = new System.Text.StringBuilder("locator returned an invalid proxy when resolving location ");
-            sb.Append(location.ToLocationString());
-            sb.Append("\n received = ");
-            sb.Append(invalidObjectPrx);
-            invalidObjectPrx.Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-        }
-
-        private static void TraceInvalid(Identity identity, string facet, ObjectPrx invalidObjectPrx)
-        {
-            var sb = new System.Text.StringBuilder("locator returned an invalid proxy when resolving ");
-            sb.Append(identity);
-            if (facet.Length > 0)
-            {
-                sb.Append(" facet: ");
-                sb.Append(facet);
-            }
-            sb.Append("\n received = ");
-            sb.Append(invalidObjectPrx);
-            invalidObjectPrx.Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
-        }
 
         private (EndpointList Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(
             Location location,
@@ -389,10 +306,9 @@ namespace ZeroC.Ice
             Protocol protocol,
             CancellationToken cancel)
         {
-            if (_locator.Communicator.TraceLevels.Locator > 0)
+            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                _locator.Communicator.Logger.Trace(TraceLevels.LocatorCategory,
-                    $"resolving location\nlocation = {location.ToLocationString()}");
+                _locator.Communicator.LocationLogger.LogResolvingLocation(location);
             }
 
             Task<EndpointList>? task;
@@ -443,9 +359,11 @@ namespace ZeroC.Ice
 
                         if (resolved != null && (resolved.Endpoints.Count == 0 || resolved.Protocol != Protocol.Ice1))
                         {
-                            if (_locator.Communicator.TraceLevels.Locator >= 1)
+                            if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
                             {
-                                TraceInvalid(location, resolved);
+                                Locator.Communicator.LocationLogger.LogInvalidProxyResolvingLocation(
+                                    location.ToLocationString(),
+                                    resolved);
                             }
                             resolved = null;
                         }
@@ -481,12 +399,9 @@ namespace ZeroC.Ice
                 }
                 catch (Exception exception)
                 {
-                    if (_locator.Communicator.TraceLevels.Locator > 0)
+                    if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                     {
-                        _locator.Communicator.Logger.Trace(
-                            TraceLevels.LocatorCategory,
-                            @$"could not contact the locator to resolve location `{location.ToLocationString()
-                                }'\nreason = {exception}");
+                        Locator.Communicator.LocationLogger.LogResolveLocationFailure(location, exception);
                     }
                     throw;
                 }
@@ -506,10 +421,9 @@ namespace ZeroC.Ice
             Protocol protocol,
             CancellationToken cancel)
         {
-            if (_locator.Communicator.TraceLevels.Locator > 0)
+            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                _locator.Communicator.Logger.Trace(TraceLevels.LocatorCategory,
-                    $"searching for well-known object\nwell-known proxy = {identity}");
+                _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity, facet);
             }
 
             Task<(EndpointList, Location)>? task;
@@ -562,9 +476,9 @@ namespace ZeroC.Ice
 
                         if (resolved != null && (resolved.IsWellKnown || resolved.Protocol != Protocol.Ice1))
                         {
-                            if (_locator.Communicator.TraceLevels.Locator >= 1)
+                            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
                             {
-                                TraceInvalid(identity, facet, resolved);
+                                _locator.Communicator.LocationLogger.LogInvalidProxyResolvingProxy(identity, facet, resolved);
                             }
                             resolved = null;
                         }
@@ -608,12 +522,9 @@ namespace ZeroC.Ice
                 }
                 catch (Exception exception)
                 {
-                    if (_locator.Communicator.TraceLevels.Locator > 0)
+                    if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                     {
-                        _locator.Communicator.Logger.Trace(
-                            TraceLevels.LocatorCategory,
-                            @$"could not contact the locator to retrieve endpoints for well-known proxy `{identity
-                                }'\nreason = {exception}");
+                        Locator.Communicator.LocationLogger.LogResolveWellKnownProxyEndpointsFailure(proxy, exception);
                     }
                     throw;
                 }

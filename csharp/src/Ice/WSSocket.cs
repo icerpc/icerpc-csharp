@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,7 +21,7 @@ namespace ZeroC.Ice
 
         internal IReadOnlyDictionary<string, string> Headers => _parser.GetHeaders();
 
-        private enum OpCode : byte
+        internal enum OpCode : byte
         {
             Continuation = 0x0,
             Text = 0x1,
@@ -55,10 +56,10 @@ namespace ZeroC.Ice
         private readonly byte[] _receiveMask = new byte[4];
         private int _receivePayloadLength;
         private int _receivePayloadOffset;
-        private readonly string _transportName;
         private readonly byte[] _sendMask;
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
+        private readonly Transport _transport;
 
         public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
         {
@@ -143,8 +144,11 @@ namespace ZeroC.Ice
             _sendMask = new byte[4];
             _key = "";
             _rand = new Random();
-            _transportName = (underlying is SslSocket) ? "wss" : "ws";
+            _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
+
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint) =>
+            _underlying.StartScope(logger, endpoint);
 
         private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
         {
@@ -263,25 +267,22 @@ namespace ZeroC.Ice
             }
             catch (Exception ex)
             {
-                if (_communicator.TraceLevels.Transport >= 2)
+                if (_communicator.Logger.IsEnabled(LogLevel.Error))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"{_transportName} connection HTTP upgrade request failed\n{this}\n{ex}");
+                    _communicator.Logger.LogHttpUpgradeRequestFailed(_transport, ex);
                 }
                 throw;
             }
 
-            if (_communicator.TraceLevels.Transport >= 1)
+            if (_communicator.Logger.IsEnabled(LogLevel.Debug))
             {
                 if (_incoming)
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"accepted {_transportName} connection HTTP upgrade request\n{this}");
+                    _communicator.Logger.LogHttpUpgradeRequestAccepted(_transport);
                 }
                 else
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"{_transportName} connection HTTP upgrade request accepted\n{this}");
+                    _communicator.Logger.LogHttpUpgradeRequestSucceed(_transport);
                 }
             }
         }
@@ -386,10 +387,9 @@ namespace ZeroC.Ice
                     (await _underlying.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
-                if (_communicator.TraceLevels.Transport >= 3)
+                if (_communicator.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"received {_transportName} {opCode} frame with {payloadLength} bytes payload\n{this}");
+                    _communicator.Logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
                 }
 
                 switch (opCode)
@@ -655,10 +655,9 @@ namespace ZeroC.Ice
                 Debug.Assert(_sendBuffer.Count == 0);
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
-                if (_communicator.TraceLevels.Transport >= 3)
+                if (_communicator.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                        $"sending {_transportName} {opCode} frame with {size} bytes payload\n{this}");
+                    _communicator.Logger.LogReceivedWebSocketFrame(_transport, opCode, size);
                 }
 
                 if (_incoming || opCode == OpCode.Pong)

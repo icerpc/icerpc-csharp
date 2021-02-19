@@ -1,0 +1,48 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup>
+        <PackageVersion>4.0.0-alpha.0</PackageVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <DistSolution Include="$(MSBuildThisFileDirectory)../IceRpc.sln"/>
+        <ExampleSolution Include="$(MSBuildThisFileDirectory)../examples/**/*.sln" />
+        <PackageName Include="zeroc.ice.net" />
+    </ItemGroup>
+
+    <Target Name="InstallLocalPackages">
+        <Exec Command="dotnet nuget locals --list global-packages" ConsoleToMSBuild="true" EchoOff="yes">
+            <Output TaskParameter="ConsoleOutput" PropertyName="NuGetGlobalPackages" />
+        </Exec>
+
+        <PropertyGroup>
+            <NuGetGlobalPackages>$(NuGetGlobalPackages.Replace('global-packages: ', ''))</NuGetGlobalPackages>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <Package Include="@(PackageName->'$(NugetGlobalPackages)/%(Identity)')" />
+        </ItemGroup>
+
+        <!-- Run the distribution build and pack targets to ensure packages are up to date, restore is run separately,
+             see Restore target bellow. -->
+
+        <MSBuild Projects="@(DistSolution)" Targets="build"/>
+        <Exec Command="dotnet pack @(DistSolution)" />
+        <RemoveDir Directories="@(Package)" Condition="Exists('@(Package)')"/>
+        <Exec Command="dotnet nuget push $(MSBuildThisFileDirectory)../csharp/lib/@(PackageName).$(PackageVersion).nupkg --source $(NuGetGlobalPackages)" />
+    </Target>
+
+    <Target Name="BuildExamples">
+        <MSBuild Projects="@(ExampleSolution)" Targets="build" />
+    </Target>
+
+    <!-- This target is trigger by dotnet /restore argument and runs restore in a separate phase, to ensure other target see the updated
+         projects see https://github.com/dotnet/msbuild/issues/3000#issuecomment-417675215 -->
+    <Target Name="Restore">
+        <MSBuild
+            Projects="@(DistSolution);@(ExampleSolution)"
+            Properties="PostBuildEvent="
+            Targets="Restore"
+            BuildInParallel="true" />
+    </Target>
+</Project>

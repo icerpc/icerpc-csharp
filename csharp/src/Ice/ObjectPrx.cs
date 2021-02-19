@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1236,17 +1237,9 @@ namespace ZeroC.Ice
                 }
             }
 
-            if (unknownProps.Count != 0)
+            if (unknownProps.Count != 0 && communicator.Logger.IsEnabled(LogLevel.Warning))
             {
-                var message = new StringBuilder("found unknown properties for proxy '");
-                message.Append(prefix);
-                message.Append("':");
-                foreach (string s in unknownProps)
-                {
-                    message.Append("\n    ");
-                    message.Append(s);
-                }
-                communicator.Logger.Warning(message.ToString());
+                communicator.Logger.LogUnknownProxyProperty(prefix, unknownProps);
             }
         }
 
@@ -1521,29 +1514,27 @@ namespace ZeroC.Ice
                 }
                 else
                 {
+                    ILogger protocolLogger = Communicator.ProtocolLogger;
                     tryAgain = true;
-                    if (Communicator.TraceLevels.Retry >= 1)
+                    if (protocolLogger.IsEnabled(LogLevel.Debug))
                     {
                         if (connection != null)
                         {
-                            TraceRetry("retrying request because of retryable exception",
-                                       attempt,
-                                       retryPolicy,
-                                       exception);
+                            protocolLogger.LogRetryRequestInvocation(retryPolicy,
+                                                                     attempt,
+                                                                     Communicator.InvocationMaxAttempts,
+                                                                     exception);
                         }
                         else if (triedAllEndpoints)
                         {
-                            TraceRetry("retrying connection establishment because of retryable exception",
-                                       attempt,
-                                       retryPolicy,
-                                       exception);
+                            protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
+                                                                           attempt,
+                                                                           Communicator.InvocationMaxAttempts,
+                                                                           exception);
                         }
                         else
                         {
-                            TraceRetry("retrying connection establishment because of retryable exception",
-                                       0,
-                                       policy: null,
-                                       exception);
+                            Communicator.ProtocolLogger.LogRetryConnectionEstablishment(exception);
                         }
                     }
 
@@ -1586,32 +1577,6 @@ namespace ZeroC.Ice
             Debug.Assert(response != null || exception != null);
             Debug.Assert(response == null || response.ResultType == ResultType.Failure);
             return response ?? throw ExceptionUtil.Throw(exception!);
-
-            void TraceRetry(string message, int attempt = 0, RetryPolicy? policy = null, Exception? exception = null)
-            {
-                Debug.Assert(attempt >= 0 && attempt <= Communicator.InvocationMaxAttempts);
-                var sb = new StringBuilder();
-                sb.Append(message);
-                sb.Append("\nproxy = ");
-                sb.Append(this);
-                sb.Append("\noperation = ");
-                sb.Append(request.Operation);
-                if (attempt > 0)
-                {
-                    sb.Append("\nrequest attempt = ");
-                    sb.Append(attempt);
-                    sb.Append('/');
-                    sb.Append(Communicator.InvocationMaxAttempts);
-                }
-                if (policy != null)
-                {
-                    sb.Append("\nretry policy = ");
-                    sb.Append(policy);
-                }
-                sb.Append("\nexception = ");
-                sb.Append(exception?.ToString() ?? "\nexception = remote exception");
-                Communicator.Logger.Trace(TraceLevels.RetryCategory, sb.ToString());
-            }
         }
 
         private (IReadOnlyList<Endpoint> NewEndpoints, IReadOnlyList<string>? NewLocation) ValidateCloneArgs(

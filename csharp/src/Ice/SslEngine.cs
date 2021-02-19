@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -17,19 +16,11 @@ namespace ZeroC.Ice
         // TLS Server side configuration
         internal TlsServerOptions TlsServerOptions { get; }
 
-        internal int SecurityTraceLevel { get; }
-        internal const string SecurityTraceCategory = "Security";
-
-        private readonly ILogger _logger;
-
         internal SslEngine(
             Communicator communicator,
             TlsClientOptions? tlsClientOptions,
             TlsServerOptions? tlsServerOptions)
         {
-            _logger = communicator.Logger;
-            SecurityTraceLevel = communicator.GetPropertyAsInt("IceSSL.Trace.Security") ?? 0;
-
             TlsClientOptions = new TlsClientOptions();
             TlsServerOptions = new TlsServerOptions();
 
@@ -179,26 +170,6 @@ namespace ZeroC.Ice
                 TlsServerOptions.ClientCertificateValidationCallback =
                     tlsServerOptions.ClientCertificateValidationCallback;
             }
-        }
-
-        internal void TraceStream(SslStream stream, string description)
-        {
-            var s = new System.Text.StringBuilder();
-            s.Append("SSL connection summary");
-            if (description.Length > 0)
-            {
-                s.Append('\n').Append(description);
-            }
-            s.Append("\nauthenticated = ").Append(stream.IsAuthenticated ? "yes" : "no");
-            s.Append("\nencrypted = ").Append(stream.IsEncrypted ? "yes" : "no");
-            s.Append("\nsigned = ").Append(stream.IsSigned ? "yes" : "no");
-            s.Append("\nmutually authenticated = ").Append(stream.IsMutuallyAuthenticated ? "yes" : "no");
-            s.Append("\nhash algorithm = ").Append(stream.HashAlgorithm).Append('/').Append(stream.HashStrength);
-            s.Append("\ncipher algorithm = ").Append(stream.CipherAlgorithm).Append('/').Append(stream.CipherStrength);
-            s.Append("\nkey exchange algorithm = ").Append(stream.KeyExchangeAlgorithm).Append('/').Append(
-                stream.KeyExchangeStrength);
-            s.Append("\nprotocol = ").Append(stream.SslProtocol);
-            _logger.Trace(SecurityTraceCategory, s.ToString());
         }
 
         private static SslProtocols ParseProtocols(string[]? arr)
