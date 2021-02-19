@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -160,9 +160,10 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
-                _socket.TraceFrame(Id, frame);
+                protocolLogger.LogReceivedRequest(frame, Id);
             }
 
             return frame;
@@ -199,9 +200,10 @@ namespace ZeroC.Ice
                 Interlocked.Increment(ref _useCount);
             }
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
-                _socket.TraceFrame(Id, frame);
+                protocolLogger.LogReceivedResponse(Id, frame);
             }
 
             return frame;
@@ -244,9 +246,18 @@ namespace ZeroC.Ice
             await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
                 ConfigureAwait(false);
 
-            if (_socket.Endpoint.Communicator.TraceLevels.Protocol >= 1)
+            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (protocolLogger.IsEnabled(LogLevel.Information))
             {
-                TraceFrame(frame);
+                if (frame is OutgoingRequestFrame request)
+                {
+                    protocolLogger.LogSendingRequest(request, Id);
+                }
+                else
+                {
+                    Debug.Assert(frame is OutgoingResponseFrame);
+                    protocolLogger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                }
             }
         }
     }

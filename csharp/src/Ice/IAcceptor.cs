@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ZeroC.Ice
@@ -18,9 +17,5 @@ namespace ZeroC.Ice
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
         ValueTask<Connection> AcceptAsync();
-
-        /// <summary>Get a detailed description of the acceptor.</summary>
-        /// <return>The detailed description.</return>
-        string ToDetailedString();
     }
 }

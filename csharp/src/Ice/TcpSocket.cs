@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -46,16 +48,21 @@ namespace ZeroC.Ice
 
                 // If a secure connection is needed, a new SslSocket is created and returned from this method.
                 // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
+                SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    var sslSocket = new SslSocket(endpoint.Communicator, this);
-                    await sslSocket.AcceptAsync(endpoint, cancel);
-                    return sslSocket;
+                    socket = new SslSocket(endpoint.Communicator, this);
+                    await socket.AcceptAsync(endpoint, cancel);
                 }
-                else
+
+                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    return this;
+                    endpoint.Communicator.TransportLogger.LogConnectionAccepted(endpoint.Transport,
+                                                                                Network.LocalAddrToString(Socket),
+                                                                                Network.RemoteAddrToString(Socket));
                 }
+
+                return socket;
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -96,16 +103,23 @@ namespace ZeroC.Ice
                 // If the endpoint is always secured or if a secure is requested, create an SslSocket and return
                 // it from this method. The caller is responsible for using the returned SslSocket instead of
                 // using this TcpSocket.
+
+                SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    var sslSocket = new SslSocket(endpoint.Communicator, this);
-                    await sslSocket.ConnectAsync(endpoint, true, cancel);
-                    return sslSocket;
+                    socket = new SslSocket(endpoint.Communicator, this);
+                    await socket.ConnectAsync(endpoint, true, cancel);
                 }
-                else
+
+                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    return this;
+                    endpoint.Communicator.TransportLogger.LogConnectionEstablished(
+                        endpoint.Transport,
+                        Network.LocalAddrToString(Socket),
+                        Network.RemoteAddrToString(Socket));
                 }
+
+                return socket;
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
@@ -222,6 +236,17 @@ namespace ZeroC.Ice
                 Socket.CloseNoThrow();
                 throw;
             }
+        }
+
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint)
+        {
+            if (logger.IsEnabled(LogLevel.Critical))
+            {
+                return logger.StartSocketScope(endpoint.Transport,
+                                               Network.LocalAddrToString(Socket),
+                                               Network.RemoteAddrToString(Socket));
+            }
+            return null;
         }
     }
 }

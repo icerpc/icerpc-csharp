@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,20 +41,13 @@ namespace ZeroC.Ice
             _adapter = adapter;
             _acceptor = endpoint.Acceptor(_adapter);
             Endpoint = _acceptor.Endpoint;
-
-            if (_communicator.TraceLevels.Transport >= 1)
-            {
-                _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                    $"listening for {Endpoint.TransportName} connections\n{_acceptor.ToDetailedString()}");
-            }
         }
 
         internal override void Activate()
         {
-            if (_communicator.TraceLevels.Transport >= 1)
+            if (_communicator.Logger.IsEnabled(LogLevel.Information))
             {
-                _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                    $"accepting {Endpoint.TransportName} connections at {_acceptor}");
+                _communicator.Logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
@@ -81,10 +75,9 @@ namespace ZeroC.Ice
 
         internal override async Task ShutdownAsync()
         {
-            if (_communicator.TraceLevels.Transport >= 1)
+            if (_communicator.Logger.IsEnabled(LogLevel.Information))
             {
-                _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                    $"stopping to accept {Endpoint.TransportName} connections at {_acceptor}");
+                _communicator.Logger.LogStopAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without
@@ -121,24 +114,16 @@ namespace ZeroC.Ice
                 try
                 {
                     connection = await _acceptor.AcceptAsync();
-
-                    if (_communicator.TraceLevels.Transport >= 2)
-                    {
-                        _communicator.Logger.Trace(TraceLevels.TransportCategory,
-                            $"trying to accept {Endpoint.TransportName} connection\n{connection}");
-                    }
                 }
-                catch (Exception exception)
+                catch (Exception)
                 {
                     if (_shutdown)
                     {
                         return;
                     }
 
-                    // We print an error and wait for one second to avoid running in a tight loop in case the
-                    // failures occurs immediately again. Failures here are unexpected and could be considered
-                    // fatal.
-                    _communicator.Logger.Error($"failed to accept connection:\n{exception}\n{_acceptor}");
+                    // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
+                    // again. Failures here are unexpected and could be considered fatal.
                     await Task.Delay(TimeSpan.FromSeconds(1));
                     continue;
                 }
@@ -182,6 +167,11 @@ namespace ZeroC.Ice
                     }
                     else
                     {
+                        if (connection.Communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
+                        {
+                            connection.Communicator.SecurityLogger.LogConnectionNotTrusted(
+                                connection.Endpoint.Transport);
+                        }
                         // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
                     }

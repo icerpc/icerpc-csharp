@@ -4,10 +4,9 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Microsoft.Extensions.Logging;
 using ZeroC.Ice.Slic;
 
 namespace ZeroC.Ice
@@ -419,9 +418,9 @@ namespace ZeroC.Ice
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (Endpoint.Communicator.TraceLevels.Transport > 2)
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                TraceTransportFrame("sending ", type, frameSize, streamId);
+                Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -579,9 +578,9 @@ namespace ZeroC.Ice
                 headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                 buffer[0] = headerData;
 
-                if (Endpoint.Communicator.TraceLevels.Transport > 2)
+                if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    TraceTransportFrame("sending ", frameType, packetSize, stream.Id);
+                    Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                 }
 
                 try
@@ -599,43 +598,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal void TraceTransportFrame(string prefix, SlicDefinitions.FrameType type, int size, long? streamId)
-        {
-            string frameType = "Slic " + type switch
-            {
-                SlicDefinitions.FrameType.Initialize => "initialize",
-                SlicDefinitions.FrameType.InitializeAck => "initialize acknowledgment",
-                SlicDefinitions.FrameType.Version => "version",
-                SlicDefinitions.FrameType.Ping => "ping",
-                SlicDefinitions.FrameType.Pong => "pong",
-                SlicDefinitions.FrameType.Stream => "stream",
-                SlicDefinitions.FrameType.StreamLast => "last stream",
-                SlicDefinitions.FrameType.StreamReset => "reset stream",
-                SlicDefinitions.FrameType.StreamConsumed => "consumed stream",
-                _ => "unknown",
-            } + " frame";
-
-            var s = new StringBuilder();
-            s.Append(prefix);
-            s.Append(frameType);
-
-            s.Append("\nprotocol = ");
-            s.Append(Endpoint.Protocol.GetName());
-
-            s.Append("\nframe size = ");
-            s.Append(size);
-
-            if (streamId != null)
-            {
-                s.Append("\nstream ID = ");
-                s.Append(streamId);
-            }
-
-            s.Append('\n');
-            s.Append(Underlying.ToString());
-
-            Endpoint.Communicator.Logger.Trace(TraceLevels.TransportCategory, s.ToString());
-        }
+        internal override IDisposable? StartSocketScope(ILogger logger) => _socket.StartScope(logger, Endpoint);
 
         private void ReadParameters(InputStream istr)
         {
@@ -749,9 +712,9 @@ namespace ZeroC.Ice
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (Endpoint.Communicator.TraceLevels.Transport > 2)
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                TraceTransportFrame("receiving ", type, size, (long?)streamId);
+                Endpoint.Communicator.TransportLogger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length

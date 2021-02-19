@@ -2058,11 +2058,7 @@ class LocalProcessController(ProcessController):
             return self.p is None
 
         def teardown(self, current, success):
-            if self.traceFile:
-                if success or current.driver.isInterrupted():
-                    os.remove(self.traceFile)
-                else:
-                    current.writeln("saved {0}".format(self.traceFile))
+            pass
 
     def getHost(self, current):
         return current.driver.getHost(current.config.transport, current.config.ipv6)

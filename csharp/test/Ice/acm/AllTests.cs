@@ -11,7 +11,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.ACM
 {
-    public class Logger : ILogger
+    public class Logger
     {
         public string Prefix => "";
 
@@ -29,8 +29,6 @@ namespace ZeroC.Ice.Test.ACM
             _name = name;
             _output = output;
         }
-
-        public ILogger CloneWithPrefix(string prefix) => this;
 
         public void Error(string message)
         {

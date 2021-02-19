@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -223,13 +224,9 @@ namespace ZeroC.Ice
                 ObjectAdapterRegistry.RegisterObjectAdapter(this);
             }
 
-            if (Communicator.TraceLevels.Transport >= 1 && PublishedEndpoints.Count > 0)
+            if (PublishedEndpoints.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
             {
-                var sb = new StringBuilder("published endpoints for object adapter `");
-                sb.Append(Name);
-                sb.Append("':\n");
-                sb.AppendEndpointList(PublishedEndpoints);
-                Communicator.Logger.Trace(TraceLevels.TransportCategory, sb.ToString());
+                Communicator.Logger.LogObjectAdapterPublishedEndpoints(Name, PublishedEndpoints);
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
@@ -359,25 +356,16 @@ namespace ZeroC.Ice
                 }
                 catch (Exception ex)
                 {
-                    if (Communicator.TraceLevels.Locator >= 1)
+                    if (Communicator.Logger.IsEnabled(LogLevel.Error))
                     {
-                        var sb = new StringBuilder("failed to register the endpoints of object adapter `");
-                        sb.Append(Name);
-                        sb.Append("' with the locator registry:\n");
-                        sb.Append(ex);
-                        Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
+                        Communicator.Logger.LogRegisterObjectAdapterEndpointsFailure(this, ex);
                     }
                     throw;
                 }
 
-                if (Communicator.TraceLevels.Locator >= 1)
+                if (Communicator.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    var sb = new StringBuilder("registered the endpoints of object adapter `");
-                    sb.Append(Name);
-                    sb.Append("' with the locator registry\nendpoints = ");
-                    sb.AppendEndpointList(PublishedEndpoints);
-
-                    Communicator.Logger.Trace(TraceLevels.LocatorCategory, sb.ToString());
+                    Communicator.Logger.LogRegisterObjectAdapterEndpointsSuccess(this, PublishedEndpoints);
                 }
             }
         }
@@ -802,9 +790,9 @@ namespace ZeroC.Ice
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (Communicator.WarnDispatch)
+                        if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Warning(ex);
+                            Communicator.ProtocolLogger.LogRequestDispatchException(ex);
                         }
                     }
 
@@ -812,28 +800,12 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    if (Communicator.WarnDispatch)
+                    if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
                     {
-                        Warning(ex);
+                        Communicator.ProtocolLogger.LogRequestDispatchException(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }
-            }
-
-            void Warning(Exception ex)
-            {
-                var output = new StringBuilder();
-                output.Append("dispatch exception:");
-                output.Append("\nidentity: ").Append(current.Identity.ToString(Communicator.ToStringMode));
-                output.Append("\nfacet: ").Append(StringUtil.EscapeString(current.Facet, Communicator.ToStringMode));
-                output.Append("\noperation: ").Append(current.Operation);
-                if ((current.Connection as IPConnection)?.RemoteEndpoint is System.Net.IPEndPoint remoteEndpoint)
-                {
-                    output.Append("\nremote address: ").Append(remoteEndpoint);
-                }
-                output.Append('\n');
-                output.Append(ex.ToString());
-                Communicator.Logger.Warning(output.ToString());
             }
         }
 
@@ -949,21 +921,16 @@ namespace ZeroC.Ice
             }
             catch (Exception ex)
             {
-                if (Communicator.TraceLevels.Locator >= 1)
+                if (Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                 {
-                    Communicator.Logger.Trace(
-                        TraceLevels.LocatorCategory,
-                        @$"failed to unregister the endpoints of object adapter `{
-                            Name}' from the locator registry:\n{ex}");
+                    Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsFailure(this, ex);
                 }
                 throw;
             }
 
-            if (Communicator.TraceLevels.Locator >= 1)
+            if (Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.Logger.Trace(
-                    TraceLevels.LocatorCategory,
-                    $"unregistered the endpoints of object adapter `{Name}' from the locator registry");
+                Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsSuccess(this);
             }
         }
     }

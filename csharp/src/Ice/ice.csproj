@@ -5,9 +5,24 @@
         <Title>Ice .NET library</Title>
         <OutputPath>../../lib</OutputPath>
         <TargetFramework>net5.0</TargetFramework>
+
+        <PackageVersion>4.0.0-alpha.0</PackageVersion>
+
+        <Authors>ZeroC</Authors>
+        <PackageId>zeroc.ice.net</PackageId>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <PackageIcon>logo.png</PackageIcon>
+        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Description>IceRPC C#/.NET SDK.</Description>
+        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" PrivateAssets="All" />
         <SliceCompile Include="../../../slice/$(AssemblyName)/*.ice" Exclude="../../../slice/$(AssemblyName)/*F.ice;../../../slice/$(AssemblyName)/BuiltinSequences.ice;../../../slice/$(AssemblyName)/Context.ice" />
+        <Compile Remove="generated\Metrics.cs" />
         <SliceCompile Remove="..\..\..\slice\Ice\LocatorDiscovery.ice" />
         <Compile Update="generated\Discovery.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Discovery.ice</SliceCompileSource>
@@ -17,9 +32,6 @@
         </Compile>
         <Compile Update="generated\Locator.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Locator.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\Metrics.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\Metrics.ice</SliceCompileSource>
         </Compile>
         <Compile Update="generated\Process.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Process.ice</SliceCompileSource>
@@ -51,10 +63,44 @@
         <Compile Update="generated\SlicDefinitions.cs">
           <SliceCompileSource>..\..\..\slice\Ice\SlicDefinitions.ice</SliceCompileSource>
         </Compile>
+        <Compile Update="generated\BuiltinSequences.cs">
+          <SliceCompileSource>..\..\..\slice\Ice\BuiltinSequences.ice</SliceCompileSource>
+        </Compile>
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+      <Content Include="..\..\..\LICENSE">
+        <PackagePath></PackagePath>
+        <Pack>true</Pack>
+      </Content>
+      <Content Include="..\..\..\build\zeroc.ice.net.props">
+          <Pack>true</Pack>
+          <PackagePath>build</PackagePath>
+      </Content>
+      <None Include="..\..\..\build\logo.png">
+          <Pack>True</Pack>
+          <PackagePath>.</PackagePath>
+      </None>
+      <Content Include="$(IceToolsPath)\slice2cs*">
+          <Pack>true</Pack>
+          <PackagePath>tools</PackagePath>
+      </Content>
+      <Content Include="..\..\..\slice\**\*.ice">
+        <Pack>true</Pack>
+        <PackagePath>slice</PackagePath>
+      </Content>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All" />
-      <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
+      <Content Remove="..\..\..\slice\Ice\BuiltinSequences.ice" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" PrivateAssets="All" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0.0" />
+      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All" />
+      <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup>
+      <SliceCompile Include="..\..\..\slice\Ice\BuiltinSequences.ice" />
     </ItemGroup>
 </Project>

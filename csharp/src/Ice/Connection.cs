@@ -1,13 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -365,7 +368,7 @@ namespace ZeroC.Ice
 
                     // Setup a task to wait for the close frame on the peer's control stream.
                     _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                 default);
+                                    default);
                 }
 
                 Socket.Initialized();
@@ -392,6 +395,8 @@ namespace ZeroC.Ice
                 throw;
             }
         }
+
+        internal abstract IReadOnlyList<KeyValuePair<string, object>> LogScope();
 
         internal void Monitor()
         {
@@ -470,7 +475,7 @@ namespace ZeroC.Ice
                 }
                 catch (Exception ex)
                 {
-                    Communicator.Logger.Error($"connection callback exception:\n{ex}\n{this}");
+                    Communicator.TransportLogger.LogConnectionCallbackException(ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -610,10 +615,10 @@ namespace ZeroC.Ice
                 state == ConnectionState.Closed &&
                 !Endpoint.IsDatagram &&
                 ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Communicator.WarnConnections)
+                Communicator.Logger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Communicator.Logger.Warning($"connection exception:\n{exception}\n{this}");
+                Communicator.Logger.LogConnectionException(exception);
             }
 
             if (state == ConnectionState.Active)
@@ -711,6 +716,63 @@ namespace ZeroC.Ice
         }
 
         internal override bool CanTrust(NonSecure preferNonSecure) => true;
+
+        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
+
+        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
+        {
+            private const string TransportKey = "Transport";
+            private const string ProtocolKey = "Protocol";
+            private const string IncomingKey = "Incoming";
+            private const string ObjectAdapterKey = "ObjectAdapter";
+
+            private string? _cached;
+            private ColocatedConnection _connection;
+
+            internal Scope(ColocatedConnection connection) => _connection = connection;
+
+            public KeyValuePair<string, object> this[int index] =>
+                index switch
+                {
+                    0 => new KeyValuePair<string, object>(TransportKey, _connection.Endpoint.Transport),
+                    1 => new KeyValuePair<string, object>(ProtocolKey, _connection.Endpoint.Protocol),
+                    2 => new KeyValuePair<string, object>(IncomingKey, _connection.IsIncoming),
+                    3 => _connection.Adapter is ObjectAdapter adapter ?
+                        new KeyValuePair<string, object>(ObjectAdapterKey, adapter.Name) :
+                        throw new ArgumentException(nameof(index)),
+                    _ => throw new ArgumentOutOfRangeException(nameof(index))
+                };
+
+            public int Count => _connection.Adapter == null ? 3 : 4;
+
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            {
+                for (var i = 0; i < Count; ++i)
+                {
+                    yield return this[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public override string ToString()
+            {
+                if (_cached == null)
+                {
+                    var sb = new StringBuilder();
+                    if (_connection.Adapter is ObjectAdapter adapter)
+                    {
+                        sb.Append("object adapter = ").Append(adapter.Name).Append(", ");
+                    }
+                    sb.Append("incoming = ").Append(_connection.IsIncoming).Append(", ");
+                    sb.Append("transport = ").Append(_connection.Endpoint.Transport).Append(", ");
+                    sb.Append("protocol = ").Append(_connection.Endpoint.Protocol);
+                    _cached = sb.ToString();
+                }
+
+                return _cached;
+            }
+        }
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -767,6 +829,61 @@ namespace ZeroC.Ice
                 _ => false
             };
             return trusted;
+        }
+
+        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
+
+        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
+        {
+            private const string LocalAddressKey = "LocalAddress";
+            private const string RemoteAddressKey = "RemoteAddress";
+            private const string TransportKey = "Transport";
+            private const string ProtocolKey = "Protocol";
+
+            private string? _cached;
+            private Endpoint _endpoint;
+            private string _localAddress;
+            private string _remoteAddress;
+
+            internal Scope(IPConnection connection)
+            {
+                _localAddress = Network.LocalAddrToString(connection.LocalEndpoint);
+                _remoteAddress = Network.RemoteAddrToString(connection.RemoteEndpoint);
+                _endpoint = connection.Endpoint;
+            }
+
+            public KeyValuePair<string, object> this[int index] =>
+                index switch
+                {
+                    0 => new KeyValuePair<string, object>(LocalAddressKey, _localAddress),
+                    1 => new KeyValuePair<string, object>(RemoteAddressKey, _remoteAddress),
+                    2 => new KeyValuePair<string, object>(TransportKey, _endpoint.Transport),
+                    3 => new KeyValuePair<string, object>(ProtocolKey, _endpoint.Protocol),
+                    _ => throw new ArgumentOutOfRangeException(nameof(index))
+                };
+
+            public int Count => 4;
+
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            {
+                for (var i = 0; i < Count; ++i)
+                {
+                    yield return this[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public override string ToString()
+            {
+                if (_cached == null)
+                {
+                    _cached = @$"local address = {_localAddress}, remote address = {_remoteAddress
+                        }, transport = {_endpoint.Transport}, protocol = {_endpoint.Protocol}";
+                }
+
+                return _cached;
+            }
         }
     }
 
