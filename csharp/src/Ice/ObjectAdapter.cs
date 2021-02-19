@@ -790,9 +790,9 @@ namespace ZeroC.Ice
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (Communicator.Logger.IsEnabled(LogLevel.Warning))
+                        if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Communicator.Logger.LogDispatchException(ex);
+                            Communicator.ProtocolLogger.LogRequestDispatchException(ex);
                         }
                     }
 
@@ -800,9 +800,9 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    if (Communicator.Logger.IsEnabled(LogLevel.Warning))
+                    if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
                     {
-                        Communicator.Logger.LogDispatchException(ex);
+                        Communicator.ProtocolLogger.LogRequestDispatchException(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }

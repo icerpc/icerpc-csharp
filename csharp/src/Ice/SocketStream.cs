@@ -605,7 +605,10 @@ namespace ZeroC.Ice
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    protocolLogger.LogSendingRequest(request, Id);
+                    using (_socket.StartSocketScope(_socket.Endpoint.Communicator.TransportLogger))
+                    {
+                        protocolLogger.LogSendingRequest(request, Id);
+                    }
                 }
                 else
                 {

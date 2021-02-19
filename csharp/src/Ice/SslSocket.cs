@@ -134,7 +134,8 @@ namespace ZeroC.Ice
             _underlying = underlying;
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint) =>
+            _underlying.StartScope(logger, endpoint);
 
         private async ValueTask AuthenticateAsync(string? host, CancellationToken cancel)
         {

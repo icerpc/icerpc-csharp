@@ -147,7 +147,8 @@ namespace ZeroC.Ice
             _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint) =>
+            _underlying.StartScope(logger, endpoint);
 
         private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
         {

@@ -6,6 +6,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
@@ -75,10 +76,10 @@ namespace ZeroC.Ice
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
 
-        /// <summary>Creates an scope that attachs info about the stream socket being used, the scope last until the
+        /// <summary>Creates an scope that attachs info about the socket being used, the scope last until the
         /// returned object is dispose of.</summary>
-        /// <param name="endpoint">The endpoint of the wrapping socket, </param>
+        /// <param name="endpoint">The endpoint that was used to create the socket.</param>
         /// <returns>A disposable that can be used to cleanup the scope.</returns>
-        internal abstract IDisposable? StartScope(Endpoint endpoint);
+        internal abstract IDisposable? StartScope(ILogger logger, Endpoint endpoint);
     }
 }

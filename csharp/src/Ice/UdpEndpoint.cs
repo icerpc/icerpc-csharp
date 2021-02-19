@@ -46,10 +46,6 @@ namespace ZeroC.Ice
             var socket = new UdpSocket(this, Communicator);
             try
             {
-                if (Communicator.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    Communicator.Logger.LogBindingSocketAttempt(Transport);
-                }
                 Endpoint endpoint = socket.Bind(this);
                 var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, adapter);
                 return new UdpConnection(endpoint, multiStreamSocket, label: null, adapter);

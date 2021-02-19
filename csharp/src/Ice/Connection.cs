@@ -475,7 +475,7 @@ namespace ZeroC.Ice
                 }
                 catch (Exception ex)
                 {
-                    Communicator.Logger.LogConnectionCallbackException(this, ex);
+                    Communicator.TransportLogger.LogConnectionCallbackException(ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -618,7 +618,7 @@ namespace ZeroC.Ice
                 Communicator.Logger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Communicator.Logger.LogConnectionException(this, exception);
+                Communicator.Logger.LogConnectionException(exception);
             }
 
             if (state == ConnectionState.Active)

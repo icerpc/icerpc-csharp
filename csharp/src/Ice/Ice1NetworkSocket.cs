@@ -314,6 +314,8 @@ namespace ZeroC.Ice
             }
         }
 
+        internal override IDisposable? StartSocketScope(ILogger logger) => _socket.StartScope(logger, Endpoint);
+
         private long AllocateId(bool bidirectional)
         {
             // Allocate a new ID according to the Quic numbering scheme.

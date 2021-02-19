@@ -48,16 +48,21 @@ namespace ZeroC.Ice
 
                 // If a secure connection is needed, a new SslSocket is created and returned from this method.
                 // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
+                SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    var sslSocket = new SslSocket(endpoint.Communicator, this);
-                    await sslSocket.AcceptAsync(endpoint, cancel);
-                    return sslSocket;
+                    socket = new SslSocket(endpoint.Communicator, this);
+                    await socket.AcceptAsync(endpoint, cancel);
                 }
-                else
+
+                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                 {
-                    return this;
+                    endpoint.Communicator.TransportLogger.LogConnectionAccepted(endpoint.Transport,
+                                                                                Network.LocalAddrToString(Socket),
+                                                                                Network.RemoteAddrToString(Socket));
                 }
+
+                return socket;
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -113,6 +118,7 @@ namespace ZeroC.Ice
                         Network.LocalAddrToString(Socket),
                         Network.RemoteAddrToString(Socket));
                 }
+
                 return socket;
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
@@ -232,15 +238,13 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint)
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint)
         {
-            if (_communicator.Logger.IsEnabled(LogLevel.Critical))
+            if (logger.IsEnabled(LogLevel.Critical))
             {
-                return _communicator.Logger.StartConnectionScope(
-                    Network.LocalAddrToString(Network.GetLocalAddress(Socket)),
-                    Network.RemoteAddrToString(Network.GetRemoteAddress(Socket)),
-                    endpoint.Transport,
-                    endpoint.Protocol);
+                return logger.StartSocketScope(endpoint.Transport,
+                                               Network.LocalAddrToString(Socket),
+                                               Network.RemoteAddrToString(Socket));
             }
             return null;
         }

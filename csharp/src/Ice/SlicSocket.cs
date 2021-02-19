@@ -1,14 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Microsoft.Extensions.Logging;
 using ZeroC.Ice.Slic;
 
 namespace ZeroC.Ice
@@ -599,6 +597,8 @@ namespace ZeroC.Ice
                 _sendSemaphore.Release();
             }
         }
+
+        internal override IDisposable? StartSocketScope(ILogger logger) => _socket.StartScope(logger, Endpoint);
 
         private void ReadParameters(InputStream istr)
         {

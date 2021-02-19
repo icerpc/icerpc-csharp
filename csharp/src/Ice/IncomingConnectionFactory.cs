@@ -167,6 +167,11 @@ namespace ZeroC.Ice
                     }
                     else
                     {
+                        if (connection.Communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
+                        {
+                            connection.Communicator.SecurityLogger.LogConnectionNotTrusted(
+                                connection.Endpoint.Transport);
+                        }
                         // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
                     }

@@ -301,33 +301,6 @@ namespace ZeroC.Ice
             {
                 LastActivity = Time.Elapsed;
             }
-
-            ILogger transportLogger = Endpoint.Communicator.TransportLogger;
-            if (transportLogger.IsEnabled(LogLevel.Debug))
-            {
-                if (Endpoint.IsDatagram)
-                {
-                    if (IsIncoming)
-                    {
-                        transportLogger.LogStartReceivingDatagrams(Endpoint.Transport);
-                    }
-                    else
-                    {
-                        transportLogger.LogStartSendingDatagrams(Endpoint.Transport);
-                    }
-                }
-                else
-                {
-                    if (IsIncoming)
-                    {
-                        transportLogger.LogConnectionAccepted(Endpoint.Transport);
-                    }
-                    else
-                    {
-                        transportLogger.LogConnectionEstablished(Endpoint.Transport);
-                    }
-                }
-            }
         }
 
         internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
@@ -360,6 +333,8 @@ namespace ZeroC.Ice
             await stream.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
+
+        internal abstract IDisposable? StartSocketScope();
 
         internal virtual async ValueTask WaitForEmptyStreamsAsync()
         {

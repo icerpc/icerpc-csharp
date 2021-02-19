@@ -9,12 +9,19 @@ namespace ZeroC.Ice
 {
     internal static class SecurityLoggerExtensions
     {
-        private const int TlsCertificateChainError = 0;
-        private const int TlsCertificateValidationFailed = 1;
-        private const int TlsConnectionCreated = 2;
-        private const int TlsHostnameMismatch = 3;
-        private const int TlsRemoteCertificateNotProvided = 4;
-        private const int TlsRemoteCertificateNotProvidedIgnored = 5;
+        private const int ConnectionNotTrusted = 0;
+        private const int TlsCertificateChainError = 1;
+        private const int TlsCertificateValidationFailed = 2;
+        private const int TlsConnectionCreated = 3;
+        private const int TlsHostnameMismatch = 4;
+        private const int TlsRemoteCertificateNotProvided = 5;
+        private const int TlsRemoteCertificateNotProvidedIgnored = 6;
+
+        private static readonly Action<ILogger, Transport, Exception> _connectionNotTrusted =
+            LoggerMessage.Define<Transport>(
+                LogLevel.Debug,
+                new EventId(ConnectionNotTrusted, nameof(ConnectionNotTrusted)),
+                "{Transport} connection not trusted");
 
         private static readonly Action<ILogger, X509ChainStatusFlags, Exception> _tlsCertificateChainError =
             LoggerMessage.Define<X509ChainStatusFlags>(
@@ -48,6 +55,9 @@ namespace ZeroC.Ice
                 LogLevel.Debug,
                 new EventId(TlsRemoteCertificateNotProvidedIgnored, nameof(TlsRemoteCertificateNotProvidedIgnored)),
                 "Tls certificate validation failed - remote certificate not provided (ignored)");
+
+        internal static void LogConnectionNotTrusted(this ILogger logger, Transport transport) =>
+            _connectionNotTrusted(logger, transport, null!);
 
         internal static void LogTlsCertificateChainError(this ILogger logger, X509ChainStatusFlags status) =>
             _tlsCertificateChainError(logger, status, null!);

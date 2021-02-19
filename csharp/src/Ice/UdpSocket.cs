@@ -38,6 +38,7 @@ namespace ZeroC.Ice
             Debug.Assert(_incoming);
             try
             {
+                ILogger transportLogger = endpoint.Communicator.TransportLogger;
                 if (Network.IsMulticast(_addr))
                 {
                     Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
@@ -57,6 +58,11 @@ namespace ZeroC.Ice
                         {
                             _addr = new IPEndPoint(IPAddress.IPv6Any, _addr.Port);
                         }
+                    }
+
+                    if (transportLogger.IsEnabled(LogLevel.Debug))
+                    {
+                        transportLogger.LogBindingSocketAttempt(endpoint.Transport, Network.LocalAddrToString(_addr));
                     }
 
                     Socket.Bind(_addr);
@@ -84,8 +90,18 @@ namespace ZeroC.Ice
             return endpoint.Clone((ushort)_addr.Port);
         }
 
-        public override ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel) =>
-            new(this);
+        public override ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        {
+            if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            {
+                endpoint.Communicator.TransportLogger.LogStartReceivingDatagrams(
+                    endpoint.Transport,
+                    Network.LocalAddrToString(Socket),
+                    Network.RemoteAddrToString(Socket),
+                    GetLocalInterfaces());
+            }
+            return new(this);
+        }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
 
@@ -102,6 +118,14 @@ namespace ZeroC.Ice
                     Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                {
+                    endpoint.Communicator.TransportLogger.LogStartSendingDatagrams(
+                        endpoint.Transport,
+                        Network.LocalAddrToString(Socket),
+                        Network.RemoteAddrToString(Socket),
+                        GetLocalInterfaces());
+                }
                 return this;
             }
             catch (Exception ex)
@@ -226,21 +250,13 @@ namespace ZeroC.Ice
                 {
                     sb.Append(Network.SocketToString(Socket));
                 }
+
                 if (MulticastAddress != null)
                 {
                     sb.Append($"\nmulticast address = {MulticastAddress}");
                 }
 
-                List<string> interfaces;
-                if (MulticastAddress == null)
-                {
-                    interfaces = Network.GetHostsForEndpointExpand(_addr.ToString(), Network.EnableBoth, true);
-                }
-                else
-                {
-                    interfaces = Network.GetInterfacesForMulticast(_multicastInterface,
-                                                                   Network.GetIPVersion(MulticastAddress.Address));
-                }
+                IReadOnlyList<string> interfaces = GetLocalInterfaces();
                 if (interfaces.Count != 0)
                 {
                     sb.Append("\nlocal interfaces = ");
@@ -255,18 +271,6 @@ namespace ZeroC.Ice
         }
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
-
-        internal override IDisposable? StartScope(Endpoint endpoint)
-        {
-            if (_logger.IsEnabled(LogLevel.Critical))
-            {
-                return _logger.StartConnectionScope(Network.LocalAddrToString(Network.GetLocalAddress(Socket)),
-                                                    Network.RemoteAddrToString(Network.GetRemoteAddress(Socket)),
-                                                    endpoint.Transport,
-                                                    endpoint.Protocol);
-            }
-            return null;
-        }
 
         // Only for use by UdpEndpoint.
         internal UdpSocket(
@@ -331,5 +335,34 @@ namespace ZeroC.Ice
                 throw new TransportException(ex, RetryPolicy.NoRetry);
             }
         }
+
+        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint)
+        {
+            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical))
+            {
+                IReadOnlyList<string> interfaces = GetLocalInterfaces();
+                if (MulticastAddress != null)
+                {
+                    return logger.StartMulticastSocketScope(endpoint.Transport,
+                                                            Network.LocalAddrToString(Socket),
+                                                            MulticastAddress.ToString(),
+                                                            interfaces);
+                }
+                else
+                {
+                    return logger.StartDatagramSocketScope(
+                        endpoint.Transport,
+                        Network.LocalAddrToString(Socket),
+                        _peerAddr?.ToString() ?? Network.RemoteAddrToString(Socket),
+                        interfaces);
+                }
+            }
+            return null;
+        }
+
+        private IReadOnlyList<string> GetLocalInterfaces() =>
+            MulticastAddress == null ?
+                Network.GetHostsForEndpointExpand(_addr.ToString(), Network.EnableBoth, true) :
+                Network.GetInterfacesForMulticast(_multicastInterface, Network.GetIPVersion(MulticastAddress.Address));
     }
 }

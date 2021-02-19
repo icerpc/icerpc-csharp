@@ -30,13 +30,6 @@ namespace ZeroC.Ice
 
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-                if (transportLogger.IsEnabled(LogLevel.Debug))
-                {
-                    transportLogger.LogConnectionAccepted(Endpoint.Transport,
-                                                          Network.LocalAddrToString(fd),
-                                                          Network.RemoteAddrToString(fd));
-                }
-
                 var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
@@ -49,7 +42,10 @@ namespace ZeroC.Ice
             {
                 if (transportLogger.IsEnabled(LogLevel.Error))
                 {
-                    transportLogger.LogAcceptingConnectionFailed(Endpoint.Transport, ex);
+                    transportLogger.LogAcceptingConnectionFailed(
+                        Endpoint.Transport,
+                        Network.LocalAddrToString(_addr),
+                        ex);
                 }
                 throw;
             }
