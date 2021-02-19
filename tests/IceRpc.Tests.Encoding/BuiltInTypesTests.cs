@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(int.MinValue)]
         [TestCase(0)]
         [TestCase(int.MaxValue)]
-        public void Encoding_Integer(int p1)
+        public void Encoding_Int(int p1)
         {
             _ostr.WriteInt(p1);
             int r1 = _istr.ReadInt();
@@ -81,8 +81,19 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(sizeof(int), _istr.Pos);
         }
 
+        [TestCase(uint.MinValue)]
+        [TestCase((uint)0)]
+        [TestCase(uint.MaxValue)]
+        public void Encoding_UInt(uint p1)
+        {
+            _ostr.WriteUInt(p1);
+            uint r1 = _istr.ReadUInt();
+
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(0, _ostr.Tail.Segment);
+        }
+
         [TestCase(long.MinValue)]
-        [TestCase(0)]
         [TestCase(long.MaxValue)]
         public void Encoding_Long(long p1)
         {
@@ -94,6 +105,39 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(0, _ostr.Tail.Segment);
             Assert.AreEqual(sizeof(long), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(long), _istr.Pos);
+        }
+
+        [TestCase(ulong.MinValue)]
+        [TestCase(ulong.MinValue)]
+        public void Encoding_ULong(ulong p1)
+        {
+            _ostr.WriteULong(p1);
+            ulong r1 = _istr.ReadULong();
+
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(0, _ostr.Tail.Segment);
+        }
+
+        [TestCase(EncodingDefinitions.VarULongMinValue)]
+        [TestCase(EncodingDefinitions.VarULongMinValue)]
+        public void Encoding_VarULong(ulong p1)
+        {
+            _ostr.WriteVarULong(p1);
+            ulong r1 = _istr.ReadVarULong();
+
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(0, _ostr.Tail.Segment);
+        }
+
+        [TestCase(EncodingDefinitions.VarLongMinValue)]
+        [TestCase(EncodingDefinitions.VarLongMinValue)]
+        public void Encoding_VarLong(long p1)
+        {
+            _ostr.WriteVarLong(p1);
+            long r1 = _istr.ReadVarLong();
+
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(0, _ostr.Tail.Segment);
         }
 
         [TestCase(float.MinValue)]
