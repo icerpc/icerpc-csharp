@@ -132,8 +132,8 @@ namespace ZeroC.Ice
             _buffer = new ArraySegment<byte>(_buffer.Array!, _buffer.Offset - bytes, _buffer.Count + bytes);
         }
 
-        internal override IDisposable? StartScope(ILogger logger, Endpoint endpoint) =>
-            Underlying.StartScope(logger, endpoint);
+        internal override IDisposable? StartScope(Endpoint endpoint) =>
+            Underlying.StartScope(endpoint);
 
         private async ValueTask ReceiveInBufferAsync(int byteCount, CancellationToken cancel = default)
         {

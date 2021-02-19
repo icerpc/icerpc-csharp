@@ -80,6 +80,6 @@ namespace ZeroC.Ice
         /// returned object is dispose of.</summary>
         /// <param name="endpoint">The endpoint that was used to create the socket.</param>
         /// <returns>A disposable that can be used to cleanup the scope.</returns>
-        internal abstract IDisposable? StartScope(ILogger logger, Endpoint endpoint);
+        internal abstract IDisposable? StartScope(Endpoint endpoint);
     }
 }
