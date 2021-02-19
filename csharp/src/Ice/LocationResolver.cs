@@ -14,7 +14,7 @@ using Location = System.Collections.Generic.IReadOnlyList<string>;
 
 namespace ZeroC.Ice
 {
-    /// <summary>The options when constructing a <see cref="LocationResolver"/>.</summary>
+    /// <summary>An options class for configuring a <see cref="LocationResolver"/>.</summary>
     public sealed class LocationResolverOptions
     {
         /// <summary>When true, if a Resolve method finds a stale cache entry, it returns the stale entry's endpoint(s)

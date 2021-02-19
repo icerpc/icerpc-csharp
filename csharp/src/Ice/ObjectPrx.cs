@@ -31,13 +31,11 @@ namespace ZeroC.Ice
 
         public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? Communicator.DefaultInvocationTimeout;
         public bool IsFixed { get; }
-        public bool IsIndirect => Endpoints.Count == 0 && !IsFixed;
 
         public bool IsOneway { get; }
 
         public bool IsRelative { get; }
 
-        public bool IsWellKnown => IsIndirect && Location.Count == 0;
         public object? Label { get; }
         public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
         public ILocationResolver? LocationResolver { get; }
@@ -48,6 +46,9 @@ namespace ZeroC.Ice
         public Protocol Protocol { get; }
 
         ObjectPrx IObjectPrx.Impl => this;
+
+        internal bool IsIndirect => Endpoints.Count == 0 && !IsFixed;
+        internal bool IsWellKnown => IsIndirect && Location.Count == 0;
 
         // Sub-properties for ice1 proxies
         private static readonly string[] _suffixes =
