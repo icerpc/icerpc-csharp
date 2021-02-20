@@ -36,7 +36,7 @@ Generate the test report
 reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestRerport"
 ```
 
-For covenience the you can do the same using "CodeCoverageReport" msbuild target:
+For covenience you can do the same using "CodeCoverageReport" msbuild target:
 
 ```
 dotnet msbuild build/build.proj /t:CodeCoverageReport
