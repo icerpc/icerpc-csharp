@@ -155,6 +155,26 @@ namespace ZeroC.Ice
                 _ = ResolveLocationAsync(location, protocol, cancel: default);
             }
 
+            var logger = _locator.Communicator.LocationLogger;
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                if (endpoints.Count > 0)
+                {
+                    if (endpointsAge == TimeSpan.Zero)
+                    {
+                        logger.LogResolvedLocation(location, protocol, endpoints);
+                    }
+                    else
+                    {
+                        logger.LogFoundEntryForLocationInLocatorCache(location, protocol, endpoints);
+                    }
+                }
+                else
+                {
+                    logger.LogCouldNotFindEndpointsForLocation(location);
+                }
+            }
+
             return (endpoints, endpointsAge);
         }
 
@@ -221,44 +241,23 @@ namespace ZeroC.Ice
                 }
             }
 
-            var logger = Locator.Communicator.LocationLogger;
+            var logger = _locator.Communicator.LocationLogger;
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 if (endpoints.Count > 0)
                 {
-                    if (proxy.IsWellKnown)
+                    if (wellKnownAge == TimeSpan.Zero)
                     {
-                        if (wellKnownLocationAge == TimeSpan.Zero)
-                        {
-                            logger.LogResolvedWellKnownProxy(proxy, endpoints);
-                        }
-                        else
-                        {
-                            logger.LogFoundEntryForWellKnownProxyInLocatorCache(proxy, endpoints);
-                        }
+                        logger.LogResolvedWellKnownProxy(identity, facet, protocol, endpoints);
                     }
                     else
                     {
-                        if (endpointsAge == TimeSpan.Zero)
-                        {
-                            logger.LogResolvedLocation(location, proxy.Protocol, endpoints);
-                        }
-                        else
-                        {
-                            logger.LogFoundEntryForLocationInLocatorCache(location, proxy.Protocol, endpoints);
-                        }
+                        logger.LogFoundEntryForWellKnownProxyInLocatorCache(identity, facet, protocol, endpoints);
                     }
                 }
                 else
                 {
-                    if (proxy.Location.Count > 0)
-                    {
-                        logger.LogCouldNotFindEndpointsForLocation(proxy.Location);
-                    }
-                    else
-                    {
-                        logger.LogCouldNotFindEndpointsForWellKnownProxy(proxy);
-                    }
+                   logger.LogCouldNotFindEndpointsForWellKnownProxy(identity, facet, protocol);
                 }
             }
 
@@ -359,9 +358,9 @@ namespace ZeroC.Ice
 
                         if (resolved != null && (resolved.Endpoints.Count == 0 || resolved.Protocol != Protocol.Ice1))
                         {
-                            if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
+                            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
                             {
-                                Locator.Communicator.LocationLogger.LogInvalidProxyResolvingLocation(
+                                _locator.Communicator.LocationLogger.LogInvalidProxyResolvingLocation(
                                     location.ToLocationString(),
                                     resolved);
                             }
@@ -399,9 +398,9 @@ namespace ZeroC.Ice
                 }
                 catch (Exception exception)
                 {
-                    if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                     {
-                        Locator.Communicator.LocationLogger.LogResolveLocationFailure(location, exception);
+                        _locator.Communicator.LocationLogger.LogResolveLocationFailure(location, exception);
                     }
                     throw;
                 }
@@ -423,7 +422,7 @@ namespace ZeroC.Ice
         {
             if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity, facet);
+                _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity, facet, protocol);
             }
 
             Task<(EndpointList, Location)>? task;
@@ -522,9 +521,13 @@ namespace ZeroC.Ice
                 }
                 catch (Exception exception)
                 {
-                    if (Locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                     {
-                        Locator.Communicator.LocationLogger.LogResolveWellKnownProxyEndpointsFailure(proxy, exception);
+                        _locator.Communicator.LocationLogger.LogResolveWellKnownProxyEndpointsFailure(
+                            identity,
+                            facet,
+                            protocol,
+                            exception);
                     }
                     throw;
                 }

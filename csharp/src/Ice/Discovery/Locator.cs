@@ -140,6 +140,8 @@ namespace ZeroC.Ice.Discovery
 
         internal Locator(Communicator communicator, DiscoveryServerOptions options)
         {
+            _logger = communicator.Logger;
+
             if (options.ColocationScope == ColocationScope.None)
             {
                 throw new ArgumentException("options.ColocationScope cannot be set to None", nameof(options));

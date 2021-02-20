@@ -114,13 +114,6 @@ namespace ZeroC.Ice
         /// </summary>
         public TimeSpan DefaultInvocationTimeout { get; }
 
-        /// <summary>The logger for this communicator.</summary>
-        public ILogger Logger
-        {
-            get => _logger;
-            set => _logger = value;
-        }
-
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
         public Instrumentation.ICommunicatorObserver? Observer { get; }
@@ -153,6 +146,9 @@ namespace ZeroC.Ice
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
         internal bool KeepAlive { get; }
+
+        /// <summary>The default logger for this communicator.</summary>
+        internal ILogger Logger { get; }
         internal ILogger LocationLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
         internal int MaxBidirectionalStreams { get; }
@@ -205,8 +201,6 @@ namespace ZeroC.Ice
 
         private readonly IDictionary<string, (Ice2EndpointParser, Transport)> _ice2TransportNameRegistry =
             new ConcurrentDictionary<string, (Ice2EndpointParser, Transport)>();
-
-        private volatile ILogger _logger;
 
         private readonly object _mutex = new object();
 

@@ -223,15 +223,19 @@ namespace ZeroC.Ice
 
         internal static void LogResolveWellKnownProxyEndpointsFailure(
             this ILogger logger,
-            ObjectPrx proxy,
+            Identity identity,
+            string facet,
+            Protocol protocol,
             Exception exception) =>
-            _resolveWellKnownProxyEndpointsFailure(logger, proxy, exception);
+            _resolveWellKnownProxyEndpointsFailure(logger, identity, facet, protocol.GetName(), exception);
 
         internal static void LogResolvedWellKnownProxy(
             this ILogger logger,
-            ObjectPrx proxy,
+            Identity identity,
+            string facet,
+            Protocol protocol,
             IReadOnlyList<Endpoint> endpoints) =>
-            _resolvedWellKnownProxy(logger, proxy, endpoints, null!);
+            _resolvedWellKnownProxy(logger, identity, facet, protocol.GetName(), endpoints, null!);
 
         internal static void LogResolvedLocation(
             this ILogger logger,
@@ -243,8 +247,8 @@ namespace ZeroC.Ice
         internal static void LogResolvingLocation(this ILogger logger, IReadOnlyList<string> location) =>
             _resolvingLocation(logger, location.ToLocationString(), null!);
 
-        internal static void LogResolvingWellKnownProxy(this ILogger logger, Identity identity, string facet) =>
-            _resolvingWellKnownProxy(logger, identity, facet, null!);
+        internal static void LogResolvingWellKnownProxy(this ILogger logger, Identity identity, string facet, Protocol protocol) =>
+            _resolvingWellKnownProxy(logger, identity, facet, protocol.GetName(), null!);
 
         internal static void LogUnregisterObjectAdapterEndpointsFailure(
             this ILogger logger,
