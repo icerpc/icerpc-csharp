@@ -16,6 +16,32 @@ Visual Studio Code users can install [.NET Core Test Explorer](https://marketpla
 plug-in to run tests from it.
 
 
+Code coverage reports can be generated using [ReportGenerator](https://github.com/danielpalme/ReportGenerator)
+
+Install the reportgenerator dotnet tool
+
+```
+dotnet tool install -g dotnet-reportgenerator-globaltool
+```
+
+Run the tests with code coverage
+
+```
+dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+```
+
+Generate the test report
+
+```
+reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestRerport"
+```
+
+For covenience the you can do the same using "CodeCoverageReport" msbuild target:
+
+```
+dotnet msbuild build/build.proj /t:CodeCoverageReport
+```
+
 # Building Example Programs
 
 You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example

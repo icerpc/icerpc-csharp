@@ -36,6 +36,15 @@
         <MSBuild Projects="@(ExampleSolution)" Targets="build" />
     </Target>
 
+    <Target Name="CodeCoverageReport">
+        <PropertyGroup>
+            <TestCommand>dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"</TestCommand>
+            <CoverageReportCommand>reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport"</CoverageReportCommand>
+        </PropertyGroup>
+        <Exec Command="$(TestCommand)" WorkingDirectory="$(MSBuildThisFileDirectory).." />
+        <Exec Command="$(CoverageReportCommand)" WorkingDirectory="$(MSBuildThisFileDirectory).." />
+    </Target>
+
     <!-- This target is trigger by dotnet /restore argument and runs restore in a separate phase, to ensure other target see the updated
          projects see https://github.com/dotnet/msbuild/issues/3000#issuecomment-417675215 -->
     <Target Name="Restore">
