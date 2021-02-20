@@ -16,6 +16,22 @@ namespace ZeroC.Ice.Test.Discovery
             TextWriter output = helper.Output;
             Communicator communicator = helper.Communicator;
 
+            // TODO: convert properties to options for now
+            var discoveryServerOptions = new DiscoveryServerOptions
+            {
+                ColocationScope = ColocationScope.Communicator,
+                DomainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "",
+                Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
+                MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
+                RetryCount = communicator.GetPropertyAsInt("Ice.Discovery.RetryCount") ?? 20,
+                ReplyServerName = communicator.GetProperty("Ice.Discovery.Reply.ServerName") ?? "",
+                Timeout = communicator.GetPropertyAsTimeSpan("Ice.Discovery.Timeout") ?? TimeSpan.FromMilliseconds(100)
+            };
+
+            await using var discoveryServer = new DiscoveryServer(communicator, discoveryServerOptions);
+            communicator.DefaultLocationService = new LocationService(discoveryServer.Locator);
+            await discoveryServer.ActivateAsync();
+
             var proxies = new List<IControllerPrx>();
             var facetedProxies = new List<IControllerPrx>();
             var indirectProxies = new List<IControllerPrx>();
@@ -177,11 +193,14 @@ namespace ZeroC.Ice.Test.Discovery
                     "oa3"
                 };
 
+                // Replace location service to change the cache ttl.
+                communicator.DefaultLocationService =
+                    new LocationService(discoveryServer.Locator, new() { Ttl = TimeSpan.Zero });
+
                 // Check that the well known object is reachable with all replica group members
                 ITestIntfPrx intf = ITestIntfPrx.Parse(ice1 ? "object" : "ice:object", communicator).Clone(
                     cacheConnection: false,
-                    preferExistingConnection: false,
-                    locatorCacheTimeout: TimeSpan.Zero);
+                    preferExistingConnection: false);
                 while (adapterIds.Count > 0)
                 {
                     string id = intf.GetAdapterId();
@@ -230,8 +249,7 @@ namespace ZeroC.Ice.Test.Discovery
                 // Check that the indirect reference is reachable with all replica group members
                 intf = ITestIntfPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).Clone(
                     cacheConnection: false,
-                    preferExistingConnection: false,
-                    locatorCacheTimeout: TimeSpan.Zero);
+                    preferExistingConnection: false);
                 while (adapterIds.Count > 0)
                 {
                     var id = intf.GetAdapterId();
@@ -262,7 +280,7 @@ namespace ZeroC.Ice.Test.Discovery
             output.Flush();
             {
                 // TODO: convert properties to options for now
-                var discoveryServerOptions = new DiscoveryServerOptions
+                discoveryServerOptions = new DiscoveryServerOptions
                 {
                     ColocationScope = ColocationScope.Communicator,
                     DomainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "",
@@ -285,10 +303,10 @@ namespace ZeroC.Ice.Test.Discovery
 
                 {
                     await using var comm = new Communicator(communicator.GetProperties());
-                    TestHelper.Assert(comm.DefaultLocator != null);
 
                     discoveryServerOptions.Lookup = $"udp -h {multicast} --interface unknown"; // invalid value
-                    await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+                    await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
+                    comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
                     try
                     {
@@ -304,7 +322,6 @@ namespace ZeroC.Ice.Test.Discovery
                 }
                 {
                     await using var comm = new Communicator(communicator.GetProperties());
-                    TestHelper.Assert(comm.DefaultLocator != null);
 
                     string port = $"{helper.BasePort + 10}";
                     string intf = helper.Host.Contains(":") ? $"\"{helper.Host}\"" : helper.Host;
@@ -315,7 +332,8 @@ namespace ZeroC.Ice.Test.Discovery
                         discoveryServerOptions.Lookup += $" --interface {intf}";
                     }
 
-                    await using var discoveryServer = new DiscoveryServer(comm, discoveryServerOptions);
+                    await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
+                    comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
                     await IObjectPrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
                         IcePingAsync();

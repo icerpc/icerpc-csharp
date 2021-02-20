@@ -12,10 +12,7 @@ namespace ZeroC.Ice.Test.Location
 
         public static async Task<int> Main(string[] args)
         {
-            Dictionary<string, string> properties = CreateTestProperties(ref args);
-            properties["Ice.Default.Locator"] = GetTestProxy("locator", properties, 0);
-
-            await using var communicator = CreateCommunicator(properties);
+            await using var communicator = CreateCommunicator(ref args);
             return await RunTestAsync<Client>(communicator, args);
         }
     }

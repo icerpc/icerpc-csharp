@@ -40,6 +40,8 @@ namespace ZeroC.Ice.Discovery
     /// servers) that locate objects using Discovery or that host discoverable objects.</summary>
     public sealed class DiscoveryServer : IAsyncDisposable
     {
+        public ILocatorPrx Locator => _locator.Proxy;
+
         private readonly Locator _locator;
 
         /// <summary>Constructs a DiscoveryServer.</summary>

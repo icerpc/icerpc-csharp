@@ -21,7 +21,6 @@ namespace ZeroC.Ice
             internal Encoding? Encoding;
             internal TimeSpan? InvocationTimeout;
             internal object? Label;
-            internal TimeSpan? LocatorCacheTimeout; // only for the ice URI scheme
             internal bool? PreferExistingConnection;
             internal NonSecure? PreferNonSecure;
             internal Protocol? Protocol;
@@ -32,7 +31,6 @@ namespace ZeroC.Ice
                 out IReadOnlyDictionary<string, string>? context,
                 out TimeSpan? invocationTimeout,
                 out object? label,
-                out TimeSpan? locatorCacheTimeout,
                 out bool? preferExistingConnection,
                 out NonSecure? preferNonSecure,
                 out bool? relative)
@@ -41,7 +39,6 @@ namespace ZeroC.Ice
                 context = Context?.ToImmutableSortedDictionary();
                 invocationTimeout = InvocationTimeout;
                 label = Label;
-                locatorCacheTimeout = LocatorCacheTimeout;
                 preferExistingConnection = PreferExistingConnection;
                 preferNonSecure = PreferNonSecure;
                 relative = Relative;
@@ -327,11 +324,6 @@ namespace ZeroC.Ice
                 {
                     CheckProxyOption(name, proxyOptions.Label != null);
                     proxyOptions.Label = value;
-                }
-                else if (endpointOptions == null && name == "locator-cache-timeout")
-                {
-                    CheckProxyOption(name, proxyOptions.LocatorCacheTimeout != null);
-                    proxyOptions.LocatorCacheTimeout = TimeSpanExtensions.Parse(value);
                 }
                 else if (name == "prefer-existing-connection")
                 {

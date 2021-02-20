@@ -19,7 +19,11 @@ namespace ZeroC.Ice.Test.Location
 
             bool ice1 = helper.Protocol == Protocol.Ice1;
             var manager = IServerManagerPrx.Parse(helper.GetTestProxy("ServerManager", 0), communicator);
-            var locator = communicator.DefaultLocator!.Clone(ITestLocatorPrx.Factory);
+            var locator =
+                ILocatorPrx.Parse(helper.GetTestProxy("locator", 0), communicator).Clone(ITestLocatorPrx.Factory);
+
+            ILocationService locationService = new LocationService(locator);
+            communicator.DefaultLocationService = locationService;
 
             var registry = locator.GetRegistry()!.Clone(ITestLocatorRegistryPrx.Factory);
             TestHelper.Assert(registry != null);
@@ -49,20 +53,20 @@ namespace ZeroC.Ice.Test.Location
             }
             output.WriteLine("ok");
 
-            output.Write("testing ice_locator and ice_getLocator... ");
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, communicator.DefaultLocator!));
-            var anotherLocator =
-                ILocatorPrx.Parse(ice1 ? "anotherLocator" : "ice:anotherLocator", communicator);
-            base1 = base1.Clone(locator: anotherLocator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, anotherLocator));
-            communicator.DefaultLocator = null;
+            output.Write("testing LocationService... ");
+            TestHelper.Assert(base1.LocationService == communicator.DefaultLocationService);
+            var anotherLocationService =
+                new LocationService(ILocatorPrx.Parse(ice1 ? "anotherLocator" : "ice:anotherLocator", communicator));
+            base1 = base1.Clone(locationService: anotherLocationService);
+            TestHelper.Assert(base1.LocationService == anotherLocationService);
+            communicator.DefaultLocationService = null;
             base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
-            TestHelper.Assert(base1.Locator == null);
-            base1 = base1.Clone(locator: anotherLocator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, anotherLocator));
-            communicator.DefaultLocator = locator;
+            TestHelper.Assert(base1.LocationService == null);
+            base1 = base1.Clone(locationService: anotherLocationService);
+            TestHelper.Assert(base1.LocationService == anotherLocationService);
+            communicator.DefaultLocationService = locationService;
             base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
-            TestHelper.Assert(ProxyComparer.Identity.Equals(base1.Locator!, communicator.DefaultLocator!));
+            TestHelper.Assert(base1.LocationService == communicator.DefaultLocationService);
             output.WriteLine("ok");
 
             output.Write("starting server... ");
@@ -213,47 +217,41 @@ namespace ZeroC.Ice.Test.Location
             }
             output.WriteLine("ok");
 
-            output.Write("testing locator cache timeout... ");
+            output.Write("testing location service TTL... ");
             output.Flush();
 
+            var zeroLocationService = new LocationService(locator, new() { Ttl = TimeSpan.Zero });
+
             IObjectPrx basencc = IObjectPrx.Parse(
-                ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator).Clone(cacheConnection: false);
+                ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator).Clone(
+                    cacheConnection: false,
+                    locationService: zeroLocationService);
             int count = locator.GetRequestCount();
-            await basencc.Clone(locatorCacheTimeout: TimeSpan.Zero).IcePingAsync(); // No locator cache.
+            await basencc.IcePingAsync(); // No locator cache.
             TestHelper.Assert(++count == locator.GetRequestCount());
-            await basencc.Clone(locatorCacheTimeout: TimeSpan.Zero).IcePingAsync(); // No locator cache.
-            TestHelper.Assert(++count == locator.GetRequestCount());
-            await basencc.Clone(locatorCacheTimeout: TimeSpan.FromSeconds(2)).IcePingAsync(); // 2s timeout.
-            TestHelper.Assert(count == locator.GetRequestCount());
-            Thread.Sleep(1300); // 1300ms
-            await basencc.Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout.
+            await basencc.IcePingAsync(); // No locator cache.
             TestHelper.Assert(++count == locator.GetRequestCount());
 
-            await IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator)
-                .Clone(locatorCacheTimeout: TimeSpan.Zero).IcePingAsync(); // No locator cache.
-            count += 2;
-            TestHelper.Assert(count == locator.GetRequestCount());
-            await IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator)
-                .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(2)).IcePingAsync(); // 2s timeout
-            TestHelper.Assert(count == locator.GetRequestCount());
-            Thread.Sleep(1300); // 1300ms
-            await IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator)
-                .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout
-            count += 2;
+            var twoLocationService = new LocationService(locator, new() { Ttl = TimeSpan.FromSeconds(2) });
+            basencc = basencc.Clone(locationService: twoLocationService);
+            await basencc.IcePingAsync();
+            TestHelper.Assert(++count == locator.GetRequestCount());
+            await basencc.IcePingAsync();
             TestHelper.Assert(count == locator.GetRequestCount());
 
-            await IObjectPrx.Parse(ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator)
-                .Clone(locatorCacheTimeout: Timeout.InfiniteTimeSpan).IcePingAsync();
-            TestHelper.Assert(count == locator.GetRequestCount());
-            await IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator).Clone(locatorCacheTimeout: Timeout.InfiniteTimeSpan).IcePingAsync();
-            TestHelper.Assert(count == locator.GetRequestCount());
-            await IObjectPrx.Parse(ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator).IcePingAsync();
-            TestHelper.Assert(count == locator.GetRequestCount());
-            await IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator).IcePingAsync();
-            TestHelper.Assert(count == locator.GetRequestCount());
+            var oneLocationService = new LocationService(locator, new() { Ttl = TimeSpan.FromSeconds(1) });
+            basencc = basencc.Clone(locationService: oneLocationService);
+            await basencc.IcePingAsync();
+            TestHelper.Assert(++count == locator.GetRequestCount());
+            Thread.Sleep(1300); // 1300ms > 1s
+            await basencc.IcePingAsync();
+            TestHelper.Assert(++count == locator.GetRequestCount());
 
-            TestHelper.Assert(IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator)
-                .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(99)).LocatorCacheTimeout == TimeSpan.FromSeconds(99));
+            basencc = basencc.Clone(locationService: communicator.DefaultLocationService); // infinite timeout
+            await basencc.IcePingAsync();
+            TestHelper.Assert(++count == locator.GetRequestCount());
+            await basencc.IcePingAsync();
+            TestHelper.Assert(count == locator.GetRequestCount());
 
             output.WriteLine("ok");
 
@@ -287,8 +285,8 @@ namespace ZeroC.Ice.Test.Location
 
             output.Write("testing locator request queuing... ");
             output.Flush();
-            hello = obj1.GetReplicatedHello()!.Clone(locatorCacheTimeout: TimeSpan.Zero, cacheConnection: false);
-            TestHelper.Assert(hello != null);
+            hello = obj1.GetReplicatedHello()!.Clone(locationService: zeroLocationService, cacheConnection: false);
+
             count = locator.GetRequestCount();
             await hello.IcePingAsync();
             TestHelper.Assert(++count == locator.GetRequestCount());
@@ -369,7 +367,7 @@ namespace ZeroC.Ice.Test.Location
             try
             {
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).Clone(
-                        locatorCacheTimeout: TimeSpan.Zero).IcePingAsync();
+                    locationService: zeroLocationService).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ConnectionRefusedException)
@@ -457,7 +455,7 @@ namespace ZeroC.Ice.Test.Location
             try
             {
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator).Clone(
-                    locatorCacheTimeout: TimeSpan.Zero).IcePingAsync();
+                    locationService: zeroLocationService).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ConnectionRefusedException)
@@ -465,7 +463,9 @@ namespace ZeroC.Ice.Test.Location
             }
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator).IcePingAsync();
+                var prx = IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator);
+                communicator.DefaultLocationService.ClearCache(prx.Location, prx.Protocol);
+                await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ConnectionRefusedException)
@@ -473,7 +473,9 @@ namespace ZeroC.Ice.Test.Location
             }
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                var prx = IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator);
+                communicator.DefaultLocationService.ClearCache(prx.Identity, prx.Facet, prx.Protocol);
+                await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ConnectionRefusedException)
@@ -504,9 +506,13 @@ namespace ZeroC.Ice.Test.Location
             output.Write("testing locator cache background updates... ");
             output.Flush();
             {
-                Dictionary<string, string> properties = communicator.GetProperties();
-                properties["Ice.BackgroundLocatorCacheUpdates"] = "1";
-                await using Communicator ic = TestHelper.CreateCommunicator(properties);
+                await using Communicator ic = TestHelper.CreateCommunicator(communicator.GetProperties());
+                ic.DefaultLocationService = new LocationService(locator, new() { Background = true });
+
+                var zeroBLocationService = new LocationService(locator,
+                                                         new() { Background = true, Ttl = TimeSpan.Zero });
+                var oneBLocationService = new LocationService(locator,
+                                                        new() { Background = true, Ttl = TimeSpan.FromSeconds(1) });
 
                 RegisterAdapterEndpoints(
                     registry,
@@ -518,33 +524,40 @@ namespace ZeroC.Ice.Test.Location
 
                 count = locator.GetRequestCount();
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
-                    .Clone(locatorCacheTimeout: TimeSpan.Zero).IcePingAsync(); // No locator cache.
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic).Clone(locatorCacheTimeout: TimeSpan.Zero).IcePingAsync(); // No locator cache.
+                    .Clone(locationService: zeroBLocationService).IcePingAsync(); // No locator cache.
+                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic).Clone(locationService: zeroBLocationService).IcePingAsync(); // No locator cache.
                 count += 3;
                 TestHelper.Assert(count == locator.GetRequestCount());
-                UnregisterAdapterEndpoints(registry, "TestAdapter5", "");
-                registry.AddObject(IObjectPrx.Parse(helper.GetTestProxy("test3", 99), communicator));
+
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
-                    .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(10)).IcePingAsync(); // 10s timeout.
+                    .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
                 await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
-                    .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(10)).IcePingAsync(); // 10s timeout.
+                    .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
+
+                registry.AddObject(IObjectPrx.Parse(helper.GetTestProxy("test3", 99), communicator));
+                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                    .Clone(locationService: oneBLocationService).IcePingAsync();
+
+                count += 3;
                 TestHelper.Assert(count == locator.GetRequestCount());
-                Thread.Sleep(1200);
+
+                UnregisterAdapterEndpoints(registry, "TestAdapter5", "");
+                Thread.Sleep(1000);
 
                 // The following request should trigger the background
                 // updates but still use the cached endpoints and
                 // therefore succeed.
                 await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
-                    .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout.
+                    .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
                 await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
-                    .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout.
+                    .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
 
                 try
                 {
                     while (true)
                     {
                         await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
-                            .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout.
+                            .Clone(locationService: oneLocationService).IcePingAsync(); // 1s timeout.
                         Thread.Sleep(10);
                     }
                 }
@@ -557,7 +570,7 @@ namespace ZeroC.Ice.Test.Location
                     while (true)
                     {
                         await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
-                            .Clone(locatorCacheTimeout: TimeSpan.FromSeconds(1)).IcePingAsync(); // 1s timeout.
+                            .Clone(locationService: oneLocationService).IcePingAsync(); // 1s timeout.
                         Thread.Sleep(10);
                     }
                 }

@@ -176,12 +176,8 @@ namespace ZeroC.Ice
         /// <summary>Gets the location of this proxy. Ice uses this location to find the target object.</summary>
         public IReadOnlyList<string> Location { get; }
 
-        /// <summary>The locator associated with this proxy. This property is null when no locator is associated with
-        /// this proxy.</summary>
-        public ILocatorPrx? Locator { get; }
-
-        /// <summary>The locator cache timeout of this proxy.</summary>
-        public TimeSpan LocatorCacheTimeout { get; }
+        /// <summary>The location service associated with this proxy.</summary>
+        public ILocationService? LocationService { get; }
 
         /// <summary>Indicates whether or not this proxy prefers using an existing connection over creating a new one.
         /// When <c>true</c> the proxy will prefer reusing an active connection to any of its endpoints, otherwise

@@ -94,13 +94,11 @@ namespace ZeroC.Ice
             set => _defaultInvocationInterceptors = value;
         }
 
-        /// <summary>The default locator for this communicator. To disable the default locator, null can be used.
-        /// All newly created proxies and object adapters will use this default locator. Note that setting this property
-        /// has no effect on existing proxies or object adapters.</summary>
-        public ILocatorPrx? DefaultLocator
+        /// <summary>The default location service for this communicator.</summary>
+        public ILocationService? DefaultLocationService
         {
-            get => _defaultLocator;
-            set => _defaultLocator = value;
+            get => _defaultLocationService;
+            set => _defaultLocationService = value;
         }
 
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
@@ -115,10 +113,6 @@ namespace ZeroC.Ice
         /// <summary>Gets the default invocation timeout value used by proxies created with this communicator.
         /// </summary>
         public TimeSpan DefaultInvocationTimeout { get; }
-
-        /// <summary>Gets the default value for the locator cache timeout used by proxies created with this
-        /// communicator.</summary>
-        public TimeSpan DefaultLocatorCacheTimeout { get; }
 
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
@@ -152,6 +146,7 @@ namespace ZeroC.Ice
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
         internal bool KeepAlive { get; }
+
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }
         internal ILogger LocationLogger { get; }
@@ -192,7 +187,7 @@ namespace ZeroC.Ice
             ImmutableSortedDictionary<string, string>.Empty;
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
-        private volatile ILocatorPrx? _defaultLocator;
+        private volatile ILocationService? _defaultLocationService;
         private Task? _shutdownTask;
 
         private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =
@@ -206,8 +201,6 @@ namespace ZeroC.Ice
 
         private readonly IDictionary<string, (Ice2EndpointParser, Transport)> _ice2TransportNameRegistry =
             new ConcurrentDictionary<string, (Ice2EndpointParser, Transport)>();
-
-        private readonly ConcurrentDictionary<ILocatorPrx, LocatorInfo> _locatorInfoMap = new();
 
         private readonly object _mutex = new object();
 
@@ -385,10 +378,6 @@ namespace ZeroC.Ice
                 }
             }
 
-            // For locator cache timeout, 0 means disable locator cache.
-            DefaultLocatorCacheTimeout =
-                this.GetPropertyAsTimeSpan("Ice.Default.LocatorCacheTimeout") ?? Timeout.InfiniteTimeSpan;
-
             CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
             if (CloseTimeout == TimeSpan.Zero)
             {
@@ -507,15 +496,6 @@ namespace ZeroC.Ice
             if (this.GetPropertyAsBool("Ice.PreloadAssemblies") ?? false)
             {
                 LoadAssemblies();
-            }
-
-            try
-            {
-                _defaultLocator = this.GetPropertyAsProxy("Ice.Default.Locator", ILocatorPrx.Factory);
-            }
-            catch (FormatException ex)
-            {
-                throw new InvalidConfigurationException("invalid value for Ice.Default.Locator", ex);
             }
 
             // Show process id if requested (but only once).
@@ -734,25 +714,6 @@ namespace ZeroC.Ice
                 }
                 return null;
             });
-
-        internal LocatorInfo? GetLocatorInfo(ILocatorPrx? locator)
-        {
-            // Returns locator info for a given locator. Automatically creates the locator info if it doesn't exist
-            // yet.
-            if (locator == null)
-            {
-                return null;
-            }
-
-            if (locator.Locator != null)
-            {
-                // The locator can't be located.
-                locator = locator.Clone(clearLocator: true);
-            }
-
-            return _locatorInfoMap.GetOrAdd(locator,
-                                            locator => new LocatorInfo(locator, _backgroundLocatorCacheUpdates));
-        }
 
         internal bool IncRetryBufferSize(int size)
         {

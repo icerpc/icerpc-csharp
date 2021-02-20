@@ -14,6 +14,8 @@ namespace ZeroC.Ice.Discovery
     /// <summary>Servant class that implements the Slice interface Ice::Locator.</summary>
     internal class Locator : IAsyncLocator
     {
+        internal ILocatorPrx Proxy { get; }
+
         private readonly string _domainId;
         private readonly int _latencyMultiplier;
 
@@ -139,22 +141,6 @@ namespace ZeroC.Ice.Discovery
         internal Locator(Communicator communicator, DiscoveryServerOptions options)
         {
             _logger = communicator.Logger;
-            Identity locatorIdentity;
-
-            if (communicator.DefaultLocator is ILocatorPrx defaultLocator)
-            {
-                locatorIdentity =
-                    defaultLocator.Identity.Name.ToLowerInvariant() == "discovery" &&
-                    defaultLocator.Protocol == Protocol.Ice2 &&
-                    defaultLocator.Endpoints.Count == 0 &&
-                    defaultLocator.Location.Count == 0 ? defaultLocator.Identity :
-                    throw new InvalidOperationException(
-                        $"expected `ice:discovery' as default locator proxy, got `{defaultLocator}'");
-            }
-            else
-            {
-                throw new InvalidOperationException("communicator does not have a default locator");
-            }
 
             if (options.ColocationScope == ColocationScope.None)
             {
@@ -201,7 +187,7 @@ namespace ZeroC.Ice.Discovery
                 preferNonSecure: NonSecure.Always);
 
             _locatorAdapter = new(communicator, options: new() { ColocationScope = options.ColocationScope });
-            _locatorAdapter.Add(locatorIdentity, this);
+            Proxy = _locatorAdapter.Add(new Identity("discovery", _domainId), this, ILocatorPrx.Factory);
 
             // Setup locator registry.
             var registryServant = new LocatorRegistry(communicator);
