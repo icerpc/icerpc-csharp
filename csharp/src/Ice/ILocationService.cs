@@ -13,17 +13,6 @@ namespace ZeroC.Ice
     /// faster resolutions.</summary>
     public interface ILocationService
     {
-        /// <summary>Clears the cache entry (if any) for this location.</summary>
-        /// <param name="location">The location.</param>
-        /// <param name="protocol">The protocol.</param>
-        void ClearCache(Location location, Protocol protocol);
-
-        /// <summary>Clears the cache entry (if any) for this well-known proxy.</summary>
-        /// <param name="identity">The well-known proxy's identity.</param>
-        /// <param name="facet">The well-known proxy's facet.</param>
-        /// <param name="protocol">The protocol.</param>
-        void ClearCache(Identity identity, string facet, Protocol protocol);
-
         /// <summary>Retrieves the endpoint(s) for a location.</summary>
         /// <param name="location">The location.</param>
         /// <param name="protocol">The protocol.</param>

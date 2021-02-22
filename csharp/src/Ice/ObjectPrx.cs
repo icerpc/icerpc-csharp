@@ -1555,9 +1555,12 @@ namespace ZeroC.Ice
 
                     observer?.Retried();
 
-                    // If an indirect reference is using a endpoint from the cache, set endpointsMaxAge to force
-                    // a new locator lookup.
-                    if (IsIndirect && endpointsAge != TimeSpan.Zero)
+                    // If an indirect reference is using a endpoint from the cache, set endpointsMaxAge to force a new
+                    // locator lookup. With Ice1 protocol if using a well-known reference we aly set endpointsMaxAge
+                    // to force a new lookup this is compatible with previous behavior that triggers a clear cache under
+                    // these circustances.
+                    if ((IsIndirect && endpointsAge != TimeSpan.Zero) ||
+                        (IsWellKnown && Protocol == Protocol.Ice1 && retryPolicy == RetryPolicy.OtherReplica))
                     {
                         endpointsMaxAge = endpointsAge;
                         endpoints = null;
