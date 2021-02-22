@@ -73,54 +73,6 @@ namespace ZeroC.Ice
         {
         }
 
-        /// <inheritdoc/>
-        public void ClearCache(Location location, Protocol protocol)
-        {
-            if (_locationCache.TryRemove((location, protocol), out (TimeSpan _, EndpointList Endpoints) entry))
-            {
-                if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
-                {
-                    _locator.Communicator.LocationLogger.LogClearLocationEndpoints(location[0], protocol, entry.Endpoints);
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public void ClearCache(Identity identity, string facet, Protocol protocol)
-        {
-            if (_wellKnownProxyCache.TryRemove(
-                    (identity, facet, protocol),
-                    out (TimeSpan _, EndpointList Endpoints, Location Location) entry))
-            {
-                if (entry.Endpoints.Count > 0)
-                {
-                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
-                    {
-                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyEndpoints(
-                            identity,
-                            facet,
-                            protocol,
-                            entry.Endpoints);
-                    }
-                }
-                else
-                {
-                    Debug.Assert(entry.Location.Count > 0);
-
-                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
-                    {
-                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyWithoutEndpoints(
-                            identity,
-                            facet,
-                            protocol,
-                            entry.Location);
-                    }
-
-                    ClearCache(entry.Location, protocol);
-                }
-            }
-        }
-
         public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
             Location location,
             Protocol protocol,
@@ -266,6 +218,52 @@ namespace ZeroC.Ice
 
         private static bool CheckExpired(TimeSpan age, TimeSpan maxAge) =>
             maxAge != Timeout.InfiniteTimeSpan && age > maxAge;
+
+        private void ClearCache(Location location, Protocol protocol)
+        {
+            if (_locationCache.TryRemove((location, protocol), out (TimeSpan _, EndpointList Endpoints) entry))
+            {
+                if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
+                {
+                    _locator.Communicator.LocationLogger.LogClearLocationEndpoints(location[0], protocol, entry.Endpoints);
+                }
+            }
+        }
+
+        private void ClearCache(Identity identity, string facet, Protocol protocol)
+        {
+            if (_wellKnownProxyCache.TryRemove(
+                    (identity, facet, protocol),
+                    out (TimeSpan _, EndpointList Endpoints, Location Location) entry))
+            {
+                if (entry.Endpoints.Count > 0)
+                {
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
+                    {
+                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyEndpoints(
+                            identity,
+                            facet,
+                            protocol,
+                            entry.Endpoints);
+                    }
+                }
+                else
+                {
+                    Debug.Assert(entry.Location.Count > 0);
+
+                    if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
+                    {
+                        _locator.Communicator.LocationLogger.LogClearWellKnownProxyWithoutEndpoints(
+                            identity,
+                            facet,
+                            protocol,
+                            entry.Location);
+                    }
+
+                    ClearCache(entry.Location, protocol);
+                }
+            }
+        }
 
         private (EndpointList Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(
             Location location,

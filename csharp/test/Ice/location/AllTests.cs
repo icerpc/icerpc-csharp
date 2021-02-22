@@ -461,26 +461,7 @@ namespace ZeroC.Ice.Test.Location
             catch (ConnectionRefusedException)
             {
             }
-            try
-            {
-                var prx = IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator);
-                communicator.DefaultLocationService.ClearCache(prx.Location, prx.Protocol);
-                await prx.IcePingAsync();
-                TestHelper.Assert(false);
-            }
-            catch (ConnectionRefusedException)
-            {
-            }
-            try
-            {
-                var prx = IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator);
-                communicator.DefaultLocationService.ClearCache(prx.Identity, prx.Facet, prx.Protocol);
-                await prx.IcePingAsync();
-                TestHelper.Assert(false);
-            }
-            catch (ConnectionRefusedException)
-            {
-            }
+
             registry.AddObject(IObjectPrx.Parse(
                 ice1 ? "test3@TestAdapter" : "ice:TestAdapter//test3", communicator));
             try
