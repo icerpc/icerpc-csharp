@@ -52,7 +52,7 @@ namespace ZeroC.Ice
                 if (endpoint.IsAlwaysSecure || secure)
                 {
                     socket = new SslSocket(endpoint.Communicator, this);
-                    await socket.AcceptAsync(endpoint, cancel);
+                    await socket.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
                 }
 
                 if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
@@ -108,7 +108,7 @@ namespace ZeroC.Ice
                 if (endpoint.IsAlwaysSecure || secure)
                 {
                     socket = new SslSocket(endpoint.Communicator, this);
-                    await socket.ConnectAsync(endpoint, true, cancel);
+                    await socket.ConnectAsync(endpoint, true, cancel).ConfigureAwait(false);
                 }
 
                 if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))

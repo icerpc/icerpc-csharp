@@ -509,7 +509,6 @@ namespace ZeroC.Ice
             // Start a new accept stream task to accept another stream.
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
-            Debug.Assert(stream != null);
             try
             {
                 using var cancelSource = new CancellationTokenSource();
@@ -584,7 +583,7 @@ namespace ZeroC.Ice
             }
             finally
             {
-                stream?.Release();
+                stream.Release();
             }
 
             static async ValueTask<OutgoingResponseFrame> TaskRun(

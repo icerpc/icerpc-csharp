@@ -217,14 +217,6 @@ namespace ZeroC.Ice
                 new EventId(SendBufferSizeAdjusted, nameof(SendBufferSizeAdjusted)),
                 "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
-        private static readonly Func<ILogger, Transport, string, string, bool, IDisposable> _ipConnectionScope =
-            LoggerMessage.DefineScope<Transport, string, string, bool>(
-                "socket({Transport}, local = {LocalAddress}, peer = {PeerAddress}, incomig = {IsIncoming})");
-
-        private static readonly Func<ILogger, Transport, bool, IDisposable> _colocatedConnectionScope =
-            LoggerMessage.DefineScope<Transport, bool>(
-                "socket({Transport}, collocated), incomig = {IsIncoming})");
-
         private static readonly Action<ILogger, int, Exception> _receivedInitializeFrame = LoggerMessage.Define<int>(
             LogLevel.Debug,
             new EventId(ReceivedSlicInitializeFrame, nameof(ReceivedSlicInitializeFrame)),
