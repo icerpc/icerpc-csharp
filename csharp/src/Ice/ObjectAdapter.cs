@@ -825,7 +825,7 @@ namespace ZeroC.Ice
 
             bool isLocal = false;
 
-            if (proxy.IsWellKnown)
+            if (proxy.IsWellKnown || proxy.IsRelative)
             {
                 isLocal = Find(proxy.Identity, proxy.Facet) != null;
             }

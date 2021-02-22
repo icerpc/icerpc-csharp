@@ -31,8 +31,6 @@ namespace ZeroC.Ice
 
         internal readonly bool IsOneway;
 
-        internal readonly bool IsRelative;
-
         internal readonly object? Label;
 
         internal readonly IReadOnlyList<string> Location;
@@ -60,8 +58,7 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool oneway = false,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null,
-            bool relative = false)
+            NonSecure? preferNonSecure = null)
         {
             CacheConnection = cacheConnection;
             Communicator = communicator;
@@ -74,7 +71,6 @@ namespace ZeroC.Ice
             InvocationInterceptors = invocationInterceptors ?? communicator.DefaultInvocationInterceptors;
             InvocationTimeoutOverride = invocationTimeout;
             IsOneway = oneway;
-            IsRelative = relative;
             Label = label;
             Location = location ?? ImmutableList<string>.Empty;
             LocationService = locationService;

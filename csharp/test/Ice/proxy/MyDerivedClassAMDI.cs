@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,8 +43,8 @@ namespace ZeroC.Ice.Test.Proxy
         {
             TestHelper.Assert(callback.IsFixed);
             IRelativeTestPrx relativeTest =
-                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(relative: true);
-
+                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
+                    endpoints: ImmutableList<Endpoint>.Empty);
             TestHelper.Assert(await callback.OpAsync(relativeTest, cancel: cancel) == 1);
             return relativeTest;
         }
