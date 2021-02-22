@@ -137,10 +137,6 @@ namespace ZeroC.Ice
                     // 1.1 System exceptions
                     if (proxy.IsIndirect)
                     {
-                        if (proxy.IsWellKnown)
-                        {
-                            proxy.LocationService?.ClearCache(proxy.Identity, proxy.Facet, proxy.Protocol);
-                        }
                         return RetryPolicy.OtherReplica;
                     }
                 }

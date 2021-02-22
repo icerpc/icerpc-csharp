@@ -1497,8 +1497,8 @@ namespace ZeroC.Ice
 
                     observer?.Retried();
 
-                    // If an indirect reference is using a endpoint from the cache, set endpointsMaxAge to force
-                    // a new locator lookup.
+                    // If an indirect proxy is using an endpoint from the cache, set endpointsMaxAge to force a new
+                    // locator lookup.
                     if (IsIndirect && endpointsAge != TimeSpan.Zero)
                     {
                         endpointsMaxAge = endpointsAge;
