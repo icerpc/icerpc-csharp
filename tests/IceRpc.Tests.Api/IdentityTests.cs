@@ -16,7 +16,16 @@ namespace IceRpc.Tests.Api
         public void Identity_ToString(Identity id, string expected)
         {
             Assert.AreEqual(expected, id.ToString());
-            Assert.AreEqual(id, Identity.Parse(expected, uriFormat: true));
+            if (expected == "")
+            {
+                Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: true));
+            }
+            else
+            {
+                Identity result;
+                Assert.IsTrue(Identity.TryParse(expected, uriFormat: true, out result));
+                Assert.IsTrue(id == result);
+            }
         }
 
         /// <summary>Test data for <see cref="Identity_ToString"/>.</summary>
@@ -24,6 +33,8 @@ namespace IceRpc.Tests.Api
         {
             public Identity_ToString_TestCases()
             {
+                Add(new Identity(), "");
+                Add(Identity.Empty, "");
                 Add(new Identity("foo", ""), "foo");
                 Add(new Identity("foo", "bar"), "bar/foo");
                 Add(new Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
@@ -40,7 +51,16 @@ namespace IceRpc.Tests.Api
         public void Identity_ToStringMode(Identity id, ToStringMode mode, string expected)
         {
             Assert.AreEqual(expected, id.ToString(mode));
-            Assert.AreEqual(id, Identity.Parse(expected, uriFormat: false));
+            if (expected == "")
+            {
+                Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: false));
+            }
+            else
+            {
+                Identity result;
+                Assert.IsTrue(Identity.TryParse(expected, uriFormat: false, out result));
+                Assert.IsTrue(id == result);
+            }
         }
 
         /// <summary>Test data for <see cref="Identity_ToStringMode"/>.</summary>
@@ -69,6 +89,9 @@ namespace IceRpc.Tests.Api
 
                 id = new Identity("/test", "cat/");
                 Add(id, ToStringMode.Unicode, "cat\\//\\/test");
+
+                Add(new Identity(), ToStringMode.Unicode, "");
+                Add(Identity.Empty, ToStringMode.Unicode, "");
             }
         }
 

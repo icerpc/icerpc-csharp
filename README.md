@@ -27,7 +27,7 @@ dotnet tool install -g dotnet-reportgenerator-globaltool
 Run the tests with code coverage
 
 ```
-dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
 Generate the test report

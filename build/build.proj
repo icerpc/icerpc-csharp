@@ -38,7 +38,7 @@
 
     <Target Name="CodeCoverageReport">
         <PropertyGroup>
-            <TestCommand>dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"</TestCommand>
+            <TestCommand>dotnet test --collect:"XPlat Code Coverage"</TestCommand>
             <CoverageReportCommand>reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport"</CoverageReportCommand>
         </PropertyGroup>
         <Exec Command="$(TestCommand)" WorkingDirectory="$(MSBuildThisFileDirectory).." />

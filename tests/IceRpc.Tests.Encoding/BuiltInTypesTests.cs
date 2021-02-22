@@ -59,12 +59,25 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Short(short p1)
         {
             _ostr.WriteShort(p1);
-            int r1 = _istr.ReadShort();
+            short r1 = _istr.ReadShort();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _ostr.Tail.Segment);
             Assert.AreEqual(sizeof(short), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(short), _istr.Pos);
+        }
+
+        [TestCase(ushort.MinValue)]
+        [TestCase(ushort.MaxValue)]
+        public void Encoding_UShort(ushort p1)
+        {
+            _ostr.WriteUShort(p1);
+            ushort r1 = _istr.ReadUShort();
+
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(sizeof(ushort), _ostr.Tail.Offset);
+            Assert.AreEqual(sizeof(ushort), _istr.Pos);
         }
 
         [TestCase(int.MinValue)]
