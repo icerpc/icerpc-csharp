@@ -398,11 +398,6 @@ namespace ZeroC.Ice
 
             if (ostr.Encoding == Encoding.V11)
             {
-                if (IsRelative)
-                {
-                    throw new NotSupportedException("cannot marshal a relative proxy with the 1.1 encoding");
-                }
-
                 Identity.IceWrite(ostr);
                 ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
                 ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
@@ -417,9 +412,8 @@ namespace ZeroC.Ice
             {
                 Debug.Assert(ostr.Encoding == Encoding.V20);
 
-                // For ice1 proxies, ProxyKind20.Relative corresponds to Indirect.
+                // For ice1 proxies, ProxyKind20.Relative corresponds to an indirect proxy.
                 ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct : ProxyKind20.Relative);
-
                 ostr.WriteProxyData20(Identity, Protocol, Encoding, Location, invocationMode, Facet);
 
                 if (Endpoints.Count > 0)
@@ -824,6 +818,8 @@ namespace ZeroC.Ice
 
                 Communicator communicator = istr.Communicator!;
 
+                // TODO: correct unmarshaling of ice2 relative proxies (see below)
+
                 var options = new ObjectPrxOptions(
                     communicator,
                     identity,
@@ -832,7 +828,7 @@ namespace ZeroC.Ice
                     endpoints: endpoints,
                     facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                     location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
-                    locationService: communicator.DefaultLocationService,
+                    locationService: proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
                 return factory(options);
