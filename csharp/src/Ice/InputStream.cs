@@ -121,7 +121,7 @@ namespace ZeroC.Ice
         /// <summary>The proxy used to read relative proxies. When not null, a relative proxy is unmarshaled into a
         /// clone of this proxy (with various updates). SourceProxy and Connection are mutually exclusive: only one of
         /// them can be non-null.</summary>
-        internal ObjectPrx? SourceProxy { get; }
+        internal ServicePrx? SourceProxy { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -449,20 +449,20 @@ namespace ZeroC.Ice
         /// <summary>Reads a nullable proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadNullableProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx
+        public T? ReadNullableProxy<T>(ProxyFactory<T> factory) where T : class, IServicePrx
         {
             if (Communicator == null)
             {
                 throw new InvalidOperationException(
                     "cannot read a proxy from an InputStream with a null communicator");
             }
-            return ObjectPrx.Read(this, factory);
+            return ServicePrx.Read(this, factory);
         }
 
         /// <summary>Reads a proxy from the stream.</summary>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream; this proxy cannot be null.</returns>
-        public T ReadProxy<T>(ProxyFactory<T> factory) where T : class, IObjectPrx =>
+        public T ReadProxy<T>(ProxyFactory<T> factory) where T : class, IServicePrx =>
             ReadNullableProxy<T>(factory) ?? throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a sequence from the stream.</summary>
@@ -811,7 +811,7 @@ namespace ZeroC.Ice
         /// <param name="tag">The tag.</param>
         /// <param name="factory">The proxy factory used to create the typed proxy.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadTaggedProxy<T>(int tag, ProxyFactory<T> factory) where T : class, IObjectPrx
+        public T? ReadTaggedProxy<T>(int tag, ProxyFactory<T> factory) where T : class, IServicePrx
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
@@ -1003,7 +1003,7 @@ namespace ZeroC.Ice
             Encoding encoding,
             Communicator? communicator = null,
             Connection? connection = null,
-            ObjectPrx? sourceProxy = null,
+            ServicePrx? sourceProxy = null,
             bool startEncapsulation = false)
         {
             // Connection and sourceProxy are mutually exclusive - it's either one or the other.

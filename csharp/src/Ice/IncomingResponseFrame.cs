@@ -48,7 +48,7 @@ namespace ZeroC.Ice
         /// <param name="reader">An input stream reader used to read the frame return value, when the frame
         /// return value contain multiple values the reader must use a tuple to return the values.</param>
         /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IObjectPrx proxy, InputStreamReader<T> reader)
+        public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReader<T> reader)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -78,7 +78,7 @@ namespace ZeroC.Ice
         /// <param name="reader">A reader used to read the frame return value, when the frame return value contain
         /// multiple values the reader must use a tuple to return the values.</param>
         /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IObjectPrx proxy, InputStreamReaderWithStreamable<T> reader)
+        public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReaderWithStreamable<T> reader)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -120,7 +120,7 @@ namespace ZeroC.Ice
         /// </param>
         /// <param name="reader">A reader used to read the frame return value.</param>
         /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IObjectPrx proxy, Func<SocketStream, T> reader)
+        public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -154,7 +154,7 @@ namespace ZeroC.Ice
         /// members. If this response frame carries a failure, reads and throws this exception.</summary>
         /// <param name="proxy">The proxy used to send the request. <c>proxy</c> is used to read relative proxies.
         /// </param>
-        public void ReadVoidReturnValue(IObjectPrx proxy)
+        public void ReadVoidReturnValue(IServicePrx proxy)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -260,7 +260,7 @@ namespace ZeroC.Ice
             Payload = response.Payload.AsArraySegment();
         }
 
-        internal RetryPolicy GetRetryPolicy(ObjectPrx proxy)
+        internal RetryPolicy GetRetryPolicy(ServicePrx proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
             if (PayloadEncoding == Encoding.V11)
@@ -282,7 +282,7 @@ namespace ZeroC.Ice
             Payload = protocol.GetVoidReturnPayload(encoding);
         }
 
-        private Exception ReadException(IObjectPrx proxy)
+        private Exception ReadException(IServicePrx proxy)
         {
             Debug.Assert(ResultType != ResultType.Success);
 

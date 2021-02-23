@@ -103,7 +103,7 @@ namespace ZeroC.Ice
             return facetPath.Length == 1 ? facetPath[0] : "";
         }
 
-        internal static RetryPolicy GetRetryPolicy(IncomingResponseFrame response, ObjectPrx proxy)
+        internal static RetryPolicy GetRetryPolicy(IncomingResponseFrame response, ServicePrx proxy)
         {
             Debug.Assert(response.PayloadEncoding == Encoding.V11);
             if (response.ResultType == ResultType.Failure)

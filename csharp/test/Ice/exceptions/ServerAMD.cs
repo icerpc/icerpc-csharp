@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new AsyncThrower();
-            ZeroC.Ice.IObjectPrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IObjectPrx.Factory);
+            ZeroC.Ice.IServicePrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
             adapter2.Add("thrower", obj);
             adapter3.Add("thrower", obj);
             await adapter.ActivateAsync();
@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 communicator2,
                 new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
 
-            forwarderAdapter.Add("forwarder", new Forwarder(IObjectPrx.Parse(GetTestProxy("thrower"), communicator2)));
+            forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
             await forwarderAdapter.ActivateAsync();
 
             ServerReady();

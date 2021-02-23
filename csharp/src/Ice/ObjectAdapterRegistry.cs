@@ -13,7 +13,7 @@ namespace ZeroC.Ice
         private static volatile ImmutableList<ObjectAdapter> _objectAdapterList = ImmutableList<ObjectAdapter>.Empty;
         private static readonly object _mutex = new();
 
-        internal static Endpoint? GetColocatedEndpoint(ObjectPrx proxy) =>
+        internal static Endpoint? GetColocatedEndpoint(ServicePrx proxy) =>
             _objectAdapterList.Select(adapter => adapter.GetColocatedEndpoint(proxy)).
                 FirstOrDefault(endpoint => endpoint != null);
 

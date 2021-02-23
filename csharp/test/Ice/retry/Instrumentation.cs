@@ -52,7 +52,7 @@ namespace ZeroC.Ice.Test.Retry
 
         private class CommunicatorObserverI : ICommunicatorObserver
         {
-            public IInvocationObserver? GetInvocationObserver(IObjectPrx? p, string o,
+            public IInvocationObserver? GetInvocationObserver(IServicePrx? p, string o,
                 IReadOnlyDictionary<string, string> c) => _invocationObserver;
         }
 

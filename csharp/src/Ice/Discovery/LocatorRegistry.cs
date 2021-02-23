@@ -12,10 +12,10 @@ namespace ZeroC.Ice.Discovery
     /// <summary>Servant class that implements the Slice interface Ice::LocatorRegistry.</summary>
     internal class LocatorRegistry : IAsyncLocatorRegistry
     {
-        private readonly IObjectPrx _dummyIce1Proxy;
-        private readonly IObjectPrx _dummyIce2Proxy;
+        private readonly IServicePrx _dummyIce1Proxy;
+        private readonly IServicePrx _dummyIce2Proxy;
 
-        private readonly Dictionary<string, IObjectPrx> _ice1Adapters = new();
+        private readonly Dictionary<string, IServicePrx> _ice1Adapters = new();
         private readonly Dictionary<string, IReadOnlyList<EndpointData>> _ice2Adapters = new();
 
         private readonly object _mutex = new();
@@ -40,7 +40,7 @@ namespace ZeroC.Ice.Discovery
 
         public ValueTask SetAdapterDirectProxyAsync(
             string adapterId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel) =>
             SetReplicatedAdapterDirectProxyAsync(adapterId, "", proxy, current, cancel);
@@ -48,7 +48,7 @@ namespace ZeroC.Ice.Discovery
         public ValueTask SetReplicatedAdapterDirectProxyAsync(
            string adapterId,
            string replicaGroupId,
-           IObjectPrx? proxy,
+           IServicePrx? proxy,
            Current current,
            CancellationToken cancel)
         {
@@ -81,15 +81,15 @@ namespace ZeroC.Ice.Discovery
 
         internal LocatorRegistry(Communicator communicator)
         {
-            _dummyIce1Proxy = IObjectPrx.Parse("dummy", communicator);
-            _dummyIce2Proxy = IObjectPrx.Parse("ice:dummy", communicator);
+            _dummyIce1Proxy = IServicePrx.Parse("dummy", communicator);
+            _dummyIce2Proxy = IServicePrx.Parse("ice:dummy", communicator);
         }
 
-        internal (IObjectPrx? Proxy, bool IsReplicaGroup) FindAdapter(string adapterId)
+        internal (IServicePrx? Proxy, bool IsReplicaGroup) FindAdapter(string adapterId)
         {
             lock (_mutex)
             {
-                if (_ice1Adapters.TryGetValue(adapterId, out IObjectPrx? proxy))
+                if (_ice1Adapters.TryGetValue(adapterId, out IServicePrx? proxy))
                 {
                     return (proxy, false);
                 }
@@ -105,7 +105,7 @@ namespace ZeroC.Ice.Discovery
             }
         }
 
-        internal async ValueTask<IObjectPrx?> FindObjectAsync(
+        internal async ValueTask<IServicePrx?> FindObjectAsync(
             Identity identity,
             string? facet,
             CancellationToken cancel)
@@ -132,8 +132,8 @@ namespace ZeroC.Ice.Discovery
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IObjectPrx proxy = _dummyIce1Proxy.Clone(
-                        IObjectPrx.Factory,
+                    IServicePrx proxy = _dummyIce1Proxy.Clone(
+                        IServicePrx.Factory,
                         identity: identity,
                         facet: facet,
                         location: ImmutableArray.Create(id));
@@ -195,8 +195,8 @@ namespace ZeroC.Ice.Discovery
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IObjectPrx proxy = _dummyIce2Proxy.Clone(
-                        IObjectPrx.Factory,
+                    IServicePrx proxy = _dummyIce2Proxy.Clone(
+                        IServicePrx.Factory,
                         identity: identity,
                         facet: facet,
                         location: ImmutableArray.Create(id));

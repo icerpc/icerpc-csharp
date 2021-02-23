@@ -9,11 +9,11 @@ namespace ZeroC.Ice.Test.Location
 {
     public class ServerLocatorRegistry : ITestLocatorRegistry
     {
-        private readonly IDictionary<string, IObjectPrx> _ice1Adapters =
-            new ConcurrentDictionary<string, IObjectPrx>();
+        private readonly IDictionary<string, IServicePrx> _ice1Adapters =
+            new ConcurrentDictionary<string, IServicePrx>();
 
-        private readonly IDictionary<(Identity, string), IObjectPrx> _ice1Objects =
-            new ConcurrentDictionary<(Identity, string), IObjectPrx>();
+        private readonly IDictionary<(Identity, string), IServicePrx> _ice1Objects =
+            new ConcurrentDictionary<(Identity, string), IServicePrx>();
 
         private readonly IDictionary<string, IReadOnlyList<EndpointData>> _ice2Adapters =
             new ConcurrentDictionary<string, IReadOnlyList<EndpointData>>();
@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Location
         private readonly IDictionary<(Identity, string), (IReadOnlyList<EndpointData>, IReadOnlyList<string>)> _ice2Objects =
             new ConcurrentDictionary<(Identity, string), (IReadOnlyList<EndpointData>, IReadOnlyList<string>)>();
 
-        public void AddObject(IObjectPrx obj, Current current, CancellationToken cancel)
+        public void AddObject(IServicePrx obj, Current current, CancellationToken cancel)
         {
             AddObject(obj);
         }
@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Test.Location
 
         public void SetAdapterDirectProxy(
             string adapterId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel) =>
             SetReplicatedAdapterDirectProxy(adapterId, "", proxy, current, cancel);
@@ -50,7 +50,7 @@ namespace ZeroC.Ice.Test.Location
         public void SetReplicatedAdapterDirectProxy(
             string adapterId,
             string replicaGroupId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel)
         {
@@ -94,11 +94,11 @@ namespace ZeroC.Ice.Test.Location
             }
         }
 
-        internal IObjectPrx? GetIce1Adapter(string adapter) =>
-            _ice1Adapters.TryGetValue(adapter, out IObjectPrx? proxy) ? proxy : null;
+        internal IServicePrx? GetIce1Adapter(string adapter) =>
+            _ice1Adapters.TryGetValue(adapter, out IServicePrx? proxy) ? proxy : null;
 
-        internal IObjectPrx? GetIce1Object(Identity id, string facet) =>
-            _ice1Objects.TryGetValue((id, facet), out IObjectPrx? obj) ? obj : null;
+        internal IServicePrx? GetIce1Object(Identity id, string facet) =>
+            _ice1Objects.TryGetValue((id, facet), out IServicePrx? obj) ? obj : null;
 
         internal IReadOnlyList<EndpointData> GetIce2Adapter(string adapter) =>
             _ice2Adapters.TryGetValue(adapter, out IReadOnlyList<EndpointData>? endpoints) ? endpoints :
@@ -107,7 +107,7 @@ namespace ZeroC.Ice.Test.Location
             _ice2Objects.TryGetValue((id, facet), out var entry) ? entry :
                 (ImmutableArray<EndpointData>.Empty, ImmutableArray<string>.Empty);
 
-        internal void AddObject(IObjectPrx obj)
+        internal void AddObject(IServicePrx obj)
         {
             if (obj.Protocol == Protocol.Ice1)
             {

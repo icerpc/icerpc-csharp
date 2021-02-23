@@ -83,9 +83,9 @@ namespace IceRpc.Tests.Internal
                     // { "IceSSL.Trace.Security", "2" },
                 });
 
-            var proxy = _adapter.CreateProxy("dummy", IObjectPrx.Factory);
-            ClientEndpoint = IObjectPrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
-            ServerEndpoint = IObjectPrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
+            var proxy = _adapter.CreateProxy("dummy", IServicePrx.Factory);
+            ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
+            ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
         }
 
         [OneTimeTearDown]

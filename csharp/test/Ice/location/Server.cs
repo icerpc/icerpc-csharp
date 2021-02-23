@@ -19,7 +19,7 @@ namespace ZeroC.Ice.Test.Location
             var registry = new ServerLocatorRegistry();
             var obj = new ServerManager(registry, this);
             adapter.Add("ServerManager", obj);
-            registry.AddObject(adapter.CreateProxy("ServerManager", IObjectPrx.Factory));
+            registry.AddObject(adapter.CreateProxy("ServerManager", IServicePrx.Factory));
             ILocatorRegistryPrx registryPrx = adapter.Add("registry", registry, ILocatorRegistryPrx.Factory);
             adapter.Add("locator", new ServerLocator(registry, registryPrx));
             await adapter.ActivateAsync();

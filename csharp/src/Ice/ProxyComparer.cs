@@ -5,10 +5,10 @@ using System.Collections.Generic;
 
 namespace ZeroC.Ice
 {
-    /// <summary>Represents an <see cref="IObjectPrx">object proxy</see>comparison operation based on all or only some
+    /// <summary>Represents an <see cref="IServicePrx">object proxy</see>comparison operation based on all or only some
     /// of the proxy properties. The <see cref="EqualityComparer{T}.Default"/> property delegates to the implementation
     /// of <see cref="IEquatable{T}"/> provided by IObjectPrx.</summary>
-    public abstract class ProxyComparer : EqualityComparer<IObjectPrx>
+    public abstract class ProxyComparer : EqualityComparer<IServicePrx>
     {
         /// <summary>Gets a <see cref="ProxyComparer"/> that compares proxies based only on the proxies' object
         /// identity.</summary>
@@ -20,9 +20,9 @@ namespace ZeroC.Ice
 
         private class IdentityComparer : ProxyComparer
         {
-            public override int GetHashCode(IObjectPrx obj) => obj.Identity.GetHashCode();
+            public override int GetHashCode(IServicePrx obj) => obj.Identity.GetHashCode();
 
-            public override bool Equals(IObjectPrx? lhs, IObjectPrx? rhs)
+            public override bool Equals(IServicePrx? lhs, IServicePrx? rhs)
             {
                 if (ReferenceEquals(lhs, rhs))
                 {
@@ -40,9 +40,9 @@ namespace ZeroC.Ice
 
         private class IdentityAndFacetComparer : ProxyComparer
         {
-            public override int GetHashCode(IObjectPrx obj) => HashCode.Combine(obj.Identity, obj.Facet);
+            public override int GetHashCode(IServicePrx obj) => HashCode.Combine(obj.Identity, obj.Facet);
 
-            public override bool Equals(IObjectPrx? lhs, IObjectPrx? rhs)
+            public override bool Equals(IServicePrx? lhs, IServicePrx? rhs)
             {
                 if (ReferenceEquals(lhs, rhs))
                 {

@@ -31,7 +31,7 @@ namespace ZeroC.Ice
             InputStreamReader<T> reader,
             Communicator? communicator = null,
             Connection? connection = null,
-            IObjectPrx? proxy = null)
+            IServicePrx? proxy = null)
         {
             var istr = new InputStream(buffer, encoding, communicator, connection, proxy?.Impl);
             T result = reader(istr);
@@ -57,7 +57,7 @@ namespace ZeroC.Ice
             InputStreamReader<T> reader,
             Communicator? communicator = null,
             Connection? connection = null,
-            IObjectPrx? proxy = null) =>
+            IServicePrx? proxy = null) =>
             buffer.Read(Encoding.V20, reader, communicator, connection, proxy);
 
         /// <summary>Reads an empty encapsulation from the buffer.</summary>
@@ -98,7 +98,7 @@ namespace ZeroC.Ice
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
             Connection? connection = null,
-            IObjectPrx? proxy = null)
+            IServicePrx? proxy = null)
         {
             var istr = new InputStream(buffer,
                                        encoding,
@@ -130,7 +130,7 @@ namespace ZeroC.Ice
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
             Connection? connection = null,
-            IObjectPrx? proxy = null) =>
+            IServicePrx? proxy = null) =>
             buffer.ReadEncapsulation(Encoding.V20, payloadReader, communicator, connection, proxy);
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;

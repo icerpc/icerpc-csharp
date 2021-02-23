@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.Location
             _requestCount = 0;
         }
 
-        public IObjectPrx? FindAdapterById(string adapter, Current current, CancellationToken cancel)
+        public IServicePrx? FindAdapterById(string adapter, Current current, CancellationToken cancel)
         {
             ++_requestCount;
             // We add a small delay to make sure locator request queuing gets tested when
@@ -28,7 +28,7 @@ namespace ZeroC.Ice.Test.Location
             return _registry.GetIce1Adapter(adapter);
         }
 
-        public IObjectPrx? FindObjectById(Identity id, string? facet, Current current, CancellationToken cancel)
+        public IServicePrx? FindObjectById(Identity id, string? facet, Current current, CancellationToken cancel)
         {
             ++_requestCount;
             // We add a small delay to make sure locator request queuing gets tested when

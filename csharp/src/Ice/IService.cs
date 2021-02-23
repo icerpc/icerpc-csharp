@@ -15,8 +15,8 @@ namespace ZeroC.Ice
     /// <returns>The request parmeters.</returns>
     public delegate T RequestReader<T>(Connection connection, IncomingRequestFrame request);
 
-    /// <summary>The base interface for all servants.</summary>
-    public interface IObject
+    /// <summary>The base interface for all services.</summary>
+    public interface IService
     {
         /// <summary>Dispatches a request on this servant.</summary>
         /// <param name="request">The <see cref="IncomingRequestFrame"/> to dispatch.</param>

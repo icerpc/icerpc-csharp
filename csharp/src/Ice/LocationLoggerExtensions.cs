@@ -75,14 +75,14 @@ namespace ZeroC.Ice
                 "found entry for well-known proxy in locator cache well-known proxy = {Identity}, " +
                 "facet = {Facet}, protocol = {Protocol}, endpoints = {Endpoints}");
 
-        private static readonly Action<ILogger, string, ObjectPrx, Exception> _invalidProxyResolvingLocation =
-            LoggerMessage.Define<string, ObjectPrx>(
+        private static readonly Action<ILogger, string, ServicePrx, Exception> _invalidProxyResolvingLocation =
+            LoggerMessage.Define<string, ServicePrx>(
                 LogLevel.Debug,
                 new EventId(InvalidProxyResolvingLocation, nameof(InvalidProxyResolvingLocation)),
                 "locator returned an invalid proxy when resolving location = {Location}, received = {Proxy}");
 
-        private static readonly Action<ILogger, Identity, string, ObjectPrx, Exception> _invalidProxyResolvingProxy =
-            LoggerMessage.Define<Identity, string, ObjectPrx>(
+        private static readonly Action<ILogger, Identity, string, ServicePrx, Exception> _invalidProxyResolvingProxy =
+            LoggerMessage.Define<Identity, string, ServicePrx>(
                 LogLevel.Debug,
                 new EventId(InvalidProxyResolvingProxy, nameof(InvalidProxyResolvingProxy)),
                 "locator returned an invalid proxy when resolving proxy = {Identity}, facet = {Facet}, " +
@@ -197,10 +197,10 @@ namespace ZeroC.Ice
             IReadOnlyList<Endpoint> endpoints) =>
             _foundEntryForWellKnownProxyInLocatorCache(logger, identity, facet, protocol.GetName(), endpoints, null!);
 
-        internal static void LogInvalidProxyResolvingLocation(this ILogger logger, string location, ObjectPrx proxy) =>
+        internal static void LogInvalidProxyResolvingLocation(this ILogger logger, string location, ServicePrx proxy) =>
             _invalidProxyResolvingLocation(logger, location, proxy, null!);
 
-        internal static void LogInvalidProxyResolvingProxy(this ILogger logger, Identity identity, string facet, ObjectPrx received) =>
+        internal static void LogInvalidProxyResolvingProxy(this ILogger logger, Identity identity, string facet, ServicePrx received) =>
             _invalidProxyResolvingProxy(logger, identity, facet, received, null!);
 
         internal static void LogRegisterObjectAdapterEndpointsFailure(

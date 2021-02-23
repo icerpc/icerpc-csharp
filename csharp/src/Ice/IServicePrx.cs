@@ -13,10 +13,10 @@ namespace ZeroC.Ice
     /// <param name="proxy">The proxy used to send the request.</param>
     /// <param name="response">The response frame.</param>
     /// <returns>The response return value.</returns>
-    public delegate T ResponseReader<T>(IObjectPrx proxy, IncomingResponseFrame response);
+    public delegate T ResponseReader<T>(IServicePrx proxy, IncomingResponseFrame response);
 
-    /// <summary>Base interface of all object proxies.</summary>
-    public interface IObjectPrx : IEquatable<IObjectPrx>
+    /// <summary>Base interface of all service proxies.</summary>
+    public interface IServicePrx : IEquatable<IServicePrx>
     {
         /// <summary>Provides an <see cref="OutgoingRequestFrame"/> factory method for each remote operation defined in
         /// the pseudo-interface Object.</summary>
@@ -28,7 +28,7 @@ namespace ZeroC.Ice
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
             /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
             public static OutgoingRequestFrame IceId(
-                IObjectPrx proxy,
+                IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
                 OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_id", idempotent: true, context, cancel);
@@ -39,7 +39,7 @@ namespace ZeroC.Ice
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
             /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
             public static OutgoingRequestFrame IceIds(
-                IObjectPrx proxy,
+                IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
                 OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_ids", idempotent: true, context, cancel);
@@ -51,7 +51,7 @@ namespace ZeroC.Ice
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
             /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
             public static OutgoingRequestFrame IceIsA(
-                IObjectPrx proxy,
+                IServicePrx proxy,
                 string id,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
@@ -72,7 +72,7 @@ namespace ZeroC.Ice
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
             /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
             public static OutgoingRequestFrame IcePing(
-                IObjectPrx proxy,
+                IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
                 OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_ping", idempotent: true, context, cancel);
@@ -84,40 +84,40 @@ namespace ZeroC.Ice
         {
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
             /// </summary>
-            public static string IceId(IObjectPrx proxy, IncomingResponseFrame response) =>
+            public static string IceId(IServicePrx proxy, IncomingResponseFrame response) =>
                  response.ReadReturnValue(proxy, InputStream.IceReaderIntoString);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
-            public static string[] IceIds(IObjectPrx proxy, IncomingResponseFrame response) =>
+            public static string[] IceIds(IServicePrx proxy, IncomingResponseFrame response) =>
                 response.ReadReturnValue(
                     proxy, istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString));
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
             /// </summary>
-            public static bool IceIsA(IObjectPrx proxy, IncomingResponseFrame response) =>
+            public static bool IceIsA(IServicePrx proxy, IncomingResponseFrame response) =>
                 response.ReadReturnValue(proxy, InputStream.IceReaderIntoBool);
         }
 
-        /// <summary>Factory for <see cref="IObjectPrx"/> proxies.</summary>
-        public static readonly ProxyFactory<IObjectPrx> Factory = options => new ObjectPrx(options);
+        /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
+        public static readonly ProxyFactory<IServicePrx> Factory = options => new ServicePrx(options);
 
-        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IObjectPrx"/> proxies.</summary>
+        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IObjectPrx> IceReader = istr => istr.ReadProxy(Factory);
+        public static readonly InputStreamReader<IServicePrx> IceReader = istr => istr.ReadProxy(Factory);
 
-        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IObjectPrx"/> nullable proxies.</summary>
+        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IObjectPrx?> IceReaderIntoNullable =
+        public static readonly InputStreamReader<IServicePrx?> IceReaderIntoNullable =
             istr => istr.ReadNullableProxy(Factory);
 
-        /// <summary>An OutputStream writer used to write <see cref="IObjectPrx"/> proxies.</summary>
+        /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<IObjectPrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
+        public static readonly OutputStreamWriter<IServicePrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
 
-        /// <summary>An OutputStream writer used to write <see cref="IObjectPrx"/> nullable proxies.</summary>
+        /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<IObjectPrx?> IceWriterFromNullable =
+        public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
 
         /// <summary>Indicates whether or not this proxy caches its connection.</summary>
@@ -192,13 +192,13 @@ namespace ZeroC.Ice
         public Protocol Protocol { get; }
 
         /// <summary>The class instance that implements this proxy.</summary>
-        internal ObjectPrx Impl { get; }
+        internal ServicePrx Impl { get; }
 
         /// <summary>Indicates whether the two proxy operands are equal.</summary>
         /// <param name="lhs">The left hand-side operand.</param>
         /// <param name="rhs">The right hand-side operand.</param>
         /// <returns><c>True</c> if the tow proxies are equal, <c>False</c> otherwise.</returns>
-        public static bool Equals(IObjectPrx? lhs, IObjectPrx? rhs)
+        public static bool Equals(IServicePrx? lhs, IServicePrx? rhs)
         {
             if (ReferenceEquals(lhs, rhs))
             {
@@ -213,26 +213,26 @@ namespace ZeroC.Ice
             return lhs.Equals(rhs);
         }
 
-        /// <summary>Converts the string representation of a proxy to its <see cref="IObjectPrx"/> equivalent.</summary>
+        /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
         /// <param name="communicator">The communicator for the new proxy.</param>
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IObjectPrx Parse(string s, Communicator communicator) =>
-            ObjectPrx.Parse(s, communicator, Factory);
+        public static IServicePrx Parse(string s, Communicator communicator) =>
+            ServicePrx.Parse(s, communicator, Factory);
 
-        /// <summary>Converts the string representation of a proxy to its <see cref="IObjectPrx"/> equivalent.</summary>
+        /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
         /// <param name="communicator">The communicator for the new proxy.</param>
         /// <param name="proxy">When this method returns it contains the new proxy, if the conversion succeeded or null
         /// if the conversion failed.</param>
         /// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, Communicator communicator, out IObjectPrx? proxy)
+        public static bool TryParse(string s, Communicator communicator, out IServicePrx? proxy)
         {
             try
             {
-                proxy = ObjectPrx.Parse(s, communicator, Factory);
+                proxy = ServicePrx.Parse(s, communicator, Factory);
             }
             catch
             {
@@ -307,7 +307,7 @@ namespace ZeroC.Ice
             try
             {
                 IncomingResponseFrame response =
-                    ObjectPrx.InvokeAsync(this, request, oneway: false).GetAwaiter().GetResult();
+                    ServicePrx.InvokeAsync(this, request, oneway: false).GetAwaiter().GetResult();
                 return reader(this, response);
             }
             finally
@@ -325,7 +325,7 @@ namespace ZeroC.Ice
         {
             try
             {
-                IncomingResponseFrame response = ObjectPrx.InvokeAsync(this, request, oneway).GetAwaiter().GetResult();
+                IncomingResponseFrame response = ServicePrx.InvokeAsync(this, request, oneway).GetAwaiter().GetResult();
                 if (!oneway)
                 {
                     response.ReadVoidReturnValue(this);
@@ -353,7 +353,7 @@ namespace ZeroC.Ice
             Task<IncomingResponseFrame> responseTask;
             try
             {
-                responseTask = ObjectPrx.InvokeAsync(this, request, oneway: false, progress);
+                responseTask = ServicePrx.InvokeAsync(this, request, oneway: false, progress);
             }
             catch
             {
@@ -392,7 +392,7 @@ namespace ZeroC.Ice
             Task<IncomingResponseFrame> responseTask;
             try
             {
-                responseTask = ObjectPrx.InvokeAsync(this, request, oneway, progress);
+                responseTask = ServicePrx.InvokeAsync(this, request, oneway, progress);
             }
             catch
             {

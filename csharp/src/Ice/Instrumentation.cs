@@ -17,7 +17,7 @@ namespace ZeroC.Ice.Instrumentation
         /// <param name="context">The context specified by the user.</param>
         /// <returns>The invocation observer to instrument the invocation.</returns>
         IInvocationObserver? GetInvocationObserver(
-            IObjectPrx prx,
+            IServicePrx prx,
             string operation,
             IReadOnlyDictionary<string, string> context);
     }

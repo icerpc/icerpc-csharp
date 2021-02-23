@@ -469,11 +469,11 @@ namespace ZeroC.Ice.Test.Binding
                     await using var oa = new ObjectAdapter(serverCommunicator, p);
                     await oa.ActivateAsync();
 
-                    IObjectPrx prx = oa.CreateProxy("dummy", IObjectPrx.Factory);
+                    IServicePrx prx = oa.CreateProxy("dummy", IServicePrx.Factory);
                     try
                     {
                         await using var clientCommunicator = new Communicator();
-                        prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
+                        prx = IServicePrx.Parse(prx.ToString()!, clientCommunicator);
                         await prx.IcePingAsync();
                         TestHelper.Assert(false);
                     }
@@ -508,7 +508,7 @@ namespace ZeroC.Ice.Test.Binding
                     try
                     {
                         await using var clientCommunicator = new Communicator();
-                        var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
+                        var prx = IServicePrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
                         await prx.IcePingAsync();
                     }
                     catch (ObjectNotExistException)
@@ -538,7 +538,7 @@ namespace ZeroC.Ice.Test.Binding
                     try
                     {
                         await using var clientCommunicator = new Communicator();
-                        var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
+                        var prx = IServicePrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
                         await prx.IcePingAsync();
                         TestHelper.Assert(false);
                     }
@@ -574,7 +574,7 @@ namespace ZeroC.Ice.Test.Binding
                     try
                     {
                         await using var clientCommunicator = new Communicator();
-                        var prx = IObjectPrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
+                        var prx = IServicePrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
                         await prx.IcePingAsync();
                     }
                     catch (ObjectNotExistException)

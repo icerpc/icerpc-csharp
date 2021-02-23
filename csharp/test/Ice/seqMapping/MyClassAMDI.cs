@@ -307,33 +307,33 @@ namespace ZeroC.Ice.Test.SeqMapping
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpAObjectPrxSAsync(
-            IObjectPrx?[] i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpAObjectPrxSAsync(
+            IServicePrx?[] i,
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpLObjectPrxSAsync(
-            List<IObjectPrx?> i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpLObjectPrxSAsync(
+            List<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpKObjectPrxSAsync(
-            LinkedList<IObjectPrx?> i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpKObjectPrxSAsync(
+            LinkedList<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpQObjectPrxSAsync(
-            Queue<IObjectPrx?> i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpQObjectPrxSAsync(
+            Queue<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpSObjectPrxSAsync(
-            Stack<IObjectPrx?> i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpSObjectPrxSAsync(
+            Stack<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => new((i, i));
 
-        public ValueTask<(IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>)> OpCObjectPrxSAsync(
-            Custom<IObjectPrx?> i,
+        public ValueTask<(IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>)> OpCObjectPrxSAsync(
+            Custom<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => new((i, i));
 

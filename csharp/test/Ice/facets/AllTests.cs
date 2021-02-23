@@ -57,7 +57,7 @@ namespace ZeroC.Ice.Test.Facets
 
             await adapter.DisposeAsync();
 
-            var prx = IObjectPrx.Parse(helper.GetTestProxy("d", 0), communicator);
+            var prx = IServicePrx.Parse(helper.GetTestProxy("d", 0), communicator);
             IDPrx? d;
             IDPrx? df2;
             IDPrx? df3;

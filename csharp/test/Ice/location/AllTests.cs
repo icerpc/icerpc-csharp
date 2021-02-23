@@ -30,26 +30,26 @@ namespace ZeroC.Ice.Test.Location
 
             output.Write("testing ice1 string/URI parsing... ");
             output.Flush();
-            IObjectPrx base1, base2, base3, base4, base5, base6, base7;
+            IServicePrx base1, base2, base3, base4, base5, base6, base7;
             if (ice1)
             {
-                base1 = IObjectPrx.Parse("test @ TestAdapter", communicator);
-                base2 = IObjectPrx.Parse("test @ TestAdapter", communicator);
-                base3 = IObjectPrx.Parse(ice1 ? "test" : "ice:test", communicator);
-                base4 = IObjectPrx.Parse("ServerManager", communicator);
-                base5 = IObjectPrx.Parse("test2", communicator);
-                base6 = IObjectPrx.Parse("test @ ReplicatedAdapter", communicator);
-                base7 = IObjectPrx.Parse("test3 -f facet", communicator);
+                base1 = IServicePrx.Parse("test @ TestAdapter", communicator);
+                base2 = IServicePrx.Parse("test @ TestAdapter", communicator);
+                base3 = IServicePrx.Parse(ice1 ? "test" : "ice:test", communicator);
+                base4 = IServicePrx.Parse("ServerManager", communicator);
+                base5 = IServicePrx.Parse("test2", communicator);
+                base6 = IServicePrx.Parse("test @ ReplicatedAdapter", communicator);
+                base7 = IServicePrx.Parse("test3 -f facet", communicator);
             }
             else
             {
-                base1 = IObjectPrx.Parse("ice:TestAdapter//test", communicator);
-                base2 = IObjectPrx.Parse("ice:TestAdapter//test", communicator);
-                base3 = IObjectPrx.Parse("ice:test", communicator);
-                base4 = IObjectPrx.Parse("ice:ServerManager", communicator);
-                base5 = IObjectPrx.Parse("ice:test2", communicator);
-                base6 = IObjectPrx.Parse("ice:ReplicatedAdapter//test", communicator);
-                base7 = IObjectPrx.Parse("ice:test3#facet", communicator);
+                base1 = IServicePrx.Parse("ice:TestAdapter//test", communicator);
+                base2 = IServicePrx.Parse("ice:TestAdapter//test", communicator);
+                base3 = IServicePrx.Parse("ice:test", communicator);
+                base4 = IServicePrx.Parse("ice:ServerManager", communicator);
+                base5 = IServicePrx.Parse("ice:test2", communicator);
+                base6 = IServicePrx.Parse("ice:ReplicatedAdapter//test", communicator);
+                base7 = IServicePrx.Parse("ice:test3#facet", communicator);
             }
             output.WriteLine("ok");
 
@@ -60,12 +60,12 @@ namespace ZeroC.Ice.Test.Location
             base1 = base1.Clone(locationService: anotherLocationService);
             TestHelper.Assert(base1.LocationService == anotherLocationService);
             communicator.DefaultLocationService = null;
-            base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
+            base1 = IServicePrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
             TestHelper.Assert(base1.LocationService == null);
             base1 = base1.Clone(locationService: anotherLocationService);
             TestHelper.Assert(base1.LocationService == anotherLocationService);
             communicator.DefaultLocationService = locationService;
-            base1 = IObjectPrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
+            base1 = IServicePrx.Parse(ice1 ? "test @ TestAdapter" : "ice:TestAdapter//test", communicator);
             TestHelper.Assert(base1.LocationService == communicator.DefaultLocationService);
             output.WriteLine("ok");
 
@@ -194,7 +194,7 @@ namespace ZeroC.Ice.Test.Location
             output.Flush();
             try
             {
-                base1 = IObjectPrx.Parse(ice1 ? "unknown/unknown" : "ice:unknown/unknown", communicator);
+                base1 = IServicePrx.Parse(ice1 ? "unknown/unknown" : "ice:unknown/unknown", communicator);
                 await base1.IcePingAsync();
                 TestHelper.Assert(false);
             }
@@ -207,7 +207,7 @@ namespace ZeroC.Ice.Test.Location
             output.Flush();
             try
             {
-                base1 = IObjectPrx.Parse(
+                base1 = IServicePrx.Parse(
                     ice1 ? "test @ TestAdapterUnknown" : "ice:TestAdapterUnknown//test", communicator);
                 await base1.IcePingAsync();
                 TestHelper.Assert(false);
@@ -222,7 +222,7 @@ namespace ZeroC.Ice.Test.Location
 
             var zeroLocationService = new LocationService(locator, new() { Ttl = TimeSpan.Zero });
 
-            IObjectPrx basencc = IObjectPrx.Parse(
+            IServicePrx basencc = IServicePrx.Parse(
                 ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator).Clone(
                     cacheConnection: false,
                     locationService: zeroLocationService);
@@ -334,7 +334,7 @@ namespace ZeroC.Ice.Test.Location
             output.Flush();
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (NoEndpointException)
@@ -349,15 +349,15 @@ namespace ZeroC.Ice.Test.Location
 
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
 
                 RegisterAdapterEndpoints(
                     registry,
                     "TestAdapter3",
                     replicaGroupId: "",
-                    IObjectPrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
+                    IServicePrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
 
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
             }
             catch
             {
@@ -366,7 +366,7 @@ namespace ZeroC.Ice.Test.Location
 
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).Clone(
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).Clone(
                     locationService: zeroLocationService).IcePingAsync();
                 TestHelper.Assert(false);
             }
@@ -376,7 +376,7 @@ namespace ZeroC.Ice.Test.Location
 
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
             }
             catch (ConnectionRefusedException)
             {
@@ -389,7 +389,7 @@ namespace ZeroC.Ice.Test.Location
                 ResolveLocation(locator, "TestAdapter")!);
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter3" : "ice:TestAdapter3//test", communicator).IcePingAsync();
             }
             catch
             {
@@ -399,26 +399,26 @@ namespace ZeroC.Ice.Test.Location
 
             output.Write("testing well-known object locator cache... ");
             output.Flush();
-            registry.AddObject(IObjectPrx.Parse(
+            registry.AddObject(IServicePrx.Parse(
                 ice1 ? "test3@TestUnknown" : "ice:TestUnknown//test3", communicator));
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (NoEndpointException)
             {
             }
-            registry.AddObject(IObjectPrx.Parse(
+            registry.AddObject(IServicePrx.Parse(
                 ice1 ? "test3@TestAdapter4" : "ice:TestAdapter4//test3", communicator)); // Update
             RegisterAdapterEndpoints(
                 registry,
                 "TestAdapter4",
                 "",
-                IObjectPrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
+                IServicePrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ConnectionRefusedException)
@@ -431,7 +431,7 @@ namespace ZeroC.Ice.Test.Location
                 ResolveLocation(locator, "TestAdapter")!);
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
             }
             catch
             {
@@ -442,10 +442,10 @@ namespace ZeroC.Ice.Test.Location
                 registry,
                 "TestAdapter4",
                 "",
-                IObjectPrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
+                IServicePrx.Parse(helper.GetTestProxy("dummy", 99), communicator));
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
             }
             catch
             {
@@ -454,7 +454,7 @@ namespace ZeroC.Ice.Test.Location
 
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator).Clone(
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter4" : "ice:TestAdapter4//test", communicator).Clone(
                     locationService: zeroLocationService).IcePingAsync();
                 TestHelper.Assert(false);
             }
@@ -462,21 +462,21 @@ namespace ZeroC.Ice.Test.Location
             {
             }
 
-            registry.AddObject(IObjectPrx.Parse(
+            registry.AddObject(IServicePrx.Parse(
                 ice1 ? "test3@TestAdapter" : "ice:TestAdapter//test3", communicator));
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", communicator).IcePingAsync();
             }
             catch
             {
                 TestHelper.Assert(false);
             }
 
-            registry.AddObject(IObjectPrx.Parse(ice1 ? "test4" : "ice:test4", communicator));
+            registry.AddObject(IServicePrx.Parse(ice1 ? "test4" : "ice:test4", communicator));
             try
             {
-                await IObjectPrx.Parse(ice1 ? "test4" : "ice:test4", communicator).IcePingAsync();
+                await IServicePrx.Parse(ice1 ? "test4" : "ice:test4", communicator).IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (NoEndpointException)
@@ -500,23 +500,23 @@ namespace ZeroC.Ice.Test.Location
                     "TestAdapter5",
                     "",
                     ResolveLocation(locator, "TestAdapter")!);
-                registry.AddObject(IObjectPrx.Parse(
+                registry.AddObject(IServicePrx.Parse(
                     ice1 ? "test3@TestAdapter" : "ice:TestAdapter//test3", communicator));
 
                 count = locator.GetRequestCount();
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
                     .Clone(locationService: zeroBLocationService).IcePingAsync(); // No locator cache.
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic).Clone(locationService: zeroBLocationService).IcePingAsync(); // No locator cache.
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", ic).Clone(locationService: zeroBLocationService).IcePingAsync(); // No locator cache.
                 count += 3;
                 TestHelper.Assert(count == locator.GetRequestCount());
 
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
                     .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", ic)
                     .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
 
-                registry.AddObject(IObjectPrx.Parse(helper.GetTestProxy("test3", 99), communicator));
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                registry.AddObject(IServicePrx.Parse(helper.GetTestProxy("test3", 99), communicator));
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", ic)
                     .Clone(locationService: oneBLocationService).IcePingAsync();
 
                 count += 3;
@@ -528,16 +528,16 @@ namespace ZeroC.Ice.Test.Location
                 // The following request should trigger the background
                 // updates but still use the cached endpoints and
                 // therefore succeed.
-                await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
+                await IServicePrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
                     .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
-                await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", ic)
                     .Clone(locationService: oneBLocationService).IcePingAsync(); // 1s timeout.
 
                 try
                 {
                     while (true)
                     {
-                        await IObjectPrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
+                        await IServicePrx.Parse(ice1 ? "test@TestAdapter5" : "ice:TestAdapter5//test", ic)
                             .Clone(locationService: oneLocationService).IcePingAsync(); // 1s timeout.
                         Thread.Sleep(10);
                     }
@@ -550,7 +550,7 @@ namespace ZeroC.Ice.Test.Location
                 {
                     while (true)
                     {
-                        await IObjectPrx.Parse(ice1 ? "test3" : "ice:test3", ic)
+                        await IServicePrx.Parse(ice1 ? "test3" : "ice:test3", ic)
                             .Clone(locationService: oneLocationService).IcePingAsync(); // 1s timeout.
                         Thread.Sleep(10);
                     }
@@ -646,11 +646,11 @@ namespace ZeroC.Ice.Test.Location
             TestHelper.Assert(await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             // Ensure that calls on the indirect proxy (with adapter ID) is colocated
-            helloPrx = await adapter.CreateProxy(id, IObjectPrx.Factory).CheckedCastAsync(IHelloPrx.Factory);
+            helloPrx = await adapter.CreateProxy(id, IServicePrx.Factory).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             // Ensure that calls on the direct proxy is colocated
-            helloPrx = await adapter.CreateProxy(id, IObjectPrx.Factory).Clone(
+            helloPrx = await adapter.CreateProxy(id, IServicePrx.Factory).Clone(
                 endpoints: adapter.PublishedEndpoints,
                 location: ImmutableArray<string>.Empty).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
@@ -667,7 +667,7 @@ namespace ZeroC.Ice.Test.Location
             ILocatorRegistryPrx registry,
             string adapterId,
             string replicaGroupId,
-            IObjectPrx proxy)
+            IServicePrx proxy)
         {
             if (proxy.Protocol == Protocol.Ice1)
             {
@@ -679,7 +679,7 @@ namespace ZeroC.Ice.Test.Location
             }
         }
 
-        private static IObjectPrx? ResolveLocation(ILocatorPrx locator, string adapterId)
+        private static IServicePrx? ResolveLocation(ILocatorPrx locator, string adapterId)
         {
             if (locator.Protocol == Protocol.Ice1)
             {

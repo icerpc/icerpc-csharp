@@ -372,7 +372,7 @@ namespace ZeroC.Ice.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray();
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray();
                 var (r, o) = p.OpAObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -380,39 +380,39 @@ namespace ZeroC.Ice.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToList<IObjectPrx?>();
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToList<IServicePrx?>();
                 var (r, o) = p.OpLObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
             }
 
             {
-                var i = new LinkedList<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
+                var i = new LinkedList<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
                 var (r, o) = p.OpKObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
             }
 
             {
-                var i = new Queue<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
+                var i = new Queue<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
                 var (r, o) = p.OpQObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
             }
 
             {
-                var i = new Stack<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
+                var i = new Stack<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
                 var (r, o) = p.OpSObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
             }
 
             {
-                var i = new Custom<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
+                var i = new Custom<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
                 var (r, o) = p.OpCObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));

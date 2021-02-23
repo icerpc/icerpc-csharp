@@ -15,7 +15,7 @@ using ZeroC.Test;
 
 namespace ZeroC.IceSSL.Test.Configuration
 {
-    public class Blobject : IObject
+    public class Blobject : IService
     {
         public ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,
@@ -279,9 +279,9 @@ namespace ZeroC.IceSSL.Test.Configuration
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
                             ServerName = host
                         });
-                    IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
+                    IServicePrx? prx = adapter.AddWithUUID(new Blobject(), IServicePrx.Factory);
                     await adapter.ActivateAsync();
-                    prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
+                    prx = IServicePrx.Parse(prx.ToString()!, clientCommunicator);
                     await prx.IcePingAsync();
                 }
                 {
@@ -331,9 +331,9 @@ namespace ZeroC.IceSSL.Test.Configuration
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
                             ServerName = host
                         });
-                    IObjectPrx? prx = adapter.AddWithUUID(new Blobject(), IObjectPrx.Factory);
+                    IServicePrx? prx = adapter.AddWithUUID(new Blobject(), IServicePrx.Factory);
                     await adapter.ActivateAsync();
-                    prx = IObjectPrx.Parse(prx.ToString()!, clientCommunicator);
+                    prx = IServicePrx.Parse(prx.ToString()!, clientCommunicator);
                     await prx.IcePingAsync();
                     TestHelper.Assert(clientCertificateValidationCallbackCalled);
                     TestHelper.Assert(serverCertificateValidationCallbackCalled);
@@ -1219,7 +1219,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     clientProperties["IceSSL.DefaultDir"] = "";
                     clientProperties["Ice.Override.Timeout"] = "5000"; // 5s timeout
                     await using var comm = new Communicator(clientProperties);
-                    var p = IObjectPrx.Parse("dummy:wss -p 443 -h zeroc.com -r /demo-proxy/chat/glacier2", comm);
+                    var p = IServicePrx.Parse("dummy:wss -p 443 -h zeroc.com -r /demo-proxy/chat/glacier2", comm);
 
                     while (true)
                     {

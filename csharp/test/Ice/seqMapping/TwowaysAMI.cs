@@ -371,49 +371,49 @@ namespace ZeroC.Ice.Test.SeqMapping
             }
 
             {
-                IObjectPrx[]? i = Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray();
-                (IObjectPrx?[] ReturnValue, IObjectPrx?[] o) = p.OpAObjectPrxSAsync(i).Result;
+                IServicePrx[]? i = Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray();
+                (IServicePrx?[] ReturnValue, IServicePrx?[] o) = p.OpAObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToList<IObjectPrx?>();
-                (List<IObjectPrx?> ReturnValue, List<IObjectPrx?> o) = p.OpLObjectPrxSAsync(i).Result;
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToList<IServicePrx?>();
+                (List<IServicePrx?> ReturnValue, List<IServicePrx?> o) = p.OpLObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }
 
             {
-                var i = new LinkedList<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
-                (LinkedList<IObjectPrx?> ReturnValue, LinkedList<IObjectPrx?> o) = p.OpKObjectPrxSAsync(i).Result;
+                var i = new LinkedList<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                (LinkedList<IServicePrx?> ReturnValue, LinkedList<IServicePrx?> o) = p.OpKObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }
 
             {
-                var i = new Queue<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
-                (Queue<IObjectPrx?> ReturnValue, Queue<IObjectPrx?> o) = p.OpQObjectPrxSAsync(i).Result;
+                var i = new Queue<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                (Queue<IServicePrx?> ReturnValue, Queue<IServicePrx?> o) = p.OpQObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }
 
             {
-                var i = new Stack<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
-                (Stack<IObjectPrx?> ReturnValue, Stack<IObjectPrx?> o) = p.OpSObjectPrxSAsync(i).Result;
+                var i = new Stack<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                (Stack<IServicePrx?> ReturnValue, Stack<IServicePrx?> o) = p.OpSObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }
 
             {
-                var i = new Custom<IObjectPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IObjectPrx.Parse(x.ToString(), communicator)).ToArray());
-                (Custom<IObjectPrx?> ReturnValue, Custom<IObjectPrx?> o) = p.OpCObjectPrxSAsync(i).Result;
+                var i = new Custom<IServicePrx?>(Enumerable.Range(0, Length).Select(
+                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                (Custom<IServicePrx?> ReturnValue, Custom<IServicePrx?> o) = p.OpCObjectPrxSAsync(i).Result;
                 TestHelper.Assert(o.SequenceEqual(i));
                 TestHelper.Assert(ReturnValue.SequenceEqual(i));
             }

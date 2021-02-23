@@ -19,8 +19,8 @@ namespace ZeroC.Ice.Test.Location
             _adapter2 = adapter2;
             _registry = registry;
 
-            _registry.AddObject(_adapter1.Add("hello", new Hello(), IObjectPrx.Factory));
-            _registry.AddObject(_adapter1.Add("bonjour#abc", new Hello(), IObjectPrx.Factory));
+            _registry.AddObject(_adapter1.Add("hello", new Hello(), IServicePrx.Factory));
+            _registry.AddObject(_adapter1.Add("bonjour#abc", new Hello(), IServicePrx.Factory));
         }
 
         public void Shutdown(Current current, CancellationToken cancel) =>
@@ -37,16 +37,16 @@ namespace ZeroC.Ice.Test.Location
         {
             var id = Identity.Parse("hello");
 
-            IObject? servant = _adapter1.Remove(id);
+            IService? servant = _adapter1.Remove(id);
             if (servant != null)
             {
-                _registry.AddObject(_adapter2.Add(id, servant, IObjectPrx.Factory), current, cancel);
+                _registry.AddObject(_adapter2.Add(id, servant, IServicePrx.Factory), current, cancel);
             }
             else
             {
                 servant = _adapter2.Remove(id);
                 TestHelper.Assert(servant != null);
-                _registry.AddObject(_adapter1.Add(id, servant, IObjectPrx.Factory), current, cancel);
+                _registry.AddObject(_adapter1.Add(id, servant, IServicePrx.Factory), current, cancel);
             }
         }
     }

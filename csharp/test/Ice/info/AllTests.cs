@@ -29,7 +29,7 @@ namespace ZeroC.Ice.Test.Info
                 string ice2Prx = "ice+tcp://tcphost:10000/test?source-address=10.10.10.10" +
                     "&alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD";
 
-                var p1 = IObjectPrx.Parse(ice1 ? ice1Prx : ice2Prx, communicator);
+                var p1 = IServicePrx.Parse(ice1 ? ice1Prx : ice2Prx, communicator);
 
                 IReadOnlyList<Endpoint> endps = p1.Endpoints;
 

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice.Test.Objects
 {
-    public sealed class UnexpectedObjectExceptionTest : IObject
+    public sealed class UnexpectedObjectExceptionTest : IService
     {
         public ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,

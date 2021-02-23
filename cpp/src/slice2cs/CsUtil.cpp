@@ -378,7 +378,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         "float",
         "double",
         "string",
-        "ZeroC.Ice.IObjectPrx",
+        "ZeroC.Ice.IServicePrx",
         "ZeroC.Ice.AnyClass"
     };
 

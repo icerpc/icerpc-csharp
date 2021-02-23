@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Api
                 interceptorCalls.Add("DispatchInterceptors <- 1");
                 return result;
             });
-            var prx = adapter.AddWithUUID(new TestService(), IObjectPrx.Factory);
+            var prx = adapter.AddWithUUID(new TestService(), IServicePrx.Factory);
             await adapter.ActivateAsync();
 
             await prx.IcePingAsync();
