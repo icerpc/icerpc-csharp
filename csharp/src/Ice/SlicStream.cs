@@ -174,7 +174,7 @@ namespace ZeroC.Ice
             else
             {
                 // Copy the data from the stream's circular receive buffer to the given buffer.
-                Debug.Assert(_receiveBuffer != null && _receiveBuffer.Count > 0);
+                Debug.Assert(_receiveBuffer.Count > 0);
                 _receiveBuffer.Consume(buffer.Slice(0, size));
 
                 // If we've consumed 75% or more of the circular buffer capacity, notify the peer to allow more data

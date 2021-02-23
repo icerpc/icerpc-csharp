@@ -135,10 +135,6 @@ namespace ZeroC.Ice
                 new EventId(SendingIce1RequestFrame, nameof(SendingIce1RequestFrame)),
                 "sending ice1 request frame: {Request}");
 
-        private static readonly Func<ILogger, Encoding, int, int, IDisposable> _ice1RequestsScope =
-            LoggerMessage.DefineScope<Encoding, int, int>(
-                "request: encoding {Encoding}, frame size = {FrameSize}, request ID = {RequestID}");
-
         private static readonly Action<ILogger, ResultType, int, Exception> _sendingIce1ResponseFrame =
             LoggerMessage.Define<ResultType, int>(
                 LogLevel.Information,

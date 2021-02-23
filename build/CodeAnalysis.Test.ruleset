@@ -1,6 +1,7 @@
 ﻿<RuleSet Name="Microsoft.Analyzers.ManagedCodeAnalysis" Description="Microsoft.Analyzers.ManagedCodeAnalysis" ToolsVersion="14.0">
   <Include Path="CodeAnalysis.Base.ruleset" Action="Default" />
   <Rules AnalyzerId="Microsoft.Analyzers.ManagedCodeAnalysis" RuleNamespace="Microsoft.Rules.Managed">
+      <Rule Id="CA1707" Action="None" /> <!-- Identifiers should not contain underscores -->
       <Rule Id="CA1717" Action="None" /> <!-- Only FlagsAttribute enums should have plural names -->
       <Rule Id="CA2007" Action="None" /> <!-- Consider calling ConfigureAwait on the awaited task -->
   </Rules>
