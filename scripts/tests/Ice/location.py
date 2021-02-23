@@ -9,4 +9,4 @@ traceProps = {
     "Ice.Trace.Protocol" : 1
 }
 
-TestSuite(__name__, [ClientServerTestCase(traceProps=traceProps)])
+TestSuite(__name__, [ClientServerTestCase(traceProps=traceProps, options={ "protocol" : ["ice1"] })])

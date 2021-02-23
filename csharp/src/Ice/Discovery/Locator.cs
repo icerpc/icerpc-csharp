@@ -59,7 +59,6 @@ namespace ZeroC.Ice.Discovery
 
         public async ValueTask<IObjectPrx?> FindObjectByIdAsync(
             Identity identity,
-            string? facet,
             Current current,
             CancellationToken cancel)
         {
@@ -70,73 +69,13 @@ namespace ZeroC.Ice.Discovery
                     IFindObjectByIdReplyPrx reply =
                         dummyReply.Clone(IFindObjectByIdReplyPrx.Factory, identity: replyServant.Identity);
 
-                    return lookup.FindObjectByIdAsync(_domainId, identity, facet, reply, cancel: cancel);
+                    return lookup.FindObjectByIdAsync(_domainId, identity, reply, cancel: cancel);
                 },
                 replyServant).ConfigureAwait(false);
         }
 
         public ValueTask<ILocatorRegistryPrx?> GetRegistryAsync(Current current, CancellationToken cancel) =>
             new(_registry);
-
-        public async ValueTask<IEnumerable<EndpointData>> ResolveLocationAsync(
-            string[] location,
-            Current current,
-            CancellationToken cancel)
-        {
-            if (location.Length == 0)
-            {
-                throw new InvalidArgumentException("location cannot be empty", nameof(location));
-            }
-            else if (location.Length > 1)
-            {
-                // Ice discovery supports only single-segment locations.
-                return ImmutableArray<EndpointData>.Empty;
-            }
-
-            string adapterId = location[0];
-
-            using var replyServant = new ResolveAdapterIdReply(_replyAdapter);
-
-            return await InvokeAsync(
-                (lookup, dummyReply) =>
-                {
-                    IResolveAdapterIdReplyPrx reply =
-                        dummyReply.Clone(IResolveAdapterIdReplyPrx.Factory, identity: replyServant.Identity);
-
-                    return lookup.ResolveAdapterIdAsync(_domainId,
-                                                        adapterId,
-                                                        reply,
-                                                        cancel: cancel);
-                },
-                replyServant).ConfigureAwait(false);
-        }
-
-        public async ValueTask<(IEnumerable<EndpointData>, IEnumerable<string>)> ResolveWellKnownProxyAsync(
-            Identity identity,
-            string facet,
-            Current current,
-            CancellationToken cancel)
-        {
-            using var replyServant = new ResolveWellKnownProxyReply(_replyAdapter);
-
-            string adapterId = await InvokeAsync(
-                (lookup, dummyReply) =>
-                {
-                    IResolveWellKnownProxyReplyPrx reply =
-                            dummyReply.Clone(IResolveWellKnownProxyReplyPrx.Factory, identity: replyServant.Identity);
-
-                    return lookup.ResolveWellKnownProxyAsync(_domainId,
-                                                             identity,
-                                                             facet,
-                                                             reply,
-                                                             cancel: cancel);
-                },
-                replyServant).ConfigureAwait(false);
-
-            // We never return endpoints
-            return (ImmutableArray<EndpointData>.Empty,
-                    adapterId.Length > 0 ? ImmutableArray.Create(adapterId) : ImmutableArray<string>.Empty);
-        }
 
         internal Locator(Communicator communicator, DiscoveryServerOptions options)
         {
@@ -186,7 +125,12 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = new(communicator, options: new() { ColocationScope = options.ColocationScope });
+            _locatorAdapter = new ObjectAdapter(communicator,
+                                                 new()
+                                                 {
+                                                     ColocationScope = options.ColocationScope,
+                                                     Protocol = Protocol.Ice1
+                                                 });
             Proxy = _locatorAdapter.Add(new Identity("discovery", _domainId), this, ILocatorPrx.Factory);
 
             // Setup locator registry.
@@ -454,68 +398,6 @@ namespace ZeroC.Ice.Discovery
 
         internal FindObjectByIdReply(ObjectAdapter replyAdapter)
             : base(emptyResult: null, replyAdapter)
-        {
-        }
-    }
-
-    /// <summary>Servant class that implements the Slice interface ResolveAdapterIdReply.</summary>
-    internal sealed class ResolveAdapterIdReply : ReplyServant<IReadOnlyList<EndpointData>>, IAsyncResolveAdapterIdReply
-    {
-        private readonly object _mutex = new();
-        private readonly HashSet<EndpointData> _endpointDataSet = new();
-
-        public ValueTask FoundAdapterIdAsync(
-            EndpointData[] endpoints,
-            bool isReplicaGroup,
-            Current current,
-            CancellationToken cancel)
-        {
-            if (isReplicaGroup)
-            {
-                lock (_mutex)
-                {
-                    bool firstReply = _endpointDataSet.Count == 0;
-
-                    _endpointDataSet.UnionWith(endpoints);
-                    if (firstReply)
-                    {
-                        Cancel();
-                    }
-                }
-            }
-            else
-            {
-                SetResult(endpoints);
-            }
-            return default;
-        }
-
-        internal ResolveAdapterIdReply(ObjectAdapter replyAdapter)
-            : base(ImmutableArray<EndpointData>.Empty, replyAdapter)
-        {
-        }
-
-        private protected override IReadOnlyList<EndpointData> CollectReplicaReplies()
-        {
-            lock (_mutex)
-            {
-                Debug.Assert(_endpointDataSet.Count > 0);
-                return _endpointDataSet.ToList();
-            }
-        }
-    }
-
-    /// <summary>Servant class that implements the Slice interface ResolveWellKnownProxyReply.</summary>
-    internal class ResolveWellKnownProxyReply : ReplyServant<string>, IAsyncResolveWellKnownProxyReply
-    {
-        public ValueTask FoundWellKnownProxyAsync(string adapterId, Current current, CancellationToken cancel)
-        {
-            SetResult(adapterId);
-            return default;
-        }
-
-        internal ResolveWellKnownProxyReply(ObjectAdapter replyAdapter)
-            : base(emptyResult: "", replyAdapter)
         {
         }
     }

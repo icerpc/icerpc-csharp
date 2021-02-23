@@ -1217,16 +1217,13 @@ namespace ZeroC.Ice
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveWellKnownProxyAsync(
                         Identity,
-                        Facet,
-                        Protocol,
                         endpointsMaxAge,
                         cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveLocationAsync(
-                        Location,
-                        Protocol,
+                        Location[0],
                         endpointsMaxAge,
                         cancel).ConfigureAwait(false);
                 }

@@ -46,7 +46,7 @@ def suppressWarning(x):
 # Filter-out the warning about invalid lookup proxy
 outfilters = [ lambda x: suppressWarning(x) ]
 
-options = None
+options = { "protocol" : ["ice1"] }
 
 TestSuite(__name__, [
    ClientServerTestCase(client=Client(args=[3], props=props, outfilters=outfilters),

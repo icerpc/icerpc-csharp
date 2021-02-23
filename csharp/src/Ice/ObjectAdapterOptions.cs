@@ -11,14 +11,14 @@ namespace ZeroC.Ice
         None
     }
 
-    /// <summary>An options class for configuring a <see cref="ObjectAdapter"/>.</summary>
+    /// <summary>An options class for configuring an <see cref="ObjectAdapter"/>.</summary>
     public sealed class ObjectAdapterOptions
     {
         /// <summary>Indicates under what conditions this object adapter accepts non-secure connections.</summary>
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
-        public string AdapterId { get; set; } = "";
+        public string AdapterId { get; set; } = ""; // ice1 only
 
         public ColocationScope ColocationScope { get; set; }
 
@@ -27,7 +27,7 @@ namespace ZeroC.Ice
 
         public int? IncomingFrameMaxSize { get; set; } // 0 means "infinite", null means use Communicator's value
 
-        public ILocatorRegistryPrx? LocatorRegistry { get; set; }
+        public ILocatorRegistryPrx? LocatorRegistry { get; set; } // only for ice1 object adapters
 
         public string Name { get; set; } = "";
 
@@ -35,7 +35,7 @@ namespace ZeroC.Ice
 
         public string PublishedEndpoints { get; set; } = "";
 
-        public string ReplicaGroupId { get; set; } = "";
+        public string ReplicaGroupId { get; set; } = ""; // ice1 only
 
         public bool SerializeDispatch { get; set; }
 

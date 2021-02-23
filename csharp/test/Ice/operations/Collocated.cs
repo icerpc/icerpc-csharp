@@ -12,7 +12,6 @@ namespace ZeroC.Ice.Test.Operations
             await using var adapter = new ObjectAdapter(Communicator,
                                                         new()
                                                         {
-                                                            AdapterId = "test",
                                                             Endpoints = GetTestEndpoint(0)
                                                         });
 
