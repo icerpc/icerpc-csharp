@@ -102,7 +102,7 @@ namespace ZeroC.Ice
             int hashPos = uriString.IndexOf('#');
             if (hashPos != -1 && hashPos != uriString.Length - 1)
             {
-                facet = Uri.UnescapeDataString(uriString.Substring(hashPos + 1));
+                facet = Uri.UnescapeDataString(uriString[(hashPos + 1)..]);
                 path = uriString[0..hashPos];
             }
             else
@@ -168,7 +168,6 @@ namespace ZeroC.Ice
 
             Ice2EndpointParser? parser = null;
             Transport transport;
-
             if (transportName == "universal")
             {
                 if (oaEndpoint)
@@ -236,7 +235,7 @@ namespace ZeroC.Ice
                 Debug.Assert(uriString.StartsWith("ice:", StringComparison.InvariantCulture));
                 Debug.Assert(!pureEndpoints);
 
-                string body = uriString.Substring(4);
+                string body = uriString[4..];
                 if (body.StartsWith("//", StringComparison.InvariantCulture))
                 {
                     throw new FormatException("the ice URI scheme cannot define a host or port");

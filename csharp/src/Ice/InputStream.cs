@@ -1026,7 +1026,7 @@ namespace ZeroC.Ice
                 Encoding.CheckSupported();
 
                 // We slice the provided buffer to the encapsulation (minus its header).
-                _buffer = buffer.Slice(Pos);
+                _buffer = buffer[Pos..];
                 Pos = 0;
 
                 if (Encoding == Encoding.V20)

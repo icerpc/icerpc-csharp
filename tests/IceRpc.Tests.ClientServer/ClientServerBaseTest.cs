@@ -16,7 +16,7 @@ namespace IceRpc.Tests.ClientServer
 
         // Base port for the tests that run with this test fixture
         private readonly int _basePort;
-        private static int _nextBasePort = 0;
+        private static int _nextBasePort;
 
         public ClientServerBaseTest()
             : this(Protocol.Ice2, "")

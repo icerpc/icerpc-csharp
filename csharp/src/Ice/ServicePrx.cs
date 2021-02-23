@@ -197,7 +197,7 @@ namespace ZeroC.Ice
 
                     string property = $"{propertyPrefix}.Context.";
                     context = communicator.GetProperties(forPrefix: property).
-                        ToImmutableDictionary(e => e.Key.Substring(property.Length), e => e.Value);
+                        ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
 
                     property = $"{propertyPrefix}.InvocationTimeout";
                     invocationTimeout = communicator.GetPropertyAsTimeSpan(property);
@@ -345,7 +345,7 @@ namespace ZeroC.Ice
         public bool Equals(IServicePrx? other) => Equals(other?.Impl);
 
         /// <inheritdoc/>
-        public override bool Equals(object? other) => Equals(other as ServicePrx);
+        public override bool Equals(object? obj) => Equals(obj as ServicePrx);
 
         /// <inheritdoc/>
         public override int GetHashCode()

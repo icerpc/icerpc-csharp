@@ -312,7 +312,7 @@ namespace ZeroC.Ice
                     dotPos = pattern.IndexOf('.');
                     Debug.Assert(dotPos != -1);
                     string propPrefix = pattern.Substring(1, dotPos - 2);
-                    if (!propPrefix.Equals(prefix, StringComparison.InvariantCultureIgnoreCase))
+                    if (!propPrefix.Equals(prefix, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }

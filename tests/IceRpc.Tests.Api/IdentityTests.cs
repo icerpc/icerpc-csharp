@@ -16,14 +16,13 @@ namespace IceRpc.Tests.Api
         public void Identity_ToString(Identity id, string expected)
         {
             Assert.AreEqual(expected, id.ToString());
-            if (expected == "")
+            if (expected.Length == 0)
             {
                 Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: true));
             }
             else
             {
-                Identity result;
-                Assert.IsTrue(Identity.TryParse(expected, uriFormat: true, out result));
+                Assert.IsTrue(Identity.TryParse(expected, uriFormat: true, out Identity result));
                 Assert.IsTrue(id == result);
             }
         }
@@ -51,14 +50,13 @@ namespace IceRpc.Tests.Api
         public void Identity_ToStringMode(Identity id, ToStringMode mode, string expected)
         {
             Assert.AreEqual(expected, id.ToString(mode));
-            if (expected == "")
+            if (expected.Length == 0)
             {
                 Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: false));
             }
             else
             {
-                Identity result;
-                Assert.IsTrue(Identity.TryParse(expected, uriFormat: false, out result));
+                Assert.IsTrue(Identity.TryParse(expected, uriFormat: false, out Identity result));
                 Assert.IsTrue(id == result);
             }
         }
