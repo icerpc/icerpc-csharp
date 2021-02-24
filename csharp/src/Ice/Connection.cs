@@ -121,7 +121,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Gets or sets the server that dispatches requests received over this connection.
-        /// A client can invoke an operation on a server using a proxy, and then set an server for the
+        /// A client can invoke an operation on a server using a proxy, and then set a server for the
         /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
         /// cannot establish a connection back to the client, for example because of firewalls.</summary>
         /// <value>The server that dispatches requests for the connection, or null if no server is set.

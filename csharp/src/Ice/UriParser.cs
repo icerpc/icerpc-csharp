@@ -169,7 +169,7 @@ namespace ZeroC.Ice
             {
                 if (serverEndpoint)
                 {
-                    throw new FormatException("ice+universal cannot specify an server endpoint");
+                    throw new FormatException("ice+universal cannot specify a server endpoint");
                 }
 
                 // Enumerator names can only be used for "well-known" transports.
@@ -387,7 +387,7 @@ namespace ZeroC.Ice
 
         /// <summary>Parses an ice or ice+transport URI string.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="serverEndpoints">True when parsing the endpoints of an server; false when parsing a proxy.
+        /// <param name="serverEndpoints">True when parsing the endpoints of a server; false when parsing a proxy.
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
@@ -403,7 +403,7 @@ namespace ZeroC.Ice
                 bool iceScheme = uriString.StartsWith("ice:", StringComparison.InvariantCulture);
                 if (iceScheme && serverEndpoints)
                 {
-                    throw new FormatException("an server endpoint supports only ice+transport URIs");
+                    throw new FormatException("a server endpoint supports only ice+transport URIs");
                 }
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();

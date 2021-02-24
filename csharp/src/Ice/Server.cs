@@ -100,13 +100,13 @@ namespace ZeroC.Ice
 
         private Lazy<Task>? _shutdownTask;
 
-         /// <summary>Constructs an server.</summary>
+         /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator)
             : this(communicator, new())
         {
         }
 
-        /// <summary>Constructs an server.</summary>
+        /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator, ServerOptions options)
         {
             if (options.AdapterId.Length == 0)
@@ -694,7 +694,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Shuts down this server. Once shut down, an server is disposed and can no longer be
+        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
         /// used. This method can be safely called multiple times and always returns the same task.</summary>
         public Task ShutdownAsync()
         {
@@ -776,7 +776,7 @@ namespace ZeroC.Ice
                 if (_activateTask != null)
                 {
                     throw new InvalidOperationException(
-                        "cannot add an dispatchInterceptor to an server after activation");
+                        "cannot add an dispatchInterceptor to a server after activation");
                 }
 
                 _dispatchInterceptorList.Add(dispatchInterceptor);

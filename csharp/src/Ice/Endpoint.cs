@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
-    /// <summary>An endpoint describes a server-side network sink for Ice requests: an server listens on one or
+    /// <summary>An endpoint describes a server-side network sink for Ice requests: a server listens on one or
     /// more endpoints and a client establishes a connection to a given server endpoint. Its properties are
     /// a network transport protocol such as TCP or Bluetooth RFCOMM, a host or address, a port number, and
     /// transport-specific options.</summary>

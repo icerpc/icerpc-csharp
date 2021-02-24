@@ -16,7 +16,7 @@ namespace ZeroC.Ice
         /// <param name="endpointString">The string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
-        /// an server. Otherwise, false.</param>
+        /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(
             string endpointString,
@@ -493,7 +493,7 @@ namespace ZeroC.Ice
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
         /// <param name="endpointString">The string parsed by this method.</param>
         /// <param name="communicator">The communicator of the enclosing proxy or server.</param>
-        /// <param name="serverEndpoint">When true, endpointString represents an server's endpoint configuration;
+        /// <param name="serverEndpoint">When true, endpointString represents a server's endpoint configuration;
         /// when false, endpointString represents a proxy endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>

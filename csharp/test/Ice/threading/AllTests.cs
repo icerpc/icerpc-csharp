@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Test.Threading
 
             if (collocated)
             {
-                // With collocation, synchronous calls dispatched on an server which doesn't set a task
+                // With collocation, synchronous calls dispatched on a server which doesn't set a task
                 // scheduler are dispatched from the client invocation task scheduler.
                 var context = new Dictionary<string, string>() { { "scheduler", scheduler.Id.ToString() } };
                 proxy.PingSync(context);
