@@ -51,7 +51,7 @@ namespace ZeroC.Ice
         private readonly HttpParser _parser;
         private readonly object _mutex = new();
         private readonly BufferedReceiveOverSingleStreamSocket _underlying;
-        private readonly Random _rand;
+        private readonly RandomNumberGenerator _rand;
         private bool _receiveLastFrame;
         private readonly byte[] _receiveMask = new byte[4];
         private int _receivePayloadLength;
@@ -65,7 +65,7 @@ namespace ZeroC.Ice
         {
             await _underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
             WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
-            await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel);
+            await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -89,7 +89,7 @@ namespace ZeroC.Ice
         {
             await _underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
             WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
-            await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel);
+            await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -132,7 +132,11 @@ namespace ZeroC.Ice
 
         public override string ToString() => _underlying.ToString()!;
 
-        protected override void Dispose(bool disposing) => _underlying.Dispose();
+        protected override void Dispose(bool disposing)
+        {
+            _underlying.Dispose();
+            _rand.Dispose();
+        }
 
         internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
         {
@@ -143,7 +147,7 @@ namespace ZeroC.Ice
             _sendBuffer = new List<ArraySegment<byte>>();
             _sendMask = new byte[4];
             _key = "";
-            _rand = new Random();
+            _rand = RandomNumberGenerator.Create();
             _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
@@ -170,7 +174,7 @@ namespace ZeroC.Ice
 
                     // The value for Sec-WebSocket-Key is a 16-byte random number, encoded with Base64.
                     byte[] key = new byte[16];
-                    _rand.NextBytes(key);
+                    _rand.GetBytes(key);
                     _key = Convert.ToBase64String(key);
                     sb.Append(_key + "\r\n\r\n"); // EOM
                     byte[] data = _utf8.GetBytes(sb.ToString());
@@ -321,7 +325,7 @@ namespace ZeroC.Ice
             {
                 // Add a random 32-bit mask to every outgoing frame, copy the payload data, and apply the mask.
                 buffer[1] = (byte)(buffer[1] | FlagMasked);
-                _rand.NextBytes(_sendMask);
+                _rand.GetBytes(_sendMask);
                 Buffer.BlockCopy(_sendMask, 0, buffer, i, _sendMask.Length);
                 i += _sendMask.Length;
             }
@@ -473,7 +477,7 @@ namespace ZeroC.Ice
             {
                 throw new WebSocketException("missing value for Upgrade field");
             }
-            else if (!value.Equals("websocket"))
+            else if (value != "websocket")
             {
                 throw new WebSocketException($"invalid value `{value}' for Upgrade field");
             }
@@ -496,7 +500,7 @@ namespace ZeroC.Ice
             {
                 throw new WebSocketException("missing value for WebSocket version");
             }
-            else if (!value.Equals("13"))
+            else if (value != "13")
             {
                 throw new WebSocketException($"unsupported WebSocket version `{value}'");
             }
@@ -515,7 +519,7 @@ namespace ZeroC.Ice
 
                 foreach (string protocol in protocols)
                 {
-                    if (!protocol.Trim().Equals(IceProtocol))
+                    if (protocol.Trim() != IceProtocol)
                     {
                         throw new WebSocketException($"unknown value `{protocol}' for WebSocket protocol");
                     }
@@ -570,7 +574,7 @@ namespace ZeroC.Ice
             {
                 throw new WebSocketException("missing value for Upgrade field");
             }
-            else if (!value.Equals("websocket"))
+            else if (value != "websocket")
             {
                 throw new WebSocketException($"invalid value `{value}' for Upgrade field");
             }
@@ -592,7 +596,7 @@ namespace ZeroC.Ice
             // use of a subprotocol that was not present in the client's handshake (the server has indicated a
             // subprotocol not requested by the client), the client MUST _Fail the WebSocket Connection_."
             value = _parser.GetHeader("Sec-WebSocket-Protocol", true);
-            if (value != null && !value.Equals(IceProtocol))
+            if (value != null && value != IceProtocol)
             {
                 throw new WebSocketException($"invalid value `{value}' for WebSocket protocol");
             }
@@ -612,7 +616,7 @@ namespace ZeroC.Ice
             using var sha1 = SHA1.Create();
             byte[] hash = sha1.ComputeHash(_utf8.GetBytes(input));
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
-            if (!value.Equals(Convert.ToBase64String(hash)))
+            if (value != Convert.ToBase64String(hash))
             {
                 throw new WebSocketException($"invalid value `{value}' for Sec-WebSocket-Accept");
             }

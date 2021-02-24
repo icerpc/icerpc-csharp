@@ -668,11 +668,11 @@ namespace ZeroC.Ice
             int beginIndex = pat.IndexOf('*');
             if (beginIndex < 0)
             {
-                return s.Equals(pat);
+                return s == pat;
             }
 
             // Make sure start of the strings match
-            if (beginIndex > s.Length || !s.Substring(0, beginIndex).Equals(pat.Substring(0, beginIndex)))
+            if (beginIndex > s.Length || s.Substring(0, beginIndex) != pat.Substring(0, beginIndex))
             {
                 return false;
             }
@@ -691,7 +691,7 @@ namespace ZeroC.Ice
             }
 
             // Make sure end of the strings match
-            if (!s[endIndex..].Equals(pat.Substring(beginIndex + 1, pat.Length - beginIndex - 1)))
+            if (s[endIndex..] != pat.Substring(beginIndex + 1, pat.Length - beginIndex - 1))
             {
                 return false;
             }
