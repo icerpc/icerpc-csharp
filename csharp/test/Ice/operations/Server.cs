@@ -5,11 +5,11 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Operations
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new MyDerivedClass());
             await adapter.ActivateAsync();
@@ -25,7 +25,7 @@ namespace ZeroC.Ice.Test.Operations
             properties["Ice.Warn.Connections"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

@@ -25,14 +25,14 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("creating/destroying/recreating object adapter... ");
                 output.Flush();
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(1) });
                 }
 
                 // Use a different port than the first adapter to avoid an "address already in use" error.
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(2) });
 
@@ -65,7 +65,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Flush();
                 try
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new() { Endpoints = ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0" });
                     TestHelper.Assert(false);
@@ -77,7 +77,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
                 try
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new()
                         {
@@ -97,7 +97,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("testing object adapter default published endpoints... ");
                 string testHost = "testhost";
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new()
                         {
@@ -111,7 +111,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                     TestHelper.Assert(publishedEndpoint.Host == testHost);
                 }
                 {
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         communicator,
                         new()
                         {
@@ -134,7 +134,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter published endpoints... ");
             output.Flush();
             {
-                await using var adapter = new ObjectAdapter(
+                await using var adapter = new Server(
                     communicator,
                     new()
                     {
@@ -159,11 +159,11 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 output.Write("testing object adapter with bi-dir connection... ");
                 output.Flush();
-                await using var adapter = new ObjectAdapter(communicator);
+                await using var adapter = new Server(communicator);
                 connection.Adapter = adapter;
                 connection.Adapter = null;
                 await adapter.DisposeAsync();
-                // Setting a deactivated adapter on a connection no longer raise ObjectAdapterDeactivatedException
+                // Setting a deactivated adapter on a connection no longer raise ServerDeactivatedException
                 connection.Adapter = adapter;
                 output.WriteLine("ok");
             }
@@ -171,12 +171,12 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing object adapter creation with port in use... ");
             output.Flush();
             {
-                await using var adapter1 = new ObjectAdapter(
+                await using var adapter1 = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(10) });
                 try
                 {
-                    await using var adapter2 = new ObjectAdapter(
+                    await using var adapter2 = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(10) });
                     TestHelper.Assert(false);

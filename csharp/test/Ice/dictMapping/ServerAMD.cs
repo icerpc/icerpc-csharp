@@ -5,11 +5,11 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.DictMapping
 {
-    public class ServerAMD : TestHelper
+    public class ServerAppAMD : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var adapter = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new AsyncMyClass());
@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.DictMapping
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<ServerAMD>(communicator, args);
+            return await RunTestAsync<ServerAppAMD>(communicator, args);
         }
     }
 }

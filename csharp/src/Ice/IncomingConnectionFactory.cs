@@ -27,7 +27,7 @@ namespace ZeroC.Ice
 
         private readonly IAcceptor _acceptor;
         private Task? _acceptTask;
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly Communicator _communicator;
         private readonly HashSet<Connection> _connections = new();
         private readonly object _mutex = new();
@@ -35,7 +35,7 @@ namespace ZeroC.Ice
 
         public override string ToString() => _acceptor.ToString()!;
 
-        internal AcceptorIncomingConnectionFactory(ObjectAdapter adapter, Endpoint endpoint)
+        internal AcceptorIncomingConnectionFactory(Server adapter, Endpoint endpoint)
         {
             _communicator = adapter.Communicator;
             _adapter = adapter;
@@ -91,7 +91,7 @@ namespace ZeroC.Ice
             }
 
             // The connection set is immutable once _shutdown is true
-            var exception = new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_adapter.Name}");
+            var exception = new ObjectDisposedException($"{typeof(Server).FullName}:{_adapter.Name}");
             IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync(exception));
 
             // Wait for AcceptAsync and the connection closure to return.
@@ -105,7 +105,7 @@ namespace ZeroC.Ice
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Reliability",
             "CA2007:Consider calling ConfigureAwait on the awaited task",
-            Justification = "Ensure continuations execute on the object adapter scheduler if it is set")]
+            Justification = "Ensure continuations execute on the server scheduler if it is set")]
         private async ValueTask AcceptAsync()
         {
             while (true)
@@ -194,7 +194,7 @@ namespace ZeroC.Ice
 
         public override string ToString() => _connection.ToString()!;
 
-        internal DatagramIncomingConnectionFactory(ObjectAdapter adapter, Endpoint endpoint)
+        internal DatagramIncomingConnectionFactory(Server adapter, Endpoint endpoint)
         {
             _connection = endpoint.CreateDatagramServerConnection(adapter);
             Endpoint = _connection.Endpoint;
@@ -207,6 +207,6 @@ namespace ZeroC.Ice
 
         internal override Task ShutdownAsync() =>
             _connection.GoAwayAsync(
-                new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{_connection.Adapter!.Name}"));
+                new ObjectDisposedException($"{typeof(Server).FullName}:{_connection.Adapter!.Name}"));
     }
 }

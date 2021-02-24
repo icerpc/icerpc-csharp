@@ -5,18 +5,18 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Retry
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter1 = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter1 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter1.Add("retry", new Retry());
             adapter1.Add("replicated", new Replicated(true));
             adapter1.Add("nonreplicated", new NonReplicated());
             await adapter1.ActivateAsync();
 
-            await using var adapter2 = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(1) });
+            await using var adapter2 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(1) });
             adapter2.Add("replicated", new Replicated(false));
             await adapter2.ActivateAsync();
 
@@ -31,7 +31,7 @@ namespace ZeroC.Ice.Test.Retry
             properties["Ice.Warn.Connections"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

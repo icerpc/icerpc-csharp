@@ -13,7 +13,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private ISequenceMappingTestServicePrx Prx { get; }
         public SequenceMappingTests() =>
-            Prx = ObjectAdapter.AddWithUUID(new TestService(), ISequenceMappingTestServicePrx.Factory);
+            Prx = Server.AddWithUUID(new TestService(), ISequenceMappingTestServicePrx.Factory);
 
         [Test]
         public async Task SequenceMapping_GenericList()

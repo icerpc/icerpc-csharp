@@ -64,7 +64,7 @@ namespace ZeroC.Ice
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
 
-        /// <summary>Parses an ice+transport URI string that represents one or more object adapter endpoints.</summary>
+        /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The list of endpoints.</returns>
@@ -169,7 +169,7 @@ namespace ZeroC.Ice
             {
                 if (oaEndpoint)
                 {
-                    throw new FormatException("ice+universal cannot specify an object adapter endpoint");
+                    throw new FormatException("ice+universal cannot specify an server endpoint");
                 }
 
                 // Enumerator names can only be used for "well-known" transports.
@@ -387,7 +387,7 @@ namespace ZeroC.Ice
 
         /// <summary>Parses an ice or ice+transport URI string.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="oaEndpoints">True when parsing the endpoints of an object adapter; false when parsing a proxy.
+        /// <param name="oaEndpoints">True when parsing the endpoints of an server; false when parsing a proxy.
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
@@ -403,7 +403,7 @@ namespace ZeroC.Ice
                 bool iceScheme = uriString.StartsWith("ice:", StringComparison.InvariantCulture);
                 if (iceScheme && oaEndpoints)
                 {
-                    throw new FormatException("an object adapter endpoint supports only ice+transport URIs");
+                    throw new FormatException("an server endpoint supports only ice+transport URIs");
                 }
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();

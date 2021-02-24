@@ -6,7 +6,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.ProtocolBridging
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -31,13 +31,13 @@ namespace ZeroC.Ice.Test.ProtocolBridging
             bool ice1 = Protocol == Protocol.Ice1;
 
             await using var adapterForwarder =
-                new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+                new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             await using var adapterSame =
-                new ObjectAdapter(Communicator, new() { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
+                new Server(Communicator, new() { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
 
             await using var adapterOther =
-                new ObjectAdapter(Communicator, new() { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
+                new Server(Communicator, new() { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
 
             ITestIntfPrx samePrx = adapterSame.Add("TestSame", new TestI(), ITestIntfPrx.Factory);
             ITestIntfPrx otherPrx = adapterOther.Add("TestOther", new TestI(), ITestIntfPrx.Factory);
@@ -56,7 +56,7 @@ namespace ZeroC.Ice.Test.ProtocolBridging
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

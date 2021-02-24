@@ -56,7 +56,7 @@ namespace ZeroC.Ice.Discovery
         {
         }
 
-        /// <summary>Activates the object adapters used by DiscoveryServer.</summary>
+        /// <summary>Activates the servers used by DiscoveryServer.</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <return>A task that completes when the activation is complete.</return>
         public Task ActivateAsync(CancellationToken cancel = default) => _locator.ActivateAsync(cancel);

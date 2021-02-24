@@ -9,13 +9,13 @@ namespace ZeroC.Ice.Test.Discovery
 {
     public sealed class Controller : IAsyncController
     {
-        private readonly Dictionary<string, ObjectAdapter> _adapters = new();
+        private readonly Dictionary<string, Server> _adapters = new();
 
         private readonly ILocatorRegistryPrx _locatorRegistry;
 
         public Controller(ILocatorRegistryPrx locatorRegistry) => _locatorRegistry = locatorRegistry;
 
-        public async ValueTask ActivateObjectAdapterAsync(
+        public async ValueTask ActivateServerAsync(
             string name,
             string adapterId,
             string replicaGroupId,
@@ -26,7 +26,7 @@ namespace ZeroC.Ice.Test.Discovery
             bool ice1 = TestHelper.GetTestProtocol(communicator.GetProperties()) == Protocol.Ice1;
             string transport = TestHelper.GetTestTransport(communicator.GetProperties());
 
-            var oa = new ObjectAdapter(
+            var oa = new Server(
                 communicator,
                 new()
                 {
@@ -41,7 +41,7 @@ namespace ZeroC.Ice.Test.Discovery
             await oa.ActivateAsync(cancel);
         }
 
-        public async ValueTask DeactivateObjectAdapterAsync(string name, Current current, CancellationToken cancel)
+        public async ValueTask DeactivateServerAsync(string name, Current current, CancellationToken cancel)
         {
             await _adapters[name].ShutdownAsync();
             _adapters.Remove(name);

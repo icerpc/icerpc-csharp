@@ -11,10 +11,10 @@ namespace ZeroC.Ice
         None
     }
 
-    /// <summary>An options class for configuring an <see cref="ObjectAdapter"/>.</summary>
-    public sealed class ObjectAdapterOptions
+    /// <summary>An options class for configuring a <see cref="Server"/>.</summary>
+    public sealed class ServerOptions
     {
-        /// <summary>Indicates under what conditions this object adapter accepts non-secure connections.</summary>
+        /// <summary>Indicates under what conditions this server accepts non-secure connections.</summary>
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
@@ -27,7 +27,7 @@ namespace ZeroC.Ice
 
         public int? IncomingFrameMaxSize { get; set; } // 0 means "infinite", null means use Communicator's value
 
-        public ILocatorRegistryPrx? LocatorRegistry { get; set; } // only for ice1 object adapters
+        public ILocatorRegistryPrx? LocatorRegistry { get; set; } // only for ice1 servers
 
         public string Name { get; set; } = "";
 

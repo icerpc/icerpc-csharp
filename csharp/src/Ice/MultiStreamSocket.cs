@@ -98,9 +98,9 @@ namespace ZeroC.Ice
 
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
-        /// <param name="adapter">The object adapter from which the socket was created or null if the socket
+        /// <param name="adapter">The server from which the socket was created or null if the socket
         /// is an outgoing socket created from the communicator.</param>
-        protected MultiStreamSocket(Endpoint endpoint, ObjectAdapter? adapter)
+        protected MultiStreamSocket(Endpoint endpoint, Server? adapter)
         {
             Endpoint = endpoint;
             IsIncoming = adapter != null;

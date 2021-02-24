@@ -8,12 +8,12 @@ using ZeroC.Test;
 
 namespace ZeroC.IceSSL.Test.Configuration
 {
-    internal sealed class SSLServer : IServer
+    internal sealed class SSLServerApp : IServer
     {
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly Communicator _communicator;
 
-        internal SSLServer(Communicator communicator, ObjectAdapter adapter)
+        internal SSLServerApp(Communicator communicator, Server adapter)
         {
             _communicator = communicator;
             _adapter = adapter;
@@ -72,7 +72,7 @@ namespace ZeroC.IceSSL.Test.Configuration
     internal sealed class ServerFactory : IAsyncServerFactory
     {
         private readonly string _defaultDir;
-        private readonly Dictionary<Identity, SSLServer> _servers = new();
+        private readonly Dictionary<Identity, SSLServerApp> _servers = new();
 
         public ServerFactory(string defaultDir) => _defaultDir = defaultDir;
 
@@ -99,7 +99,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                 transport: ice1 ? "ssl" : "tcp",
                 ephemeral: host != "localhost");
 
-            var adapter = new ObjectAdapter(
+            var adapter = new Server(
                 communicator,
                 new()
                 {
@@ -107,7 +107,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     Endpoints = serverEndpoint,
                     ServerName = host
                 });
-            var server = new SSLServer(communicator, adapter);
+            var server = new SSLServerApp(communicator, adapter);
             IServerPrx prx = adapter.AddWithUUID(server, IServerPrx.Factory);
             _servers[prx.Identity] = server;
             await adapter.ActivateAsync(cancel);
@@ -116,7 +116,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 
         public async ValueTask DestroyServerAsync(IServerPrx? srv, Current current, CancellationToken cancel)
         {
-            if (_servers.TryGetValue(srv!.Identity, out SSLServer? server))
+            if (_servers.TryGetValue(srv!.Identity, out SSLServerApp? server))
             {
                 await server.ShutdownAsync();
                 _servers.Remove(srv.Identity);

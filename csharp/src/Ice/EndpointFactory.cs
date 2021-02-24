@@ -15,7 +15,7 @@ namespace ZeroC.Ice
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
     /// <param name="communicator">The communicator.</param>
-    /// <param name="oaEndpoint">When true, the new endpoint corresponds to an object adapter's endpoint configuration;
+    /// <param name="oaEndpoint">When true, the new endpoint corresponds to an server's endpoint configuration;
     /// when false, endpointString represents a proxy endpoint.</param>
     /// <param name="endpointString">The original endpoint string, for error messages and tracing.</param>
     /// <returns>A new endpoint for the ice1 protocol.</returns>
@@ -39,7 +39,7 @@ namespace ZeroC.Ice
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
     /// <param name="communicator">The communicator.</param>
-    /// <param name="oaEndpoint">When true, the new endpoint corresponds to an object adapter's endpoint configuration;
+    /// <param name="oaEndpoint">When true, the new endpoint corresponds to an server's endpoint configuration;
     /// when false, represents a proxy endpoint.</param>
     /// <returns>A new endpoint for the ice2 protocol.</returns>
     public delegate Endpoint Ice2EndpointParser(

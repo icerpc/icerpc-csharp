@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Api
         private IInvocationInterceptorTestServicePrx Prx { get; }
 
         public InvocationInterceptorTests() =>
-            Prx = ObjectAdapter.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
+            Prx = Server.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>

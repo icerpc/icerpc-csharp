@@ -10,7 +10,7 @@ namespace IceRpc.Tests.ClientServer
     public class ClientServerBaseTest
     {
         public Communicator Communicator { get; }
-        public ObjectAdapter ObjectAdapter { get; }
+        public Server Server { get; }
         public Protocol Protocol { get; }
         public string Transport { get; }
 
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
-            ObjectAdapter = new(
+            Server = new(
                 Communicator,
                 new()
                 {
@@ -44,12 +44,12 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [OneTimeSetUp]
-        public async Task InitializeAsync() => await ObjectAdapter.ActivateAsync();
+        public async Task InitializeAsync() => await Server.ActivateAsync();
 
         [OneTimeTearDown]
         public async Task DisposeAsync()
         {
-            await ObjectAdapter.DisposeAsync();
+            await Server.DisposeAsync();
             await Communicator.DisposeAsync();
         }
 

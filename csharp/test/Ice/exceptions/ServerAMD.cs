@@ -6,17 +6,17 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Exceptions
 {
-    public class ServerAMD : TestHelper
+    public class ServerAppAMD : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter2 = new ObjectAdapter(
+            Server adapter2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
 
-            ObjectAdapter adapter3 = new ObjectAdapter(
+            Server adapter3 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
@@ -30,7 +30,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
 
-            await using var forwarderAdapter = new ObjectAdapter(
+            await using var forwarderAdapter = new Server(
                 communicator2,
                 new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
 
@@ -49,7 +49,7 @@ namespace ZeroC.Ice.Test.Exceptions
             properties["Ice.IncomingFrameMaxSize"] = "10K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<ServerAMD>(communicator, args);
+            return await RunTestAsync<ServerAppAMD>(communicator, args);
         }
     }
 }

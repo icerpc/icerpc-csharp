@@ -404,7 +404,7 @@ namespace ZeroC.Ice.Test.Proxy
             // TODO: why are we testing this here?
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = " : " });
+                await using var badOa = new Server(communicator, new() { Endpoints = " : " });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -413,7 +413,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = "tcp: "});
+                await using var badOa = new Server(communicator, new() { Endpoints = "tcp: "});
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -422,7 +422,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = ":tcp" });
+                await using var badOa = new Server(communicator, new() { Endpoints = ":tcp" });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -919,7 +919,7 @@ namespace ZeroC.Ice.Test.Proxy
             {
                 output.Write("testing relative proxies... ");
                 {
-                    await using ObjectAdapter oa = new ObjectAdapter(communicator);
+                    await using Server oa = new Server(communicator);
                     (await cl.GetConnectionAsync()).Adapter = oa;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy

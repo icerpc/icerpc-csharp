@@ -13,7 +13,7 @@ namespace ZeroC.Ice.Test.Inheritance
         private readonly IB2Prx _ib2;
         private readonly ICPrx _ic;
 
-        public InitialI(ObjectAdapter adapter)
+        public InitialI(Server adapter)
         {
             _ia = adapter.AddWithUUID(new A(), IAPrx.Factory);
             _ib1 = adapter.AddWithUUID(new B1(), IB1Prx.Factory);

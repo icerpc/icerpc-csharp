@@ -271,7 +271,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -323,7 +323,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    await using var adapter = new ObjectAdapter(
+                    await using var adapter = new Server(
                         serverCommunicator,
                         new()
                         {

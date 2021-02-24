@@ -15,7 +15,7 @@ namespace ZeroC.Ice
         public Endpoint Endpoint => _endpoint;
 
         private readonly ColocatedEndpoint _endpoint;
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> _reader;
         private readonly ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> _writer;
 
@@ -37,7 +37,7 @@ namespace ZeroC.Ice
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,
-            ObjectAdapter adapter,
+            Server adapter,
             ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> writer,
             ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> reader)
         {

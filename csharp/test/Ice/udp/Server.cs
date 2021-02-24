@@ -8,7 +8,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.UDP
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.UDP
 
             var serverName = Communicator.GetProperty("Ice.ServerName") ?? "127.0.0.1";
 
-            await using var adapter = new ObjectAdapter(
+            await using var adapter = new Server(
                 Communicator,
                 new()
                 {
@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Test.UDP
             ServerReady();
             if (num == 0)
             {
-                var adapter2 = new ObjectAdapter(
+                var adapter2 = new Server(
                     Communicator,
                     new()
                     {
@@ -73,7 +73,7 @@ namespace ZeroC.Ice.Test.UDP
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
 
-            ObjectAdapter mcastAdapter = new ObjectAdapter(
+            Server mcastAdapter = new Server(
                 Communicator,
                 new()
                 {
@@ -96,7 +96,7 @@ namespace ZeroC.Ice.Test.UDP
             properties["Ice.UDP.RcvSize"] = "16K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

@@ -6,17 +6,17 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.AMI
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new TestIntf());
             adapter.Add("test2", new TestIntf2());
             await adapter.ActivateAsync();
 
-            var adapter2 = new ObjectAdapter(
+            var adapter2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
@@ -39,7 +39,7 @@ namespace ZeroC.Ice.Test.AMI
             properties["Ice.IncomingFrameMaxSize"] = "15M";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

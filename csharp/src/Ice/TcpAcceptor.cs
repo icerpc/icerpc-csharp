@@ -13,7 +13,7 @@ namespace ZeroC.Ice
     {
         public Endpoint Endpoint { get; }
 
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly Socket _socket;
         private readonly IPEndPoint _addr;
 
@@ -55,7 +55,7 @@ namespace ZeroC.Ice
 
         public override string ToString() => _addr.ToString();
 
-        internal TcpAcceptor(TcpEndpoint endpoint, ObjectAdapter adapter)
+        internal TcpAcceptor(TcpEndpoint endpoint, Server adapter)
         {
             Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
 

@@ -20,7 +20,7 @@ namespace ZeroC.Ice.Discovery
         private readonly int _latencyMultiplier;
 
         private readonly ILogger _logger;
-        private readonly ObjectAdapter _locatorAdapter;
+        private readonly Server _locatorAdapter;
 
         private readonly ILookupPrx _lookup;
 
@@ -29,11 +29,11 @@ namespace ZeroC.Ice.Discovery
         // and that matches the interface of the key's endpoint.
         private readonly Dictionary<ILookupPrx, IServicePrx> _lookups = new();
 
-        private readonly ObjectAdapter _multicastAdapter;
+        private readonly Server _multicastAdapter;
 
         private readonly ILocatorRegistryPrx _registry;
 
-        private readonly ObjectAdapter _replyAdapter;
+        private readonly Server _replyAdapter;
         private readonly int _retryCount;
         private readonly TimeSpan _timeout;
 
@@ -125,7 +125,7 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = new ObjectAdapter(communicator,
+            _locatorAdapter = new Server(communicator,
                                                  new()
                                                  {
                                                      ColocationScope = options.ColocationScope,
@@ -137,7 +137,7 @@ namespace ZeroC.Ice.Discovery
             var registryServant = new LocatorRegistry(communicator);
             _registry = _locatorAdapter.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
 
-            _multicastAdapter = new ObjectAdapter(communicator,
+            _multicastAdapter = new Server(communicator,
                                                   new()
                                                   {
                                                       AcceptNonSecure = NonSecure.Always,
@@ -146,7 +146,7 @@ namespace ZeroC.Ice.Discovery
                                                       Name = "Discovery.Multicast",
                                                   });
 
-            _replyAdapter = new ObjectAdapter(communicator,
+            _replyAdapter = new Server(communicator,
                                               new()
                                               {
                                                   AcceptNonSecure = NonSecure.Always,
@@ -162,7 +162,7 @@ namespace ZeroC.Ice.Discovery
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.
             // TODO: this code is incorrect now that the default published endpoints are no longer an expansion
-            // of the object adapter endpoints.
+            // of the server endpoints.
             foreach (Endpoint endpoint in _lookup.Endpoints)
             {
                 if (!endpoint.IsDatagram)
@@ -286,7 +286,7 @@ namespace ZeroC.Ice.Discovery
         private readonly TaskCompletionSource<TResult> _completionSource;
         private readonly TResult _emptyResult;
 
-        private readonly ObjectAdapter _replyAdapter;
+        private readonly Server _replyAdapter;
 
         public void Dispose()
         {
@@ -311,9 +311,9 @@ namespace ZeroC.Ice.Discovery
 
         internal void SetEmptyResult() => _completionSource.SetResult(_emptyResult);
 
-        private protected ReplyServant(TResult emptyResult, ObjectAdapter replyAdapter)
+        private protected ReplyServant(TResult emptyResult, Server replyAdapter)
         {
-            // Add servant (this) to object adapter with new UUID identity.
+            // Add servant (this) to server with new UUID identity.
             Identity = replyAdapter.AddWithUUID(this, IServicePrx.Factory).Identity;
 
             _cancellationSource = new();
@@ -366,7 +366,7 @@ namespace ZeroC.Ice.Discovery
             return default;
         }
 
-        internal FindAdapterByIdReply(ObjectAdapter replyAdapter)
+        internal FindAdapterByIdReply(Server replyAdapter)
             : base(emptyResult: null, replyAdapter)
         {
         }
@@ -396,7 +396,7 @@ namespace ZeroC.Ice.Discovery
             return default;
         }
 
-        internal FindObjectByIdReply(ObjectAdapter replyAdapter)
+        internal FindObjectByIdReply(Server replyAdapter)
             : base(emptyResult: null, replyAdapter)
         {
         }

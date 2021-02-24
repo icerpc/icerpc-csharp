@@ -37,13 +37,13 @@ namespace ZeroC.Ice
         private int _hashCode;
 
         // TODO: should not be public
-        public override IAcceptor Acceptor(ObjectAdapter adapter)
+        public override IAcceptor Acceptor(Server adapter)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
             return new TcpAcceptor(this, adapter);
         }
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter) =>
+        public override Connection CreateDatagramServerConnection(Server adapter) =>
             throw new InvalidOperationException();
 
         public override bool Equals(Endpoint? other)
@@ -217,7 +217,7 @@ namespace ZeroC.Ice
         protected internal virtual Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            ObjectAdapter? adapter) =>
+            Server? adapter) =>
             new TcpConnection(this, socket, label, adapter);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)

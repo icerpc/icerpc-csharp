@@ -209,13 +209,13 @@ namespace ZeroC.Ice
             }
         }
 
-        internal Ice1NetworkSocket(SingleStreamSocket socket, Endpoint endpoint, ObjectAdapter? adapter)
+        internal Ice1NetworkSocket(SingleStreamSocket socket, Endpoint endpoint, Server? adapter)
             : base(endpoint, adapter, socket)
         {
             IdleTimeout = endpoint.Communicator.IdleTimeout;
             _socket = socket;
 
-            // If serialization is enabled on the object adapter, create semaphore to limit the number of concurrent
+            // If serialization is enabled on the server, create semaphore to limit the number of concurrent
             // dispatch per connection.
             if (adapter?.SerializeDispatch ?? false)
             {

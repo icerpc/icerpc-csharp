@@ -38,7 +38,7 @@ namespace ZeroC.Ice
 
         private int _hashCode; // 0 is a special value that means not initialized.
 
-        public override IAcceptor Acceptor(ObjectAdapter adapter) =>
+        public override IAcceptor Acceptor(Server adapter) =>
             throw new InvalidOperationException();
 
         public override bool Equals(Endpoint? other)
@@ -83,7 +83,7 @@ namespace ZeroC.Ice
             throw new NotImplementedException("cannot write the options of an opaque endpoint");
         }
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter) =>
+        public override Connection CreateDatagramServerConnection(Server adapter) =>
             throw new InvalidOperationException();
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)

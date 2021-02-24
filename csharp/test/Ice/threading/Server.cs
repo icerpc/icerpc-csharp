@@ -6,23 +6,23 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Threading
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
             adapter.Add("test", new TestIntf(TaskScheduler.Default));
             await adapter.ActivateAsync();
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
-            await using var adapter2 = new ObjectAdapter(
+            await using var adapter2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), TaskScheduler = schedulerPair.ExclusiveScheduler });
             adapter2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
             await adapter2.ActivateAsync();
 
-            await using var adapter3 = new ObjectAdapter(
+            await using var adapter3 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(2), TaskScheduler = schedulerPair.ConcurrentScheduler });
             adapter3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
@@ -43,7 +43,7 @@ namespace ZeroC.Ice.Test.Threading
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

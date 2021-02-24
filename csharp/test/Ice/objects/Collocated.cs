@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Objects
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var adapter = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("initial", new Initial(adapter));

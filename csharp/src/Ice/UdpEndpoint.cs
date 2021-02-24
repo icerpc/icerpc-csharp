@@ -36,10 +36,10 @@ namespace ZeroC.Ice
 
         private int _hashCode;
 
-        public override IAcceptor Acceptor(ObjectAdapter adapter) =>
+        public override IAcceptor Acceptor(Server adapter) =>
             throw new InvalidOperationException();
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter)
+        public override Connection CreateDatagramServerConnection(Server adapter)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
 

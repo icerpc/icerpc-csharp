@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.Binding
     {
         private int _nextPort = 10;
 
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerAsync(
             string name,
             string transport,
             Current current,
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoints =
                         TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
 
-                    var adapter = new ObjectAdapter(
+                    var adapter = new Server(
                         current.Communicator,
                         new()
                         {
@@ -37,8 +37,8 @@ namespace ZeroC.Ice.Test.Binding
                         });
                     await adapter.ActivateAsync(cancel);
 
-                    return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter),
-                                                       IRemoteObjectAdapterPrx.Factory);
+                    return current.Adapter.AddWithUUID(new RemoteServer(adapter),
+                                                       IRemoteServerPrx.Factory);
                 }
                 catch (TransportException)
                 {
@@ -50,23 +50,23 @@ namespace ZeroC.Ice.Test.Binding
             }
         }
 
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterWithEndpointsAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
             string name,
             string endpoints,
             Current current,
             CancellationToken cancel)
         {
-            var adapter = new ObjectAdapter(
+            var adapter = new Server(
                 current.Communicator,
-                new ObjectAdapterOptions { Endpoints = endpoints, Name = name });
+                new ServerOptions { Endpoints = endpoints, Name = name });
             await adapter.ActivateAsync(cancel);
 
-            return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);
+            return current.Adapter.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
         }
 
         // Colocated call.
-        public ValueTask DeactivateObjectAdapterAsync(
-            IRemoteObjectAdapterPrx adapter,
+        public ValueTask DeactivateServerAsync(
+            IRemoteServerPrx adapter,
             Current current,
             CancellationToken cancel) =>
             new(adapter.DeactivateAsync(cancel: cancel));

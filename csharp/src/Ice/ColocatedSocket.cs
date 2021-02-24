@@ -114,7 +114,7 @@ namespace ZeroC.Ice
         public override Task PingAsync(CancellationToken cancel) => Task.CompletedTask;
 
         public override string ToString() =>
-            $"colocated ID = {_id}\nobject adapter = {((ColocatedEndpoint)Endpoint).Adapter.Name}\nincoming = {IsIncoming}";
+            $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Adapter.Name}\nincoming = {IsIncoming}";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,

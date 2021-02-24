@@ -610,7 +610,7 @@ namespace ZeroC.Ice.Test.Location
             output.Write("testing indirect proxies to colocated objects... ");
             output.Flush();
 
-            await using var adapter = new ObjectAdapter(
+            await using var adapter = new Server(
                 communicator,
                 new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 

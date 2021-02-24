@@ -174,7 +174,7 @@ namespace ZeroC.Ice
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            ObjectAdapter? adapter) =>
+            Server? adapter) =>
             new WSConnection(this, socket, label, adapter);
 
         // Constructor used for ice2 parsing.

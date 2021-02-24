@@ -6,11 +6,11 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Slicing.Exceptions
 {
-    public class ServerAMD : TestHelper
+    public class ServerAppAMD : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var adapter = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("Test", new AsyncTestIntf());
@@ -26,7 +26,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
             properties["Ice.Warn.Dispatch"] = "0";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<ServerAMD>(communicator, args);
+            return await RunTestAsync<ServerAppAMD>(communicator, args);
         }
     }
 }

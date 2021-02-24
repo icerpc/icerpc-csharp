@@ -74,7 +74,7 @@ namespace ZeroC.Ice.Test.Discovery
                 {
                 }
 
-                proxies[0].ActivateObjectAdapter("oa", "oa1", "");
+                proxies[0].ActivateServer("oa", "oa1", "");
 
                 try
                 {
@@ -85,7 +85,7 @@ namespace ZeroC.Ice.Test.Discovery
                 {
                 }
 
-                proxies[0].DeactivateObjectAdapter("oa");
+                proxies[0].DeactivateServer("oa");
 
                 try
                 {
@@ -101,25 +101,25 @@ namespace ZeroC.Ice.Test.Discovery
             output.Write("testing object adapter migration... ");
             output.Flush();
             {
-                proxies[0].ActivateObjectAdapter("oa", "oa1", "");
+                proxies[0].ActivateServer("oa", "oa1", "");
                 proxies[0].AddObject("oa", "object");
                 await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
-                proxies[0].DeactivateObjectAdapter("oa");
+                proxies[0].DeactivateServer("oa");
 
-                proxies[1].ActivateObjectAdapter("oa", "oa1", "");
+                proxies[1].ActivateServer("oa", "oa1", "");
                 proxies[1].AddObject("oa", "object");
                 await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
-                proxies[1].DeactivateObjectAdapter("oa");
+                proxies[1].DeactivateServer("oa");
             }
             output.WriteLine("ok");
 
             output.Write("testing object migration... ");
             output.Flush();
             {
-                proxies[0].ActivateObjectAdapter("oa", "oa1", "");
-                proxies[1].ActivateObjectAdapter("oa", "oa2", "");
+                proxies[0].ActivateServer("oa", "oa1", "");
+                proxies[1].ActivateServer("oa", "oa2", "");
 
                 proxies[0].AddObject("oa", "object");
                 await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
@@ -146,17 +146,17 @@ namespace ZeroC.Ice.Test.Discovery
                 {
                 }
 
-                proxies[0].DeactivateObjectAdapter("oa");
-                proxies[1].DeactivateObjectAdapter("oa");
+                proxies[0].DeactivateServer("oa");
+                proxies[1].DeactivateServer("oa");
             }
             output.WriteLine("ok");
 
             output.Write("testing replica groups... ");
             output.Flush();
             {
-                proxies[0].ActivateObjectAdapter("oa", "oa1", "rg");
-                proxies[1].ActivateObjectAdapter("oa", "oa2", "rg");
-                proxies[2].ActivateObjectAdapter("oa", "oa3", "rg");
+                proxies[0].ActivateServer("oa", "oa1", "rg");
+                proxies[1].ActivateServer("oa", "oa2", "rg");
+                proxies[2].ActivateServer("oa", "oa3", "rg");
 
                 proxies[0].AddObject("oa", "object");
                 proxies[1].AddObject("oa", "object");
@@ -191,25 +191,25 @@ namespace ZeroC.Ice.Test.Discovery
                     {
                         case "oa1":
                         {
-                            proxies[0].DeactivateObjectAdapter("oa");
+                            proxies[0].DeactivateServer("oa");
                             break;
                         }
                         case "oa2":
                         {
-                            proxies[1].DeactivateObjectAdapter("oa");
+                            proxies[1].DeactivateServer("oa");
                             break;
                         }
                         case "oa3":
                         {
-                            proxies[2].DeactivateObjectAdapter("oa");
+                            proxies[2].DeactivateServer("oa");
                             break;
                         }
                     }
                 }
 
-                proxies[0].ActivateObjectAdapter("oa", "oa1", "rg");
-                proxies[1].ActivateObjectAdapter("oa", "oa2", "rg");
-                proxies[2].ActivateObjectAdapter("oa", "oa3", "rg");
+                proxies[0].ActivateServer("oa", "oa1", "rg");
+                proxies[1].ActivateServer("oa", "oa2", "rg");
+                proxies[2].ActivateServer("oa", "oa3", "rg");
 
                 proxies[0].AddObject("oa", "object");
                 proxies[1].AddObject("oa", "object");
@@ -240,17 +240,17 @@ namespace ZeroC.Ice.Test.Discovery
                     {
                         case "oa1":
                         {
-                            proxies[0].DeactivateObjectAdapter("oa");
+                            proxies[0].DeactivateServer("oa");
                             break;
                         }
                         case "oa2":
                         {
-                            proxies[1].DeactivateObjectAdapter("oa");
+                            proxies[1].DeactivateServer("oa");
                             break;
                         }
                         case "oa3":
                         {
-                            proxies[2].DeactivateObjectAdapter("oa");
+                            proxies[2].DeactivateServer("oa");
                             break;
                         }
                     }

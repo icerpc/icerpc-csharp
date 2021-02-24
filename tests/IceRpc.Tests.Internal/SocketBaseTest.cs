@@ -12,7 +12,7 @@ using ZeroC.Ice;
 namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
-    // ObjectAdapter and setup client/server endpoints for a configurable protocol/transport/security.<summary>
+    // Server and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
         private protected Endpoint ClientEndpoint { get; }
@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _server;
         private readonly Communicator _clientCommunicator;
 
         // Protects the _acceptor data member
@@ -59,12 +59,12 @@ namespace IceRpc.Tests.Internal
 
             string endpointTransport = transport == "colocated" ? "tcp" : transport;
 
-            // It's important to use "localhost" here and not an IP address since the object adapter will otherwise
+            // It's important to use "localhost" here and not an IP address since the server will otherwise
             // create the acceptor in its constructor instead of its ActivateAsync method.
             string endpoint = protocol == Protocol.Ice2 ?
                 $"ice+{endpointTransport}://localhost:{port}" : $"{endpointTransport} -h localhost -p {port}";
 
-            _adapter = new(
+            _server = new(
                 _serverCommunicator,
                 new()
                 {
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
                     // { "IceSSL.Trace.Security", "2" },
                 });
 
-            var proxy = _adapter.CreateProxy("dummy", IServicePrx.Factory);
+            var proxy = _server.CreateProxy("dummy", IServicePrx.Factory);
             ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
             ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
         }
@@ -93,14 +93,14 @@ namespace IceRpc.Tests.Internal
         {
             _acceptor?.Dispose();
             await _clientCommunicator.DisposeAsync();
-            await _adapter.DisposeAsync();
+            await _server.DisposeAsync();
             await _serverCommunicator.DisposeAsync();
         }
 
         protected async ValueTask<IAcceptor> CreateAcceptorAsync()
         {
             Endpoint serverEndpoint = (await ServerEndpoint.ExpandHostAsync(default)).First();
-            return serverEndpoint.Acceptor(_adapter);
+            return serverEndpoint.Acceptor(_server);
         }
 
         protected async Task<MultiStreamSocket> ConnectAsync()

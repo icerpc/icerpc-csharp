@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.Exceptions
             {
                 output.Write("testing object adapter registration exceptions... ");
 
-                await using var first = new ObjectAdapter(
+                await using var first = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     // test that foo does not resolve
                     var props = communicator.GetProperties();
                     props["Test.Host"] = "foo";
-                    await using var badOa = new ObjectAdapter(
+                    await using var badOa = new Server(
                         communicator,
                         new() { Endpoints = TestHelper.GetTestEndpoint(props, ephemeral: true) });
 
@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 output.Write("testing servant registration exceptions... ");
-                await using ObjectAdapter adapter = new ObjectAdapter(
+                await using Server adapter = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();

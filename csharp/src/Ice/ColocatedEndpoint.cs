@@ -18,11 +18,11 @@ namespace ZeroC.Ice
         protected internal override bool HasOptions => false;
         protected internal override ushort DefaultPort => 0;
 
-        internal ObjectAdapter Adapter { get; }
+        internal Server Adapter { get; }
 
         private readonly Channel<(long, ColocatedChannelWriter, ColocatedChannelReader)> _channel;
 
-        public override IAcceptor Acceptor(ObjectAdapter adapter) =>
+        public override IAcceptor Acceptor(Server adapter) =>
             new ColocatedAcceptor(this, adapter, _channel.Writer, _channel.Reader);
 
         public override bool IsLocal(Endpoint endpoint) =>
@@ -31,7 +31,7 @@ namespace ZeroC.Ice
         protected internal override void WriteOptions(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter) =>
+        public override Connection CreateDatagramServerConnection(Server adapter) =>
             throw new InvalidOperationException();
 
         private long _nextId;
@@ -78,7 +78,7 @@ namespace ZeroC.Ice
         protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
-        internal ColocatedEndpoint(ObjectAdapter adapter)
+        internal ColocatedEndpoint(Server adapter)
             : base(new EndpointData(Transport.Colocated, host: adapter.Name, port: 0, Array.Empty<string>()),
                    adapter.Communicator,
                    adapter.Protocol)

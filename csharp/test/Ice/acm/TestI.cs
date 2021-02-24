@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.ACM
 {
     public class RemoteCommunicator : IAsyncRemoteCommunicator
     {
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerAsync(
             int idleTimeout,
             bool keepAlive,
             Current current,
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.ACM
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             string endpoint = TestHelper.GetTestEndpoint(properties: communicator.GetProperties(), ephemeral: true);
 
-            ObjectAdapter adapter = new ObjectAdapter(
+            Server adapter = new Server(
                 communicator,
                 new()
                 {
@@ -36,7 +36,7 @@ namespace ZeroC.Ice.Test.ACM
                 });
 
             await adapter.ActivateAsync(cancel);
-            return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);
+            return current.Adapter.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
         }
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
@@ -46,12 +46,12 @@ namespace ZeroC.Ice.Test.ACM
         }
     }
 
-    public class RemoteObjectAdapter : IRemoteObjectAdapter
+    public class RemoteServer : IRemoteServer
     {
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly ITestIntfPrx _testIntf;
 
-        public RemoteObjectAdapter(ObjectAdapter adapter)
+        public RemoteServer(Server adapter)
         {
             _adapter = adapter;
             _testIntf = _adapter.Add("test", new TestIntf(), ITestIntfPrx.Factory);

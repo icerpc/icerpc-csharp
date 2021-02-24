@@ -351,7 +351,7 @@ namespace ZeroC.Ice
         internal SlicSocket(
             SingleStreamSocket socket,
             Endpoint endpoint,
-            ObjectAdapter? adapter)
+            Server? adapter)
             : base(endpoint, adapter, socket)
         {
             _idleTimeout = endpoint.Communicator.IdleTimeout;

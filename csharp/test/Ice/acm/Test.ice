@@ -16,7 +16,7 @@ interface TestIntf
     void waitForHeartbeatCount(int count);
 }
 
-interface RemoteObjectAdapter
+interface RemoteServer
 {
     TestIntf* getTestIntf();
     void deactivate();
@@ -24,7 +24,7 @@ interface RemoteObjectAdapter
 
 interface RemoteCommunicator
 {
-    RemoteObjectAdapter createObjectAdapter(int idleTimeout, bool keepAlive);
+    RemoteServer createServer(int idleTimeout, bool keepAlive);
     void shutdown();
 }
 

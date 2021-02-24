@@ -7,7 +7,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Scope
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         private class I1 : II
         {
@@ -111,7 +111,7 @@ namespace ZeroC.Ice.Test.Scope
 
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("i1", new I1());
             adapter.Add("i2", new I2());
@@ -126,7 +126,7 @@ namespace ZeroC.Ice.Test.Scope
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

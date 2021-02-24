@@ -1194,7 +1194,7 @@ namespace ZeroC.Ice
         {
             Debug.Assert(!IsFixed);
 
-            if (ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            if (LocalServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
             }

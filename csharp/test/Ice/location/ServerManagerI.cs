@@ -11,7 +11,7 @@ namespace ZeroC.Ice.Test.Location
     {
         private readonly ServerLocatorRegistry _registry;
         private readonly List<Communicator> _communicators = new();
-        private readonly List<ObjectAdapter> _adapters = new();
+        private readonly List<Server> _adapters = new();
         private readonly TestHelper _helper;
         private int _nextPort = 1;
 
@@ -23,7 +23,7 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask StartServerAsync(Current current, CancellationToken cancel)
         {
-            foreach (ObjectAdapter a in _adapters)
+            foreach (Server a in _adapters)
             {
                 await a.ShutdownAsync();
             }
@@ -49,8 +49,8 @@ namespace ZeroC.Ice.Test.Location
             int nRetry = 10;
             while (--nRetry > 0)
             {
-                ObjectAdapter? adapter = null;
-                ObjectAdapter? adapter2 = null;
+                Server? adapter = null;
+                Server? adapter2 = null;
 
                 try
                 {
@@ -58,7 +58,7 @@ namespace ZeroC.Ice.Test.Location
 
                     ILocatorRegistryPrx? locatorRegistry = await locator.GetRegistryAsync();
 
-                    adapter = new ObjectAdapter(
+                    adapter = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -69,7 +69,7 @@ namespace ZeroC.Ice.Test.Location
                         });
                     _adapters.Add(adapter);
 
-                    adapter2 = new ObjectAdapter(
+                    adapter2 = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -111,7 +111,7 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            foreach (ObjectAdapter a in _adapters)
+            foreach (Server a in _adapters)
             {
                 await a.ShutdownAsync();
             }

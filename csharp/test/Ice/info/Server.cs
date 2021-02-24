@@ -6,15 +6,15 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Info
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            ObjectAdapterOptions options;
+            ServerOptions options;
 
             if (Protocol == Protocol.Ice1)
             {
-                options = new ObjectAdapterOptions
+                options = new ServerOptions
                 {
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = GetTestEndpoint(0) + ":" + GetTestEndpoint(0, "udp"),
@@ -23,10 +23,10 @@ namespace ZeroC.Ice.Test.Info
             }
             else
             {
-                options = new ObjectAdapterOptions { Endpoints = GetTestEndpoint(0), Name = "TestAdapter" };
+                options = new ServerOptions { Endpoints = GetTestEndpoint(0), Name = "TestAdapter" };
             }
 
-            await using var adapter = new ObjectAdapter(Communicator, options);
+            await using var adapter = new Server(Communicator, options);
             adapter.Add("test", new TestIntf());
             await adapter.ActivateAsync();
 
@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Test.Info
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

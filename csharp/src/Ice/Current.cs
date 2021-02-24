@@ -9,8 +9,8 @@ namespace ZeroC.Ice
     /// Current as its final parameter.</summary>
     public class Current
     {
-        /// <summary>The object adapter.</summary>
-        public ObjectAdapter Adapter { get; }
+        /// <summary>The server.</summary>
+        public Server Adapter { get; }
 
         /// <summary>The communicator.</summary>
         public Communicator Communicator => Adapter.Communicator;
@@ -58,7 +58,7 @@ namespace ZeroC.Ice
         internal SocketStream Stream { get; }
 
         internal Current(
-            ObjectAdapter adapter,
+            Server adapter,
             IncomingRequestFrame incomingRequestFrame,
             SocketStream stream,
             Connection connection)

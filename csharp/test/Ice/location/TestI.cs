@@ -9,11 +9,11 @@ namespace ZeroC.Ice.Test.Location
 {
     public class TestIntf : ITestIntf
     {
-        private ObjectAdapter _adapter1;
-        private ObjectAdapter _adapter2;
+        private Server _adapter1;
+        private Server _adapter2;
         private ServerLocatorRegistry _registry;
 
-        internal TestIntf(ObjectAdapter adapter1, ObjectAdapter adapter2, ServerLocatorRegistry registry)
+        internal TestIntf(Server adapter1, Server adapter2, ServerLocatorRegistry registry)
         {
             _adapter1 = adapter1;
             _adapter2 = adapter2;

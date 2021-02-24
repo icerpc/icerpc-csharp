@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Test.Facets
             output.WriteLine("ok");
 
             output.Write("testing facet registration exceptions... ");
-            var adapter = new ObjectAdapter(communicator);
+            var adapter = new Server(communicator);
 
             var obj = new Empty();
 

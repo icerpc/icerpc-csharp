@@ -8,13 +8,13 @@ namespace ZeroC.Ice.Test.Objects
 {
     public sealed class Initial : IInitial
     {
-        private ObjectAdapter _adapter;
+        private Server _adapter;
         private readonly B _b1;
         private readonly B _b2;
         private readonly C _c;
         private readonly D _d;
 
-        public Initial(ObjectAdapter adapter)
+        public Initial(Server adapter)
         {
             _adapter = adapter;
             _b1 = new B();

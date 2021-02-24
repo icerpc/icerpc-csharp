@@ -72,12 +72,12 @@ namespace ZeroC.Ice.Test.Info
             }
             output.WriteLine("ok");
 
-            ObjectAdapter adapter;
+            Server adapter;
             output.Write("test object adapter endpoint information... ");
             output.Flush();
             {
                 string serverName = helper.Host;
-                adapter = new ObjectAdapter(
+                adapter = new Server(
                     communicator,
                     new()
                     {
@@ -102,7 +102,7 @@ namespace ZeroC.Ice.Test.Info
 
                 int port = helper.BasePort + 1;
 
-                adapter = new ObjectAdapter(
+                adapter = new Server(
                     communicator,
                     new()
                     {

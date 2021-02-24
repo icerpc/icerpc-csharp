@@ -18,7 +18,7 @@ namespace ZeroC.Ice.Test.Interceptor
     {
         public static AsyncLocal<int> LocalContext { get; } = new();
 
-        public static async ValueTask ActivateAsync(ObjectAdapter adapter)
+        public static async ValueTask ActivateAsync(Server adapter)
         {
             adapter.Use(async (request, current, next, cancel) =>
             {

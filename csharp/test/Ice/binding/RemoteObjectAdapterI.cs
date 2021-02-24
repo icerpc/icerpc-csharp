@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice.Test.Binding
 {
-    public class RemoteObjectAdapter : IAsyncRemoteObjectAdapter
+    public class RemoteServer : IAsyncRemoteServer
     {
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _adapter;
         private readonly ITestIntfPrx _testIntf;
 
-        public RemoteObjectAdapter(ObjectAdapter adapter)
+        public RemoteServer(Server adapter)
         {
             _adapter = adapter;
             _testIntf = _adapter.Add("test", new TestIntf(), ITestIntfPrx.Factory);
