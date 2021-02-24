@@ -159,12 +159,12 @@ namespace ZeroC.Ice
             Transport transport,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.UDP);
 
-            (string host, ushort port) = ParseHostAndPort(options, oaEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
 
             int ttl = -1;
 
@@ -199,7 +199,7 @@ namespace ZeroC.Ice
 
                 if (multicastInterface == "*")
                 {
-                    if (oaEndpoint)
+                    if (serverEndpoint)
                     {
                         multicastInterface = null;
                     }
@@ -217,7 +217,7 @@ namespace ZeroC.Ice
                                    multicastInterface,
                                    options,
                                    communicator,
-                                   oaEndpoint,
+                                   serverEndpoint,
                                    endpointString);
         }
 
@@ -234,9 +234,9 @@ namespace ZeroC.Ice
             string? multicastInterface,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, oaEndpoint, endpointString)
+            : base(data, options, communicator, serverEndpoint, endpointString)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

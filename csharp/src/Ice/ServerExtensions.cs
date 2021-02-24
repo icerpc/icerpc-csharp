@@ -7,7 +7,7 @@ namespace ZeroC.Ice
 {
     public static class ServerUseExtensions
     {
-        /// <summary>Adds a simple dispatch interceptor to the request dispatch pipeline. This is an server for <see
+        /// <summary>Adds a simple dispatch interceptor to the request dispatch pipeline. This is an adapter for <see
         /// cref="Server.Use"/>.</summary>
         /// <param name="server">The server.</param>
         /// <param name="dispatchInterceptor">A simple dispatch interceptor.</param>

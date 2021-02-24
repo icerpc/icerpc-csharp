@@ -225,7 +225,7 @@ namespace ZeroC.Ice
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
                     UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, oaEndpoints: false);
+                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false);
             }
 
             if (PublishedEndpoints.Count == 0)

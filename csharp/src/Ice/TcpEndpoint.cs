@@ -171,17 +171,17 @@ namespace ZeroC.Ice
             Transport transport,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            (string host, ushort port) = ParseHostAndPort(options, oaEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseTimeout(options, endpointString),
                                    ParseCompress(options, endpointString),
                                    options,
                                    communicator,
-                                   oaEndpoint,
+                                   serverEndpoint,
                                    endpointString);
         }
 
@@ -191,13 +191,13 @@ namespace ZeroC.Ice
             ushort port,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
+            bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    options,
                                    communicator,
-                                   oaEndpoint);
+                                   serverEndpoint);
         }
 
         protected internal override Connection CreateConnection(
@@ -277,9 +277,9 @@ namespace ZeroC.Ice
             bool compress,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, oaEndpoint, endpointString)
+            : base(data, options, communicator, serverEndpoint, endpointString)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
@@ -290,8 +290,8 @@ namespace ZeroC.Ice
             EndpointData data,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
-            : base(data, options, communicator, oaEndpoint)
+            bool serverEndpoint)
+            : base(data, options, communicator, serverEndpoint)
         {
         }
 

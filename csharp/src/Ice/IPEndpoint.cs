@@ -270,7 +270,7 @@ namespace ZeroC.Ice
         // Parse host and port from ice1 endpoint string.
         private protected static (string Host, ushort Port) ParseHostAndPort(
             Dictionary<string, string?> options,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
             string host;
@@ -285,11 +285,11 @@ namespace ZeroC.Ice
                 {
                     // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
                     // ::0 just bind to the IPv4 addresses in this case?
-                    host = oaEndpoint ? "::0" :
+                    host = serverEndpoint ? "::0" :
                         throw new FormatException($"`-h *' not valid for proxy endpoint `{endpointString}'");
                 }
 
-                if (!oaEndpoint && IPAddress.TryParse(host, out IPAddress? address) &&
+                if (!serverEndpoint && IPAddress.TryParse(host, out IPAddress? address) &&
                     (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
                 {
                     throw new FormatException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint");
@@ -352,13 +352,13 @@ namespace ZeroC.Ice
             EndpointData data,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
             : base(data, communicator, Protocol.Ice1)
         {
             if (options.TryGetValue("--sourceAddress", out string? argument))
             {
-                if (oaEndpoint)
+                if (serverEndpoint)
                 {
                     throw new FormatException(
                         $"`--sourceAddress' not valid for an server endpoint `{endpointString}'");
@@ -379,7 +379,7 @@ namespace ZeroC.Ice
                 }
                 options.Remove("--sourceAddress");
             }
-            else if (!oaEndpoint)
+            else if (!serverEndpoint)
             {
                 SourceAddress = Communicator.DefaultSourceAddress;
             }
@@ -387,7 +387,7 @@ namespace ZeroC.Ice
 
             if (options.TryGetValue("--ipv6Only", out argument))
             {
-                if (!oaEndpoint)
+                if (!serverEndpoint)
                 {
                     throw new FormatException(
                         $"`--ipv6Only' not valid for an server endpoint `{endpointString}'");
@@ -407,16 +407,16 @@ namespace ZeroC.Ice
             EndpointData data,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
+            bool serverEndpoint)
             : base(data, communicator, Protocol.Ice2)
         {
-            if (!oaEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
+            if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
                 (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
             {
                 throw new ArgumentException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint", nameof(data));
             }
 
-            if (oaEndpoint)
+            if (serverEndpoint)
             {
                 if (options.TryGetValue("ipv6-only", out string? value))
                 {
