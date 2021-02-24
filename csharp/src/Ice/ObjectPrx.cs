@@ -34,9 +34,6 @@ namespace ZeroC.Ice
         public bool IsFixed { get; }
 
         public bool IsOneway { get; }
-
-        public bool IsRelative { get; }
-
         public object? Label { get; }
         public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
         public ILocationService? LocationService { get; }
@@ -48,7 +45,9 @@ namespace ZeroC.Ice
 
         ObjectPrx IObjectPrx.Impl => this;
 
-        internal bool IsIndirect => Endpoints.Count == 0 && !IsFixed;
+        internal bool IsIndirect => Protocol == Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
+
+        internal bool IsRelative => Protocol != Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
         internal bool IsWellKnown => IsIndirect && Location.Count == 0;
 
         // Sub-properties for ice1 proxies
@@ -57,7 +56,6 @@ namespace ZeroC.Ice
             "CacheConnection",
             "InvocationTimeout",
             "PreferNonSecure",
-            "Relative",
             "Context\\..*"
         };
 
@@ -123,7 +121,6 @@ namespace ZeroC.Ice
             bool? preferExistingConnection = null;
             NonSecure? preferNonSecure = null;
             Protocol protocol;
-            bool? relative = null;
 
             if (UriParser.IsProxyUri(proxyString))
             {
@@ -170,8 +167,7 @@ namespace ZeroC.Ice
                  invocationTimeout,
                  label,
                  preferExistingConnection,
-                 preferNonSecure,
-                 relative) = proxyOptions;
+                 preferNonSecure) = proxyOptions;
             }
             else
             {
@@ -209,12 +205,6 @@ namespace ZeroC.Ice
                     label = communicator.GetProperty($"{propertyPrefix}.Label");
 
                     preferNonSecure = communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
-                    relative = communicator.GetPropertyAsBool($"{propertyPrefix}.Relative");
-
-                    if (relative == true && endpoints.Count > 0)
-                    {
-                        throw new InvalidConfigurationException($"{property}: a direct proxy cannot be relative");
-                    }
                 }
             }
 
@@ -232,8 +222,7 @@ namespace ZeroC.Ice
                 locationService: endpoints.Count > 0 ? null : communicator.DefaultLocationService,
                 oneway: oneway,
                 preferExistingConnection: preferExistingConnection,
-                preferNonSecure: preferNonSecure,
-                relative: relative ?? false);
+                preferNonSecure: preferNonSecure);
 
             return factory(options);
         }
@@ -329,10 +318,6 @@ namespace ZeroC.Ice
             {
                 return false;
             }
-            if (IsRelative != other.IsRelative)
-            {
-                return false;
-            }
             if (Protocol != other.Protocol)
             {
                 return false;
@@ -369,7 +354,6 @@ namespace ZeroC.Ice
                 hash.Add(_invocationTimeoutOverride);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
-                hash.Add(IsRelative);
                 hash.Add(Protocol);
 
                 if (IsFixed)
@@ -414,11 +398,6 @@ namespace ZeroC.Ice
 
             if (ostr.Encoding == Encoding.V11)
             {
-                if (IsRelative)
-                {
-                    throw new NotSupportedException("cannot marshal a relative proxy with the 1.1 encoding");
-                }
-
                 Identity.IceWrite(ostr);
                 ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
                 ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
@@ -433,17 +412,9 @@ namespace ZeroC.Ice
             {
                 Debug.Assert(ostr.Encoding == Encoding.V20);
 
-                ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct :
-                    IsRelative ? ProxyKind20.IndirectRelative : ProxyKind20.Indirect);
-
-                IReadOnlyList<string> location = Location;
-                if (IsRelative && location.Count > 1)
-                {
-                    // Reduce location to its last segment
-                    location = ImmutableArray.Create(location[^1]);
-                }
-
-                ostr.WriteProxyData20(Identity, Protocol, Encoding, location, invocationMode, Facet);
+                // For ice1 proxies, ProxyKind20.Relative corresponds to an indirect proxy.
+                ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct : ProxyKind20.Relative);
+                ostr.WriteProxyData20(Identity, Protocol, Encoding, Location, invocationMode, Facet);
 
                 if (Endpoints.Count > 0)
                 {
@@ -654,12 +625,6 @@ namespace ZeroC.Ice
                     sb.Append(Protocol.GetName());
                 }
 
-                if (IsRelative)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("relative=true");
-                }
-
                 if (Endpoints.Count > 1)
                 {
                     Transport mainTransport = Endpoints[0].Transport;
@@ -712,7 +677,6 @@ namespace ZeroC.Ice
             InvocationInterceptors = options.InvocationInterceptors;
             IsFixed = options.Connection != null; // auto-computed
             IsOneway = options.IsOneway;
-            IsRelative = options.IsRelative;
             Label = options.Label;
             Location = options.Location;
             LocationService = options.LocationService;
@@ -854,6 +818,8 @@ namespace ZeroC.Ice
 
                 Communicator communicator = istr.Communicator!;
 
+                // TODO: correct unmarshaling of ice2 relative proxies (see below)
+
                 var options = new ObjectPrxOptions(
                     communicator,
                     identity,
@@ -862,7 +828,7 @@ namespace ZeroC.Ice
                     endpoints: endpoints,
                     facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                     location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
-                    locationService: communicator.DefaultLocationService,
+                    locationService: proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
                     oneway: proxyData.InvocationMode != InvocationMode.Twoway);
 
                 return factory(options);
@@ -892,8 +858,37 @@ namespace ZeroC.Ice
                         $"received proxy for protocol {protocol.GetName()} with invocation mode set");
                 }
 
-                if (proxyKind == ProxyKind20.IndirectRelative)
+                // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + host name
+                // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for empty
+                // sequence), for a total of 7 bytes.
+                IReadOnlyList<Endpoint> endpoints = proxyKind == ProxyKind20.Direct ?
+                    istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
+                    ImmutableList<Endpoint>.Empty;
+
+                if (proxyKind == ProxyKind20.Direct || protocol == Protocol.Ice1)
                 {
+                    Communicator communicator = istr.Communicator!;
+                    var options = new ObjectPrxOptions(
+                        communicator,
+                        proxyData.Identity,
+                        protocol,
+                        encoding: proxyData.Encoding ?? Encoding.V20,
+                        endpoints: endpoints,
+                        facet: proxyData.Facet ?? "",
+                        location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
+                        locationService: communicator.DefaultLocationService,
+                        oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
+
+                    return factory(options);
+                }
+                else // relative proxy with protocol > ice1
+                {
+                    // For now, we don't support relative proxies with a location.
+                    if (proxyData.Location?.Length > 0)
+                    {
+                        throw new InvalidDataException($"received a relative proxy with an invalid location");
+                    }
+
                     if (istr.Connection is Connection connection)
                     {
                         if (connection.Protocol != protocol)
@@ -901,8 +896,6 @@ namespace ZeroC.Ice
                             throw new InvalidDataException(
                                 $"received a relative proxy with invalid protocol {protocol.GetName()}");
                         }
-
-                        // TODO: location is missing
 
                         var options = new ObjectPrxOptions(
                             connection.Communicator,
@@ -930,59 +923,11 @@ namespace ZeroC.Ice
                                 $"received a relative proxy with invalid protocol {protocol.GetName()}");
                         }
 
-                        if (proxyData.Location?.Length > 1)
-                        {
-                            throw new InvalidDataException($"received a relative proxy with an invalid location");
-                        }
-
-                        IReadOnlyList<string> location = source.Location;
-                        if (proxyData.Location?.Length == 1)
-                        {
-                            // Replace the last segment of location
-                            if (location.Count == 0)
-                            {
-                                location = ImmutableArray.Create(proxyData.Location[0]);
-                            }
-                            else
-                            {
-                                ImmutableArray<string>.Builder builder =
-                                    ImmutableArray.CreateBuilder<string>(location.Count);
-                                builder.AddRange(location.SkipLast(1));
-                                builder.Add(proxyData.Location[0]);
-                                location = builder.ToImmutable();
-                            }
-                        }
-
                         return source.Clone(factory,
                                             encoding: proxyData.Encoding ?? Encoding.V20,
                                             facet: proxyData.Facet ?? "",
-                                            identity: proxyData.Identity,
-                                            location: location);
+                                            identity: proxyData.Identity);
                     }
-                }
-                else
-                {
-                    // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + host name
-                    // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for empty
-                    // sequence), for a total of 7 bytes.
-                    IReadOnlyList<Endpoint> endpoints = proxyKind == ProxyKind20.Direct ?
-                        istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
-                        ImmutableList<Endpoint>.Empty;
-
-                    Communicator communicator = istr.Communicator!;
-
-                    var options = new ObjectPrxOptions(
-                        communicator,
-                        proxyData.Identity,
-                        protocol,
-                        encoding: proxyData.Encoding ?? Encoding.V20,
-                        endpoints: endpoints,
-                        facet: proxyData.Facet ?? "",
-                        location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
-                        locationService: communicator.DefaultLocationService,
-                        oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
-
-                    return factory(options);
                 }
             }
         }
@@ -1009,8 +954,7 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null,
-            bool? relative = null)
+            NonSecure? preferNonSecure = null)
         {
             if (identityAndFacet != null)
             {
@@ -1040,8 +984,7 @@ namespace ZeroC.Ice
                                   location,
                                   locationService,
                                   preferExistingConnection,
-                                  preferNonSecure,
-                                  relative);
+                                  preferNonSecure);
 
             if (IsFixed || fixedConnection != null)
             {
@@ -1076,8 +1019,7 @@ namespace ZeroC.Ice
                            locationService: clearLocationService ? null : locationService ?? LocationService,
                            oneway: oneway ?? IsOneway,
                            preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
-                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride,
-                           relative: relative ?? IsRelative);
+                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride);
             }
         }
 
@@ -1195,10 +1137,6 @@ namespace ZeroC.Ice
                 {
                     properties[$"{prefix}.PreferNonSecure"] = preferNonSecure.ToString();
                 }
-                if (IsRelative)
-                {
-                    properties[$"{prefix}.Relative"] = "true";
-                }
             }
             // else, only a single property in the dictionary
 
@@ -1275,16 +1213,13 @@ namespace ZeroC.Ice
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveWellKnownProxyAsync(
                         Identity,
-                        Facet,
-                        Protocol,
                         endpointsMaxAge,
                         cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveLocationAsync(
-                        Location,
-                        Protocol,
+                        Location[0],
                         endpointsMaxAge,
                         cancel).ConfigureAwait(false);
                 }
@@ -1590,13 +1525,25 @@ namespace ZeroC.Ice
             IEnumerable<string>? location,
             ILocationService? locationService,
             bool? preferExistingConnection,
-            NonSecure? preferNonSecure,
-            bool? relative)
+            NonSecure? preferNonSecure)
         {
             // Check for incompatible arguments
-            if (locationService != null && clearLocationService)
+
+            if (Protocol == Protocol.Ice1)
             {
-                throw new ArgumentException($"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
+                if (locationService != null && clearLocationService)
+                {
+                    throw new ArgumentException(
+                        $"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
+                }
+            }
+            else if (locationService != null)
+            {
+                throw new ArgumentException($"{nameof(locationService)} applies only to ice1 proxies");
+            }
+            else if (clearLocationService)
+            {
+                throw new ArgumentException($"{nameof(clearLocationService)} applies only to ice1 proxies");
             }
 
             if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
@@ -1631,11 +1578,13 @@ namespace ZeroC.Ice
                 }
                 if (locationService != null)
                 {
-                    throw new ArgumentException("cannot change the location service of a fixed proxy", nameof(locationService));
+                    throw new ArgumentException("cannot change the location service of a fixed proxy",
+                                                nameof(locationService));
                 }
                 else if (clearLocationService)
                 {
-                    throw new ArgumentException("cannot change the location service of a fixed proxy", nameof(clearLocationService));
+                    throw new ArgumentException("cannot change the location service of a fixed proxy",
+                                                nameof(clearLocationService));
                 }
                 if (preferExistingConnection != null)
                 {
@@ -1648,10 +1597,6 @@ namespace ZeroC.Ice
                     throw new ArgumentException(
                         "cannot change the prefer non-secure configuration of a fixed proxy",
                         nameof(preferNonSecure));
-                }
-                if (relative ?? false)
-                {
-                    throw new ArgumentException("cannot convert a fixed proxy into a relative proxy", nameof(relative));
                 }
                 return (ImmutableList<Endpoint>.Empty, null);
             }
@@ -1675,13 +1620,8 @@ namespace ZeroC.Ice
                     throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
                 }
 
-                if (locationService != null && clearLocationService)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
-                }
-
-                IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableArray();
-                IReadOnlyList<string>? newLocation = location?.ToImmutableArray();
+                IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableList();
+                IReadOnlyList<string>? newLocation = location?.ToImmutableList();
 
                 if (Protocol == Protocol.Ice1)
                 {
@@ -1701,7 +1641,7 @@ namespace ZeroC.Ice
                                 $"{nameof(location)} is limited to a single segment for ice1 proxies",
                                 nameof(location));
                         }
-                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
+                        newEndpoints = ImmutableList<Endpoint>.Empty; // make sure the clone's endpoints are empty
                     }
                     else if (newEndpoints?.Count > 0)
                     {
@@ -1709,27 +1649,12 @@ namespace ZeroC.Ice
                     }
                 }
 
-                if (relative ?? IsRelative)
-                {
-                    if (newEndpoints?.Count > 0)
-                    {
-                        throw new ArgumentException("a relative proxy cannot have endpoints", nameof(relative));
-                    }
-                    else
-                    {
-                        newEndpoints = ImmutableArray<Endpoint>.Empty; // make sure the clone's endpoints are empty
-                    }
-                }
+                newEndpoints ??= locationService == null ? Endpoints : ImmutableList<Endpoint>.Empty;
 
-                newEndpoints ??= Endpoints;
-
-                if (locationService != null)
+                if (locationService != null && newEndpoints.Count > 0)
                 {
-                    if (newEndpoints.Count > 0)
-                    {
-                        throw new ArgumentException($"cannot set {nameof(locationService)} on a direct proxy",
-                                                    nameof(locationService));
-                    }
+                    throw new ArgumentException($"cannot set {nameof(locationService)} on a direct proxy",
+                                                nameof(locationService));
                 }
 
                 return (newEndpoints, newLocation);

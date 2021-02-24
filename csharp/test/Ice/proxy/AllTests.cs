@@ -43,7 +43,6 @@ namespace ZeroC.Ice.Test.Proxy
                 "ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4",
                 "ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]",
                 "ice:location//identity#facet",
-                "ice:location//identity?relative=true#facet",
                 "ice+tcp://host.zeroc.com//identity",
                 "ice+tcp://host.zeroc.com:/identity", // another syntax for empty port
                 "ice+universal://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d",
@@ -121,7 +120,6 @@ namespace ZeroC.Ice.Test.Proxy
                 "ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2", // protocol option in alt-endpoint
                 "ice+tcp://host.zeroc.com/identity?foo=bar", // unknown option
                 "ice+tcp://host.zeroc.com/identity?invocation-timeout=0s", // 0 is not a valid invocation timeout
-                "ice:foo?relative=bad", // bad value for relative
                 "ice:foo?fixed=true", // cannot create fixed proxy from URI
 
                 "",
@@ -633,30 +631,6 @@ namespace ZeroC.Ice.Test.Proxy
             }
             TestHelper.Assert(b1.PreferNonSecure != communicator.DefaultPreferNonSecure);
 
-            TestHelper.Assert(!b1.IsRelative);
-            if (ice1)
-            {
-                communicator.SetProperty(propertyPrefix, "test");
-                string property = propertyPrefix + ".Relative";
-                communicator.SetProperty(property, "true");
-                b1 = communicator.GetPropertyAsProxy(propertyPrefix, IObjectPrx.Factory)!;
-                communicator.RemoveProperty(property);
-                communicator.SetProperty(propertyPrefix, proxyString);
-            }
-            else
-            {
-                try
-                {
-                    b1 = IObjectPrx.Parse($"{proxyString}?relative=true", communicator);
-                }
-                catch (FormatException)
-                {
-                    // expected
-                }
-                b1 = IObjectPrx.Parse("ice:test?relative=true", communicator);
-            }
-            TestHelper.Assert(b1.IsRelative);
-
             if (!ice1)
             {
                 string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
@@ -696,26 +670,20 @@ namespace ZeroC.Ice.Test.Proxy
             {
                 TestHelper.Assert(proxyProps["Test.InvocationTimeout"] == "10s");
                 TestHelper.Assert(proxyProps["Test.PreferNonSecure"] == "Never");
-            }
 
-            ILocatorPrx locator = ILocatorPrx.Parse(ice1 ? "locator" : "ice:locator", communicator).Clone(
-                cacheConnection: false,
-                preferExistingConnection: false,
-                preferNonSecure: NonSecure.Always);
+                ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator).Clone(
+                    cacheConnection: false,
+                    preferExistingConnection: false,
+                    preferNonSecure: NonSecure.Always);
 
-            // TODO: LocationService should reject indirect locators.
-            ILocationService locationService = new LocationService(locator);
+                // TODO: LocationService should reject indirect locators.
+                ILocationService locationService = new LocationService(locator);
+                b1 = b1.Clone(locationService: locationService);
 
-            b1 = b1.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationService: locationService);
+                proxyProps = b1.ToProperty("Test");
 
-            proxyProps = b1.ToProperty("Test");
-
-            TestHelper.Assert(proxyProps.Count == (ice1 ? 4 : 1), $"count: {proxyProps.Count}");
-            TestHelper.Assert(proxyProps["Test"] == (ice1 ? "test -t -e 1.1" :
-                "ice:test?invocation-timeout=10s&prefer-existing-connection=true&prefer-non-secure=never"));
-
-            if (ice1)
-            {
+                TestHelper.Assert(proxyProps.Count == 4, $"count: {proxyProps.Count}");
+                TestHelper.Assert(proxyProps["Test"] == "test -t -e 1.1");
                 TestHelper.Assert(proxyProps["Test.InvocationTimeout"] == "10s");
                 TestHelper.Assert(proxyProps["Test.PreferNonSecure"] == "Never");
                 TestHelper.Assert(proxyProps["Test.PreferExistingConnection"] == "true");
@@ -760,15 +728,6 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(baseProxy.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure == NonSecure.Always);
             TestHelper.Assert(baseProxy.Clone(preferNonSecure: NonSecure.Never).PreferNonSecure == NonSecure.Never);
 
-            try
-            {
-                baseProxy.Clone(endpoints: ImmutableArray<Endpoint>.Empty, locationService: locationService);
-            }
-            catch (ArgumentException)
-            {
-                TestHelper.Assert(false);
-            }
-
             output.WriteLine("ok");
 
             output.Write("testing proxy comparison... ");
@@ -795,13 +754,16 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(Equals(compObj.Clone(label: "id1").Label, "id1"));
             TestHelper.Assert(Equals(compObj.Clone(label: "id2").Label, "id2"));
 
-            var loc1 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc1", communicator));
-            var loc2 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc2", communicator));
-            TestHelper.Assert(compObj.Clone(clearLocationService: true).Equals(compObj.Clone(clearLocationService: true)));
-            TestHelper.Assert(compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc1)));
-            TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(clearLocationService: true)));
-            TestHelper.Assert(!compObj.Clone(clearLocationService: true).Equals(compObj.Clone(locationService: loc2)));
-            TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc2)));
+            if (ice1)
+            {
+                var loc1 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc1", communicator));
+                var loc2 = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc2", communicator));
+                TestHelper.Assert(compObj.Clone(clearLocationService: true).Equals(compObj.Clone(clearLocationService: true)));
+                TestHelper.Assert(compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc1)));
+                TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(clearLocationService: true)));
+                TestHelper.Assert(!compObj.Clone(clearLocationService: true).Equals(compObj.Clone(locationService: loc2)));
+                TestHelper.Assert(!compObj.Clone(locationService: loc1).Equals(compObj.Clone(locationService: loc2)));
+            }
 
             var ctx1 = new Dictionary<string, string>
             {
@@ -833,8 +795,13 @@ namespace ZeroC.Ice.Test.Proxy
             compObj2 = IObjectPrx.Parse("ice:MyAdapter2//foo", communicator);
             TestHelper.Assert(!compObj1.Equals(compObj2));
 
-            TestHelper.Assert(compObj1.Clone(locationService: locationService).Equals(
-                compObj1.Clone(locationService: locationService)));
+            if (ice1)
+            {
+                compObj1 = IObjectPrx.Parse("foo@MyAdapter1", communicator);
+                var loc = new LocationService(ILocatorPrx.Parse("ice+tcp://host:10000/loc", communicator));
+                TestHelper.Assert(compObj1.Clone(locationService: loc).Equals(
+                    compObj1.Clone(locationService: loc)));
+            }
 
             compObj1 = IObjectPrx.Parse("ice+tcp://127.0.0.1:10000/foo", communicator);
             compObj2 = IObjectPrx.Parse("ice:MyAdapter1//foo", communicator);
@@ -935,12 +902,6 @@ namespace ZeroC.Ice.Test.Proxy
                 ice2Prx = IObjectPrx.Parse("ice+tcp://localhost:10000/location//foo", communicator);
                 prx = baseProxy.Clone(IMyDerivedClassPrx.Factory).Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Clone(location: ImmutableArray<string>.Empty).Equals(prx));
-
-                // With a multi-segment location without endpoints (only keep first segment)
-                ice2Prx = IObjectPrx.Parse("ice:loc0/loc1//foo", communicator);
-                prx = baseProxy.Clone(IMyDerivedClassPrx.Factory).Echo(ice2Prx);
-                TestHelper.Assert(ice2Prx.Clone(location: ImmutableArray.Create("loc0")).Equals(prx));
-
                 output.WriteLine("ok");
             }
             else
@@ -954,29 +915,30 @@ namespace ZeroC.Ice.Test.Proxy
                 output.WriteLine("ok");
             }
 
-            output.Write("testing relative proxies... ");
+            if (!ice1)
             {
-                // The Clone(encoding: Encoding.V20) are only for ice1; with ice2, it's the default encoding. We need
-                // to marshal all relative proxies with the 2.0 encoding.
+                output.Write("testing relative proxies... ");
+                {
+                    await using ObjectAdapter oa = new ObjectAdapter(communicator);
+                    (await cl.GetConnectionAsync()).Adapter = oa;
 
-                await using ObjectAdapter oa = new ObjectAdapter(communicator, new() { Protocol = helper.Protocol });
-                (await cl.GetConnectionAsync()).Adapter = oa;
-                ICallbackPrx callback = oa.AddWithUUID(
-                    new Callback((relativeTest, current, cancel) =>
-                                 {
-                                     TestHelper.Assert(relativeTest.IsFixed);
-                                     return relativeTest.DoIt(cancel: cancel);
-                                 }),
-                    ICallbackPrx.Factory).Clone(encoding: Encoding.V20, relative: true);
-                TestHelper.Assert(callback.IsRelative);
-                await callback.IcePingAsync(); // colocated call
+                    // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
+                    ICallbackPrx callback = oa.AddWithUUID(
+                        new Callback((relativeTest, current, cancel) =>
+                                     {
+                                         TestHelper.Assert(relativeTest.IsFixed);
+                                         return relativeTest.DoIt(cancel: cancel);
+                                    }),
+                        ICallbackPrx.Factory);
 
-                IRelativeTestPrx relativeTest = cl.Clone(encoding: Encoding.V20).OpRelative(callback);
-                TestHelper.Assert(relativeTest.Endpoints == cl.Endpoints); // reference equality
-                TestHelper.Assert(!relativeTest.IsRelative);
-                TestHelper.Assert(relativeTest.DoIt() == 2);
+                    await callback.IcePingAsync(); // colocated call
+
+                    IRelativeTestPrx relativeTest = cl.OpRelative(callback);
+                    TestHelper.Assert(relativeTest.Endpoints == cl.Endpoints); // reference equality
+                    TestHelper.Assert(relativeTest.DoIt() == 2);
+                }
+                output.WriteLine("ok");
             }
-            output.WriteLine("ok");
 
             output.Write("testing ice_fixed... ");
             output.Flush();

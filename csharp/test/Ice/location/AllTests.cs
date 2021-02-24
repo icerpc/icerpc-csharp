@@ -268,21 +268,6 @@ namespace ZeroC.Ice.Test.Location
             hello.SayHello();
             output.WriteLine("ok");
 
-            output.Write("testing well-known proxy with facet... ");
-            output.Flush();
-            hello = IHelloPrx.Parse(ice1 ? "bonjour -f abc" : "ice:bonjour#abc", communicator);
-            hello.SayHello();
-            hello = IHelloPrx.Parse(ice1 ? "hello -f abc" : "ice:hello#abc", communicator);
-            try
-            {
-                hello.SayHello();
-                TestHelper.Assert(false);
-            }
-            catch (NoEndpointException) // hello does not have an abc facet
-            {
-            }
-            output.WriteLine("ok");
-
             output.Write("testing locator request queuing... ");
             output.Flush();
             hello = obj1.GetReplicatedHello()!.Clone(locationService: zeroLocationService, cacheConnection: false);
@@ -669,44 +654,18 @@ namespace ZeroC.Ice.Test.Location
             string replicaGroupId,
             IObjectPrx proxy)
         {
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                registry.SetReplicatedAdapterDirectProxy(adapterId, replicaGroupId, proxy);
-            }
-            else
-            {
-                registry.RegisterAdapterEndpoints(adapterId, replicaGroupId, proxy.Endpoints.ToEndpointDataList());
-            }
+            registry.SetReplicatedAdapterDirectProxy(adapterId, replicaGroupId, proxy);
         }
 
-        private static IObjectPrx? ResolveLocation(ILocatorPrx locator, string adapterId)
-        {
-            if (locator.Protocol == Protocol.Ice1)
-            {
-                return locator.FindAdapterById(adapterId);
-            }
-            else
-            {
-                EndpointData[] dataArray = locator.ResolveLocation(ImmutableArray.Create(adapterId));
-
-                return dataArray.Length > 0 ?
-                    locator.Clone(endpoints: dataArray.ToEndpointList(locator.Communicator)) : null;
-            }
-        }
+        private static IObjectPrx? ResolveLocation(ILocatorPrx locator, string adapterId) =>
+            locator.FindAdapterById(adapterId);
 
         private static void UnregisterAdapterEndpoints(
             ILocatorRegistryPrx registry,
             string adapterId,
             string replicaGroupId)
         {
-            if (registry.Protocol == Protocol.Ice1)
-            {
-                registry.SetReplicatedAdapterDirectProxy(adapterId, replicaGroupId, null);
-            }
-            else
-            {
-                registry.UnregisterAdapterEndpoints(adapterId, replicaGroupId);
-            }
+            registry.SetReplicatedAdapterDirectProxy(adapterId, replicaGroupId, null);
         }
     }
 }

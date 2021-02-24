@@ -100,12 +100,27 @@ namespace ZeroC.Ice
 
         private Lazy<Task>? _shutdownTask;
 
-        /// <summary>Constructs an object adapter.</summary>
-        public ObjectAdapter(Communicator communicator, ObjectAdapterOptions? options = null)
+         /// <summary>Constructs an object adapter.</summary>
+        public ObjectAdapter(Communicator communicator)
+            : this(communicator, new())
         {
-            if (options == null)
+        }
+
+        /// <summary>Constructs an object adapter.</summary>
+        public ObjectAdapter(Communicator communicator, ObjectAdapterOptions options)
+        {
+            if (options.AdapterId.Length == 0)
             {
-                options = new ObjectAdapterOptions();
+                if (options.ReplicaGroupId.Length > 0)
+                {
+                    throw new ArgumentException("options.ReplicaGroupId is set but options.AdapterId is not",
+                                                nameof(options));
+                }
+                if (options.LocatorRegistry != null)
+                {
+                    throw new ArgumentException("options.LocatorRegistry is set but options.AdapterId is not",
+                                                nameof(options));
+                }
             }
 
             Communicator = communicator;
@@ -130,6 +145,12 @@ namespace ZeroC.Ice
             {
                 if (UriParser.IsEndpointUri(options.Endpoints))
                 {
+                    if (AdapterId.Length > 0)
+                    {
+                        throw new ArgumentException("options.AdapterId set for an ice2 object adapter",
+                                                    nameof(options));
+                    }
+
                     Protocol = Protocol.Ice2;
                     Endpoints = UriParser.ParseEndpoints(options.Endpoints, Communicator);
                 }
@@ -193,6 +214,10 @@ namespace ZeroC.Ice
             }
             else
             {
+                if (AdapterId.Length > 0 && options.Protocol != Protocol.Ice1)
+                {
+                    throw new ArgumentException("options.AdapterId set for an ice2 object adapter", nameof(options));
+                }
                 Protocol = options.Protocol;
             }
 
@@ -314,44 +339,35 @@ namespace ZeroC.Ice
 
             async Task PerformActivateAsync(CancellationToken cancel)
             {
-                // Register the published endpoints with the locator registry.
+                // Register the published endpoints with the locator registry (ice1 only)
 
                 if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || LocatorRegistry == null)
                 {
                     return; // nothing to do
                 }
 
+                Debug.Assert(Protocol == Protocol.Ice1);
+
                 try
                 {
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        var proxy = IObjectPrx.Factory(new(Communicator,
-                                                           new Identity("dummy", ""),
-                                                           PublishedEndpoints[0].Protocol,
-                                                           endpoints: PublishedEndpoints));
+                    var proxy = IObjectPrx.Factory(new(Communicator,
+                                                       new Identity("dummy", ""),
+                                                       PublishedEndpoints[0].Protocol,
+                                                       endpoints: PublishedEndpoints));
 
-                        if (ReplicaGroupId.Length > 0)
-                        {
-                            await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
-                                AdapterId,
-                                ReplicaGroupId,
-                                proxy,
-                                cancel: cancel).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
-                                                                             proxy,
-                                                                             cancel: cancel).ConfigureAwait(false);
-                        }
+                    if (ReplicaGroupId.Length > 0)
+                    {
+                        await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                            AdapterId,
+                            ReplicaGroupId,
+                            proxy,
+                            cancel: cancel).ConfigureAwait(false);
                     }
                     else
                     {
-                        await LocatorRegistry.RegisterAdapterEndpointsAsync(
-                            AdapterId,
-                            ReplicaGroupId,
-                            PublishedEndpoints.ToEndpointDataList(),
-                            cancel: cancel).ConfigureAwait(false);
+                        await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                                                                         proxy,
+                                                                         cancel: cancel).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -825,7 +841,7 @@ namespace ZeroC.Ice
 
             bool isLocal = false;
 
-            if (proxy.IsWellKnown)
+            if (proxy.IsWellKnown || proxy.IsRelative)
             {
                 isLocal = Find(proxy.Identity, proxy.Facet) != null;
             }
@@ -888,31 +904,23 @@ namespace ZeroC.Ice
                 return; // nothing to do
             }
 
+            Debug.Assert(Protocol == Protocol.Ice1);
+
             try
             {
-                if (Protocol == Protocol.Ice1)
+                if (ReplicaGroupId.Length > 0)
                 {
-                    if (ReplicaGroupId.Length > 0)
-                    {
-                        await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
-                            AdapterId,
-                            ReplicaGroupId,
-                            proxy: null,
-                            cancel: cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
-                                                                          proxy: null,
-                                                                          cancel: cancel).ConfigureAwait(false);
-                    }
+                    await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
+                        AdapterId,
+                        ReplicaGroupId,
+                        proxy: null,
+                        cancel: cancel).ConfigureAwait(false);
                 }
                 else
                 {
-                    await LocatorRegistry.UnregisterAdapterEndpointsAsync(
-                            AdapterId,
-                            ReplicaGroupId,
-                            cancel: cancel).ConfigureAwait(false);
+                    await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
+                                                                     proxy: null,
+                                                                     cancel: cancel).ConfigureAwait(false);
                 }
             }
             catch (ObjectDisposedException)

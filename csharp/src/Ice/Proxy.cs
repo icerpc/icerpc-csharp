@@ -52,7 +52,7 @@ namespace ZeroC.Ice
         /// <param name="fixedConnection">The connection of the clone (optional). When specified, the clone is a fixed
         /// proxy. You can clone a non-fixed proxy into a fixed proxy but not vice-versa.</param>
         /// <param name="identity">The identity of the clone.</param>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
+        /// <param name="identityAndFacet">A URI string [category/]identity[#facet].</param>
         /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
         /// executed with each invocation</param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
@@ -64,7 +64,6 @@ namespace ZeroC.Ice
         /// connection.</param>
         /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
         /// connections (optional).</param>
-        /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
         /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
         public static T Clone<T>(
             this IObjectPrx proxy,
@@ -86,8 +85,7 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null,
-            bool? relative = null) where T : class, IObjectPrx
+            NonSecure? preferNonSecure = null) where T : class, IObjectPrx
         {
             T clone = factory(proxy.Impl.CreateCloneOptions(cacheConnection,
                                                             clearLabel,
@@ -106,8 +104,7 @@ namespace ZeroC.Ice
                                                             locationService,
                                                             oneway,
                                                             preferExistingConnection,
-                                                            preferNonSecure,
-                                                            relative));
+                                                            preferNonSecure));
             return proxy is T t && t.Equals(clone) ? t : clone;
         }
 
@@ -135,7 +132,6 @@ namespace ZeroC.Ice
         /// connection.</param>
         /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
         /// connections (optional).</param>
-        /// <param name="relative">When true, the new proxy is a relative proxy (optional).</param>
         /// <returns>A new proxy with the same type as this proxy.</returns>
         public static T Clone<T>(
             this T proxy,
@@ -153,8 +149,7 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null,
-            bool? relative = null) where T : class, IObjectPrx
+            NonSecure? preferNonSecure = null) where T : class, IObjectPrx
         {
             ObjectPrx impl = proxy.Impl;
             ObjectPrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
@@ -174,8 +169,7 @@ namespace ZeroC.Ice
                                                                  locationService,
                                                                  oneway,
                                                                  preferExistingConnection,
-                                                                 preferNonSecure,
-                                                                 relative));
+                                                                 preferNonSecure));
             return clone == impl ? proxy : (clone as T)!;
         }
 

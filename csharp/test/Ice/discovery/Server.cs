@@ -48,7 +48,6 @@ namespace ZeroC.Ice.Test.Discovery
                 });
 
             adapter.Add($"controller{num}", new Controller(locatorRegistry));
-            adapter.Add($"faceted-controller{num}#abc", new Controller(locatorRegistry));
             await adapter.ActivateAsync();
 
             ServerReady();
