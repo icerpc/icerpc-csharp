@@ -266,33 +266,33 @@ namespace ZeroC.Ice.Test.SeqMapping
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpAObjectPrxS(
-            IObjectPrx?[] i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpAObjectPrxS(
+            IServicePrx?[] i,
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpLObjectPrxS(
-            List<IObjectPrx?> i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpLObjectPrxS(
+            List<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpKObjectPrxS(
-            LinkedList<IObjectPrx?> i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpKObjectPrxS(
+            LinkedList<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpQObjectPrxS(
-            Queue<IObjectPrx?> i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpQObjectPrxS(
+            Queue<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpSObjectPrxS(
-            Stack<IObjectPrx?> i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpSObjectPrxS(
+            Stack<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => (i, i);
 
-        public (IEnumerable<IObjectPrx?>, IEnumerable<IObjectPrx?>) OpCObjectPrxS(
-            Custom<IObjectPrx?> i,
+        public (IEnumerable<IServicePrx?>, IEnumerable<IServicePrx?>) OpCObjectPrxS(
+            Custom<IServicePrx?> i,
             Current current,
             CancellationToken cancel) => (i, i);
 

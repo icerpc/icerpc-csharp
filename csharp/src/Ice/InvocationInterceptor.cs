@@ -10,7 +10,7 @@ namespace ZeroC.Ice
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The incoming response frame.</returns>
     public delegate Task<IncomingResponseFrame> Invoker(
-        IObjectPrx target,
+        IServicePrx target,
         OutgoingRequestFrame request,
         CancellationToken cancel);
 
@@ -22,7 +22,7 @@ namespace ZeroC.Ice
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The incoming response frame.</returns>
     public delegate Task<IncomingResponseFrame> InvocationInterceptor(
-        IObjectPrx target,
+        IServicePrx target,
         OutgoingRequestFrame request,
         Invoker next,
         CancellationToken cancel);

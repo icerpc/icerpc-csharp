@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Optional
             Current current,
             CancellationToken cancel) => (i2, i1, i2, i3);
 
-        public IObjectPrx? OpObject(IObjectPrx i1, IObjectPrx? i2, Current current, CancellationToken cancel)
+        public IServicePrx? OpObject(IServicePrx i1, IServicePrx? i2, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(i2 == null || i2.Equals(i1));
             return i2;

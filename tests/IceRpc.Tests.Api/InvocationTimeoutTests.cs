@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Api
                     return await next();
                 });
 
-            var prx = ObjectAdapter.AddWithUUID(new TestService(), IObjectPrx.Factory).Clone(
+            var prx = ObjectAdapter.AddWithUUID(new TestService(), IServicePrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));
 
             await ObjectAdapter.ActivateAsync();

@@ -14,7 +14,7 @@ namespace ZeroC.Ice.Test.Proxy
     {
         private SortedDictionary<string, string>? _ctx;
 
-        public IObjectPrx? Echo(IObjectPrx? obj, Current c, CancellationToken cancel) => obj;
+        public IServicePrx? Echo(IServicePrx? obj, Current c, CancellationToken cancel) => obj;
 
         public IEnumerable<string> GetLocation(Current current, CancellationToken cancel) => current.Location;
 

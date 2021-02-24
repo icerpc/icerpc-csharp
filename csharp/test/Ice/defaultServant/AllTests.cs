@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 // Expected
             }
 
-            IObject? r = oa.Find("foo");
+            IService? r = oa.Find("foo");
             TestHelper.Assert(r == null);
             r = oa.Find("foo/someId");
             TestHelper.Assert(r == servant);
@@ -102,7 +102,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 }
             }
 
-            IObject? removed = oa.RemoveDefaultForCategory("foo");
+            IService? removed = oa.RemoveDefaultForCategory("foo");
             TestHelper.Assert(removed == servant);
             removed = oa.RemoveDefaultForCategory("foo");
             TestHelper.Assert(removed == null);

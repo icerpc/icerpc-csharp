@@ -15,9 +15,9 @@ using ZeroC.Ice.Instrumentation;
 
 namespace ZeroC.Ice
 {
-    /// <summary>The base class for all proxies. In general, applications should use proxies through interfaces and not
-    /// through this class.</summary>
-    public class ObjectPrx : IObjectPrx, IEquatable<ObjectPrx>
+    /// <summary>The base class for all service proxies. In general, applications should use proxies through interfaces
+    /// and not through this class.</summary>
+    public class ServicePrx : IServicePrx, IEquatable<ServicePrx>
     {
         public bool CacheConnection { get; } = true;
         public Communicator Communicator { get; }
@@ -43,7 +43,7 @@ namespace ZeroC.Ice
         public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.DefaultPreferNonSecure;
         public Protocol Protocol { get; }
 
-        ObjectPrx IObjectPrx.Impl => this;
+        ServicePrx IServicePrx.Impl => this;
 
         internal bool IsIndirect => Protocol == Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
 
@@ -74,7 +74,7 @@ namespace ZeroC.Ice
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
-        public static bool operator ==(ObjectPrx? lhs, ObjectPrx? rhs)
+        public static bool operator ==(ServicePrx? lhs, ServicePrx? rhs)
         {
             if (ReferenceEquals(lhs, rhs))
             {
@@ -92,7 +92,7 @@ namespace ZeroC.Ice
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
-        public static bool operator !=(ObjectPrx? lhs, ObjectPrx? rhs) => !(lhs == rhs);
+        public static bool operator !=(ServicePrx? lhs, ServicePrx? rhs) => !(lhs == rhs);
 
         /// <summary>Creates a proxy from a string and a communicator.</summary>
         public static T Parse<T>(
@@ -100,7 +100,7 @@ namespace ZeroC.Ice
             Communicator communicator,
             ProxyFactory<T> factory,
             string? propertyPrefix = null)
-            where T : class, IObjectPrx
+            where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
@@ -208,7 +208,7 @@ namespace ZeroC.Ice
                 }
             }
 
-            var options = new ObjectPrxOptions(
+            var options = new ServicePrxOptions(
                 communicator,
                 identity,
                 protocol,
@@ -228,7 +228,7 @@ namespace ZeroC.Ice
         }
 
         /// <inheritdoc/>
-        public bool Equals(ObjectPrx? other)
+        public bool Equals(ServicePrx? other)
         {
             if (other == null)
             {
@@ -327,10 +327,10 @@ namespace ZeroC.Ice
         }
 
         /// <inheritdoc/>
-        public bool Equals(IObjectPrx? other) => Equals(other?.Impl);
+        public bool Equals(IServicePrx? other) => Equals(other?.Impl);
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => Equals(obj as ObjectPrx);
+        public override bool Equals(object? obj) => Equals(obj as ServicePrx);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -665,7 +665,7 @@ namespace ZeroC.Ice
 
         /// <summary>Constructs a new proxy class instance with the specified options. The options must be validated
         /// by the caller and all dictionaries / lists must be safe to reference as-is.</summary>
-        protected internal ObjectPrx(ObjectPrxOptions options)
+        protected internal ServicePrx(ServicePrxOptions options)
         {
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator;
@@ -689,10 +689,10 @@ namespace ZeroC.Ice
 
         /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
         /// proxy classes must override this method.</summary>
-        protected virtual ObjectPrx IceClone(ObjectPrxOptions options) => new(options);
+        protected virtual ServicePrx IceClone(ServicePrxOptions options) => new(options);
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             OutgoingRequestFrame request,
             bool oneway,
             IProgress<bool>? progress = null)
@@ -707,7 +707,7 @@ namespace ZeroC.Ice
                                                request.CancellationToken);
 
             async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
-                IObjectPrx proxy,
+                IServicePrx proxy,
                 OutgoingRequestFrame request,
                 bool oneway,
                 int i,
@@ -729,7 +729,7 @@ namespace ZeroC.Ice
                 else
                 {
                     // After we went down the interceptor chain make the invocation.
-                    ObjectPrx impl = proxy.Impl;
+                    ServicePrx impl = proxy.Impl;
                     Communicator communicator = impl.Communicator;
                     // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
                     // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
@@ -774,7 +774,7 @@ namespace ZeroC.Ice
         /// <param name="istr">The input stream to read from.</param>
         /// <param name="factory">The proxy factory.</param>
         /// <returns>The proxy read from the stream (can be null).</returns>
-        internal static T? Read<T>(InputStream istr, ProxyFactory<T> factory) where T : class, IObjectPrx
+        internal static T? Read<T>(InputStream istr, ProxyFactory<T> factory) where T : class, IServicePrx
         {
             if (istr.Encoding == Encoding.V11)
             {
@@ -820,7 +820,7 @@ namespace ZeroC.Ice
 
                 // TODO: correct unmarshaling of ice2 relative proxies (see below)
 
-                var options = new ObjectPrxOptions(
+                var options = new ServicePrxOptions(
                     communicator,
                     identity,
                     proxyData.Protocol,
@@ -868,7 +868,7 @@ namespace ZeroC.Ice
                 if (proxyKind == ProxyKind20.Direct || protocol == Protocol.Ice1)
                 {
                     Communicator communicator = istr.Communicator!;
-                    var options = new ObjectPrxOptions(
+                    var options = new ServicePrxOptions(
                         communicator,
                         proxyData.Identity,
                         protocol,
@@ -897,7 +897,7 @@ namespace ZeroC.Ice
                                 $"received a relative proxy with invalid protocol {protocol.GetName()}");
                         }
 
-                        var options = new ObjectPrxOptions(
+                        var options = new ServicePrxOptions(
                             connection.Communicator,
                             proxyData.Identity,
                             protocol,
@@ -909,7 +909,7 @@ namespace ZeroC.Ice
                     }
                     else
                     {
-                        ObjectPrx? source = istr.SourceProxy;
+                        ServicePrx? source = istr.SourceProxy;
 
                         if (source == null)
                         {
@@ -933,10 +933,10 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
-        internal ObjectPrx Clone(ObjectPrxOptions options) => IceClone(options);
+        internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
 
         /// <summary>Computes the options used by the implementation of Proxy.Clone.</summary>
-        internal ObjectPrxOptions CreateCloneOptions(
+        internal ServicePrxOptions CreateCloneOptions(
             bool? cacheConnection = null,
             bool clearLabel = false,
             bool clearLocationService = false,
@@ -1101,7 +1101,7 @@ namespace ZeroC.Ice
             return connection;
         }
 
-        /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IObjectPrx, string)"/>.</summary>
+        /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IServicePrx, string)"/>.</summary>
         internal Dictionary<string, string> ToProperty(string prefix)
         {
             if (IsFixed)

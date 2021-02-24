@@ -699,7 +699,7 @@ csharpIdentifier(const ContainedPtr& contained, const string& identifier)
     {
         if(typeName == "::Ice::Object")
         {
-            os << "Ice.IObjectPrx";
+            os << "Ice.IServicePrx";
         }
         else
         {
@@ -1939,7 +1939,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
             if (mType->isInterfaceType())
             {
-                _out << "ZeroC.Ice.IObjectPrx.Equals(" << lhs << ", " << rhs << ")";
+                _out << "ZeroC.Ice.IServicePrx.Equals(" << lhs << ", " << rhs << ")";
             }
             else if (SequencePtr::dynamicCast(mType))
             {
@@ -2247,7 +2247,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if(baseInterfaces.empty())
     {
-        baseInterfaces.push_back("ZeroC.Ice.IObjectPrx");
+        baseInterfaces.push_back("ZeroC.Ice.IServicePrx");
     }
 
     for(vector<string>::const_iterator q = baseInterfaces.begin(); q != baseInterfaces.end();)
@@ -2279,7 +2279,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             _out << sp;
             _out << nl << "/// <summary>Creates an <see cref=\"ZeroC.Ice.OutgoingRequestFrame\"/> for "
                  << fixId(operationName(operation)) << " operation.</summary>";
-            _out << nl << "/// <param name=\"proxy\">Proxy to the target Ice Object.</param>";
+            _out << nl << "/// <param name=\"proxy\">Proxy to the target service.</param>";
             if (paramCount > 0)
             {
                 _out << nl << "/// <param name=\"args\">The remote operation arguments.</param>";
@@ -2288,7 +2288,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             _out << nl << "/// <param name=\"cancel\">A cancellation token that receives the cancellation requests."
                  << "</param>";
             _out << nl << "public static ZeroC.Ice.OutgoingRequestFrame " << fixId(operationName(operation))
-                << "(ZeroC.Ice.IObjectPrx proxy, ";
+                << "(ZeroC.Ice.IServicePrx proxy, ";
 
             if (paramCount > 0)
             {
@@ -2344,7 +2344,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "/// <summary>The <see cref=\"ZeroC.Ice.ResponseReader{T}\"/> for the return type "
                          << "of operation " << opName << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                    _out << "(ZeroC.Ice.IObjectPrx proxy, ZeroC.Ice.IncomingResponseFrame response) =>";
+                    _out << "(ZeroC.Ice.IServicePrx proxy, ZeroC.Ice.IncomingResponseFrame response) =>";
                     _out.inc();
                     _out << nl;
                     _out << "response.ReadReturnValue(proxy, ";
@@ -2403,7 +2403,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, ZeroC.Ice.Communicator communicator) => "
-         << "ZeroC.Ice.ObjectPrx.Parse(s, communicator, Factory);";
+         << "ZeroC.Ice.ServicePrx.Parse(s, communicator, Factory);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
@@ -2419,7 +2419,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "proxy = ZeroC.Ice.ObjectPrx.Parse(s, communicator, Factory);";
+    _out << nl << "proxy = ZeroC.Ice.ServicePrx.Parse(s, communicator, Factory);";
     _out << eb;
     _out << nl << "catch";
     _out << sb;
@@ -2433,14 +2433,14 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
 
     // Proxy class
     _out << sp;
-    _out << nl << "internal sealed class " << impl << " : ZeroC.Ice.ObjectPrx, " << name;
+    _out << nl << "internal sealed class " << impl << " : ZeroC.Ice.ServicePrx, " << name;
     _out << sb;
-    _out << nl << "protected override ZeroC.Ice.ObjectPrx IceClone(ZeroC.Ice.ObjectPrxOptions options) =>";
+    _out << nl << "protected override ZeroC.Ice.ServicePrx IceClone(ZeroC.Ice.ServicePrxOptions options) =>";
     _out.inc();
     _out << nl << "new " << impl << "(options);";
     _out.dec();
     _out << sp;
-    _out << nl << "internal " << impl << "(ZeroC.Ice.ObjectPrxOptions options)";
+    _out << nl << "internal " << impl << "(ZeroC.Ice.ServicePrxOptions options)";
     _out.inc();
     _out << nl << ": base(options)";
     _out.dec();
@@ -2654,7 +2654,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "public partial interface " << fixId(name) << " : ";
     if (bases.empty())
     {
-        _out << "ZeroC.Ice.IObject";
+        _out << "ZeroC.Ice.IService";
     }
     else
     {
@@ -2771,16 +2771,16 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<string> ZeroC.Ice.IObject.IceIdAsync("
+    _out << nl << "global::System.Threading.Tasks.ValueTask<string> ZeroC.Ice.IService.IceIdAsync("
          << "ZeroC.Ice.Current current, "
          << "global::System.Threading.CancellationToken cancel) => new(_iceTypeId);";
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> "
-         << "ZeroC.Ice.IObject.IceIdsAsync(ZeroC.Ice.Current current, "
+         << "ZeroC.Ice.IService.IceIdsAsync(ZeroC.Ice.Current current, "
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<ZeroC.Ice.OutgoingResponseFrame> ZeroC.Ice.IObject"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<ZeroC.Ice.OutgoingResponseFrame> ZeroC.Ice.IService"
          << ".DispatchAsync("
          << "ZeroC.Ice.IncomingRequestFrame request, "
          << "ZeroC.Ice.Current current, "

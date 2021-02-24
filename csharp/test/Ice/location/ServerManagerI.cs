@@ -80,8 +80,8 @@ namespace ZeroC.Ice.Test.Location
                     _adapters.Add(adapter2);
 
                     var testI = new TestIntf(adapter, adapter2, _registry);
-                    _registry.AddObject(adapter.Add("test", testI, IObjectPrx.Factory));
-                    _registry.AddObject(adapter.Add("test2", testI, IObjectPrx.Factory));
+                    _registry.AddObject(adapter.Add("test", testI, IServicePrx.Factory));
+                    _registry.AddObject(adapter.Add("test2", testI, IServicePrx.Factory));
                     adapter.Add("test3", testI);
 
                     await adapter.ActivateAsync(cancel);

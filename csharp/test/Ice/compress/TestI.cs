@@ -8,12 +8,12 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Compress
 {
-    internal sealed class Interceptor : IObject
+    internal sealed class Interceptor : IService
     {
-        private readonly IObject _servant;
+        private readonly IService _servant;
         private readonly bool _compressed;
 
-        internal Interceptor(IObject servant, bool compressed)
+        internal Interceptor(IService servant, bool compressed)
         {
             _servant = servant;
             _compressed = compressed;

@@ -8,7 +8,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.AdapterDeactivation
 {
-    public sealed class Servant : IObject
+    public sealed class Servant : IService
     {
         public ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,
@@ -17,7 +17,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
         {
             TestHelper.Assert(current.Identity.Category.Length == 0);
             TestHelper.Assert(current.Identity.Name == "test");
-            IObject servant = new TestIntf();
+            IService servant = new TestIntf();
             return servant.DispatchAsync(request, current, cancel);
         }
     }

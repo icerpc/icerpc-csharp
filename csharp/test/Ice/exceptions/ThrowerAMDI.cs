@@ -7,17 +7,17 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Exceptions
 {
-    public sealed class Forwarder : IObject
+    public sealed class Forwarder : IService
     {
-        private IObjectPrx _target;
+        private IServicePrx _target;
 
-        ValueTask<OutgoingResponseFrame> IObject.DispatchAsync(
+        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(
             IncomingRequestFrame request,
             Current current,
             CancellationToken cancel)
             => _target.ForwardAsync(request, current.IsOneway, cancel: cancel);
 
-        internal Forwarder(IObjectPrx target) => _target = target;
+        internal Forwarder(IServicePrx target) => _target = target;
     }
 
     public class AsyncThrower : IAsyncThrower

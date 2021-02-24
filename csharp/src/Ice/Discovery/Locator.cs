@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Discovery
         // The key is a single-endpoint datagram Lookup proxy extracted from the _lookup proxy.
         // The value is a dummy datagram proxy with usually a single endpoint that is one of _replyAdapter's endpoints
         // and that matches the interface of the key's endpoint.
-        private readonly Dictionary<ILookupPrx, IObjectPrx> _lookups = new();
+        private readonly Dictionary<ILookupPrx, IServicePrx> _lookups = new();
 
         private readonly ObjectAdapter _multicastAdapter;
 
@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Discovery
         private readonly int _retryCount;
         private readonly TimeSpan _timeout;
 
-        public async ValueTask<IObjectPrx?> FindAdapterByIdAsync(
+        public async ValueTask<IServicePrx?> FindAdapterByIdAsync(
             string adapterId,
             Current current,
             CancellationToken cancel)
@@ -57,7 +57,7 @@ namespace ZeroC.Ice.Discovery
                 replyServant).ConfigureAwait(false);
         }
 
-        public async ValueTask<IObjectPrx?> FindObjectByIdAsync(
+        public async ValueTask<IServicePrx?> FindObjectByIdAsync(
             Identity identity,
             Current current,
             CancellationToken cancel)
@@ -157,7 +157,7 @@ namespace ZeroC.Ice.Discovery
                                               });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
-            IObjectPrx lookupReply = _replyAdapter.CreateProxy("dummy", IObjectPrx.Factory);
+            IServicePrx lookupReply = _replyAdapter.CreateProxy("dummy", IServicePrx.Factory);
 
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.
@@ -207,7 +207,7 @@ namespace ZeroC.Ice.Discovery
         /// the _lookups dictionary.</param>
         /// <param name="replyServant">The reply servant.</param>
         private async Task<TResult> InvokeAsync<TResult>(
-            Func<ILookupPrx, IObjectPrx, Task> findAsync,
+            Func<ILookupPrx, IServicePrx, Task> findAsync,
             ReplyServant<TResult> replyServant)
         {
             // We retry only when at least one findAsync request is sent successfully and we don't get any reply.
@@ -275,7 +275,7 @@ namespace ZeroC.Ice.Discovery
 
     /// <summary>The base class of all Reply servant that helps collect / gather the reply(ies) to a lookup reques.
     /// </summary>
-    internal class ReplyServant<TResult> : IObject, IDisposable
+    internal class ReplyServant<TResult> : IService, IDisposable
     {
         internal CancellationToken CancellationToken => _cancellationSource.Token;
         internal Identity Identity { get; }
@@ -314,7 +314,7 @@ namespace ZeroC.Ice.Discovery
         private protected ReplyServant(TResult emptyResult, ObjectAdapter replyAdapter)
         {
             // Add servant (this) to object adapter with new UUID identity.
-            Identity = replyAdapter.AddWithUUID(this, IObjectPrx.Factory).Identity;
+            Identity = replyAdapter.AddWithUUID(this, IServicePrx.Factory).Identity;
 
             _cancellationSource = new();
             _completionSource = new();
@@ -334,14 +334,14 @@ namespace ZeroC.Ice.Discovery
     }
 
     /// <summary>Servant class that implements the Slice interface FindAdapterByIdReply.</summary>
-    internal sealed class FindAdapterByIdReply : ReplyServant<IObjectPrx?>, IAsyncFindAdapterByIdReply
+    internal sealed class FindAdapterByIdReply : ReplyServant<IServicePrx?>, IAsyncFindAdapterByIdReply
     {
         private readonly object _mutex = new();
-        private readonly HashSet<IObjectPrx> _proxies = new();
+        private readonly HashSet<IServicePrx> _proxies = new();
 
         public ValueTask FoundAdapterByIdAsync(
             string adapterId,
-            IObjectPrx proxy,
+            IServicePrx proxy,
             bool isReplicaGroup,
             Current current,
             CancellationToken cancel)
@@ -371,14 +371,14 @@ namespace ZeroC.Ice.Discovery
         {
         }
 
-        private protected override IObjectPrx? CollectReplicaReplies()
+        private protected override IServicePrx? CollectReplicaReplies()
         {
             lock (_mutex)
             {
                 Debug.Assert(_proxies.Count > 0);
                 var endpoints = new List<Endpoint>();
-                IObjectPrx result = _proxies.First();
-                foreach (IObjectPrx prx in _proxies)
+                IServicePrx result = _proxies.First();
+                foreach (IServicePrx prx in _proxies)
                 {
                     endpoints.AddRange(prx.Endpoints);
                 }
@@ -388,9 +388,9 @@ namespace ZeroC.Ice.Discovery
     }
 
     /// <summary>Servant class that implements the Slice interface FindObjectByIdReply.</summary>
-    internal class FindObjectByIdReply : ReplyServant<IObjectPrx?>, IAsyncFindObjectByIdReply
+    internal class FindObjectByIdReply : ReplyServant<IServicePrx?>, IAsyncFindObjectByIdReply
     {
-        public ValueTask FoundObjectByIdAsync(Identity id, IObjectPrx proxy, Current current, CancellationToken cancel)
+        public ValueTask FoundObjectByIdAsync(Identity id, IServicePrx proxy, Current current, CancellationToken cancel)
         {
             SetResult(proxy);
             return default;

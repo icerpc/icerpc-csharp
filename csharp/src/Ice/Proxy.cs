@@ -12,13 +12,13 @@ namespace ZeroC.Ice
     /// <paramtype name="T">The type of the new proxy.</paramtype>
     /// <param name="options">The proxy options.</param>
     /// <returns>The new proxy.</returns>
-    public delegate T ProxyFactory<T>(ObjectPrxOptions options) where T : class, IObjectPrx;
+    public delegate T ProxyFactory<T>(ServicePrxOptions options) where T : class, IServicePrx;
 
     /// <summary>Proxy provides extension methods for IObjectPrx.</summary>
     public static class Proxy
     {
         /// <summary>Tests whether this proxy points to a remote object derived from T. If so it returns a proxy of
-        /// type T otherwise returns null. This is a convenience wrapper for <see cref="IObjectPrx.IceIsAAsync"/>.
+        /// type T otherwise returns null. This is a convenience wrapper for <see cref="IServicePrx.IceIsAAsync"/>.
         /// </summary>
         /// <param name="proxy">The source proxy.</param>
         /// <param name="factory">The proxy factory used to specify the desired proxy type.</param>
@@ -27,11 +27,11 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new proxy manufactured by the proxy factory, or null.</returns>
         public static async Task<T?> CheckedCastAsync<T>(
-            this IObjectPrx proxy,
+            this IServicePrx proxy,
             ProxyFactory<T> factory,
             IReadOnlyDictionary<string, string>? context = null,
             IProgress<bool>? progress = null,
-            CancellationToken cancel = default) where T : class, IObjectPrx =>
+            CancellationToken cancel = default) where T : class, IServicePrx =>
             await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
                 (proxy is T t ? t : Clone(proxy, factory)) : null;
 
@@ -66,7 +66,7 @@ namespace ZeroC.Ice
         /// connections (optional).</param>
         /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
         public static T Clone<T>(
-            this IObjectPrx proxy,
+            this IServicePrx proxy,
             ProxyFactory<T> factory,
             bool? cacheConnection = null,
             bool clearLabel = false,
@@ -85,7 +85,7 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null) where T : class, IObjectPrx
+            NonSecure? preferNonSecure = null) where T : class, IServicePrx
         {
             T clone = factory(proxy.Impl.CreateCloneOptions(cacheConnection,
                                                             clearLabel,
@@ -149,10 +149,10 @@ namespace ZeroC.Ice
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null) where T : class, IObjectPrx
+            NonSecure? preferNonSecure = null) where T : class, IServicePrx
         {
-            ObjectPrx impl = proxy.Impl;
-            ObjectPrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
+            ServicePrx impl = proxy.Impl;
+            ServicePrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
                                                                  clearLabel,
                                                                  clearLocationService,
                                                                  context,
@@ -186,7 +186,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task holding the response frame.</returns>
         public static async ValueTask<OutgoingResponseFrame> ForwardAsync(
-            this IObjectPrx proxy,
+            this IServicePrx proxy,
             IncomingRequestFrame request,
             bool oneway,
             IProgress<bool>? progress = null,
@@ -197,7 +197,7 @@ namespace ZeroC.Ice
             {
                 // TODO: add support for stream data forwarding.
                 using IncomingResponseFrame response =
-                    await ObjectPrx.InvokeAsync(proxy, forwardedRequest, oneway, progress).ConfigureAwait(false);
+                    await ServicePrx.InvokeAsync(proxy, forwardedRequest, oneway, progress).ConfigureAwait(false);
                 return new OutgoingResponseFrame(request, response);
             }
             catch (LimitExceededException exception)
@@ -211,7 +211,7 @@ namespace ZeroC.Ice
         /// <param name="proxy">The proxy.</param>
         /// <returns>The cached Connection for this proxy (null if the proxy does not have
         /// an established connection).</returns>
-        public static Connection? GetCachedConnection(this IObjectPrx proxy) =>
+        public static Connection? GetCachedConnection(this IServicePrx proxy) =>
             proxy.Impl.GetCachedConnection();
 
         /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
@@ -220,7 +220,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The Connection for this proxy.</returns>
         public static ValueTask<Connection> GetConnectionAsync(
-            this IObjectPrx proxy,
+            this IServicePrx proxy,
             CancellationToken cancel = default) =>
             proxy.Impl.GetConnectionAsync(cancel);
 
@@ -233,11 +233,11 @@ namespace ZeroC.Ice
         /// <param name="progress">Sent progress provider.</param>
         /// <returns>A task holding the response frame.</returns>
         public static Task<IncomingResponseFrame> InvokeAsync(
-            this IObjectPrx proxy,
+            this IServicePrx proxy,
             OutgoingRequestFrame request,
             bool oneway = false,
             IProgress<bool>? progress = null) =>
-            ObjectPrx.InvokeAsync(proxy, request, oneway, progress);
+            ServicePrx.InvokeAsync(proxy, request, oneway, progress);
 
         /// <summary>Produces a string representation of a location.</summary>
         /// <param name="location">The location.</param>
@@ -249,7 +249,7 @@ namespace ZeroC.Ice
         /// <param name="proxy">The proxy for the target Ice object.</param>
         /// <param name="property">The base property name.</param>
         /// <returns>The property set.</returns>
-        public static Dictionary<string, string> ToProperty(this IObjectPrx proxy, string property) =>
+        public static Dictionary<string, string> ToProperty(this IServicePrx proxy, string property) =>
             proxy.Impl.ToProperty(property);
     }
 }

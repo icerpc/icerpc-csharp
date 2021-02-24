@@ -90,7 +90,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
         public static OutgoingRequestFrame WithArgs<T>(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             bool compress,
@@ -137,7 +137,7 @@ namespace ZeroC.Ice
             "CA1801: Review unused parameters",
             Justification = "TODO")]
         public static OutgoingRequestFrame WithArgs<T>(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             bool compress,
@@ -173,7 +173,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
         public static OutgoingRequestFrame WithArgs<T>(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             bool compress,
@@ -217,7 +217,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
         public static OutgoingRequestFrame WithArgs<T>(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             bool compress,
@@ -253,7 +253,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
         public static OutgoingRequestFrame WithEmptyArgs(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             IReadOnlyDictionary<string, string>? context = null,
@@ -277,7 +277,7 @@ namespace ZeroC.Ice
         /// except for entries previously added by invocation interceptors.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public OutgoingRequestFrame(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             IncomingRequestFrame request,
             bool forwardBinaryContext = true,
             CancellationToken cancel = default)
@@ -344,7 +344,7 @@ namespace ZeroC.Ice
         }
 
         private OutgoingRequestFrame(
-            IObjectPrx proxy,
+            IServicePrx proxy,
             string operation,
             bool idempotent,
             IReadOnlyDictionary<string, string>? context,

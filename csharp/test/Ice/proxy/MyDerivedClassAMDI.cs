@@ -13,7 +13,7 @@ namespace ZeroC.Ice.Test.Proxy
     {
         private IReadOnlyDictionary<string, string>? _ctx;
 
-        public ValueTask<IObjectPrx?> EchoAsync(IObjectPrx? obj, Current c, CancellationToken cancel) =>
+        public ValueTask<IServicePrx?> EchoAsync(IServicePrx? obj, Current c, CancellationToken cancel) =>
             new(obj);
 
         public ValueTask<IEnumerable<string>> GetLocationAsync(Current current, CancellationToken cancel) =>

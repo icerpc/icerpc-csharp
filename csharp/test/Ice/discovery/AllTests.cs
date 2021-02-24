@@ -67,7 +67,7 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 try
                 {
-                    await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -78,7 +78,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException)
@@ -89,7 +89,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -103,13 +103,13 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 proxies[0].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[0].AddObject("oa", "object");
-                await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
                 proxies[0].DeactivateObjectAdapter("oa");
 
                 proxies[1].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[1].AddObject("oa", "object");
-                await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
                 proxies[1].DeactivateObjectAdapter("oa");
             }
@@ -122,25 +122,25 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].ActivateObjectAdapter("oa", "oa2", "");
 
                 proxies[0].AddObject("oa", "object");
-                await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
 
                 proxies[1].AddObject("oa", "object");
-                await IObjectPrx.Parse("object @ oa2", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
 
                 try
                 {
-                    await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
                 }
                 try
                 {
-                    await IObjectPrx.Parse("object @ oa2", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
@@ -162,11 +162,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object @ oa2", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object @ oa3", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa3", communicator).IcePingAsync();
 
-                await IObjectPrx.Parse("object @ rg", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ rg", communicator).IcePingAsync();
 
                 var adapterIds = new List<string>
                 {
@@ -215,11 +215,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                await IObjectPrx.Parse("object @ oa1", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object @ oa2", communicator).IcePingAsync();
-                await IObjectPrx.Parse("object @ oa3", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa3", communicator).IcePingAsync();
 
-                await IObjectPrx.Parse("object @ rg", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ rg", communicator).IcePingAsync();
 
                 adapterIds = new List<string>
                 {
@@ -293,7 +293,7 @@ namespace ZeroC.Ice.Test.Discovery
                     try
                     {
                         // relies on ColocationScope = Communicator
-                        await IObjectPrx.Parse("controller0@control0", comm).
+                        await IServicePrx.Parse("controller0@control0", comm).
                             IcePingAsync();
                         TestHelper.Assert(false);
                     }
@@ -317,7 +317,7 @@ namespace ZeroC.Ice.Test.Discovery
                     await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
                     comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
-                    await IObjectPrx.Parse("controller0@control0", comm).
+                    await IServicePrx.Parse("controller0@control0", comm).
                         IcePingAsync();
                 }
             }

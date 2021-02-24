@@ -9,14 +9,14 @@ namespace ZeroC.Ice.Test.Location
 {
     public class ServerLocatorRegistry : ITestLocatorRegistry
     {
-        private readonly IDictionary<string, IObjectPrx> _adapters = new ConcurrentDictionary<string, IObjectPrx>();
-        private readonly IDictionary<Identity, IObjectPrx> _objects = new ConcurrentDictionary<Identity, IObjectPrx>();
+        private readonly IDictionary<string, IServicePrx> _adapters = new ConcurrentDictionary<string, IServicePrx>();
+        private readonly IDictionary<Identity, IServicePrx> _objects = new ConcurrentDictionary<Identity, IServicePrx>();
 
-        public void AddObject(IObjectPrx obj, Current current, CancellationToken cancel) => AddObject(obj);
+        public void AddObject(IServicePrx obj, Current current, CancellationToken cancel) => AddObject(obj);
 
         public void SetAdapterDirectProxy(
             string adapterId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel) =>
             SetReplicatedAdapterDirectProxy(adapterId, "", proxy, current, cancel);
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Location
         public void SetReplicatedAdapterDirectProxy(
             string adapterId,
             string replicaGroupId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel)
         {
@@ -55,12 +55,12 @@ namespace ZeroC.Ice.Test.Location
             // Ignored
         }
 
-        internal IObjectPrx? GetAdapter(string adapter) =>
-            _adapters.TryGetValue(adapter, out IObjectPrx? proxy) ? proxy : null;
+        internal IServicePrx? GetAdapter(string adapter) =>
+            _adapters.TryGetValue(adapter, out IServicePrx? proxy) ? proxy : null;
 
-        internal IObjectPrx? GetObject(Identity id) =>
-            _objects.TryGetValue(id, out IObjectPrx? obj) ? obj : null;
+        internal IServicePrx? GetObject(Identity id) =>
+            _objects.TryGetValue(id, out IServicePrx? obj) ? obj : null;
 
-        internal void AddObject(IObjectPrx obj) => _objects[obj.Identity] = obj;
+        internal void AddObject(IServicePrx obj) => _objects[obj.Identity] = obj;
     }
 }

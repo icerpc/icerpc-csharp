@@ -319,32 +319,32 @@ namespace ZeroC.Ice.Test.Alias
 
                 Type[] interface1Bases = typeof(IInterface1).GetInterfaces();
                 TestHelper.Assert(interface1Bases.Length == 1);
-                TestHelper.Assert(interface1Bases[0] == typeof(IObject));
+                TestHelper.Assert(interface1Bases[0] == typeof(IService));
 
                 Type[] interface1AsyncBases = typeof(IAsyncInterface1).GetInterfaces();
                 TestHelper.Assert(interface1AsyncBases.Length == 1);
-                TestHelper.Assert(interface1AsyncBases[0] == typeof(IObject));
+                TestHelper.Assert(interface1AsyncBases[0] == typeof(IService));
 
                 Type[] interface1PrxBases = typeof(IInterface1Prx).GetInterfaces();
                 TestHelper.Assert(interface1PrxBases.Length == 2);
-                TestHelper.Assert(interface1PrxBases[0] == typeof(IObjectPrx));
-                TestHelper.Assert(interface1PrxBases[1] == typeof(IEquatable<IObjectPrx>));
+                TestHelper.Assert(interface1PrxBases[0] == typeof(IServicePrx));
+                TestHelper.Assert(interface1PrxBases[1] == typeof(IEquatable<IServicePrx>));
 
                 Type[] interface2Bases = typeof(IInterface2).GetInterfaces();
                 TestHelper.Assert(interface2Bases.Length == 2);
                 TestHelper.Assert(interface2Bases[0] == typeof(IInterface1));
-                TestHelper.Assert(interface2Bases[1] == typeof(IObject));
+                TestHelper.Assert(interface2Bases[1] == typeof(IService));
 
                 Type[] interface2AsyncBases = typeof(IAsyncInterface2).GetInterfaces();
                 TestHelper.Assert(interface2AsyncBases.Length == 2);
                 TestHelper.Assert(interface2AsyncBases[0] == typeof(IAsyncInterface1));
-                TestHelper.Assert(interface2AsyncBases[1] == typeof(IObject));
+                TestHelper.Assert(interface2AsyncBases[1] == typeof(IService));
 
                 Type[] interface2PrxBases = typeof(IInterface2Prx).GetInterfaces();
                 TestHelper.Assert(interface2PrxBases.Length == 3);
                 TestHelper.Assert(interface2PrxBases[0] == typeof(IInterface1Prx));
-                TestHelper.Assert(interface2PrxBases[1] == typeof(IObjectPrx));
-                TestHelper.Assert(interface2PrxBases[2] == typeof(IEquatable<IObjectPrx>));
+                TestHelper.Assert(interface2PrxBases[1] == typeof(IServicePrx));
+                TestHelper.Assert(interface2PrxBases[2] == typeof(IEquatable<IServicePrx>));
 
                 TestHelper.Assert(Enum.GetUnderlyingType(typeof(Enum1)) == typeof(int));
                 TestHelper.Assert(Enum.GetUnderlyingType(typeof(Enum2)) == typeof(int));

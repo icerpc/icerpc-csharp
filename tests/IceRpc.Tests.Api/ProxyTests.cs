@@ -17,9 +17,9 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp:ssl -h localhost -p 10000")]
         public void Proxy_Parse_ValidInputIce1Format(string str)
         {
-            var prx = IObjectPrx.Parse(str, Communicator);
+            var prx = IServicePrx.Parse(str, Communicator);
             Assert.AreEqual(Protocol.Ice1, prx.Protocol);
-            var prx2 = IObjectPrx.Parse(prx.ToString()!, Communicator);
+            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -52,8 +52,8 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         public void Proxy_Parse_ValidInputUriFormat(string str)
         {
-            var prx = IObjectPrx.Parse(str, Communicator);
-            var prx2 = IObjectPrx.Parse(prx.ToString()!, Communicator);
+            var prx = IServicePrx.Parse(str, Communicator);
+            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:tcp -h [::0]")] // Invalid Any IPv6 address in proxy endpoint
         public void Proxy_Parse_InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => IObjectPrx.Parse(str, Communicator));
+            Assert.Throws<FormatException>(() => IServicePrx.Parse(str, Communicator));
         }
 
         /// <summary>Test that the parsed proxy has the expected idenity and location</summary>
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Api
             string category,
             IReadOnlyList<string> location)
         {
-            var prx = IObjectPrx.Parse(str, Communicator);
+            var prx = IServicePrx.Parse(str, Communicator);
             Assert.AreEqual(name, prx.Identity.Name);
             Assert.AreEqual(category, prx.Identity.Category);
             Assert.AreEqual(location, prx.Location);
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.Api
                     (target, request, next, cancel) => throw new NotImplementedException())
             };
 
-            var prx = IObjectPrx.Parse("test", communicator);
+            var prx = IServicePrx.Parse("test", communicator);
 
             CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
         }

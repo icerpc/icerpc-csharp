@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice.Test.Invoke
 {
-    public class BlobjectI : IObject
+    public class BlobjectI : IService
     {
         public ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,

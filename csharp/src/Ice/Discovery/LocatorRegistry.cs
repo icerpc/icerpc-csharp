@@ -12,14 +12,14 @@ namespace ZeroC.Ice.Discovery
     /// <summary>Servant class that implements the Slice interface Ice::LocatorRegistry.</summary>
     internal class LocatorRegistry : IAsyncLocatorRegistry
     {
-        private readonly Dictionary<string, IObjectPrx> _adapters = new();
-        private readonly IObjectPrx _dummyProxy;
+        private readonly Dictionary<string, IServicePrx> _adapters = new();
+        private readonly IServicePrx _dummyProxy;
         private readonly object _mutex = new();
         private readonly Dictionary<string, HashSet<string>> _replicaGroups = new();
 
         public ValueTask SetAdapterDirectProxyAsync(
             string adapterId,
-            IObjectPrx? proxy,
+            IServicePrx? proxy,
             Current current,
             CancellationToken cancel) =>
             SetReplicatedAdapterDirectProxyAsync(adapterId, "", proxy, current, cancel);
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Discovery
         public ValueTask SetReplicatedAdapterDirectProxyAsync(
            string adapterId,
            string replicaGroupId,
-           IObjectPrx? proxy,
+           IServicePrx? proxy,
            Current current,
            CancellationToken cancel)
         {
@@ -78,13 +78,13 @@ namespace ZeroC.Ice.Discovery
             CancellationToken cancel) => default; // Ignored
 
         internal LocatorRegistry(Communicator communicator) =>
-            _dummyProxy = IObjectPrx.Parse("dummy", communicator);
+            _dummyProxy = IServicePrx.Parse("dummy", communicator);
 
-        internal (IObjectPrx? Proxy, bool IsReplicaGroup) FindAdapter(string adapterId)
+        internal (IServicePrx? Proxy, bool IsReplicaGroup) FindAdapter(string adapterId)
         {
             lock (_mutex)
             {
-                if (_adapters.TryGetValue(adapterId, out IObjectPrx? proxy))
+                if (_adapters.TryGetValue(adapterId, out IServicePrx? proxy))
                 {
                     return (proxy, false);
                 }
@@ -100,7 +100,7 @@ namespace ZeroC.Ice.Discovery
             }
         }
 
-        internal async ValueTask<IObjectPrx?> FindObjectAsync(Identity identity, CancellationToken cancel)
+        internal async ValueTask<IServicePrx?> FindObjectAsync(Identity identity, CancellationToken cancel)
         {
             if (identity.Name.Length == 0)
             {
@@ -121,8 +121,8 @@ namespace ZeroC.Ice.Discovery
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IObjectPrx proxy = _dummyProxy.Clone(
-                        IObjectPrx.Factory,
+                    IServicePrx proxy = _dummyProxy.Clone(
+                        IServicePrx.Factory,
                         identity: identity,
                         location: ImmutableArray.Create(id));
                     await proxy.IcePingAsync(cancel: cancel).ConfigureAwait(false);

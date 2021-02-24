@@ -10,7 +10,7 @@ namespace ZeroC.Ice
     /// <summary>Publicly visible Ice-internal struct used for the construction of ObjectPrx and derived classes.
     /// Applications should not (and cannot) use it directly.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public readonly ref struct ObjectPrxOptions
+    public readonly ref struct ServicePrxOptions
     {
         internal readonly bool CacheConnection;
         internal readonly Communicator Communicator;
@@ -41,7 +41,7 @@ namespace ZeroC.Ice
         internal readonly NonSecure? PreferNonSecureOverride;
         internal readonly Protocol Protocol;
 
-        internal ObjectPrxOptions(
+        internal ServicePrxOptions(
             Communicator communicator,
             Identity identity,
             Protocol protocol,

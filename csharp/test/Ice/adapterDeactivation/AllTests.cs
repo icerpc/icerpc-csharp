@@ -55,7 +55,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 for (int i = 0; i < 10; ++i)
                 {
                     await using var comm = new Communicator(communicator.GetProperties());
-                    _ = IObjectPrx.Parse(helper.GetTestProxy("test", 0), communicator).IcePingAsync();
+                    _ = IServicePrx.Parse(helper.GetTestProxy("test", 0), communicator).IcePingAsync();
                 }
                 output.WriteLine("ok");
             }

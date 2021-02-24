@@ -166,9 +166,9 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory, where INamePrx is the desired proxy type.
         /// </param>
         /// <returns>A proxy that matches the given identity and facet, and uses this connection.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx
+        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IServicePrx
         {
-            var options = new ObjectPrxOptions(
+            var options = new ServicePrxOptions(
                 Communicator,
                 identity,
                 Protocol,

@@ -77,19 +77,19 @@ namespace ZeroC.Ice
 
         private Task? _activateTask;
 
-        private readonly Dictionary<(string Category, string Facet), IObject> _categoryServantMap = new();
+        private readonly Dictionary<(string Category, string Facet), IService> _categoryServantMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
 
         private readonly bool _datagramOnly;
 
-        private readonly Dictionary<string, IObject> _defaultServantMap = new();
+        private readonly Dictionary<string, IService> _defaultServantMap = new();
 
         private readonly IList<Func<Dispatcher, Dispatcher>> _dispatchInterceptorList =
             new List<Func<Dispatcher, Dispatcher>>();
 
         private Dispatcher _dispatchPipeline;
 
-        private readonly Dictionary<(Identity Identity, string Facet), IObject> _identityServantMap = new();
+        private readonly Dictionary<(Identity Identity, string Facet), IService> _identityServantMap = new();
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
@@ -258,7 +258,7 @@ namespace ZeroC.Ice
             _dispatchPipeline = async (request, current, cancel) =>
             {
                 Debug.Assert(current.Adapter == this);
-                IObject? servant = Find(current.Identity, current.Facet);
+                IService? servant = Find(current.Identity, current.Facet);
                 if (servant == null)
                 {
                     throw new ObjectNotExistException(RetryPolicy.OtherReplica);
@@ -350,10 +350,10 @@ namespace ZeroC.Ice
 
                 try
                 {
-                    var proxy = IObjectPrx.Factory(new(Communicator,
-                                                       new Identity("dummy", ""),
-                                                       PublishedEndpoints[0].Protocol,
-                                                       endpoints: PublishedEndpoints));
+                    var proxy = IServicePrx.Factory(new(Communicator,
+                                                        new Identity("dummy", ""),
+                                                        PublishedEndpoints[0].Protocol,
+                                                        endpoints: PublishedEndpoints));
 
                     if (ReplicaGroupId.Length > 0)
                     {
@@ -399,8 +399,8 @@ namespace ZeroC.Ice
         public T Add<T>(
             Identity identity,
             string facet,
-            IObject servant,
-            ProxyFactory<T> proxyFactory) where T : class, IObjectPrx
+            IService servant,
+            ProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
             Add(identity, facet, servant);
             return CreateProxy(identity, facet, proxyFactory);
@@ -413,7 +413,7 @@ namespace ZeroC.Ice
         /// be empty.</param>
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, string facet, IObject servant)
+        public void Add(Identity identity, string facet, IService servant)
         {
             CheckIdentity(identity);
             lock (_mutex)
@@ -437,7 +437,7 @@ namespace ZeroC.Ice
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(string, ProxyFactory{T})"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public T Add<T>(string identityAndFacet, IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx
+        public T Add<T>(string identityAndFacet, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Add(identity, facet, servant, proxyFactory);
@@ -448,7 +448,7 @@ namespace ZeroC.Ice
         /// ArgumentException.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="servant">The servant to add.</param>
-        public void Add(string identityAndFacet, IObject servant)
+        public void Add(string identityAndFacet, IService servant)
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             Add(identity, facet, servant);
@@ -462,7 +462,7 @@ namespace ZeroC.Ice
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public T Add<T>(Identity identity, IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx =>
+        public T Add<T>(Identity identity, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
             Add(identity, "", servant, proxyFactory);
 
         /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
@@ -470,13 +470,13 @@ namespace ZeroC.Ice
         /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
         /// be empty.</param>
         /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, IObject servant) => Add(identity, "", servant);
+        public void Add(Identity identity, IService servant) => Add(identity, "", servant);
 
         /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the provided
         /// facet.</summary>
         /// <param name="facet">The facet.</param>
         /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(string facet, IObject servant)
+        public void AddDefault(string facet, IService servant)
         {
             lock (_mutex)
             {
@@ -491,14 +491,14 @@ namespace ZeroC.Ice
         /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the default
         /// (empty) facet.</summary>
         /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(IObject servant) => AddDefault("", servant);
+        public void AddDefault(IService servant) => AddDefault("", servant);
 
         /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
         /// as key the provided category and facet.</summary>
         /// <param name="category">The object identity category.</param>
         /// <param name="facet">The facet.</param>
         /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, string facet, IObject servant)
+        public void AddDefaultForCategory(string category, string facet, IService servant)
         {
             lock (_mutex)
             {
@@ -514,7 +514,7 @@ namespace ZeroC.Ice
         /// as key the provided category and the default (empty) facet.</summary>
         /// <param name="category">The object identity category.</param>
         /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, IObject servant) =>
+        public void AddDefaultForCategory(string category, IService servant) =>
             AddDefaultForCategory(category, "", servant);
 
         /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
@@ -526,8 +526,8 @@ namespace ZeroC.Ice
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.
         /// </param>
         /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
-        public T AddWithUUID<T>(string facet, IObject servant, ProxyFactory<T> proxyFactory)
-            where T : class, IObjectPrx =>
+        public T AddWithUUID<T>(string facet, IService servant, ProxyFactory<T> proxyFactory)
+            where T : class, IServicePrx =>
             Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
 
         /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
@@ -537,7 +537,7 @@ namespace ZeroC.Ice
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
         /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
-        public T AddWithUUID<T>(IObject servant, ProxyFactory<T> proxyFactory) where T : class, IObjectPrx =>
+        public T AddWithUUID<T>(IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
             AddWithUUID("", servant, proxyFactory);
 
           /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
@@ -549,7 +549,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IObjectPrx
+        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IServicePrx
         {
             CheckIdentity(identity);
 
@@ -565,7 +565,7 @@ namespace ZeroC.Ice
 
                 Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
 
-                var options = new ObjectPrxOptions(
+                var options = new ServicePrxOptions(
                     Communicator,
                     identity,
                     protocol,
@@ -586,7 +586,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity.</returns>
-        public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IObjectPrx =>
+        public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IServicePrx =>
             CreateProxy(identity, "", factory);
 
         /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
@@ -597,7 +597,7 @@ namespace ZeroC.Ice
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
         /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(string identityAndFacet, ProxyFactory<T> factory) where T : class, IObjectPrx
+        public T CreateProxy<T>(string identityAndFacet, ProxyFactory<T> factory) where T : class, IServicePrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return CreateProxy(identity, facet, factory);
@@ -611,11 +611,11 @@ namespace ZeroC.Ice
         /// <param name="identity">The identity of the Ice object.</param>
         /// <param name="facet">The facet of the Ice object.</param>
         /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IObject? Find(Identity identity, string facet = "")
+        public IService? Find(Identity identity, string facet = "")
         {
             lock (_mutex)
             {
-                if (!_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
+                if (!_identityServantMap.TryGetValue((identity, facet), out IService? servant))
                 {
                     if (!_categoryServantMap.TryGetValue((identity.Category, facet), out servant))
                     {
@@ -630,7 +630,7 @@ namespace ZeroC.Ice
         /// servants currently in the ASM.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IObject? Find(string identityAndFacet)
+        public IService? Find(string identityAndFacet)
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Find(identity, facet);
@@ -640,11 +640,11 @@ namespace ZeroC.Ice
         /// <param name="identity">The identity of the Ice object.</param>
         /// <param name="facet">The facet of the Ice object.</param>
         /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? Remove(Identity identity, string facet = "")
+        public IService? Remove(Identity identity, string facet = "")
         {
             lock (_mutex)
             {
-                if (_identityServantMap.TryGetValue((identity, facet), out IObject? servant))
+                if (_identityServantMap.TryGetValue((identity, facet), out IService? servant))
                 {
                     _identityServantMap.Remove((identity, facet));
                 }
@@ -655,7 +655,7 @@ namespace ZeroC.Ice
         /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? Remove(string identityAndFacet)
+        public IService? Remove(string identityAndFacet)
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Remove(identity, facet);
@@ -665,11 +665,11 @@ namespace ZeroC.Ice
         /// </summary>
         /// <param name="facet">The facet.</param>
         /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? RemoveDefault(string facet = "")
+        public IService? RemoveDefault(string facet = "")
         {
             lock (_mutex)
             {
-                if (_defaultServantMap.TryGetValue(facet, out IObject? servant))
+                if (_defaultServantMap.TryGetValue(facet, out IService? servant))
                 {
                     _defaultServantMap.Remove(facet);
                 }
@@ -682,11 +682,11 @@ namespace ZeroC.Ice
         /// <param name="category">The category associated with this default servant.</param>
         /// <param name="facet">The facet.</param>
         /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IObject? RemoveDefaultForCategory(string category, string facet = "")
+        public IService? RemoveDefaultForCategory(string category, string facet = "")
         {
             lock (_mutex)
             {
-                if (_categoryServantMap.TryGetValue((category, facet), out IObject? servant))
+                if (_categoryServantMap.TryGetValue((category, facet), out IService? servant))
                 {
                     _categoryServantMap.Remove((category, facet));
                 }
@@ -825,7 +825,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal Endpoint? GetColocatedEndpoint(ObjectPrx proxy)
+        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
         {
             Debug.Assert(ColocationScope != ColocationScope.None);
 

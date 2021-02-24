@@ -28,7 +28,7 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            (IObjectPrx? proxy, bool isReplicaGroup) = _registryServant.FindAdapter(adapterId);
+            (IServicePrx? proxy, bool isReplicaGroup) = _registryServant.FindAdapter(adapterId);
             if (proxy != null)
             {
                 // Reply to the multicast request using the given proxy.
@@ -60,7 +60,7 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            if (await _registryServant.FindObjectAsync(id, cancel).ConfigureAwait(false) is IObjectPrx proxy)
+            if (await _registryServant.FindObjectAsync(id, cancel).ConfigureAwait(false) is IServicePrx proxy)
             {
                 // Reply to the multicast request using the given proxy.
                 try

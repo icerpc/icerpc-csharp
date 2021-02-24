@@ -314,7 +314,7 @@ namespace ZeroC.Ice
                 try
                 {
                     IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
-                    IObjectPrx? proxy = null;
+                    IServicePrx? proxy = null;
                     try
                     {
                         proxy = await _locator.FindAdapterByIdAsync(
@@ -327,7 +327,7 @@ namespace ZeroC.Ice
                         proxy = null;
                     }
 
-                    ObjectPrx? resolved = proxy?.Impl;
+                    ServicePrx? resolved = proxy?.Impl;
 
                     if (resolved != null && (resolved.Endpoints.Count == 0 || resolved.Protocol != Protocol.Ice1))
                     {
@@ -407,7 +407,7 @@ namespace ZeroC.Ice
                     IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
                     string location = "";
 
-                    IObjectPrx? obj = null;
+                    IServicePrx? obj = null;
                     try
                     {
                         obj = await _locator.FindObjectByIdAsync(
@@ -420,7 +420,7 @@ namespace ZeroC.Ice
                         obj = null;
                     }
 
-                    ObjectPrx? resolved = obj?.Impl;
+                    ServicePrx? resolved = obj?.Impl;
 
                     if (resolved != null && (resolved.IsWellKnown || resolved.Protocol != Protocol.Ice1))
                     {

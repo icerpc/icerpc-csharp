@@ -6,7 +6,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Echo
 {
-    public class BlobjectI : IObject
+    public class BlobjectI : IService
     {
         public ValueTask<OutgoingResponseFrame> DispatchAsync(
             IncomingRequestFrame request,
@@ -14,7 +14,7 @@ namespace ZeroC.Ice.Test.Echo
             CancellationToken cancel)
         {
             TestHelper.Assert(current.Connection != null);
-            IObjectPrx proxy = current.Connection.CreateProxy(current.Identity, current.Facet, IObjectPrx.Factory);
+            IServicePrx proxy = current.Connection.CreateProxy(current.Identity, current.Facet, IServicePrx.Factory);
             return proxy.ForwardAsync(request, current.IsOneway, cancel: cancel);
         }
     }

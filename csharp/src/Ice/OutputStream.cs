@@ -429,7 +429,7 @@ namespace ZeroC.Ice
 
         /// <summary>Writes a nullable proxy to the stream.</summary>
         /// <param name="v">The proxy to write, or null.</param>
-        public void WriteNullableProxy<T>(T? v) where T : class, IObjectPrx
+        public void WriteNullableProxy<T>(T? v) where T : class, IServicePrx
         {
             if (v != null)
             {
@@ -450,7 +450,7 @@ namespace ZeroC.Ice
 
         /// <summary>Writes a proxy to the stream.</summary>
         /// <param name="v">The proxy to write. This proxy cannot be null.</param>
-        public void WriteProxy<T>(T v) where T : class, IObjectPrx => v.IceWrite(this);
+        public void WriteProxy<T>(T v) where T : class, IServicePrx => v.IceWrite(this);
 
         /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the stream.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
@@ -840,7 +840,7 @@ namespace ZeroC.Ice
         /// <summary>Writes a tagged proxy to the stream.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The proxy to write.</param>
-        public void WriteTaggedProxy(int tag, IObjectPrx? v)
+        public void WriteTaggedProxy(int tag, IServicePrx? v)
         {
             if (v != null)
             {
