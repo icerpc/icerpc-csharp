@@ -192,9 +192,9 @@ namespace ZeroC.Ice
 
                     if (!stream.IsControl)
                     {
-                        // If serialization is enabled on the adapter, we wait on the semaphore to ensure that no more
+                        // If serialization is enabled on the server, we wait on the semaphore to ensure that no more
                         // than one stream is active. The wait is done on the client side to ensure the sent callback
-                        // for the request isn't called until the adapter is ready to dispatch a new request.
+                        // for the request isn't called until the server is ready to dispatch a new request.
                         AsyncSemaphore? semaphore = stream.IsBidirectional ?
                             _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
                         if (semaphore != null)

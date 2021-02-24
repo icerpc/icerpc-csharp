@@ -13,7 +13,7 @@ namespace ZeroC.Ice.Test.Perf
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("perf", new PerformanceI());
-            // Don't activate OA to ensure collocation is used.
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);
         }

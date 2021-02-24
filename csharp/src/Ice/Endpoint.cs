@@ -159,7 +159,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Checks whether this endpoint and the given endpoint point to the same local peer. This is used for
-        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local adapter.
+        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local server.
         /// </summary>
         /// <param name="endpoint">The other endpoint.</param>
         /// <returns><c>True</c> if the other endpoint point to the same local peer, <c>False</c> otherwise.</returns>
@@ -187,16 +187,16 @@ namespace ZeroC.Ice
         /// from clients and creates a new connection for each client. This is typically used to implement a
         /// stream-based transport. Datagram transports don't implement this method but instead implement the
         /// <see cref="CreateDatagramServerConnection"/> method.</summary>
-        /// <param name="adapter">The server associated to the acceptor.</param>
+        /// <param name="server">The server associated to the acceptor.</param>
         /// <returns>An acceptor for this endpoint.</returns>
-        public abstract IAcceptor Acceptor(Server adapter);
+        public abstract IAcceptor Acceptor(Server server);
 
         /// <summary>Creates a datagram server side connection for this endpoint to receive datagrams from clients.
         /// Unlike stream-based transports, datagram endpoints don't support an acceptor responsible for accepting new
         /// connections but implement this method to provide a connection responsible for receiving datagrams from
         /// clients.</summary>
         /// <returns>The datagram server side connection.</returns>
-        public abstract Connection CreateDatagramServerConnection(Server adapter);
+        public abstract Connection CreateDatagramServerConnection(Server server);
 
         /// <summary>Expands endpoint into separate endpoints for each IP address returned by the DNS resolver.
         /// Precondition: <see cref="HasDnsHost"/> is true.</summary>

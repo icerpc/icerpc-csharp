@@ -27,7 +27,7 @@ namespace ZeroC.Ice
 
         private readonly IAcceptor _acceptor;
         private Task? _acceptTask;
-        private readonly Server _adapter;
+        private readonly Server _server;
         private readonly Communicator _communicator;
         private readonly HashSet<Connection> _connections = new();
         private readonly object _mutex = new();
@@ -35,11 +35,11 @@ namespace ZeroC.Ice
 
         public override string ToString() => _acceptor.ToString()!;
 
-        internal AcceptorIncomingConnectionFactory(Server adapter, Endpoint endpoint)
+        internal AcceptorIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _communicator = adapter.Communicator;
-            _adapter = adapter;
-            _acceptor = endpoint.Acceptor(_adapter);
+            _communicator = server.Communicator;
+            _server = server;
+            _acceptor = endpoint.Acceptor(_server);
             Endpoint = _acceptor.Endpoint;
         }
 
@@ -58,7 +58,7 @@ namespace ZeroC.Ice
                 _acceptTask = Task.Factory.StartNew(AcceptAsync,
                                                     default,
                                                     TaskCreationOptions.None,
-                                                    _adapter.TaskScheduler ?? TaskScheduler.Default);
+                                                    _server.TaskScheduler ?? TaskScheduler.Default);
             }
         }
 
@@ -91,7 +91,7 @@ namespace ZeroC.Ice
             }
 
             // The connection set is immutable once _shutdown is true
-            var exception = new ObjectDisposedException($"{typeof(Server).FullName}:{_adapter.Name}");
+            var exception = new ObjectDisposedException($"{typeof(Server).FullName}:{_server.Name}");
             IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync(exception));
 
             // Wait for AcceptAsync and the connection closure to return.
@@ -158,9 +158,9 @@ namespace ZeroC.Ice
                     // Perform socket level initialization (handshake, etc)
                     await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
 
-                    // Check if the established connection can be trusted according to the adapter non-secure
+                    // Check if the established connection can be trusted according to the server non-secure
                     // setting.
-                    if (connection.CanTrust(_adapter.AcceptNonSecure))
+                    if (connection.CanTrust(_server.AcceptNonSecure))
                     {
                         // Perform protocol level initialization
                         await connection.InitializeAsync(cancel).ConfigureAwait(false);
@@ -194,9 +194,9 @@ namespace ZeroC.Ice
 
         public override string ToString() => _connection.ToString()!;
 
-        internal DatagramIncomingConnectionFactory(Server adapter, Endpoint endpoint)
+        internal DatagramIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _connection = endpoint.CreateDatagramServerConnection(adapter);
+            _connection = endpoint.CreateDatagramServerConnection(server);
             Endpoint = _connection.Endpoint;
             _ = _connection.InitializeAsync(default);
         }

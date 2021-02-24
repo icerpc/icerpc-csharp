@@ -351,8 +351,8 @@ namespace ZeroC.Ice
         internal SlicSocket(
             SingleStreamSocket socket,
             Endpoint endpoint,
-            Server? adapter)
-            : base(endpoint, adapter, socket)
+            Server? server)
+            : base(endpoint, server, socket)
         {
             _idleTimeout = endpoint.Communicator.IdleTimeout;
             _socket = new BufferedReceiveOverSingleStreamSocket(socket);
@@ -364,9 +364,9 @@ namespace ZeroC.Ice
             PeerPacketMaxSize = endpoint.Communicator.SlicPacketMaxSize;
             PeerStreamBufferMaxSize = endpoint.Communicator.SlicStreamBufferMaxSize;
 
-            // If serialization is enabled on the adapter, we configure the maximum stream counts to 1 to ensure
+            // If serialization is enabled on the server, we configure the maximum stream counts to 1 to ensure
             // the peer won't open more than one stream.
-            bool serializeDispatch = adapter?.SerializeDispatch ?? false;
+            bool serializeDispatch = server?.SerializeDispatch ?? false;
             _maxBidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxBidirectionalStreams;
             _maxUnidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxUnidirectionalStreams;
 

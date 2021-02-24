@@ -16,7 +16,7 @@ namespace ZeroC.Ice.Test.Operations
                                                         });
 
             var prx = adapter.Add("test", new MyDerivedClass(), IMyDerivedClassPrx.Factory);
-            // Don't activate OA to ensure colocation is used.
+            // Don't activate Server to ensure colocation is used.
 
             await AllTests.RunAsync(this);
         }

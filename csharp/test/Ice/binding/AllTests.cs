@@ -192,7 +192,7 @@ namespace ZeroC.Ice.Test.Binding
                 IReadOnlyList<Endpoint> endpoints = obj.Endpoints;
                 adapters.Clear();
 
-                // TODO: ice1-only for now, because we send the client endpoints for use in OA configuration.
+                // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                 if (helper.Protocol == Protocol.Ice1)
                 {
                     // Now, re-activate the adapters with the same endpoints in the opposite order.
@@ -359,10 +359,10 @@ namespace ZeroC.Ice.Test.Binding
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    // TODO: ice1-only for now, because we send the client endpoints for use in OA configuration.
+                    // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                     if (helper.Protocol == Protocol.Ice1)
                     {
-                        com.CreateServerWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp OA.
+                        com.CreateServerWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp Server.
 
                         for (int i = 0; i < 5; i++)
                         {
@@ -479,7 +479,7 @@ namespace ZeroC.Ice.Test.Binding
                     }
                     catch (ObjectNotExistException)
                     {
-                        // Expected. OA is reachable but there's no "dummy" object
+                        // Expected. Server is reachable but there's no "dummy" object
                     }
                 }
 
@@ -494,10 +494,10 @@ namespace ZeroC.Ice.Test.Binding
 
                     try
                     {
-                        await using var ipv4OA = new Server(
+                        await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = getEndpoint("0.0.0.0") });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -529,10 +529,10 @@ namespace ZeroC.Ice.Test.Binding
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
-                        await using var ipv4OA = new Server(
+                        await using var ipv4Server = new Server(
                                 serverCommunicator,
                                 new() { Endpoints = ipv4Endpoint });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                     }
 
                     try
@@ -560,10 +560,10 @@ namespace ZeroC.Ice.Test.Binding
                     try
                     {
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
-                        await using var ipv4OA = new Server(
+                        await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = ipv4Endpoint });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

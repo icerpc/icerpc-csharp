@@ -193,15 +193,15 @@ namespace ZeroC.Ice
 
         internal static void LogRegisterServerEndpointsFailure(
             this ILogger logger,
-            Server adapter,
+            Server server,
             Exception ex) =>
-            _registerServerEndpointsFailure(logger, adapter.Name, ex);
+            _registerServerEndpointsFailure(logger, server.Name, ex);
 
         internal static void LogRegisterServerEndpointsSuccess(
             this ILogger logger,
-            Server adapter,
+            Server server,
             IReadOnlyList<Endpoint> endpoints) =>
-            _registerServerEndpointsSuccess(logger, adapter.Name, endpoints, null!);
+            _registerServerEndpointsSuccess(logger, server.Name, endpoints, null!);
 
         internal static void LogResolveLocationFailure(
             this ILogger logger,
@@ -235,11 +235,11 @@ namespace ZeroC.Ice
 
         internal static void LogUnregisterServerEndpointsFailure(
             this ILogger logger,
-            Server adapter,
+            Server server,
             Exception ex) =>
-            _unregisterServerEndpointsFailure(logger, adapter.Name, ex);
+            _unregisterServerEndpointsFailure(logger, server.Name, ex);
 
-        internal static void LogUnregisterServerEndpointsSuccess(this ILogger logger, Server adapter) =>
-            _unregisterServerEndpointsSuccess(logger, adapter.Name, null!);
+        internal static void LogUnregisterServerEndpointsSuccess(this ILogger logger, Server server) =>
+            _unregisterServerEndpointsSuccess(logger, server.Name, null!);
     }
 }

@@ -44,8 +44,8 @@ namespace ZeroC.Ice.Test.Location
             Communicator serverCommunicator = TestHelper.CreateCommunicator(properties);
             _communicators.Add(serverCommunicator);
 
-            // Use fixed port to ensure that OA re-activation doesn't re-use previous port from
-            // another OA(e.g.: TestAdapter2 is re-activated using port of TestAdapter).
+            // Use fixed port to ensure that Server re-activation doesn't re-use previous port from
+            // another Server(e.g.: TestAdapter2 is re-activated using port of TestAdapter).
             int nRetry = 10;
             while (--nRetry > 0)
             {
@@ -95,7 +95,7 @@ namespace ZeroC.Ice.Test.Location
                         throw;
                     }
 
-                    // Retry, if OA creation fails with EADDRINUSE (this can occur when running with JS web
+                    // Retry, if Server creation fails with EADDRINUSE (this can occur when running with JS web
                     // browser clients if the driver uses ports in the same range as this test, ICE-8148)
                     if (adapter != null)
                     {

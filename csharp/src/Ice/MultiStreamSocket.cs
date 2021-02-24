@@ -98,13 +98,13 @@ namespace ZeroC.Ice
 
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
-        /// <param name="adapter">The server from which the socket was created or null if the socket
+        /// <param name="server">The server from which the socket was created or null if the socket
         /// is an outgoing socket created from the communicator.</param>
-        protected MultiStreamSocket(Endpoint endpoint, Server? adapter)
+        protected MultiStreamSocket(Endpoint endpoint, Server? server)
         {
             Endpoint = endpoint;
-            IsIncoming = adapter != null;
-            IncomingFrameMaxSize = adapter?.IncomingFrameMaxSize ?? Endpoint.Communicator.IncomingFrameMaxSize;
+            IsIncoming = server != null;
+            IncomingFrameMaxSize = server?.IncomingFrameMaxSize ?? Endpoint.Communicator.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
         }
 

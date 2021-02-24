@@ -124,7 +124,7 @@ namespace ZeroC.Ice
         /// A client can invoke an operation on a server using a proxy, and then set an server for the
         /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
         /// cannot establish a connection back to the client, for example because of firewalls.</summary>
-        /// <value>The server that dispatches requests for the connection, or null if no adapter is set.
+        /// <value>The server that dispatches requests for the connection, or null if no server is set.
         /// </value>
         public Server? Server
         {
@@ -241,15 +241,15 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             MultiStreamSocket socket,
             object? label,
-            Server? adapter)
+            Server? server)
         {
             Communicator = endpoint.Communicator;
             Socket = socket;
             Label = label;
             Endpoint = endpoint;
             KeepAlive = Communicator.KeepAlive;
-            IsIncoming = adapter != null;
-            _server = adapter;
+            IsIncoming = server != null;
+            _server = server;
             _state = ConnectionState.Initializing;
         }
 
@@ -528,10 +528,10 @@ namespace ZeroC.Ice
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                // If no adapter is configure to dispatch the request, return an ObjectNotExistException to the caller.
+                // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
                 OutgoingResponseFrame? response = null;
-                Server? adapter = _server;
-                if (adapter == null)
+                Server? server = _server;
+                if (server == null)
                 {
                     if (stream.IsBidirectional)
                     {
@@ -541,16 +541,16 @@ namespace ZeroC.Ice
                 else
                 {
                     // Dispatch the request and get the response
-                    var current = new Current(adapter, request, stream, this);
-                    if (adapter.TaskScheduler != null)
+                    var current = new Current(server, request, stream, this);
+                    if (server.TaskScheduler != null)
                     {
-                        response = await TaskRun(() => adapter.DispatchAsync(request, current, cancel),
+                        response = await TaskRun(() => server.DispatchAsync(request, current, cancel),
                                                 cancel,
-                                                adapter.TaskScheduler).ConfigureAwait(false);
+                                                server.TaskScheduler).ConfigureAwait(false);
                     }
                     else
                     {
-                        response = await adapter.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                        response = await server.DispatchAsync(request, current, cancel).ConfigureAwait(false);
                     }
                 }
 
@@ -710,8 +710,8 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             ColocatedSocket socket,
             object? label,
-            Server? adapter)
-            : base(endpoint, socket, label, adapter)
+            Server? server)
+            : base(endpoint, socket, label, server)
         {
         }
 
@@ -737,8 +737,8 @@ namespace ZeroC.Ice
                     0 => new KeyValuePair<string, object>(TransportKey, _connection.Endpoint.Transport),
                     1 => new KeyValuePair<string, object>(ProtocolKey, _connection.Endpoint.Protocol),
                     2 => new KeyValuePair<string, object>(IncomingKey, _connection.IsIncoming),
-                    3 => _connection.Server is Server adapter ?
-                        new KeyValuePair<string, object>(ServerKey, adapter.Name) :
+                    3 => _connection.Server is Server server ?
+                        new KeyValuePair<string, object>(ServerKey, server.Name) :
                         throw new ArgumentException(nameof(index)),
                     _ => throw new ArgumentOutOfRangeException(nameof(index))
                 };
@@ -760,9 +760,9 @@ namespace ZeroC.Ice
                 if (_cached == null)
                 {
                     var sb = new StringBuilder();
-                    if (_connection.Server is Server adapter)
+                    if (_connection.Server is Server server)
                     {
-                        sb.Append("server = ").Append(adapter.Name).Append(", ");
+                        sb.Append("server = ").Append(server.Name).Append(", ");
                     }
                     sb.Append("incoming = ").Append(_connection.IsIncoming).Append(", ");
                     sb.Append("transport = ").Append(_connection.Endpoint.Transport).Append(", ");
@@ -816,8 +816,8 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            Server? adapter)
-            : base(endpoint, socket, label, adapter) => _socket = socket;
+            Server? server)
+            : base(endpoint, socket, label, server) => _socket = socket;
 
         internal override bool CanTrust(NonSecure preferNonSecure)
         {
@@ -926,8 +926,8 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            Server? adapter)
-            : base(endpoint, socket, label, adapter)
+            Server? server)
+            : base(endpoint, socket, label, server)
         {
         }
     }
@@ -944,8 +944,8 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            Server? adapter)
-            : base(endpoint, socket, label, adapter) =>
+            Server? server)
+            : base(endpoint, socket, label, server) =>
             _udpSocket = (UdpSocket)_socket.Underlying;
     }
 
@@ -961,8 +961,8 @@ namespace ZeroC.Ice
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            Server? adapter)
-            : base(endpoint, socket, label, adapter) =>
+            Server? server)
+            : base(endpoint, socket, label, server) =>
             _wsSocket = (WSSocket)_socket.Underlying;
     }
 }

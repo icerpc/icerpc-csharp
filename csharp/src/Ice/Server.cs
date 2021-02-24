@@ -542,7 +542,7 @@ namespace ZeroC.Ice
 
           /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
         /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
-        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no adapter
+        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no server
         /// ID is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identity">The object's identity.</param>
         /// <param name="facet">The facet.</param>
@@ -579,8 +579,8 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Creates a proxy for the object with the given identity. If this server is configured with
-        /// an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group id is also
-        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
+        /// an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group id is also
+        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
         /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identity">The object's identity.</param>
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
@@ -590,8 +590,8 @@ namespace ZeroC.Ice
             CreateProxy(identity, "", factory);
 
         /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
-        /// configured with an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group
-        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
+        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
+        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
         /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
@@ -856,7 +856,7 @@ namespace ZeroC.Ice
                 lock (_mutex)
                 {
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
-                    // adapter's incoming connection factories are considered local.
+                    // server's incoming connection factories are considered local.
                     isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
                         PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));

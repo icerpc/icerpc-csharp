@@ -33,8 +33,8 @@ namespace ZeroC.Ice
 
         protected MultiStreamOverSingleStreamSocket(
             Endpoint endpoint,
-            Server? adapter,
+            Server? server,
             SingleStreamSocket socket)
-            : base(endpoint, adapter) => Underlying = socket;
+            : base(endpoint, server) => Underlying = socket;
     }
 }

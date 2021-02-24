@@ -446,14 +446,14 @@ namespace ZeroC.Ice
                 beg = StringUtil.FindFirstNotOf(s, delim, beg + 1);
                 if (beg == -1)
                 {
-                    throw new FormatException($"missing adapter id in `{s}'");
+                    throw new FormatException($"missing adapter ID in `{s}'");
                 }
 
                 string locationStr;
                 end = StringUtil.CheckQuote(s, beg);
                 if (end == -1)
                 {
-                    throw new FormatException($"mismatched quotes around adapter id in `{s}'");
+                    throw new FormatException($"mismatched quotes around adapter ID in `{s}'");
                 }
                 else if (end == 0)
                 {

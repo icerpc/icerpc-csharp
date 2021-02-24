@@ -14,14 +14,14 @@ namespace ZeroC.Ice.Test.AMI
 
             adapter.Add("test", new TestIntf());
             adapter.Add("test2", new TestIntf2());
-            // Don't activate OA to ensure collocation is used.
+            // Don't activate Server to ensure collocation is used.
 
             Server adapter2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
             adapter2.Add("serialized", new TestIntf());
-            // Don't activate OA to ensure collocation is used.
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);
         }

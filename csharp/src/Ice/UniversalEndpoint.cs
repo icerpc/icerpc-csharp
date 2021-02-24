@@ -34,7 +34,7 @@ namespace ZeroC.Ice
 
         private int _hashCode; // 0 is a special value that means not initialized.
 
-        public override IAcceptor Acceptor(Server adapter) =>
+        public override IAcceptor Acceptor(Server server) =>
             throw new InvalidOperationException();
 
         // There is no Equals as it's identical to the base.
@@ -60,7 +60,7 @@ namespace ZeroC.Ice
 
         public override bool IsLocal(Endpoint endpoint) => false;
 
-        public override Connection CreateDatagramServerConnection(Server adapter) =>
+        public override Connection CreateDatagramServerConnection(Server server) =>
             throw new InvalidOperationException();
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)

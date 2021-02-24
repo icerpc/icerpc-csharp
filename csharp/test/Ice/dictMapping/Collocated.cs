@@ -13,7 +13,7 @@ namespace ZeroC.Ice.Test.DictMapping
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             adapter.Add("test", new MyClass());
-            // Don't activate OA to ensure collocation is used.
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this, true);
         }

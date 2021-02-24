@@ -37,13 +37,13 @@ namespace ZeroC.Ice
         private int _hashCode;
 
         // TODO: should not be public
-        public override IAcceptor Acceptor(Server adapter)
+        public override IAcceptor Acceptor(Server server)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
-            return new TcpAcceptor(this, adapter);
+            return new TcpAcceptor(this, server);
         }
 
-        public override Connection CreateDatagramServerConnection(Server adapter) =>
+        public override Connection CreateDatagramServerConnection(Server server) =>
             throw new InvalidOperationException();
 
         public override bool Equals(Endpoint? other)
@@ -211,14 +211,14 @@ namespace ZeroC.Ice
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),
                 _ => new SlicSocket(socket, this, null)
             };
-            return CreateConnection(multiStreamSocket, label, adapter: null);
+            return CreateConnection(multiStreamSocket, label, server: null);
         }
 
         protected internal virtual Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            Server? adapter) =>
-            new TcpConnection(this, socket, label, adapter);
+            Server? server) =>
+            new TcpConnection(this, socket, label, server);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {

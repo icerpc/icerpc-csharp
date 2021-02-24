@@ -7,15 +7,15 @@ namespace ZeroC.Ice
 {
     public static class ServerUseExtensions
     {
-        /// <summary>Adds a simple dispatch interceptor to the request dispatch pipeline. This is an adapter for <see
+        /// <summary>Adds a simple dispatch interceptor to the request dispatch pipeline. This is an server for <see
         /// cref="Server.Use"/>.</summary>
-        /// <param name="adapter">The server.</param>
+        /// <param name="server">The server.</param>
         /// <param name="dispatchInterceptor">A simple dispatch interceptor.</param>
-        /// <returns>The <c>adapter</c> argument.</returns>
+        /// <returns>The <c>server</c> argument.</returns>
         public static Server Use(
-            this Server adapter,
+            this Server server,
             Func<IncomingRequestFrame, Current, Func<ValueTask<OutgoingResponseFrame>>, CancellationToken, ValueTask<OutgoingResponseFrame>> dispatchInterceptor) =>
-            adapter.Use(
+            server.Use(
                 next => (request, current, cancel) =>
                 {
                     return dispatchInterceptor(request, current, SimpleNext, cancel);
