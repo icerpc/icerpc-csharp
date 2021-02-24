@@ -37,25 +37,25 @@ namespace ZeroC.Ice.Test.Facets
             output.WriteLine("ok");
 
             output.Write("testing facet registration exceptions... ");
-            var adapter = new Server(communicator);
+            var server = new Server(communicator);
 
             var obj = new Empty();
 
-            adapter.Add("d", obj);
-            adapter.Add("d#facetABCD", obj);
+            server.Add("d", obj);
+            server.Add("d#facetABCD", obj);
             try
             {
-                adapter.Add("d#facetABCD", obj);
+                server.Add("d#facetABCD", obj);
                 TestHelper.Assert(false);
             }
             catch (ArgumentException)
             {
             }
-            adapter.Remove("d#facetABCD");
-            adapter.Remove("d#facetABCD"); // multiple Remove are fine as of Ice 4.0
+            server.Remove("d#facetABCD");
+            server.Remove("d#facetABCD"); // multiple Remove are fine as of Ice 4.0
             output.WriteLine("ok");
 
-            await adapter.DisposeAsync();
+            await server.DisposeAsync();
 
             var prx = IServicePrx.Parse(helper.GetTestProxy("d", 0), communicator);
             IDPrx? d;

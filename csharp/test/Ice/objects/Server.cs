@@ -10,16 +10,16 @@ namespace ZeroC.Ice.Test.Objects
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("initial", new Initial(adapter));
-            adapter.Add("F21", new F2());
+            server.Add("initial", new Initial(server));
+            server.Add("F21", new F2());
             var uoet = new UnexpectedObjectExceptionTest();
-            adapter.Add("uoet", uoet);
-            await adapter.ActivateAsync();
+            server.Add("uoet", uoet);
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

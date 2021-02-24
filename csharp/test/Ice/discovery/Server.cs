@@ -38,7 +38,7 @@ namespace ZeroC.Ice.Test.Discovery
             ILocatorRegistryPrx? locatorRegistry = await discoveryServer.Locator.GetRegistryAsync();
             TestHelper.Assert(locatorRegistry != null);
 
-            await using var adapter = new Server(
+            await using var server = new Server(
                 Communicator,
                 new()
                 {
@@ -47,11 +47,11 @@ namespace ZeroC.Ice.Test.Discovery
                     LocatorRegistry = locatorRegistry
                 });
 
-            adapter.Add($"controller{num}", new Controller(locatorRegistry));
-            await adapter.ActivateAsync();
+            server.Add($"controller{num}", new Controller(locatorRegistry));
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

@@ -14,8 +14,8 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             var transport = TestHelper.GetTestTransport(current.Communicator.GetProperties());
             var endpoint = ice1 ? $"{transport} -h \"::0\"" : $"ice+{transport}://[::0]:0";
 
-            await using var adapter = new Server(current.Communicator, new() { Endpoints = endpoint });
-            await adapter.ActivateAsync(cancel);
+            await using var server = new Server(current.Communicator, new() { Endpoints = endpoint });
+            await server.ActivateAsync(cancel);
         }
 
         public async ValueTask DeactivateAsync(Current current, CancellationToken cancel)

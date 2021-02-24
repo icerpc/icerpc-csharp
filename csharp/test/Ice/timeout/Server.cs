@@ -14,15 +14,15 @@ namespace ZeroC.Ice.Test.Timeout
         public override async Task RunAsync(string[] args)
         {
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new()
                                                         {
                                                             Endpoints = GetTestEndpoint(0),
                                                             TaskScheduler = schedulerPair.ExclusiveScheduler
                                                         });
 
-            adapter.Add("timeout", new Timeout());
-            adapter.Use(
+            server.Add("timeout", new Timeout());
+            server.Use(
                 (request, current, next, cancel) =>
                 {
                     if (current.Operation == "checkDeadline")
@@ -35,7 +35,7 @@ namespace ZeroC.Ice.Test.Timeout
                     return next();
                 });
 
-            await adapter.ActivateAsync();
+            await server.ActivateAsync();
 
             await using var controllerAdapter = new Server(
                 Communicator,

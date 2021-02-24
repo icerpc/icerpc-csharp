@@ -63,7 +63,7 @@ namespace ZeroC.Ice.Test.UDP
         {
             Communicator communicator = helper.Communicator;
 
-            Server adapter = new Server(
+            Server server = new Server(
                 communicator,
                 new()
                 {
@@ -72,9 +72,9 @@ namespace ZeroC.Ice.Test.UDP
                     ServerName = "127.0.0.1"
                 });
             var replyI = new PingReplyI();
-            IPingReplyPrx reply = adapter.AddWithUUID(replyI, IPingReplyPrx.Factory)
+            IPingReplyPrx reply = server.AddWithUUID(replyI, IPingReplyPrx.Factory)
                 .Clone(oneway: true, preferNonSecure: NonSecure.Always);
-            await adapter.ActivateAsync();
+            await server.ActivateAsync();
 
             Console.Out.Write("testing udp... ");
             Console.Out.Flush();
@@ -110,7 +110,7 @@ namespace ZeroC.Ice.Test.UDP
                 // If the 3 datagrams were not received within the 2 seconds, we try again to
                 // receive 3 new datagrams using a new object. We give up after 5 retries.
                 replyI = new PingReplyI();
-                reply = adapter.AddWithUUID(
+                reply = server.AddWithUUID(
                     replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                          preferNonSecure: NonSecure.Always);
             }
@@ -191,7 +191,7 @@ namespace ZeroC.Ice.Test.UDP
                     break;
                 }
                 replyI = new PingReplyI();
-                reply = adapter.AddWithUUID(
+                reply = server.AddWithUUID(
                     replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                          preferNonSecure: NonSecure.Always);
             }
@@ -209,7 +209,7 @@ namespace ZeroC.Ice.Test.UDP
             {
                 Console.Out.Write("testing udp bi-dir connection... ");
                 Console.Out.Flush();
-                (await obj.GetConnectionAsync()).Server = adapter;
+                (await obj.GetConnectionAsync()).Server = server;
                 nRetry = 5;
                 while (nRetry-- > 0)
                 {
@@ -223,7 +223,7 @@ namespace ZeroC.Ice.Test.UDP
                         break; // Success
                     }
                     replyI = new PingReplyI();
-                    reply = adapter.AddWithUUID(
+                    reply = server.AddWithUUID(
                         replyI, IPingReplyPrx.Factory).Clone(oneway: true,
                                                              preferNonSecure: NonSecure.Always);
                 }

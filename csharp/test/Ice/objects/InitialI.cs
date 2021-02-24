@@ -8,15 +8,15 @@ namespace ZeroC.Ice.Test.Objects
 {
     public sealed class Initial : IInitial
     {
-        private Server _adapter;
+        private Server _server;
         private readonly B _b1;
         private readonly B _b2;
         private readonly C _c;
         private readonly D _d;
 
-        public Initial(Server adapter)
+        public Initial(Server server)
         {
-            _adapter = adapter;
+            _server = server;
             _b1 = new B();
             _b2 = new B();
             _c = new C();
@@ -84,7 +84,7 @@ namespace ZeroC.Ice.Test.Objects
 
         public Compact GetCompact(Current current, CancellationToken cancel) => new CompactExt();
 
-        public void Shutdown(Current current, CancellationToken cancel) => _adapter.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => _server.ShutdownAsync();
 
         public Inner.A GetInnerA(Current current, CancellationToken cancel) => new(_b1);
 

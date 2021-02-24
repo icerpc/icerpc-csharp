@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Timeout
             }
             catch
             {
-                // Ensure the adapter is not in the holding state when an unexpected exception occurs to prevent
+                // Ensure the server is not in the holding state when an unexpected exception occurs to prevent
                 // the test from hanging on exit in case a connection which disables timeouts is still opened.
                 controller.ResumeAdapter();
                 throw;
@@ -58,7 +58,7 @@ namespace ZeroC.Ice.Test.Timeout
                     // Expected.
                 }
                 controller.ResumeAdapter();
-                timeout.Op(); // Ensure adapter is active.
+                timeout.Op(); // Ensure server is active.
             }
             {
                 // Expect success.
@@ -134,7 +134,7 @@ namespace ZeroC.Ice.Test.Timeout
                 TestHelper.Assert(!semaphore.Wait(500));
 
                 controller.ResumeAdapter();
-                timeout.Op(); // Ensure adapter is active.
+                timeout.Op(); // Ensure server is active.
             }
             output.WriteLine("ok");
 

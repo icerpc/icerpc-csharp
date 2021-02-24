@@ -19,9 +19,9 @@ namespace ZeroC.Ice.Test.Impl
             Communicator.getProperties().setProperty("Ice.Warn.Connections", "0");
             Communicator.getProperties().setProperty("TestAdapter.Endpoints", getTestEndpoint(0));
 
-            Ice.Server adapter = Communicator.createServer("TestAdapter");
-            adapter.add(Ice.Util.stringToIdentity("test"), new MyDerivedClassI());
-            adapter.activate();
+            Ice.Server server = Communicator.createServer("TestAdapter");
+            server.add(Ice.Util.stringToIdentity("test"), new MyDerivedClassI());
+            server.activate();
 
             ServerReady();
             Communicator.waitForShutdown();

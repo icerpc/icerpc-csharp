@@ -10,21 +10,21 @@ namespace ZeroC.Ice.Test.Exceptions
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            Server adapter2 = new Server(Communicator,
+            Server server2 = new Server(Communicator,
                 new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
 
-            Server adapter3 = new Server(Communicator,
+            Server server3 = new Server(Communicator,
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new Thrower();
-            ZeroC.Ice.IServicePrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
-            adapter2.Add("thrower", obj);
-            adapter3.Add("thrower", obj);
-            await adapter.ActivateAsync();
-            await adapter2.ActivateAsync();
-            await adapter3.ActivateAsync();
+            ZeroC.Ice.IServicePrx prx = server.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
+            server2.Add("thrower", obj);
+            server3.Add("thrower", obj);
+            await server.ActivateAsync();
+            await server2.ActivateAsync();
+            await server3.ActivateAsync();
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
             await using var forwarderAdapter = new Server(
@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Exceptions
             await forwarderAdapter.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

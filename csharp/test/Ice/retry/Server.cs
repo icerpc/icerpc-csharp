@@ -9,19 +9,19 @@ namespace ZeroC.Ice.Test.Retry
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter1 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server1 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter1.Add("retry", new Retry());
-            adapter1.Add("replicated", new Replicated(true));
-            adapter1.Add("nonreplicated", new NonReplicated());
-            await adapter1.ActivateAsync();
+            server1.Add("retry", new Retry());
+            server1.Add("replicated", new Replicated(true));
+            server1.Add("nonreplicated", new NonReplicated());
+            await server1.ActivateAsync();
 
-            await using var adapter2 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(1) });
-            adapter2.Add("replicated", new Replicated(false));
-            await adapter2.ActivateAsync();
+            await using var server2 = new Server(Communicator, new() { Endpoints = GetTestEndpoint(1) });
+            server2.Add("replicated", new Replicated(false));
+            await server2.ActivateAsync();
 
             ServerReady();
-            await adapter1.ShutdownComplete;
+            await server1.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

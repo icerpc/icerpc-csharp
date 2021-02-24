@@ -9,13 +9,13 @@ namespace ZeroC.Ice.Test.Operations
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new MyDerivedClass());
-            await adapter.ActivateAsync();
+            server.Add("test", new MyDerivedClass());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

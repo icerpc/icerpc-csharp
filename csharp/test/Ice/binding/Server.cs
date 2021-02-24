@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.Binding
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(
+            await using var server = new Server(
                 Communicator,
                 new()
                 {
@@ -18,11 +18,11 @@ namespace ZeroC.Ice.Test.Binding
                     ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
-            adapter.Add("communicator", new RemoteCommunicator());
-            await adapter.ActivateAsync();
+            server.Add("communicator", new RemoteCommunicator());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

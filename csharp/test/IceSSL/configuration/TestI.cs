@@ -8,15 +8,15 @@ using ZeroC.Test;
 
 namespace ZeroC.IceSSL.Test.Configuration
 {
-    internal sealed class SSLServerApp : IServer
+    internal sealed class ServerService : IServer
     {
-        private readonly Server _adapter;
+        private readonly Server _server;
         private readonly Communicator _communicator;
 
-        internal SSLServerApp(Communicator communicator, Server adapter)
+        internal ServerService(Communicator communicator, Server server)
         {
             _communicator = communicator;
-            _adapter = adapter;
+            _server = server;
         }
 
         public void NoCert(Current current, CancellationToken cancel)
@@ -66,13 +66,13 @@ namespace ZeroC.IceSSL.Test.Configuration
         }
 
         internal Task ShutdownAsync() =>
-            Task.WhenAll(_adapter.ShutdownAsync(), _communicator.ShutdownAsync());
+            Task.WhenAll(_server.ShutdownAsync(), _communicator.ShutdownAsync());
     }
 
     internal sealed class ServerFactory : IAsyncServerFactory
     {
         private readonly string _defaultDir;
-        private readonly Dictionary<Identity, SSLServerApp> _servers = new();
+        private readonly Dictionary<Identity, ServerService> _servers = new();
 
         public ServerFactory(string defaultDir) => _defaultDir = defaultDir;
 
@@ -99,7 +99,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                 transport: ice1 ? "ssl" : "tcp",
                 ephemeral: host != "localhost");
 
-            var adapter = new Server(
+            var server = new Server(
                 communicator,
                 new()
                 {
@@ -107,16 +107,16 @@ namespace ZeroC.IceSSL.Test.Configuration
                     Endpoints = serverEndpoint,
                     ServerName = host
                 });
-            var server = new SSLServerApp(communicator, adapter);
-            IServerPrx prx = adapter.AddWithUUID(server, IServerPrx.Factory);
-            _servers[prx.Identity] = server;
-            await adapter.ActivateAsync(cancel);
+            var serverService = new ServerService(communicator, server);
+            IServerPrx prx = server.AddWithUUID(serverService, IServerPrx.Factory);
+            _servers[prx.Identity] = serverService;
+            await server.ActivateAsync(cancel);
             return prx;
         }
 
         public async ValueTask DestroyServerAsync(IServerPrx? srv, Current current, CancellationToken cancel)
         {
-            if (_servers.TryGetValue(srv!.Identity, out SSLServerApp? server))
+            if (_servers.TryGetValue(srv!.Identity, out ServerService? server))
             {
                 await server.ShutdownAsync();
                 _servers.Remove(srv.Identity);

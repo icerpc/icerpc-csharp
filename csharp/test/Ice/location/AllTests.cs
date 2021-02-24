@@ -203,7 +203,7 @@ namespace ZeroC.Ice.Test.Location
             }
             output.WriteLine("ok");
 
-            output.Write("testing proxy with unknown adapter... ");
+            output.Write("testing proxy with unknown server... ");
             output.Flush();
             try
             {
@@ -315,7 +315,7 @@ namespace ZeroC.Ice.Test.Location
             }
             output.WriteLine("ok");
 
-            output.Write("testing adapter locator cache... ");
+            output.Write("testing server locator cache... ");
             output.Flush();
             try
             {
@@ -610,13 +610,13 @@ namespace ZeroC.Ice.Test.Location
             output.Write("testing indirect proxies to colocated objects... ");
             output.Flush();
 
-            await using var adapter = new Server(
+            await using var server = new Server(
                 communicator,
                 new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
             var id = new Identity(Guid.NewGuid().ToString(), "");
-            adapter.Add(id, new Hello());
-            await adapter.ActivateAsync();
+            server.Add(id, new Hello());
+            await server.ActivateAsync();
 
             // Ensure that calls on the well-known proxy is collocated.
             IHelloPrx? helloPrx;
@@ -630,13 +630,13 @@ namespace ZeroC.Ice.Test.Location
             }
             TestHelper.Assert(await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
-            // Ensure that calls on the indirect proxy (with adapter ID) is colocated
-            helloPrx = await adapter.CreateProxy(id, IServicePrx.Factory).CheckedCastAsync(IHelloPrx.Factory);
+            // Ensure that calls on the indirect proxy (with server ID) is colocated
+            helloPrx = await server.CreateProxy(id, IServicePrx.Factory).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             // Ensure that calls on the direct proxy is colocated
-            helloPrx = await adapter.CreateProxy(id, IServicePrx.Factory).Clone(
-                endpoints: adapter.PublishedEndpoints,
+            helloPrx = await server.CreateProxy(id, IServicePrx.Factory).Clone(
+                endpoints: server.PublishedEndpoints,
                 location: ImmutableArray<string>.Empty).CheckedCastAsync(IHelloPrx.Factory);
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 

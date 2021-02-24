@@ -9,14 +9,14 @@ namespace ZeroC.Ice.Test.Perf
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("perf", new PerformanceI());
-            await adapter.ActivateAsync();
+            server.Add("perf", new PerformanceI());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

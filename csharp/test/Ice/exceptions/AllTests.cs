@@ -42,14 +42,14 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 output.Write("testing servant registration exceptions... ");
-                await using Server adapter = new Server(
+                await using Server server = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();
-                adapter.Add("x", obj);
+                server.Add("x", obj);
                 try
                 {
-                    adapter.Add("x", obj);
+                    server.Add("x", obj);
                     TestHelper.Assert(false);
                 }
                 catch (ArgumentException)
@@ -58,15 +58,15 @@ namespace ZeroC.Ice.Test.Exceptions
 
                 try
                 {
-                    adapter.Add("", obj);
+                    server.Add("", obj);
                     TestHelper.Assert(false);
                 }
                 catch (FormatException)
                 {
                 }
 
-                adapter.Remove("x");
-                adapter.Remove("x"); // as of Ice 4.0, Remove succeeds with multiple removals
+                server.Remove("x");
+                server.Remove("x"); // as of Ice 4.0, Remove succeeds with multiple removals
                 output.WriteLine("ok");
             }
 

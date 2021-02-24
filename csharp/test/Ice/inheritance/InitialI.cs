@@ -13,12 +13,12 @@ namespace ZeroC.Ice.Test.Inheritance
         private readonly IB2Prx _ib2;
         private readonly ICPrx _ic;
 
-        public InitialI(Server adapter)
+        public InitialI(Server server)
         {
-            _ia = adapter.AddWithUUID(new A(), IAPrx.Factory);
-            _ib1 = adapter.AddWithUUID(new B1(), IB1Prx.Factory);
-            _ib2 = adapter.AddWithUUID(new B2(), IB2Prx.Factory);
-            _ic = adapter.AddWithUUID(new C(), ICPrx.Factory);
+            _ia = server.AddWithUUID(new A(), IAPrx.Factory);
+            _ib1 = server.AddWithUUID(new B1(), IB1Prx.Factory);
+            _ib2 = server.AddWithUUID(new B2(), IB2Prx.Factory);
+            _ic = server.AddWithUUID(new C(), ICPrx.Factory);
         }
 
         public IAPrx Iaop(Current current, CancellationToken cancel) => _ia;

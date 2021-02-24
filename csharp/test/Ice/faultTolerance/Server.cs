@@ -39,13 +39,13 @@ namespace ZeroC.Ice.Test.FaultTolerance
                 throw new ArgumentException("Server: no port specified");
             }
 
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(port) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(port) });
 
-            adapter.Add("test", new TestIntf());
-            await adapter.ActivateAsync();
+            server.Add("test", new TestIntf());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

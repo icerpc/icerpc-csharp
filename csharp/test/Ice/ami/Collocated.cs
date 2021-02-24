@@ -10,17 +10,17 @@ namespace ZeroC.Ice.Test.AMI
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new TestIntf());
-            adapter.Add("test2", new TestIntf2());
+            server.Add("test", new TestIntf());
+            server.Add("test2", new TestIntf2());
             // Don't activate Server to ensure collocation is used.
 
-            Server adapter2 = new Server(
+            Server server2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
-            adapter2.Add("serialized", new TestIntf());
+            server2.Add("serialized", new TestIntf());
             // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);

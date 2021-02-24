@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoints =
                         TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
 
-                    var adapter = new Server(
+                    var server = new Server(
                         current.Communicator,
                         new()
                         {
@@ -35,9 +35,9 @@ namespace ZeroC.Ice.Test.Binding
                             Name = name,
                             ServerName = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
-                    await adapter.ActivateAsync(cancel);
+                    await server.ActivateAsync(cancel);
 
-                    return current.Server.AddWithUUID(new RemoteServer(adapter),
+                    return current.Server.AddWithUUID(new RemoteServer(server),
                                                        IRemoteServerPrx.Factory);
                 }
                 catch (TransportException)
@@ -56,20 +56,20 @@ namespace ZeroC.Ice.Test.Binding
             Current current,
             CancellationToken cancel)
         {
-            var adapter = new Server(
+            var server = new Server(
                 current.Communicator,
                 new ServerOptions { Endpoints = endpoints, Name = name });
-            await adapter.ActivateAsync(cancel);
+            await server.ActivateAsync(cancel);
 
-            return current.Server.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
+            return current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory);
         }
 
         // Colocated call.
         public ValueTask DeactivateServerAsync(
-            IRemoteServerPrx adapter,
+            IRemoteServerPrx server,
             Current current,
             CancellationToken cancel) =>
-            new(adapter.DeactivateAsync(cancel: cancel));
+            new(server.DeactivateAsync(cancel: cancel));
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {

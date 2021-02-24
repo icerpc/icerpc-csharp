@@ -10,15 +10,15 @@ namespace ZeroC.Ice.Test.Compress
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test-1", new Interceptor(new TestIntf(), compressed: true));
-            adapter.Add("test-2", new Interceptor(new TestIntf(), compressed: false));
-            await adapter.ActivateAsync();
+            server.Add("test-1", new Interceptor(new TestIntf(), compressed: true));
+            server.Add("test-2", new Interceptor(new TestIntf(), compressed: false));
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

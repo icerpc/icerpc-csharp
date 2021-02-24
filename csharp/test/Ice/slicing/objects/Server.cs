@@ -10,14 +10,14 @@ namespace ZeroC.Ice.Test.Slicing.Objects
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("Test", new TestIntf());
-            await adapter.ActivateAsync();
+            server.Add("Test", new TestIntf());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

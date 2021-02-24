@@ -30,27 +30,27 @@ namespace ZeroC.Ice.Test.ProtocolBridging
 
             bool ice1 = Protocol == Protocol.Ice1;
 
-            await using var adapterForwarder =
+            await using var serverForwarder =
                 new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            await using var adapterSame =
+            await using var serverSame =
                 new Server(Communicator, new() { Endpoints = ice1 ? ice1Endpoint : ice2Endpoint });
 
-            await using var adapterOther =
+            await using var serverOther =
                 new Server(Communicator, new() { Endpoints = ice1 ? ice2Endpoint : ice1Endpoint });
 
-            ITestIntfPrx samePrx = adapterSame.Add("TestSame", new TestI(), ITestIntfPrx.Factory);
-            ITestIntfPrx otherPrx = adapterOther.Add("TestOther", new TestI(), ITestIntfPrx.Factory);
+            ITestIntfPrx samePrx = serverSame.Add("TestSame", new TestI(), ITestIntfPrx.Factory);
+            ITestIntfPrx otherPrx = serverOther.Add("TestOther", new TestI(), ITestIntfPrx.Factory);
 
-            adapterForwarder.Add("ForwardSame", new Forwarder(samePrx));
-            adapterForwarder.Add("ForwardOther", new Forwarder(otherPrx));
+            serverForwarder.Add("ForwardSame", new Forwarder(samePrx));
+            serverForwarder.Add("ForwardOther", new Forwarder(otherPrx));
 
-            await adapterForwarder.ActivateAsync();
-            await adapterSame.ActivateAsync();
-            await adapterOther.ActivateAsync();
+            await serverForwarder.ActivateAsync();
+            await serverSame.ActivateAsync();
+            await serverOther.ActivateAsync();
 
             ServerReady();
-            await Task.WhenAny(adapterSame.ShutdownComplete, adapterOther.ShutdownComplete);
+            await Task.WhenAny(serverSame.ShutdownComplete, serverOther.ShutdownComplete);
         }
 
         public static async Task<int> Main(string[] args)

@@ -26,7 +26,7 @@ interface RemoteCommunicator
     RemoteServer createServer(string name, string transport);
     RemoteServer createServerWithEndpoints(string name, string endpoints);
 
-    void deactivateServer(RemoteServer adapter);
+    void deactivateServer(RemoteServer server);
 
     void shutdown();
 }

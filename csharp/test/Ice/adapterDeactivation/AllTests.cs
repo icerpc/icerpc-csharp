@@ -25,20 +25,20 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("creating/destroying/recreating server... ");
                 output.Flush();
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(1) });
                 }
 
-                // Use a different port than the first adapter to avoid an "address already in use" error.
+                // Use a different port than the first server to avoid an "address already in use" error.
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(2) });
 
-                    TestHelper.Assert(!adapter.ShutdownComplete.IsCompleted);
-                    await adapter.DisposeAsync();
-                    TestHelper.Assert(adapter.ShutdownComplete.IsCompletedSuccessfully);
+                    TestHelper.Assert(!server.ShutdownComplete.IsCompleted);
+                    await server.DisposeAsync();
+                    TestHelper.Assert(server.ShutdownComplete.IsCompletedSuccessfully);
                 }
                 output.WriteLine("ok");
             }
@@ -65,7 +65,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Flush();
                 try
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new() { Endpoints = ice1 ? "tcp -h localhost -p 0" : "ice+tcp://localhost:0" });
                     TestHelper.Assert(false);
@@ -77,7 +77,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
                 try
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new()
                         {
@@ -97,7 +97,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.Write("testing server default published endpoints... ");
                 string testHost = "testhost";
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new()
                         {
@@ -106,12 +106,12 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                             Endpoints = ice1 ? "tcp -h \"::0\" -p 0" : "ice+tcp://[::0]:0",
                             ServerName = testHost
                         });
-                    TestHelper.Assert(adapter.PublishedEndpoints.Count == 1);
-                    Endpoint publishedEndpoint = adapter.PublishedEndpoints[0];
+                    TestHelper.Assert(server.PublishedEndpoints.Count == 1);
+                    Endpoint publishedEndpoint = server.PublishedEndpoints[0];
                     TestHelper.Assert(publishedEndpoint.Host == testHost);
                 }
                 {
-                    await using var adapter = new Server(
+                    await using var server = new Server(
                         communicator,
                         new()
                         {
@@ -120,11 +120,11 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                             ServerName = testHost
                         });
 
-                    TestHelper.Assert(adapter.PublishedEndpoints.Count == 2);
-                    Endpoint publishedEndpoint0 = adapter.PublishedEndpoints[0];
+                    TestHelper.Assert(server.PublishedEndpoints.Count == 2);
+                    Endpoint publishedEndpoint0 = server.PublishedEndpoints[0];
                     TestHelper.Assert(publishedEndpoint0.Host == testHost);
                     TestHelper.Assert(publishedEndpoint0.Port == helper.BasePort + 1);
-                    Endpoint publishedEndpoint1 = adapter.PublishedEndpoints[1];
+                    Endpoint publishedEndpoint1 = server.PublishedEndpoints[1];
                     TestHelper.Assert(publishedEndpoint1.Host == testHost);
                     TestHelper.Assert(publishedEndpoint1.Port == helper.BasePort + 2);
                 }
@@ -134,15 +134,15 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.Write("testing server published endpoints... ");
             output.Flush();
             {
-                await using var adapter = new Server(
+                await using var server = new Server(
                     communicator,
                     new()
                     {
                         PublishedEndpoints = ice1 ? "tcp -h localhost -p 12345 -t 30000" : "ice+tcp://localhost:12345"
                     });
 
-                TestHelper.Assert(adapter.PublishedEndpoints.Count == 1);
-                Endpoint? endpt = adapter.PublishedEndpoints[0];
+                TestHelper.Assert(server.PublishedEndpoints.Count == 1);
+                Endpoint? endpt = server.PublishedEndpoints[0];
                 TestHelper.Assert(endpt != null);
                 if (ice1)
                 {
@@ -159,24 +159,24 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             {
                 output.Write("testing server with bi-dir connection... ");
                 output.Flush();
-                await using var adapter = new Server(communicator);
-                connection.Server = adapter;
+                await using var server = new Server(communicator);
+                connection.Server = server;
                 connection.Server = null;
-                await adapter.DisposeAsync();
-                // Setting a deactivated adapter on a connection no longer raise ServerDeactivatedException
-                connection.Server = adapter;
+                await server.DisposeAsync();
+                // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
+                connection.Server = server;
                 output.WriteLine("ok");
             }
 
             output.Write("testing server creation with port in use... ");
             output.Flush();
             {
-                await using var adapter1 = new Server(
+                await using var server1 = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(10) });
                 try
                 {
-                    await using var adapter2 = new Server(
+                    await using var server2 = new Server(
                         communicator,
                         new() { Endpoints = helper.GetTestEndpoint(10) });
                     TestHelper.Assert(false);

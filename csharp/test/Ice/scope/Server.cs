@@ -111,16 +111,16 @@ namespace ZeroC.Ice.Test.Scope
 
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("i1", new I1());
-            adapter.Add("i2", new I2());
-            adapter.Add("i3", new I3());
-            adapter.Add("i4", new I4());
-            await adapter.ActivateAsync();
+            server.Add("i1", new I1());
+            server.Add("i2", new I2());
+            server.Add("i3", new I3());
+            server.Add("i4", new I4());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

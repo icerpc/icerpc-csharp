@@ -72,12 +72,12 @@ namespace ZeroC.Ice.Test.Info
             }
             output.WriteLine("ok");
 
-            Server adapter;
+            Server server;
             output.Write("test server endpoint information... ");
             output.Flush();
             {
                 string serverName = helper.Host;
-                adapter = new Server(
+                server = new Server(
                     communicator,
                     new()
                     {
@@ -86,9 +86,9 @@ namespace ZeroC.Ice.Test.Info
                         ServerName = serverName
                     });
 
-                IReadOnlyList<Endpoint> endpoints = adapter.Endpoints;
+                IReadOnlyList<Endpoint> endpoints = server.Endpoints;
                 TestHelper.Assert(endpoints.Count == 1);
-                IReadOnlyList<Endpoint> publishedEndpoints = adapter.PublishedEndpoints;
+                IReadOnlyList<Endpoint> publishedEndpoints = server.PublishedEndpoints;
                 TestHelper.Assert(endpoints.SequenceEqual(publishedEndpoints));
 
                 Endpoint tcpEndpoint = endpoints[0];
@@ -98,11 +98,11 @@ namespace ZeroC.Ice.Test.Info
                 TestHelper.Assert(tcpEndpoint.Host == serverName);
                 TestHelper.Assert(tcpEndpoint.Port > 0);
                 TestHelper.Assert(tcpEndpoint["timeout"] is string value && int.Parse(value) == 15000);
-                await adapter.DisposeAsync();
+                await server.DisposeAsync();
 
                 int port = helper.BasePort + 1;
 
-                adapter = new Server(
+                server = new Server(
                     communicator,
                     new()
                     {
@@ -110,9 +110,9 @@ namespace ZeroC.Ice.Test.Info
                         PublishedEndpoints = helper.GetTestEndpoint(1)
                     });
 
-                endpoints = adapter.Endpoints;
+                endpoints = server.Endpoints;
                 TestHelper.Assert(endpoints.Count >= 1);
-                publishedEndpoints = adapter.PublishedEndpoints;
+                publishedEndpoints = server.PublishedEndpoints;
                 TestHelper.Assert(publishedEndpoints.Count == 1);
 
                 foreach (Endpoint endpoint in endpoints)
@@ -124,7 +124,7 @@ namespace ZeroC.Ice.Test.Info
                 TestHelper.Assert(tcpEndpoint.Host == "127.0.0.1");
                 TestHelper.Assert(tcpEndpoint.Port == port);
 
-                await adapter.DisposeAsync();
+                await server.DisposeAsync();
             }
             output.WriteLine("ok");
 
@@ -221,7 +221,7 @@ namespace ZeroC.Ice.Test.Info
 
                 SortedDictionary<string, string> ctx = testIntf.GetConnectionInfoAsContext();
                 TestHelper.Assert(ctx["incoming"].Equals("true"));
-                TestHelper.Assert(ctx["adapterName"].Equals("TestAdapter"));
+                TestHelper.Assert(ctx["serverName"].Equals("TestAdapter"));
                 TestHelper.Assert(ctx["remoteAddress"].Equals(connection.LocalEndpoint!.Address.ToString()));
                 TestHelper.Assert(ctx["localAddress"].Equals(connection.RemoteEndpoint!.Address.ToString()));
                 TestHelper.Assert(ctx["remotePort"].Equals(connection.LocalEndpoint!.Port.ToString()));

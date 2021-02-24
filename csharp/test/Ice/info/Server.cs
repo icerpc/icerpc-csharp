@@ -26,12 +26,12 @@ namespace ZeroC.Ice.Test.Info
                 options = new ServerOptions { Endpoints = GetTestEndpoint(0), Name = "TestAdapter" };
             }
 
-            await using var adapter = new Server(Communicator, options);
-            adapter.Add("test", new TestIntf());
-            await adapter.ActivateAsync();
+            await using var server = new Server(Communicator, options);
+            server.Add("test", new TestIntf());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

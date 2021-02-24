@@ -12,20 +12,20 @@ namespace ZeroC.Ice.Test.Location
         {
             // Register the server manager. The server manager creates a new 'server' (a server isn't a different
             // process, it's just a new communicator and server).
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             // We also register a sample server locator which implements the locator interface, this locator is used by
             // the clients and the 'servers' created with the server manager interface.
             var registry = new ServerLocatorRegistry();
             var obj = new ServerManager(registry, this);
-            adapter.Add("ServerManager", obj);
-            registry.AddObject(adapter.CreateProxy("ServerManager", IServicePrx.Factory));
-            ILocatorRegistryPrx registryPrx = adapter.Add("registry", registry, ILocatorRegistryPrx.Factory);
-            adapter.Add("locator", new ServerLocator(registry, registryPrx));
-            await adapter.ActivateAsync();
+            server.Add("ServerManager", obj);
+            registry.AddObject(server.CreateProxy("ServerManager", IServicePrx.Factory));
+            ILocatorRegistryPrx registryPrx = server.Add("registry", registry, ILocatorRegistryPrx.Factory);
+            server.Add("locator", new ServerLocator(registry, registryPrx));
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

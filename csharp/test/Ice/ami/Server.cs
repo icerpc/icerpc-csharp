@@ -10,21 +10,21 @@ namespace ZeroC.Ice.Test.AMI
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new TestIntf());
-            adapter.Add("test2", new TestIntf2());
-            await adapter.ActivateAsync();
+            server.Add("test", new TestIntf());
+            server.Add("test2", new TestIntf2());
+            await server.ActivateAsync();
 
-            var adapter2 = new Server(
+            var server2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
-            adapter2.Add("serialized", new TestIntf());
-            await adapter2.ActivateAsync();
+            server2.Add("serialized", new TestIntf());
+            await server2.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

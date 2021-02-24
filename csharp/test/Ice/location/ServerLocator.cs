@@ -18,14 +18,14 @@ namespace ZeroC.Ice.Test.Location
             _requestCount = 0;
         }
 
-        public IServicePrx? FindAdapterById(string adapter, Current current, CancellationToken cancel)
+        public IServicePrx? FindAdapterById(string server, Current current, CancellationToken cancel)
         {
             ++_requestCount;
             // We add a small delay to make sure locator request queuing gets tested when
             // running the test on a fast machine
             Thread.Sleep(1);
 
-            return _registry.GetAdapter(adapter);
+            return _registry.GetAdapter(server);
         }
 
         public IServicePrx? FindObjectById(Identity id, Current current, CancellationToken cancel)

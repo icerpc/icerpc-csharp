@@ -9,15 +9,15 @@ namespace ZeroC.Ice.Test.ACM
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("communicator", new RemoteCommunicator());
-            await adapter.ActivateAsync();
+            server.Add("communicator", new RemoteCommunicator());
+            await server.ActivateAsync();
 
             ServerReady();
             Communicator.SetProperty("Ice.PrintAdapterReady", "0");
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

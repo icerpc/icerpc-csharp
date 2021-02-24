@@ -12,14 +12,14 @@ namespace ZeroC.Ice.Test.Interceptor
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new Server(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new MyObject());
-            await DispatchInterceptors.ActivateAsync(adapter);
+            server.Add("test", new MyObject());
+            await DispatchInterceptors.ActivateAsync(server);
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
