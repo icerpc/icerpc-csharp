@@ -73,7 +73,7 @@ namespace ZeroC.Ice.Test.Info
             output.WriteLine("ok");
 
             Server adapter;
-            output.Write("test object adapter endpoint information... ");
+            output.Write("test server endpoint information... ");
             output.Flush();
             {
                 string serverName = helper.Host;
@@ -175,7 +175,7 @@ namespace ZeroC.Ice.Test.Info
                 var connection = (IPConnection)await testIntf.GetConnectionAsync();
 
                 TestHelper.Assert(!connection.IsIncoming);
-                TestHelper.Assert(connection.Adapter == null);
+                TestHelper.Assert(connection.Server == null);
                 TestHelper.Assert(connection.RemoteEndpoint!.Port == endpointPort);
                 TestHelper.Assert(connection.LocalEndpoint!.Port > 0);
                 if (defaultHost.Equals("127.0.0.1"))
@@ -252,7 +252,7 @@ namespace ZeroC.Ice.Test.Info
                     var udpConnection = connection as UdpConnection;
                     TestHelper.Assert(udpConnection != null);
                     TestHelper.Assert(!udpConnection.IsIncoming);
-                    TestHelper.Assert(udpConnection.Adapter == null);
+                    TestHelper.Assert(udpConnection.Server == null);
                     TestHelper.Assert(udpConnection.LocalEndpoint?.Port > 0);
                     TestHelper.Assert(udpConnection.RemoteEndpoint?.Port == endpointPort);
 

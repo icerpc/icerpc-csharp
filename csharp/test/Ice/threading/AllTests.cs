@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Test.Threading
 
             if (collocated)
             {
-                // With collocation, synchronous calls dispatched on an object adapter which doesn't set a task
+                // With collocation, synchronous calls dispatched on an server which doesn't set a task
                 // scheduler are dispatched from the client invocation task scheduler.
                 var context = new Dictionary<string, string>() { { "scheduler", scheduler.Id.ToString() } };
                 proxy.PingSync(context);
@@ -104,8 +104,8 @@ namespace ZeroC.Ice.Test.Threading
             Dictionary<string, string> properties = communicator.GetProperties();
             System.IO.TextWriter output = helper.Output;
 
-            // Use the Default task scheduler to run continuations tests with the 3 object adapters
-            // setup by the server, each object adapter uses a different task scheduler.
+            // Use the Default task scheduler to run continuations tests with the 3 servers
+            // setup by the server, each server uses a different task scheduler.
             output.Write("testing continuations with default task scheduler... ");
             {
                 await AllTestsWithServer(helper, collocated, 0); // Test with server endpoint 0

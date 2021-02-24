@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.DictMapping
     {
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
             return default;
         }
 

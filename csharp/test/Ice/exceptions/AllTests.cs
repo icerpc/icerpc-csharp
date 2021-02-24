@@ -16,7 +16,7 @@ namespace ZeroC.Ice.Test.Exceptions
             bool ice1 = helper.Protocol == Protocol.Ice1;
             TextWriter output = helper.Output;
             {
-                output.Write("testing object adapter registration exceptions... ");
+                output.Write("testing server registration exceptions... ");
 
                 await using var first = new Server(
                     communicator,

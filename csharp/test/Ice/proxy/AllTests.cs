@@ -920,7 +920,7 @@ namespace ZeroC.Ice.Test.Proxy
                 output.Write("testing relative proxies... ");
                 {
                     await using Server oa = new Server(communicator);
-                    (await cl.GetConnectionAsync()).Adapter = oa;
+                    (await cl.GetConnectionAsync()).Server = oa;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
                     ICallbackPrx callback = oa.AddWithUUID(

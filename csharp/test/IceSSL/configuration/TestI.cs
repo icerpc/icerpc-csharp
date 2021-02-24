@@ -38,7 +38,7 @@ namespace ZeroC.IceSSL.Test.Configuration
             try
             {
                 var tcpConnection = (TcpConnection)current.Connection;
-                var ice1 = current.Adapter.Protocol == Protocol.Ice1;
+                var ice1 = current.Server.Protocol == Protocol.Ice1;
                 TestHelper.Assert(tcpConnection.IsEncrypted);
                 TestHelper.Assert(tcpConnection.RemoteCertificate != null);
                 TestHelper.Assert(tcpConnection.RemoteCertificate.Subject.Equals(subjectDN));
@@ -55,7 +55,7 @@ namespace ZeroC.IceSSL.Test.Configuration
             try
             {
                 var tcpConnection = (TcpConnection)current.Connection;
-                var ice1 = current.Adapter.Protocol == Protocol.Ice1;
+                var ice1 = current.Server.Protocol == Protocol.Ice1;
                 TestHelper.Assert(tcpConnection.IsEncrypted);
                 TestHelper.Assert(tcpConnection.NegotiatedCipherSuite!.ToString()!.Equals(cipher));
             }
@@ -126,7 +126,7 @@ namespace ZeroC.IceSSL.Test.Configuration
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(_servers.Count == 0);
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             return default;
         }
     }

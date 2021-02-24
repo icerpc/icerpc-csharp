@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Info
     public class TestIntf : ITestIntf
     {
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
 
         public IReadOnlyDictionary<string, string> GetEndpointInfoAsContext(Current current, CancellationToken cancel)
         {
@@ -41,7 +41,7 @@ namespace ZeroC.Ice.Test.Info
             TestHelper.Assert(current.Connection != null);
             var ctx = new Dictionary<string, string>
             {
-                ["adapterName"] = current.Connection.Adapter?.Name ?? "",
+                ["adapterName"] = current.Connection.Server?.Name ?? "",
                 ["incoming"] = current.Connection.IsIncoming ? "true" : "false"
             };
 

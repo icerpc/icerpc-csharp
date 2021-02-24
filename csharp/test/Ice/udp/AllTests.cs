@@ -209,7 +209,7 @@ namespace ZeroC.Ice.Test.UDP
             {
                 Console.Out.Write("testing udp bi-dir connection... ");
                 Console.Out.Flush();
-                (await obj.GetConnectionAsync()).Adapter = adapter;
+                (await obj.GetConnectionAsync()).Server = adapter;
                 nRetry = 5;
                 while (nRetry-- > 0)
                 {

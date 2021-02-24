@@ -32,18 +32,6 @@ namespace ZeroC.Ice
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public abstract class Connection
     {
-        /// <summary>Gets or sets the server that dispatches requests received over this connection.
-        /// A client can invoke an operation on a server using a proxy, and then set an server for the
-        /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
-        /// cannot establish a connection back to the client, for example because of firewalls.</summary>
-        /// <value>The server that dispatches requests for the connection, or null if no adapter is set.
-        /// </value>
-        public Server? Adapter
-        {
-            get => _adapter;
-            set => _adapter = value;
-        }
-
         /// <summary>Gets the communicator.</summary>
         public Communicator Communicator { get; }
 
@@ -132,11 +120,23 @@ namespace ZeroC.Ice
             }
         }
 
+        /// <summary>Gets or sets the server that dispatches requests received over this connection.
+        /// A client can invoke an operation on a server using a proxy, and then set an server for the
+        /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
+        /// cannot establish a connection back to the client, for example because of firewalls.</summary>
+        /// <value>The server that dispatches requests for the connection, or null if no adapter is set.
+        /// </value>
+        public Server? Server
+        {
+            get => _server;
+            set => _server = value;
+        }
+
         // This property should be private protected, it's internal instead for testing purpose.
         internal MultiStreamSocket Socket { get; }
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
-        private volatile Server? _adapter;
+
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
         private SocketStream? _controlStream;
@@ -147,6 +147,7 @@ namespace ZeroC.Ice
         // performed atomically.
         private readonly object _mutex = new();
         private Action<Connection>? _remove;
+        private volatile Server? _server;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
 
@@ -248,13 +249,13 @@ namespace ZeroC.Ice
             Endpoint = endpoint;
             KeepAlive = Communicator.KeepAlive;
             IsIncoming = adapter != null;
-            _adapter = adapter;
+            _server = adapter;
             _state = ConnectionState.Initializing;
         }
 
         internal abstract bool CanTrust(NonSecure preferNonSecure);
 
-        internal void ClearAdapter(Server adapter) => Interlocked.CompareExchange(ref _adapter, null, adapter);
+        internal void ClearServer(Server server) => Interlocked.CompareExchange(ref _server, null, server);
 
         internal SocketStream CreateStream(bool bidirectional)
         {
@@ -529,7 +530,7 @@ namespace ZeroC.Ice
 
                 // If no adapter is configure to dispatch the request, return an ObjectNotExistException to the caller.
                 OutgoingResponseFrame? response = null;
-                Server? adapter = _adapter;
+                Server? adapter = _server;
                 if (adapter == null)
                 {
                     if (stream.IsBidirectional)
@@ -736,13 +737,13 @@ namespace ZeroC.Ice
                     0 => new KeyValuePair<string, object>(TransportKey, _connection.Endpoint.Transport),
                     1 => new KeyValuePair<string, object>(ProtocolKey, _connection.Endpoint.Protocol),
                     2 => new KeyValuePair<string, object>(IncomingKey, _connection.IsIncoming),
-                    3 => _connection.Adapter is Server adapter ?
+                    3 => _connection.Server is Server adapter ?
                         new KeyValuePair<string, object>(ServerKey, adapter.Name) :
                         throw new ArgumentException(nameof(index)),
                     _ => throw new ArgumentOutOfRangeException(nameof(index))
                 };
 
-            public int Count => _connection.Adapter == null ? 3 : 4;
+            public int Count => _connection.Server == null ? 3 : 4;
 
             public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
             {
@@ -759,7 +760,7 @@ namespace ZeroC.Ice
                 if (_cached == null)
                 {
                     var sb = new StringBuilder();
-                    if (_connection.Adapter is Server adapter)
+                    if (_connection.Server is Server adapter)
                     {
                         sb.Append("server = ").Append(adapter.Name).Append(", ");
                     }

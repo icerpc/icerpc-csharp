@@ -33,7 +33,7 @@ namespace ZeroC.Ice
         public void Dispose() => _writer.Complete();
 
         public override string ToString() =>
-            _endpoint.Adapter.Name.Length == 0 ? "unnamed adapter" : _endpoint.Adapter.Name;
+            _endpoint.Server.Name.Length == 0 ? "unnamed adapter" : _endpoint.Server.Name;
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,

@@ -125,7 +125,7 @@ namespace ZeroC.Ice
                 new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
                 "received datagram with {Bytes} bytes");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _objectAdapterPublishedEndpoints =
+        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedEndpoints =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
                 LogLevel.Information,
                 new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
@@ -388,7 +388,7 @@ namespace ZeroC.Ice
             this ILogger logger,
             string name,
             IReadOnlyList<Endpoint> endpoints) =>
-            _objectAdapterPublishedEndpoints(logger, name, endpoints, null!);
+            _serverPublishedEndpoints(logger, name, endpoints, null!);
 
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);

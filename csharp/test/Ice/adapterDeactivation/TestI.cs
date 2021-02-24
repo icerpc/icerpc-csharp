@@ -20,9 +20,9 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
         public async ValueTask DeactivateAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             await Task.Delay(100, cancel);
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
         }
     }
 }

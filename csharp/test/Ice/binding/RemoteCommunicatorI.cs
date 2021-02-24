@@ -37,7 +37,7 @@ namespace ZeroC.Ice.Test.Binding
                         });
                     await adapter.ActivateAsync(cancel);
 
-                    return current.Adapter.AddWithUUID(new RemoteServer(adapter),
+                    return current.Server.AddWithUUID(new RemoteServer(adapter),
                                                        IRemoteServerPrx.Factory);
                 }
                 catch (TransportException)
@@ -61,7 +61,7 @@ namespace ZeroC.Ice.Test.Binding
                 new ServerOptions { Endpoints = endpoints, Name = name });
             await adapter.ActivateAsync(cancel);
 
-            return current.Adapter.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
+            return current.Server.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
         }
 
         // Colocated call.
@@ -73,7 +73,7 @@ namespace ZeroC.Ice.Test.Binding
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync(); // only initiate shutdown
+            _ = current.Server.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

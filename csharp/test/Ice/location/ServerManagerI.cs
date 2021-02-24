@@ -35,9 +35,9 @@ namespace ZeroC.Ice.Test.Location
             }
             _communicators.Clear();
 
-            // Simulate a server: create a new communicator and object adapter. The object adapter is started on a
+            // Simulate a server: create a new communicator and server. The server is started on a
             // system allocated port. The configuration used here contains the Ice.Locator configuration variable.
-            // The new object adapter will register its endpoints with the locator and create references containing
+            // The new server will register its endpoints with the locator and create references containing
             // the adapter id instead of the endpoints.
             Dictionary<string, string> properties = _helper.Communicator!.GetProperties();
 
@@ -123,7 +123,7 @@ namespace ZeroC.Ice.Test.Location
             }
             _communicators.Clear();
 
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
         }
     }
 }

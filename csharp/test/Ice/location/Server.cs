@@ -11,7 +11,7 @@ namespace ZeroC.Ice.Test.Location
         public override async Task RunAsync(string[] args)
         {
             // Register the server manager. The server manager creates a new 'server' (a server isn't a different
-            // process, it's just a new communicator and object adapter).
+            // process, it's just a new communicator and server).
             await using var adapter = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             // We also register a sample server locator which implements the locator interface, this locator is used by

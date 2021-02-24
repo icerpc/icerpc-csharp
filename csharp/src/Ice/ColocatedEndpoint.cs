@@ -18,7 +18,7 @@ namespace ZeroC.Ice
         protected internal override bool HasOptions => false;
         protected internal override ushort DefaultPort => 0;
 
-        internal Server Adapter { get; }
+        internal Server Server { get; }
 
         private readonly Channel<(long, ColocatedChannelWriter, ColocatedChannelReader)> _channel;
 
@@ -26,7 +26,7 @@ namespace ZeroC.Ice
             new ColocatedAcceptor(this, adapter, _channel.Writer, _channel.Reader);
 
         public override bool IsLocal(Endpoint endpoint) =>
-            endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Adapter == Adapter;
+            endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Server == Server;
 
         protected internal override void WriteOptions(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
@@ -83,7 +83,7 @@ namespace ZeroC.Ice
                    adapter.Communicator,
                    adapter.Protocol)
         {
-            Adapter = adapter;
+            Server = adapter;
             // There's always a single reader (the acceptor) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads.
             var options = new UnboundedChannelOptions

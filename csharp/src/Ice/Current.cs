@@ -9,11 +9,8 @@ namespace ZeroC.Ice
     /// Current as its final parameter.</summary>
     public class Current
     {
-        /// <summary>The server.</summary>
-        public Server Adapter { get; }
-
         /// <summary>The communicator.</summary>
-        public Communicator Communicator => Adapter.Communicator;
+        public Communicator Communicator => Server.Communicator;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection { get; }
@@ -52,18 +49,22 @@ namespace ZeroC.Ice
 
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => IncomingRequestFrame.Protocol;
+
+        /// <summary>The server.</summary>
+        public Server Server { get; }
+
         /// <summary>The stream ID</summary>
         public long StreamId => Stream.Id;
         internal IncomingRequestFrame IncomingRequestFrame { get; }
         internal SocketStream Stream { get; }
 
         internal Current(
-            Server adapter,
+            Server server,
             IncomingRequestFrame incomingRequestFrame,
             SocketStream stream,
             Connection connection)
         {
-            Adapter = adapter;
+            Server = server;
             Connection = connection;
             IncomingRequestFrame = incomingRequestFrame;
             Stream = stream;

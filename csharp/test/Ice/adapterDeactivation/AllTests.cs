@@ -22,7 +22,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             output.WriteLine("ok");
 
             {
-                output.Write("creating/destroying/recreating object adapter... ");
+                output.Write("creating/destroying/recreating server... ");
                 output.Flush();
                 {
                     await using var adapter = new Server(
@@ -43,7 +43,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.WriteLine("ok");
             }
 
-            output.Write("creating/activating/disposing object adapter in one operation... ");
+            output.Write("creating/activating/disposing server in one operation... ");
             output.Flush();
             obj.Transient();
             obj.TransientAsync().Wait();
@@ -61,7 +61,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             }
 
             {
-                output.Write("testing invalid object adapter endpoints... ");
+                output.Write("testing invalid server endpoints... ");
                 output.Flush();
                 try
                 {
@@ -94,7 +94,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             }
 
             {
-                output.Write("testing object adapter default published endpoints... ");
+                output.Write("testing server default published endpoints... ");
                 string testHost = "testhost";
                 {
                     await using var adapter = new Server(
@@ -131,7 +131,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                 output.WriteLine("ok");
             }
 
-            output.Write("testing object adapter published endpoints... ");
+            output.Write("testing server published endpoints... ");
             output.Flush();
             {
                 await using var adapter = new Server(
@@ -157,18 +157,18 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 
             Connection connection = await obj.GetConnectionAsync();
             {
-                output.Write("testing object adapter with bi-dir connection... ");
+                output.Write("testing server with bi-dir connection... ");
                 output.Flush();
                 await using var adapter = new Server(communicator);
-                connection.Adapter = adapter;
-                connection.Adapter = null;
+                connection.Server = adapter;
+                connection.Server = null;
                 await adapter.DisposeAsync();
                 // Setting a deactivated adapter on a connection no longer raise ServerDeactivatedException
-                connection.Adapter = adapter;
+                connection.Server = adapter;
                 output.WriteLine("ok");
             }
 
-            output.Write("testing object adapter creation with port in use... ");
+            output.Write("testing server creation with port in use... ");
             output.Flush();
             {
                 await using var adapter1 = new Server(
@@ -188,7 +188,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             }
             output.WriteLine("ok");
 
-            output.Write("deactivating object adapter in the server... ");
+            output.Write("deactivating server in the server... ");
             output.Flush();
             obj.Deactivate();
             output.WriteLine("ok");

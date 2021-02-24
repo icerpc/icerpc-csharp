@@ -207,6 +207,6 @@ namespace ZeroC.Ice
 
         internal override Task ShutdownAsync() =>
             _connection.GoAwayAsync(
-                new ObjectDisposedException($"{typeof(Server).FullName}:{_connection.Adapter!.Name}"));
+                new ObjectDisposedException($"{typeof(Server).FullName}:{_connection.Server!.Name}"));
     }
 }

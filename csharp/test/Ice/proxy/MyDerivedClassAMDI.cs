@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Proxy
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
             return default;
         }
 
@@ -43,7 +43,7 @@ namespace ZeroC.Ice.Test.Proxy
         {
             TestHelper.Assert(callback.IsFixed);
             IRelativeTestPrx relativeTest =
-                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
+                current.Server.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
                     endpoints: ImmutableList<Endpoint>.Empty);
             TestHelper.Assert(await callback.OpAsync(relativeTest, cancel: cancel) == 1);
             return relativeTest;

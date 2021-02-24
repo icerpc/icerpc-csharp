@@ -71,13 +71,13 @@ namespace ZeroC.Ice.Test.Discovery
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             return default;
         }
     }
 
     public sealed class TestIntf : ITestIntf
     {
-        public string GetAdapterId(Current current, CancellationToken cancel) => current.Adapter.AdapterId;
+        public string GetAdapterId(Current current, CancellationToken cancel) => current.Server.AdapterId;
     }
 }

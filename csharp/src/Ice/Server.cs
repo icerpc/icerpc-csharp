@@ -257,7 +257,7 @@ namespace ZeroC.Ice
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
             _dispatchPipeline = async (request, current, cancel) =>
             {
-                Debug.Assert(current.Adapter == this);
+                Debug.Assert(current.Server == this);
                 IService? servant = Find(current.Identity, current.Facet);
                 if (servant == null)
                 {

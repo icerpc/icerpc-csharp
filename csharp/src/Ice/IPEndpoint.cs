@@ -361,7 +361,7 @@ namespace ZeroC.Ice
                 if (oaEndpoint)
                 {
                     throw new FormatException(
-                        $"`--sourceAddress' not valid for an Object Adapter endpoint `{endpointString}'");
+                        $"`--sourceAddress' not valid for an server endpoint `{endpointString}'");
                 }
                 if (argument == null)
                 {
@@ -390,7 +390,7 @@ namespace ZeroC.Ice
                 if (!oaEndpoint)
                 {
                     throw new FormatException(
-                        $"`--ipv6Only' not valid for an Object Adapter endpoint `{endpointString}'");
+                        $"`--ipv6Only' not valid for an server endpoint `{endpointString}'");
                 }
                 if (argument != null)
                 {

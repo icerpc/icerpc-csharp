@@ -82,6 +82,6 @@ namespace ZeroC.Ice.Test.Timeout
         public void ResumeAdapter(Current current, CancellationToken cancel) => _ = _semaphore.Release();
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
     }
 }

@@ -62,7 +62,7 @@ namespace ZeroC.Ice.Test.Discovery
             }
             output.WriteLine("ok");
 
-            output.Write("testing object adapter registration... ");
+            output.Write("testing server registration... ");
             output.Flush();
             {
                 try
@@ -98,7 +98,7 @@ namespace ZeroC.Ice.Test.Discovery
             }
             output.WriteLine("ok");
 
-            output.Write("testing object adapter migration... ");
+            output.Write("testing server migration... ");
             output.Flush();
             {
                 proxies[0].ActivateServer("oa", "oa1", "");

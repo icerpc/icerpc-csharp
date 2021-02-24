@@ -36,12 +36,12 @@ namespace ZeroC.Ice.Test.ACM
                 });
 
             await adapter.ActivateAsync(cancel);
-            return current.Adapter.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
+            return current.Server.AddWithUUID(new RemoteServer(adapter), IRemoteServerPrx.Factory);
         }
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             return default;
         }
     }

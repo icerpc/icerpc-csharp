@@ -10,6 +10,6 @@ namespace ZeroC.Ice.Test.Facets
 
         public string CallH(Current current, CancellationToken cancel) => "H";
 
-        public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => current.Server.ShutdownAsync();
     }
 }

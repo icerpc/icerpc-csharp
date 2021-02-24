@@ -114,7 +114,7 @@ namespace ZeroC.Ice
         public override Task PingAsync(CancellationToken cancel) => Task.CompletedTask;
 
         public override string ToString() =>
-            $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Adapter.Name}\nincoming = {IsIncoming}";
+            $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Server.Name}\nincoming = {IsIncoming}";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
@@ -122,13 +122,13 @@ namespace ZeroC.Ice
             ChannelWriter<(long, object?, bool)> writer,
             ChannelReader<(long, object?, bool)> reader,
             bool isIncoming)
-            : base(endpoint, isIncoming ? endpoint.Adapter : null)
+            : base(endpoint, isIncoming ? endpoint.Server : null)
         {
             _id = id;
             _writer = writer;
             _reader = reader;
 
-            if (endpoint.Adapter.SerializeDispatch)
+            if (endpoint.Server.SerializeDispatch)
             {
                 _bidirectionalSerializeSemaphore = new AsyncSemaphore(1);
                 _unidirectionalSerializeSemaphore = new AsyncSemaphore(1);
