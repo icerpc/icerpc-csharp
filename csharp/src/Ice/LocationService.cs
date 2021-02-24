@@ -6,12 +6,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-using EndpointList = System.Collections.Generic.IReadOnlyList<ZeroC.Ice.Endpoint>;
-using Location = System.Collections.Generic.IReadOnlyList<string>;
 
 namespace ZeroC.Ice
 {
@@ -32,15 +28,12 @@ namespace ZeroC.Ice
     /// </summary>
     public sealed class LocationService : ILocationService
     {
-        private static readonly IEqualityComparer<(Location, Protocol)> _locationComparer = new LocationComparer();
-
         private readonly bool _background;
 
-        private readonly ConcurrentDictionary<(Location, Protocol), (TimeSpan InsertionTime, EndpointList Endpoints)> _locationCache =
-            new(_locationComparer);
+        private readonly ConcurrentDictionary<string, (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints)> _locationCache =
+            new();
 
-        private readonly Dictionary<(Location, Protocol), Task<EndpointList>> _locationRequests =
-            new(_locationComparer);
+        private readonly Dictionary<string, Task<IReadOnlyList<Endpoint>>> _locationRequests = new();
 
         private readonly ILocatorPrx _locator;
 
@@ -49,11 +42,10 @@ namespace ZeroC.Ice
 
         private readonly TimeSpan _ttl;
 
-        private readonly ConcurrentDictionary<(Identity, string, Protocol), (TimeSpan InsertionTime, EndpointList Endpoints, Location Location)> _wellKnownProxyCache =
+        private readonly ConcurrentDictionary<Identity, (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, string Location)> _wellKnownProxyCache =
             new();
 
-        private readonly Dictionary<(Identity, string, Protocol), Task<(EndpointList, Location)>> _wellKnownProxyRequests =
-            new();
+        private readonly Dictionary<Identity, Task<(IReadOnlyList<Endpoint>, string)>> _wellKnownProxyRequests = new();
 
         /// <summary>Constructs a location service.</summary>
         /// <param name="locator">The locator proxy.</param>
@@ -73,30 +65,29 @@ namespace ZeroC.Ice
         {
         }
 
-        public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
-            Location location,
-            Protocol protocol,
+        public async ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
+            string location,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel)
         {
-            if (location.Count == 0)
+            if (location.Length == 0)
             {
                 throw new ArgumentException("invalid empty location", nameof(location));
             }
 
-            EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan endpointsAge = TimeSpan.Zero;
             bool expired = false;
 
             if (_ttl != TimeSpan.Zero)
             {
-                (endpoints, endpointsAge) = GetResolvedLocationFromCache(location, protocol);
+                (endpoints, endpointsAge) = GetResolvedLocationFromCache(location);
                 expired = CheckExpired(endpointsAge, _ttl);
             }
 
             if (endpoints.Count == 0 || (!_background && expired) || endpointsAge >= endpointsMaxAge)
             {
-               endpoints = await ResolveLocationAsync(location, protocol, cancel).ConfigureAwait(false);
+               endpoints = await ResolveLocationAsync(location, cancel).ConfigureAwait(false);
                endpointsAge = TimeSpan.Zero; // Not cached
             }
             else if (expired && _background)
@@ -104,7 +95,7 @@ namespace ZeroC.Ice
                 // Endpoints are returned from the cache but endpoints MaxAge was reached, if backgrounds updates
                 // are configured, we obtain new endpoints but continue using the stale endpoints to not block the
                 // caller.
-                _ = ResolveLocationAsync(location, protocol, cancel: default);
+                _ = ResolveLocationAsync(location, cancel: default);
             }
 
             var logger = _locator.Communicator.LocationLogger;
@@ -114,11 +105,11 @@ namespace ZeroC.Ice
                 {
                     if (endpointsAge == TimeSpan.Zero)
                     {
-                        logger.LogResolvedLocation(location, protocol, endpoints);
+                        logger.LogResolvedLocation(location, endpoints);
                     }
                     else
                     {
-                        logger.LogFoundEntryForLocationInLocatorCache(location, protocol, endpoints);
+                        logger.LogFoundEntryForLocationInLocatorCache(location, endpoints);
                     }
                 }
                 else
@@ -130,34 +121,32 @@ namespace ZeroC.Ice
             return (endpoints, endpointsAge);
         }
 
-        public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
+        public async ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
             Identity identity,
-            string facet,
-            Protocol protocol,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel)
         {
-            EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan wellKnownAge = TimeSpan.Zero;
-            Location location = ImmutableList<string>.Empty;
+            string location = "";
             bool expired = false;
 
             // First, we check the cache.
             if (_ttl != TimeSpan.Zero)
             {
-                (endpoints, location, wellKnownAge) = GetResolvedWellKnownProxyFromCache(identity, facet, protocol);
+                (endpoints, location, wellKnownAge) = GetResolvedWellKnownProxyFromCache(identity);
                 expired = CheckExpired(wellKnownAge, _ttl);
             }
 
             // If no endpoints are returned from the cache, or if the cache returned an expired endpoint and
             // background updates are disabled, or if the caller is requesting a more recent endpoint than the
             // one returned from the cache, we try to resolve the endpoint again.
-            if ((endpoints.Count == 0 && location.Count == 0) ||
+            if ((endpoints.Count == 0 && location.Length == 0) ||
                 (!_background && expired) ||
                 wellKnownAge >= endpointsMaxAge)
             {
                 (endpoints, location) =
-                    await ResolveWellKnownProxyAsync(identity, facet, protocol, cancel).ConfigureAwait(false);
+                    await ResolveWellKnownProxyAsync(identity, cancel).ConfigureAwait(false);
                 wellKnownAge = TimeSpan.Zero; // Not cached
             }
             else if (_background && expired)
@@ -165,10 +154,10 @@ namespace ZeroC.Ice
                 // Entry is returned from the cache but endpoints MaxAge was reached, if backgrounds updates are
                 // configured, we make a new resolution to refresh the cache but use the stale info to not block
                 // the caller.
-                _ = ResolveWellKnownProxyAsync(identity, facet, protocol, cancel: default);
+                _ = ResolveWellKnownProxyAsync(identity, cancel: default);
             }
 
-            if (location.Count > 0)
+            if (location.Length > 0)
             {
                 Debug.Assert(endpoints.Count == 0);
 
@@ -181,14 +170,14 @@ namespace ZeroC.Ice
                 try
                 {
                     (endpoints, _) =
-                        await ResolveLocationAsync(location, protocol, endpointsMaxAge, cancel).ConfigureAwait(false);
+                        await ResolveLocationAsync(location, endpointsMaxAge, cancel).ConfigureAwait(false);
                 }
                 finally
                 {
                     // If we can't resolve the location we clear the resolved well-known proxy from the cache.
                     if (endpoints.Count == 0)
                     {
-                        ClearCache(identity, facet, protocol);
+                        ClearCache(identity);
                     }
                 }
             }
@@ -200,16 +189,16 @@ namespace ZeroC.Ice
                 {
                     if (wellKnownAge == TimeSpan.Zero)
                     {
-                        logger.LogResolvedWellKnownProxy(identity, facet, protocol, endpoints);
+                        logger.LogResolvedWellKnownProxy(identity, endpoints);
                     }
                     else
                     {
-                        logger.LogFoundEntryForWellKnownProxyInLocatorCache(identity, facet, protocol, endpoints);
+                        logger.LogFoundEntryForWellKnownProxyInLocatorCache(identity, endpoints);
                     }
                 }
                 else
                 {
-                   logger.LogCouldNotFindEndpointsForWellKnownProxy(identity, facet, protocol);
+                   logger.LogCouldNotFindEndpointsForWellKnownProxy(identity);
                 }
             }
 
@@ -219,22 +208,22 @@ namespace ZeroC.Ice
         private static bool CheckExpired(TimeSpan age, TimeSpan maxAge) =>
             maxAge != Timeout.InfiniteTimeSpan && age > maxAge;
 
-        private void ClearCache(Location location, Protocol protocol)
+        private void ClearCache(string location)
         {
-            if (_locationCache.TryRemove((location, protocol), out (TimeSpan _, EndpointList Endpoints) entry))
+            if (_locationCache.TryRemove(location, out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints) entry))
             {
                 if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                 {
-                    _locator.Communicator.LocationLogger.LogClearLocationEndpoints(location[0], protocol, entry.Endpoints);
+                    _locator.Communicator.LocationLogger.LogClearLocationEndpoints(location, entry.Endpoints);
                 }
             }
         }
 
-        private void ClearCache(Identity identity, string facet, Protocol protocol)
+        private void ClearCache(Identity identity)
         {
             if (_wellKnownProxyCache.TryRemove(
-                    (identity, facet, protocol),
-                    out (TimeSpan _, EndpointList Endpoints, Location Location) entry))
+                    identity,
+                    out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints, string Location) entry))
             {
                 if (entry.Endpoints.Count > 0)
                 {
@@ -242,36 +231,30 @@ namespace ZeroC.Ice
                     {
                         _locator.Communicator.LocationLogger.LogClearWellKnownProxyEndpoints(
                             identity,
-                            facet,
-                            protocol,
                             entry.Endpoints);
                     }
                 }
                 else
                 {
-                    Debug.Assert(entry.Location.Count > 0);
+                    Debug.Assert(entry.Location.Length > 0);
 
                     if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                     {
                         _locator.Communicator.LocationLogger.LogClearWellKnownProxyWithoutEndpoints(
                             identity,
-                            facet,
-                            protocol,
                             entry.Location);
                     }
 
-                    ClearCache(entry.Location, protocol);
+                    ClearCache(entry.Location);
                 }
             }
         }
 
-        private (EndpointList Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(
-            Location location,
-            Protocol protocol)
+        private (IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(string location)
         {
             if (_locationCache.TryGetValue(
-                (location, protocol),
-                out (TimeSpan InsertionTime, EndpointList Endpoints) entry))
+                location,
+                out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints) entry))
             {
                 return (entry.Endpoints, Time.Elapsed - entry.InsertionTime);
             }
@@ -281,116 +264,93 @@ namespace ZeroC.Ice
             }
         }
 
-        private (EndpointList Endpoints, Location Location, TimeSpan LocationAge) GetResolvedWellKnownProxyFromCache(
-            Identity identity,
-            string facet,
-            Protocol protocol)
+        private (IReadOnlyList<Endpoint> Endpoints, string Location, TimeSpan LocationAge) GetResolvedWellKnownProxyFromCache(
+            Identity identity)
         {
             if (_wellKnownProxyCache.TryGetValue(
-                    (identity, facet, protocol),
-                    out (TimeSpan InsertionTime, EndpointList Endpoints, Location Location) entry))
+                    identity,
+                    out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, string Location) entry))
             {
                 return (entry.Endpoints, entry.Location, Time.Elapsed - entry.InsertionTime);
             }
             else
             {
-                return (ImmutableArray<Endpoint>.Empty, ImmutableArray<string>.Empty, TimeSpan.Zero);
+                return (ImmutableArray<Endpoint>.Empty, "", TimeSpan.Zero);
             }
         }
 
-        private async Task<EndpointList> ResolveLocationAsync(
-            Location location,
-            Protocol protocol,
-            CancellationToken cancel)
+        private async Task<IReadOnlyList<Endpoint>> ResolveLocationAsync(string location, CancellationToken cancel)
         {
             if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
                 _locator.Communicator.LocationLogger.LogResolvingLocation(location);
             }
 
-            Task<EndpointList>? task;
+            Task<IReadOnlyList<Endpoint>>? task;
             lock (_mutex)
             {
-                if (!_locationRequests.TryGetValue((location, protocol), out task))
+                if (!_locationRequests.TryGetValue(location, out task))
                 {
                     // If there is no request in progress for this location, we invoke one and cache the request to
                     // prevent concurrent identical requests. It's removed once the response is received.
-                    task = PerformResolveLocationAsync(location, protocol);
+                    task = PerformResolveLocationAsync(location);
                     if (!task.IsCompleted)
                     {
                         // If PerformResolveLocationAsync completed, don't add the task (it would leak since
                         // PerformResolveLocationAsync is responsible for removing it).
                         // Since PerformResolveLocationAsync locks _mutex in its finally block, the only way it can be
                         // completed now is if completed synchronously.
-                        _locationRequests.Add((location, protocol), task);
+                        _locationRequests.Add(location, task);
                     }
                 }
             }
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<EndpointList> PerformResolveLocationAsync(Location location, Protocol protocol)
+            async Task<IReadOnlyList<Endpoint>> PerformResolveLocationAsync(string location)
             {
-                Debug.Assert(location.Count > 0);
+                Debug.Assert(location.Length > 0);
 
                 try
                 {
-                    EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
-
-                    if (protocol == Protocol.Ice1)
+                    IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
+                    IServicePrx? proxy = null;
+                    try
                     {
-                        IServicePrx? proxy = null;
-                        try
-                        {
-                            proxy = await _locator.FindAdapterByIdAsync(
-                                location[0],
-                                cancel: CancellationToken.None).ConfigureAwait(false);
-                        }
-                        catch (AdapterNotFoundException)
-                        {
-                            // We treat AdapterNotFoundException just like a null return value.
-                            proxy = null;
-                        }
-
-                        ServicePrx? resolved = proxy?.Impl;
-
-                        if (resolved != null && (resolved.Endpoints.Count == 0 || resolved.Protocol != Protocol.Ice1))
-                        {
-                            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
-                            {
-                                _locator.Communicator.LocationLogger.LogInvalidProxyResolvingLocation(
-                                    location.ToLocationString(),
-                                    resolved);
-                            }
-                            resolved = null;
-                        }
-
-                        endpoints = resolved?.Endpoints ?? endpoints;
-                    }
-                    else
-                    {
-                        EndpointData[] dataArray;
-
-                        // This will throw OperationNotExistException if it's an old Locator, and that's fine.
-                        dataArray = await _locator.ResolveLocationAsync(
+                        proxy = await _locator.FindAdapterByIdAsync(
                             location,
                             cancel: CancellationToken.None).ConfigureAwait(false);
-
-                        if (dataArray.Length > 0)
-                        {
-                            endpoints = dataArray.ToEndpointList(_locator.Communicator);
-                        }
                     }
+                    catch (AdapterNotFoundException)
+                    {
+                        // We treat AdapterNotFoundException just like a null return value.
+                        proxy = null;
+                    }
+
+                    ServicePrx? resolved = proxy?.Impl;
+
+                    if (resolved != null && (resolved.Endpoints.Count == 0 || resolved.Protocol != Protocol.Ice1))
+                    {
+                        if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
+                        {
+                            _locator.Communicator.LocationLogger.LogInvalidProxyResolvingLocation(
+                                location,
+                                resolved);
+                        }
+                        resolved = null;
+                    }
+
+                    endpoints = resolved?.Endpoints ?? endpoints;
 
                     if (endpoints.Count == 0)
                     {
-                        ClearCache(location, protocol);
+                        ClearCache(location);
                         return endpoints;
                     }
                     else
                     {
                         // Cache the resolved location
-                        _locationCache[(location, protocol)] = (Time.Elapsed, endpoints);
+                        _locationCache[location] = (Time.Elapsed, endpoints);
                         return endpoints;
                     }
                 }
@@ -406,114 +366,90 @@ namespace ZeroC.Ice
                 {
                     lock (_mutex)
                     {
-                        _locationRequests.Remove((location, protocol));
+                        _locationRequests.Remove(location);
                     }
                 }
             }
         }
 
-        private async Task<(EndpointList, Location)> ResolveWellKnownProxyAsync(
+        private async Task<(IReadOnlyList<Endpoint>, string)> ResolveWellKnownProxyAsync(
             Identity identity,
-            string facet,
-            Protocol protocol,
             CancellationToken cancel)
         {
             if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity, facet, protocol);
+                _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity);
             }
 
-            Task<(EndpointList, Location)>? task;
+            Task<(IReadOnlyList<Endpoint>, string)>? task;
             lock (_mutex)
             {
-                if (!_wellKnownProxyRequests.TryGetValue((identity, facet, protocol),
-                                                         out task))
+                if (!_wellKnownProxyRequests.TryGetValue(identity, out task))
                 {
                     // If there's no locator request in progress for this object, we make one and cache it to prevent
                     // making too many requests on the locator. It's removed once the locator response is received.
-                    task = PerformResolveWellKnownProxyAsync(identity, facet, protocol);
+                    task = PerformResolveWellKnownProxyAsync(identity);
                     if (!task.IsCompleted)
                     {
                         // If PerformGetObjectProxyAsync completed, don't add the task (it would leak since
                         // PerformGetObjectProxyAsync is responsible for removing it).
-                        _wellKnownProxyRequests.Add((identity, facet, protocol), task);
+                        _wellKnownProxyRequests.Add(identity, task);
                     }
                 }
             }
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<(EndpointList, Location)> PerformResolveWellKnownProxyAsync(
-                Identity identity,
-                string facet,
-                Protocol protocol)
+            async Task<(IReadOnlyList<Endpoint>, string)> PerformResolveWellKnownProxyAsync(Identity identity)
             {
                 try
                 {
-                    EndpointList endpoints;
-                    Location location;
+                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+                    string location = "";
 
-                    if (protocol == Protocol.Ice1)
+                    IServicePrx? obj = null;
+                    try
                     {
-                        IServicePrx? obj = null;
-                        try
-                        {
-                            obj = await _locator.FindObjectByIdAsync(
-                                identity,
-                                facet,
-                                cancel: CancellationToken.None).ConfigureAwait(false);
-                        }
-                        catch (ObjectNotFoundException)
-                        {
-                            // We treat ObjectNotFoundException just like a null return value.
-                            obj = null;
-                        }
-
-                        ServicePrx? resolved = obj?.Impl;
-
-                        if (resolved != null && (resolved.IsWellKnown || resolved.Protocol != Protocol.Ice1))
-                        {
-                            if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
-                            {
-                                _locator.Communicator.LocationLogger.LogInvalidProxyResolvingProxy(identity, facet, resolved);
-                            }
-                            resolved = null;
-                        }
-
-                        endpoints = resolved?.Endpoints ?? ImmutableArray<Endpoint>.Empty;
-                        location = resolved?.Location ?? ImmutableArray<string>.Empty;
-                    }
-                    else
-                    {
-                        EndpointData[] dataArray;
-                        (dataArray, location) = await _locator.ResolveWellKnownProxyAsync(
+                        obj = await _locator.FindObjectByIdAsync(
                             identity,
-                            facet,
                             cancel: CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (ObjectNotFoundException)
+                    {
+                        // We treat ObjectNotFoundException just like a null return value.
+                        obj = null;
+                    }
 
-                        if (dataArray.Length > 0)
+                    ServicePrx? resolved = obj?.Impl;
+
+                    if (resolved != null && (resolved.IsWellKnown || resolved.Protocol != Protocol.Ice1))
+                    {
+                        if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
                         {
-                            endpoints = dataArray.ToEndpointList(_locator.Communicator);
-                            location = ImmutableArray<string>.Empty; // always wipe-out / ignore location
+                            _locator.Communicator.LocationLogger.LogInvalidProxyResolvingProxy(identity, resolved);
                         }
-                        else
+                        resolved = null;
+                    }
+
+                    if (resolved != null)
+                    {
+                        endpoints = resolved.Endpoints;
+                        if (resolved.Location.Count > 0)
                         {
-                            endpoints = ImmutableArray<Endpoint>.Empty;
-                            // and keep returned location
+                            location = resolved.Location[0];
                         }
                     }
 
-                    if (endpoints.Count == 0 && location.Count == 0)
+                    if (endpoints.Count == 0 && location.Length == 0)
                     {
-                        ClearCache(identity, facet, protocol);
+                        ClearCache(identity);
                         return (endpoints, location);
                     }
                     else
                     {
-                        Debug.Assert(endpoints.Count == 0 || location.Count == 0);
+                        Debug.Assert(endpoints.Count == 0 || location.Length == 0);
                         TimeSpan resolvedTime = Time.Elapsed;
-                        _wellKnownProxyCache[(identity, facet, protocol)] =
-                            (resolvedTime, endpoints, location);
+                        _wellKnownProxyCache[identity] = (resolvedTime, endpoints, location);
                         return (endpoints, location);
                     }
                 }
@@ -523,8 +459,6 @@ namespace ZeroC.Ice
                     {
                         _locator.Communicator.LocationLogger.LogResolveWellKnownProxyEndpointsFailure(
                             identity,
-                            facet,
-                            protocol,
                             exception);
                     }
                     throw;
@@ -533,21 +467,10 @@ namespace ZeroC.Ice
                 {
                     lock (_mutex)
                     {
-                        _wellKnownProxyRequests.Remove((identity, facet, protocol));
+                        _wellKnownProxyRequests.Remove(identity);
                     }
                 }
             }
-        }
-
-        private sealed class LocationComparer : IEqualityComparer<(Location Location, Protocol Protocol)>
-        {
-            public bool Equals(
-                (Location Location, Protocol Protocol) lhs,
-                (Location Location, Protocol Protocol) rhs) =>
-                lhs.Location.SequenceEqual(rhs.Location) && lhs.Protocol == rhs.Protocol;
-
-            public int GetHashCode((Location Location, Protocol Protocol) obj) =>
-                HashCode.Combine(obj.Location.GetSequenceHashCode(), obj.Protocol);
         }
     }
 }

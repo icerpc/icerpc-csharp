@@ -163,11 +163,6 @@ namespace ZeroC.Ice
         /// is overridden by metadata on the Slice operation's definition.</value>
         public bool IsOneway { get; }
 
-        /// <summary>Indicates whether or not this proxy is marked relative.</summary>
-        /// <value>True when this proxy is marked relative. Such a proxy has no endpoint and cannot be fixed as well.
-        /// </value>
-        public bool IsRelative { get; }
-
         /// <summary>An optional label that can be used to prevent proxies with identical endpoints to share a
         /// connection, outgoing connections between equivalent endpoints are shared for proxies with equal labels.
         /// </summary>

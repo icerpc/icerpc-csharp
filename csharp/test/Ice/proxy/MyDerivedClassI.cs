@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,8 +32,11 @@ namespace ZeroC.Ice.Test.Proxy
         public IRelativeTestPrx OpRelative(ICallbackPrx callback, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(callback.IsFixed);
+
+            // TODO: need better way to create a relative proxy on the server-side.
             IRelativeTestPrx relativeTest =
-                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(relative: true);
+                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
+                    endpoints: ImmutableList<Endpoint>.Empty);
 
             TestHelper.Assert(callback.Op(relativeTest, cancel: cancel) == 1);
             return relativeTest;

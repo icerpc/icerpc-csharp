@@ -24,7 +24,6 @@ namespace ZeroC.Ice
             internal bool? PreferExistingConnection;
             internal NonSecure? PreferNonSecure;
             internal Protocol? Protocol;
-            internal bool? Relative; // only for the ice URI scheme
 
             internal void Deconstruct(
                 out bool? cacheConnection,
@@ -32,8 +31,7 @@ namespace ZeroC.Ice
                 out TimeSpan? invocationTimeout,
                 out object? label,
                 out bool? preferExistingConnection,
-                out NonSecure? preferNonSecure,
-                out bool? relative)
+                out NonSecure? preferNonSecure)
             {
                 cacheConnection = CacheConnection;
                 context = Context?.ToImmutableSortedDictionary();
@@ -41,7 +39,6 @@ namespace ZeroC.Ice
                 label = Label;
                 preferExistingConnection = PreferExistingConnection;
                 preferNonSecure = PreferNonSecure;
-                relative = Relative;
             }
         }
 
@@ -346,11 +343,6 @@ namespace ZeroC.Ice
                     {
                         throw new FormatException("the URI format does not support protocol ice1");
                     }
-                }
-                else if (endpointOptions == null && name == "relative")
-                {
-                    CheckProxyOption(name, proxyOptions.Relative != null);
-                    proxyOptions.Relative = bool.Parse(value);
                 }
                 else if (name == "fixed")
                 {

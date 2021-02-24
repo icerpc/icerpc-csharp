@@ -33,21 +33,13 @@ namespace ZeroC.Ice.Test.Discovery
             await discoveryServer.ActivateAsync();
 
             var proxies = new List<IControllerPrx>();
-            var facetedProxies = new List<IControllerPrx>();
             var indirectProxies = new List<IControllerPrx>();
-            bool ice1 = helper.Protocol == Protocol.Ice1;
 
             for (int i = 0; i < num; ++i)
             {
-                proxies.Add(IControllerPrx.Parse(ice1 ? $"controller{i}" : $"ice:controller{i}", communicator));
+                proxies.Add(IControllerPrx.Parse($"controller{i}", communicator));
 
-                facetedProxies.Add(IControllerPrx.Parse(
-                    ice1 ? $"faceted-controller{i} -f abc" : $"ice:faceted-controller{i}#abc",
-                    communicator));
-
-                indirectProxies.Add(
-                    IControllerPrx.Parse(ice1 ? $"controller{i} @ control{i}" : $"ice:control{i}//controller{i}",
-                                         communicator));
+                indirectProxies.Add(IControllerPrx.Parse($"controller{i} @ control{i}", communicator));
             }
 
             output.Write("testing indirect proxies... ");
@@ -70,22 +62,12 @@ namespace ZeroC.Ice.Test.Discovery
             }
             output.WriteLine("ok");
 
-            output.Write("testing faceted well-known proxies... ");
-            output.Flush();
-            {
-                foreach (IControllerPrx prx in facetedProxies)
-                {
-                    await prx.IcePingAsync();
-                }
-            }
-            output.WriteLine("ok");
-
             output.Write("testing object adapter registration... ");
             output.Flush();
             {
                 try
                 {
-                    await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -96,7 +78,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException)
@@ -107,7 +89,7 @@ namespace ZeroC.Ice.Test.Discovery
 
                 try
                 {
-                    await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (NoEndpointException)
@@ -121,13 +103,13 @@ namespace ZeroC.Ice.Test.Discovery
             {
                 proxies[0].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[0].AddObject("oa", "object");
-                await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
                 proxies[0].DeactivateObjectAdapter("oa");
 
                 proxies[1].ActivateObjectAdapter("oa", "oa1", "");
                 proxies[1].AddObject("oa", "object");
-                await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
                 proxies[1].DeactivateObjectAdapter("oa");
             }
@@ -140,25 +122,25 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].ActivateObjectAdapter("oa", "oa2", "");
 
                 proxies[0].AddObject("oa", "object");
-                await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object", communicator).IcePingAsync();
                 proxies[0].RemoveObject("oa", "object");
 
                 proxies[1].AddObject("oa", "object");
-                await IServicePrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object" : "ice:object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object", communicator).IcePingAsync();
                 proxies[1].RemoveObject("oa", "object");
 
                 try
                 {
-                    await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
                 }
                 try
                 {
-                    await IServicePrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
+                    await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
                 }
                 catch (ObjectNotExistException)
                 {
@@ -180,11 +162,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa3", communicator).IcePingAsync();
 
-                await IServicePrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ rg", communicator).IcePingAsync();
 
                 var adapterIds = new List<string>
                 {
@@ -198,7 +180,7 @@ namespace ZeroC.Ice.Test.Discovery
                     new LocationService(discoveryServer.Locator, new() { Ttl = TimeSpan.Zero });
 
                 // Check that the well known object is reachable with all replica group members
-                ITestIntfPrx intf = ITestIntfPrx.Parse(ice1 ? "object" : "ice:object", communicator).Clone(
+                ITestIntfPrx intf = ITestIntfPrx.Parse("object", communicator).Clone(
                     cacheConnection: false,
                     preferExistingConnection: false);
                 while (adapterIds.Count > 0)
@@ -233,11 +215,11 @@ namespace ZeroC.Ice.Test.Discovery
                 proxies[1].AddObject("oa", "object");
                 proxies[2].AddObject("oa", "object");
 
-                await IServicePrx.Parse(ice1 ? "object @ oa1" : "ice:oa1//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object @ oa2" : "ice:oa2//object", communicator).IcePingAsync();
-                await IServicePrx.Parse(ice1 ? "object @ oa3" : "ice:oa3//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ oa3", communicator).IcePingAsync();
 
-                await IServicePrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).IcePingAsync();
+                await IServicePrx.Parse("object @ rg", communicator).IcePingAsync();
 
                 adapterIds = new List<string>
                 {
@@ -247,7 +229,7 @@ namespace ZeroC.Ice.Test.Discovery
                 };
 
                 // Check that the indirect reference is reachable with all replica group members
-                intf = ITestIntfPrx.Parse(ice1 ? "object @ rg" : "ice:rg//object", communicator).Clone(
+                intf = ITestIntfPrx.Parse("object @ rg", communicator).Clone(
                     cacheConnection: false,
                     preferExistingConnection: false);
                 while (adapterIds.Count > 0)
@@ -311,7 +293,7 @@ namespace ZeroC.Ice.Test.Discovery
                     try
                     {
                         // relies on ColocationScope = Communicator
-                        await IServicePrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
+                        await IServicePrx.Parse("controller0@control0", comm).
                             IcePingAsync();
                         TestHelper.Assert(false);
                     }
@@ -335,7 +317,7 @@ namespace ZeroC.Ice.Test.Discovery
                     await using var discoveryServer2 = new DiscoveryServer(comm, discoveryServerOptions);
                     comm.DefaultLocationService = new LocationService(discoveryServer2.Locator);
 
-                    await IServicePrx.Parse(ice1 ? "controller0@control0" : "ice:control0//controller0", comm).
+                    await IServicePrx.Parse("controller0@control0", comm).
                         IcePingAsync();
                 }
             }

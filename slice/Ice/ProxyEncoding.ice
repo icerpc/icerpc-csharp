@@ -61,15 +61,12 @@ module Ice
         /// This optional proxy is null.
         Null,
 
-        /// A proxy with one or more endpoints; its URI scheme is ice+transport, where transport corresponds to the
-        /// transport of the first endpoint.
+        /// A proxy with one or more endpoints; with ice2, its URI scheme is ice+transport, where transport corresponds
+        /// to the transport of the first endpoint.
         Direct,
 
-        /// A proxy with no endpoint; its URI scheme is ice.
-        Indirect,
-
-        /// An indirect proxy marked relative.
-        IndirectRelative
+        /// A proxy with no endpoint: for ice2, the URI scheme is ice. With ice1, Relative maps to an indirect proxy.
+        Relative
     }
 
     /// With the 2.0 encoding, a proxy is encoded as a discrimated union with:

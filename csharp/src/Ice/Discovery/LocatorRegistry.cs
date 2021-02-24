@@ -12,31 +12,10 @@ namespace ZeroC.Ice.Discovery
     /// <summary>Servant class that implements the Slice interface Ice::LocatorRegistry.</summary>
     internal class LocatorRegistry : IAsyncLocatorRegistry
     {
-        private readonly IServicePrx _dummyIce1Proxy;
-        private readonly IServicePrx _dummyIce2Proxy;
-
-        private readonly Dictionary<string, IServicePrx> _ice1Adapters = new();
-        private readonly Dictionary<string, IReadOnlyList<EndpointData>> _ice2Adapters = new();
-
+        private readonly Dictionary<string, IServicePrx> _adapters = new();
+        private readonly IServicePrx _dummyProxy;
         private readonly object _mutex = new();
-
-        private readonly Dictionary<(string AdapterId, Protocol Protocol), HashSet<string>> _replicaGroups = new();
-
-        public ValueTask RegisterAdapterEndpointsAsync(
-            string adapterId,
-            string replicaGroupId,
-            EndpointData[] endpoints,
-            Current current,
-            CancellationToken cancel)
-        {
-            if (endpoints.Length == 0)
-            {
-                throw new InvalidArgumentException("endpoints cannot be empty", nameof(endpoints));
-            }
-
-            RegisterAdapterEndpoints(adapterId, replicaGroupId, Protocol.Ice2, endpoints, _ice2Adapters);
-            return default;
-        }
+        private readonly Dictionary<string, HashSet<string>> _replicaGroups = new();
 
         public ValueTask SetAdapterDirectProxyAsync(
             string adapterId,
@@ -52,13 +31,42 @@ namespace ZeroC.Ice.Discovery
            Current current,
            CancellationToken cancel)
         {
-            if (proxy != null)
+            if (adapterId.Length == 0)
             {
-                RegisterAdapterEndpoints(adapterId, replicaGroupId, Protocol.Ice1, proxy, _ice1Adapters);
+                throw new InvalidArgumentException("adapterId cannot be empty", nameof(adapterId));
             }
-            else
+
+            lock (_mutex)
             {
-                UnregisterAdapterEndpoints(adapterId, replicaGroupId, Protocol.Ice1, _ice1Adapters);
+                if (proxy != null)
+                {
+
+                    _adapters[adapterId] = proxy;
+                    if (replicaGroupId.Length > 0)
+                    {
+                        if (!_replicaGroups.TryGetValue(replicaGroupId, out HashSet<string>? adapterIds))
+                        {
+                            adapterIds = new();
+                            _replicaGroups.Add(replicaGroupId, adapterIds);
+                        }
+                        adapterIds.Add(adapterId);
+                    }
+                }
+                else
+                {
+                    _adapters.Remove(adapterId);
+                    if (replicaGroupId.Length > 0)
+                    {
+                        if (_replicaGroups.TryGetValue(replicaGroupId, out HashSet<string>? adapterIds))
+                        {
+                            adapterIds.Remove(adapterId);
+                            if (adapterIds.Count == 0)
+                            {
+                                _replicaGroups.Remove(replicaGroupId);
+                            }
+                        }
+                    }
+                }
             }
             return default;
         }
@@ -69,62 +77,43 @@ namespace ZeroC.Ice.Discovery
             Current current,
             CancellationToken cancel) => default; // Ignored
 
-        public ValueTask UnregisterAdapterEndpointsAsync(
-            string adapterId,
-            string replicaGroupId,
-            Current current,
-            CancellationToken cancel)
-        {
-            UnregisterAdapterEndpoints(adapterId, replicaGroupId, Protocol.Ice2, _ice2Adapters);
-            return default;
-        }
-
-        internal LocatorRegistry(Communicator communicator)
-        {
-            _dummyIce1Proxy = IServicePrx.Parse("dummy", communicator);
-            _dummyIce2Proxy = IServicePrx.Parse("ice:dummy", communicator);
-        }
+        internal LocatorRegistry(Communicator communicator) =>
+            _dummyProxy = IServicePrx.Parse("dummy", communicator);
 
         internal (IServicePrx? Proxy, bool IsReplicaGroup) FindAdapter(string adapterId)
         {
             lock (_mutex)
             {
-                if (_ice1Adapters.TryGetValue(adapterId, out IServicePrx? proxy))
+                if (_adapters.TryGetValue(adapterId, out IServicePrx? proxy))
                 {
                     return (proxy, false);
                 }
 
-                if (_replicaGroups.TryGetValue((adapterId, Protocol.Ice1), out HashSet<string>? adapterIds))
+                if (_replicaGroups.TryGetValue(adapterId, out HashSet<string>? adapterIds))
                 {
                     Debug.Assert(adapterIds.Count > 0);
-                    var endpoints = adapterIds.SelectMany(id => _ice1Adapters[id].Endpoints).ToList();
-                    return (_dummyIce1Proxy.Clone(endpoints: endpoints), true);
+                    IEnumerable<Endpoint> endpoints = adapterIds.SelectMany(id => _adapters[id].Endpoints);
+                    return (_dummyProxy.Clone(endpoints: endpoints), true);
                 }
 
                 return (null, false);
             }
         }
 
-        internal async ValueTask<IServicePrx?> FindObjectAsync(
-            Identity identity,
-            string? facet,
-            CancellationToken cancel)
+        internal async ValueTask<IServicePrx?> FindObjectAsync(Identity identity, CancellationToken cancel)
         {
             if (identity.Name.Length == 0)
             {
                 return null;
             }
 
-            List<string> candidates;
+            var candidates = new List<string>();
 
             lock (_mutex)
             {
                 // We check the local replica groups before the local adapters.
-
-                candidates =
-                    _replicaGroups.Keys.Where(k => k.Protocol == Protocol.Ice1).Select(k => k.AdapterId).ToList();
-
-                candidates.AddRange(_ice1Adapters.Keys);
+                candidates.AddRange(_replicaGroups.Keys);
+                candidates.AddRange(_adapters.Keys);
             }
 
             foreach (string id in candidates)
@@ -132,10 +121,9 @@ namespace ZeroC.Ice.Discovery
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IServicePrx proxy = _dummyIce1Proxy.Clone(
+                    IServicePrx proxy = _dummyProxy.Clone(
                         IServicePrx.Factory,
                         identity: identity,
-                        facet: facet,
                         location: ImmutableArray.Create(id));
                     await proxy.IcePingAsync(cancel: cancel).ConfigureAwait(false);
                     return proxy;
@@ -147,123 +135,6 @@ namespace ZeroC.Ice.Discovery
             }
 
             return null;
-        }
-
-        internal (IReadOnlyList<EndpointData> Endpoints, bool IsReplicaGroup) ResolveAdapterId(string adapterId)
-        {
-            lock (_mutex)
-            {
-                if (_ice2Adapters.TryGetValue(adapterId, out IReadOnlyList<EndpointData>? endpoints))
-                {
-                    return (endpoints, false);
-                }
-
-                if (_replicaGroups.TryGetValue((adapterId, Protocol.Ice2), out HashSet<string>? adapterIds))
-                {
-                    Debug.Assert(adapterIds.Count > 0);
-                    return (adapterIds.SelectMany(id => _ice2Adapters[id]).ToList(), true);
-                }
-
-                return (ImmutableArray<EndpointData>.Empty, false);
-            }
-        }
-
-        internal async ValueTask<string> ResolveWellKnownProxyAsync(
-            Identity identity,
-            string facet,
-            CancellationToken cancel)
-        {
-            if (identity.Name.Length == 0)
-            {
-                return "";
-            }
-
-            List<string> candidates;
-
-            lock (_mutex)
-            {
-                // We check the local replica groups before the local adapters.
-
-                candidates =
-                    _replicaGroups.Keys.Where(k => k.Protocol == Protocol.Ice2).Select(k => k.AdapterId).ToList();
-
-                candidates.AddRange(_ice2Adapters.Keys);
-            }
-
-            foreach (string id in candidates)
-            {
-                try
-                {
-                    // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IServicePrx proxy = _dummyIce2Proxy.Clone(
-                        IServicePrx.Factory,
-                        identity: identity,
-                        facet: facet,
-                        location: ImmutableArray.Create(id));
-                    await proxy.IcePingAsync(cancel: cancel).ConfigureAwait(false);
-                    return id;
-                }
-                catch
-                {
-                    // Ignore and move on to the next replica group ID / adapter ID
-                }
-            }
-            return "";
-        }
-
-        private void RegisterAdapterEndpoints<T>(
-            string adapterId,
-            string replicaGroupId,
-            Protocol protocol,
-            T endpoints,
-            Dictionary<string, T> adapters)
-        {
-            if (adapterId.Length == 0)
-            {
-                throw new InvalidArgumentException("adapterId cannot be empty", nameof(adapterId));
-            }
-
-            lock (_mutex)
-            {
-                adapters[adapterId] = endpoints;
-                if (replicaGroupId.Length > 0)
-                {
-                    if (!_replicaGroups.TryGetValue((replicaGroupId, protocol), out HashSet<string>? adapterIds))
-                    {
-                        adapterIds = new();
-                        _replicaGroups.Add((replicaGroupId, protocol), adapterIds);
-                    }
-                    adapterIds.Add(adapterId);
-                }
-            }
-        }
-
-        private void UnregisterAdapterEndpoints<T>(
-            string adapterId,
-            string replicaGroupId,
-            Protocol protocol,
-            Dictionary<string, T> adapters)
-        {
-            if (adapterId.Length == 0)
-            {
-                throw new InvalidArgumentException("adapterId cannot be empty", nameof(adapterId));
-            }
-
-            lock (_mutex)
-            {
-                adapters.Remove(adapterId);
-                if (replicaGroupId.Length > 0)
-                {
-                    if (_replicaGroups.TryGetValue((replicaGroupId, protocol), out HashSet<string>? adapterIds))
-                    {
-                        adapterIds.Remove(adapterId);
-                        if (adapterIds.Count == 0)
-                        {
-                            _replicaGroups.Remove((replicaGroupId, protocol));
-                        }
-                    }
-                }
-            }
         }
     }
 }

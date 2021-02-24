@@ -279,18 +279,19 @@ namespace ZeroC.Ice.Test.AMI
             output.Write("testing local exceptions with async tasks... ");
             output.Flush();
             {
-                ITestIntfPrx indirect = ice1 ?
-                    p.Clone(location: ImmutableArray.Create("dummy")) :
-                    p.Clone(endpoints: ImmutableArray<Endpoint>.Empty, location: ImmutableArray.Create("dummy"));
+                if (ice1)
+                {
+                    ITestIntfPrx indirect = p.Clone(location: ImmutableArray.Create("dummy"));
 
-                try
-                {
-                    indirect.OpAsync().Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex)
-                {
-                    TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    try
+                    {
+                        indirect.OpAsync().Wait();
+                        TestHelper.Assert(false);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    }
                 }
 
                 Communicator ic = TestHelper.CreateCommunicator(communicator.GetProperties());
@@ -311,48 +312,49 @@ namespace ZeroC.Ice.Test.AMI
             output.Write("testing exception with async task... ");
             output.Flush();
             {
-                ITestIntfPrx i = ice1 ?
-                    p.Clone(location: ImmutableArray.Create("dummy")) :
-                    p.Clone(endpoints: ImmutableArray<Endpoint>.Empty, location: ImmutableArray.Create("dummy"));
+                if (ice1)
+                {
+                    ITestIntfPrx i = p.Clone(location: ImmutableArray.Create("dummy"));
 
-                try
-                {
-                    i.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex)
-                {
-                    TestHelper.Assert(ex.InnerException is NoEndpointException);
-                }
+                    try
+                    {
+                        i.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Wait();
+                        TestHelper.Assert(false);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    }
 
-                try
-                {
-                    i.OpAsync().Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex)
-                {
-                    TestHelper.Assert(ex.InnerException is NoEndpointException);
-                }
+                    try
+                    {
+                        i.OpAsync().Wait();
+                        TestHelper.Assert(false);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    }
 
-                try
-                {
-                    i.OpWithResultAsync().Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex)
-                {
-                    TestHelper.Assert(ex.InnerException is NoEndpointException);
-                }
+                    try
+                    {
+                        i.OpWithResultAsync().Wait();
+                        TestHelper.Assert(false);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    }
 
-                try
-                {
-                    i.OpWithUEAsync().Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex)
-                {
-                    TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    try
+                    {
+                        i.OpWithUEAsync().Wait();
+                        TestHelper.Assert(false);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        TestHelper.Assert(ex.InnerException is NoEndpointException);
+                    }
                 }
 
                 // Ensures no exception is called when response is received

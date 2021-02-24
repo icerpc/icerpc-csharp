@@ -51,7 +51,6 @@ namespace ZeroC.Ice.Discovery
         public async ValueTask FindObjectByIdAsync(
             string domainId,
             Identity id,
-            string? facet,
             IFindObjectByIdReplyPrx reply,
             Current current,
             CancellationToken cancel)
@@ -61,7 +60,7 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            if (await _registryServant.FindObjectAsync(id, facet, cancel).ConfigureAwait(false) is IServicePrx proxy)
+            if (await _registryServant.FindObjectAsync(id, cancel).ConfigureAwait(false) is IServicePrx proxy)
             {
                 // Reply to the multicast request using the given proxy.
                 try
@@ -74,69 +73,6 @@ namespace ZeroC.Ice.Discovery
                     if (_logger.IsEnabled(LogLevel.Error))
                     {
                         _logger.LogFoundObjectByIdRequestFailed(reply, ex);
-                    }
-                }
-            }
-        }
-
-        public async ValueTask ResolveAdapterIdAsync(
-            string domainId,
-            string adapterId,
-            IResolveAdapterIdReplyPrx reply,
-            Current current,
-            CancellationToken cancel)
-        {
-            if (domainId != _domainId)
-            {
-                return; // Ignore
-            }
-
-            (IReadOnlyList<EndpointData> endpoints, bool isReplicaGroup) = _registryServant.ResolveAdapterId(adapterId);
-            if (endpoints.Count > 0)
-            {
-                try
-                {
-                    reply = reply.Clone(preferNonSecure: NonSecure.Always);
-                    await reply.FoundAdapterIdAsync(endpoints, isReplicaGroup, cancel: cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (_logger.IsEnabled(LogLevel.Error))
-                    {
-                        _logger.LogFoundAdapterIdRequestFailed(reply, ex);
-                    }
-                }
-            }
-        }
-
-        public async ValueTask ResolveWellKnownProxyAsync(
-            string domainId,
-            Identity identity,
-            string facet,
-            IResolveWellKnownProxyReplyPrx reply,
-            Current current,
-            CancellationToken cancel)
-        {
-            if (domainId != _domainId)
-            {
-                return; // Ignore
-            }
-
-            string adapterId =
-                await _registryServant.ResolveWellKnownProxyAsync(identity, facet, cancel).ConfigureAwait(false);
-
-            if (adapterId.Length > 0)
-            {
-                try
-                {
-                    reply = reply.Clone(preferNonSecure: NonSecure.Always);
-                    await reply.FoundWellKnownProxyAsync(adapterId, cancel: cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    if (_logger.IsEnabled(LogLevel.Error))
-                    {
-                        _logger.LogFoundWellKnownProxyReuestFailed(reply, ex);
                     }
                 }
             }

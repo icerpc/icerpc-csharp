@@ -35,7 +35,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
         [TestCase("ice:location//identity#facet")]
-        [TestCase("ice:location//identity?relative=true#facet")]
         [TestCase("ice+tcp://host.zeroc.com//identity")]
         // another syntax for empty port
         [TestCase("ice+tcp://host.zeroc.com:/identity")]
@@ -71,7 +70,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
         [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
         [TestCase("ice+tcp://host.zeroc.com/identity?invocation-timeout=0s")] // 0 is not a valid invocation timeout
-        [TestCase("ice:foo?relative=bad")] // bad value for relative
         [TestCase("ice:foo?fixed=true")] // cannot create fixed proxy from URI
         [TestCase("")]
         [TestCase("\"\"")]

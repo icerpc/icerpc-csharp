@@ -41,15 +41,20 @@ namespace ZeroC.Ice.Discovery
     public sealed class DiscoveryServer : IAsyncDisposable
     {
         public ILocatorPrx Locator => _locator.Proxy;
-
         private readonly Locator _locator;
 
         /// <summary>Constructs a DiscoveryServer.</summary>
-        /// <param name="communicator">The communicator. <c>communicator's</c> default locator must be a well-known ice2
-        /// proxy with discovery as its identity name, for example `ice:discovery'.</param>
+        /// <param name="communicator">The communicator.</param>
         /// <param name="options">The <see cref="DiscoveryServerOptions"/>.</param>
-        public DiscoveryServer(Communicator communicator, DiscoveryServerOptions? options = null) =>
-            _locator = new(communicator, options ?? new DiscoveryServerOptions());
+        public DiscoveryServer(Communicator communicator, DiscoveryServerOptions options) =>
+            _locator = new(communicator, options);
+
+        /// <summary>Constructs a DiscoveryServer with the default configuration.</summary>
+        /// <param name="communicator">The communicator.</param>
+        public DiscoveryServer(Communicator communicator)
+            : this(communicator, new())
+        {
+        }
 
         /// <summary>Activates the object adapters used by DiscoveryServer.</summary>
         /// <param name="cancel">The cancellation token.</param>

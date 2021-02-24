@@ -8,17 +8,12 @@
 #include <Ice/Identity.ice>
 
 /// Ice Discovery is a built-in {@see Ice::Locator} implementation that locates (or discovers) objects and object
-/// adapters using UDP multicast. You enable this built-in locator implementation by setting the configuration property
-/// Ice.Default.Locator to Discovery.
-/// Ice Discovery also implements the {@see Ice::LocatorDiscovery} interface to allow servers to respond to such
-/// multicast discovery requests.
+/// adapters using UDP multicast.
 [cs:namespace(ZeroC)]
 module Ice::Discovery
 {
     interface FindAdapterByIdReply;
     interface FindObjectByIdReply;
-    interface ResolveAdapterIdReply;
-    interface ResolveWellKnownProxyReply;
 
     /// The Ice.Discovery.Multicast object adapter of a server application hosts a Lookup object that receives discovery
     /// requests from Discovery clients.
@@ -37,37 +32,9 @@ module Ice::Discovery
         /// @param domainId The Discovery domain ID. An Discovery server only replies to requests that include a domain
         /// ID that matches the server's configured domain ID.
         /// @param id The object identity.
-        /// @param facet The facet of the object. Null is equivalent to the empty string.
         /// @param reply A proxy to a FindObjectByIdReply object created by the caller. The server calls foundObjectById
         /// on this object when it hosts an object with the requested identity and facet in an ice1 object adapter.
-        [oneway] idempotent void findObjectById(
-            string domainId,
-            Ice::Identity id,
-            tag(1) string? facet,
-            FindObjectByIdReply reply);
-
-        /// Finds an ice2 object adapter hosted by the target object's server.
-        /// @param domainId The Discovery domain ID. An Discovery server only replies to requests that include a domain
-        /// ID that matches the server's configured domain ID.
-        /// @param adapterId The adapter ID.
-        /// @param reply A proxy to a ResolveAdapterIdReply object created by the caller. The server calls
-        /// foundAdapterId on this object when it hosts an ice2 object adapter that has the requested adapter ID (or
-        /// replica group ID).
-        [oneway] void resolveAdapterId(string domainId, string adapterId, ResolveAdapterIdReply reply);
-
-        /// Finds an object hosted by an ice2 object adapter of the target object's server.
-        /// @param domainId The Discovery domain ID. An Discovery server only replies to requests that include a domain
-        /// ID that matches the server's configured domain ID.
-        /// @param identity The identity of the object.
-        /// @param facet The facet of the object.
-        /// @param reply A proxy to a ResolvedWellKnownProxyReply object created by the caller. The server calls
-        /// foundWellKnownProxy on this object when it has an ice2 object adapter that hosts an object with the given
-        /// identity and facet.
-        [oneway] void resolveWellKnownProxy(
-            string domainId,
-            Ice::Identity identity,
-            string facet,
-            ResolveWellKnownProxyReply reply);
+        [oneway] idempotent void findObjectById(string domainId, Ice::Identity id, FindObjectByIdReply reply);
     }
 
     /// Handles the reply or replies to findAdapterById calls on {@see Lookup}.
@@ -89,24 +56,5 @@ module Ice::Discovery
         /// @param id The identity of the object, as specified in the findObjectById call.
         /// @param proxy A dummy proxy that carries the adapter ID or endpoints for the well-known object.
         [oneway] void foundObjectById(Ice::Identity id, Object proxy);
-    }
-
-    /// Handles the reply or replies to resolveAdapterId calls on {@see Lookup}.
-    interface ResolveAdapterIdReply
-    {
-        /// Provides the endpoints for an object adapter in response to a resolveAdapterId call on a Lookup object.
-        /// @param endpoints A sequence of endpoints. Cannot be empty.
-        /// @param isReplicaGroup True if the adapter ID provided to the resolveAdapterId call corresponds to a replica
-        /// group ID and false otherwise.
-        [oneway] void foundAdapterId(Ice::EndpointDataSeq endpoints, bool isReplicaGroup);
-    }
-
-    /// Handles the reply or replies to resolveWellKnownProxy calls on {@see Lookup}.
-    interface ResolveWellKnownProxyReply
-    {
-        /// Provides the adapter ID or replica group ID for an object adapter that hosts the desired well-known object,
-        /// in response to a resolveWellKnownProxy call on a Lookup object.
-        /// @param adapterId The adapter ID or replica group ID of the object adapter that hosts the object.
-        [oneway] void foundWellKnownProxy(string adapterId);
     }
 }
