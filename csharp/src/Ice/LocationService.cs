@@ -6,11 +6,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using EndpointList = System.Collections.Generic.IReadOnlyList<ZeroC.Ice.Endpoint>;
 namespace ZeroC.Ice
 {
     /// <summary>An options class for configuring a <see cref="LocationService"/>.</summary>
@@ -32,10 +30,10 @@ namespace ZeroC.Ice
     {
         private readonly bool _background;
 
-        private readonly ConcurrentDictionary<string, (TimeSpan InsertionTime, EndpointList Endpoints)> _locationCache =
+        private readonly ConcurrentDictionary<string, (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints)> _locationCache =
             new();
 
-        private readonly Dictionary<string, Task<EndpointList>> _locationRequests = new();
+        private readonly Dictionary<string, Task<IReadOnlyList<Endpoint>>> _locationRequests = new();
 
         private readonly ILocatorPrx _locator;
 
@@ -44,10 +42,10 @@ namespace ZeroC.Ice
 
         private readonly TimeSpan _ttl;
 
-        private readonly ConcurrentDictionary<Identity, (TimeSpan InsertionTime, EndpointList Endpoints, string Location)> _wellKnownProxyCache =
+        private readonly ConcurrentDictionary<Identity, (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, string Location)> _wellKnownProxyCache =
             new();
 
-        private readonly Dictionary<Identity, Task<(EndpointList, string)>> _wellKnownProxyRequests = new();
+        private readonly Dictionary<Identity, Task<(IReadOnlyList<Endpoint>, string)>> _wellKnownProxyRequests = new();
 
         /// <summary>Constructs a location service.</summary>
         /// <param name="locator">The locator proxy.</param>
@@ -67,7 +65,7 @@ namespace ZeroC.Ice
         {
         }
 
-        public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
+        public async ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
             string location,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel)
@@ -77,7 +75,7 @@ namespace ZeroC.Ice
                 throw new ArgumentException("invalid empty location", nameof(location));
             }
 
-            EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan endpointsAge = TimeSpan.Zero;
             bool expired = false;
 
@@ -123,12 +121,12 @@ namespace ZeroC.Ice
             return (endpoints, endpointsAge);
         }
 
-        public async ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
+        public async ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
             Identity identity,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel)
         {
-            EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan wellKnownAge = TimeSpan.Zero;
             string location = "";
             bool expired = false;
@@ -212,7 +210,7 @@ namespace ZeroC.Ice
 
         private void ClearCache(string location)
         {
-            if (_locationCache.TryRemove(location, out (TimeSpan _, EndpointList Endpoints) entry))
+            if (_locationCache.TryRemove(location, out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints) entry))
             {
                 if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Trace))
                 {
@@ -225,7 +223,7 @@ namespace ZeroC.Ice
         {
             if (_wellKnownProxyCache.TryRemove(
                     identity,
-                    out (TimeSpan _, EndpointList Endpoints, string Location) entry))
+                    out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints, string Location) entry))
             {
                 if (entry.Endpoints.Count > 0)
                 {
@@ -252,11 +250,11 @@ namespace ZeroC.Ice
             }
         }
 
-        private (EndpointList Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(string location)
+        private (IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge) GetResolvedLocationFromCache(string location)
         {
             if (_locationCache.TryGetValue(
                 location,
-                out (TimeSpan InsertionTime, EndpointList Endpoints) entry))
+                out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints) entry))
             {
                 return (entry.Endpoints, Time.Elapsed - entry.InsertionTime);
             }
@@ -266,12 +264,12 @@ namespace ZeroC.Ice
             }
         }
 
-        private (EndpointList Endpoints, string Location, TimeSpan LocationAge) GetResolvedWellKnownProxyFromCache(
+        private (IReadOnlyList<Endpoint> Endpoints, string Location, TimeSpan LocationAge) GetResolvedWellKnownProxyFromCache(
             Identity identity)
         {
             if (_wellKnownProxyCache.TryGetValue(
                     identity,
-                    out (TimeSpan InsertionTime, EndpointList Endpoints, string Location) entry))
+                    out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, string Location) entry))
             {
                 return (entry.Endpoints, entry.Location, Time.Elapsed - entry.InsertionTime);
             }
@@ -281,14 +279,14 @@ namespace ZeroC.Ice
             }
         }
 
-        private async Task<EndpointList> ResolveLocationAsync(string location, CancellationToken cancel)
+        private async Task<IReadOnlyList<Endpoint>> ResolveLocationAsync(string location, CancellationToken cancel)
         {
             if (_locator.Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
                 _locator.Communicator.LocationLogger.LogResolvingLocation(location);
             }
 
-            Task<EndpointList>? task;
+            Task<IReadOnlyList<Endpoint>>? task;
             lock (_mutex)
             {
                 if (!_locationRequests.TryGetValue(location, out task))
@@ -309,13 +307,13 @@ namespace ZeroC.Ice
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<EndpointList> PerformResolveLocationAsync(string location)
+            async Task<IReadOnlyList<Endpoint>> PerformResolveLocationAsync(string location)
             {
                 Debug.Assert(location.Length > 0);
 
                 try
                 {
-                    EndpointList endpoints = ImmutableArray<Endpoint>.Empty;
+                    IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
                     IObjectPrx? proxy = null;
                     try
                     {
@@ -374,7 +372,7 @@ namespace ZeroC.Ice
             }
         }
 
-        private async Task<(EndpointList, string)> ResolveWellKnownProxyAsync(
+        private async Task<(IReadOnlyList<Endpoint>, string)> ResolveWellKnownProxyAsync(
             Identity identity,
             CancellationToken cancel)
         {
@@ -383,7 +381,7 @@ namespace ZeroC.Ice
                 _locator.Communicator.LocationLogger.LogResolvingWellKnownProxy(identity);
             }
 
-            Task<(EndpointList, string)>? task;
+            Task<(IReadOnlyList<Endpoint>, string)>? task;
             lock (_mutex)
             {
                 if (!_wellKnownProxyRequests.TryGetValue(identity, out task))
@@ -402,11 +400,11 @@ namespace ZeroC.Ice
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<(EndpointList, string)> PerformResolveWellKnownProxyAsync(Identity identity)
+            async Task<(IReadOnlyList<Endpoint>, string)> PerformResolveWellKnownProxyAsync(Identity identity)
             {
                 try
                 {
-                    EndpointList endpoints = ImmutableList<Endpoint>.Empty;
+                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
                     string location = "";
 
                     IObjectPrx? obj = null;

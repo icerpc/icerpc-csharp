@@ -36,10 +36,11 @@ namespace ZeroC.Ice.Discovery
                 throw new InvalidArgumentException("adapterId cannot be empty", nameof(adapterId));
             }
 
-            if (proxy != null)
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (proxy != null)
                 {
+
                     _adapters[adapterId] = proxy;
                     if (replicaGroupId.Length > 0)
                     {
@@ -51,10 +52,7 @@ namespace ZeroC.Ice.Discovery
                         adapterIds.Add(adapterId);
                     }
                 }
-            }
-            else
-            {
-                lock (_mutex)
+                else
                 {
                     _adapters.Remove(adapterId);
                     if (replicaGroupId.Length > 0)
@@ -94,7 +92,7 @@ namespace ZeroC.Ice.Discovery
                 if (_replicaGroups.TryGetValue(adapterId, out HashSet<string>? adapterIds))
                 {
                     Debug.Assert(adapterIds.Count > 0);
-                    var endpoints = adapterIds.SelectMany(id => _adapters[id].Endpoints).ToList();
+                    IEnumerable<Endpoint> endpoints = adapterIds.SelectMany(id => _adapters[id].Endpoints);
                     return (_dummyProxy.Clone(endpoints: endpoints), true);
                 }
 
@@ -109,7 +107,7 @@ namespace ZeroC.Ice.Discovery
                 return null;
             }
 
-            List<string> candidates = new();
+            var candidates = new List<string>();
 
             lock (_mutex)
             {

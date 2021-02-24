@@ -1,10 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
-using EndpointList = System.Collections.Generic.IReadOnlyList<ZeroC.Ice.Endpoint>;
 namespace ZeroC.Ice
 {
     /// <summary>A location service retrieves the endpoints of ice1 indirect proxies and optionally maintains a cache
@@ -17,7 +16,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task holding the resolved endpoint(s) and the age of the cache entry. When the location
         /// cannot be resolved, the endpoint list is empty.</returns>
-        ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
+        ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
             string location,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel);
@@ -28,7 +27,7 @@ namespace ZeroC.Ice
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task holding the resolved endpoint(s) and the age of the cache entry. When the identity
         /// and facet cannot be resolved, the endpoint list is empty.</returns>
-        ValueTask<(EndpointList Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
+        ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
             Identity identity,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel);
