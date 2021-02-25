@@ -22,14 +22,14 @@ namespace ZeroC.Ice.Test.UDP
             {
             }
 
-            var serverName = Communicator.GetProperty("Ice.ServerName") ?? "127.0.0.1";
+            var publishedHost = Communicator.GetProperty("Ice.PublishedHost") ?? "127.0.0.1";
 
             await using var server = new Server(
                 Communicator,
                 new()
                 {
                     Endpoints = GetTestEndpoint(num, Transport),
-                    ServerName = serverName
+                    PublishedHost = publishedHost
                 });
 
             server.Add("control", new TestIntf());
@@ -43,7 +43,7 @@ namespace ZeroC.Ice.Test.UDP
                     {
                         AcceptNonSecure = NonSecure.Always,
                         Endpoints = GetTestEndpoint(num, "udp"),
-                        ServerName = serverName
+                        PublishedHost = publishedHost
                     });
                 server2.Add("test", new TestIntf());
                 await server2.ActivateAsync();
@@ -80,7 +80,7 @@ namespace ZeroC.Ice.Test.UDP
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = endpoint.ToString(),
                     Name = "McastTestAdapter", // for test script ready check
-                    ServerName = serverName
+                    PublishedHost = publishedHost
                 });
             mcastAdapter.Add("test", new TestIntf());
             await mcastAdapter.ActivateAsync();

@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Discovery
                 Lookup = Communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
                 MulticastEndpoints = Communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
                 RetryCount = Communicator.GetPropertyAsInt("Ice.Discovery.RetryCount") ?? 20,
-                ReplyServerName = Communicator.GetProperty("Ice.Discovery.Reply.ServerName") ?? "",
+                ReplyPublishedHost = Communicator.GetProperty("Ice.Discovery.Reply.PublishedHost") ?? "",
                 Timeout = Communicator.GetPropertyAsTimeSpan("Ice.Discovery.Timeout") ?? TimeSpan.FromMilliseconds(100)
             };
 

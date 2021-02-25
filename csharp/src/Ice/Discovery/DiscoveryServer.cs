@@ -29,7 +29,7 @@ namespace ZeroC.Ice.Discovery
 
         public string ReplyEndpoints { get; set; } = "udp -h \"::0\" -p 0";
 
-        public string ReplyServerName { get; set; } = "";
+        public string ReplyPublishedHost { get; set; } = "";
 
         public int RetryCount { get; set; } = 3;
 

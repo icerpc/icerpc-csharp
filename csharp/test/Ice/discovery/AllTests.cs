@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Discovery
                 Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
                 MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
                 RetryCount = communicator.GetPropertyAsInt("Ice.Discovery.RetryCount") ?? 20,
-                ReplyServerName = communicator.GetProperty("Ice.Discovery.Reply.ServerName") ?? "",
+                ReplyPublishedHost = communicator.GetProperty("Ice.Discovery.Reply.PublishedHost") ?? "",
                 Timeout = communicator.GetPropertyAsTimeSpan("Ice.Discovery.Timeout") ?? TimeSpan.FromMilliseconds(100)
             };
 
@@ -269,7 +269,7 @@ namespace ZeroC.Ice.Test.Discovery
                     Lookup = communicator.GetProperty("Ice.Discovery.Lookup") ?? "",
                     MulticastEndpoints = communicator.GetProperty("Ice.Discovery.Multicast.Endpoints") ?? "",
                     RetryCount = communicator.GetPropertyAsInt("Ice.Discovery.RetryCount") ?? 20,
-                    ReplyServerName = communicator.GetProperty("Ice.Discovery.Reply.ServerName") ?? "",
+                    ReplyPublishedHost = communicator.GetProperty("Ice.Discovery.Reply.PublishedHost") ?? "",
                     Timeout = communicator.GetPropertyAsTimeSpan("Ice.Discovery.Timeout") ?? TimeSpan.FromMilliseconds(100)
                 };
 

@@ -41,7 +41,7 @@ namespace ZeroC.Ice.Test.Info
             TestHelper.Assert(current.Connection != null);
             var ctx = new Dictionary<string, string>
             {
-                ["serverName"] = current.Connection.Server?.Name ?? "",
+                ["publishedHost"] = current.Connection.Server?.Name ?? "",
                 ["incoming"] = current.Connection.IsIncoming ? "true" : "false"
             };
 

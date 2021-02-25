@@ -76,14 +76,14 @@ namespace ZeroC.Ice.Test.Info
             output.Write("test server endpoint information... ");
             output.Flush();
             {
-                string serverName = helper.Host;
+                string publishedHost = helper.Host;
                 server = new Server(
                     communicator,
                     new()
                     {
                         AcceptNonSecure = NonSecure.Always,
                         Endpoints = $"tcp -h \"{helper.Host}\" -p 0 -t 15000",
-                        ServerName = serverName
+                        PublishedHost = publishedHost
                     });
 
                 IReadOnlyList<Endpoint> endpoints = server.Endpoints;
@@ -95,7 +95,7 @@ namespace ZeroC.Ice.Test.Info
                 TestHelper.Assert(tcpEndpoint != null);
                 TestHelper.Assert(tcpEndpoint.Transport == Transport.TCP);
 
-                TestHelper.Assert(tcpEndpoint.Host == serverName);
+                TestHelper.Assert(tcpEndpoint.Host == publishedHost);
                 TestHelper.Assert(tcpEndpoint.Port > 0);
                 TestHelper.Assert(tcpEndpoint["timeout"] is string value && int.Parse(value) == 15000);
                 await server.DisposeAsync();
@@ -221,7 +221,7 @@ namespace ZeroC.Ice.Test.Info
 
                 SortedDictionary<string, string> ctx = testIntf.GetConnectionInfoAsContext();
                 TestHelper.Assert(ctx["incoming"].Equals("true"));
-                TestHelper.Assert(ctx["serverName"].Equals("TestAdapter"));
+                TestHelper.Assert(ctx["publishedHost"].Equals("TestAdapter"));
                 TestHelper.Assert(ctx["remoteAddress"].Equals(connection.LocalEndpoint!.Address.ToString()));
                 TestHelper.Assert(ctx["localAddress"].Equals(connection.RemoteEndpoint!.Address.ToString()));
                 TestHelper.Assert(ctx["remotePort"].Equals(connection.LocalEndpoint!.Port.ToString()));

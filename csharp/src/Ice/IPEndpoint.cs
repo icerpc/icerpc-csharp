@@ -233,8 +233,8 @@ namespace ZeroC.Ice
             }
         }
 
-        protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
-            serverName == Host ? this : Clone(serverName, Port);
+        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
+            publishedHost == Host ? this : Clone(publishedHost, Port);
 
         internal IPEndpoint Clone(ushort port)
         {

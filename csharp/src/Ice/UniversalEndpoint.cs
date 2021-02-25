@@ -82,7 +82,7 @@ namespace ZeroC.Ice
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an universal endpoint");
 
-        protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
+        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for universal endpoint");
 
         protected internal override void WriteOptions(OutputStream ostr) =>

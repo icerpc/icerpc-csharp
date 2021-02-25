@@ -205,10 +205,10 @@ namespace ZeroC.Ice
             throw new NotImplementedException();
 
         /// <summary>Returns the published endpoint for this server endpoint.</summary>
-        /// <param name="serverName">The server name, to be used as the host of the published endpoint when the
-        /// endpoint's type supports DNS resolution of its hosts. Otherwise, <c>serverName</c> is not used.</param>
+        /// <param name="publishedHost">The host portion of the published endpoint when the endpoint's type supports
+        /// DNS resolution of its hosts. Otherwise, <c>publishedHost</c> is not used.</param>
         /// <returns>The published endpoint.</returns>
-        protected internal abstract Endpoint GetPublishedEndpoint(string serverName);
+        protected internal abstract Endpoint GetPublishedEndpoint(string publishedHost);
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>

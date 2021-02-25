@@ -153,7 +153,7 @@ namespace ZeroC.Ice.Discovery
                                                   ColocationScope = options.ColocationScope,
                                                   Endpoints = options.ReplyEndpoints,
                                                   Name = "Discovery.Reply",
-                                                  ServerName = options.ReplyServerName
+                                                  PublishedHost = options.ReplyPublishedHost
                                               });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
