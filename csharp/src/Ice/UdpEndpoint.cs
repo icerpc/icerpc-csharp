@@ -36,10 +36,10 @@ namespace ZeroC.Ice
 
         private int _hashCode;
 
-        public override IAcceptor Acceptor(ObjectAdapter adapter) =>
+        public override IAcceptor Acceptor(Server server) =>
             throw new InvalidOperationException();
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter)
+        public override Connection CreateDatagramServerConnection(Server server)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
 
@@ -47,8 +47,8 @@ namespace ZeroC.Ice
             try
             {
                 Endpoint endpoint = socket.Bind(this);
-                var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, adapter);
-                return new UdpConnection(endpoint, multiStreamSocket, label: null, adapter);
+                var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, server);
+                return new UdpConnection(endpoint, multiStreamSocket, label: null, server);
             }
             catch
             {
@@ -134,7 +134,7 @@ namespace ZeroC.Ice
             CancellationToken cancel)
         {
             UdpSocket socket = new(Communicator, address, MulticastInterface, MulticastTtl);
-            return new UdpConnection(this, new Ice1NetworkSocket(socket, this, adapter: null), label, adapter: null);
+            return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
         }
 
         protected internal override void WriteOptions(OutputStream ostr)
@@ -159,12 +159,12 @@ namespace ZeroC.Ice
             Transport transport,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.UDP);
 
-            (string host, ushort port) = ParseHostAndPort(options, oaEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
 
             int ttl = -1;
 
@@ -199,7 +199,7 @@ namespace ZeroC.Ice
 
                 if (multicastInterface == "*")
                 {
-                    if (oaEndpoint)
+                    if (serverEndpoint)
                     {
                         multicastInterface = null;
                     }
@@ -217,7 +217,7 @@ namespace ZeroC.Ice
                                    multicastInterface,
                                    options,
                                    communicator,
-                                   oaEndpoint,
+                                   serverEndpoint,
                                    endpointString);
         }
 
@@ -234,9 +234,9 @@ namespace ZeroC.Ice
             string? multicastInterface,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, oaEndpoint, endpointString)
+            : base(data, options, communicator, serverEndpoint, endpointString)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

@@ -11,7 +11,7 @@ namespace ZeroC.Ice.Test.Location
     {
         private readonly ServerLocatorRegistry _registry;
         private readonly List<Communicator> _communicators = new();
-        private readonly List<ObjectAdapter> _adapters = new();
+        private readonly List<Server> _servers = new();
         private readonly TestHelper _helper;
         private int _nextPort = 1;
 
@@ -23,11 +23,11 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask StartServerAsync(Current current, CancellationToken cancel)
         {
-            foreach (ObjectAdapter a in _adapters)
+            foreach (Server a in _servers)
             {
                 await a.ShutdownAsync();
             }
-            _adapters.Clear();
+            _servers.Clear();
 
             foreach (Communicator c in _communicators)
             {
@@ -35,22 +35,22 @@ namespace ZeroC.Ice.Test.Location
             }
             _communicators.Clear();
 
-            // Simulate a server: create a new communicator and object adapter. The object adapter is started on a
+            // Simulate a server: create a new communicator and server. The server is started on a
             // system allocated port. The configuration used here contains the Ice.Locator configuration variable.
-            // The new object adapter will register its endpoints with the locator and create references containing
-            // the adapter id instead of the endpoints.
+            // The new server will register its endpoints with the locator and create references containing
+            // the server id instead of the endpoints.
             Dictionary<string, string> properties = _helper.Communicator!.GetProperties();
 
             Communicator serverCommunicator = TestHelper.CreateCommunicator(properties);
             _communicators.Add(serverCommunicator);
 
-            // Use fixed port to ensure that OA re-activation doesn't re-use previous port from
-            // another OA(e.g.: TestAdapter2 is re-activated using port of TestAdapter).
+            // Use fixed port to ensure that Server re-activation doesn't re-use previous port from
+            // another Server(e.g.: TestAdapter2 is re-activated using port of TestAdapter).
             int nRetry = 10;
             while (--nRetry > 0)
             {
-                ObjectAdapter? adapter = null;
-                ObjectAdapter? adapter2 = null;
+                Server? server = null;
+                Server? server2 = null;
 
                 try
                 {
@@ -58,7 +58,7 @@ namespace ZeroC.Ice.Test.Location
 
                     ILocatorRegistryPrx? locatorRegistry = await locator.GetRegistryAsync();
 
-                    adapter = new ObjectAdapter(
+                    server = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -67,9 +67,9 @@ namespace ZeroC.Ice.Test.Location
                             LocatorRegistry = locatorRegistry,
                             ReplicaGroupId = "ReplicatedAdapter"
                         });
-                    _adapters.Add(adapter);
+                    _servers.Add(server);
 
-                    adapter2 = new ObjectAdapter(
+                    server2 = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -77,15 +77,15 @@ namespace ZeroC.Ice.Test.Location
                             Endpoints = _helper.GetTestEndpoint(_nextPort++),
                             LocatorRegistry = locatorRegistry
                         });
-                    _adapters.Add(adapter2);
+                    _servers.Add(server2);
 
-                    var testI = new TestIntf(adapter, adapter2, _registry);
-                    _registry.AddObject(adapter.Add("test", testI, IServicePrx.Factory));
-                    _registry.AddObject(adapter.Add("test2", testI, IServicePrx.Factory));
-                    adapter.Add("test3", testI);
+                    var testI = new TestIntf(server, server2, _registry);
+                    _registry.AddObject(server.Add("test", testI, IServicePrx.Factory));
+                    _registry.AddObject(server.Add("test2", testI, IServicePrx.Factory));
+                    server.Add("test3", testI);
 
-                    await adapter.ActivateAsync(cancel);
-                    await adapter2.ActivateAsync(cancel);
+                    await server.ActivateAsync(cancel);
+                    await server2.ActivateAsync(cancel);
                     break;
                 }
                 catch (TransportException)
@@ -95,15 +95,15 @@ namespace ZeroC.Ice.Test.Location
                         throw;
                     }
 
-                    // Retry, if OA creation fails with EADDRINUSE (this can occur when running with JS web
+                    // Retry, if Server creation fails with EADDRINUSE (this can occur when running with JS web
                     // browser clients if the driver uses ports in the same range as this test, ICE-8148)
-                    if (adapter != null)
+                    if (server != null)
                     {
-                        await adapter.DisposeAsync();
+                        await server.DisposeAsync();
                     }
-                    if (adapter2 != null)
+                    if (server2 != null)
                     {
-                        await adapter2.DisposeAsync();
+                        await server2.DisposeAsync();
                     }
                 }
             }
@@ -111,11 +111,11 @@ namespace ZeroC.Ice.Test.Location
 
         public async ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            foreach (ObjectAdapter a in _adapters)
+            foreach (Server a in _servers)
             {
                 await a.ShutdownAsync();
             }
-            _adapters.Clear();
+            _servers.Clear();
 
             foreach (Communicator c in _communicators)
             {
@@ -123,7 +123,7 @@ namespace ZeroC.Ice.Test.Location
             }
             _communicators.Clear();
 
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
         }
     }
 }

@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             : base(protocol, transport)
         {
             Servant = new TestService();
-            Prx = ObjectAdapter.AddWithUUID(Servant, IStressTestServicePrx.Factory);
+            Prx = Server.AddWithUUID(Servant, IStressTestServicePrx.Factory);
         }
 
         [Test]

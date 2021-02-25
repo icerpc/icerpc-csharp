@@ -100,25 +100,25 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        await using var adapter = new ZeroC.Ice.ObjectAdapter(Communicator);
-        adapter.Add("test", new Decimal());
-        adapter.Add("test1", new Test1I());
-        adapter.Add("test2", new Test2I());
-        await adapter.ActivateAsync();
+        await using var server = new ZeroC.Ice.Server(Communicator);
+        server.Add("test", new Decimal());
+        server.Add("test1", new Test1I());
+        server.Add("test2", new Test2I());
+        await server.ActivateAsync();
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = adapter.CreateProxy("test", IdecimalPrx.Factory);
+        IdecimalPrx p = server.CreateProxy("test", IdecimalPrx.Factory);
         p.@default();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
-        ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx t1 = adapter.CreateProxy("test1",
+        ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx t1 = server.CreateProxy("test1",
             ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx.Factory);
         t1.op();
 
-        ZeroC.Slice.Test.Escape.System.ITestPrx t2 = adapter.CreateProxy("test2",
+        ZeroC.Slice.Test.Escape.System.ITestPrx t2 = server.CreateProxy("test2",
             ZeroC.Slice.Test.Escape.System.ITestPrx.Factory);
         t2.op();
         Output.WriteLine("ok");

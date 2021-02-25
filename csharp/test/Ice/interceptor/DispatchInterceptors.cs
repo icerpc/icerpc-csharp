@@ -18,9 +18,9 @@ namespace ZeroC.Ice.Test.Interceptor
     {
         public static AsyncLocal<int> LocalContext { get; } = new();
 
-        public static async ValueTask ActivateAsync(ObjectAdapter adapter)
+        public static async ValueTask ActivateAsync(Server server)
         {
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
             {
                 if (current.Context.TryGetValue("raiseBeforeDispatch", out string? context))
                 {
@@ -51,7 +51,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 return response;
             });
 
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
             {
                     if (current.Operation == "addWithRetry")
                     {
@@ -72,7 +72,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
             });
 
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Context.TryGetValue("retry", out string? context) && context.Equals("yes"))
                     {
@@ -86,7 +86,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
                 });
 
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "opWithBinaryContext" && request.Protocol == Protocol.Ice2)
                     {
@@ -125,7 +125,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
                 });
 
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
                 {
                     if (current.Operation == "op1")
                     {
@@ -141,7 +141,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
                 });
 
-            await adapter.ActivateAsync();
+            await server.ActivateAsync();
         }
     }
 }

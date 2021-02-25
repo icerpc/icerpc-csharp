@@ -64,7 +64,7 @@ namespace ZeroC.Ice.Test.AMI
                     _pending.SetResult(null);
                     _pending = null;
                 }
-                current.Adapter.ShutdownAsync();
+                current.Server.ShutdownAsync();
             }
         }
 
@@ -96,7 +96,7 @@ namespace ZeroC.Ice.Test.AMI
         }
 
         private static ITestIntfPrx Self(Current current) =>
-            current.Adapter.CreateProxy(current.Identity, ITestIntfPrx.Factory);
+            current.Server.CreateProxy(current.Identity, ITestIntfPrx.Factory);
 
         public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
         {

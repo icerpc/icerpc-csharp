@@ -5,24 +5,24 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.AdapterDeactivation
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            var adapter = new ObjectAdapter(Communicator,
+            var server = new Server(Communicator,
                                             new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.AddDefault(new Servant());
-            await adapter.ActivateAsync();
+            server.AddDefault(new Servant());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

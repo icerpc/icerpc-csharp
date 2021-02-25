@@ -9,11 +9,11 @@ namespace ZeroC.Ice.Test.Perf
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("perf", new PerformanceI());
-            // Don't activate OA to ensure collocation is used.
+            server.Add("perf", new PerformanceI());
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);
         }

@@ -95,10 +95,10 @@ namespace ZeroC.Ice.Test.ProtocolBridging
         {
             TestHelper.Assert(current.Context.Count == 1);
             TestHelper.Assert(current.Context.ContainsKey("Intercepted") || current.Context.ContainsKey("Direct"));
-            return current.Adapter.CreateProxy(current.Identity, ITestIntfPrx.Factory).Clone(
+            return current.Server.CreateProxy(current.Identity, ITestIntfPrx.Factory).Clone(
                 encoding: current.Encoding);
         }
 
-        public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => current.Server.ShutdownAsync();
     }
 }

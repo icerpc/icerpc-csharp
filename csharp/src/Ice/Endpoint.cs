@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
-    /// <summary>An endpoint describes a server-side network sink for Ice requests: an object adapter listens on one or
-    /// more endpoints and a client establishes a connection to a given object adapter endpoint. Its properties are
+    /// <summary>An endpoint describes a server-side network sink for Ice requests: a server listens on one or
+    /// more endpoints and a client establishes a connection to a given server endpoint. Its properties are
     /// a network transport protocol such as TCP or Bluetooth RFCOMM, a host or address, a port number, and
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
@@ -159,7 +159,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Checks whether this endpoint and the given endpoint point to the same local peer. This is used for
-        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local adapter.
+        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local server.
         /// </summary>
         /// <param name="endpoint">The other endpoint.</param>
         /// <returns><c>True</c> if the other endpoint point to the same local peer, <c>False</c> otherwise.</returns>
@@ -187,16 +187,16 @@ namespace ZeroC.Ice
         /// from clients and creates a new connection for each client. This is typically used to implement a
         /// stream-based transport. Datagram transports don't implement this method but instead implement the
         /// <see cref="CreateDatagramServerConnection"/> method.</summary>
-        /// <param name="adapter">The object adapter associated to the acceptor.</param>
+        /// <param name="server">The server associated to the acceptor.</param>
         /// <returns>An acceptor for this endpoint.</returns>
-        public abstract IAcceptor Acceptor(ObjectAdapter adapter);
+        public abstract IAcceptor Acceptor(Server server);
 
         /// <summary>Creates a datagram server side connection for this endpoint to receive datagrams from clients.
         /// Unlike stream-based transports, datagram endpoints don't support an acceptor responsible for accepting new
         /// connections but implement this method to provide a connection responsible for receiving datagrams from
         /// clients.</summary>
         /// <returns>The datagram server side connection.</returns>
-        public abstract Connection CreateDatagramServerConnection(ObjectAdapter adapter);
+        public abstract Connection CreateDatagramServerConnection(Server server);
 
         /// <summary>Expands endpoint into separate endpoints for each IP address returned by the DNS resolver.
         /// Precondition: <see cref="HasDnsHost"/> is true.</summary>
@@ -204,7 +204,7 @@ namespace ZeroC.Ice
         protected internal virtual ValueTask<IEnumerable<Endpoint>> ExpandHostAsync(CancellationToken cancel) =>
             throw new NotImplementedException();
 
-        /// <summary>Returns the published endpoint for this object adapter endpoint.</summary>
+        /// <summary>Returns the published endpoint for this server endpoint.</summary>
         /// <param name="serverName">The server name, to be used as the host of the published endpoint when the
         /// endpoint's type supports DNS resolution of its hosts. Otherwise, <c>serverName</c> is not used.</param>
         /// <returns>The published endpoint.</returns>

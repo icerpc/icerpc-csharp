@@ -15,13 +15,13 @@ namespace ZeroC.Ice
         /// <summary>Parses a string that represents one or more endpoints.</summary>
         /// <param name="endpointString">The string to parse.</param>
         /// <param name="communicator">The communicator.</param>
-        /// <param name="oaEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
-        /// an object adapter. Otherwise, false.</param>
+        /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
+        /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(
             string endpointString,
             Communicator communicator,
-            bool oaEndpoints = true)
+            bool serverEndpoints = true)
         {
             int beg;
             int end = 0;
@@ -36,7 +36,7 @@ namespace ZeroC.Ice
                 {
                     if (endpoints.Count != 0)
                     {
-                        throw new FormatException("invalid empty object adapter endpoint");
+                        throw new FormatException("invalid empty server endpoint");
                     }
                     break;
                 }
@@ -86,11 +86,11 @@ namespace ZeroC.Ice
 
                 if (end == beg)
                 {
-                    throw new FormatException("invalid empty object adapter endpoint");
+                    throw new FormatException("invalid empty server endpoint");
                 }
 
                 string s = endpointString[beg..end];
-                endpoints.Add(CreateEndpoint(s, communicator, oaEndpoints));
+                endpoints.Add(CreateEndpoint(s, communicator, serverEndpoints));
                 ++end;
             }
 
@@ -446,14 +446,14 @@ namespace ZeroC.Ice
                 beg = StringUtil.FindFirstNotOf(s, delim, beg + 1);
                 if (beg == -1)
                 {
-                    throw new FormatException($"missing adapter id in `{s}'");
+                    throw new FormatException($"missing adapter ID in `{s}'");
                 }
 
                 string locationStr;
                 end = StringUtil.CheckQuote(s, beg);
                 if (end == -1)
                 {
-                    throw new FormatException($"mismatched quotes around adapter id in `{s}'");
+                    throw new FormatException($"mismatched quotes around adapter ID in `{s}'");
                 }
                 else if (end == 0)
                 {
@@ -492,14 +492,14 @@ namespace ZeroC.Ice
 
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
         /// <param name="endpointString">The string parsed by this method.</param>
-        /// <param name="communicator">The communicator of the enclosing proxy or object adapter.</param>
-        /// <param name="oaEndpoint">When true, endpointString represents an object adapter's endpoint configuration;
+        /// <param name="communicator">The communicator of the enclosing proxy or server.</param>
+        /// <param name="serverEndpoint">When true, endpointString represents a server's endpoint configuration;
         /// when false, endpointString represents a proxy endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
         /// <exception cref="NotSupportedException">Thrown when the transport specified in endpointString does not
         /// the ice1 protocol.</exception>
-        private static Endpoint CreateEndpoint(string endpointString, Communicator communicator, bool oaEndpoint)
+        private static Endpoint CreateEndpoint(string endpointString, Communicator communicator, bool serverEndpoint)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -549,7 +549,7 @@ namespace ZeroC.Ice
 
             if (communicator.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
             {
-                Endpoint endpoint = parser(transport, options, communicator, oaEndpoint, endpointString);
+                Endpoint endpoint = parser(transport, options, communicator, serverEndpoint, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(
@@ -560,7 +560,7 @@ namespace ZeroC.Ice
 
             // If the stringified endpoint is opaque, create an unknown endpoint, then see whether the type matches one
             // of the known endpoints.
-            if (!oaEndpoint && transportName == "opaque")
+            if (!serverEndpoint && transportName == "opaque")
             {
                 var opaqueEndpoint = OpaqueEndpoint.Parse(options, communicator, endpointString);
                 if (options.Count > 0)

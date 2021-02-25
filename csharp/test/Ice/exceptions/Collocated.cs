@@ -10,9 +10,9 @@ namespace ZeroC.Ice.Test.Exceptions
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("thrower", new Thrower());
+            server.Add("thrower", new Thrower());
 
             await AllTests.RunAsync(this);
         }

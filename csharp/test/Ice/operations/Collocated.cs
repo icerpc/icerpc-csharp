@@ -9,14 +9,14 @@ namespace ZeroC.Ice.Test.Operations
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new()
                                                         {
                                                             Endpoints = GetTestEndpoint(0)
                                                         });
 
-            var prx = adapter.Add("test", new MyDerivedClass(), IMyDerivedClassPrx.Factory);
-            // Don't activate OA to ensure colocation is used.
+            var prx = server.Add("test", new MyDerivedClass(), IMyDerivedClassPrx.Factory);
+            // Don't activate Server to ensure colocation is used.
 
             await AllTests.RunAsync(this);
         }

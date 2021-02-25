@@ -76,7 +76,7 @@ namespace ZeroC.Ice.Test.Operations
                 _opVoidThread = null;
             }
 
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
             return default;
         }
 
@@ -262,9 +262,9 @@ namespace ZeroC.Ice.Test.Operations
             Current current,
             CancellationToken cancel) =>
             new((
-                current.Adapter.CreateProxy(current.Identity, IMyClassPrx.Factory),
+                current.Server.CreateProxy(current.Identity, IMyClassPrx.Factory),
                 p1,
-                current.Adapter.CreateProxy("noSuchIdentity", IMyClassPrx.Factory)));
+                current.Server.CreateProxy("noSuchIdentity", IMyClassPrx.Factory)));
 
         public ValueTask<(MyEnum, MyEnum)> OpMyEnumAsync(MyEnum p1, Current current, CancellationToken cancel) =>
             new((MyEnum.enum3, p1));

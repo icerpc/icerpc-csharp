@@ -271,7 +271,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    await using var adapter = new ObjectAdapter(
+                    await using var server = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -279,8 +279,8 @@ namespace ZeroC.IceSSL.Test.Configuration
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
                             ServerName = host
                         });
-                    IServicePrx? prx = adapter.AddWithUUID(new Blobject(), IServicePrx.Factory);
-                    await adapter.ActivateAsync();
+                    IServicePrx? prx = server.AddWithUUID(new Blobject(), IServicePrx.Factory);
+                    await server.ActivateAsync();
                     prx = IServicePrx.Parse(prx.ToString()!, clientCommunicator);
                     await prx.IcePingAsync();
                 }
@@ -323,7 +323,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         });
 
                     bool ice1 = helper.Protocol == Protocol.Ice1;
-                    await using var adapter = new ObjectAdapter(
+                    await using var server = new Server(
                         serverCommunicator,
                         new()
                         {
@@ -331,8 +331,8 @@ namespace ZeroC.IceSSL.Test.Configuration
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
                             ServerName = host
                         });
-                    IServicePrx? prx = adapter.AddWithUUID(new Blobject(), IServicePrx.Factory);
-                    await adapter.ActivateAsync();
+                    IServicePrx? prx = server.AddWithUUID(new Blobject(), IServicePrx.Factory);
+                    await server.ActivateAsync();
                     prx = IServicePrx.Parse(prx.ToString()!, clientCommunicator);
                     await prx.IcePingAsync();
                     TestHelper.Assert(clientCertificateValidationCallbackCalled);

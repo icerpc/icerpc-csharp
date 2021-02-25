@@ -9,14 +9,14 @@ namespace ZeroC.Ice.Test.Facets
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             var d = new D();
-            adapter.Add("d", d);
-            adapter.Add("d#facetABCD", d);
-            adapter.Add("d#facetEF", new F());
-            adapter.Add("d#facetGH", new H());
+            server.Add("d", d);
+            server.Add("d#facetABCD", d);
+            server.Add("d#facetEF", new F());
+            server.Add("d#facetGH", new H());
 
             await AllTests.RunAsync(this);
         }

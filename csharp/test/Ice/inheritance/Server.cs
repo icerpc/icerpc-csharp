@@ -5,25 +5,25 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Inheritance
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            var initial = new InitialI(adapter);
-            adapter.Add("initial", initial);
-            await adapter.ActivateAsync();
+            var initial = new InitialI(server);
+            server.Add("initial", initial);
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

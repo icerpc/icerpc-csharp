@@ -7,7 +7,7 @@ using ZeroC.Test;
 
 namespace ZeroC.IceSSL.Test.Configuration
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -16,7 +16,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                 throw new ArgumentException("Usage: server testdir");
             }
 
-            await using var adapter = new ObjectAdapter(
+            await using var server = new Server(
                 Communicator,
                 new()
                 {
@@ -26,17 +26,17 @@ namespace ZeroC.IceSSL.Test.Configuration
                     ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
-            adapter.Add("factory", new ServerFactory(args[0] + "/../certs"));
-            await adapter.ActivateAsync();
+            server.Add("factory", new ServerFactory(args[0] + "/../certs"));
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Alias
     public sealed class Interface2 : IInterface2
     {
         public void Shutdown(ZeroC.Ice.Current current, CancellationToken cancel) =>
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
 
         public (bool R1, bool R2, bool? R3)
         OpBool(bool p1, bool p2, bool? p3, ZeroC.Ice.Current current, CancellationToken cancel)

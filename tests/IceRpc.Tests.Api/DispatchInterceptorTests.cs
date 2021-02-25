@@ -17,26 +17,26 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var adapter = new ObjectAdapter(communicator);
-            adapter.Use((request, current, next, cancel) => throw new ArgumentException());
+            await using var server = new Server(communicator);
+            server.Use((request, current, next, cancel) => throw new ArgumentException());
             var service = new TestService();
-            var prx = adapter.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
-            await adapter.ActivateAsync();
+            var prx = server.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
+            await server.ActivateAsync();
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
         }
 
-        /// <summary>Ensure that object adapter dispatch interceptors are called in the expected order.</summary>
+        /// <summary>Ensure that server dispatch interceptors are called in the expected order.</summary>
         [Test]
         public async Task DispatchInterceptor_CallOrder()
         {
             await using var communicator = new Communicator();
-            await using var adapter = new ObjectAdapter(communicator);
+            await using var server = new Server(communicator);
             var interceptorCalls = new List<string>();
 
             // Simple dispatch interceptor followed by regular dispatch interceptor
-            adapter.Use(async (request, current, next, cancel) =>
+            server.Use(async (request, current, next, cancel) =>
             {
                 interceptorCalls.Add("DispatchInterceptors -> 0");
                 var result = await next();
@@ -49,8 +49,8 @@ namespace IceRpc.Tests.Api
                 interceptorCalls.Add("DispatchInterceptors <- 1");
                 return result;
             });
-            var prx = adapter.AddWithUUID(new TestService(), IServicePrx.Factory);
-            await adapter.ActivateAsync();
+            var prx = server.AddWithUUID(new TestService(), IServicePrx.Factory);
+            await server.ActivateAsync();
 
             await prx.IcePingAsync();
 

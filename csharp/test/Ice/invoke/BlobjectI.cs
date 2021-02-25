@@ -47,7 +47,7 @@ namespace ZeroC.Ice.Test.Invoke
             }
             else if (current.Operation.Equals("shutdown"))
             {
-                current.Adapter.ShutdownAsync();
+                current.Server.ShutdownAsync();
                 return new ValueTask<OutgoingResponseFrame>(OutgoingResponseFrame.WithVoidReturnValue(current));
             }
             else if (current.Operation.Equals("ice_isA"))

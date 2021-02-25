@@ -33,24 +33,24 @@ try
         });
 
     await using var communicator = new Communicator(loggerFactory: loggerFactory);
-    await using var adapter = new ObjectAdapter(communicator,
-        new ObjectAdapterOptions()
+    await using var server = new Server(communicator,
+        new ServerOptions()
         {
             Name = "Hello",
             Endpoints = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints")
         });
 
-    // Destroy the adapter on Ctrl+C or Ctrl+Break
+    // Destroy the server on Ctrl+C or Ctrl+Break
     Console.CancelKeyPress += (sender, eventArgs) =>
     {
         eventArgs.Cancel = true;
-        _ = adapter.ShutdownAsync();
+        _ = server.ShutdownAsync();
     };
 
-    adapter.Add("hello", new Hello());
+    server.Add("hello", new Hello());
 
-    await adapter.ActivateAsync();
-    await adapter.ShutdownComplete;
+    await server.ActivateAsync();
+    await server.ShutdownComplete;
 }
 catch (Exception ex)
 {

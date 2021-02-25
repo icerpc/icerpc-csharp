@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.ACM
 {
     public class RemoteCommunicator : IAsyncRemoteCommunicator
     {
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerAsync(
             int idleTimeout,
             bool keepAlive,
             Current current,
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.ACM
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             string endpoint = TestHelper.GetTestEndpoint(properties: communicator.GetProperties(), ephemeral: true);
 
-            ObjectAdapter adapter = new ObjectAdapter(
+            Server server = new Server(
                 communicator,
                 new()
                 {
@@ -35,32 +35,32 @@ namespace ZeroC.Ice.Test.ACM
                     TaskScheduler = schedulerPair.ExclusiveScheduler
                 });
 
-            await adapter.ActivateAsync(cancel);
-            return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);
+            await server.ActivateAsync(cancel);
+            return current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory);
         }
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             return default;
         }
     }
 
-    public class RemoteObjectAdapter : IRemoteObjectAdapter
+    public class RemoteServer : IRemoteServer
     {
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _server;
         private readonly ITestIntfPrx _testIntf;
 
-        public RemoteObjectAdapter(ObjectAdapter adapter)
+        public RemoteServer(Server server)
         {
-            _adapter = adapter;
-            _testIntf = _adapter.Add("test", new TestIntf(), ITestIntfPrx.Factory);
+            _server = server;
+            _testIntf = _server.Add("test", new TestIntf(), ITestIntfPrx.Factory);
         }
 
         public ITestIntfPrx GetTestIntf(Current current, CancellationToken cancel) => _testIntf;
 
         public void Deactivate(Current current, CancellationToken cancel) =>
-            _adapter.ShutdownAsync();
+            _server.ShutdownAsync();
     }
 
     public class TestIntf : ITestIntf

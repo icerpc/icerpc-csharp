@@ -9,13 +9,13 @@ namespace ZeroC.Ice.Test.Discovery
 {
     public sealed class Controller : IAsyncController
     {
-        private readonly Dictionary<string, ObjectAdapter> _adapters = new();
+        private readonly Dictionary<string, Server> _servers = new();
 
         private readonly ILocatorRegistryPrx _locatorRegistry;
 
         public Controller(ILocatorRegistryPrx locatorRegistry) => _locatorRegistry = locatorRegistry;
 
-        public async ValueTask ActivateObjectAdapterAsync(
+        public async ValueTask ActivateServerAsync(
             string name,
             string adapterId,
             string replicaGroupId,
@@ -26,7 +26,7 @@ namespace ZeroC.Ice.Test.Discovery
             bool ice1 = TestHelper.GetTestProtocol(communicator.GetProperties()) == Protocol.Ice1;
             string transport = TestHelper.GetTestTransport(communicator.GetProperties());
 
-            var oa = new ObjectAdapter(
+            var oa = new Server(
                 communicator,
                 new()
                 {
@@ -37,14 +37,14 @@ namespace ZeroC.Ice.Test.Discovery
                     ReplicaGroupId = replicaGroupId,
                     ServerName = "localhost"
                 });
-            _adapters[name] = oa;
+            _servers[name] = oa;
             await oa.ActivateAsync(cancel);
         }
 
-        public async ValueTask DeactivateObjectAdapterAsync(string name, Current current, CancellationToken cancel)
+        public async ValueTask DeactivateServerAsync(string name, Current current, CancellationToken cancel)
         {
-            await _adapters[name].ShutdownAsync();
-            _adapters.Remove(name);
+            await _servers[name].ShutdownAsync();
+            _servers.Remove(name);
         }
 
         public ValueTask AddObjectAsync(
@@ -53,8 +53,8 @@ namespace ZeroC.Ice.Test.Discovery
             Current current,
             CancellationToken cancel)
         {
-            TestHelper.Assert(_adapters.ContainsKey(oaName));
-            _adapters[oaName].Add(identityAndFacet, new TestIntf());
+            TestHelper.Assert(_servers.ContainsKey(oaName));
+            _servers[oaName].Add(identityAndFacet, new TestIntf());
             return default;
         }
 
@@ -64,20 +64,20 @@ namespace ZeroC.Ice.Test.Discovery
             Current current,
             CancellationToken cancel)
         {
-            TestHelper.Assert(_adapters.ContainsKey(oaName));
-            _adapters[oaName].Remove(identityAndFacet);
+            TestHelper.Assert(_servers.ContainsKey(oaName));
+            _servers[oaName].Remove(identityAndFacet);
             return default;
         }
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
             return default;
         }
     }
 
     public sealed class TestIntf : ITestIntf
     {
-        public string GetAdapterId(Current current, CancellationToken cancel) => current.Adapter.AdapterId;
+        public string GetAdapterId(Current current, CancellationToken cancel) => current.Server.AdapterId;
     }
 }

@@ -9,7 +9,7 @@ namespace ZeroC.Ice.Test.Location
 {
     public class ServerLocatorRegistry : ITestLocatorRegistry
     {
-        private readonly IDictionary<string, IServicePrx> _adapters = new ConcurrentDictionary<string, IServicePrx>();
+        private readonly IDictionary<string, IServicePrx> _servers = new ConcurrentDictionary<string, IServicePrx>();
         private readonly IDictionary<Identity, IServicePrx> _objects = new ConcurrentDictionary<Identity, IServicePrx>();
 
         public void AddObject(IServicePrx obj, Current current, CancellationToken cancel) => AddObject(obj);
@@ -30,18 +30,18 @@ namespace ZeroC.Ice.Test.Location
         {
             if (proxy != null)
             {
-                _adapters[adapterId] = proxy;
+                _servers[adapterId] = proxy;
                 if (replicaGroupId.Length > 0)
                 {
-                    _adapters[replicaGroupId] = proxy;
+                    _servers[replicaGroupId] = proxy;
                 }
             }
             else
             {
-                _adapters.Remove(adapterId);
+                _servers.Remove(adapterId);
                 if (replicaGroupId.Length > 0)
                 {
-                    _adapters.Remove(replicaGroupId);
+                    _servers.Remove(replicaGroupId);
                 }
             }
         }
@@ -55,8 +55,8 @@ namespace ZeroC.Ice.Test.Location
             // Ignored
         }
 
-        internal IServicePrx? GetAdapter(string adapter) =>
-            _adapters.TryGetValue(adapter, out IServicePrx? proxy) ? proxy : null;
+        internal IServicePrx? GetAdapter(string server) =>
+            _servers.TryGetValue(server, out IServicePrx? proxy) ? proxy : null;
 
         internal IServicePrx? GetObject(Identity id) =>
             _objects.TryGetValue(id, out IServicePrx? obj) ? obj : null;

@@ -10,11 +10,11 @@ namespace ZeroC.Ice.Test.Proxy
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new MyDerivedClass());
-            // Don't activate OA to ensure collocation is used.
+            server.Add("test", new MyDerivedClass());
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);
         }

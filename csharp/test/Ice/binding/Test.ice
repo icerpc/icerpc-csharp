@@ -14,7 +14,7 @@ interface TestIntf
     string getAdapterName();
 }
 
-interface RemoteObjectAdapter
+interface RemoteServer
 {
     TestIntf getTestIntf();
 
@@ -23,10 +23,10 @@ interface RemoteObjectAdapter
 
 interface RemoteCommunicator
 {
-    RemoteObjectAdapter createObjectAdapter(string name, string transport);
-    RemoteObjectAdapter createObjectAdapterWithEndpoints(string name, string endpoints);
+    RemoteServer createServer(string name, string transport);
+    RemoteServer createServerWithEndpoints(string name, string endpoints);
 
-    void deactivateObjectAdapter(RemoteObjectAdapter adapter);
+    void deactivateServer(RemoteServer server);
 
     void shutdown();
 }

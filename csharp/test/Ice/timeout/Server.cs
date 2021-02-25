@@ -9,20 +9,20 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Timeout
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new()
                                                         {
                                                             Endpoints = GetTestEndpoint(0),
                                                             TaskScheduler = schedulerPair.ExclusiveScheduler
                                                         });
 
-            adapter.Add("timeout", new Timeout());
-            adapter.Use(
+            server.Add("timeout", new Timeout());
+            server.Use(
                 (request, current, next, cancel) =>
                 {
                     if (current.Operation == "checkDeadline")
@@ -35,9 +35,9 @@ namespace ZeroC.Ice.Test.Timeout
                     return next();
                 });
 
-            await adapter.ActivateAsync();
+            await server.ActivateAsync();
 
-            await using var controllerAdapter = new ObjectAdapter(
+            await using var controllerAdapter = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1) });
             controllerAdapter.Add("controller", new Controller(schedulerPair.ExclusiveScheduler));
@@ -59,7 +59,7 @@ namespace ZeroC.Ice.Test.Timeout
             properties["Ice.TCP.RcvSize"] = "50K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 
@@ -82,6 +82,6 @@ namespace ZeroC.Ice.Test.Timeout
         public void ResumeAdapter(Current current, CancellationToken cancel) => _ = _semaphore.Release();
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
     }
 }

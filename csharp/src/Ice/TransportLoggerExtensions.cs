@@ -23,7 +23,7 @@ namespace ZeroC.Ice
         private const int HttpUpgradeRequestFailed = 11;
         private const int HttpUpgradeRequestSucceed = 12;
         private const int MaximumDatagramSizeExceeded = 13;
-        private const int ObjectAdapterPublishedEndpoints = 14;
+        private const int ServerPublishedEndpoints = 14;
         private const int PingEventHandlerException = 15;
         private const int ReceiveBufferSizeAdjusted = 16;
         private const int ReceivedData = 17;
@@ -125,11 +125,11 @@ namespace ZeroC.Ice
                 new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
                 "received datagram with {Bytes} bytes");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _objectAdapterPublishedEndpoints =
+        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedEndpoints =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
                 LogLevel.Information,
-                new EventId(ObjectAdapterPublishedEndpoints, nameof(ObjectAdapterPublishedEndpoints)),
-                "published endpoints for object adapter {Name}: {Endpoints}");
+                new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
+                "published endpoints for server {Name}: {Endpoints}");
 
         private static readonly Action<ILogger, Transport, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
             LoggerMessage.Define<Transport, WSSocket.OpCode, int>(
@@ -384,11 +384,11 @@ namespace ZeroC.Ice
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
 
-        internal static void LogObjectAdapterPublishedEndpoints(
+        internal static void LogServerPublishedEndpoints(
             this ILogger logger,
             string name,
             IReadOnlyList<Endpoint> endpoints) =>
-            _objectAdapterPublishedEndpoints(logger, name, endpoints, null!);
+            _serverPublishedEndpoints(logger, name, endpoints, null!);
 
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);

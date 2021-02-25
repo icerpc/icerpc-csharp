@@ -491,8 +491,8 @@ namespace ZeroC.Ice
 
                     sb.Append(" @ ");
 
-                    // If the encoded adapter id string contains characters which the reference parser uses as
-                    // separators, then we enclose the adapter id string in quotes.
+                    // If the encoded adapter ID string contains characters which the reference parser uses as
+                    // separators, then we enclose the adapter ID string in quotes.
                     string a = StringUtil.EscapeString(Location[0], Communicator.ToStringMode);
                     if (StringUtil.FindFirstOf(a, " :@") != -1)
                     {
@@ -1194,7 +1194,7 @@ namespace ZeroC.Ice
         {
             Debug.Assert(!IsFixed);
 
-            if (ObjectAdapterRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            if (LocalServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
             }

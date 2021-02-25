@@ -16,9 +16,9 @@ namespace ZeroC.Ice.Test.Exceptions
             bool ice1 = helper.Protocol == Protocol.Ice1;
             TextWriter output = helper.Output;
             {
-                output.Write("testing object adapter registration exceptions... ");
+                output.Write("testing server registration exceptions... ");
 
-                await using var first = new ObjectAdapter(
+                await using var first = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     // test that foo does not resolve
                     var props = communicator.GetProperties();
                     props["Test.Host"] = "foo";
-                    await using var badOa = new ObjectAdapter(
+                    await using var badOa = new Server(
                         communicator,
                         new() { Endpoints = TestHelper.GetTestEndpoint(props, ephemeral: true) });
 
@@ -42,14 +42,14 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 output.Write("testing servant registration exceptions... ");
-                await using ObjectAdapter adapter = new ObjectAdapter(
+                await using Server server = new Server(
                     communicator,
                     new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();
-                adapter.Add("x", obj);
+                server.Add("x", obj);
                 try
                 {
-                    adapter.Add("x", obj);
+                    server.Add("x", obj);
                     TestHelper.Assert(false);
                 }
                 catch (ArgumentException)
@@ -58,15 +58,15 @@ namespace ZeroC.Ice.Test.Exceptions
 
                 try
                 {
-                    adapter.Add("", obj);
+                    server.Add("", obj);
                     TestHelper.Assert(false);
                 }
                 catch (FormatException)
                 {
                 }
 
-                adapter.Remove("x");
-                adapter.Remove("x"); // as of Ice 4.0, Remove succeeds with multiple removals
+                server.Remove("x");
+                server.Remove("x"); // as of Ice 4.0, Remove succeeds with multiple removals
                 output.WriteLine("ok");
             }
 

@@ -9,9 +9,9 @@ namespace ZeroC.Ice.Test.Inheritance
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("initial", new InitialI(adapter));
+            server.Add("initial", new InitialI(server));
 
             await AllTests.RunAsync(this);
         }

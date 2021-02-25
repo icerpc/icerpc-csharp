@@ -45,7 +45,7 @@ namespace ZeroC.Ice.Test.Operations
 
         public void Shutdown(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync();
+            _ = current.Server.ShutdownAsync();
 
             foreach (Stream stream in _streams)
             {
@@ -235,9 +235,9 @@ namespace ZeroC.Ice.Test.Operations
             IMyClassPrx? p1,
             Current current,
             CancellationToken cancel) =>
-            (current.Adapter.CreateProxy(current.Identity, IMyClassPrx.Factory),
+            (current.Server.CreateProxy(current.Identity, IMyClassPrx.Factory),
              p1,
-             current.Adapter.CreateProxy("noSuchIdentity", IMyClassPrx.Factory));
+             current.Server.CreateProxy("noSuchIdentity", IMyClassPrx.Factory));
 
         public (MyEnum, MyEnum) OpMyEnum(MyEnum p1, Current current, CancellationToken cancel) => (MyEnum.enum3, p1);
 

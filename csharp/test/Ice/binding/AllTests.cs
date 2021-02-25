@@ -10,11 +10,11 @@ namespace ZeroC.Ice.Test.Binding
 {
     public static class AllTests
     {
-        private static ITestIntfPrx CreateTestIntfPrx(List<IRemoteObjectAdapterPrx> adapters)
+        private static ITestIntfPrx CreateTestIntfPrx(List<IRemoteServerPrx> servers)
         {
             var endpoints = new List<Endpoint>();
             ITestIntfPrx? obj = null;
-            IEnumerator<IRemoteObjectAdapterPrx> p = adapters.GetEnumerator();
+            IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
                 obj = p.Current.GetTestIntf();
@@ -24,12 +24,12 @@ namespace ZeroC.Ice.Test.Binding
             return obj.Clone(endpoints: endpoints, oneway: false);
         }
 
-        private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteObjectAdapterPrx> adapters)
+        private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteServerPrx> servers)
         {
-            IEnumerator<IRemoteObjectAdapterPrx> p = adapters.GetEnumerator();
+            IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
-                communicator.DeactivateObjectAdapter(p.Current);
+                communicator.DeactivateServer(p.Current);
             }
         }
 
@@ -48,19 +48,19 @@ namespace ZeroC.Ice.Test.Binding
             output.Flush();
             {
                 // Use "default" with ice1 + tcp here to ensure that it still works
-                IRemoteObjectAdapterPrx? adapter = await com.CreateObjectAdapterAsync(
+                IRemoteServerPrx? server = await com.CreateServerAsync(
                     "Adapter",
                     (ice1 && testTransport == "tcp") ? "default" : testTransport);
-                TestHelper.Assert(adapter != null);
-                ITestIntfPrx? test1 = adapter.GetTestIntf();
-                ITestIntfPrx? test2 = adapter.GetTestIntf();
+                TestHelper.Assert(server != null);
+                ITestIntfPrx? test1 = server.GetTestIntf();
+                ITestIntfPrx? test2 = server.GetTestIntf();
                 TestHelper.Assert(test1 != null && test2 != null);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
 
                 await test1.IcePingAsync();
                 await test2.IcePingAsync();
 
-                com.DeactivateObjectAdapter(adapter);
+                com.DeactivateServer(server);
 
                 var test3 = test1.Clone(ITestIntfPrx.Factory);
                 TestHelper.Assert(test3.GetCachedConnection() == test1.GetCachedConnection());
@@ -80,33 +80,33 @@ namespace ZeroC.Ice.Test.Binding
             output.Write("testing binding with multiple endpoints... ");
             output.Flush();
             {
-                var adapters = new List<IRemoteObjectAdapterPrx>
+                var servers = new List<IRemoteServerPrx>
                 {
-                    await com.CreateObjectAdapterAsync("Adapter31", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter32", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter33", testTransport)!
+                    await com.CreateServerAsync("Adapter31", testTransport)!,
+                    await com.CreateServerAsync("Adapter32", testTransport)!,
+                    await com.CreateServerAsync("Adapter33", testTransport)!
                 };
 
-                ITestIntfPrx obj = CreateTestIntfPrx(adapters);
+                ITestIntfPrx obj = CreateTestIntfPrx(servers);
 
-                // Ensure that endpoints are tried in order by deactivating the adapters one after the other.
+                // Ensure that endpoints are tried in order by deactivating the servers one after the other.
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter31");
                 }
-                com.DeactivateObjectAdapter(adapters[0]);
+                com.DeactivateServer(servers[0]);
 
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter32");
                 }
-                com.DeactivateObjectAdapter(adapters[1]);
+                com.DeactivateServer(servers[1]);
 
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter33");
                 }
-                com.DeactivateObjectAdapter(adapters[2]);
+                com.DeactivateServer(servers[2]);
 
                 try
                 {
@@ -115,18 +115,18 @@ namespace ZeroC.Ice.Test.Binding
                 catch (ConnectFailedException)
                 {
                 }
-                adapters.Clear();
+                servers.Clear();
             }
             output.WriteLine("ok");
 
             output.Write("testing per request binding with single endpoint... ");
             output.Flush();
             {
-                IRemoteObjectAdapterPrx? adapter = await com.CreateObjectAdapterAsync("Adapter41", testTransport);
-                TestHelper.Assert(adapter != null);
-                ITestIntfPrx test1 = adapter.GetTestIntf()!.Clone(cacheConnection: false,
+                IRemoteServerPrx? server = await com.CreateServerAsync("Adapter41", testTransport);
+                TestHelper.Assert(server != null);
+                ITestIntfPrx test1 = server.GetTestIntf()!.Clone(cacheConnection: false,
                                                                   preferExistingConnection: false);
-                ITestIntfPrx test2 = adapter.GetTestIntf()!.Clone(cacheConnection: false,
+                ITestIntfPrx test2 = server.GetTestIntf()!.Clone(cacheConnection: false,
                                                                   preferExistingConnection: false);
                 TestHelper.Assert(!test1.CacheConnection && !test1.PreferExistingConnection);
                 TestHelper.Assert(!test2.CacheConnection && !test2.PreferExistingConnection);
@@ -134,7 +134,7 @@ namespace ZeroC.Ice.Test.Binding
 
                 await test1.IcePingAsync();
 
-                com.DeactivateObjectAdapter(adapter);
+                com.DeactivateServer(server);
 
                 var test3 = test1.Clone(ITestIntfPrx.Factory);
                 try
@@ -151,35 +151,35 @@ namespace ZeroC.Ice.Test.Binding
             output.Write("testing per request binding with multiple endpoints... ");
             output.Flush();
             {
-                var adapters = new List<IRemoteObjectAdapterPrx>
+                var servers = new List<IRemoteServerPrx>
                 {
-                    await com.CreateObjectAdapterAsync("Adapter61", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter62", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter63", testTransport)!
+                    await com.CreateServerAsync("Adapter61", testTransport)!,
+                    await com.CreateServerAsync("Adapter62", testTransport)!,
+                    await com.CreateServerAsync("Adapter63", testTransport)!
                 };
 
-                ITestIntfPrx obj = CreateTestIntfPrx(adapters);
+                ITestIntfPrx obj = CreateTestIntfPrx(servers);
                 obj = obj.Clone(cacheConnection: false, preferExistingConnection: false);
                 TestHelper.Assert(!obj.CacheConnection && !obj.PreferExistingConnection);
 
-                // Ensure that endpoints are tried in order by deactivating the adapters one after the other.
+                // Ensure that endpoints are tried in order by deactivating the servers one after the other.
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter61");
                 }
-                com.DeactivateObjectAdapter(adapters[0]);
+                com.DeactivateServer(servers[0]);
 
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter62");
                 }
-                com.DeactivateObjectAdapter(adapters[1]);
+                com.DeactivateServer(servers[1]);
 
                 for (int i = 0; i < 3; i++)
                 {
                     TestHelper.Assert(obj.GetAdapterName() == "Adapter63");
                 }
-                com.DeactivateObjectAdapter(adapters[2]);
+                com.DeactivateServer(servers[2]);
 
                 try
                 {
@@ -190,15 +190,15 @@ namespace ZeroC.Ice.Test.Binding
                 }
 
                 IReadOnlyList<Endpoint> endpoints = obj.Endpoints;
-                adapters.Clear();
+                servers.Clear();
 
-                // TODO: ice1-only for now, because we send the client endpoints for use in OA configuration.
+                // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                 if (helper.Protocol == Protocol.Ice1)
                 {
-                    // Now, re-activate the adapters with the same endpoints in the opposite order.
+                    // Now, re-activate the servers with the same endpoints in the opposite order.
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    adapters.Add(com.CreateObjectAdapterWithEndpoints("Adapter66", endpoints[2].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter66", endpoints[2].ToString()));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter66");
@@ -206,7 +206,7 @@ namespace ZeroC.Ice.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    adapters.Add(com.CreateObjectAdapterWithEndpoints("Adapter65", endpoints[1].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter65", endpoints[1].ToString()));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter65");
@@ -214,13 +214,13 @@ namespace ZeroC.Ice.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    adapters.Add(com.CreateObjectAdapterWithEndpoints("Adapter64", endpoints[0].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoints[0].ToString()));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter64");
                     }
 
-                    Deactivate(com, adapters);
+                    Deactivate(com, servers);
                 }
             }
             output.WriteLine("ok");
@@ -228,59 +228,59 @@ namespace ZeroC.Ice.Test.Binding
             output.Write("testing connection reuse with multiple endpoints... ");
             output.Flush();
             {
-                var adapters1 = new List<IRemoteObjectAdapterPrx>
+                var servers1 = new List<IRemoteServerPrx>
                 {
-                    await com.CreateObjectAdapterAsync("Adapter81", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter82", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter83", testTransport)!
+                    await com.CreateServerAsync("Adapter81", testTransport)!,
+                    await com.CreateServerAsync("Adapter82", testTransport)!,
+                    await com.CreateServerAsync("Adapter83", testTransport)!
                 };
 
-                var adapters2 = new List<IRemoteObjectAdapterPrx>
+                var servers2 = new List<IRemoteServerPrx>
                 {
-                    adapters1[0],
-                    await com.CreateObjectAdapterAsync("Adapter84", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter85", testTransport)!
+                    servers1[0],
+                    await com.CreateServerAsync("Adapter84", testTransport)!,
+                    await com.CreateServerAsync("Adapter85", testTransport)!
                 };
 
-                ITestIntfPrx obj1 = CreateTestIntfPrx(adapters1);
-                ITestIntfPrx obj2 = CreateTestIntfPrx(adapters2);
+                ITestIntfPrx obj1 = CreateTestIntfPrx(servers1);
+                ITestIntfPrx obj2 = CreateTestIntfPrx(servers2);
 
-                com.DeactivateObjectAdapter(adapters1[0]);
+                com.DeactivateServer(servers1[0]);
 
                 Task<string> t1 = obj1.GetAdapterNameAsync();
                 Task<string> t2 = obj2.GetAdapterNameAsync();
                 TestHelper.Assert(t1.Result == "Adapter82");
                 TestHelper.Assert(t2.Result == "Adapter84");
 
-                Deactivate(com, adapters1);
-                Deactivate(com, adapters2);
+                Deactivate(com, servers1);
+                Deactivate(com, servers2);
             }
 
             {
-                var adapters1 = new List<IRemoteObjectAdapterPrx>
+                var servers1 = new List<IRemoteServerPrx>
                 {
-                    await com.CreateObjectAdapterAsync("Adapter91", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter92", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter93", testTransport)!
+                    await com.CreateServerAsync("Adapter91", testTransport)!,
+                    await com.CreateServerAsync("Adapter92", testTransport)!,
+                    await com.CreateServerAsync("Adapter93", testTransport)!
                 };
 
-                var adapters2 = new List<IRemoteObjectAdapterPrx>
+                var servers2 = new List<IRemoteServerPrx>
                 {
-                    adapters1[0],
-                    await com.CreateObjectAdapterAsync("Adapter94", testTransport)!,
-                    await com.CreateObjectAdapterAsync("Adapter95", testTransport)!
+                    servers1[0],
+                    await com.CreateServerAsync("Adapter94", testTransport)!,
+                    await com.CreateServerAsync("Adapter95", testTransport)!
                 };
 
-                ITestIntfPrx obj1 = CreateTestIntfPrx(adapters1);
-                ITestIntfPrx obj2 = CreateTestIntfPrx(adapters2);
+                ITestIntfPrx obj1 = CreateTestIntfPrx(servers1);
+                ITestIntfPrx obj2 = CreateTestIntfPrx(servers2);
 
                 Task<string> t1 = obj1.GetAdapterNameAsync();
                 Task<string> t2 = obj2.GetAdapterNameAsync();
                 TestHelper.Assert(t1.Result == "Adapter91");
                 TestHelper.Assert(t2.Result == "Adapter91");
 
-                Deactivate(com, adapters1);
-                Deactivate(com, adapters2);
+                Deactivate(com, servers1);
+                Deactivate(com, servers2);
             }
             output.WriteLine("ok");
 
@@ -289,17 +289,17 @@ namespace ZeroC.Ice.Test.Binding
                 output.Write("testing endpoint mode filtering... ");
                 output.Flush();
                 {
-                    var adapters = new List<IRemoteObjectAdapterPrx>
+                    var servers = new List<IRemoteServerPrx>
                     {
-                        await com.CreateObjectAdapterAsync("Adapter72", "udp"),
-                        await com.CreateObjectAdapterAsync("Adapter71", testTransport),
+                        await com.CreateServerAsync("Adapter72", "udp"),
+                        await com.CreateServerAsync("Adapter71", testTransport),
                     };
 
-                    ITestIntfPrx obj = CreateTestIntfPrx(adapters);
+                    ITestIntfPrx obj = CreateTestIntfPrx(servers);
                     TestHelper.Assert(obj.GetAdapterName().Equals("Adapter71"));
 
-                    adapters.RemoveAt(adapters.Count - 1);
-                    ITestIntfPrx testUDP = CreateTestIntfPrx(adapters).Clone(oneway: true);
+                    servers.RemoveAt(servers.Count - 1);
+                    ITestIntfPrx testUDP = CreateTestIntfPrx(servers).Clone(oneway: true);
 
                     // test that datagram proxies fail if PreferNonSecure is false
                     testUDP = testUDP.Clone(preferNonSecure: NonSecure.Never);
@@ -331,13 +331,13 @@ namespace ZeroC.Ice.Test.Binding
                 output.Write("testing secure and non-secure endpoints... ");
                 output.Flush();
                 {
-                    var adapters = new List<IRemoteObjectAdapterPrx>
+                    var servers = new List<IRemoteServerPrx>
                     {
-                        await com.CreateObjectAdapterAsync("Adapter81", "ssl")!,
-                        await com.CreateObjectAdapterAsync("Adapter82", "tcp")!
+                        await com.CreateServerAsync("Adapter81", "ssl")!,
+                        await com.CreateServerAsync("Adapter82", "tcp")!
                     };
 
-                    ITestIntfPrx obj = CreateTestIntfPrx(adapters);
+                    ITestIntfPrx obj = CreateTestIntfPrx(servers);
 
                     for (int i = 0; i < 5; i++)
                     {
@@ -351,7 +351,7 @@ namespace ZeroC.Ice.Test.Binding
                     TestHelper.Assert(await obj.GetConnectionAsync() != await testSecure.GetConnectionAsync());
                     TestHelper.Assert(await obj.GetConnectionAsync() == await testNonSecure.GetConnectionAsync());
 
-                    com.DeactivateObjectAdapter(adapters[1]);
+                    com.DeactivateServer(servers[1]);
 
                     for (int i = 0; i < 5; i++)
                     {
@@ -359,10 +359,10 @@ namespace ZeroC.Ice.Test.Binding
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    // TODO: ice1-only for now, because we send the client endpoints for use in OA configuration.
+                    // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                     if (helper.Protocol == Protocol.Ice1)
                     {
-                        com.CreateObjectAdapterWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp OA.
+                        com.CreateServerWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp Server.
 
                         for (int i = 0; i < 5; i++)
                         {
@@ -371,7 +371,7 @@ namespace ZeroC.Ice.Test.Binding
                         }
                     }
 
-                    com.DeactivateObjectAdapter(adapters[0]);
+                    com.DeactivateServer(servers[0]);
 
                     try
                     {
@@ -382,7 +382,7 @@ namespace ZeroC.Ice.Test.Binding
                     {
                         // expected
                     }
-                    Deactivate(com, adapters);
+                    Deactivate(com, servers);
                 }
                 output.WriteLine("ok");
             }
@@ -410,49 +410,49 @@ namespace ZeroC.Ice.Test.Binding
                         2,
                         "tcp");
 
-                var anyipv4 = new ObjectAdapterOptions
+                var anyipv4 = new ServerOptions
                 {
                     Endpoints = getEndpoint("0.0.0.0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
-                var anyipv6 = new ObjectAdapterOptions
+                var anyipv6 = new ServerOptions
                 {
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("::1")
                 };
 
-                var anyipv46 = new ObjectAdapterOptions
+                var anyipv46 = new ServerOptions
                 {
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
-                var anylocalhost = new ObjectAdapterOptions
+                var anylocalhost = new ServerOptions
                 {
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("localhost")
                 };
 
-                var localipv4 = new ObjectAdapterOptions
+                var localipv4 = new ServerOptions
                 {
                     Endpoints = getEndpoint("127.0.0.1"),
                     ServerName = "127.0.0.1"
                 };
 
-                var localipv6 = new ObjectAdapterOptions
+                var localipv6 = new ServerOptions
                 {
                     Endpoints = getEndpoint("::1"),
                     ServerName = "::1"
                 };
 
-                var localhost = new ObjectAdapterOptions
+                var localhost = new ServerOptions
                 {
                     Endpoints = getEndpoint("localhost"),
                     ServerName = "localhost"
                 };
 
-                var serverOptions = new ObjectAdapterOptions[]
+                var serverOptions = new ServerOptions[]
                 {
                     anyipv4,
                     anyipv6,
@@ -463,10 +463,10 @@ namespace ZeroC.Ice.Test.Binding
                     localhost
                 };
 
-                foreach (ObjectAdapterOptions p in serverOptions)
+                foreach (ServerOptions p in serverOptions)
                 {
                     await using var serverCommunicator = new Communicator();
-                    await using var oa = new ObjectAdapter(serverCommunicator, p);
+                    await using var oa = new Server(serverCommunicator, p);
                     await oa.ActivateAsync();
 
                     IServicePrx prx = oa.CreateProxy("dummy", IServicePrx.Factory);
@@ -479,7 +479,7 @@ namespace ZeroC.Ice.Test.Binding
                     }
                     catch (ObjectNotExistException)
                     {
-                        // Expected. OA is reachable but there's no "dummy" object
+                        // Expected. Server is reachable but there's no "dummy" object
                     }
                 }
 
@@ -487,17 +487,17 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0");
-                    await using var oa = new ObjectAdapter(
+                    await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
 
                     try
                     {
-                        await using var ipv4OA = new ObjectAdapter(
+                        await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = getEndpoint("0.0.0.0") });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -521,7 +521,7 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0") + (ice1 ? " --ipv6Only" : "?ipv6-only=true");
-                    await using var oa = new ObjectAdapter(
+                    await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
@@ -529,10 +529,10 @@ namespace ZeroC.Ice.Test.Binding
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
-                        await using var ipv4OA = new ObjectAdapter(
+                        await using var ipv4Server = new Server(
                                 serverCommunicator,
                                 new() { Endpoints = ipv4Endpoint });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                     }
 
                     try
@@ -552,7 +552,7 @@ namespace ZeroC.Ice.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
-                    await using var oa = new ObjectAdapter(
+                    await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
                     await oa.ActivateAsync();
@@ -560,10 +560,10 @@ namespace ZeroC.Ice.Test.Binding
                     try
                     {
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
-                        await using var ipv4OA = new ObjectAdapter(
+                        await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = ipv4Endpoint });
-                        await ipv4OA.ActivateAsync();
+                        await ipv4Server.ActivateAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

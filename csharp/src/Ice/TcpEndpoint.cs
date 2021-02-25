@@ -37,13 +37,13 @@ namespace ZeroC.Ice
         private int _hashCode;
 
         // TODO: should not be public
-        public override IAcceptor Acceptor(ObjectAdapter adapter)
+        public override IAcceptor Acceptor(Server server)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
-            return new TcpAcceptor(this, adapter);
+            return new TcpAcceptor(this, server);
         }
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter) =>
+        public override Connection CreateDatagramServerConnection(Server server) =>
             throw new InvalidOperationException();
 
         public override bool Equals(Endpoint? other)
@@ -171,17 +171,17 @@ namespace ZeroC.Ice
             Transport transport,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            (string host, ushort port) = ParseHostAndPort(options, oaEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseTimeout(options, endpointString),
                                    ParseCompress(options, endpointString),
                                    options,
                                    communicator,
-                                   oaEndpoint,
+                                   serverEndpoint,
                                    endpointString);
         }
 
@@ -191,13 +191,13 @@ namespace ZeroC.Ice
             ushort port,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
+            bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    options,
                                    communicator,
-                                   oaEndpoint);
+                                   serverEndpoint);
         }
 
         protected internal override Connection CreateConnection(
@@ -211,14 +211,14 @@ namespace ZeroC.Ice
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),
                 _ => new SlicSocket(socket, this, null)
             };
-            return CreateConnection(multiStreamSocket, label, adapter: null);
+            return CreateConnection(multiStreamSocket, label, server: null);
         }
 
         protected internal virtual Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            ObjectAdapter? adapter) =>
-            new TcpConnection(this, socket, label, adapter);
+            Server? server) =>
+            new TcpConnection(this, socket, label, server);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
@@ -277,9 +277,9 @@ namespace ZeroC.Ice
             bool compress,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, oaEndpoint, endpointString)
+            : base(data, options, communicator, serverEndpoint, endpointString)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
@@ -290,8 +290,8 @@ namespace ZeroC.Ice
             EndpointData data,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
-            : base(data, options, communicator, oaEndpoint)
+            bool serverEndpoint)
+            : base(data, options, communicator, serverEndpoint)
         {
         }
 

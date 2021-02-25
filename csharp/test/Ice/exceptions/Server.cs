@@ -6,35 +6,35 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Exceptions
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            ObjectAdapter adapter2 = new ObjectAdapter(Communicator,
+            Server server2 = new Server(Communicator,
                 new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
 
-            ObjectAdapter adapter3 = new ObjectAdapter(Communicator,
+            Server server3 = new Server(Communicator,
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new Thrower();
-            ZeroC.Ice.IServicePrx prx = adapter.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
-            adapter2.Add("thrower", obj);
-            adapter3.Add("thrower", obj);
-            await adapter.ActivateAsync();
-            await adapter2.ActivateAsync();
-            await adapter3.ActivateAsync();
+            ZeroC.Ice.IServicePrx prx = server.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
+            server2.Add("thrower", obj);
+            server3.Add("thrower", obj);
+            await server.ActivateAsync();
+            await server2.ActivateAsync();
+            await server3.ActivateAsync();
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
-            await using var forwarderAdapter = new ObjectAdapter(
+            await using var forwarderAdapter = new Server(
                 communicator2,
                 new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
             await forwarderAdapter.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -45,7 +45,7 @@ namespace ZeroC.Ice.Test.Exceptions
             properties["Ice.IncomingFrameMaxSize"] = "10K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

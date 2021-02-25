@@ -5,17 +5,17 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
-    public static class ObjectAdapterUseExtensions
+    public static class ServerUseExtensions
     {
         /// <summary>Adds a simple dispatch interceptor to the request dispatch pipeline. This is an adapter for <see
-        /// cref="ObjectAdapter.Use"/>.</summary>
-        /// <param name="adapter">The object adapter.</param>
+        /// cref="Server.Use"/>.</summary>
+        /// <param name="server">The server.</param>
         /// <param name="dispatchInterceptor">A simple dispatch interceptor.</param>
-        /// <returns>The <c>adapter</c> argument.</returns>
-        public static ObjectAdapter Use(
-            this ObjectAdapter adapter,
+        /// <returns>The <c>server</c> argument.</returns>
+        public static Server Use(
+            this Server server,
             Func<IncomingRequestFrame, Current, Func<ValueTask<OutgoingResponseFrame>>, CancellationToken, ValueTask<OutgoingResponseFrame>> dispatchInterceptor) =>
-            adapter.Use(
+            server.Use(
                 next => (request, current, cancel) =>
                 {
                     return dispatchInterceptor(request, current, SimpleNext, cancel);

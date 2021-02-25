@@ -11,10 +11,10 @@ namespace ZeroC.Ice.Test.Retry
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("retry", new Retry());
+            server.Add("retry", new Retry());
 
             await AllTests.RunAsync(this, true);
         }

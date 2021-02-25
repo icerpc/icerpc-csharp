@@ -12,57 +12,57 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
-    /// <summary>The object adapter provides an up-call interface from the Ice run time to the implementation of Ice
-    /// objects. The object adapter is responsible for receiving requests from endpoints, and for mapping between
+    /// <summary>The server provides an up-call interface from the Ice run time to the implementation of Ice
+    /// objects. The server is responsible for receiving requests from endpoints, and for mapping between
     /// servants, identities, and proxies.</summary>
-    public sealed class ObjectAdapter : IAsyncDisposable
+    public sealed class Server : IAsyncDisposable
     {
-        /// <summary>Indicates under what circumstances this object adapter accepts non-secure incoming connections.
+        /// <summary>Indicates under what circumstances this server accepts non-secure incoming connections.
         /// </summary>
         public NonSecure AcceptNonSecure { get; }
 
-        /// <summary>Returns the adapter ID of this object adapter, or the empty string if this object adapter does not
+        /// <summary>Returns the adapter ID of this server, or the empty string if this server does not
         /// have an adapter ID.</summary>
         public string AdapterId { get; }
 
         public ColocationScope ColocationScope { get; }
 
-        /// <summary>Returns the communicator of this object adapter. It is used when unmarshaling proxies.</summary>
+        /// <summary>Returns the communicator of this server. It is used when unmarshaling proxies.</summary>
         /// <value>The communicator.</value>
         public Communicator Communicator { get; }
 
-        /// <summary>Returns the endpoints this object adapter is listening on.</summary>
-        /// <returns>The endpoints configured on the object adapter; for IP endpoints, port 0 is substituted by the
+        /// <summary>Returns the endpoints this server is listening on.</summary>
+        /// <returns>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
-        /// <summary>The locator registry proxy associated with this object adapter, if any. An indirect object adapter
+        /// <summary>The locator registry proxy associated with this server, if any. An indirect server
         /// registers itself with the locator registry associated during activation, and unregisters during shutdown.
         /// </summary>
         /// <value>The locator registry proxy.</value>
         public ILocatorRegistryPrx? LocatorRegistry { get; }
 
-        /// <summary>Returns the name of this object adapter. This name is used for logging.</summary>
-        /// <value>The object adapter's name.</value>
+        /// <summary>Returns the name of this server. This name is used for logging.</summary>
+        /// <value>The server's name.</value>
         public string Name { get; }
 
-        /// <summary>Gets the protocol of this object adapter. The format of this object adapter's Endpoints property
+        /// <summary>Gets the protocol of this server. The format of this server's Endpoints property
         /// determines this protocol.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>Returns the endpoints listed in a direct proxy created by this object adapter.</summary>
+        /// <summary>Returns the endpoints listed in a direct proxy created by this server.</summary>
         public IReadOnlyList<Endpoint> PublishedEndpoints { get; private set; } = ImmutableList<Endpoint>.Empty;
 
-        /// <summary>Returns the replica group ID of this object adapter, or the empty string if this object adapter
+        /// <summary>Returns the replica group ID of this server, or the empty string if this server
         /// does not belong to a replica group.</summary>
         public string ReplicaGroupId { get; }
 
-        /// <summary>Indicates whether or not this object adapter serializes the dispatching of requests received
+        /// <summary>Indicates whether or not this server serializes the dispatching of requests received
         /// over the same connection.</summary>
         /// <value>The serialize dispatch value.</value>
         public bool SerializeDispatch { get; }
 
-        /// <summary>Returns a task that completes when the object adapter's shutdown is complete: see
+        /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
         /// is to call <c>await server.ShutdownComplete;</c> in the Main method of a server to prevent the server
         /// from exiting immediately.</summary>
@@ -73,7 +73,7 @@ namespace ZeroC.Ice
 
         internal int IncomingFrameMaxSize { get; }
 
-        private static ulong _counter; // used to generate names for nameless object adapters.
+        private static ulong _counter; // used to generate names for nameless servers.
 
         private Task? _activateTask;
 
@@ -100,14 +100,14 @@ namespace ZeroC.Ice
 
         private Lazy<Task>? _shutdownTask;
 
-         /// <summary>Constructs an object adapter.</summary>
-        public ObjectAdapter(Communicator communicator)
+         /// <summary>Constructs a server.</summary>
+        public Server(Communicator communicator)
             : this(communicator, new())
         {
         }
 
-        /// <summary>Constructs an object adapter.</summary>
-        public ObjectAdapter(Communicator communicator, ObjectAdapterOptions options)
+        /// <summary>Constructs a server.</summary>
+        public Server(Communicator communicator, ServerOptions options)
         {
             if (options.AdapterId.Length == 0)
             {
@@ -147,7 +147,7 @@ namespace ZeroC.Ice
                 {
                     if (AdapterId.Length > 0)
                     {
-                        throw new ArgumentException("options.AdapterId set for an ice2 object adapter",
+                        throw new ArgumentException("options.AdapterId set for an ice2 server",
                                                     nameof(options));
                     }
 
@@ -165,13 +165,13 @@ namespace ZeroC.Ice
                         ColocationScope = ColocationScope.None;
                     }
 
-                    // When the adapter is configured to only accept secure connections ensure that all
+                    // When the server is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
                     if (AcceptNonSecure == NonSecure.Never &&
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
                         throw new ArgumentException(
-                            $@"object adapter `{Name
+                            $@"server `{Name
                             }' is configured to only accept secure connections but endpoint `{endpoint
                             }' accepts non-secure connections",
                             nameof(options));
@@ -184,7 +184,7 @@ namespace ZeroC.Ice
                     if (Endpoints.Count > 1)
                     {
                         throw new ArgumentException(
-                            @$"object adapter `{Name
+                            @$"server `{Name
                             }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
                             nameof(options));
                     }
@@ -192,7 +192,7 @@ namespace ZeroC.Ice
                     if (Endpoints[0].HasDnsHost)
                     {
                         throw new ArgumentException(
-                            @$"object adapter `{Name
+                            @$"server `{Name
                             }': you can only use an IP address to configure an endpoint with a dynamic port (:0)",
                             nameof(options));
                     }
@@ -216,7 +216,7 @@ namespace ZeroC.Ice
             {
                 if (AdapterId.Length > 0 && options.Protocol != Protocol.Ice1)
                 {
-                    throw new ArgumentException("options.AdapterId set for an ice2 object adapter", nameof(options));
+                    throw new ArgumentException("options.AdapterId set for an ice2 server", nameof(options));
                 }
                 Protocol = options.Protocol;
             }
@@ -225,7 +225,7 @@ namespace ZeroC.Ice
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
                     UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, oaEndpoints: false);
+                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false);
             }
 
             if (PublishedEndpoints.Count == 0)
@@ -246,18 +246,18 @@ namespace ZeroC.Ice
 
             if (ColocationScope != ColocationScope.None)
             {
-                ObjectAdapterRegistry.RegisterObjectAdapter(this);
+                LocalServerRegistry.RegisterServer(this);
             }
 
             if (PublishedEndpoints.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.Logger.LogObjectAdapterPublishedEndpoints(Name, PublishedEndpoints);
+                Communicator.Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
             _dispatchPipeline = async (request, current, cancel) =>
             {
-                Debug.Assert(current.Adapter == this);
+                Debug.Assert(current.Server == this);
                 IService? servant = Find(current.Identity, current.Facet);
                 if (servant == null)
                 {
@@ -268,8 +268,8 @@ namespace ZeroC.Ice
             };
         }
 
-        /// <summary>Activates this object adapter. After activation, the object adapter can dispatch requests received
-        /// through its endpoints. Also registers this object adapter with the locator (if set).</summary>
+        /// <summary>Activates this server. After activation, the server can dispatch requests received
+        /// through its endpoints. Also registers this server with the locator (if set).</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A task that completes when the activation completes.</returns>
         public async Task ActivateAsync(CancellationToken cancel = default)
@@ -295,13 +295,13 @@ namespace ZeroC.Ice
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
 
-                // Activating twice the object adapter is incorrect
+                // Activating twice the server is incorrect
                 if (_activateTask != null)
                 {
-                    throw new InvalidOperationException($"object adapter {Name} already activated");
+                    throw new InvalidOperationException($"server {Name} already activated");
                 }
 
                 foreach (Func<Dispatcher, Dispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
@@ -374,19 +374,19 @@ namespace ZeroC.Ice
                 {
                     if (Communicator.Logger.IsEnabled(LogLevel.Error))
                     {
-                        Communicator.Logger.LogRegisterObjectAdapterEndpointsFailure(this, ex);
+                        Communicator.Logger.LogRegisterServerEndpointsFailure(this, ex);
                     }
                     throw;
                 }
 
                 if (Communicator.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Communicator.Logger.LogRegisterObjectAdapterEndpointsSuccess(this, PublishedEndpoints);
+                    Communicator.Logger.LogRegisterServerEndpointsSuccess(this, PublishedEndpoints);
                 }
             }
         }
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
         /// ArgumentException.</summary>
         /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
@@ -395,7 +395,7 @@ namespace ZeroC.Ice
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>. </param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T Add<T>(
             Identity identity,
             string facet,
@@ -406,7 +406,7 @@ namespace ZeroC.Ice
             return CreateProxy(identity, facet, proxyFactory);
         }
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
         /// ArgumentException.</summary>
         /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
@@ -418,32 +418,32 @@ namespace ZeroC.Ice
             CheckIdentity(identity);
             lock (_mutex)
             {
-                // We check for deactivation here because we don't want to keep this servant when the adapter is being
+                // We check for deactivation here because we don't want to keep this servant when the server is being
                 // deactivated or destroyed. In other languages, notably C++, keeping such a servant could lead to
                 // circular references and leaks.
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
                 _identityServantMap.Add((identity, facet), servant);
             }
         }
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
         /// ArgumentException.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(string, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T Add<T>(string identityAndFacet, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Add(identity, facet, servant, proxyFactory);
         }
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
         /// ArgumentException.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
@@ -454,25 +454,25 @@ namespace ZeroC.Ice
             Add(identity, facet, servant);
         }
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and the default (empty) facet.</summary>
         /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
         /// be empty.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
+        /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
         public T Add<T>(Identity identity, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
             Add(identity, "", servant, proxyFactory);
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
         /// identity and the default (empty) facet.</summary>
         /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
         /// be empty.</param>
         /// <param name="servant">The servant to add.</param>
         public void Add(Identity identity, IService servant) => Add(identity, "", servant);
 
-        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a default servant to this server's Active Servant Map (ASM), using as key the provided
         /// facet.</summary>
         /// <param name="facet">The facet.</param>
         /// <param name="servant">The default servant to add.</param>
@@ -482,18 +482,18 @@ namespace ZeroC.Ice
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
                 _defaultServantMap.Add(facet, servant);
             }
         }
 
-        /// <summary>Adds a default servant to this object adapter's Active Servant Map (ASM), using as key the default
+        /// <summary>Adds a default servant to this server's Active Servant Map (ASM), using as key the default
         /// (empty) facet.</summary>
         /// <param name="servant">The default servant to add.</param>
         public void AddDefault(IService servant) => AddDefault("", servant);
 
-        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
+        /// <summary>Adds a category-specific default servant to this server's Active Servant Map (ASM), using
         /// as key the provided category and facet.</summary>
         /// <param name="category">The object identity category.</param>
         /// <param name="facet">The facet.</param>
@@ -504,20 +504,20 @@ namespace ZeroC.Ice
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
                 _categoryServantMap.Add((category, facet), servant);
             }
         }
 
-        /// <summary>Adds a category-specific default servant to this object adapter's Active Servant Map (ASM), using
+        /// <summary>Adds a category-specific default servant to this server's Active Servant Map (ASM), using
         /// as key the provided category and the default (empty) facet.</summary>
         /// <param name="category">The object identity category.</param>
         /// <param name="servant">The default servant to add.</param>
         public void AddDefaultForCategory(string category, IService servant) =>
             AddDefaultForCategory(category, "", servant);
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key a unique identity
         /// and the provided facet. This method creates the unique identity with a UUID name and an empty category.
         /// </summary>
         /// <param name="facet">The facet of the Ice object.</param>
@@ -525,25 +525,25 @@ namespace ZeroC.Ice
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.
         /// </param>
-        /// <returns>A proxy associated with this object adapter, object identity and facet.</returns>
+        /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T AddWithUUID<T>(string facet, IService servant, ProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
             Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
 
-        /// <summary>Adds a servant to this object adapter's Active Servant Map (ASM), using as key a unique identity
+        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key a unique identity
         /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
         /// category.</summary>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
-        /// <returns>A proxy associated with this object adapter, object identity and the default facet.</returns>
+        /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
         public T AddWithUUID<T>(IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
             AddWithUUID("", servant, proxyFactory);
 
-          /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
+          /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
         /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
-        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no adapter
-        /// ID is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no server
+        /// ID is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identity">The object's identity.</param>
         /// <param name="facet">The facet.</param>
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
@@ -557,7 +557,7 @@ namespace ZeroC.Ice
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ObjectAdapter).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
 
                 ImmutableArray<string> location = ReplicaGroupId.Length > 0 ? ImmutableArray.Create(ReplicaGroupId) :
@@ -578,10 +578,10 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Creates a proxy for the object with the given identity. If this object adapter is configured with
-        /// an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group id is also
-        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
-        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// <summary>Creates a proxy for the object with the given identity. If this server is configured with
+        /// an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group id is also
+        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
+        /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identity">The object's identity.</param>
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
@@ -589,10 +589,10 @@ namespace ZeroC.Ice
         public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IServicePrx =>
             CreateProxy(identity, "", factory);
 
-        /// <summary>Creates a proxy for the object with the given identity and facet. If this object adapter is
-        /// configured with an adapter id, creates an indirect proxy that refers to the adapter id. If a replica group
-        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no adapter
-        /// id is defined, creates a direct proxy containing this object adapter's published endpoints.</summary>
+        /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
+        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
+        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
+        /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// desired proxy type.</param>
@@ -694,7 +694,7 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Shuts down this object adapter. Once shut down, an object adapter is disposed and can no longer be
+        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
         /// used. This method can be safely called multiple times and always returns the same task.</summary>
         public Task ShutdownAsync()
         {
@@ -713,7 +713,7 @@ namespace ZeroC.Ice
                     if (ColocationScope != ColocationScope.None)
                     {
                         // no longer available for coloc connections.
-                        ObjectAdapterRegistry.UnregisterObjectAdapter(this);
+                        LocalServerRegistry.UnregisterServer(this);
                     }
 
                     // Synchronously shuts down the incoming connection factories to stop accepting new incoming
@@ -768,15 +768,15 @@ namespace ZeroC.Ice
 
         /// <summary>Adds a dispatch interceptor to the dispatch pipeline.</summary>
         /// <param name="dispatchInterceptor">The dispatch interceptor to add.</param>
-        /// <returns>This object adapter.</returns>
-        public ObjectAdapter Use(Func<Dispatcher, Dispatcher> dispatchInterceptor)
+        /// <returns>This server.</returns>
+        public Server Use(Func<Dispatcher, Dispatcher> dispatchInterceptor)
         {
             lock (_mutex)
             {
                 if (_activateTask != null)
                 {
                     throw new InvalidOperationException(
-                        "cannot add an dispatchInterceptor to an object adapter after activation");
+                        "cannot add an dispatchInterceptor to a server after activation");
                 }
 
                 _dispatchInterceptorList.Add(dispatchInterceptor);
@@ -856,7 +856,7 @@ namespace ZeroC.Ice
                 lock (_mutex)
                 {
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
-                    // adapter's incoming connection factories are considered local.
+                    // server's incoming connection factories are considered local.
                     isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
                         PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
@@ -931,14 +931,14 @@ namespace ZeroC.Ice
             {
                 if (Communicator.LocationLogger.IsEnabled(LogLevel.Error))
                 {
-                    Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsFailure(this, ex);
+                    Communicator.LocationLogger.LogUnregisterServerEndpointsFailure(this, ex);
                 }
                 throw;
             }
 
             if (Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.LocationLogger.LogUnregisterObjectAdapterEndpointsSuccess(this);
+                Communicator.LocationLogger.LogUnregisterServerEndpointsSuccess(this);
             }
         }
     }

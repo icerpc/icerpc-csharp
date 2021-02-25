@@ -9,44 +9,44 @@ namespace ZeroC.Ice.Test.Location
 {
     public class TestIntf : ITestIntf
     {
-        private ObjectAdapter _adapter1;
-        private ObjectAdapter _adapter2;
+        private Server _server1;
+        private Server _server2;
         private ServerLocatorRegistry _registry;
 
-        internal TestIntf(ObjectAdapter adapter1, ObjectAdapter adapter2, ServerLocatorRegistry registry)
+        internal TestIntf(Server server1, Server server2, ServerLocatorRegistry registry)
         {
-            _adapter1 = adapter1;
-            _adapter2 = adapter2;
+            _server1 = server1;
+            _server2 = server2;
             _registry = registry;
 
-            _registry.AddObject(_adapter1.Add("hello", new Hello(), IServicePrx.Factory));
-            _registry.AddObject(_adapter1.Add("bonjour#abc", new Hello(), IServicePrx.Factory));
+            _registry.AddObject(_server1.Add("hello", new Hello(), IServicePrx.Factory));
+            _registry.AddObject(_server1.Add("bonjour#abc", new Hello(), IServicePrx.Factory));
         }
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            Task.WhenAll(_adapter1.ShutdownAsync(), _adapter2.ShutdownAsync());
+            Task.WhenAll(_server1.ShutdownAsync(), _server2.ShutdownAsync());
 
         public IHelloPrx GetHello(Current current, CancellationToken cancel) =>
-            _adapter1.CreateProxy("hello", IHelloPrx.Factory).Clone(
-                location: ImmutableArray.Create(_adapter1.AdapterId));
+            _server1.CreateProxy("hello", IHelloPrx.Factory).Clone(
+                location: ImmutableArray.Create(_server1.AdapterId));
 
         public IHelloPrx GetReplicatedHello(Current current, CancellationToken cancel) =>
-            _adapter1.CreateProxy("hello", IHelloPrx.Factory);
+            _server1.CreateProxy("hello", IHelloPrx.Factory);
 
         public void MigrateHello(Current current, CancellationToken cancel)
         {
             var id = Identity.Parse("hello");
 
-            IService? servant = _adapter1.Remove(id);
+            IService? servant = _server1.Remove(id);
             if (servant != null)
             {
-                _registry.AddObject(_adapter2.Add(id, servant, IServicePrx.Factory), current, cancel);
+                _registry.AddObject(_server2.Add(id, servant, IServicePrx.Factory), current, cancel);
             }
             else
             {
-                servant = _adapter2.Remove(id);
+                servant = _server2.Remove(id);
                 TestHelper.Assert(servant != null);
-                _registry.AddObject(_adapter1.Add(id, servant, IServicePrx.Factory), current, cancel);
+                _registry.AddObject(_server1.Add(id, servant, IServicePrx.Factory), current, cancel);
             }
         }
     }

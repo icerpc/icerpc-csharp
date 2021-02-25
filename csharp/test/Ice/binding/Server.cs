@@ -6,11 +6,11 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Binding
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(
+            await using var server = new Server(
                 Communicator,
                 new()
                 {
@@ -18,11 +18,11 @@ namespace ZeroC.Ice.Test.Binding
                     ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
-            adapter.Add("communicator", new RemoteCommunicator());
-            await adapter.ActivateAsync();
+            server.Add("communicator", new RemoteCommunicator());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -31,7 +31,7 @@ namespace ZeroC.Ice.Test.Binding
             properties["Ice.ServerIdleTime"] = "30";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

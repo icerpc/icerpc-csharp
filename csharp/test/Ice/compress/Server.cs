@@ -6,19 +6,19 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Compress
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test-1", new Interceptor(new TestIntf(), compressed: true));
-            adapter.Add("test-2", new Interceptor(new TestIntf(), compressed: false));
-            await adapter.ActivateAsync();
+            server.Add("test-1", new Interceptor(new TestIntf(), compressed: true));
+            server.Add("test-2", new Interceptor(new TestIntf(), compressed: false));
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -27,7 +27,7 @@ namespace ZeroC.Ice.Test.Compress
             properties["Ice.CompressionMinSize"] = "1K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Api
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
         [TestCase("test:")] // missing endpoint
-        [TestCase("id@adapter test")]
+        [TestCase("id@server test")]
         [TestCase("id -f \"facet x")]
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
@@ -157,10 +157,10 @@ namespace IceRpc.Tests.Api
                     "",
                     new string[] { "loc0", "loc1" });
 
-                Add("ice:adapter//test", "test", "", new string[] { "adapter" });
-                Add("ice:adapter/category/test", "test", "category", new string[] { "adapter" });
-                Add("ice:adapter:tcp/category/test", "test", "category", new string[] { "adapter:tcp" });
-                Add("ice:adapter%3Atcp/category/test", "test", "category", new string[] { "adapter:tcp" });
+                Add("ice:server//test", "test", "", new string[] { "server" });
+                Add("ice:server/category/test", "test", "category", new string[] { "server" });
+                Add("ice:server:tcp/category/test", "test", "category", new string[] { "server:tcp" });
+                Add("ice:server%3Atcp/category/test", "test", "category", new string[] { "server:tcp" });
                 Add("category/test", "test", "category");
             }
 

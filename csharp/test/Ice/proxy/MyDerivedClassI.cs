@@ -19,7 +19,7 @@ namespace ZeroC.Ice.Test.Proxy
         public IEnumerable<string> GetLocation(Current current, CancellationToken cancel) => current.Location;
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
 
         public IReadOnlyDictionary<string, string> GetContext(Current current, CancellationToken cancel) => _ctx!;
 
@@ -35,7 +35,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             // TODO: need better way to create a relative proxy on the server-side.
             IRelativeTestPrx relativeTest =
-                current.Adapter.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
+                current.Server.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
                     endpoints: ImmutableList<Endpoint>.Empty);
 
             TestHelper.Assert(callback.Op(relativeTest, cancel: cancel) == 1);

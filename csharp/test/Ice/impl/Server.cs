@@ -11,7 +11,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Impl
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -19,9 +19,9 @@ namespace ZeroC.Ice.Test.Impl
             Communicator.getProperties().setProperty("Ice.Warn.Connections", "0");
             Communicator.getProperties().setProperty("TestAdapter.Endpoints", getTestEndpoint(0));
 
-            Ice.ObjectAdapter adapter = Communicator.createObjectAdapter("TestAdapter");
-            adapter.add(Ice.Util.stringToIdentity("test"), new MyDerivedClassI());
-            adapter.activate();
+            Ice.Server server = Communicator.createServer("TestAdapter");
+            server.add(Ice.Util.stringToIdentity("test"), new MyDerivedClassI());
+            server.activate();
 
             ServerReady();
             Communicator.waitForShutdown();
@@ -30,7 +30,7 @@ namespace ZeroC.Ice.Test.Impl
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

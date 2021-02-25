@@ -10,7 +10,7 @@ namespace ZeroC.Ice.Test.Binding
     {
         private int _nextPort = 10;
 
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerAsync(
             string name,
             string transport,
             Current current,
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Binding
                     string endpoints =
                         TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
 
-                    var adapter = new ObjectAdapter(
+                    var server = new Server(
                         current.Communicator,
                         new()
                         {
@@ -35,10 +35,10 @@ namespace ZeroC.Ice.Test.Binding
                             Name = name,
                             ServerName = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
-                    await adapter.ActivateAsync(cancel);
+                    await server.ActivateAsync(cancel);
 
-                    return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter),
-                                                       IRemoteObjectAdapterPrx.Factory);
+                    return current.Server.AddWithUUID(new RemoteServer(server),
+                                                       IRemoteServerPrx.Factory);
                 }
                 catch (TransportException)
                 {
@@ -50,30 +50,30 @@ namespace ZeroC.Ice.Test.Binding
             }
         }
 
-        public async ValueTask<IRemoteObjectAdapterPrx> CreateObjectAdapterWithEndpointsAsync(
+        public async ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
             string name,
             string endpoints,
             Current current,
             CancellationToken cancel)
         {
-            var adapter = new ObjectAdapter(
+            var server = new Server(
                 current.Communicator,
-                new ObjectAdapterOptions { Endpoints = endpoints, Name = name });
-            await adapter.ActivateAsync(cancel);
+                new ServerOptions { Endpoints = endpoints, Name = name });
+            await server.ActivateAsync(cancel);
 
-            return current.Adapter.AddWithUUID(new RemoteObjectAdapter(adapter), IRemoteObjectAdapterPrx.Factory);
+            return current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory);
         }
 
         // Colocated call.
-        public ValueTask DeactivateObjectAdapterAsync(
-            IRemoteObjectAdapterPrx adapter,
+        public ValueTask DeactivateServerAsync(
+            IRemoteServerPrx server,
             Current current,
             CancellationToken cancel) =>
-            new(adapter.DeactivateAsync(cancel: cancel));
+            new(server.DeactivateAsync(cancel: cancel));
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Adapter.ShutdownAsync(); // only initiate shutdown
+            _ = current.Server.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

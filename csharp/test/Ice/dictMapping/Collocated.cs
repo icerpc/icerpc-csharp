@@ -9,11 +9,11 @@ namespace ZeroC.Ice.Test.DictMapping
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new MyClass());
-            // Don't activate OA to ensure collocation is used.
+            server.Add("test", new MyClass());
+            // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this, true);
         }

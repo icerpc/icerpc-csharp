@@ -100,10 +100,10 @@ namespace ZeroC.Ice
             Transport transport,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
         {
-            (string host, ushort port) = ParseHostAndPort(options, oaEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
 
             string resource = "/";
 
@@ -122,7 +122,7 @@ namespace ZeroC.Ice
                                   ParseCompress(options, endpointString),
                                   options,
                                   communicator,
-                                  oaEndpoint,
+                                  serverEndpoint,
                                   endpointString);
         }
 
@@ -132,7 +132,7 @@ namespace ZeroC.Ice
             ushort port,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
+            bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
 
@@ -162,7 +162,7 @@ namespace ZeroC.Ice
                                         port,
                                         resource == null ? Array.Empty<string>() : new string[] { resource });
 
-            return new WSEndpoint(data, options, communicator, oaEndpoint);
+            return new WSEndpoint(data, options, communicator, serverEndpoint);
         }
 
         internal override SingleStreamSocket CreateSocket(EndPoint addr) =>
@@ -174,16 +174,16 @@ namespace ZeroC.Ice
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
             object? label,
-            ObjectAdapter? adapter) =>
-            new WSConnection(this, socket, label, adapter);
+            Server? server) =>
+            new WSConnection(this, socket, label, server);
 
         // Constructor used for ice2 parsing.
         private WSEndpoint(
             EndpointData data,
             Dictionary<string, string> options,
             Communicator communicator,
-            bool oaEndpoint)
-            : base(data, options, communicator, oaEndpoint)
+            bool serverEndpoint)
+            : base(data, options, communicator, serverEndpoint)
         {
         }
 
@@ -194,9 +194,9 @@ namespace ZeroC.Ice
             bool compress,
             Dictionary<string, string?> options,
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             string endpointString)
-            : base(data, timeout, compress, options, communicator, oaEndpoint, endpointString)
+            : base(data, timeout, compress, options, communicator, serverEndpoint, endpointString)
         {
         }
 

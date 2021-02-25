@@ -7,22 +7,22 @@ using ZeroC.Ice;
 namespace IceRpc.Tests
 {
     /// <summary>Test fixture for tests that need to create a colocated server. The constructor initialize
-    /// a communicator and an ObjectAdapter.</summary>
+    /// a communicator and an Server.</summary>
     public class ColocatedTest
     {
         private protected Communicator Communicator { get; }
-        private protected ObjectAdapter ObjectAdapter { get; }
+        private protected Server Server { get; }
 
         public ColocatedTest()
         {
             Communicator = new Communicator();
-            ObjectAdapter = new ObjectAdapter(Communicator);
+            Server = new Server(Communicator);
         }
 
         [OneTimeTearDown]
         public async Task ShutdownAsync()
         {
-            await ObjectAdapter.DisposeAsync();
+            await Server.DisposeAsync();
             await Communicator.DisposeAsync();
         }
     }

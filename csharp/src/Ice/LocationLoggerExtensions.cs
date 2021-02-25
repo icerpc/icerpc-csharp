@@ -17,16 +17,16 @@ namespace ZeroC.Ice
         private const int FoundEntryForWellKnownProxyInLocatorCache = 6;
         private const int InvalidProxyResolvingLocation = 7;
         private const int InvalidProxyResolvingProxy = 8;
-        private const int RegisterObjectAdapterEndpointsFailure = 9;
-        private const int RegisterObjectAdapterEndpointsSuccess = 10;
+        private const int RegisterServerEndpointsFailure = 9;
+        private const int RegisterServerEndpointsSuccess = 10;
         private const int ResolveLocationFailure = 11;
         private const int ResolveWellKnownProxyEndpointsFailure = 12;
         private const int ResolvedLocation = 13;
         private const int ResolvedWellKnownProxy = 14;
         private const int ResolvingLocation = 15;
         private const int ResolvingWellKnownProxy = 16;
-        private const int UnregisterObjectAdapterEndpointsFailure = 17;
-        private const int UnregisterObjectAdapterEndpointsSuccess = 18;
+        private const int UnregisterServerEndpointsFailure = 17;
+        private const int UnregisterServerEndpointsSuccess = 18;
 
         private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _clearLocationEndpoints =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
@@ -86,17 +86,17 @@ namespace ZeroC.Ice
                 new EventId(InvalidProxyResolvingProxy, nameof(InvalidProxyResolvingProxy)),
                 "locator returned an invalid proxy when resolving proxy = {Identity}, received = {Received}");
 
-        private static readonly Action<ILogger, string, Exception> _registerObjectAdapterEndpointsFailure =
+        private static readonly Action<ILogger, string, Exception> _registerServerEndpointsFailure =
             LoggerMessage.Define<string>(
                 LogLevel.Error,
-                new EventId(RegisterObjectAdapterEndpointsFailure, nameof(RegisterObjectAdapterEndpointsFailure)),
-                "failed to register the endpoints of object adapter {ObjectAdapter} with the locator registry");
+                new EventId(RegisterServerEndpointsFailure, nameof(RegisterServerEndpointsFailure)),
+                "failed to register the endpoints of server {Server} with the locator registry");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _registerObjectAdapterEndpointsSuccess =
+        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _registerServerEndpointsSuccess =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
                 LogLevel.Debug,
-                new EventId(RegisterObjectAdapterEndpointsSuccess, nameof(RegisterObjectAdapterEndpointsSuccess)),
-                "registered the endpoints of object adapter {ObjectAdapter} with the locator registry " +
+                new EventId(RegisterServerEndpointsSuccess, nameof(RegisterServerEndpointsSuccess)),
+                "registered the endpoints of server {Server} with the locator registry " +
                 "endpoints = {Endpoints}");
 
         private static readonly Action<ILogger, string, Exception> _resolveLocationFailure =
@@ -135,17 +135,17 @@ namespace ZeroC.Ice
                 new EventId(ResolvingWellKnownProxy, nameof(ResolvingWellKnownProxy)),
                 "resolving well-known object {Identity}");
 
-        private static readonly Action<ILogger, string, Exception> _unregisterObjectAdapterEndpointsFailure =
+        private static readonly Action<ILogger, string, Exception> _unregisterServerEndpointsFailure =
             LoggerMessage.Define<string>(
                 LogLevel.Error,
-                new EventId(UnregisterObjectAdapterEndpointsFailure, nameof(UnregisterObjectAdapterEndpointsFailure)),
-                "failed to unregister the endpoints of object adapter {ObjectAdapter} from the locator registry");
+                new EventId(UnregisterServerEndpointsFailure, nameof(UnregisterServerEndpointsFailure)),
+                "failed to unregister the endpoints of server {Server} from the locator registry");
 
-        private static readonly Action<ILogger, string, Exception> _unregisterObjectAdapterEndpointsSuccess =
+        private static readonly Action<ILogger, string, Exception> _unregisterServerEndpointsSuccess =
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
-                new EventId(UnregisterObjectAdapterEndpointsSuccess, nameof(UnregisterObjectAdapterEndpointsSuccess)),
-                "unregistered the endpoints of object adapter {ObjectAdapter} from the locator registry");
+                new EventId(UnregisterServerEndpointsSuccess, nameof(UnregisterServerEndpointsSuccess)),
+                "unregistered the endpoints of server {Server} from the locator registry");
 
         internal static void LogClearLocationEndpoints(
             this ILogger logger,
@@ -191,17 +191,17 @@ namespace ZeroC.Ice
         internal static void LogInvalidProxyResolvingProxy(this ILogger logger, Identity identity, ServicePrx received) =>
             _invalidProxyResolvingProxy(logger, identity, received, null!);
 
-        internal static void LogRegisterObjectAdapterEndpointsFailure(
+        internal static void LogRegisterServerEndpointsFailure(
             this ILogger logger,
-            ObjectAdapter adapter,
+            Server server,
             Exception ex) =>
-            _registerObjectAdapterEndpointsFailure(logger, adapter.Name, ex);
+            _registerServerEndpointsFailure(logger, server.Name, ex);
 
-        internal static void LogRegisterObjectAdapterEndpointsSuccess(
+        internal static void LogRegisterServerEndpointsSuccess(
             this ILogger logger,
-            ObjectAdapter adapter,
+            Server server,
             IReadOnlyList<Endpoint> endpoints) =>
-            _registerObjectAdapterEndpointsSuccess(logger, adapter.Name, endpoints, null!);
+            _registerServerEndpointsSuccess(logger, server.Name, endpoints, null!);
 
         internal static void LogResolveLocationFailure(
             this ILogger logger,
@@ -233,13 +233,13 @@ namespace ZeroC.Ice
         internal static void LogResolvingWellKnownProxy(this ILogger logger, Identity identity) =>
             _resolvingWellKnownProxy(logger, identity,  null!);
 
-        internal static void LogUnregisterObjectAdapterEndpointsFailure(
+        internal static void LogUnregisterServerEndpointsFailure(
             this ILogger logger,
-            ObjectAdapter adapter,
+            Server server,
             Exception ex) =>
-            _unregisterObjectAdapterEndpointsFailure(logger, adapter.Name, ex);
+            _unregisterServerEndpointsFailure(logger, server.Name, ex);
 
-        internal static void LogUnregisterObjectAdapterEndpointsSuccess(this ILogger logger, ObjectAdapter adapter) =>
-            _unregisterObjectAdapterEndpointsSuccess(logger, adapter.Name, null!);
+        internal static void LogUnregisterServerEndpointsSuccess(this ILogger logger, Server server) =>
+            _unregisterServerEndpointsSuccess(logger, server.Name, null!);
     }
 }

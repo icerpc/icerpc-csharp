@@ -126,7 +126,7 @@ namespace ZeroC.Ice.Test.Proxy
                 "\"\"",
                 "\"\" test", // invalid trailing characters
                 "test:", // missing endpoint
-                "id@adapter test",
+                "id@server test",
                 "id -f \"facet x",
                 "id -f \'facet x",
                 "test -f facet@test @test",
@@ -274,20 +274,20 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
                 b1.Location.Count == 2 && b1.Location[0] == "loc0" && b1.Location[1] == "loc1");
 
-            b1 = IServicePrx.Parse("ice:adapter//test", communicator);
+            b1 = IServicePrx.Parse("ice:server//test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Location[0] == "adapter");
+                    b1.Location[0] == "server");
 
-            b1 = IServicePrx.Parse("ice:adapter/category/test", communicator);
+            b1 = IServicePrx.Parse("ice:server/category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter");
+                    b1.Location[0] == "server");
 
-            b1 = IServicePrx.Parse("ice:adapter:tcp/category/test", communicator);
+            b1 = IServicePrx.Parse("ice:server:tcp/category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter:tcp");
+                    b1.Location[0] == "server:tcp");
 
             // preferred syntax with escape:
-            TestHelper.Assert(b1.Equals(IServicePrx.Parse("ice:adapter%3Atcp/category/test", communicator)));
+            TestHelper.Assert(b1.Equals(IServicePrx.Parse("ice:server%3Atcp/category/test", communicator)));
 
             b1 = IServicePrx.Parse("category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
@@ -304,34 +304,34 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = IServicePrx.Parse("test:tcp -h localhost -p 10000 -t infinite", communicator);
             TestHelper.Assert(b1.ToString() == "test -t -e 1.1:tcp -h localhost -p 10000 -t -1");
 
-            b1 = IServicePrx.Parse("test@adapter", communicator);
+            b1 = IServicePrx.Parse("test@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Location[0] == "adapter");
+                    b1.Location[0] == "server");
 
-            b1 = IServicePrx.Parse("category/test@adapter", communicator);
+            b1 = IServicePrx.Parse("category/test@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter");
+                    b1.Location[0] == "server");
 
-            b1 = IServicePrx.Parse("category/test@adapter:tcp", communicator);
+            b1 = IServicePrx.Parse("category/test@server:tcp", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter:tcp");
+                    b1.Location[0] == "server:tcp");
 
             // The following tests are only for the ice1 format:
-            b1 = IServicePrx.Parse("'category 1/test'@adapter", communicator);
+            b1 = IServicePrx.Parse("'category 1/test'@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category 1" &&
-                    b1.Location[0] == "adapter");
-            b1 = IServicePrx.Parse("'category/test 1'@adapter", communicator);
+                    b1.Location[0] == "server");
+            b1 = IServicePrx.Parse("'category/test 1'@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test 1" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter");
-            b1 = IServicePrx.Parse("'category/test'@'adapter 1'", communicator);
+                    b1.Location[0] == "server");
+            b1 = IServicePrx.Parse("'category/test'@'server 1'", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "adapter 1");
-            b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@adapter", communicator);
+                    b1.Location[0] == "server 1");
+            b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category /test@foo" &&
-                    b1.Location[0] == "adapter");
-            b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@\"adapter:tcp\"", communicator);
+                    b1.Location[0] == "server");
+            b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@\"server:tcp\"", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category /test@foo" &&
-                    b1.Location[0] == "adapter:tcp");
+                    b1.Location[0] == "server:tcp");
             // End of ice1 format-only tests.
 
             b1 = IServicePrx.Parse("ice:id#facet", communicator);
@@ -404,7 +404,7 @@ namespace ZeroC.Ice.Test.Proxy
             // TODO: why are we testing this here?
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = " : " });
+                await using var badOa = new Server(communicator, new() { Endpoints = " : " });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -413,7 +413,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = "tcp: "});
+                await using var badOa = new Server(communicator, new() { Endpoints = "tcp: "});
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -422,7 +422,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             try
             {
-                await using var badOa = new ObjectAdapter(communicator, new() { Endpoints = ":tcp" });
+                await using var badOa = new Server(communicator, new() { Endpoints = ":tcp" });
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -919,8 +919,8 @@ namespace ZeroC.Ice.Test.Proxy
             {
                 output.Write("testing relative proxies... ");
                 {
-                    await using ObjectAdapter oa = new ObjectAdapter(communicator);
-                    (await cl.GetConnectionAsync()).Adapter = oa;
+                    await using Server oa = new Server(communicator);
+                    (await cl.GetConnectionAsync()).Server = oa;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
                     ICallbackPrx callback = oa.AddWithUUID(

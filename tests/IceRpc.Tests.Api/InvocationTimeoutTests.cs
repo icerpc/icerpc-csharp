@@ -18,17 +18,17 @@ namespace IceRpc.Tests.Api
         [TestCase(500, 100)]
         public async Task InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
         {
-            ObjectAdapter.Use(
+            Server.Use(
                 async (request, current, next, cancel) =>
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                     return await next();
                 });
 
-            var prx = ObjectAdapter.AddWithUUID(new TestService(), IServicePrx.Factory).Clone(
+            var prx = Server.AddWithUUID(new TestService(), IServicePrx.Factory).Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout));
 
-            await ObjectAdapter.ActivateAsync();
+            await Server.ActivateAsync();
 
             // Establish a connection
             var connection = await prx.GetConnectionAsync();

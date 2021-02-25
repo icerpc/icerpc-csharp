@@ -12,7 +12,7 @@ namespace ZeroC.Ice.Discovery
     /// <summary>Servant class that implements the Slice interface Ice::LocatorRegistry.</summary>
     internal class LocatorRegistry : IAsyncLocatorRegistry
     {
-        private readonly Dictionary<string, IServicePrx> _adapters = new();
+        private readonly Dictionary<string, IServicePrx> _servers = new();
         private readonly IServicePrx _dummyProxy;
         private readonly object _mutex = new();
         private readonly Dictionary<string, HashSet<string>> _replicaGroups = new();
@@ -41,7 +41,7 @@ namespace ZeroC.Ice.Discovery
                 if (proxy != null)
                 {
 
-                    _adapters[adapterId] = proxy;
+                    _servers[adapterId] = proxy;
                     if (replicaGroupId.Length > 0)
                     {
                         if (!_replicaGroups.TryGetValue(replicaGroupId, out HashSet<string>? adapterIds))
@@ -54,7 +54,7 @@ namespace ZeroC.Ice.Discovery
                 }
                 else
                 {
-                    _adapters.Remove(adapterId);
+                    _servers.Remove(adapterId);
                     if (replicaGroupId.Length > 0)
                     {
                         if (_replicaGroups.TryGetValue(replicaGroupId, out HashSet<string>? adapterIds))
@@ -84,7 +84,7 @@ namespace ZeroC.Ice.Discovery
         {
             lock (_mutex)
             {
-                if (_adapters.TryGetValue(adapterId, out IServicePrx? proxy))
+                if (_servers.TryGetValue(adapterId, out IServicePrx? proxy))
                 {
                     return (proxy, false);
                 }
@@ -92,7 +92,7 @@ namespace ZeroC.Ice.Discovery
                 if (_replicaGroups.TryGetValue(adapterId, out HashSet<string>? adapterIds))
                 {
                     Debug.Assert(adapterIds.Count > 0);
-                    IEnumerable<Endpoint> endpoints = adapterIds.SelectMany(id => _adapters[id].Endpoints);
+                    IEnumerable<Endpoint> endpoints = adapterIds.SelectMany(id => _servers[id].Endpoints);
                     return (_dummyProxy.Clone(endpoints: endpoints), true);
                 }
 
@@ -111,9 +111,9 @@ namespace ZeroC.Ice.Discovery
 
             lock (_mutex)
             {
-                // We check the local replica groups before the local adapters.
+                // We check the local replica groups before the local servers.
                 candidates.AddRange(_replicaGroups.Keys);
-                candidates.AddRange(_adapters.Keys);
+                candidates.AddRange(_servers.Keys);
             }
 
             foreach (string id in candidates)

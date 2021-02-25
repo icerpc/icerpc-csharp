@@ -13,13 +13,13 @@ namespace ZeroC.Ice
     {
         public Endpoint Endpoint { get; }
 
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _server;
         private readonly Socket _socket;
         private readonly IPEndPoint _addr;
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            ILogger transportLogger = _adapter.Communicator.TransportLogger;
+            ILogger transportLogger = _server.Communicator.TransportLogger;
 
             try
             {
@@ -33,10 +33,10 @@ namespace ZeroC.Ice
                 var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
-                    Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _adapter),
-                    _ => new SlicSocket(socket, Endpoint, _adapter)
+                    Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _server),
+                    _ => new SlicSocket(socket, Endpoint, _server)
                 };
-                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _adapter);
+                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _server);
             }
             catch (Exception ex)
             {
@@ -55,11 +55,11 @@ namespace ZeroC.Ice
 
         public override string ToString() => _addr.ToString();
 
-        internal TcpAcceptor(TcpEndpoint endpoint, ObjectAdapter adapter)
+        internal TcpAcceptor(TcpEndpoint endpoint, Server server)
         {
             Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
 
-            _adapter = adapter;
+            _server = server;
             _addr = new IPEndPoint(endpoint.Address, endpoint.Port);
             _socket = Network.CreateServerSocket(endpoint, _addr.AddressFamily);
 

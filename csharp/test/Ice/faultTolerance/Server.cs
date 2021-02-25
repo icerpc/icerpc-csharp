@@ -7,7 +7,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.FaultTolerance
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -39,13 +39,13 @@ namespace ZeroC.Ice.Test.FaultTolerance
                 throw new ArgumentException("Server: no port specified");
             }
 
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(port) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(port) });
 
-            adapter.Add("test", new TestIntf());
-            await adapter.ActivateAsync();
+            server.Add("test", new TestIntf());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -54,7 +54,7 @@ namespace ZeroC.Ice.Test.FaultTolerance
             properties["Ice.ServerIdleTime"] = "120";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

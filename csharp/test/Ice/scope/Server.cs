@@ -7,7 +7,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Scope
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         private class I1 : II
         {
@@ -38,7 +38,7 @@ namespace ZeroC.Ice.Test.Scope
             public C1? OpC1(C1? c1, Current current, CancellationToken cancel) => c1;
 
             public void Shutdown(Current current, CancellationToken cancel) =>
-                current.Adapter.ShutdownAsync();
+                current.Server.ShutdownAsync();
         }
 
         private class I2 : Inner.II
@@ -62,7 +62,7 @@ namespace ZeroC.Ice.Test.Scope
             OpCMap(Dictionary<string, Inner.Inner2.C?> c1, Current current, CancellationToken cancel) => (c1, c1);
 
             public void Shutdown(Current current, CancellationToken cancel) =>
-                current.Adapter.ShutdownAsync();
+                current.Server.ShutdownAsync();
         }
 
         private class I3 : Inner.Inner2.II
@@ -86,7 +86,7 @@ namespace ZeroC.Ice.Test.Scope
             OpCMap(Dictionary<string, Inner.Inner2.C?> c1, Current current, CancellationToken cancel) => (c1, c1);
 
             public void Shutdown(Current current, CancellationToken cancel) =>
-                current.Adapter.ShutdownAsync();
+                current.Server.ShutdownAsync();
         }
 
         private class I4 : Inner.Test.Inner2.II
@@ -106,27 +106,27 @@ namespace ZeroC.Ice.Test.Scope
             public (IReadOnlyDictionary<string, C?>, IReadOnlyDictionary<string, C?>)
             OpCMap(Dictionary<string, C?> c1, Current current, CancellationToken cancel) => (c1, c1);
 
-            public void Shutdown(Current current, CancellationToken cancel) => current.Adapter.ShutdownAsync();
+            public void Shutdown(Current current, CancellationToken cancel) => current.Server.ShutdownAsync();
         }
 
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("i1", new I1());
-            adapter.Add("i2", new I2());
-            adapter.Add("i3", new I3());
-            adapter.Add("i4", new I4());
-            await adapter.ActivateAsync();
+            server.Add("i1", new I1());
+            server.Add("i2", new I2());
+            server.Add("i3", new I3());
+            server.Add("i4", new I4());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

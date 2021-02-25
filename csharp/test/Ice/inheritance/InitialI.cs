@@ -13,12 +13,12 @@ namespace ZeroC.Ice.Test.Inheritance
         private readonly IB2Prx _ib2;
         private readonly ICPrx _ic;
 
-        public InitialI(ObjectAdapter adapter)
+        public InitialI(Server server)
         {
-            _ia = adapter.AddWithUUID(new A(), IAPrx.Factory);
-            _ib1 = adapter.AddWithUUID(new B1(), IB1Prx.Factory);
-            _ib2 = adapter.AddWithUUID(new B2(), IB2Prx.Factory);
-            _ic = adapter.AddWithUUID(new C(), ICPrx.Factory);
+            _ia = server.AddWithUUID(new A(), IAPrx.Factory);
+            _ib1 = server.AddWithUUID(new B1(), IB1Prx.Factory);
+            _ib2 = server.AddWithUUID(new B2(), IB2Prx.Factory);
+            _ic = server.AddWithUUID(new C(), ICPrx.Factory);
         }
 
         public IAPrx Iaop(Current current, CancellationToken cancel) => _ia;
@@ -29,6 +29,6 @@ namespace ZeroC.Ice.Test.Inheritance
         public ICPrx Icop(Current current, CancellationToken cancel) => _ic;
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Adapter.ShutdownAsync();
+            current.Server.ShutdownAsync();
     }
 }

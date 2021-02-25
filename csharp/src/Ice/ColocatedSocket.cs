@@ -114,7 +114,7 @@ namespace ZeroC.Ice
         public override Task PingAsync(CancellationToken cancel) => Task.CompletedTask;
 
         public override string ToString() =>
-            $"colocated ID = {_id}\nobject adapter = {((ColocatedEndpoint)Endpoint).Adapter.Name}\nincoming = {IsIncoming}";
+            $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Server.Name}\nincoming = {IsIncoming}";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
@@ -122,13 +122,13 @@ namespace ZeroC.Ice
             ChannelWriter<(long, object?, bool)> writer,
             ChannelReader<(long, object?, bool)> reader,
             bool isIncoming)
-            : base(endpoint, isIncoming ? endpoint.Adapter : null)
+            : base(endpoint, isIncoming ? endpoint.Server : null)
         {
             _id = id;
             _writer = writer;
             _reader = reader;
 
-            if (endpoint.Adapter.SerializeDispatch)
+            if (endpoint.Server.SerializeDispatch)
             {
                 _bidirectionalSerializeSemaphore = new AsyncSemaphore(1);
                 _unidirectionalSerializeSemaphore = new AsyncSemaphore(1);
@@ -192,9 +192,9 @@ namespace ZeroC.Ice
 
                     if (!stream.IsControl)
                     {
-                        // If serialization is enabled on the adapter, we wait on the semaphore to ensure that no more
+                        // If serialization is enabled on the server, we wait on the semaphore to ensure that no more
                         // than one stream is active. The wait is done on the client side to ensure the sent callback
-                        // for the request isn't called until the adapter is ready to dispatch a new request.
+                        // for the request isn't called until the server is ready to dispatch a new request.
                         AsyncSemaphore? semaphore = stream.IsBidirectional ?
                             _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
                         if (semaphore != null)

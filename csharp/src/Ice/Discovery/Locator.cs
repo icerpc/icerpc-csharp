@@ -20,20 +20,20 @@ namespace ZeroC.Ice.Discovery
         private readonly int _latencyMultiplier;
 
         private readonly ILogger _logger;
-        private readonly ObjectAdapter _locatorAdapter;
+        private readonly Server _locatorServer;
 
         private readonly ILookupPrx _lookup;
 
         // The key is a single-endpoint datagram Lookup proxy extracted from the _lookup proxy.
-        // The value is a dummy datagram proxy with usually a single endpoint that is one of _replyAdapter's endpoints
+        // The value is a dummy datagram proxy with usually a single endpoint that is one of _replyServer's endpoints
         // and that matches the interface of the key's endpoint.
         private readonly Dictionary<ILookupPrx, IServicePrx> _lookups = new();
 
-        private readonly ObjectAdapter _multicastAdapter;
+        private readonly Server _multicastServer;
 
         private readonly ILocatorRegistryPrx _registry;
 
-        private readonly ObjectAdapter _replyAdapter;
+        private readonly Server _replyServer;
         private readonly int _retryCount;
         private readonly TimeSpan _timeout;
 
@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Discovery
             Current current,
             CancellationToken cancel)
         {
-            using var replyServant = new FindAdapterByIdReply(_replyAdapter);
+            using var replyServant = new FindAdapterByIdReply(_replyServer);
             return await InvokeAsync(
                 (lookup, dummyReply) =>
                 {
@@ -62,7 +62,7 @@ namespace ZeroC.Ice.Discovery
             Current current,
             CancellationToken cancel)
         {
-            using var replyServant = new FindObjectByIdReply(_replyAdapter);
+            using var replyServant = new FindObjectByIdReply(_replyServer);
             return await InvokeAsync(
                 (lookup, dummyReply) =>
                 {
@@ -125,19 +125,19 @@ namespace ZeroC.Ice.Discovery
                 invocationTimeout: _timeout,
                 preferNonSecure: NonSecure.Always);
 
-            _locatorAdapter = new ObjectAdapter(communicator,
+            _locatorServer = new Server(communicator,
                                                  new()
                                                  {
                                                      ColocationScope = options.ColocationScope,
                                                      Protocol = Protocol.Ice1
                                                  });
-            Proxy = _locatorAdapter.Add(new Identity("discovery", _domainId), this, ILocatorPrx.Factory);
+            Proxy = _locatorServer.Add(new Identity("discovery", _domainId), this, ILocatorPrx.Factory);
 
             // Setup locator registry.
             var registryServant = new LocatorRegistry(communicator);
-            _registry = _locatorAdapter.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
+            _registry = _locatorServer.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
 
-            _multicastAdapter = new ObjectAdapter(communicator,
+            _multicastServer = new Server(communicator,
                                                   new()
                                                   {
                                                       AcceptNonSecure = NonSecure.Always,
@@ -146,7 +146,7 @@ namespace ZeroC.Ice.Discovery
                                                       Name = "Discovery.Multicast",
                                                   });
 
-            _replyAdapter = new ObjectAdapter(communicator,
+            _replyServer = new Server(communicator,
                                               new()
                                               {
                                                   AcceptNonSecure = NonSecure.Always,
@@ -157,12 +157,12 @@ namespace ZeroC.Ice.Discovery
                                               });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
-            IServicePrx lookupReply = _replyAdapter.CreateProxy("dummy", IServicePrx.Factory);
+            IServicePrx lookupReply = _replyServer.CreateProxy("dummy", IServicePrx.Factory);
 
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.
             // TODO: this code is incorrect now that the default published endpoints are no longer an expansion
-            // of the object adapter endpoints.
+            // of the server endpoints.
             foreach (Endpoint endpoint in _lookup.Endpoints)
             {
                 if (!endpoint.IsDatagram)
@@ -189,18 +189,18 @@ namespace ZeroC.Ice.Discovery
             Debug.Assert(_lookups.Count > 0);
 
             // Add lookup Ice object
-            _multicastAdapter.Add("IceDiscovery/Lookup", new Lookup(registryServant, communicator));
+            _multicastServer.Add("IceDiscovery/Lookup", new Lookup(registryServant, communicator));
         }
 
         internal Task ActivateAsync(CancellationToken cancel) =>
-            Task.WhenAll(_locatorAdapter.ActivateAsync(cancel),
-                         _multicastAdapter.ActivateAsync(cancel),
-                         _replyAdapter.ActivateAsync(cancel));
+            Task.WhenAll(_locatorServer.ActivateAsync(cancel),
+                         _multicastServer.ActivateAsync(cancel),
+                         _replyServer.ActivateAsync(cancel));
 
         internal Task ShutdownAsync() =>
-            Task.WhenAll(_locatorAdapter.ShutdownAsync(),
-                         _multicastAdapter.ShutdownAsync(),
-                         _replyAdapter.ShutdownAsync());
+            Task.WhenAll(_locatorServer.ShutdownAsync(),
+                         _multicastServer.ShutdownAsync(),
+                         _replyServer.ShutdownAsync());
 
         /// <summary>Invokes a find or resolve request on a Lookup object and processes the reply(ies).</summary>
         /// <param name="findAsync">A delegate that performs the remote call. Its parameters correspond to an entry in
@@ -286,12 +286,12 @@ namespace ZeroC.Ice.Discovery
         private readonly TaskCompletionSource<TResult> _completionSource;
         private readonly TResult _emptyResult;
 
-        private readonly ObjectAdapter _replyAdapter;
+        private readonly Server _replyServer;
 
         public void Dispose()
         {
             _cancellationSource.Dispose();
-            _replyAdapter.Remove(Identity);
+            _replyServer.Remove(Identity);
         }
 
         internal async Task<TResult> GetReplicaGroupRepliesAsync(TimeSpan start, int latencyMultiplier)
@@ -311,15 +311,15 @@ namespace ZeroC.Ice.Discovery
 
         internal void SetEmptyResult() => _completionSource.SetResult(_emptyResult);
 
-        private protected ReplyServant(TResult emptyResult, ObjectAdapter replyAdapter)
+        private protected ReplyServant(TResult emptyResult, Server replyServer)
         {
-            // Add servant (this) to object adapter with new UUID identity.
-            Identity = replyAdapter.AddWithUUID(this, IServicePrx.Factory).Identity;
+            // Add servant (this) to server with new UUID identity.
+            Identity = replyServer.AddWithUUID(this, IServicePrx.Factory).Identity;
 
             _cancellationSource = new();
             _completionSource = new();
             _emptyResult = emptyResult;
-            _replyAdapter = replyAdapter;
+            _replyServer = replyServer;
         }
 
         private protected void Cancel() => _cancellationSource.Cancel();
@@ -366,8 +366,8 @@ namespace ZeroC.Ice.Discovery
             return default;
         }
 
-        internal FindAdapterByIdReply(ObjectAdapter replyAdapter)
-            : base(emptyResult: null, replyAdapter)
+        internal FindAdapterByIdReply(Server replyServer)
+            : base(emptyResult: null, replyServer)
         {
         }
 
@@ -396,8 +396,8 @@ namespace ZeroC.Ice.Discovery
             return default;
         }
 
-        internal FindObjectByIdReply(ObjectAdapter replyAdapter)
-            : base(emptyResult: null, replyAdapter)
+        internal FindObjectByIdReply(Server replyServer)
+            : base(emptyResult: null, replyServer)
         {
         }
     }

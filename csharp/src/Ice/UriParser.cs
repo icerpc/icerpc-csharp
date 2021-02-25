@@ -64,12 +64,12 @@ namespace ZeroC.Ice
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
 
-        /// <summary>Parses an ice+transport URI string that represents one or more object adapter endpoints.</summary>
+        /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(string uriString, Communicator communicator) =>
-            Parse(uriString, oaEndpoints: true, communicator).Endpoints;
+            Parse(uriString, serverEndpoints: true, communicator).Endpoints;
 
         /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
         /// <param name="path">A string [escapedCategory/]escapedName.</param>
@@ -119,7 +119,7 @@ namespace ZeroC.Ice
                          string Facet) ParseProxy(string uriString, Communicator communicator)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
-                Parse(uriString, oaEndpoints: false, communicator);
+                Parse(uriString, serverEndpoints: false, communicator);
 
             string facet = uri.Fragment.Length >= 2 ? Uri.UnescapeDataString(uri.Fragment.TrimStart('#')) : "";
             var path = uri.AbsolutePath.TrimStart('/').Split('/').Select(s => Uri.UnescapeDataString(s)).ToList();
@@ -149,7 +149,7 @@ namespace ZeroC.Ice
 
         private static Endpoint CreateEndpoint(
             Communicator communicator,
-            bool oaEndpoint,
+            bool serverEndpoint,
             Dictionary<string, string> options,
             Protocol protocol,
             Uri uri)
@@ -167,9 +167,9 @@ namespace ZeroC.Ice
             Transport transport;
             if (transportName == "universal")
             {
-                if (oaEndpoint)
+                if (serverEndpoint)
                 {
-                    throw new FormatException("ice+universal cannot specify an object adapter endpoint");
+                    throw new FormatException("ice+universal cannot specify a server endpoint");
                 }
 
                 // Enumerator names can only be used for "well-known" transports.
@@ -205,7 +205,7 @@ namespace ZeroC.Ice
                                                port,
                                                options,
                                                communicator,
-                                               oaEndpoint) ??
+                                               serverEndpoint) ??
                 UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, communicator, protocol);
 
             if (options.Count > 0)
@@ -387,13 +387,13 @@ namespace ZeroC.Ice
 
         /// <summary>Parses an ice or ice+transport URI string.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="oaEndpoints">True when parsing the endpoints of an object adapter; false when parsing a proxy.
+        /// <param name="serverEndpoints">True when parsing the endpoints of a server; false when parsing a proxy.
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
         private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ProxyOptions ProxyOptions) Parse(
             string uriString,
-            bool oaEndpoints,
+            bool serverEndpoints,
             Communicator communicator)
         {
             Debug.Assert(IsProxyUri(uriString));
@@ -401,15 +401,15 @@ namespace ZeroC.Ice
             try
             {
                 bool iceScheme = uriString.StartsWith("ice:", StringComparison.InvariantCulture);
-                if (iceScheme && oaEndpoints)
+                if (iceScheme && serverEndpoints)
                 {
-                    throw new FormatException("an object adapter endpoint supports only ice+transport URIs");
+                    throw new FormatException("a server endpoint supports only ice+transport URIs");
                 }
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
                 (Uri uri, string? altEndpoint, ProxyOptions proxyOptions) =
-                    InitialParse(uriString, pureEndpoints: oaEndpoints, endpointOptions);
+                    InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
 
                 Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
 
@@ -419,7 +419,7 @@ namespace ZeroC.Ice
                 {
                     endpoints = new List<Endpoint>
                     {
-                        CreateEndpoint(communicator, oaEndpoints, endpointOptions, protocol, uri)
+                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri)
                     };
 
                     if (altEndpoint != null)
@@ -456,7 +456,7 @@ namespace ZeroC.Ice
                             }
 
                             endpoints.Add(CreateEndpoint(communicator,
-                                                         oaEndpoints,
+                                                         serverEndpoints,
                                                          endpointOptions,
                                                          protocol,
                                                          endpointUri));

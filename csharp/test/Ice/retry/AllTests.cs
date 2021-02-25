@@ -156,10 +156,10 @@ namespace ZeroC.Ice.Test.Retry
             {
                 output.Write("testing retry with fixed reference... ");
                 output.Flush();
-                var adapter =
-                    new ObjectAdapter(communicator, new() { Protocol = ice1 ? Protocol.Ice1 : Protocol.Ice2 });
-                var bidir = adapter.AddWithUUID(new Bidir(), IBidirPrx.Factory);
-                (await retry1.GetConnectionAsync()).Adapter = adapter;
+                var server =
+                    new Server(communicator, new() { Protocol = ice1 ? Protocol.Ice1 : Protocol.Ice2 });
+                var bidir = server.AddWithUUID(new Bidir(), IBidirPrx.Factory);
+                (await retry1.GetConnectionAsync()).Server = server;
                 retry1.OpBidirRetry(bidir);
 
                 output.WriteLine("ok");

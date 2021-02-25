@@ -8,18 +8,18 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.Interceptor
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator,
+            await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new MyObject());
-            await DispatchInterceptors.ActivateAsync(adapter);
+            server.Add("test", new MyObject());
+            await DispatchInterceptors.ActivateAsync(server);
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -38,7 +38,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     }
                 });
 
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

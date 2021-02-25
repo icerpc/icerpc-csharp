@@ -18,20 +18,20 @@ namespace ZeroC.Ice
         protected internal override bool HasOptions => false;
         protected internal override ushort DefaultPort => 0;
 
-        internal ObjectAdapter Adapter { get; }
+        internal Server Server { get; }
 
         private readonly Channel<(long, ColocatedChannelWriter, ColocatedChannelReader)> _channel;
 
-        public override IAcceptor Acceptor(ObjectAdapter adapter) =>
-            new ColocatedAcceptor(this, adapter, _channel.Writer, _channel.Reader);
+        public override IAcceptor Acceptor(Server server) =>
+            new ColocatedAcceptor(this, server, _channel.Writer, _channel.Reader);
 
         public override bool IsLocal(Endpoint endpoint) =>
-            endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Adapter == Adapter;
+            endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Server == Server;
 
         protected internal override void WriteOptions(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
-        public override Connection CreateDatagramServerConnection(ObjectAdapter adapter) =>
+        public override Connection CreateDatagramServerConnection(Server server) =>
             throw new InvalidOperationException();
 
         private long _nextId;
@@ -72,18 +72,18 @@ namespace ZeroC.Ice
                 this,
                 new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
                 label,
-                adapter: null));
+                server: null));
         }
 
         protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
-        internal ColocatedEndpoint(ObjectAdapter adapter)
-            : base(new EndpointData(Transport.Colocated, host: adapter.Name, port: 0, Array.Empty<string>()),
-                   adapter.Communicator,
-                   adapter.Protocol)
+        internal ColocatedEndpoint(Server server)
+            : base(new EndpointData(Transport.Colocated, host: server.Name, port: 0, Array.Empty<string>()),
+                   server.Communicator,
+                   server.Protocol)
         {
-            Adapter = adapter;
+            Server = server;
             // There's always a single reader (the acceptor) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads.
             var options = new UnboundedChannelOptions

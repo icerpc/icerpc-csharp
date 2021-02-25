@@ -15,7 +15,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             Communicator communicator = helper.Communicator;
 
             await using var oa =
-                new ObjectAdapter(communicator, new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
+                new Server(communicator, new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
             await oa.ActivateAsync();
 
             output.Write("testing single category... ");

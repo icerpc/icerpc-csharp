@@ -8,7 +8,7 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.UDP
 {
-    public class Server : TestHelper
+    public class ServerApp : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.UDP
 
             var serverName = Communicator.GetProperty("Ice.ServerName") ?? "127.0.0.1";
 
-            await using var adapter = new ObjectAdapter(
+            await using var server = new Server(
                 Communicator,
                 new()
                 {
@@ -32,12 +32,12 @@ namespace ZeroC.Ice.Test.UDP
                     ServerName = serverName
                 });
 
-            adapter.Add("control", new TestIntf());
-            await adapter.ActivateAsync();
+            server.Add("control", new TestIntf());
+            await server.ActivateAsync();
             ServerReady();
             if (num == 0)
             {
-                var adapter2 = new ObjectAdapter(
+                var server2 = new Server(
                     Communicator,
                     new()
                     {
@@ -45,8 +45,8 @@ namespace ZeroC.Ice.Test.UDP
                         Endpoints = GetTestEndpoint(num, "udp"),
                         ServerName = serverName
                     });
-                adapter2.Add("test", new TestIntf());
-                await adapter2.ActivateAsync();
+                server2.Add("test", new TestIntf());
+                await server2.ActivateAsync();
             }
 
             var endpoint = new StringBuilder();
@@ -73,7 +73,7 @@ namespace ZeroC.Ice.Test.UDP
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
 
-            ObjectAdapter mcastAdapter = new ObjectAdapter(
+            Server mcastAdapter = new Server(
                 Communicator,
                 new()
                 {
@@ -86,7 +86,7 @@ namespace ZeroC.Ice.Test.UDP
             await mcastAdapter.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
@@ -96,7 +96,7 @@ namespace ZeroC.Ice.Test.UDP
             properties["Ice.UDP.RcvSize"] = "16K";
 
             await using var communicator = CreateCommunicator(properties);
-            return await RunTestAsync<Server>(communicator, args);
+            return await RunTestAsync<ServerApp>(communicator, args);
         }
     }
 }

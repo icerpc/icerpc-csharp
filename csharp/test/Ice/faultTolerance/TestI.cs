@@ -16,6 +16,6 @@ namespace ZeroC.Ice.Test.FaultTolerance
 
         public int Pid(Current current, CancellationToken cancel) => System.Environment.ProcessId;
 
-        public void Shutdown(Current current, CancellationToken cancel) => _ = current.Adapter.ShutdownAsync();
+        public void Shutdown(Current current, CancellationToken cancel) => _ = current.Server.ShutdownAsync();
     }
 }

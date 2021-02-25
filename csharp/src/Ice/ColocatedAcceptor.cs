@@ -15,7 +15,7 @@ namespace ZeroC.Ice
         public Endpoint Endpoint => _endpoint;
 
         private readonly ColocatedEndpoint _endpoint;
-        private readonly ObjectAdapter _adapter;
+        private readonly Server _server;
         private readonly ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> _reader;
         private readonly ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> _writer;
 
@@ -27,22 +27,22 @@ namespace ZeroC.Ice
             return new ColocatedConnection(_endpoint,
                                            new ColocatedSocket(_endpoint, id, writer, reader, true),
                                            label: null,
-                                           _adapter);
+                                           _server);
         }
 
         public void Dispose() => _writer.Complete();
 
         public override string ToString() =>
-            _endpoint.Adapter.Name.Length == 0 ? "unnamed adapter" : _endpoint.Adapter.Name;
+            _endpoint.Server.Name.Length == 0 ? "unnamed server" : _endpoint.Server.Name;
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,
-            ObjectAdapter adapter,
+            Server server,
             ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> writer,
             ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> reader)
         {
             _endpoint = endpoint;
-            _adapter = adapter;
+            _server = server;
             _writer = writer;
             _reader = reader;
         }

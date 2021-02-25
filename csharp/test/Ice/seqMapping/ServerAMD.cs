@@ -5,23 +5,23 @@ using ZeroC.Test;
 
 namespace ZeroC.Ice.Test.SeqMapping
 {
-    public class ServerAMD : TestHelper
+    public class ServerAppAMD : TestHelper
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var adapter = new ObjectAdapter(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            adapter.Add("test", new AsyncMyClass());
-            await adapter.ActivateAsync();
+            server.Add("test", new AsyncMyClass());
+            await server.ActivateAsync();
 
             ServerReady();
-            await adapter.ShutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)
         {
             await using var communicator = CreateCommunicator(ref args);
-            return await RunTestAsync<ServerAMD>(communicator, args);
+            return await RunTestAsync<ServerAppAMD>(communicator, args);
         }
     }
 }
