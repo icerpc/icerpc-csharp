@@ -159,13 +159,6 @@ namespace ZeroC.Ice
                 frame.SocketStream = this;
                 Interlocked.Increment(ref _useCount);
             }
-
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Information))
-            {
-                protocolLogger.LogReceivedRequest(frame, Id);
-            }
-
             return frame;
         }
 
@@ -199,13 +192,6 @@ namespace ZeroC.Ice
                 frame.SocketStream = this;
                 Interlocked.Increment(ref _useCount);
             }
-
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Information))
-            {
-                protocolLogger.LogReceivedResponse(Id, frame);
-            }
-
             return frame;
         }
 
@@ -246,17 +232,18 @@ namespace ZeroC.Ice
             await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
                 ConfigureAwait(false);
 
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Information))
+            ILogger logger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    protocolLogger.LogSendingRequest(request, Id);
+                    using var scope = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                    logger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    protocolLogger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    logger.LogSendingResponse((OutgoingResponseFrame)frame, Id);
                 }
             }
         }

@@ -16,15 +16,15 @@ using var loggerFactory = LoggerFactory.Create(
     builder =>
     {
         builder.AddConfiguration(configuration.GetSection("Logging"));
-        //builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
-        builder.AddJsonConsole(configure =>
+        builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+        /*builder.AddJsonConsole(configure =>
         {
             configure.IncludeScopes = true;
             configure.JsonWriterOptions = new System.Text.Json.JsonWriterOptions()
             {
                 Indented = true
             };
-        });
+        });*/
     });
 
 await using var communicator = new Communicator(ref args,
