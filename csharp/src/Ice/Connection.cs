@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -274,28 +272,31 @@ namespace ZeroC.Ice
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            try
+            using (StartScope())
             {
-                Task goAwayTask;
-                lock (_mutex)
+                try
                 {
-                    if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
+                    Task goAwayTask;
+                    lock (_mutex)
                     {
-                        SetState(ConnectionState.Closing, exception);
-                        _closeTask ??= PerformGoAwayAsync(exception);
-                        Debug.Assert(_closeTask != null);
+                        if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
+                        {
+                            SetState(ConnectionState.Closing, exception);
+                            _closeTask ??= PerformGoAwayAsync(exception);
+                            Debug.Assert(_closeTask != null);
+                        }
+                        goAwayTask = _closeTask ?? AbortAsync(exception);
                     }
-                    goAwayTask = _closeTask ?? AbortAsync(exception);
+                    await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
                 }
-                await goAwayTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore
-            }
-            catch (Exception ex)
-            {
-                Debug.Assert(false, $"unexpected exception {ex}");
+                catch (OperationCanceledException)
+                {
+                    // Ignore
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception {ex}");
+                }
             }
 
             async Task PerformGoAwayAsync(Exception exception)
@@ -355,24 +356,27 @@ namespace ZeroC.Ice
         {
             try
             {
-                // Initialize the transport.
-                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
-
-                if (!Endpoint.IsDatagram)
+                using (StartScope())
                 {
-                    // Create the control stream and send the initialize frame
-                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    // Initialize the transport.
+                    await Socket.InitializeAsync(cancel).ConfigureAwait(false);
 
-                    // Wait for the peer control stream to be accepted and read the initialize frame
-                    SocketStream peerControlStream =
-                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    if (!Endpoint.IsDatagram)
+                    {
+                        // Create the control stream and send the initialize frame
+                        _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
-                    // Setup a task to wait for the close frame on the peer's control stream.
-                    _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                    default);
+                        // Wait for the peer control stream to be accepted and read the initialize frame
+                        SocketStream peerControlStream =
+                            await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+
+                        // Setup a task to wait for the close frame on the peer's control stream.
+                        _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
+                                        default);
+                    }
+
+                    Socket.Initialized();
                 }
-
-                Socket.Initialized();
 
                 lock (_mutex)
                 {
@@ -396,8 +400,6 @@ namespace ZeroC.Ice
                 throw;
             }
         }
-
-        internal abstract IReadOnlyList<KeyValuePair<string, object>> LogScope();
 
         internal void Monitor()
         {
@@ -443,6 +445,8 @@ namespace ZeroC.Ice
                 }
             }
         }
+
+        internal IDisposable? StartScope() => Socket.StartSocketScope();
 
         private async Task AbortAsync(Exception exception)
         {
@@ -491,100 +495,115 @@ namespace ZeroC.Ice
             SocketStream? stream = null;
             while (stream == null)
             {
-                try
+                using (StartScope())
                 {
-                    // Accept a new stream.
-                    stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (ConnectionClosedException) when (_state == ConnectionState.Closing)
-                {
-                    // Ignore and continue accepting stream data until the peer closes the connection.
-                }
-                catch (Exception ex)
-                {
-                    _ = AbortAsync(ex);
-                    throw;
+                    try
+                    {
+                        // Accept a new stream.
+                        stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (ConnectionClosedException) when (_state == ConnectionState.Closing)
+                    {
+                        // Ignore and continue accepting stream data until the peer closes the connection.
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = AbortAsync(ex);
+                        throw;
+                    }
                 }
             }
 
             // Start a new accept stream task to accept another stream.
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
-            try
+            using (StartScope())
+            using (Communicator.Logger.StartStreamScope(Endpoint.Protocol, stream.Id))
             {
-                using var cancelSource = new CancellationTokenSource();
-                CancellationToken cancel = cancelSource.Token;
-                if (stream.IsBidirectional)
+                Debug.Assert(stream != null);
+                try
                 {
-                    // Be notified if the peer resets the stream to cancel the dispatch.
-                    //
-                    // The error code is ignored here since we can't provide it to the CancelationTokenSource. We
-                    // could consider setting the error code into Ice.Current to allow the user to figure out the
-                    // reason of the stream reset.
-                    stream.Reset += (long errorCode) => cancelSource.Cancel();
-                }
-
-                // Receives the request frame from the stream
-                using IncomingRequestFrame request =
-                    await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
-
-                // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
-                OutgoingResponseFrame? response = null;
-                Server? server = _server;
-                if (server == null)
-                {
+                    using var cancelSource = new CancellationTokenSource();
+                    CancellationToken cancel = cancelSource.Token;
                     if (stream.IsBidirectional)
                     {
-                        response = new OutgoingResponseFrame(request, new ObjectNotExistException());
+                        // Be notified if the peer resets the stream to cancel the dispatch.
+                        //
+                        // The error code is ignored here since we can't provide it to the CancelationTokenSource. We
+                        // could consider setting the error code into Ice.Current to allow the user to figure out the
+                        // reason of the stream reset.
+                        stream.Reset += (long errorCode) => cancelSource.Cancel();
                     }
-                }
-                else
-                {
-                    // Dispatch the request and get the response
-                    var current = new Current(server, request, stream, this);
-                    if (server.TaskScheduler != null)
-                    {
-                        response = await TaskRun(() => server.DispatchAsync(request, current, cancel),
-                                                cancel,
-                                                server.TaskScheduler).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        response = await server.DispatchAsync(request, current, cancel).ConfigureAwait(false);
-                    }
-                }
 
-                // No need to send the response if the dispatch is canceled.
-                cancel.ThrowIfCancellationRequested();
+                    // Receives the request frame from the stream
+                    using IncomingRequestFrame request =
+                        await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+                    using (Communicator.Logger.StartRequestScope(request))
+                    {
+                        if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
+                        {
+                            Communicator.ProtocolLogger.LogReceivedRequest(request);
+                        }
 
-                if (stream.IsBidirectional)
-                {
-                    Debug.Assert(response != null);
-                    try
-                    {
-                        // Send the response over the stream
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
-                    }
-                    catch (RemoteException ex)
-                    {
-                        // Send the exception as the response instead of sending the response from the dispatch
-                        // if sending raises a remote exception.
-                        response = new OutgoingResponseFrame(request, ex);
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
+                        OutgoingResponseFrame? response = null;
+                        Server? server = _server;
+                        if (server == null)
+                        {
+                            if (stream.IsBidirectional)
+                            {
+                                response = new OutgoingResponseFrame(request, new ObjectNotExistException());
+                            }
+                        }
+                        else
+                        {
+                            // Dispatch the request and get the response
+                            var current = new Current(server, request, stream, this);
+                            if (server.TaskScheduler != null)
+                            {
+                                response = await TaskRun(() => server.DispatchAsync(request, current, cancel),
+                                                        cancel,
+                                                        server.TaskScheduler).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                response = await server.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                            }
+                        }
+
+                        // No need to send the response if the dispatch is canceled.
+                        cancel.ThrowIfCancellationRequested();
+
+                        if (stream.IsBidirectional)
+                        {
+                            Debug.Assert(response != null);
+                            try
+                            {
+                                // Send the response over the stream
+                                await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                            }
+                            catch (RemoteException ex)
+                            {
+                                // Send the exception as the response instead of sending the response from the dispatch
+                                // if sending raises a remote exception.
+                                response = new OutgoingResponseFrame(request, ex);
+                                await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                            }
+                        }
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore, the dispatch got canceled
-            }
-            catch (Exception ex)
-            {
-                _ = AbortAsync(ex);
-            }
-            finally
-            {
-                stream.Release();
+                catch (OperationCanceledException)
+                {
+                    // Ignore, the dispatch got canceled
+                }
+                catch (Exception ex)
+                {
+                    _ = AbortAsync(ex);
+                }
+                finally
+                {
+                    stream?.Release();
+                }
             }
 
             static async ValueTask<OutgoingResponseFrame> TaskRun(
@@ -716,63 +735,6 @@ namespace ZeroC.Ice
         }
 
         internal override bool CanTrust(NonSecure preferNonSecure) => true;
-
-        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
-
-        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
-        {
-            private const string TransportKey = "Transport";
-            private const string ProtocolKey = "Protocol";
-            private const string IncomingKey = "Incoming";
-            private const string ServerKey = "Server";
-
-            private string? _cached;
-            private ColocatedConnection _connection;
-
-            internal Scope(ColocatedConnection connection) => _connection = connection;
-
-            public KeyValuePair<string, object> this[int index] =>
-                index switch
-                {
-                    0 => new KeyValuePair<string, object>(TransportKey, _connection.Endpoint.Transport),
-                    1 => new KeyValuePair<string, object>(ProtocolKey, _connection.Endpoint.Protocol),
-                    2 => new KeyValuePair<string, object>(IncomingKey, _connection.IsIncoming),
-                    3 => _connection.Server is Server server ?
-                        new KeyValuePair<string, object>(ServerKey, server.Name) :
-                        throw new ArgumentException(nameof(index)),
-                    _ => throw new ArgumentOutOfRangeException(nameof(index))
-                };
-
-            public int Count => _connection.Server == null ? 3 : 4;
-
-            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-            {
-                for (var i = 0; i < Count; ++i)
-                {
-                    yield return this[i];
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            public override string ToString()
-            {
-                if (_cached == null)
-                {
-                    var sb = new StringBuilder();
-                    if (_connection.Server is Server server)
-                    {
-                        sb.Append("server = ").Append(server.Name).Append(", ");
-                    }
-                    sb.Append("incoming = ").Append(_connection.IsIncoming).Append(", ");
-                    sb.Append("transport = ").Append(_connection.Endpoint.Transport).Append(", ");
-                    sb.Append("protocol = ").Append(_connection.Endpoint.Protocol);
-                    _cached = sb.ToString();
-                }
-
-                return _cached;
-            }
-        }
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -829,61 +791,6 @@ namespace ZeroC.Ice
                 _ => false
             };
             return trusted;
-        }
-
-        internal override IReadOnlyList<KeyValuePair<string, object>> LogScope() => new Scope(this);
-
-        internal class Scope : IReadOnlyList<KeyValuePair<string, object>>
-        {
-            private const string LocalAddressKey = "LocalAddress";
-            private const string RemoteAddressKey = "RemoteAddress";
-            private const string TransportKey = "Transport";
-            private const string ProtocolKey = "Protocol";
-
-            private string? _cached;
-            private Endpoint _endpoint;
-            private string _localAddress;
-            private string _remoteAddress;
-
-            internal Scope(IPConnection connection)
-            {
-                _localAddress = Network.LocalAddrToString(connection.LocalEndpoint);
-                _remoteAddress = Network.RemoteAddrToString(connection.RemoteEndpoint);
-                _endpoint = connection.Endpoint;
-            }
-
-            public KeyValuePair<string, object> this[int index] =>
-                index switch
-                {
-                    0 => new KeyValuePair<string, object>(LocalAddressKey, _localAddress),
-                    1 => new KeyValuePair<string, object>(RemoteAddressKey, _remoteAddress),
-                    2 => new KeyValuePair<string, object>(TransportKey, _endpoint.Transport),
-                    3 => new KeyValuePair<string, object>(ProtocolKey, _endpoint.Protocol),
-                    _ => throw new ArgumentOutOfRangeException(nameof(index))
-                };
-
-            public int Count => 4;
-
-            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-            {
-                for (var i = 0; i < Count; ++i)
-                {
-                    yield return this[i];
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            public override string ToString()
-            {
-                if (_cached == null)
-                {
-                    _cached = @$"local address = {_localAddress}, remote address = {_remoteAddress
-                        }, transport = {_endpoint.Transport}, protocol = {_endpoint.Protocol}";
-                }
-
-                return _cached;
-            }
         }
     }
 

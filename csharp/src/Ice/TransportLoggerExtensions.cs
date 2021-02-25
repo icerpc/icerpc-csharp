@@ -312,6 +312,9 @@ namespace ZeroC.Ice
             new EventId(SendingSlicStreamConsumedFrame, nameof(SendingSlicStreamConsumedFrame)),
             "sending Slic stream consumed frame: size = {Size}");
 
+        private static readonly Func<ILogger, long, string, IDisposable> _colocatedSocketScope =
+            LoggerMessage.DefineScope<long, string>("socket(colocatedm ID = {ID}, object adapter = {ObjectAdapter}");
+
         private static readonly Func<ILogger, Transport, string, string, IDisposable> _socketScope =
             LoggerMessage.DefineScope<Transport, string, string>(
                 "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress})");
@@ -587,12 +590,21 @@ namespace ZeroC.Ice
             }
         }
 
+        internal static IDisposable? StartSocketScope(Connection connection) =>
+            connection.Socket.StartSocketScope();
+
         internal static IDisposable StartSocketScope(
             this ILogger logger,
             Transport transport,
             string localAddress,
             string remoteAddress) =>
             _socketScope(logger, transport, localAddress, remoteAddress);
+
+        internal static IDisposable StartColocatedSocketScope(
+            this ILogger logger,
+            long id,
+            string adapterName) =>
+            _colocatedSocketScope(logger, id, adapterName);
 
         internal static IDisposable StartDatagramSocketScope(
             this ILogger logger,

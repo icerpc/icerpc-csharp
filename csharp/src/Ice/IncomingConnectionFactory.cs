@@ -47,7 +47,7 @@ namespace ZeroC.Ice
         {
             if (_communicator.Logger.IsEnabled(LogLevel.Information))
             {
-                _communicator.Logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
+                _communicator.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting

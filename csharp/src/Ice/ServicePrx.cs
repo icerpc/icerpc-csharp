@@ -1292,6 +1292,7 @@ namespace ZeroC.Ice
                 }
             }
 
+            ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;
             int attempt = 1;
             bool triedAllEndpoints = false;
@@ -1339,41 +1340,54 @@ namespace ZeroC.Ice
 
                     cancel.ThrowIfCancellationRequested();
 
-                    // Create the outgoing stream.
-                    stream = connection.CreateStream(!oneway);
-
-                    // Send the request and wait for the sending to complete.
-                    await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
-
-                    // The request is sent, notify the progress callback.
-                    // TODO: Get rid of the sentSynchronously parameter which is always false now?
-                    if (progress != null)
+                    using (connection.StartScope())
+                    using (protocolLogger.StartRequestScope(request))
                     {
-                        progress.Report(false);
-                        progress = null; // Only call the progress callback once (TODO: revisit this?)
-                    }
-                    if (releaseRequestAfterSent)
-                    {
-                        // TODO release the request
-                    }
-                    sent = true;
-                    exception = null;
-                    response?.Dispose();
+                        // Create the outgoing stream.
+                        stream = connection.CreateStream(!oneway);
 
-                    if (oneway)
-                    {
-                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
-                    }
+                        // Send the request and wait for the sending to complete.
+                        await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
-                    // Wait for the reception of the response.
-                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                        // The request is sent, notify the progress callback.
+                        // TODO: Get rid of the sentSynchronously parameter which is always false now?
+                        if (progress != null)
+                        {
+                            progress.Report(false);
+                            progress = null; // Only call the progress callback once (TODO: revisit this?)
+                        }
+                        if (releaseRequestAfterSent)
+                        {
+                            // TODO release the request
+                        }
+                        sent = true;
+                        exception = null;
+                        response?.Dispose();
 
-                    // If success, just return the response!
-                    if (response.ResultType == ResultType.Success)
-                    {
-                        return response;
+                        if (oneway)
+                        {
+                            return IncomingResponseFrame.WithVoidReturnValue(request.Protocol,
+                                                                             request.PayloadEncoding);
+                        }
+
+                        using (protocolLogger.StartStreamScope(request.Protocol, stream.Id))
+                        {
+                            // Wait for the reception of the response.
+                            response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+
+                            if (protocolLogger.IsEnabled(LogLevel.Information))
+                            {
+                                protocolLogger.LogReceivedResponse(stream.Id, response);
+                            }
+
+                            // If success, just return the response!
+                            if (response.ResultType == ResultType.Success)
+                            {
+                                return response;
+                            }
+                            observer?.RemoteException();
+                        }
                     }
-                    observer?.RemoteException();
                 }
                 catch (NoEndpointException ex) when (endpointsAge == TimeSpan.Zero)
                 {
@@ -1449,27 +1463,30 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    ILogger protocolLogger = Communicator.ProtocolLogger;
                     tryAgain = true;
                     if (protocolLogger.IsEnabled(LogLevel.Debug))
                     {
-                        if (connection != null)
+                        using (connection?.StartScope())
+                        using (protocolLogger.StartRequestScope(request))
                         {
-                            protocolLogger.LogRetryRequestInvocation(retryPolicy,
-                                                                     attempt,
-                                                                     Communicator.InvocationMaxAttempts,
-                                                                     exception);
-                        }
-                        else if (triedAllEndpoints)
-                        {
-                            protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
-                                                                           attempt,
-                                                                           Communicator.InvocationMaxAttempts,
-                                                                           exception);
-                        }
-                        else
-                        {
-                            Communicator.ProtocolLogger.LogRetryConnectionEstablishment(exception);
+                            if (connection != null)
+                            {
+                                protocolLogger.LogRetryRequestInvocation(retryPolicy,
+                                                                         attempt,
+                                                                         Communicator.InvocationMaxAttempts,
+                                                                         exception);
+                            }
+                            else if (triedAllEndpoints)
+                            {
+                                protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
+                                                                               attempt,
+                                                                               Communicator.InvocationMaxAttempts,
+                                                                               exception);
+                            }
+                            else
+                            {
+                                protocolLogger.LogRetryConnectionEstablishment(exception);
+                            }
                         }
                     }
 

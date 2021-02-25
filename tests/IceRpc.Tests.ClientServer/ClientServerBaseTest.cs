@@ -19,7 +19,7 @@ namespace IceRpc.Tests.ClientServer
         private static int _nextBasePort;
 
         public ClientServerBaseTest()
-            : this(Protocol.Ice2, "")
+            : this(Protocol.Ice2, "tcp")
         {
         }
 

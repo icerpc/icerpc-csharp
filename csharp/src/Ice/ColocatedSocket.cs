@@ -238,6 +238,20 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartSocketScope() => null;
+        internal override IDisposable? StartSocketScope()
+        {
+            // If any of the logger is enable we create the scope
+            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
+                Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
+                Endpoint.Communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
+                Endpoint.Communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
+                Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
+            {
+                return Endpoint.Communicator.Logger.StartColocatedSocketScope(
+                    _id,
+                    ((ColocatedEndpoint)Endpoint).Server.Name);
+            }
+            return null;
+        }
     }
 }
