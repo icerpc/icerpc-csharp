@@ -437,19 +437,19 @@ namespace ZeroC.Ice.Test.Binding
                 var localipv4 = new ServerOptions
                 {
                     Endpoints = getEndpoint("127.0.0.1"),
-                    ServerName = "127.0.0.1"
+                    PublishedHost = "127.0.0.1"
                 };
 
                 var localipv6 = new ServerOptions
                 {
                     Endpoints = getEndpoint("::1"),
-                    ServerName = "::1"
+                    PublishedHost = "::1"
                 };
 
                 var localhost = new ServerOptions
                 {
                     Endpoints = getEndpoint("localhost"),
-                    ServerName = "localhost"
+                    PublishedHost = "localhost"
                 };
 
                 var serverOptions = new ServerOptions[]

@@ -233,14 +233,14 @@ namespace ZeroC.Ice
                 // If the PublishedEndpoints config property isn't set, we compute the published endpoints from
                 // the endpoints.
 
-                if (options.ServerName.Length == 0)
+                if (options.PublishedHost.Length == 0)
                 {
                     throw new ArgumentException(
-                        "both options.ServerName and options.PublishedEndpoints are empty",
+                        "both options.PublishedHost and options.PublishedEndpoints are empty",
                         nameof(options));
                 }
 
-                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.ServerName)).
+                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
                     Distinct().ToImmutableArray();
             }
 

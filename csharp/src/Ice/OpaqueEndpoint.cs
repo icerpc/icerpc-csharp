@@ -106,7 +106,7 @@ namespace ZeroC.Ice
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an opaque endpoint");
 
-        protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
+        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for opaque endpoint");
 
         internal static OpaqueEndpoint Create(

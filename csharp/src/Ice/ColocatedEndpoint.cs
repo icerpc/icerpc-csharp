@@ -75,7 +75,7 @@ namespace ZeroC.Ice
                 server: null));
         }
 
-        protected internal override Endpoint GetPublishedEndpoint(string serverName) =>
+        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
         internal ColocatedEndpoint(Server server)

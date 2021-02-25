@@ -35,12 +35,12 @@ namespace ZeroC.Ice
 
         public string PublishedEndpoints { get; set; } = "";
 
+        // TODO: fix default
+        public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
+
         public string ReplicaGroupId { get; set; } = ""; // ice1 only
 
         public bool SerializeDispatch { get; set; }
-
-        // TODO: fix default
-        public string ServerName { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
 
         public TaskScheduler? TaskScheduler { get; set; }
     }

@@ -35,7 +35,7 @@ namespace ZeroC.Ice.Test.Discovery
                     LocatorRegistry = _locatorRegistry,
                     Name = name,
                     ReplicaGroupId = replicaGroupId,
-                    ServerName = "localhost"
+                    PublishedHost = "localhost"
                 });
             _servers[name] = oa;
             await oa.ActivateAsync(cancel);

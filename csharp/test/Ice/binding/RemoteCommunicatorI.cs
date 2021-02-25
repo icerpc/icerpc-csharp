@@ -33,7 +33,7 @@ namespace ZeroC.Ice.Test.Binding
                                     NonSecure.Always,
                             Endpoints = endpoints,
                             Name = name,
-                            ServerName = TestHelper.GetTestHost(current.Communicator.GetProperties())
+                            PublishedHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
                     await server.ActivateAsync(cancel);
 
