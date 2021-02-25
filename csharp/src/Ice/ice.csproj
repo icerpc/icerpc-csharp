@@ -68,7 +68,6 @@
         <Compile Update="generated\BuiltinSequences.cs">
           <SliceCompileSource>..\..\..\slice\Ice\BuiltinSequences.ice</SliceCompileSource>
         </Compile>
-        <PackageReference Include="Microsoft.Extensions.Logging.EventSource" Version="5.0.0" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
