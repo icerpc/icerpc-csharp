@@ -396,7 +396,7 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. </param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T Add<T>(
             Identity identity,
