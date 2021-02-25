@@ -62,7 +62,7 @@ namespace ZeroC.Ice.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = test1.Clone(ITestIntfPrx.Factory);
+                var test3 = ITestIntfPrx.Factory.Clone(test1);
                 TestHelper.Assert(test3.GetCachedConnection() == test1.GetCachedConnection());
                 TestHelper.Assert(test3.GetCachedConnection() == test2.GetCachedConnection());
 
@@ -136,7 +136,7 @@ namespace ZeroC.Ice.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = test1.Clone(ITestIntfPrx.Factory);
+                var test3 = ITestIntfPrx.Factory.Clone(test1);
                 try
                 {
                     TestHelper.Assert(await test3.GetConnectionAsync() == await test1.GetConnectionAsync());
@@ -469,7 +469,7 @@ namespace ZeroC.Ice.Test.Binding
                     await using var oa = new Server(serverCommunicator, p);
                     await oa.ActivateAsync();
 
-                    IServicePrx prx = oa.CreateProxy("dummy", IServicePrx.Factory);
+                    IServicePrx prx = IServicePrx.Factory.Create(oa, "dummy");
                     try
                     {
                         await using var clientCommunicator = new Communicator();

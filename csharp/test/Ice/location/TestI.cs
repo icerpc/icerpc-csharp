@@ -27,11 +27,11 @@ namespace ZeroC.Ice.Test.Location
             Task.WhenAll(_server1.ShutdownAsync(), _server2.ShutdownAsync());
 
         public IHelloPrx GetHello(Current current, CancellationToken cancel) =>
-            _server1.CreateProxy("hello", IHelloPrx.Factory).Clone(
+            IHelloPrx.Factory.Create(_server1, "hello").Clone(
                 location: ImmutableArray.Create(_server1.AdapterId));
 
         public IHelloPrx GetReplicatedHello(Current current, CancellationToken cancel) =>
-            _server1.CreateProxy("hello", IHelloPrx.Factory);
+            IHelloPrx.Factory.Create(_server1, "hello");
 
         public void MigrateHello(Current current, CancellationToken cancel)
         {

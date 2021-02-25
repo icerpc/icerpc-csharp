@@ -47,7 +47,7 @@ namespace ZeroC.Ice.Discovery
                 (lookup, dummyReply) =>
                 {
                     IFindAdapterByIdReplyPrx reply =
-                        dummyReply.Clone(IFindAdapterByIdReplyPrx.Factory, identity: replyServant.Identity);
+                        IFindAdapterByIdReplyPrx.Factory.Clone(dummyReply, identity: replyServant.Identity);
 
                     return lookup.FindAdapterByIdAsync(_domainId,
                                                       adapterId,
@@ -67,7 +67,7 @@ namespace ZeroC.Ice.Discovery
                 (lookup, dummyReply) =>
                 {
                     IFindObjectByIdReplyPrx reply =
-                        dummyReply.Clone(IFindObjectByIdReplyPrx.Factory, identity: replyServant.Identity);
+                        IFindObjectByIdReplyPrx.Factory.Clone(dummyReply, identity: replyServant.Identity);
 
                     return lookup.FindObjectByIdAsync(_domainId, identity, reply, cancel: cancel);
                 },
@@ -157,7 +157,7 @@ namespace ZeroC.Ice.Discovery
                                               });
 
             // Dummy proxy for replies which can have multiple endpoints (but see below).
-            IServicePrx lookupReply = _replyServer.CreateProxy("dummy", IServicePrx.Factory);
+            IServicePrx lookupReply = IServicePrx.Factory.Create(_replyServer, "dummy");
 
             // Create one lookup proxy per endpoint from the given proxy. We want to send a multicast datagram on
             // each of the lookup proxy.
