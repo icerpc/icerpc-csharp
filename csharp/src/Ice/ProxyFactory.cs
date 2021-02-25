@@ -310,7 +310,7 @@ namespace ZeroC.Ice
         /// <returns>The non-null proxy read from the stream.</returns>
         public static T Read<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx =>
-            ReadNullable<T>(factory, istr) ?? throw new InvalidDataException("read null for a non-nullable proxy");
+            ReadNullable(factory, istr) ?? throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a nullable proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -498,6 +498,6 @@ namespace ZeroC.Ice
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(this IProxyFactory<T> factory, InputStream istr, int tag)
             where T : class, IServicePrx =>
-            istr.HasTaggedProxy(tag) ? Read(factory, istr) : null;
+            istr.ReadTaggedProxyHeader(tag) ? Read(factory, istr) : null;
     }
 }

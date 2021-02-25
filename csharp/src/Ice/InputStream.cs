@@ -1022,23 +1022,6 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Checks if the stream holds a tagged proxy for the given tag, and when it does, skips the size
-        /// of this proxy.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>True when the next bytes on the stream correspond to the proxy; otherwise, false.</returns>
-        internal bool HasTaggedProxy(int tag)
-        {
-            if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
-            {
-                SkipSize(fixedLength: true);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
         /// <summary>Reads a binary context entry.</summary>
         /// <returns>The binary context key and value. The read-only memory for the value is backed by the input
         /// stream's buffer, the data is not copied.</returns>
@@ -1175,6 +1158,23 @@ namespace ZeroC.Ice
             }
 
             return endpoint;
+        }
+
+        /// <summary>Checks if the stream holds a tagged proxy for the given tag, and when it does, skips the size
+        /// of this proxy.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <returns>True when the next bytes on the stream correspond to the proxy; otherwise, false.</returns>
+        internal bool ReadTaggedProxyHeader(int tag)
+        {
+            if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            {
+                SkipSize(fixedLength: true);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         internal void Skip(int size)
