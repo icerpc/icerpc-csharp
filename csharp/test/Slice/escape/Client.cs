@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ZeroC.Ice;
 using ZeroC.Slice.Test.Escape.@abstract;
 using ZeroC.Test;
 
@@ -108,18 +109,18 @@ public class Client : TestHelper
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = server.CreateProxy("test", IdecimalPrx.Factory);
+        IdecimalPrx p = IdecimalPrx.Factory.Create(server, "test");
         p.@default();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
-        ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx t1 = server.CreateProxy("test1",
-            ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx.Factory);
+        ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
+            ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "test1");
         t1.op();
 
-        ZeroC.Slice.Test.Escape.System.ITestPrx t2 = server.CreateProxy("test2",
-            ZeroC.Slice.Test.Escape.System.ITestPrx.Factory);
+        ZeroC.Slice.Test.Escape.System.ITestPrx t2 =
+            ZeroC.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "test2");
         t2.op();
         Output.WriteLine("ok");
 

@@ -158,28 +158,6 @@ namespace ZeroC.Ice
                                                      isClosedByPeer: false,
                                                      RetryPolicy.AfterDelay(TimeSpan.Zero)));
 
-        /// <summary>Creates a special "fixed" proxy that always uses this connection. This proxy can be used for
-        /// callbacks from a server to a client if the server cannot directly establish a connection to the client,
-        /// for example because of firewalls. In this case, the server would create a proxy using an already
-        /// established connection from the client.</summary>
-        /// <param name="identity">The identity for which a proxy is to be created.</param>
-        /// <param name="facet">The facet.</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory, where INamePrx is the desired proxy type.
-        /// </param>
-        /// <returns>A proxy that matches the given identity and facet, and uses this connection.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            var options = new ServicePrxOptions(
-                Communicator,
-                identity,
-                Protocol,
-                facet: facet,
-                fixedConnection: this,
-                oneway: Endpoint.IsDatagram);
-
-            return factory(options);
-        }
-
         /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about
         /// the closure, it can call Connection.ThrowException. The connection object is passed as the event sender
         /// argument.</summary>

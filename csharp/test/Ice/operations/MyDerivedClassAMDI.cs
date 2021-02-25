@@ -262,9 +262,9 @@ namespace ZeroC.Ice.Test.Operations
             Current current,
             CancellationToken cancel) =>
             new((
-                current.Server.CreateProxy(current.Identity, IMyClassPrx.Factory),
+                IMyClassPrx.Factory.Create(current.Server, current.Identity),
                 p1,
-                current.Server.CreateProxy("noSuchIdentity", IMyClassPrx.Factory)));
+                IMyClassPrx.Factory.Create(current.Server, "noSuchIdentity")));
 
         public ValueTask<(MyEnum, MyEnum)> OpMyEnumAsync(MyEnum p1, Current current, CancellationToken cancel) =>
             new((MyEnum.enum3, p1));

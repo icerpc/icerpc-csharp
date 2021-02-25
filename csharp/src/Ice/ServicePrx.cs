@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,15 +49,6 @@ namespace ZeroC.Ice
         internal bool IsRelative => Protocol != Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
         internal bool IsWellKnown => IsIndirect && Location.Count == 0;
 
-        // Sub-properties for ice1 proxies
-        private static readonly string[] _suffixes =
-        {
-            "CacheConnection",
-            "InvocationTimeout",
-            "PreferNonSecure",
-            "Context\\..*"
-        };
-
         private volatile Connection? _connection;
         private int _hashCode; // cached hash code value
 
@@ -93,139 +83,6 @@ namespace ZeroC.Ice
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
         public static bool operator !=(ServicePrx? lhs, ServicePrx? rhs) => !(lhs == rhs);
-
-        /// <summary>Creates a proxy from a string and a communicator.</summary>
-        public static T Parse<T>(
-            string s,
-            Communicator communicator,
-            ProxyFactory<T> factory,
-            string? propertyPrefix = null)
-            where T : class, IServicePrx
-        {
-            string proxyString = s.Trim();
-            if (proxyString.Length == 0)
-            {
-                throw new FormatException("empty string is invalid");
-            }
-
-            bool? cacheConnection = null;
-            IReadOnlyDictionary<string, string>? context = null;
-            Encoding encoding;
-            IReadOnlyList<Endpoint> endpoints;
-            string facet;
-            Identity identity;
-            TimeSpan? invocationTimeout = null;
-            object? label = null;
-            IReadOnlyList<string> location;
-            bool oneway = false;
-            bool? preferExistingConnection = null;
-            NonSecure? preferNonSecure = null;
-            Protocol protocol;
-
-            if (UriParser.IsProxyUri(proxyString))
-            {
-                List<string> path;
-                UriParser.ProxyOptions proxyOptions;
-                (endpoints, path, proxyOptions, facet) = UriParser.ParseProxy(proxyString, communicator);
-
-                protocol = proxyOptions.Protocol ?? Protocol.Ice2;
-                Debug.Assert(protocol != Protocol.Ice1); // the URI parsing rejects ice1
-
-                encoding = proxyOptions.Encoding ?? Encoding.V20;
-
-                switch (path.Count)
-                {
-                    case 0:
-                        // TODO: should we add a default identity "Default" or "Root" or "Main"?
-                        throw new FormatException($"missing identity in proxy `{proxyString}'");
-                    case 1:
-                        identity = new Identity(category: "", name: path[0]);
-                        location = ImmutableArray<string>.Empty;
-                        break;
-                    case 2:
-                        identity = new Identity(category: path[0], name: path[1]);
-                        location = ImmutableArray<string>.Empty;
-                        break;
-                    default:
-                        identity = new Identity(category: path[^2], name: path[^1]);
-                        path.RemoveRange(path.Count - 2, 2);
-                        location = path;
-                        break;
-                }
-
-                if (identity.Name.Length == 0)
-                {
-                    throw new FormatException($"invalid identity with empty name in proxy `{proxyString}'");
-                }
-                if (location.Any(segment => segment.Length == 0))
-                {
-                    throw new FormatException($"invalid location with empty segment in proxy `{proxyString}'");
-                }
-
-                (cacheConnection,
-                 context,
-                 invocationTimeout,
-                 label,
-                 preferExistingConnection,
-                 preferNonSecure) = proxyOptions;
-            }
-            else
-            {
-                protocol = Protocol.Ice1;
-                string location0;
-
-                (identity, facet, encoding, location0, endpoints, oneway) =
-                    Ice1Parser.ParseProxy(proxyString, communicator);
-
-                // 0 or 1 segment
-                location = location0.Length > 0 ? ImmutableArray.Create(location0) : ImmutableArray<string>.Empty;
-
-                // Override the defaults with the proxy properties if a property prefix is defined.
-                if (propertyPrefix != null && propertyPrefix.Length > 0)
-                {
-                    // Warn about unknown properties.
-                    if (communicator.WarnUnknownProperties)
-                    {
-                        CheckForUnknownProperties(propertyPrefix, communicator);
-                    }
-
-                    cacheConnection = communicator.GetPropertyAsBool($"{propertyPrefix}.CacheConnection");
-
-                    string property = $"{propertyPrefix}.Context.";
-                    context = communicator.GetProperties(forPrefix: property).
-                        ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
-
-                    property = $"{propertyPrefix}.InvocationTimeout";
-                    invocationTimeout = communicator.GetPropertyAsTimeSpan(property);
-                    if (invocationTimeout == TimeSpan.Zero)
-                    {
-                        throw new InvalidConfigurationException($"{property}: 0 is not a valid value");
-                    }
-
-                    label = communicator.GetProperty($"{propertyPrefix}.Label");
-
-                    preferNonSecure = communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
-                }
-            }
-
-            var options = new ServicePrxOptions(
-                communicator,
-                identity,
-                protocol,
-                cacheConnection: cacheConnection ?? true,
-                context: context,
-                encoding: encoding,
-                endpoints: endpoints,
-                facet: facet,
-                invocationTimeout: invocationTimeout,
-                location: location,
-                locationService: endpoints.Count > 0 ? null : communicator.DefaultLocationService,
-                oneway: oneway,
-                preferExistingConnection: preferExistingConnection,
-                preferNonSecure: preferNonSecure);
-
-            return factory(options);
-        }
 
         /// <inheritdoc/>
         public bool Equals(ServicePrx? other)
@@ -668,13 +525,13 @@ namespace ZeroC.Ice
         protected internal ServicePrx(ServicePrxOptions options)
         {
             CacheConnection = options.CacheConnection;
-            Communicator = options.Communicator;
-            Context = options.Context;
-            Encoding = options.Encoding;
+            Communicator = options.Communicator!;
+            Context = options.Context ?? Communicator.DefaultContext;
+            Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
             Facet = options.Facet;
             Identity = options.Identity;
-            InvocationInterceptors = options.InvocationInterceptors;
+            InvocationInterceptors = options.InvocationInterceptors ?? Communicator.DefaultInvocationInterceptors;
             IsFixed = options.Connection != null; // auto-computed
             IsOneway = options.IsOneway;
             Label = options.Label;
@@ -770,168 +627,6 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Reads a proxy from the input stream.</summary>
-        /// <param name="istr">The input stream to read from.</param>
-        /// <param name="factory">The proxy factory.</param>
-        /// <returns>The proxy read from the stream (can be null).</returns>
-        internal static T? Read<T>(InputStream istr, ProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            if (istr.Encoding == Encoding.V11)
-            {
-                var identity = new Identity(istr);
-                if (identity.Name.Length == 0)
-                {
-                    return null;
-                }
-
-                var proxyData = new ProxyData11(istr);
-
-                if (proxyData.FacetPath.Length > 1)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with {proxyData.FacetPath.Length} elements in its facet path");
-                }
-
-                if ((byte)proxyData.Protocol == 0)
-                {
-                    throw new InvalidDataException("received proxy with protocol set to 0");
-                }
-
-                if (proxyData.Protocol != Protocol.Ice1 && proxyData.InvocationMode != InvocationMode.Twoway)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
-                }
-
-                if (proxyData.ProtocolMinor != 0)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
-                }
-
-                // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
-                // header (6 bytes), for a total of 8 bytes.
-                Endpoint[] endpoints =
-                    istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint(proxyData.Protocol));
-
-                string location0 = endpoints.Length == 0 ? istr.ReadString() : "";
-
-                Communicator communicator = istr.Communicator!;
-
-                // TODO: correct unmarshaling of ice2 relative proxies (see below)
-
-                var options = new ServicePrxOptions(
-                    communicator,
-                    identity,
-                    proxyData.Protocol,
-                    encoding: proxyData.Encoding,
-                    endpoints: endpoints,
-                    facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                    location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
-                    locationService: proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
-                    oneway: proxyData.InvocationMode != InvocationMode.Twoway);
-
-                return factory(options);
-            }
-            else
-            {
-                Debug.Assert(istr.Encoding == Encoding.V20);
-
-                ProxyKind20 proxyKind = istr.ReadProxyKind20();
-                if (proxyKind == ProxyKind20.Null)
-                {
-                    return null;
-                }
-
-                var proxyData = new ProxyData20(istr);
-
-                if (proxyData.Identity.Name.Length == 0)
-                {
-                    throw new InvalidDataException("received non-null proxy with empty identity name");
-                }
-
-                Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-
-                if (proxyData.InvocationMode != null && protocol != Protocol.Ice1)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy for protocol {protocol.GetName()} with invocation mode set");
-                }
-
-                // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + host name
-                // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for empty
-                // sequence), for a total of 7 bytes.
-                IReadOnlyList<Endpoint> endpoints = proxyKind == ProxyKind20.Direct ?
-                    istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
-                    ImmutableList<Endpoint>.Empty;
-
-                if (proxyKind == ProxyKind20.Direct || protocol == Protocol.Ice1)
-                {
-                    Communicator communicator = istr.Communicator!;
-                    var options = new ServicePrxOptions(
-                        communicator,
-                        proxyData.Identity,
-                        protocol,
-                        encoding: proxyData.Encoding ?? Encoding.V20,
-                        endpoints: endpoints,
-                        facet: proxyData.Facet ?? "",
-                        location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
-                        locationService: communicator.DefaultLocationService,
-                        oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
-
-                    return factory(options);
-                }
-                else // relative proxy with protocol > ice1
-                {
-                    // For now, we don't support relative proxies with a location.
-                    if (proxyData.Location?.Length > 0)
-                    {
-                        throw new InvalidDataException($"received a relative proxy with an invalid location");
-                    }
-
-                    if (istr.Connection is Connection connection)
-                    {
-                        if (connection.Protocol != protocol)
-                        {
-                            throw new InvalidDataException(
-                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                        }
-
-                        var options = new ServicePrxOptions(
-                            connection.Communicator,
-                            proxyData.Identity,
-                            protocol,
-                            encoding: proxyData.Encoding ?? Encoding.V20,
-                            facet: proxyData.Facet ?? "",
-                            fixedConnection: connection);
-
-                        return factory(options);
-                    }
-                    else
-                    {
-                        ServicePrx? source = istr.SourceProxy;
-
-                        if (source == null)
-                        {
-                            throw new InvalidOperationException(
-                                "cannot read a relative proxy from InputStream created without a connection or proxy");
-                        }
-
-                        if (source.Protocol != protocol)
-                        {
-                            throw new InvalidDataException(
-                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                        }
-
-                        return source.Clone(factory,
-                                            encoding: proxyData.Encoding ?? Encoding.V20,
-                                            facet: proxyData.Facet ?? "",
-                                            identity: proxyData.Identity);
-                    }
-                }
-            }
-        }
-
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
         internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
 
@@ -991,35 +686,41 @@ namespace ZeroC.Ice
                 fixedConnection ??= _connection;
                 Debug.Assert(fixedConnection != null);
 
-                return new(Communicator,
-                           identity ?? Identity,
-                           Protocol,
-                           context: context?.ToImmutableSortedDictionary() ?? Context,
-                           encoding: encoding ?? Encoding,
-                           facet: facet ?? Facet,
-                           fixedConnection: fixedConnection,
-                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
-                           oneway: fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway));
+                return new ServicePrxOptions()
+                {
+                    Communicator = Communicator,
+                    Connection = fixedConnection,
+                    Context = context?.ToImmutableSortedDictionary() ?? Context,
+                    Encoding = encoding ?? Encoding,
+                    Facet = facet ?? Facet,
+                    Identity = identity ?? Identity,
+                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
+                    IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
+                    Protocol = Protocol
+                };
             }
             else
             {
-                return new(Communicator,
-                           identity ?? Identity,
-                           Protocol,
-                           cacheConnection: cacheConnection ?? CacheConnection,
-                           context: context?.ToImmutableSortedDictionary() ?? Context,
-                           encoding: encoding ?? Encoding,
-                           endpoints: newEndpoints,
-                           facet: facet ?? Facet,
-                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
-                           label: clearLabel ? null : label ?? Label,
-                           location: newLocation ?? Location,
-                           locationService: clearLocationService ? null : locationService ?? LocationService,
-                           oneway: oneway ?? IsOneway,
-                           preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
-                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride);
+                return new ServicePrxOptions()
+                {
+                    CacheConnection = cacheConnection ?? CacheConnection,
+                    Communicator = Communicator,
+                    Context = context?.ToImmutableSortedDictionary() ?? Context,
+                    Encoding = encoding ?? Encoding,
+                    Endpoints = newEndpoints,
+                    Facet = facet ?? Facet,
+                    Identity = identity ?? Identity,
+                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
+                    IsOneway = oneway ?? IsOneway,
+                    Label = clearLabel ? null : label ?? Label,
+                    Location = newLocation ?? Location,
+                    LocationService = clearLocationService ? null : locationService ?? LocationService,
+                    PreferExistingConnectionOverride = preferExistingConnection ?? _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = preferNonSecure ?? _preferNonSecureOverride,
+                    Protocol = Protocol
+                };
             }
         }
 
@@ -1141,44 +842,6 @@ namespace ZeroC.Ice
             // else, only a single property in the dictionary
 
             return properties;
-        }
-
-        private static void CheckForUnknownProperties(string prefix, Communicator communicator)
-        {
-            // Do not warn about unknown properties if Ice prefix, i.e. Ice, Glacier2, etc.
-            foreach (string name in PropertyNames.ClassPropertyNames)
-            {
-                if (prefix.StartsWith($"{name}.", StringComparison.Ordinal))
-                {
-                    return;
-                }
-            }
-
-            var unknownProps = new List<string>();
-            Dictionary<string, string> props = communicator.GetProperties(forPrefix: $"{prefix}.");
-            foreach (string prop in props.Keys)
-            {
-                bool valid = false;
-                for (int i = 0; i < _suffixes.Length; ++i)
-                {
-                    string pattern = "^" + Regex.Escape(prefix + ".") + _suffixes[i] + "$";
-                    if (new Regex(pattern).Match(prop).Success)
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
-
-                if (!valid)
-                {
-                    unknownProps.Add(prop);
-                }
-            }
-
-            if (unknownProps.Count != 0 && communicator.Logger.IsEnabled(LogLevel.Warning))
-            {
-                communicator.Logger.LogUnknownProxyProperty(prefix, unknownProps);
-            }
         }
 
         private void ClearConnection(Connection connection)

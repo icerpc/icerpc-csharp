@@ -72,6 +72,7 @@ namespace ZeroC.Ice
         public TaskScheduler? TaskScheduler { get; }
 
         internal int IncomingFrameMaxSize { get; }
+        internal bool IsDatagramOnly { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.
 
@@ -79,8 +80,6 @@ namespace ZeroC.Ice
 
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServantMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
-
-        private readonly bool _datagramOnly;
 
         private readonly Dictionary<string, IService> _defaultServantMap = new();
 
@@ -161,7 +160,7 @@ namespace ZeroC.Ice
 
                     if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
                     {
-                        _datagramOnly = true;
+                        IsDatagramOnly = true;
                         ColocationScope = ColocationScope.None;
                     }
 
@@ -350,10 +349,13 @@ namespace ZeroC.Ice
 
                 try
                 {
-                    var proxy = IServicePrx.Factory(new(Communicator,
-                                                        new Identity("dummy", ""),
-                                                        PublishedEndpoints[0].Protocol,
-                                                        endpoints: PublishedEndpoints));
+                    var proxy = IServicePrx.Factory.Create(new ServicePrxOptions()
+                                                          {
+                                                            Communicator = Communicator,
+                                                            Endpoints = PublishedEndpoints,
+                                                            Identity = new Identity("dummy", ""),
+                                                            Protocol = PublishedEndpoints[0].Protocol
+                                                          });
 
                     if (ReplicaGroupId.Length > 0)
                     {
@@ -394,16 +396,16 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>. </param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T Add<T>(
             Identity identity,
             string facet,
             IService servant,
-            ProxyFactory<T> proxyFactory) where T : class, IServicePrx
+            IProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
             Add(identity, facet, servant);
-            return CreateProxy(identity, facet, proxyFactory);
+            return proxyFactory.Create(this, identity, facet);
         }
 
         /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
@@ -435,9 +437,10 @@ namespace ZeroC.Ice
         /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(string, ProxyFactory{T})"/>.</param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
-        public T Add<T>(string identityAndFacet, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx
+        public T Add<T>(string identityAndFacet, IService servant, IProxyFactory<T> proxyFactory)
+            where T : class, IServicePrx
         {
             (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
             return Add(identity, facet, servant, proxyFactory);
@@ -460,9 +463,10 @@ namespace ZeroC.Ice
         /// be empty.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
-        public T Add<T>(Identity identity, IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
+        public T Add<T>(Identity identity, IService servant, IProxyFactory<T> proxyFactory)
+            where T : class, IServicePrx =>
             Add(identity, "", servant, proxyFactory);
 
         /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
@@ -523,10 +527,9 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the Ice object.</param>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, string, ProxyFactory{T})"/>.
-        /// </param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
-        public T AddWithUUID<T>(string facet, IService servant, ProxyFactory<T> proxyFactory)
+        public T AddWithUUID<T>(string facet, IService servant, IProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
             Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
 
@@ -535,73 +538,10 @@ namespace ZeroC.Ice
         /// category.</summary>
         /// <param name="servant">The servant to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter. See <see cref="CreateProxy{T}(Identity, ProxyFactory{T})"/>.</param>
+        /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
-        public T AddWithUUID<T>(IService servant, ProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
+        public T AddWithUUID<T>(IService servant, IProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
             AddWithUUID("", servant, proxyFactory);
-
-          /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
-        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
-        /// ID is also defined, creates an indirect proxy that refers to the replica group ID. Otherwise, if no server
-        /// ID is defined, creates a direct proxy containing this server's published endpoints.</summary>
-        /// <param name="identity">The object's identity.</param>
-        /// <param name="facet">The facet.</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            CheckIdentity(identity);
-
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
-                }
-
-                ImmutableArray<string> location = ReplicaGroupId.Length > 0 ? ImmutableArray.Create(ReplicaGroupId) :
-                    AdapterId.Length > 0 ? ImmutableArray.Create(AdapterId) : ImmutableArray<string>.Empty;
-
-                Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
-
-                var options = new ServicePrxOptions(
-                    Communicator,
-                    identity,
-                    protocol,
-                    endpoints: AdapterId.Length == 0 ? PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
-                    facet: facet,
-                    location: location,
-                    oneway: _datagramOnly);
-
-                return factory(options);
-            }
-        }
-
-        /// <summary>Creates a proxy for the object with the given identity. If this server is configured with
-        /// an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group id is also
-        /// defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
-        /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
-        /// <param name="identity">The object's identity.</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity.</returns>
-        public T CreateProxy<T>(Identity identity, ProxyFactory<T> factory) where T : class, IServicePrx =>
-            CreateProxy(identity, "", factory);
-
-        /// <summary>Creates a proxy for the object with the given identity and facet. If this server is
-        /// configured with an adapter ID, creates an indirect proxy that refers to the adapter ID. If a replica group
-        /// id is also defined, creates an indirect proxy that refers to the replica group id. Otherwise, if no server
-        /// id is defined, creates a direct proxy containing this server's published endpoints.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="factory">The proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// desired proxy type.</param>
-        /// <returns>A proxy for the object with the given identity and facet.</returns>
-        public T CreateProxy<T>(string identityAndFacet, ProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return CreateProxy(identity, facet, factory);
-        }
 
         /// <inheritdoc/>
         public ValueTask DisposeAsync() => new(ShutdownAsync());

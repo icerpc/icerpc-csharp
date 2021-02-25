@@ -48,13 +48,13 @@ namespace ZeroC.Ice.Test.DefaultServant
             foreach (string name in names)
             {
                 identity = new Identity(name, identity.Category);
-                prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
+                prx = IMyObjectPrx.Factory.Create(oa, identity);
                 await prx.IcePingAsync();
                 TestHelper.Assert(prx.GetName() == name);
             }
 
             identity = new Identity("ObjectNotExist", identity.Category);
-            prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
+            prx = IMyObjectPrx.Factory.Create(oa, identity);
             try
             {
                 await prx.IcePingAsync();
@@ -79,7 +79,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             foreach (string name in names)
             {
                 identity = new Identity(name, identity.Category);
-                prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
+                prx = IMyObjectPrx.Factory.Create(oa, identity);
 
                 try
                 {
@@ -107,7 +107,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             removed = oa.RemoveDefaultForCategory("foo");
             TestHelper.Assert(removed == null);
             identity = new Identity(identity.Name, "foo");
-            prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
+            prx = IMyObjectPrx.Factory.Create(oa, identity);
             try
             {
                 await prx.IcePingAsync();
@@ -146,7 +146,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             foreach (string name in names)
             {
                 identity = new Identity(name, "");
-                prx = oa.CreateProxy(identity, IMyObjectPrx.Factory);
+                prx = IMyObjectPrx.Factory.Create(oa, identity);
                 await prx.IcePingAsync();
                 TestHelper.Assert(prx.GetName() == name);
             }
