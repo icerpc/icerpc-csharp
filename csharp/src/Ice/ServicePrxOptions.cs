@@ -3,80 +3,39 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.ComponentModel;
 
 namespace ZeroC.Ice
 {
-    /// <summary>Publicly visible Ice-internal struct used for the construction of ObjectPrx and derived classes.
-    /// Applications should not (and cannot) use it directly.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public readonly ref struct ServicePrxOptions
+    /// <summary>An options class for configuring a service proxy (see <see cref="IServicePrx"/>).</summary>
+    public sealed class ServicePrxOptions
     {
-        internal readonly bool CacheConnection;
-        internal readonly Communicator Communicator;
+        public bool CacheConnection { get; set; } = true;
+        public Communicator? Communicator { get; set; }
 
-        internal readonly Connection? Connection;
+        public Connection? Connection { get; set; }
 
-        internal readonly IReadOnlyDictionary<string, string> Context;
-        internal readonly Identity Identity;
+        public IReadOnlyDictionary<string, string>? Context { get; set; }
+        public Identity Identity { get; set; }
 
-        internal readonly Encoding Encoding;
-        internal readonly IReadOnlyList<Endpoint> Endpoints;
+        public Encoding? Encoding { get; set; }
+        public IReadOnlyList<Endpoint> Endpoints { get; set; } = ImmutableList<Endpoint>.Empty;
 
-        internal readonly string Facet;
+        public string Facet { get; set; } = "";
 
-        internal readonly IReadOnlyList<InvocationInterceptor> InvocationInterceptors;
+        public IReadOnlyList<InvocationInterceptor>? InvocationInterceptors { get; set; }
 
-        internal readonly TimeSpan? InvocationTimeoutOverride;
+        public TimeSpan? InvocationTimeoutOverride { get; set; }
 
-        internal readonly bool IsOneway;
+        public bool IsOneway { get; set; }
 
-        internal readonly object? Label;
+        public object? Label { get; set; }
 
-        internal readonly IReadOnlyList<string> Location;
+        public IReadOnlyList<string> Location { get; set; } = ImmutableList<string>.Empty;
 
-        internal readonly ILocationService? LocationService;
-        internal readonly bool? PreferExistingConnectionOverride;
+        public ILocationService? LocationService { get; set; }
+        public bool? PreferExistingConnectionOverride { get; set; }
 
-        internal readonly NonSecure? PreferNonSecureOverride;
-        internal readonly Protocol Protocol;
-
-        internal ServicePrxOptions(
-            Communicator communicator,
-            Identity identity,
-            Protocol protocol,
-            bool cacheConnection = true,
-            IReadOnlyDictionary<string, string>? context = null,
-            Encoding? encoding = null,
-            IReadOnlyList<Endpoint>? endpoints = null,
-            string facet = "",
-            Connection? fixedConnection = null,
-            IReadOnlyList<InvocationInterceptor>? invocationInterceptors = null,
-            TimeSpan? invocationTimeout = null,
-            object? label = null,
-            IReadOnlyList<string>? location = null,
-            ILocationService? locationService = null,
-            bool oneway = false,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null)
-        {
-            CacheConnection = cacheConnection;
-            Communicator = communicator;
-            Connection = fixedConnection;
-            Context = context ?? communicator.DefaultContext;
-            Encoding = encoding ?? protocol.GetEncoding();
-            Endpoints = endpoints ?? ImmutableList<Endpoint>.Empty;
-            Facet = facet;
-            Identity = identity;
-            InvocationInterceptors = invocationInterceptors ?? communicator.DefaultInvocationInterceptors;
-            InvocationTimeoutOverride = invocationTimeout;
-            IsOneway = oneway;
-            Label = label;
-            Location = location ?? ImmutableList<string>.Empty;
-            LocationService = locationService;
-            PreferExistingConnectionOverride = preferExistingConnection;
-            PreferNonSecureOverride = preferNonSecure;
-            Protocol = protocol;
-        }
+        public NonSecure? PreferNonSecureOverride { get; set; }
+        public Protocol Protocol { get; set; } = Protocol.Ice2;
     }
 }

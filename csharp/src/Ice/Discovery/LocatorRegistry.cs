@@ -121,8 +121,8 @@ namespace ZeroC.Ice.Discovery
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IServicePrx proxy = _dummyProxy.Clone(
-                        IServicePrx.Factory,
+                    IServicePrx proxy = IServicePrx.Factory.Clone(
+                        _dummyProxy,
                         identity: identity,
                         location: ImmutableArray.Create(id));
                     await proxy.IcePingAsync(cancel: cancel).ConfigureAwait(false);

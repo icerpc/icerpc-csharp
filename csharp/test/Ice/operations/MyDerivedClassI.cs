@@ -235,9 +235,9 @@ namespace ZeroC.Ice.Test.Operations
             IMyClassPrx? p1,
             Current current,
             CancellationToken cancel) =>
-            (current.Server.CreateProxy(current.Identity, IMyClassPrx.Factory),
+            (IMyClassPrx.Factory.Create(current.Server, current.Identity),
              p1,
-             current.Server.CreateProxy("noSuchIdentity", IMyClassPrx.Factory));
+             IMyClassPrx.Factory.Create(current.Server, "noSuchIdentity"));
 
         public (MyEnum, MyEnum) OpMyEnum(MyEnum p1, Current current, CancellationToken cancel) => (MyEnum.enum3, p1);
 
