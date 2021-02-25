@@ -593,10 +593,8 @@ namespace ZeroC.Ice
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using (logger.StartStreamScope(_socket.Endpoint.Protocol, Id))
-                    {
-                        logger.LogSendingRequest(request);
-                    }
+                    using var scoppe = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                    logger.LogSendingRequest(request);
                 }
                 else
                 {
