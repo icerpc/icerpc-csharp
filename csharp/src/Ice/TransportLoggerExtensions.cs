@@ -313,7 +313,7 @@ namespace ZeroC.Ice
             "sending Slic stream consumed frame: size = {Size}");
 
         private static readonly Func<ILogger, long, string, IDisposable> _colocatedSocketScope =
-            LoggerMessage.DefineScope<long, string>("socket(colocatedm ID = {ID}, object adapter = {ObjectAdapter}");
+            LoggerMessage.DefineScope<long, string>("socket(colocatedm ID = {ID}, server = {ServerName}");
 
         private static readonly Func<ILogger, Transport, string, string, IDisposable> _socketScope =
             LoggerMessage.DefineScope<Transport, string, string>(
