@@ -413,7 +413,7 @@ namespace ZeroC.Ice
             }
         }
 
-        private sealed class ServicePrxFactory : IProxyFactory<IServicePrx>
+        private class ServicePrxFactory : IProxyFactory<IServicePrx>
         {
             public IServicePrx Create(ServicePrxOptions options) => new ServicePrx(options);
         }

@@ -2367,14 +2367,14 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     InterfaceList bases = p->bases();
 
     string name = interfaceName(p) + "Prx";
-    string impl = "_" + name.substr(1);
+    string impl = name.substr(1);
 
     //
     // Proxy static methods
     //
     _out << sp;
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new ZeroC.Ice.IProxyFactory<" << name << "> Factory = new _Factory();";
+    _out << nl << "public static readonly new ZeroC.Ice.IProxyFactory<" << name << "> Factory = new IceProxyFactory();";
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"ZeroC.Ice.InputStreamReader{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
@@ -2426,15 +2426,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "return true;";
     _out << eb;
     _out << sp;
-    _out << nl << "private sealed class _Factory : ZeroC.Ice.IProxyFactory<" << name << ">";
+    _out << nl << "private class IceProxyFactory : ZeroC.Ice.IProxyFactory<" << name << ">";
     _out << sb;
     _out << nl << "public " << name << " Create(ZeroC.Ice.ServicePrxOptions options) => new " << impl << "(options);";
-    _out << eb;
-    _out << eb;
-
-    // Proxy class
     _out << sp;
-    _out << nl << "internal sealed class " << impl << " : ZeroC.Ice.ServicePrx, " << name;
+    _out << nl << "private class " << impl << " : ZeroC.Ice.ServicePrx, " << name;
     _out << sb;
     _out << nl << "protected override ZeroC.Ice.ServicePrx IceClone(ZeroC.Ice.ServicePrxOptions options) =>";
     _out.inc();
@@ -2446,6 +2442,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << ": base(options)";
     _out.dec();
     _out << sb;
+    _out << eb;
+    _out << eb;
     _out << eb;
     _out << eb;
 }
