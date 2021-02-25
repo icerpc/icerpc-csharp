@@ -8,13 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\TestLogger.cs">
+      <Link>TestLogger.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="generated\StressTests.cs">
       <SliceCompileSource>StressTests.ice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="3.0.2">
+    <PackageReference Include="coverlet.collector" Version="3.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

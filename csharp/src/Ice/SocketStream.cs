@@ -347,13 +347,6 @@ namespace ZeroC.Ice
                 EnableReceiveFlowControl();
                 request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
-
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Information))
-            {
-                protocolLogger.LogReceivedRequest(request, Id);
-            }
-
             return request;
         }
 
@@ -385,11 +378,6 @@ namespace ZeroC.Ice
             {
                 EnableReceiveFlowControl();
                 response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
-            }
-
-            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
-            {
-                _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedResponse(Id, response);
             }
 
             return response;
@@ -600,17 +588,18 @@ namespace ZeroC.Ice
 
             await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
 
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Information))
+            var logger = _socket.Endpoint.Communicator.ProtocolLogger;
+            if (logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    protocolLogger.LogSendingRequest(request, Id);
+                    using var scoppe = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                    logger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    protocolLogger.LogSendingResponse(Id, (OutgoingResponseFrame)frame);
+                    logger.LogSendingResponse((OutgoingResponseFrame)frame, Id);
                 }
             }
         }
