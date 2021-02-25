@@ -28,7 +28,6 @@ namespace ZeroC.Ice
         private IPEndPoint _addr;
         private readonly Communicator _communicator;
         private readonly bool _incoming;
-        private readonly ILogger _logger;
         private readonly string? _multicastInterface;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
@@ -280,7 +279,6 @@ namespace ZeroC.Ice
             int multicastTtl)
         {
             _communicator = communicator;
-            _logger = communicator.Logger;
             _addr = (IPEndPoint)addr;
             _multicastInterface = multicastInterface;
             _incoming = false;
@@ -317,7 +315,6 @@ namespace ZeroC.Ice
             Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
 
             _communicator = communicator;
-            _logger = communicator.Logger;
             _addr = new IPEndPoint(endpoint.Address, endpoint.Port);
             _multicastInterface = endpoint.MulticastInterface;
             _incoming = true;
@@ -338,7 +335,7 @@ namespace ZeroC.Ice
 
         internal override IDisposable? StartScope(Endpoint endpoint)
         {
-            // If any of the logger is enable we create the scope
+            // If any of the loggers is enabled we create the scope
             if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||

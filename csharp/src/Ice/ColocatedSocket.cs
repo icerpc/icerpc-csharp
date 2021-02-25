@@ -240,7 +240,7 @@ namespace ZeroC.Ice
 
         internal override IDisposable? StartSocketScope()
         {
-            // If any of the logger is enable we create the scope
+            // If any of the loggers is enabled we create the scope
             if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
