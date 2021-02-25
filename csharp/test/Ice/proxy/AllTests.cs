@@ -528,7 +528,7 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = IServicePrx.Parse(rf, communicator);
 
             Connection connection = await b1.GetConnectionAsync();
-            IServicePrx b2 = connection.CreateProxy(Identity.Parse("fixed"), facet: "", IServicePrx.Factory);
+            IServicePrx b2 = IServicePrx.Factory.Create(connection, Identity.Parse("fixed"));
             if (connection.Protocol == Protocol.Ice1)
             {
                 TestHelper.Assert(b2.ToString() == "fixed -t -e 1.1");
@@ -698,7 +698,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             output.Write("testing proxy Clone... ");
 
-            TestHelper.Assert(baseProxy.Clone(IServicePrx.Factory, facet: "facet").Facet == "facet");
+            TestHelper.Assert(IServicePrx.Factory.Clone(baseProxy, facet: "facet").Facet == "facet");
             TestHelper.Assert(baseProxy.Clone(location: ImmutableArray.Create("id")).Location[0] == "id");
 
             TestHelper.Assert(!baseProxy.Clone(oneway: false).IsOneway);
@@ -710,17 +710,17 @@ namespace ZeroC.Ice.Test.Proxy
                 TestHelper.Assert(baseProxy.Clone(oneway: true).IsOneway);
             }
 
-            IServicePrx other = baseProxy.Clone(IServicePrx.Factory, identityAndFacet: "test#facet");
+            IServicePrx other = IServicePrx.Factory.Clone(baseProxy, identityAndFacet: "test#facet");
             TestHelper.Assert(other.Facet == "facet");
             TestHelper.Assert(other.Identity.Name == "test");
             TestHelper.Assert(other.Identity.Category.Length == 0);
 
-            other = other.Clone(IServicePrx.Factory, identityAndFacet: "category/test");
+            other = IServicePrx.Factory.Clone(other, identityAndFacet: "category/test");
             TestHelper.Assert(other.Facet.Length == 0);
             TestHelper.Assert(other.Identity.Name == "test");
             TestHelper.Assert(other.Identity.Category == "category");
 
-            other = baseProxy.Clone(IServicePrx.Factory, identityAndFacet: "foo#facet1");
+            other = IServicePrx.Factory.Clone(baseProxy, identityAndFacet: "foo#facet1");
             TestHelper.Assert(other.Facet == "facet1");
             TestHelper.Assert(other.Identity.Name == "foo");
             TestHelper.Assert(other.Identity.Category.Length == 0);
@@ -738,10 +738,10 @@ namespace ZeroC.Ice.Test.Proxy
 
             var compObj = IServicePrx.Parse(ice1 ? "foo" : "ice:foo", communicator);
 
-            TestHelper.Assert(compObj.Clone(IServicePrx.Factory, facet: "facet").Equals(
-                              compObj.Clone(IServicePrx.Factory, facet: "facet")));
-            TestHelper.Assert(!compObj.Clone(IServicePrx.Factory, facet: "facet").Equals(
-                              compObj.Clone(IServicePrx.Factory, facet: "facet1")));
+            TestHelper.Assert(IServicePrx.Factory.Clone(compObj, facet: "facet").Equals(
+                              IServicePrx.Factory.Clone(compObj, facet: "facet")));
+            TestHelper.Assert(!IServicePrx.Factory.Clone(compObj, facet: "facet").Equals(
+                              IServicePrx.Factory.Clone(compObj, facet: "facet1")));
 
             TestHelper.Assert(compObj.Clone(oneway: true).Equals(compObj.Clone(oneway: true)));
             TestHelper.Assert(!compObj.Clone(oneway: true).Equals(compObj.Clone(oneway: false)));
@@ -827,16 +827,16 @@ namespace ZeroC.Ice.Test.Proxy
 
             output.Write("testing checked cast... ");
             output.Flush();
-            var cl = await baseProxy.CheckedCastAsync(IMyClassPrx.Factory);
+            var cl = await IMyClassPrx.Factory.CheckedCastAsync(baseProxy);
             TestHelper.Assert(cl != null);
-            var derived = await cl.CheckedCastAsync(IMyDerivedClassPrx.Factory);
+            var derived = await IMyDerivedClassPrx.Factory.CheckedCastAsync(cl);
             TestHelper.Assert(derived != null);
             TestHelper.Assert(cl.Equals(baseProxy));
             TestHelper.Assert(derived.Equals(baseProxy));
             TestHelper.Assert(cl.Equals(derived));
             try
             {
-                await cl.Clone(IMyDerivedClassPrx.Factory, facet: "facet").IcePingAsync();
+                await IMyDerivedClassPrx.Factory.Clone(cl, facet: "facet").IcePingAsync();
                 TestHelper.Assert(false);
             }
             catch (ObjectNotExistException)
@@ -855,7 +855,7 @@ namespace ZeroC.Ice.Test.Proxy
                 ["one"] = "hello",
                 ["two"] = "world"
             };
-            cl = await baseProxy.CheckedCastAsync(IMyClassPrx.Factory, c);
+            cl = await IMyClassPrx.Factory.CheckedCastAsync(baseProxy, c);
             SortedDictionary<string, string> c2 = cl!.GetContext();
             TestHelper.Assert(c.DictionaryEqual(c2));
             output.WriteLine("ok");
@@ -865,7 +865,7 @@ namespace ZeroC.Ice.Test.Proxy
             var longLocation = ImmutableArray.Create("locA", "locB", "locC", "locD");
             if (ice1)
             {
-                var prx = baseProxy.Clone(factory: IMyDerivedClassPrx.Factory);
+                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy);
 
                 prx = prx.Clone(location: shortLocation);
                 TestHelper.Assert(prx.Endpoints.Count == 0); // and can't call it
@@ -882,7 +882,7 @@ namespace ZeroC.Ice.Test.Proxy
             }
             else
             {
-                var prx = baseProxy.Clone(factory: IMyDerivedClassPrx.Factory, location: shortLocation);
+                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy, location: shortLocation);
                 TestHelper.Assert(prx.GetLocation().SequenceEqual(shortLocation));
 
                 TestHelper.Assert(prx.Clone(location: longLocation).GetLocation().SequenceEqual(longLocation));
@@ -895,12 +895,12 @@ namespace ZeroC.Ice.Test.Proxy
                 output.Flush();
                 var ice2Prx = IServicePrx.Parse(
                     "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000", communicator);
-                var prx = baseProxy.Clone(IMyDerivedClassPrx.Factory).Echo(ice2Prx);
+                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Equals(prx));
 
                 // With a location dropped by the 1.1 encoding:
                 ice2Prx = IServicePrx.Parse("ice+tcp://localhost:10000/location//foo", communicator);
-                prx = baseProxy.Clone(IMyDerivedClassPrx.Factory).Echo(ice2Prx);
+                prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Clone(location: ImmutableArray<string>.Empty).Equals(prx));
                 output.WriteLine("ok");
             }
@@ -910,7 +910,7 @@ namespace ZeroC.Ice.Test.Proxy
                 output.Flush();
                 var ice1Prx = IServicePrx.Parse(
                     "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000", communicator);
-                var prx = baseProxy.Clone(IMyDerivedClassPrx.Factory).Echo(ice1Prx);
+                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice1Prx);
                 TestHelper.Assert(ice1Prx.Equals(prx));
                 output.WriteLine("ok");
             }
@@ -949,9 +949,10 @@ namespace ZeroC.Ice.Test.Proxy
                     IMyClassPrx prx = cl.Clone(fixedConnection: connection2);
                     TestHelper.Assert(prx.IsFixed);
                     await prx.IcePingAsync();
-                    TestHelper.Assert(cl.Clone(IServicePrx.Factory,
-                                               facet: "facet",
-                                               fixedConnection: connection2).Facet == "facet");
+                    TestHelper.Assert(IServicePrx.Factory.Clone(
+                        cl,
+                        facet: "facet",
+                        fixedConnection: connection2).Facet == "facet");
                     TestHelper.Assert(cl.Clone(oneway: true, fixedConnection: connection2).IsOneway);
                     var ctx = new Dictionary<string, string>
                     {

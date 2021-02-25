@@ -100,7 +100,7 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly ProxyFactory<IServicePrx> Factory = options => new ServicePrx(options);
+        public static readonly IProxyFactory<IServicePrx> Factory = new ServicePrxFactory();
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -214,8 +214,7 @@ namespace ZeroC.Ice
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IServicePrx Parse(string s, Communicator communicator) =>
-            ServicePrx.Parse(s, communicator, Factory);
+        public static IServicePrx Parse(string s, Communicator communicator) => Factory.Parse(s, communicator);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
@@ -227,7 +226,7 @@ namespace ZeroC.Ice
         {
             try
             {
-                proxy = ServicePrx.Parse(s, communicator, Factory);
+                proxy = Factory.Parse(s, communicator);
             }
             catch
             {
@@ -412,6 +411,11 @@ namespace ZeroC.Ice
                     request.Dispose();
                 }
             }
+        }
+
+        private sealed class ServicePrxFactory : IProxyFactory<IServicePrx>
+        {
+            public IServicePrx Create(ServicePrxOptions options) => new ServicePrx(options);
         }
     }
 }

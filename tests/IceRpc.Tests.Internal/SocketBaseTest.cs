@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
                     // { "IceSSL.Trace.Security", "2" },
                 });
 
-            var proxy = _server.CreateProxy("dummy", IServicePrx.Factory);
+            var proxy = IServicePrx.Factory.Create(_server, "dummy");
             ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
             ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
         }

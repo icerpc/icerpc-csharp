@@ -386,7 +386,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 var identity = Identity.Parse("does not exist");
                 try
                 {
-                    IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, identity: identity);
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
@@ -408,7 +408,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             try
             {
-                IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, facet: "no such facet");
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
                 try
                 {
                     await thrower2.IcePingAsync();
@@ -432,7 +432,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             try
             {
-                var thrower2 = thrower.Clone(IWrongOperationPrx.Factory);
+                var thrower2 = IWrongOperationPrx.Factory.Clone(thrower);
                 thrower2.NoSuchOperation();
                 TestHelper.Assert(false);
             }
@@ -757,7 +757,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, identity: identity);
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -787,7 +787,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, facet: "no such facet");
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -819,7 +819,7 @@ namespace ZeroC.Ice.Test.Exceptions
             {
                 try
                 {
-                    var thrower4 = thrower.Clone(IWrongOperationPrx.Factory);
+                    var thrower4 = IWrongOperationPrx.Factory.Clone(thrower);
                     thrower4.NoSuchOperationAsync().Wait();
                     TestHelper.Assert(false);
                 }
@@ -924,7 +924,7 @@ namespace ZeroC.Ice.Test.Exceptions
 
             {
                 var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, identity: identity);
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -954,7 +954,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                IThrowerPrx thrower2 = thrower.Clone(IThrowerPrx.Factory, facet: "no such facet");
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -984,7 +984,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var thrower4 = thrower.Clone(IWrongOperationPrx.Factory);
+                var thrower4 = IWrongOperationPrx.Factory.Clone(thrower);
                 try
                 {
                     thrower4.NoSuchOperationAsync().Wait();
