@@ -248,7 +248,7 @@ namespace ZeroC.Ice
             {
                 return socket.RemoteEndPoint;
             }
-            catch (SocketException)
+            catch
             {
             }
             return null;
