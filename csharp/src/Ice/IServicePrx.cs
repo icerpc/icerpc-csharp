@@ -104,12 +104,12 @@ namespace ZeroC.Ice
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IServicePrx> IceReader = istr => istr.ReadProxy(Factory);
+        public static readonly InputStreamReader<IServicePrx> IceReader = istr => Factory.Read(istr);
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx?> IceReaderIntoNullable =
-            istr => istr.ReadNullableProxy(Factory);
+            istr => Factory.ReadNullable(istr);
 
         /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

@@ -867,7 +867,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "istr.ReadNullableProxy(" << typeToString(underlying, scope) << ".Factory);";
+            out << "ZeroC.Ice.ProxyFactory.ReadNullable(" << typeToString(underlying, scope) << ".Factory, istr);";
             return;
         }
         else if (underlying->isClassType())
@@ -896,7 +896,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "istr.ReadProxy(" << typeToString(underlying, scope) << ".Factory)";
+        out << "ZeroC.Ice.ProxyFactory.Read(" << typeToString(underlying, scope) << ".Factory, istr)";
     }
     else if (underlying->isClassType())
     {
@@ -1089,7 +1089,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "istr.ReadTaggedProxy(" << tag << ", " << typeToString(type, scope) << ".Factory)";
+        out << "ZeroC.Ice.ProxyFactory.ReadTagged(" << typeToString(type, scope) << ".Factory, istr, " << tag << ")";
     }
     else if (builtin)
     {
