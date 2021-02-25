@@ -350,10 +350,13 @@ namespace ZeroC.Ice
 
                 try
                 {
-                    var proxy = IServicePrx.Factory(new(Communicator,
-                                                        new Identity("dummy", ""),
-                                                        PublishedEndpoints[0].Protocol,
-                                                        endpoints: PublishedEndpoints));
+                    var proxy = IServicePrx.Factory(new ServicePrxOptions()
+                                                    {
+                                                        Communicator = Communicator,
+                                                        Endpoints = PublishedEndpoints,
+                                                        Identity = new Identity("dummy", ""),
+                                                        Protocol = PublishedEndpoints[0].Protocol
+                                                    });
 
                     if (ReplicaGroupId.Length > 0)
                     {
@@ -565,14 +568,16 @@ namespace ZeroC.Ice
 
                 Protocol protocol = PublishedEndpoints.Count > 0 ? PublishedEndpoints[0].Protocol : Protocol;
 
-                var options = new ServicePrxOptions(
-                    Communicator,
-                    identity,
-                    protocol,
-                    endpoints: AdapterId.Length == 0 ? PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
-                    facet: facet,
-                    location: location,
-                    oneway: _datagramOnly);
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = Communicator,
+                    Endpoints = AdapterId.Length == 0 ? PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
+                    Facet = facet,
+                    Identity = identity,
+                    Location = location,
+                    IsOneway = _datagramOnly,
+                    Protocol = protocol
+                };
 
                 return factory(options);
             }

@@ -169,13 +169,15 @@ namespace ZeroC.Ice
         /// <returns>A proxy that matches the given identity and facet, and uses this connection.</returns>
         public T CreateProxy<T>(Identity identity, string facet, ProxyFactory<T> factory) where T : class, IServicePrx
         {
-            var options = new ServicePrxOptions(
-                Communicator,
-                identity,
-                Protocol,
-                facet: facet,
-                fixedConnection: this,
-                oneway: Endpoint.IsDatagram);
+            var options = new ServicePrxOptions()
+            {
+                Communicator = Communicator,
+                Connection = this,
+                Identity = identity,
+                Facet = facet,
+                IsOneway = Endpoint.IsDatagram,
+                Protocol = Protocol
+            };
 
             return factory(options);
         }

@@ -208,21 +208,23 @@ namespace ZeroC.Ice
                 }
             }
 
-            var options = new ServicePrxOptions(
-                communicator,
-                identity,
-                protocol,
-                cacheConnection: cacheConnection ?? true,
-                context: context,
-                encoding: encoding,
-                endpoints: endpoints,
-                facet: facet,
-                invocationTimeout: invocationTimeout,
-                location: location,
-                locationService: endpoints.Count > 0 ? null : communicator.DefaultLocationService,
-                oneway: oneway,
-                preferExistingConnection: preferExistingConnection,
-                preferNonSecure: preferNonSecure);
+            var options = new ServicePrxOptions()
+            {
+                CacheConnection = cacheConnection ?? true,
+                Communicator = communicator,
+                Context = context,
+                Encoding = encoding,
+                Endpoints = endpoints,
+                Facet = facet,
+                Identity = identity,
+                InvocationTimeoutOverride = invocationTimeout,
+                IsOneway = oneway,
+                Location = location,
+                LocationService = endpoints.Count > 0 ? null : communicator.DefaultLocationService,
+                PreferExistingConnectionOverride = preferExistingConnection,
+                PreferNonSecureOverride = preferNonSecure,
+                Protocol = protocol
+            };
 
             return factory(options);
         }
@@ -668,13 +670,13 @@ namespace ZeroC.Ice
         protected internal ServicePrx(ServicePrxOptions options)
         {
             CacheConnection = options.CacheConnection;
-            Communicator = options.Communicator;
-            Context = options.Context;
-            Encoding = options.Encoding;
+            Communicator = options.Communicator!;
+            Context = options.Context ?? Communicator.DefaultContext;
+            Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
             Facet = options.Facet;
             Identity = options.Identity;
-            InvocationInterceptors = options.InvocationInterceptors;
+            InvocationInterceptors = options.InvocationInterceptors ?? Communicator.DefaultInvocationInterceptors;
             IsFixed = options.Connection != null; // auto-computed
             IsOneway = options.IsOneway;
             Label = options.Label;
@@ -820,16 +822,18 @@ namespace ZeroC.Ice
 
                 // TODO: correct unmarshaling of ice2 relative proxies (see below)
 
-                var options = new ServicePrxOptions(
-                    communicator,
-                    identity,
-                    proxyData.Protocol,
-                    encoding: proxyData.Encoding,
-                    endpoints: endpoints,
-                    facet: proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                    location: location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
-                    locationService: proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
-                    oneway: proxyData.InvocationMode != InvocationMode.Twoway);
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = communicator,
+                    Encoding = proxyData.Encoding,
+                    Endpoints = endpoints,
+                    Facet = proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
+                    Identity = identity,
+                    IsOneway =  proxyData.InvocationMode != InvocationMode.Twoway,
+                    Location = location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
+                    LocationService = proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
+                    Protocol = proxyData.Protocol,
+                };
 
                 return factory(options);
             }
@@ -868,16 +872,18 @@ namespace ZeroC.Ice
                 if (proxyKind == ProxyKind20.Direct || protocol == Protocol.Ice1)
                 {
                     Communicator communicator = istr.Communicator!;
-                    var options = new ServicePrxOptions(
-                        communicator,
-                        proxyData.Identity,
-                        protocol,
-                        encoding: proxyData.Encoding ?? Encoding.V20,
-                        endpoints: endpoints,
-                        facet: proxyData.Facet ?? "",
-                        location: (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
-                        locationService: communicator.DefaultLocationService,
-                        oneway: (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway);
+                    var options = new ServicePrxOptions()
+                    {
+                        Communicator = communicator,
+                        Encoding = proxyData.Encoding ?? Encoding.V20,
+                        Endpoints = endpoints,
+                        Facet = proxyData.Facet ?? "",
+                        Identity = proxyData.Identity,
+                        IsOneway = (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway,
+                        Location = (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
+                        LocationService = communicator.DefaultLocationService,
+                        Protocol = protocol
+                    };
 
                     return factory(options);
                 }
@@ -897,13 +903,15 @@ namespace ZeroC.Ice
                                 $"received a relative proxy with invalid protocol {protocol.GetName()}");
                         }
 
-                        var options = new ServicePrxOptions(
-                            connection.Communicator,
-                            proxyData.Identity,
-                            protocol,
-                            encoding: proxyData.Encoding ?? Encoding.V20,
-                            facet: proxyData.Facet ?? "",
-                            fixedConnection: connection);
+                        var options = new ServicePrxOptions()
+                        {
+                            Communicator = connection.Communicator,
+                            Connection = connection,
+                            Encoding = proxyData.Encoding ?? Encoding.V20,
+                            Facet = proxyData.Facet ?? "",
+                            Identity = proxyData.Identity,
+                            Protocol = protocol
+                        };
 
                         return factory(options);
                     }
@@ -991,35 +999,41 @@ namespace ZeroC.Ice
                 fixedConnection ??= _connection;
                 Debug.Assert(fixedConnection != null);
 
-                return new(Communicator,
-                           identity ?? Identity,
-                           Protocol,
-                           context: context?.ToImmutableSortedDictionary() ?? Context,
-                           encoding: encoding ?? Encoding,
-                           facet: facet ?? Facet,
-                           fixedConnection: fixedConnection,
-                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
-                           oneway: fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway));
+                return new ServicePrxOptions()
+                {
+                    Communicator = Communicator,
+                    Connection = fixedConnection,
+                    Context = context?.ToImmutableSortedDictionary() ?? Context,
+                    Encoding = encoding ?? Encoding,
+                    Facet = facet ?? Facet,
+                    Identity = identity ?? Identity,
+                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
+                    IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
+                    Protocol = Protocol
+                };
             }
             else
             {
-                return new(Communicator,
-                           identity ?? Identity,
-                           Protocol,
-                           cacheConnection: cacheConnection ?? CacheConnection,
-                           context: context?.ToImmutableSortedDictionary() ?? Context,
-                           encoding: encoding ?? Encoding,
-                           endpoints: newEndpoints,
-                           facet: facet ?? Facet,
-                           invocationInterceptors: invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                           invocationTimeout: invocationTimeout ?? _invocationTimeoutOverride,
-                           label: clearLabel ? null : label ?? Label,
-                           location: newLocation ?? Location,
-                           locationService: clearLocationService ? null : locationService ?? LocationService,
-                           oneway: oneway ?? IsOneway,
-                           preferExistingConnection: preferExistingConnection ?? _preferExistingConnectionOverride,
-                           preferNonSecure: preferNonSecure ?? _preferNonSecureOverride);
+                return new ServicePrxOptions()
+                {
+                    CacheConnection = cacheConnection ?? CacheConnection,
+                    Communicator = Communicator,
+                    Context = context?.ToImmutableSortedDictionary() ?? Context,
+                    Encoding = encoding ?? Encoding,
+                    Endpoints = newEndpoints,
+                    Facet = facet ?? Facet,
+                    Identity = identity ?? Identity,
+                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
+                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
+                    IsOneway = oneway ?? IsOneway,
+                    Label = clearLabel ? null : label ?? Label,
+                    Location = newLocation ?? Location,
+                    LocationService = clearLocationService ? null : locationService ?? LocationService,
+                    PreferExistingConnectionOverride = preferExistingConnection ?? _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = preferNonSecure ?? _preferNonSecureOverride,
+                    Protocol = Protocol
+                };
             }
         }
 
