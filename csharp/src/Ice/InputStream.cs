@@ -446,25 +446,6 @@ namespace ZeroC.Ice
             return ReadDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyReader, valueReader);
         }
 
-        /// <summary>Reads a nullable proxy from the stream.</summary>
-        /// <param name="factory">The proxy factory used to create the typed proxy.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadNullableProxy<T>(IProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            if (Communicator == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot read a proxy from an InputStream with a null communicator");
-            }
-            return factory.Read(this);
-        }
-
-        /// <summary>Reads a proxy from the stream.</summary>
-        /// <param name="factory">The proxy factory used to create the typed proxy.</param>
-        /// <returns>The proxy read from the stream; this proxy cannot be null.</returns>
-        public T ReadProxy<T>(IProxyFactory<T> factory) where T : class, IServicePrx =>
-            ReadNullableProxy<T>(factory) ?? throw new InvalidDataException("read null for a non-nullable proxy");
-
         /// <summary>Reads a sequence from the stream.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="reader">The input stream reader used to read each element of the sequence.</param>
@@ -807,23 +788,6 @@ namespace ZeroC.Ice
             return null;
         }
 
-        /// <summary>Reads a tagged proxy from the stream.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="factory">The proxy factory used to create the typed proxy.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
-        public T? ReadTaggedProxy<T>(int tag, IProxyFactory<T> factory) where T : class, IServicePrx
-        {
-            if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
-            {
-                SkipSize(fixedLength: true);
-                return ReadProxy(factory);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
         /// <summary>Reads a tagged sequence from the stream. The element type can be nullable only if it corresponds to
         /// a proxy class or mapped Slice class.</summary>
         /// <param name="tag">The tag.</param>
@@ -1055,6 +1019,23 @@ namespace ZeroC.Ice
             if (Pos != _buffer.Length)
             {
                 throw new InvalidDataException($"{_buffer.Length - Pos} bytes remaining in the InputStream buffer");
+            }
+        }
+
+        /// <summary>Checks if the stream holds a tagged proxy for the given tag, and when it does, skips the size
+        /// of this proxy.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <returns>True when the next bytes on the stream correspond to the proxy; otherwise, false.</returns>
+        internal bool HasTaggedProxy(int tag)
+        {
+            if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            {
+                SkipSize(fixedLength: true);
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 

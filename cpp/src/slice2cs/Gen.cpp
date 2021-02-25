@@ -2380,7 +2380,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new ZeroC.Ice.InputStreamReader<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => istr.ReadProxy(Factory);";
+    _out << nl << "istr => ZeroC.Ice.ProxyFactory.Read(Factory, istr);";
     _out.dec();
 
     _out << sp;
@@ -2388,7 +2388,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"/> nullable proxies.</summary>";
     _out << nl << "public static readonly new ZeroC.Ice.InputStreamReader<" << name << "?> IceReaderIntoNullable =";
     _out.inc();
-    _out << nl << "istr => istr.ReadNullableProxy(Factory);";
+    _out << nl << "istr => ZeroC.Ice.ProxyFactory.ReadNullable(Factory, istr);";
     _out.dec();
 
     _out << sp;

@@ -307,10 +307,26 @@ namespace ZeroC.Ice
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
         /// <param name="istr">The input stream to read from.</param>
-        /// <returns>The proxy read from the stream (can be null).</returns>
-        public static T? Read<T>(this IProxyFactory<T> factory, InputStream istr)
+        /// <returns>The non-null proxy read from the stream.</returns>
+        public static T Read<T>(this IProxyFactory<T> factory, InputStream istr)
+            where T : class, IServicePrx =>
+            ReadNullable<T>(factory, istr) ?? throw new InvalidDataException("read null for a non-nullable proxy");
+
+        /// <summary>Reads a nullable proxy from the input stream.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// proxy type.</param>
+        /// <param name="istr">The input stream to read from.</param>
+        /// <returns>The proxy read from the stream, or null.</returns>
+        public static T? ReadNullable<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx
         {
+            if (istr.Communicator == null)
+            {
+                throw new InvalidOperationException(
+                    "cannot read a proxy from an InputStream with a null communicator");
+            }
+
             if (istr.Encoding == Encoding.V11)
             {
                 var identity = new Identity(istr);
@@ -472,5 +488,16 @@ namespace ZeroC.Ice
                 }
             }
         }
+
+        /// <summary>Reads a tagged proxy from the input stream.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// proxy type.</param>
+        /// <param name="istr">The input stream to read from.</param>
+        /// <param name="tag">The tag.</param>
+        /// <returns>The proxy read from the stream, or null.</returns>
+        public static T? ReadTagged<T>(this IProxyFactory<T> factory, InputStream istr, int tag)
+            where T : class, IServicePrx =>
+            istr.HasTaggedProxy(tag) ? Read(factory, istr) : null;
     }
 }
