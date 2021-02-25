@@ -105,7 +105,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                 {
                     ColocationScope = ColocationScope.Communicator,
                     Endpoints = serverEndpoint,
-                    ServerName = host
+                    PublishedHost = host
                 });
             var serverService = new ServerService(communicator, server);
             IServerPrx prx = server.AddWithUUID(serverService, IServerPrx.Factory);

@@ -277,7 +277,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         {
                             ColocationScope = ColocationScope.Communicator,
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
-                            ServerName = host
+                            PublishedHost = host
                         });
                     IServicePrx? prx = server.AddWithUUID(new Blobject(), IServicePrx.Factory);
                     await server.ActivateAsync();
@@ -329,7 +329,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         {
                             ColocationScope = ColocationScope.Communicator,
                             Endpoints = ice1 ? $"ssl -h {host}" : $"ice+tcp://{host}:0",
-                            ServerName = host
+                            PublishedHost = host
                         });
                     IServicePrx? prx = server.AddWithUUID(new Blobject(), IServicePrx.Factory);
                     await server.ActivateAsync();
@@ -565,7 +565,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                         var props = new Dictionary<string, string>(defaultProperties)
                         {
                             ["Test.Host"] = "localhost",
-                            ["Ice.ServerName"] = "localhost",
+                            ["Ice.PublishedHost"] = "localhost",
                         };
 
                         // This must succeed, the target host matches the certificate DNS altName.

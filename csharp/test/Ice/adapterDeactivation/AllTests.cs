@@ -104,7 +104,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                             AcceptNonSecure = ice1 ? NonSecure.Always :
                                 communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
                             Endpoints = ice1 ? "tcp -h \"::0\" -p 0" : "ice+tcp://[::0]:0",
-                            ServerName = testHost
+                            PublishedHost = testHost
                         });
                     TestHelper.Assert(server.PublishedEndpoints.Count == 1);
                     Endpoint publishedEndpoint = server.PublishedEndpoints[0];
@@ -117,7 +117,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
                         {
                             Endpoints = ice1 ? $"{helper.GetTestEndpoint(1)}:{helper.GetTestEndpoint(2)}" :
                                 $"{helper.GetTestEndpoint(1)}?alt-endpoint={helper.GetTestEndpoint(2)}",
-                            ServerName = testHost
+                            PublishedHost = testHost
                         });
 
                     TestHelper.Assert(server.PublishedEndpoints.Count == 2);

@@ -15,7 +15,7 @@ namespace ZeroC.Ice.Test.Binding
                 new()
                 {
                     Endpoints = GetTestEndpoint(0),
-                    ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
+                    PublishedHost = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
             server.Add("communicator", new RemoteCommunicator());

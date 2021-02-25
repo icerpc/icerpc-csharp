@@ -23,7 +23,7 @@ namespace ZeroC.IceSSL.Test.Configuration
                     AcceptNonSecure = NonSecure.Always,
                     ColocationScope = ColocationScope.Communicator,
                     Endpoints = GetTestEndpoint(0, "tcp"),
-                    ServerName = TestHelper.GetTestHost(Communicator.GetProperties())
+                    PublishedHost = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
             server.Add("factory", new ServerFactory(args[0] + "/../certs"));

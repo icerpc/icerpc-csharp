@@ -69,7 +69,7 @@ namespace ZeroC.Ice.Test.UDP
                 {
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = helper.GetTestEndpoint(0, "udp", true),
-                    ServerName = "127.0.0.1"
+                    PublishedHost = "127.0.0.1"
                 });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = server.AddWithUUID(replyI, IPingReplyPrx.Factory)
