@@ -38,9 +38,16 @@ namespace IceRpc.Tests.ClientServer
                     {
                         new X509Certificate2(GetCertificatePath(caFile))
                     },
+                    RequireClientCertificate = true,
                 });
 
-            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 1);
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 1,
+                prx =>
+                {
+                    Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    return Task.CompletedTask;
+                });
         }
 
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12")]
@@ -74,10 +81,17 @@ namespace IceRpc.Tests.ClientServer
                     {
                         serverValiadationCallbackCalled = true;
                         return true;
-                    }
+                    },
+                    RequireClientCertificate = true,
                 });
 
-            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 2);
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 2,
+                prx =>
+                {
+                    Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    return Task.CompletedTask;
+                });
             Assert.IsTrue(clientValiadationCallbackCalled);
             Assert.IsTrue(serverValiadationCallbackCalled);
         }
@@ -88,7 +102,13 @@ namespace IceRpc.Tests.ClientServer
             await using var clientCommunicator = CreateCommunicator(clientCertFile);
             await using var serverCommunicator = CreateCommunicator(serverCertFile);
 
-            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 3);
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 3,
+                prx =>
+                {
+                    Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    return Task.CompletedTask;
+                });
 
             Communicator CreateCommunicator(string certFile) =>
                 new Communicator(new Dictionary<string, string>()
@@ -99,7 +119,118 @@ namespace IceRpc.Tests.ClientServer
                     { "IceSSL.Password", "password" }
                 });
         }
-        
+
+        [TestCase("s_rsa_ca1.p12", "cacert1.der")]
+        public async Task TlsConfiguration_With_CertificateSelectionCallback(string serverCertFile, string caFile)
+        {
+            var cert0 = new X509Certificate2(GetCertificatePath("c_rsa_ca1.p12"), "password");
+            var cert1 = new X509Certificate2(GetCertificatePath("c_rsa_ca2.p12"), "password");
+            await using var clientCommunicator = new Communicator(
+                tlsClientOptions: new TlsClientOptions()
+                {
+                    ClientCertificates = new X509Certificate2Collection
+                    {
+                        cert0,
+                        cert1
+                    },
+                    ClientCertificateSelectionCallback =
+                        (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
+                        {
+                            Assert.AreEqual(2, certs.Count);
+                            Assert.AreEqual(cert0, certs[0]);
+                            Assert.AreEqual(cert1, certs[1]);
+                            return certs[0];
+                        },
+                    ServerCertificateCertificateAuthorities = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(caFile))
+                    },
+                });
+
+            await using var serverCommunicator = new Communicator(
+                tlsServerOptions: new TlsServerOptions()
+                {
+                    ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
+                    ClientCertificateCertificateAuthorities = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(caFile))
+                    },
+                    RequireClientCertificate = true,
+                });
+
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 4,
+                prx =>
+                {
+                    Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    return Task.CompletedTask;
+                });
+        }
+
+        [TestCase("s_rsa_ca1.p12", "cacert1.der")]
+        public async Task TlsConfiguration_Fail_WithOutClientCert(string serverCertFile, string caFile)
+        {
+            await using var clientCommunicator = new Communicator(
+                tlsClientOptions: new TlsClientOptions()
+                {
+                    ServerCertificateCertificateAuthorities = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(caFile))
+                    },
+                });
+
+            await using var serverCommunicator = new Communicator(
+                tlsServerOptions: new TlsServerOptions()
+                {
+                    ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
+                    ClientCertificateCertificateAuthorities = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(caFile))
+                    },
+                    RequireClientCertificate = true,
+                });
+
+            // This should throw the server request a certificate and the client doesn't provide one
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 5,
+                prx =>
+                {
+                    Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync());
+                    return Task.CompletedTask;
+                });
+        }
+
+        [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
+        public async Task TlsConfiguration_Fail_WithUntrustedServer(string clientCertFile, string serverCertFile, string caFile)
+        {
+            await using var clientCommunicator = new Communicator(
+                tlsClientOptions: new TlsClientOptions()
+                {
+                    ClientCertificates = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                    }
+                });
+
+            await using var serverCommunicator = new Communicator(
+                tlsServerOptions: new TlsServerOptions()
+                {
+                    ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
+                    ClientCertificateCertificateAuthorities = new X509Certificate2Collection
+                    {
+                        new X509Certificate2(GetCertificatePath(caFile))
+                    },
+                    RequireClientCertificate = true,
+                });
+
+            // This should throw the client doesn't trust the server certificate.
+            await WithSecureServerAsnyc(clientCommunicator, serverCommunicator, 6,
+                prx =>
+                {
+                    Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
+                    return Task.CompletedTask;
+                });
+        }
+
         [Test]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Security",
@@ -158,7 +289,8 @@ namespace IceRpc.Tests.ClientServer
         private async Task WithSecureServerAsnyc(
             Communicator clientCommunicator,
             Communicator serverCommunicator,
-            int portNumber)
+            int portNumber,
+            Func<IServicePrx, Task> closure)
         {
             await using var server = new Server(serverCommunicator,
                 new ServerOptions()
@@ -172,8 +304,8 @@ namespace IceRpc.Tests.ClientServer
             await server.ActivateAsync();
 
             var prx = IServicePrx.Parse(GetTestProxy("hello", port: portNumber), clientCommunicator).Clone(preferNonSecure: NonSecure.Never);
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+
+            await closure(prx);
         }
         internal class GreeterTestService : IAsyncGreeterTestService
         {
