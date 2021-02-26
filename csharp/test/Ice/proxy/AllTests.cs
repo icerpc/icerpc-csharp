@@ -170,7 +170,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             var b1 = IServicePrx.Parse("ice:test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                              b1.Location.Count == 0 && b1.Facet.Length == 0);
+                              b1.Location.Length == 0 && b1.Facet.Length == 0);
 
             b1 = IServicePrx.Parse("ice:test ", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
@@ -186,7 +186,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             b1 = IServicePrx.Parse("test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                              b1.Location.Count == 0 && b1.Facet.Length == 0);
+                              b1.Location.Length == 0 && b1.Facet.Length == 0);
 
             b1 = IServicePrx.Parse("test ", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
@@ -260,38 +260,29 @@ namespace ZeroC.Ice.Test.Proxy
 
             b1 = IServicePrx.Parse("ice:category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location.Count == 0);
-
-            b1 = IServicePrx.Parse("ice:loc0/loc1/category/test", communicator);
-            TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location.Count == 2 && b1.Location[0] == "loc0" && b1.Location[1] == "loc1");
+                    b1.Location.Length == 0);
 
             b1 = IServicePrx.Parse("ice+tcp://host:10000/test?source-address=::1", communicator);
             TestHelper.Assert(b1.Equals(IServicePrx.Parse(b1.ToString()!, communicator)));
 
-            b1 = IServicePrx.Parse("ice+tcp://host:10000/loc0/loc1//test?source-address=::1", communicator);
-            TestHelper.Assert(b1.Equals(IServicePrx.Parse(b1.ToString()!, communicator)));
-            TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                b1.Location.Count == 2 && b1.Location[0] == "loc0" && b1.Location[1] == "loc1");
-
             b1 = IServicePrx.Parse("ice:server//test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
 
             b1 = IServicePrx.Parse("ice:server/category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
 
             b1 = IServicePrx.Parse("ice:server:tcp/category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server:tcp");
+                    b1.Location == "server:tcp");
 
             // preferred syntax with escape:
             TestHelper.Assert(b1.Equals(IServicePrx.Parse("ice:server%3Atcp/category/test", communicator)));
 
             b1 = IServicePrx.Parse("category/test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location.Count == 0);
+                    b1.Location.Length == 0);
 
             b1 = IServicePrx.Parse("test:tcp -h host -p 10000 --sourceAddress \"::1\"", communicator);
             TestHelper.Assert(b1.Equals(IServicePrx.Parse(b1.ToString()!, communicator)));
@@ -299,39 +290,39 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = IServicePrx.Parse(
                 "test:udp -h host -p 10000 --sourceAddress \"::1\" --interface \"0:0:0:0:0:0:0:1%lo\"",
                 communicator);
-            TestHelper.Assert(b1.Identity.Name == "test" && b1.Location.Count == 0);
+            TestHelper.Assert(b1.Identity.Name == "test" && b1.Location.Length == 0);
 
             b1 = IServicePrx.Parse("test:tcp -h localhost -p 10000 -t infinite", communicator);
             TestHelper.Assert(b1.ToString() == "test -t -e 1.1:tcp -h localhost -p 10000 -t -1");
 
             b1 = IServicePrx.Parse("test@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
 
             b1 = IServicePrx.Parse("category/test@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
 
             b1 = IServicePrx.Parse("category/test@server:tcp", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server:tcp");
+                    b1.Location == "server:tcp");
 
             // The following tests are only for the ice1 format:
             b1 = IServicePrx.Parse("'category 1/test'@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category 1" &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
             b1 = IServicePrx.Parse("'category/test 1'@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test 1" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
             b1 = IServicePrx.Parse("'category/test'@'server 1'", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category" &&
-                    b1.Location[0] == "server 1");
+                    b1.Location == "server 1");
             b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@server", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category /test@foo" &&
-                    b1.Location[0] == "server");
+                    b1.Location == "server");
             b1 = IServicePrx.Parse("\"category \\/test@foo/test\"@\"server:tcp\"", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category == "category /test@foo" &&
-                    b1.Location[0] == "server:tcp");
+                    b1.Location == "server:tcp");
             // End of ice1 format-only tests.
 
             b1 = IServicePrx.Parse("ice:id#facet", communicator);
@@ -351,19 +342,19 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(b1.Identity.Name == "id" && b1.Identity.Category.Length == 0 && b1.Facet == "facet x");
             b1 = IServicePrx.Parse("test -f facet:tcp -h localhost", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Facet == "facet" && b1.Location.Count == 0);
+                    b1.Facet == "facet" && b1.Location.Length == 0);
             b1 = IServicePrx.Parse("test -f \"facet:tcp\"", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Facet == "facet:tcp" && b1.Location.Count == 0);
+                    b1.Facet == "facet:tcp" && b1.Location.Length == 0);
             b1 = IServicePrx.Parse("test -f facet@test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Facet == "facet" && b1.Location[0] == "test");
+                    b1.Facet == "facet" && b1.Location == "test");
             b1 = IServicePrx.Parse("test -f 'facet@test'", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Facet == "facet@test" && b1.Location.Count == 0);
+                    b1.Facet == "facet@test" && b1.Location.Length == 0);
             b1 = IServicePrx.Parse("test -f 'facet@test'@test", communicator);
             TestHelper.Assert(b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                    b1.Facet == "facet@test" && b1.Location[0] == "test");
+                    b1.Facet == "facet@test" && b1.Location == "test");
             // End of ice1 format-only tests.
 
             b1 = IServicePrx.Parse("ice:test", communicator);
@@ -528,7 +519,7 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = IServicePrx.Parse(rf, communicator);
 
             Connection connection = await b1.GetConnectionAsync();
-            IServicePrx b2 = IServicePrx.Factory.Create(connection, Identity.Parse("fixed"));
+            IServicePrx b2 = IServicePrx.Factory.Create(connection, "fixed");
             if (connection.Protocol == Protocol.Ice1)
             {
                 TestHelper.Assert(b2.ToString() == "fixed -t -e 1.1");
@@ -552,7 +543,7 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             TestHelper.Assert(
                 b1.Identity.Name == "test" && b1.Identity.Category.Length == 0 &&
-                b1.Location.Count == 0 && b1.Facet.Length == 0);
+                b1.Location.Length == 0 && b1.Facet.Length == 0);
 
             TestHelper.Assert(b1.CacheConnection);
             if (ice1)
@@ -699,7 +690,7 @@ namespace ZeroC.Ice.Test.Proxy
             output.Write("testing proxy Clone... ");
 
             TestHelper.Assert(IServicePrx.Factory.Clone(baseProxy, facet: "facet").Facet == "facet");
-            TestHelper.Assert(baseProxy.Clone(location: ImmutableArray.Create("id")).Location[0] == "id");
+            TestHelper.Assert(baseProxy.Clone(location: "id").Location == "id");
 
             TestHelper.Assert(!baseProxy.Clone(oneway: false).IsOneway);
             TestHelper.Assert(baseProxy.Clone(oneway: true).IsOneway);
@@ -710,17 +701,17 @@ namespace ZeroC.Ice.Test.Proxy
                 TestHelper.Assert(baseProxy.Clone(oneway: true).IsOneway);
             }
 
-            IServicePrx other = IServicePrx.Factory.Clone(baseProxy, identityAndFacet: "test#facet");
+            IServicePrx other = IServicePrx.Factory.Clone(baseProxy, path: "test", facet: "facet");
             TestHelper.Assert(other.Facet == "facet");
             TestHelper.Assert(other.Identity.Name == "test");
             TestHelper.Assert(other.Identity.Category.Length == 0);
 
-            other = IServicePrx.Factory.Clone(other, identityAndFacet: "category/test");
+            other = IServicePrx.Factory.Clone(other, path: "category/test");
             TestHelper.Assert(other.Facet.Length == 0);
             TestHelper.Assert(other.Identity.Name == "test");
             TestHelper.Assert(other.Identity.Category == "category");
 
-            other = IServicePrx.Factory.Clone(baseProxy, identityAndFacet: "foo#facet1");
+            other = IServicePrx.Factory.Clone(baseProxy, path: "foo", facet: "facet1");
             TestHelper.Assert(other.Facet == "facet1");
             TestHelper.Assert(other.Identity.Name == "foo");
             TestHelper.Assert(other.Identity.Category.Length == 0);
@@ -860,35 +851,6 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(c.DictionaryEqual(c2));
             output.WriteLine("ok");
 
-            output.Write("testing location... ");
-            var shortLocation = ImmutableArray.Create("loc0");
-            var longLocation = ImmutableArray.Create("locA", "locB", "locC", "locD");
-            if (ice1)
-            {
-                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy);
-
-                prx = prx.Clone(location: shortLocation);
-                TestHelper.Assert(prx.Endpoints.Count == 0); // and can't call it
-
-                try
-                {
-                    prx = prx.Clone(location: longLocation);
-                    TestHelper.Assert(false);
-                }
-                catch (ArgumentException)
-                {
-                    // too many segments
-                }
-            }
-            else
-            {
-                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy, location: shortLocation);
-                TestHelper.Assert(prx.GetLocation().SequenceEqual(shortLocation));
-
-                TestHelper.Assert(prx.Clone(location: longLocation).GetLocation().SequenceEqual(longLocation));
-            }
-            output.WriteLine("ok");
-
             if (ice1)
             {
                 output.Write("testing ice2 proxy in 1.1 encapsulation... ");
@@ -901,7 +863,7 @@ namespace ZeroC.Ice.Test.Proxy
                 // With a location dropped by the 1.1 encoding:
                 ice2Prx = IServicePrx.Parse("ice+tcp://localhost:10000/location//foo", communicator);
                 prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
-                TestHelper.Assert(ice2Prx.Clone(location: ImmutableArray<string>.Empty).Equals(prx));
+                TestHelper.Assert(ice2Prx.Clone(location: "").Equals(prx));
                 output.WriteLine("ok");
             }
             else

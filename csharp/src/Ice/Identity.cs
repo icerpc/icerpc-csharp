@@ -17,7 +17,7 @@ namespace ZeroC.Ice
         /// <exception cref="FormatException">s is not in the correct format.</exception>
         /// <returns>An Identity equivalent to the identity contained in s.</returns>
         public static Identity Parse(string s, bool uriFormat = true) =>
-            uriFormat ? UriParser.ParseIdentity(s) : Ice1Parser.ParseIdentity(s);
+            uriFormat ? UriParser.ParseIdentity(s)!.Value : Ice1Parser.ParseIdentity(s);
 
         /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
         /// <param name="s">A string containing an identity to convert.</param>

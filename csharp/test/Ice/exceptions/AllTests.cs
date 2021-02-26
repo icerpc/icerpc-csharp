@@ -383,16 +383,16 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
+                var path = "does not exist";
                 try
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException ex)
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Identity == identity);
+                    TestHelper.Assert(ex.Origin!.Value.Path == path);
                     TestHelper.Assert(ex.Message.Contains("servant")); // verify we don't get system message
                 }
                 catch
@@ -416,7 +416,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 }
                 catch (ObjectNotExistException ex)
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Facet == "no such facet");
+                    TestHelper.Assert(ex.Facet == "no such facet");
                     TestHelper.Assert(ex.Message.Contains("with facet")); // verify we don't get system message
                 }
             }
@@ -467,7 +467,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 }
                 else
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Identity == thrower.Identity &&
+                    TestHelper.Assert(ex.Origin!.Value.Path == thrower.Path &&
                                       ex.Origin!.Value.Operation == "throwLocalException");
                 }
             }
@@ -756,8 +756,8 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                var path = "does not exist";
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -772,7 +772,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Identity == identity);
+                        TestHelper.Assert(ex.Origin!.Value.Path == path);
                     }
                     catch
                     {
@@ -802,7 +802,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Facet.Equals("no such facet"));
+                        TestHelper.Assert(ex.Facet == "no such facet");
                     }
                     catch
                     {
@@ -923,8 +923,8 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                var path = "does not exist";
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -939,7 +939,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Identity == identity);
+                        TestHelper.Assert(ex.Origin!.Value.Path == path);
                     }
                     catch
                     {
@@ -969,7 +969,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Facet == "no such facet");
+                        TestHelper.Assert(ex.Facet == "no such facet");
                     }
                     catch
                     {

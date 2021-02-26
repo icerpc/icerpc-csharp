@@ -48,7 +48,25 @@ namespace ZeroC.Ice
             GenericUriParserOptions.DontUnescapePathDotsAndSlashes |
             GenericUriParserOptions.Idn |
             GenericUriParserOptions.IriParsing |
+            GenericUriParserOptions.NoFragment |
             GenericUriParserOptions.NoUserInfo;
+
+        internal static string GetFirstSegment(string path)
+        {
+            int firstSlash = path.IndexOf('/');
+            if (firstSlash == 0)
+            {
+                path = path[1..]; // ignore leading / if found
+                firstSlash = path.IndexOf('/');
+            }
+
+            if (firstSlash == -1)
+            {
+                return Uri.UnescapeDataString(path);
+            }
+
+            return Uri.UnescapeDataString(path[..firstSlash]);
+        }
 
         /// <summary>Checks if a string is an ice+transport URI, and not an endpoint string using the ice1 string
         /// format.</summary>
@@ -64,6 +82,20 @@ namespace ZeroC.Ice
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
 
+        internal static string NormalizePath(string path)
+        {
+            string[] segments = path.Split('/');
+            string normalized = string.Join('/', segments.Select(s => Uri.EscapeDataString(Uri.UnescapeDataString(s))));
+            if (normalized.StartsWith('/'))
+            {
+                return normalized;
+            }
+            else
+            {
+                return $"/{normalized}";
+            }
+        }
+
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
@@ -72,58 +104,42 @@ namespace ZeroC.Ice
             Parse(uriString, serverEndpoints: true, communicator).Endpoints;
 
         /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
-        /// <param name="path">A string [escapedCategory/]escapedName.</param>
+        /// <param name="path">A string [/][escapedCategory/]escapedName.</param>
         /// <exception cref="FormatException">Thrown when <c>path</c> is not in the correct format.</exception>
         /// <returns>An Identity equivalent to the identity contained in path.</returns>
-        internal static Identity ParseIdentity(string path)
+        internal static Identity? ParseIdentity(string? path)
         {
-            string[] segments = path.Split('/');
-            Debug.Assert(segments.Length > 0);
+            if (path == null)
+            {
+                return null;
+            }
+
+            // Discard leading /
+            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
             (string name, string category) = segments.Length switch
             {
+                0 => throw new FormatException($"invalid identity `{path}'"),
                 1 => (Uri.UnescapeDataString(segments[0]), ""),
-                2 => (Uri.UnescapeDataString(segments[1]), Uri.UnescapeDataString(segments[0])),
-                _ => throw new FormatException($"too many path segments in identity `{path}'"),
+                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
+                      Uri.UnescapeDataString(segments[0])),
             };
 
             return name.Length > 0 ? new Identity(name, category) :
                 throw new FormatException($"invalid empty name in identity `{path}'");
         }
 
-        /// <summary>Parses a relative URI [category/]name[#facet] into an identity and facet.</summary>
-        internal static (Identity Identity, string Facet) ParseIdentityAndFacet(string uriString)
-        {
-            // First extract the facet, if any
-            string facet = "";
-            string path;
-            int hashPos = uriString.IndexOf('#');
-            if (hashPos != -1 && hashPos != uriString.Length - 1)
-            {
-                facet = Uri.UnescapeDataString(uriString[(hashPos + 1)..]);
-                path = uriString[0..hashPos];
-            }
-            else
-            {
-                path = uriString;
-            }
-            return (ParseIdentity(path), facet);
-        }
-
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The components of the proxy.</returns>
-        internal static (IReadOnlyList<Endpoint> Endpoints,
-                         List<string> Path,
-                         ProxyOptions ProxyOptions,
-                         string Facet) ParseProxy(string uriString, Communicator communicator)
+        internal static (IReadOnlyList<Endpoint> Endpoints, string Path, ProxyOptions ProxyOptions) ParseProxy(
+            string uriString,
+            Communicator communicator)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
-            string facet = uri.Fragment.Length >= 2 ? Uri.UnescapeDataString(uri.Fragment.TrimStart('#')) : "";
-            var path = uri.AbsolutePath.TrimStart('/').Split('/').Select(s => Uri.UnescapeDataString(s)).ToList();
-            return (endpoints, path, proxyOptions, facet);
+            return (endpoints, uri.AbsolutePath, proxyOptions);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>

@@ -187,13 +187,13 @@ namespace ZeroC.Ice
                     {
                         systemException = new OperationNotExistException(
                             message: null,
-                            new RemoteExceptionOrigin(identity, facet, operation));
+                            new RemoteExceptionOrigin(identity.ToString(), operation)){ Facet = facet };
                     }
                     else
                     {
                         systemException = new ObjectNotExistException(
                             message: null,
-                            new RemoteExceptionOrigin(identity, facet, operation));
+                            new RemoteExceptionOrigin(identity.ToString(), operation)){ Facet = facet };
                     }
                     break;
 

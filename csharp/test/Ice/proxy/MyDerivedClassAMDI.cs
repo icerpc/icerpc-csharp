@@ -16,9 +16,6 @@ namespace ZeroC.Ice.Test.Proxy
         public ValueTask<IServicePrx?> EchoAsync(IServicePrx? obj, Current c, CancellationToken cancel) =>
             new(obj);
 
-        public ValueTask<IEnumerable<string>> GetLocationAsync(Current current, CancellationToken cancel) =>
-            new(current.Location);
-
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
             current.Server.ShutdownAsync();

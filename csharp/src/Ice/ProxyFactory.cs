@@ -50,8 +50,6 @@ namespace ZeroC.Ice
         /// <param name="facet">The facet of the clone (optional).</param>
         /// <param name="fixedConnection">The connection of the clone (optional). When specified, the clone is a fixed
         /// proxy. You can clone a non-fixed proxy into a fixed proxy but not vice-versa.</param>
-        /// <param name="identity">The identity of the clone.</param>
-        /// <param name="identityAndFacet">A URI string [category/]identity[#facet].</param>
         /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
         /// executed with each invocation</param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
@@ -59,6 +57,7 @@ namespace ZeroC.Ice
         /// <param name="location">The location of the clone (optional).</param>
         /// <param name="locationService">The location service of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
+        /// <param name="path">The path of the clone (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
         /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
@@ -75,14 +74,13 @@ namespace ZeroC.Ice
             IEnumerable<Endpoint>? endpoints = null,
             string? facet = null,
             Connection? fixedConnection = null,
-            Identity? identity = null,
-            string? identityAndFacet = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            IEnumerable<string>? location = null,
+            string? location = null,
             ILocationService? locationService = null,
             bool? oneway = null,
+            string? path = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null) where T : class, IServicePrx
         {
@@ -94,31 +92,30 @@ namespace ZeroC.Ice
                                                                    endpoints,
                                                                    facet,
                                                                    fixedConnection,
-                                                                   identity,
-                                                                   identityAndFacet,
                                                                    invocationInterceptors,
                                                                    invocationTimeout,
                                                                    label,
                                                                    location,
                                                                    locationService,
                                                                    oneway,
+                                                                   path,
                                                                    preferExistingConnection,
                                                                    preferNonSecure));
             return proxy is T t && t.Equals(clone) ? t : clone;
         }
 
-        /// <summary>Creates a proxy for a service hosted by <c>server</c> with the given identity and facet. If
-        /// <c>server</c> is configured with an adapter ID, the proxy is an indirect proxy with a location set to this
-        /// adapter ID or the server's replica group ID (if defined). Otherwise, the proxy is a direct proxy with the
-        /// server's published endpoints.</summary>
+        /// <summary>Creates a proxy for a service hosted by <c>server</c>. If <c>server</c> is configured with an
+        /// adapter ID, the proxy is an indirect proxy with a location set to this adapter ID or the server's replica
+        /// group ID (if defined). Otherwise, the proxy is a direct proxy with the server's published endpoints.
+        /// </summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
         /// <param name="server">The server hosting this service.</param>
-        /// <param name="identity">The identity of the service.</param>
-        /// <param name="facet">The facet.</param>
+        /// <param name="path">The path of the service.</param>
+        /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A new service proxy.</returns>
-        public static T Create<T>(this IProxyFactory<T> factory, Server server, Identity identity, string facet = "")
+        public static T Create<T>(this IProxyFactory<T> factory, Server server, string path, string facet = "")
             where T : class, IServicePrx
         {
             string location = server.ReplicaGroupId.Length > 0 ? server.ReplicaGroupId : server.AdapterId;
@@ -126,25 +123,43 @@ namespace ZeroC.Ice
             Protocol protocol =
                 server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
 
-            var options = new ServicePrxOptions()
+            if (facet.Length > 0 && protocol != Protocol.Ice1)
             {
-                Communicator = server.Communicator,
-                Endpoints = location.Length == 0 ? server.PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
-                Facet = facet,
-                Identity = identity,
-                Location = location.Length > 0 ? ImmutableList.Create(location) : ImmutableList<string>.Empty,
-                IsOneway = server.IsDatagramOnly,
-                Protocol = protocol
-            };
+                throw new ArgumentException("facet must be empty when the protocol is not ice1", nameof(facet));
+            }
 
-            return factory.Create(options);
-        }
+            if (location.Length > 0 && protocol != Protocol.Ice1)
+            {
+                throw new ArgumentException("location must be empty when the protocol is not ice1", nameof(facet));
+            }
 
-        public static T Create<T>(this IProxyFactory<T> factory, Server server, string identityAndFacet)
-            where T : class, IServicePrx
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Create(factory, server, identity, facet);
+            if (protocol == Protocol.Ice1)
+            {
+                var identity = Identity.Parse(path);
+
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = server.Communicator,
+                    Endpoints = location.Length == 0 ? server.PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
+                    Facet = facet,
+                    Identity = identity,
+                    Location = location,
+                    IsOneway = server.IsDatagramOnly,
+                    Protocol = Protocol.Ice1
+                };
+                return factory.Create(options);
+            }
+            else
+            {
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = server.Communicator,
+                    Endpoints = server.PublishedEndpoints,
+                    Path = UriParser.NormalizePath(path),
+                    Protocol = protocol
+                };
+                return factory.Create(options);
+            }
         }
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
@@ -152,26 +167,43 @@ namespace ZeroC.Ice
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
         /// <param name="connection">The connection.</param>
-        /// <param name="identity">The identity of the service.</param>
-        /// <param name="facet">The facet.</param>
+        /// <param name="path">The path of the service.</param>
+        /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A fixed proxy.</returns>
         public static T Create<T>(
             this IProxyFactory<T> factory,
             Connection connection,
-            Identity identity,
+            string path,
             string facet = "") where T : class, IServicePrx
         {
-            var options = new ServicePrxOptions()
-            {
-                Communicator = connection.Communicator,
-                Connection = connection,
-                Identity = identity,
-                Facet = facet,
-                IsOneway = connection.Endpoint.IsDatagram,
-                Protocol = connection.Protocol
-            };
+            Protocol protocol = connection.Protocol;
 
-            return factory.Create(options);
+            if (protocol == Protocol.Ice1)
+            {
+                Identity identity = Identity.Parse(path);
+
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = connection.Communicator,
+                    Connection = connection,
+                    Facet = facet,
+                    Identity = identity,
+                    IsOneway = connection.Endpoint.IsDatagram,
+                    Protocol = Protocol.Ice1
+                };
+                return factory.Create(options);
+            }
+            else
+            {
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = connection.Communicator,
+                    Connection = connection,
+                    Path = UriParser.NormalizePath(path),
+                    Protocol = protocol
+                };
+                return factory.Create(options);
+            }
         }
 
         /// <summary>Creates a proxy from a string and a communicator.</summary>
@@ -191,55 +223,26 @@ namespace ZeroC.Ice
             IReadOnlyDictionary<string, string>? context = null;
             Encoding encoding;
             IReadOnlyList<Endpoint> endpoints;
-            string facet;
-            Identity identity;
+            string facet = "";
+            Identity identity = default;
             TimeSpan? invocationTimeout = null;
             object? label = null;
-            IReadOnlyList<string> location;
+            string location = "";
             bool oneway = false;
+            string path = "";
             bool? preferExistingConnection = null;
             NonSecure? preferNonSecure = null;
             Protocol protocol;
 
             if (UriParser.IsProxyUri(proxyString))
             {
-                List<string> path;
                 UriParser.ProxyOptions proxyOptions;
-                (endpoints, path, proxyOptions, facet) = UriParser.ParseProxy(proxyString, communicator);
+                (endpoints, path, proxyOptions) = UriParser.ParseProxy(proxyString, communicator);
 
                 protocol = proxyOptions.Protocol ?? Protocol.Ice2;
                 Debug.Assert(protocol != Protocol.Ice1); // the URI parsing rejects ice1
 
                 encoding = proxyOptions.Encoding ?? Encoding.V20;
-
-                switch (path.Count)
-                {
-                    case 0:
-                        // TODO: should we add a default identity "Default" or "Root" or "Main"?
-                        throw new FormatException($"missing identity in proxy `{proxyString}'");
-                    case 1:
-                        identity = new Identity(category: "", name: path[0]);
-                        location = ImmutableArray<string>.Empty;
-                        break;
-                    case 2:
-                        identity = new Identity(category: path[0], name: path[1]);
-                        location = ImmutableArray<string>.Empty;
-                        break;
-                    default:
-                        identity = new Identity(category: path[^2], name: path[^1]);
-                        path.RemoveRange(path.Count - 2, 2);
-                        location = path;
-                        break;
-                }
-
-                if (identity.Name.Length == 0)
-                {
-                    throw new FormatException($"invalid identity with empty name in proxy `{proxyString}'");
-                }
-                if (location.Any(segment => segment.Length == 0))
-                {
-                    throw new FormatException($"invalid location with empty segment in proxy `{proxyString}'");
-                }
 
                 (cacheConnection,
                  context,
@@ -251,13 +254,9 @@ namespace ZeroC.Ice
             else
             {
                 protocol = Protocol.Ice1;
-                string location0;
 
-                (identity, facet, encoding, location0, endpoints, oneway) =
+                (identity, facet, encoding, location, endpoints, oneway) =
                     Ice1Parser.ParseProxy(proxyString, communicator);
-
-                // 0 or 1 segment
-                location = location0.Length > 0 ? ImmutableArray.Create(location0) : ImmutableArray<string>.Empty;
 
                 // Override the defaults with the proxy properties if a property prefix is defined.
                 if (propertyPrefix != null && propertyPrefix.Length > 0)
@@ -293,7 +292,9 @@ namespace ZeroC.Ice
                 InvocationTimeoutOverride = invocationTimeout,
                 IsOneway = oneway,
                 Location = location,
-                LocationService = endpoints.Count > 0 ? null : communicator.DefaultLocationService,
+                LocationService = protocol == Protocol.Ice1 && endpoints.Count == 0 ?
+                    communicator.DefaultLocationService : null,
+                Path = path,
                 PreferExistingConnectionOverride = preferExistingConnection,
                 PreferNonSecureOverride = preferNonSecure,
                 Protocol = protocol
@@ -365,11 +366,11 @@ namespace ZeroC.Ice
                 Endpoint[] endpoints =
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint(proxyData.Protocol));
 
-                string location0 = endpoints.Length == 0 ? istr.ReadString() : "";
+                string location = endpoints.Length == 0 ? istr.ReadString() : "";
 
                 Communicator communicator = istr.Communicator!;
 
-                // TODO: correct unmarshaling of ice2 relative proxies (see below)
+                // TODO: correct unmarshaling of ice2 proxies
 
                 var options = new ServicePrxOptions()
                 {
@@ -379,7 +380,7 @@ namespace ZeroC.Ice
                     Facet = proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                     Identity = identity,
                     IsOneway = proxyData.InvocationMode != InvocationMode.Twoway,
-                    Location = location0.Length > 0 ? ImmutableList.Create(location0) : ImmutableList<string>.Empty,
+                    Location = location,
                     LocationService = proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
                     Protocol = proxyData.Protocol,
                 };
@@ -396,95 +397,117 @@ namespace ZeroC.Ice
                     return null;
                 }
 
-                var proxyData = new ProxyData20(istr);
-
-                if (proxyData.Identity.Name.Length == 0)
+                if (proxyKind == ProxyKind20.Direct || proxyKind == ProxyKind20.Relative) // an ice2+ proxy
                 {
-                    throw new InvalidDataException("received non-null proxy with empty identity name");
-                }
+                    var proxyData = new ProxyData20(istr);
+                    Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
 
-                Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-
-                if (proxyData.InvocationMode != null && protocol != Protocol.Ice1)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy for protocol {protocol.GetName()} with invocation mode set");
-                }
-
-                // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + host name
-                // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for empty
-                // sequence), for a total of 7 bytes.
-                IReadOnlyList<Endpoint> endpoints = proxyKind == ProxyKind20.Direct ?
-                    istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol)) :
-                    ImmutableList<Endpoint>.Empty;
-
-                if (proxyKind == ProxyKind20.Direct || protocol == Protocol.Ice1)
-                {
-                    Communicator communicator = istr.Communicator!;
-                    var options = new ServicePrxOptions()
+                    if (proxyKind == ProxyKind20.Direct)
                     {
-                        Communicator = communicator,
-                        Encoding = proxyData.Encoding ?? Encoding.V20,
-                        Endpoints = endpoints,
-                        Facet = proxyData.Facet ?? "",
-                        Identity = proxyData.Identity,
-                        IsOneway = (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway,
-                        Location = (IReadOnlyList<string>?)proxyData.Location ?? ImmutableList<string>.Empty,
-                        LocationService = communicator.DefaultLocationService,
-                        Protocol = protocol
-                    };
+                        // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + hostname
+                        // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for
+                        // empty sequence), for a total of 7 bytes.
+                        IReadOnlyList<Endpoint> endpoints =
+                            istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol));
 
-                    return factory.Create(options);
-                }
-                else // relative proxy with protocol > ice1
-                {
-                    // For now, we don't support relative proxies with a location.
-                    if (proxyData.Location?.Length > 0)
-                    {
-                        throw new InvalidDataException($"received a relative proxy with an invalid location");
-                    }
-
-                    if (istr.Connection is Connection connection)
-                    {
-                        if (connection.Protocol != protocol)
+                        if (endpoints.Count == 0)
                         {
-                            throw new InvalidDataException(
-                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
+                            throw new InvalidDataException("received a direct proxy with no endpoint");
                         }
 
                         var options = new ServicePrxOptions()
                         {
-                            Communicator = connection.Communicator,
-                            Connection = connection,
+                            Communicator = istr.Communicator!,
                             Encoding = proxyData.Encoding ?? Encoding.V20,
-                            Facet = proxyData.Facet ?? "",
-                            Identity = proxyData.Identity,
+                            Endpoints = endpoints,
+                            Path = proxyData.Path,
                             Protocol = protocol
                         };
-
                         return factory.Create(options);
                     }
-                    else
+                    else // relative proxy
                     {
-                        ServicePrx? source = istr.SourceProxy;
-
-                        if (source == null)
+                        if (istr.Connection is Connection connection)
                         {
-                            throw new InvalidOperationException(
-                                "cannot read a relative proxy from InputStream created without a connection or proxy");
-                        }
+                            if (connection.Protocol != protocol)
+                            {
+                                throw new InvalidDataException(
+                                    $"received a relative proxy with invalid protocol {protocol.GetName()}");
+                            }
 
-                        if (source.Protocol != protocol)
+                            var options = new ServicePrxOptions()
+                            {
+                                Communicator = connection.Communicator,
+                                Connection = connection,
+                                Encoding = proxyData.Encoding ?? Encoding.V20,
+                                Path = proxyData.Path,
+                                Protocol = protocol
+                            };
+
+                            return factory.Create(options);
+                        }
+                        else
                         {
-                            throw new InvalidDataException(
-                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                        }
+                            ServicePrx? source = istr.SourceProxy;
 
-                        return factory.Clone(source,
-                                             encoding: proxyData.Encoding ?? Encoding.V20,
-                                             facet: proxyData.Facet ?? "",
-                                             identity: proxyData.Identity);
+                            if (source == null)
+                            {
+                                throw new InvalidOperationException(
+                                    "cannot read a relative proxy from InputStream created without a connection or proxy");
+                            }
+
+                            if (source.Protocol != protocol)
+                            {
+                                throw new InvalidDataException(
+                                    $"received a relative proxy with invalid protocol {protocol.GetName()}");
+                            }
+
+                            return factory.Clone(source,
+                                                 encoding: proxyData.Encoding ?? Encoding.V20,
+                                                 path: proxyData.Path);
+                        }
                     }
+                }
+                else // an ice1 proxy
+                {
+                    var proxyData = new Ice1ProxyData20(istr);
+
+                    if (proxyData.Identity.Name.Length == 0)
+                    {
+                        throw new InvalidDataException("received non-null proxy with empty identity name");
+                    }
+
+                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+                    string location = "";
+
+                    if (proxyKind == ProxyKind20.Direct)
+                    {
+                        endpoints = istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(Protocol.Ice1));
+
+                        if (endpoints.Count == 0)
+                        {
+                            throw new InvalidDataException("received a direct proxy with no endpoint");
+                        }
+                    }
+                    else // ice1 indirect proxy
+                    {
+                        location = istr.ReadString();
+                    }
+
+                    Communicator communicator = istr.Communicator!;
+                    var options = new ServicePrxOptions()
+                    {
+                        Communicator = communicator,
+                        Encoding = proxyData.Encoding ?? Encoding.V11,
+                        Endpoints = endpoints,
+                        Facet = proxyData.Facet ?? "",
+                        Identity = proxyData.Identity,
+                        IsOneway = (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway,
+                        Location = location,
+                        LocationService = communicator.DefaultLocationService,
+                        Protocol = Protocol.Ice1
+                    };
+                    return factory.Create(options);
                 }
             }
         }

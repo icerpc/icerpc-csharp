@@ -34,12 +34,10 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Writes a request header body This implementation is slightly more efficient than the generated code
-        /// because it avoids the allocation of a string[] to write the location.</summary>
+        /// because it avoids the allocation of a dictionary to write the context.</summary>
         internal static void WriteIce2RequestHeaderBody(
             this OutputStream ostr,
-            Identity identity,
-            string facet,
-            IReadOnlyList<string> location,
+            string path,
             string operation,
             bool idempotent,
             DateTime deadline,
@@ -48,27 +46,9 @@ namespace ZeroC.Ice
             Debug.Assert(ostr.Encoding == Encoding);
 
             // All bits are set to true by default, and true means the corresponding value is set.
-            BitSequence bitSequence = ostr.WriteBitSequence(5);
+            BitSequence bitSequence = ostr.WriteBitSequence(3);
 
-            identity.IceWrite(ostr);
-            if (facet.Length > 0)
-            {
-                ostr.WriteString(facet);
-            }
-            else
-            {
-                bitSequence[0] = false;
-            }
-
-            if (location.Count > 0)
-            {
-                ostr.WriteSequence(location, OutputStream.IceWriterFromString);
-            }
-            else
-            {
-                bitSequence[1] = false;
-            }
-
+            ostr.WriteString(path);
             ostr.WriteString(operation);
 
             if (idempotent)
@@ -77,10 +57,10 @@ namespace ZeroC.Ice
             }
             else
             {
-                bitSequence[2] = false;
+                bitSequence[0] = false;
             }
 
-            bitSequence[3] = false; // TODO: source for priority.
+            bitSequence[1] = false; // TODO: source for priority.
 
             // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
             ostr.WriteVarLong(
@@ -92,7 +72,7 @@ namespace ZeroC.Ice
             }
             else
             {
-                bitSequence[4] = false;
+                bitSequence[2] = false;
             }
         }
     }

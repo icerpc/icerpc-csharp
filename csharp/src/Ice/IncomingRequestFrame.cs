@@ -25,20 +25,20 @@ namespace ZeroC.Ice
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; }
 
-        /// <summary>The facet of the target Ice object.</summary>
-        public string Facet { get; }
+        /// <summary>The facet of the target service. ice1 only.</summary>
+        public string Facet { get; } = "";
 
-        /// <summary>The identity of the target Ice object.</summary>
+        /// <summary>The identity of the target service. ice1 only.</summary>
         public Identity Identity { get; }
 
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
 
-        /// <summary>The location of the target Ice object. With ice1, it is always empty.</summary>
-        public IReadOnlyList<string> Location { get; }
-
-        /// <summary>The operation called on the Ice object.</summary>
+        /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
+
+        /// <summary>The path of the target service.</summary>
+        public string Path { get; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
@@ -172,13 +172,18 @@ namespace ZeroC.Ice
             {
                 var requestHeader = new Ice1RequestHeader(istr);
                 Identity = requestHeader.Identity;
+                Path = Identity.ToString();
                 Facet = Ice1Definitions.GetFacet(requestHeader.FacetPath);
-                Location = Array.Empty<string>();
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
                 Context = requestHeader.Context;
                 Priority = default;
                 Deadline = DateTime.MaxValue;
+
+                if (Identity.Name.Length == 0)
+                {
+                    throw new InvalidDataException("received request with null identity");
+                }
             }
             else
             {
@@ -187,9 +192,7 @@ namespace ZeroC.Ice
 
                 // We use the generated code for the header body and read the rest of the header "by hand".
                 var requestHeaderBody = new Ice2RequestHeaderBody(istr);
-                Identity = requestHeaderBody.Identity;
-                Facet = requestHeaderBody.Facet ?? "";
-                Location = requestHeaderBody.Location ?? Array.Empty<string>();
+                Path = requestHeaderBody.Path;
                 Operation = requestHeaderBody.Operation;
                 IsIdempotent = requestHeaderBody.Idempotent ?? false;
                 Priority = requestHeaderBody.Priority ?? default;
@@ -210,16 +213,6 @@ namespace ZeroC.Ice
                         @$"received invalid request header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-
-                if (Location.Any(segment => segment.Length == 0))
-                {
-                    throw new InvalidDataException("received request with an empty location segment");
-                }
-            }
-
-            if (Identity.Name.Length == 0)
-            {
-                throw new InvalidDataException("received request with null identity");
             }
 
             if (Operation.Length == 0)
@@ -242,9 +235,13 @@ namespace ZeroC.Ice
         internal IncomingRequestFrame(OutgoingRequestFrame request)
             : base(request.Protocol, int.MaxValue)
         {
-            Identity = request.Identity;
-            Facet = request.Facet;
-            Location = request.Location;
+            if (Protocol == Protocol.Ice1)
+            {
+                Facet = request.Facet;
+                Identity = request.Identity;
+            }
+            Path = request.Path;
+
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
             Context = new SortedDictionary<string, string>((IDictionary<string, string>)request.Context);

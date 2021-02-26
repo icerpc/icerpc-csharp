@@ -43,7 +43,7 @@ module Ice
     /// - if Identity is not the null identity:
     ///     - ProxyData11
     ///     - a sequence of endpoints that can be empty
-    ///     - an adapter ID string (renamed location in Ice 4.0) present only when the sequence of endpoints is empty
+    ///     - an adapter ID string (renamed location in IceRPC) present only when the sequence of endpoints is empty
     [cs:readonly]
     struct ProxyData11
     {
@@ -61,27 +61,42 @@ module Ice
         /// This optional proxy is null.
         Null,
 
-        /// A proxy with one or more endpoints; with ice2, its URI scheme is ice+transport, where transport corresponds
-        /// to the transport of the first endpoint.
+        /// An ice2 (or greater) ice+transport proxy, where transport corresponds to the transport of the first
+        /// endpoint.
         Direct,
 
-        /// A proxy with no endpoint: for ice2, the URI scheme is ice. With ice1, Relative maps to an indirect proxy.
-        Relative
+        /// An ice2 (or greater) proxy with no endpoint. Its URI scheme is ice.
+        Relative,
+
+        /// An ice1 direct proxy
+        Ice1Direct,
+
+        /// An Ice1 indirect proxy
+        Ice1Indirect
     }
 
     /// With the 2.0 encoding, a proxy is encoded as a discrimated union with:
     /// - ProxyKind20 (the discriminant)
-    /// - if ProxyKind20 is not Null:
-    ///    - ProxyData20
-    ///    - If ProxyKind20 is Direct, a sequence of one or more endpoints
+    /// - if ProxyKind20 is Null: nothing
+    /// - if ProxyKind20 is Direct: ProxyData20 followed by a sequence of one or more endpoints
+    /// - if ProxyKind20 is Relative: ProxyData20
+    /// - if ProxyKind20 is Ice1Direct: Ice1ProxyData20 followed by a sequence of one or more endpoints
+    /// - if ProxyKind20 is Ice1Indirect: Ice1ProxyData20 followed by a string (the location), which can be empty
+
     [cs:readonly]
     struct ProxyData20
     {
-        Identity identity;
+        string path;                         // Percent-escaped URI path.
         Protocol? protocol;                  // null is equivalent to Protocol::Ice2
         Encoding? encoding;                  // null is equivalent to Encoding 2.0
-        StringSeq? location;                 // null is equivalent to an empty sequence
-        InvocationMode? invocationMode;      // always null when protocol != Protocol.Ice1
+    }
+
+    [cs:readonly]
+    struct Ice1ProxyData20
+    {
+        Identity identity;
         string? facet;                       // null equivalent to ""
+        Encoding? encoding;                  // null is equivalent to Encoding 1.1
+        InvocationMode? invocationMode;      // null is equivalent to Twoway
     }
 }

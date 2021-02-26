@@ -95,7 +95,7 @@ namespace ZeroC.Ice.Test.ProtocolBridging
         {
             TestHelper.Assert(current.Context.Count == 1);
             TestHelper.Assert(current.Context.ContainsKey("Intercepted") || current.Context.ContainsKey("Direct"));
-            return ITestIntfPrx.Factory.Create(current.Server, current.Identity).Clone(
+            return ITestIntfPrx.Factory.Create(current.Server, current.Path).Clone(
                 encoding: current.Encoding);
         }
 

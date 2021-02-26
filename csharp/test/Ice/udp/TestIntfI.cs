@@ -46,14 +46,14 @@ namespace ZeroC.Ice.Test.UDP
                 try
                 {
                     byte[] seq = new byte[64 * 1024];
-                    ITestIntfPrx.Factory.Create(current.Connection, id).SendByteSeq(seq, null, cancel: cancel);
+                    ITestIntfPrx.Factory.Create(current.Connection, id.ToString()).SendByteSeq(seq, null, cancel: cancel);
                 }
                 catch (TransportException)
                 {
                     // Expected.
                 }
 
-                IPingReplyPrx.Factory.Create(current.Connection, id).Reply(cancel: cancel);
+                IPingReplyPrx.Factory.Create(current.Connection, id.ToString()).Reply(cancel: cancel);
             }
             catch (System.Exception ex)
             {

@@ -14,7 +14,7 @@ namespace ZeroC.Ice.Discovery
     {
         private readonly string _domainId;
         private readonly ILogger _logger;
-        private readonly LocatorRegistry _registryServant;
+        private readonly LocatorRegistry _registryService;
 
         public async ValueTask FindAdapterByIdAsync(
             string domainId,
@@ -28,7 +28,7 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            (IServicePrx? proxy, bool isReplicaGroup) = _registryServant.FindAdapter(adapterId);
+            (IServicePrx? proxy, bool isReplicaGroup) = _registryService.FindAdapter(adapterId);
             if (proxy != null)
             {
                 // Reply to the multicast request using the given proxy.
@@ -60,7 +60,8 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            if (await _registryServant.FindObjectAsync(id, cancel).ConfigureAwait(false) is IServicePrx proxy)
+            if (await _registryService.FindObjectAsync(id.ToString(), cancel).ConfigureAwait(false)
+                is IServicePrx proxy)
             {
                 // Reply to the multicast request using the given proxy.
                 try
@@ -78,9 +79,9 @@ namespace ZeroC.Ice.Discovery
             }
         }
 
-        internal Lookup(LocatorRegistry registryServant, Communicator communicator)
+        internal Lookup(LocatorRegistry registryService, Communicator communicator)
         {
-            _registryServant = registryServant;
+            _registryService = registryService;
             _domainId = communicator.GetProperty("Ice.Discovery.DomainId") ?? "";
             _logger = communicator.Logger;
         }

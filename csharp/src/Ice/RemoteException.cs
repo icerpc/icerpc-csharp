@@ -90,8 +90,8 @@ namespace ZeroC.Ice
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
-        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced during
-        /// unmarshaling, <c>null</c> is returned otherwise.</summary>
+        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced
+        /// during unmarshaling, <c>null</c> is returned otherwise.</summary>
         protected SlicedData? IceSlicedData { get; set; }
         internal SlicedData? SlicedData => IceSlicedData;
 
@@ -161,21 +161,23 @@ namespace ZeroC.Ice
 
     public partial class ObjectNotExistException
     {
+        public string Facet { get; init; } = "";
+
         /// <inheritdoc/>
         protected override string? DefaultMessage =>
             Origin is RemoteExceptionOrigin origin ?
-                $@"could not find servant for Ice object `{origin.Identity}'" +
-                (origin.Facet.Length > 0 ? $" with facet `{origin.Facet}'" : "") +
-                $" while attempting to dispatch operation `{origin.Operation}'" : null;
+                $"could not find service `{origin.Path}' while attempting to dispatch operation `{origin.Operation}'" :
+                    null;
     }
 
     public partial class OperationNotExistException
     {
+        public string Facet { get; init; } = "";
+
         /// <inheritdoc/>
         protected override string? DefaultMessage =>
             Origin is RemoteExceptionOrigin origin ?
-                $"could not find operation `{origin.Operation}' for Ice object `{origin.Identity}'" +
-                (origin.Facet.Length > 0 ? $" with facet `{origin.Facet}'" : "") : null;
+                $"could not find operation `{origin.Operation}' for service `{origin.Path}'" : null;
     }
 
     public partial class UnhandledException : RemoteException
@@ -194,11 +196,7 @@ namespace ZeroC.Ice
                 string message = "unhandled exception";
                 if (Origin is RemoteExceptionOrigin origin)
                 {
-                    message += $" while dispatching `{origin.Operation}' on Ice object `{origin.Identity}'";
-                    if (origin.Facet.Length > 0)
-                    {
-                        message += $" with facet `{origin.Facet}'";
-                    }
+                    message += $" while dispatching `{origin.Operation}' on service `{origin.Path}'";
                 }
 #if DEBUG
                 message += $":\n{InnerException}\n---";

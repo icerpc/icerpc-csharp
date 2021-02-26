@@ -34,8 +34,10 @@ namespace ZeroC.Ice
 
         public bool IsOneway { get; }
         public object? Label { get; }
-        public IReadOnlyList<string> Location { get; } = ImmutableList<string>.Empty;
+        public string Location { get; } = "";
         public ILocationService? LocationService { get; }
+
+        public string Path { get; } = "";
 
         public bool PreferExistingConnection =>
             _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
@@ -47,7 +49,7 @@ namespace ZeroC.Ice
         internal bool IsIndirect => Protocol == Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
 
         internal bool IsRelative => Protocol != Protocol.Ice1 && Endpoints.Count == 0 && !IsFixed;
-        internal bool IsWellKnown => IsIndirect && Location.Count == 0;
+        internal bool IsWellKnown => IsIndirect && (Location.Length == 0);
 
         private volatile Connection? _connection;
         private int _hashCode; // cached hash code value
@@ -101,61 +103,8 @@ namespace ZeroC.Ice
                 return false;
             }
 
-            if (IsFixed)
-            {
-                // Compare properties and fields specific to fixed references
-                if (_connection != other._connection)
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                // Compare properties specific to other kinds of references
-                if (CacheConnection != other.CacheConnection)
-                {
-                    return false;
-                }
-                if (!Endpoints.SequenceEqual(other.Endpoints))
-                {
-                    return false;
-                }
-                if (Label != other.Label)
-                {
-                    return false;
-                }
-                if (!Location.SequenceEqual(other.Location))
-                {
-                    return false;
-                }
-                if (LocationService != other.LocationService)
-                {
-                    return false;
-                }
-                if (_preferExistingConnectionOverride != other._preferExistingConnectionOverride)
-                {
-                    return false;
-                }
-                if (_preferNonSecureOverride != other._preferNonSecureOverride)
-                {
-                    return false;
-                }
-            }
-
             // Compare common properties
-            if (!Context.DictionaryEqual(other.Context))
-            {
-                return false;
-            }
             if (Encoding != other.Encoding)
-            {
-                return false;
-            }
-            if (Facet != other.Facet)
-            {
-                return false;
-            }
-            if (Identity != other.Identity)
             {
                 return false;
             }
@@ -178,6 +127,75 @@ namespace ZeroC.Ice
             if (Protocol != other.Protocol)
             {
                 return false;
+            }
+
+            if (!Context.DictionaryEqual(other.Context)) // done last since it's more expensive
+            {
+                return false;
+            }
+
+            if (Protocol == Protocol.Ice1)
+            {
+                if (Facet != other.Facet)
+                {
+                    return false;
+                }
+                if (Identity != other.Identity)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (Path != other.Path)
+                {
+                    return false;
+                }
+            }
+
+            if (IsFixed)
+            {
+                // Compare properties and fields specific to fixed proxies
+                if (_connection != other._connection)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                // Compare properties specific to non-fixed proxies
+                if (CacheConnection != other.CacheConnection)
+                {
+                    return false;
+                }
+                if (!Endpoints.SequenceEqual(other.Endpoints))
+                {
+                    return false;
+                }
+                if (Label != other.Label)
+                {
+                    return false;
+                }
+                if (_preferExistingConnectionOverride != other._preferExistingConnectionOverride)
+                {
+                    return false;
+                }
+                if (_preferNonSecureOverride != other._preferNonSecureOverride)
+                {
+                    return false;
+                }
+
+                if (Protocol == Protocol.Ice1)
+                {
+                    if (Location != other.Location)
+                    {
+                        return false;
+                    }
+                    if (LocationService != other.LocationService)
+                    {
+                        return false;
+                    }
+                }
             }
 
             return true;
@@ -205,13 +223,21 @@ namespace ZeroC.Ice
                 // common properties
                 hash.Add(Context.GetDictionaryHashCode());
                 hash.Add(Encoding);
-                hash.Add(Facet);
-                hash.Add(Identity);
                 hash.Add(InvocationInterceptors.GetSequenceHashCode());
                 hash.Add(_invocationTimeoutOverride);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
                 hash.Add(Protocol);
+
+                if (Protocol == Protocol.Ice1)
+                {
+                    hash.Add(Facet);
+                    hash.Add(Identity);
+                }
+                else
+                {
+                    hash.Add(Path);
+                }
 
                 if (IsFixed)
                 {
@@ -222,10 +248,14 @@ namespace ZeroC.Ice
                     hash.Add(CacheConnection);
                     hash.Add(Endpoints.GetSequenceHashCode());
                     hash.Add(Label);
-                    hash.Add(Location.GetSequenceHashCode());
-                    hash.Add(LocationService);
                     hash.Add(_preferExistingConnectionOverride);
                     hash.Add(_preferNonSecureOverride);
+
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        hash.Add(Location);
+                        hash.Add(LocationService);
+                    }
                 }
 
                 int hashCode = hash.ToHashCode();
@@ -247,7 +277,7 @@ namespace ZeroC.Ice
                 throw new NotSupportedException("cannot marshal a fixed proxy");
             }
 
-            InvocationMode invocationMode = IsOneway ? InvocationMode.Oneway : InvocationMode.Twoway;
+            InvocationMode? invocationMode = IsOneway ? InvocationMode.Oneway : null;
             if (Protocol == Protocol.Ice1 && IsOneway && Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
             {
                 invocationMode = InvocationMode.Datagram;
@@ -255,23 +285,50 @@ namespace ZeroC.Ice
 
             if (ostr.Encoding == Encoding.V11)
             {
-                Identity.IceWrite(ostr);
-                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
+                if (Protocol == Protocol.Ice1)
+                {
+                    Identity.IceWrite(ostr);
+                }
+                else
+                {
+                    // Write path in identity name and leave category empty
+                    ostr.WriteString(Path);
+                    ostr.WriteString(""); // empty category
+                }
+
+                ostr.WriteProxyData11(Facet, invocationMode ?? InvocationMode.Twoway, Protocol, Encoding);
                 ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
 
                 if (Endpoints.Count == 0)
                 {
-                    // If Location holds more than 1 segment, the extra segments are not marshaled.
-                    ostr.WriteString(Location.Count == 0 ? "" : Location[0]);
+                    ostr.WriteString(Location);
                 }
             }
             else
             {
                 Debug.Assert(ostr.Encoding == Encoding.V20);
 
-                // For ice1 proxies, ProxyKind20.Relative corresponds to an indirect proxy.
-                ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct : ProxyKind20.Relative);
-                ostr.WriteProxyData20(Identity, Protocol, Encoding, Location, invocationMode, Facet);
+                if (Protocol == Protocol.Ice1)
+                {
+                    ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Ice1Direct : ProxyKind20.Ice1Indirect);
+                    var proxyData = new Ice1ProxyData20(Identity,
+                                                        facet: Facet.Length > 0 ? Facet : null,
+                                                        encoding: Encoding != Encoding.V11 ? Encoding : null,
+                                                        invocationMode: invocationMode);
+                    proxyData.IceWrite(ostr);
+                    if (Endpoints.Count == 0)
+                    {
+                        ostr.WriteString(Location);
+                    }
+                }
+                else
+                {
+                    ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Direct : ProxyKind20.Relative);
+                    var proxyData = new ProxyData20(Path,
+                                                    protocol: Protocol != Protocol.Ice2 ? Protocol : null,
+                                                    encoding: Encoding != Encoding.V20 ? Encoding : null);
+                    proxyData.IceWrite(ostr);
+                }
 
                 if (Endpoints.Count > 0)
                 {
@@ -342,24 +399,22 @@ namespace ZeroC.Ice
                 sb.Append(" -e ");
                 sb.Append(Encoding.ToString());
 
-                if (Location.Count > 0)
+                if (Location.Length > 0)
                 {
-                    Debug.Assert(Location.Count == 1); // at most 1 segment with ice1
-
                     sb.Append(" @ ");
 
-                    // If the encoded adapter ID string contains characters which the reference parser uses as
-                    // separators, then we enclose the adapter ID string in quotes.
-                    string a = StringUtil.EscapeString(Location[0], Communicator.ToStringMode);
-                    if (StringUtil.FindFirstOf(a, " :@") != -1)
+                    // If the encoded location contains characters which the proxy parser uses as separators, then we
+                    // enclose the location string in double quotes.
+                    string location = StringUtil.EscapeString(Location, Communicator.ToStringMode);
+                    if (StringUtil.FindFirstOf(location, " :@") != -1)
                     {
                         sb.Append('"');
-                        sb.Append(a);
+                        sb.Append(location);
                         sb.Append('"');
                     }
                     else
                     {
-                        sb.Append(a);
+                        sb.Append(location);
                     }
                 }
                 else
@@ -374,27 +429,6 @@ namespace ZeroC.Ice
             }
             else // >= ice2, use URI format
             {
-                string path;
-                if (Location.Count > 0)
-                {
-                    var pathBuilder = new StringBuilder();
-                    foreach (string s in Location)
-                    {
-                        pathBuilder.Append(Uri.EscapeDataString(s));
-                        pathBuilder.Append('/');
-                    }
-                    if (Identity.Category.Length == 0)
-                    {
-                        pathBuilder.Append('/');
-                    }
-                    pathBuilder.Append(Identity); // Identity.ToString() escapes the string
-                    path = pathBuilder.ToString();
-                }
-                else
-                {
-                    path = Identity.ToString();
-                }
-
                 var sb = new StringBuilder();
                 bool firstOption = true;
 
@@ -402,13 +436,13 @@ namespace ZeroC.Ice
                 {
                     // direct proxy using ice+transport scheme
                     Endpoint mainEndpoint = Endpoints[0];
-                    sb.AppendEndpoint(mainEndpoint, path);
+                    sb.AppendEndpoint(mainEndpoint, Path);
                     firstOption = !mainEndpoint.HasOptions;
                 }
                 else
                 {
                     sb.Append("ice:");
-                    sb.Append(path);
+                    sb.Append(Path);
                 }
 
                 if (!CacheConnection)
@@ -529,19 +563,28 @@ namespace ZeroC.Ice
             Context = options.Context ?? Communicator.DefaultContext;
             Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
-            Facet = options.Facet;
-            Identity = options.Identity;
             InvocationInterceptors = options.InvocationInterceptors ?? Communicator.DefaultInvocationInterceptors;
-            IsFixed = options.Connection != null; // auto-computed
+            IsFixed = options.Connection != null; // auto-computed for now
             IsOneway = options.IsOneway;
             Label = options.Label;
-            Location = options.Location;
-            LocationService = options.LocationService;
             Protocol = options.Protocol;
             _connection = options.Connection;
             _invocationTimeoutOverride = options.InvocationTimeoutOverride;
             _preferExistingConnectionOverride = options.PreferExistingConnectionOverride;
             _preferNonSecureOverride = options.PreferNonSecureOverride;
+
+            if (Protocol == Protocol.Ice1)
+            {
+                Facet = options.Facet;
+                Identity = options.Identity;
+                Location = options.Location;
+                LocationService = options.LocationService;
+                Path = Identity.ToString();
+            }
+            else
+            {
+                Path = options.Path;
+            }
         }
 
         /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
@@ -640,39 +683,22 @@ namespace ZeroC.Ice
             IEnumerable<Endpoint>? endpoints = null, // from app, needs to be copied
             string? facet = null,
             Connection? fixedConnection = null,
-            Identity? identity = null,
-            string? identityAndFacet = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app, needs to be copied
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            IEnumerable<string>? location = null, // from app, needs to be copied
+            string? location = null,
             ILocationService? locationService = null,
             bool? oneway = null,
+            string? path = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null)
         {
-            if (identityAndFacet != null)
-            {
-                if (facet != null)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(facet)}",
-                                                nameof(facet));
-                }
-
-                if (identity != null)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(identityAndFacet)} and {nameof(identity)}",
-                                                nameof(identity));
-                }
-
-                (identity, facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            }
-
-            (IReadOnlyList<Endpoint>? newEndpoints, IReadOnlyList<string>? newLocation) =
+            (IReadOnlyList<Endpoint>? newEndpoints, string? newLocation) =
                 ValidateCloneArgs(cacheConnection,
                                   clearLabel,
                                   clearLocationService,
                                   endpoints,
+                                  facet,
                                   fixedConnection,
                                   invocationTimeout,
                                   label,
@@ -693,10 +719,11 @@ namespace ZeroC.Ice
                     Context = context?.ToImmutableSortedDictionary() ?? Context,
                     Encoding = encoding ?? Encoding,
                     Facet = facet ?? Facet,
-                    Identity = identity ?? Identity,
+                    Identity = Protocol == Protocol.Ice1 ? UriParser.ParseIdentity(path) ?? Identity : default,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
+                    Path = Protocol == Protocol.Ice1 ? "" : path ?? Path,
                     Protocol = Protocol
                 };
             }
@@ -710,13 +737,14 @@ namespace ZeroC.Ice
                     Encoding = encoding ?? Encoding,
                     Endpoints = newEndpoints,
                     Facet = facet ?? Facet,
-                    Identity = identity ?? Identity,
+                    Identity = Protocol == Protocol.Ice1 ? UriParser.ParseIdentity(path) ?? Identity : default,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = oneway ?? IsOneway,
                     Label = clearLabel ? null : label ?? Label,
                     Location = newLocation ?? Location,
                     LocationService = clearLocationService ? null : locationService ?? LocationService,
+                    Path = Protocol == Protocol.Ice1 ? "" : path ?? Path,
                     PreferExistingConnectionOverride = preferExistingConnection ?? _preferExistingConnectionOverride,
                     PreferNonSecureOverride = preferNonSecure ?? _preferNonSecureOverride,
                     Protocol = Protocol
@@ -872,7 +900,7 @@ namespace ZeroC.Ice
             }
             else if (LocationService is ILocationService locationService)
             {
-                if (Location.Count == 0)
+                if (Location.Length == 0)
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveWellKnownProxyAsync(
                         Identity,
@@ -882,7 +910,7 @@ namespace ZeroC.Ice
                 else
                 {
                     (endpoints, endpointsAge) = await locationService.ResolveLocationAsync(
-                        Location[0],
+                        Location,
                         endpointsMaxAge,
                         cancel).ConfigureAwait(false);
                 }
@@ -1189,15 +1217,16 @@ namespace ZeroC.Ice
             return response ?? throw ExceptionUtil.Throw(exception!);
         }
 
-        private (IReadOnlyList<Endpoint> NewEndpoints, IReadOnlyList<string>? NewLocation) ValidateCloneArgs(
+        private (IReadOnlyList<Endpoint> NewEndpoints, string? NewLocation) ValidateCloneArgs(
             bool? cacheConnection,
             bool clearLabel,
             bool clearLocationService,
             IEnumerable<Endpoint>? endpoints,
+            string? facet,
             Connection? fixedConnection,
             TimeSpan? invocationTimeout,
             object? label,
-            IEnumerable<string>? location,
+            string? location,
             ILocationService? locationService,
             bool? preferExistingConnection,
             NonSecure? preferNonSecure)
@@ -1212,13 +1241,20 @@ namespace ZeroC.Ice
                         $"cannot set both {nameof(locationService)} and {nameof(clearLocationService)}");
                 }
             }
-            else if (locationService != null)
+            else
             {
-                throw new ArgumentException($"{nameof(locationService)} applies only to ice1 proxies");
-            }
-            else if (clearLocationService)
-            {
-                throw new ArgumentException($"{nameof(clearLocationService)} applies only to ice1 proxies");
+                if (locationService != null)
+                {
+                    throw new ArgumentException($"{nameof(locationService)} applies only to ice1 proxies");
+                }
+                if (clearLocationService)
+                {
+                    throw new ArgumentException($"{nameof(clearLocationService)} applies only to ice1 proxies");
+                }
+                if (facet != null)
+                {
+                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies");
+                }
             }
 
             if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
@@ -1284,23 +1320,17 @@ namespace ZeroC.Ice
                                                 nameof(endpoints));
                 }
 
-                if (location != null && location.Any(segment => segment.Length == 0))
-                {
-                    throw new ArgumentException($"invalid location `{location}' with an empty segment",
-                                                nameof(location));
-                }
-
                 if (label != null && clearLabel)
                 {
                     throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
                 }
 
                 IReadOnlyList<Endpoint>? newEndpoints = endpoints?.ToImmutableList();
-                IReadOnlyList<string>? newLocation = location?.ToImmutableList();
+                string? newLocation = location;
 
                 if (Protocol == Protocol.Ice1)
                 {
-                    if (newLocation?.Count > 0 && newEndpoints?.Count > 0)
+                    if (newLocation?.Length > 0 && newEndpoints?.Count > 0)
                     {
                         throw new ArgumentException(
                             @$"cannot set both a non-empty {nameof(location)} and a non-empty {nameof(endpoints)
@@ -1308,19 +1338,13 @@ namespace ZeroC.Ice
                             nameof(location));
                     }
 
-                    if (newLocation?.Count > 0)
+                    if (newLocation?.Length > 0)
                     {
-                        if (newLocation.Count > 1)
-                        {
-                            throw new ArgumentException(
-                                $"{nameof(location)} is limited to a single segment for ice1 proxies",
-                                nameof(location));
-                        }
                         newEndpoints = ImmutableList<Endpoint>.Empty; // make sure the clone's endpoints are empty
                     }
                     else if (newEndpoints?.Count > 0)
                     {
-                        newLocation = ImmutableArray<string>.Empty; // make sure the clone's location is empty
+                        newLocation = ""; // make sure the clone's location is empty
                     }
                 }
 

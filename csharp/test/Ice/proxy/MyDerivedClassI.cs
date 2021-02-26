@@ -16,8 +16,6 @@ namespace ZeroC.Ice.Test.Proxy
 
         public IServicePrx? Echo(IServicePrx? obj, Current c, CancellationToken cancel) => obj;
 
-        public IEnumerable<string> GetLocation(Current current, CancellationToken cancel) => current.Location;
-
         public void Shutdown(Current current, CancellationToken cancel) =>
             current.Server.ShutdownAsync();
 

@@ -315,7 +315,7 @@ namespace ZeroC.Ice
                 ostr.Write(replyStatus);
             }
 
-            exception.Origin = new RemoteExceptionOrigin(request.Identity, request.Facet, request.Operation);
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             if (PayloadEncoding == Encoding.V11)
             {
                 switch (replyStatus)

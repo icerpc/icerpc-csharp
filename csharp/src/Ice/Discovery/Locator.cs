@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ZeroC.Ice.Discovery
 {
-    /// <summary>Servant class that implements the Slice interface Ice::Locator.</summary>
+    /// <summary>Service class that implements the Slice interface Ice::Locator.</summary>
     internal class Locator : IAsyncLocator
     {
         internal ILocatorPrx Proxy { get; }
@@ -42,19 +42,19 @@ namespace ZeroC.Ice.Discovery
             Current current,
             CancellationToken cancel)
         {
-            using var replyServant = new FindAdapterByIdReply(_replyServer);
+            using var replyService = new FindAdapterByIdReply(_replyServer);
             return await InvokeAsync(
                 (lookup, dummyReply) =>
                 {
                     IFindAdapterByIdReplyPrx reply =
-                        IFindAdapterByIdReplyPrx.Factory.Clone(dummyReply, identity: replyServant.Identity);
+                        IFindAdapterByIdReplyPrx.Factory.Clone(dummyReply, path: replyService.Path);
 
                     return lookup.FindAdapterByIdAsync(_domainId,
                                                       adapterId,
                                                       reply,
                                                       cancel: cancel);
                 },
-                replyServant).ConfigureAwait(false);
+                replyService).ConfigureAwait(false);
         }
 
         public async ValueTask<IServicePrx?> FindObjectByIdAsync(
@@ -62,16 +62,16 @@ namespace ZeroC.Ice.Discovery
             Current current,
             CancellationToken cancel)
         {
-            using var replyServant = new FindObjectByIdReply(_replyServer);
+            using var replyService = new FindObjectByIdReply(_replyServer);
             return await InvokeAsync(
                 (lookup, dummyReply) =>
                 {
                     IFindObjectByIdReplyPrx reply =
-                        IFindObjectByIdReplyPrx.Factory.Clone(dummyReply, identity: replyServant.Identity);
+                        IFindObjectByIdReplyPrx.Factory.Clone(dummyReply, path: replyService.Path);
 
                     return lookup.FindObjectByIdAsync(_domainId, identity, reply, cancel: cancel);
                 },
-                replyServant).ConfigureAwait(false);
+                replyService).ConfigureAwait(false);
         }
 
         public ValueTask<ILocatorRegistryPrx?> GetRegistryAsync(Current current, CancellationToken cancel) =>
@@ -131,11 +131,11 @@ namespace ZeroC.Ice.Discovery
                                                      ColocationScope = options.ColocationScope,
                                                      Protocol = Protocol.Ice1
                                                  });
-            Proxy = _locatorServer.Add(new Identity("discovery", _domainId), this, ILocatorPrx.Factory);
+            Proxy = _locatorServer.Add($"{_domainId}/discovery", this, ILocatorPrx.Factory);
 
             // Setup locator registry.
-            var registryServant = new LocatorRegistry(communicator);
-            _registry = _locatorServer.AddWithUUID(registryServant, ILocatorRegistryPrx.Factory);
+            var registryService = new LocatorRegistry(communicator);
+            _registry = _locatorServer.AddWithUUID(registryService, ILocatorRegistryPrx.Factory);
 
             _multicastServer = new Server(communicator,
                                                   new()
@@ -189,7 +189,7 @@ namespace ZeroC.Ice.Discovery
             Debug.Assert(_lookups.Count > 0);
 
             // Add lookup Ice object
-            _multicastServer.Add("IceDiscovery/Lookup", new Lookup(registryServant, communicator));
+            _multicastServer.Add("IceDiscovery/Lookup", new Lookup(registryService, communicator));
         }
 
         internal Task ActivateAsync(CancellationToken cancel) =>
@@ -205,10 +205,10 @@ namespace ZeroC.Ice.Discovery
         /// <summary>Invokes a find or resolve request on a Lookup object and processes the reply(ies).</summary>
         /// <param name="findAsync">A delegate that performs the remote call. Its parameters correspond to an entry in
         /// the _lookups dictionary.</param>
-        /// <param name="replyServant">The reply servant.</param>
+        /// <param name="replyService">The reply service.</param>
         private async Task<TResult> InvokeAsync<TResult>(
             Func<ILookupPrx, IServicePrx, Task> findAsync,
-            ReplyServant<TResult> replyServant)
+            ReplyService<TResult> replyService)
         {
             // We retry only when at least one findAsync request is sent successfully and we don't get any reply.
             // TODO: this _retryCount is really an attempt count not a retry count.
@@ -216,7 +216,7 @@ namespace ZeroC.Ice.Discovery
             {
                 TimeSpan start = Time.Elapsed;
 
-                var timeoutTask = Task.Delay(_timeout, replyServant.CancellationToken);
+                var timeoutTask = Task.Delay(_timeout, replyService.CancellationToken);
 
                 var sendTask = Task.WhenAll(_lookups.Select(
                     entry =>
@@ -231,7 +231,7 @@ namespace ZeroC.Ice.Discovery
                         }
                     }));
 
-                Task task = await Task.WhenAny(sendTask, replyServant.Task, timeoutTask).ConfigureAwait(false);
+                Task task = await Task.WhenAny(sendTask, replyService.Task, timeoutTask).ConfigureAwait(false);
 
                 if (task == sendTask)
                 {
@@ -244,41 +244,41 @@ namespace ZeroC.Ice.Discovery
                             {
                                 _logger.LogLookupRequestFailed(_lookup, sendTask.Exception!.InnerException!);
                             }
-                            replyServant.SetEmptyResult();
-                            return await replyServant.Task.ConfigureAwait(false);
+                            replyService.SetEmptyResult();
+                            return await replyService.Task.ConfigureAwait(false);
                         }
                     }
                     // For Canceled or RanToCompletion, we assume at least one send was successful. If we're wrong,
                     // we'll timeout soon anyways.
 
-                    task = await Task.WhenAny(replyServant.Task, timeoutTask).ConfigureAwait(false);
+                    task = await Task.WhenAny(replyService.Task, timeoutTask).ConfigureAwait(false);
                 }
 
-                if (task == replyServant.Task)
+                if (task == replyService.Task)
                 {
-                    return await replyServant.Task.ConfigureAwait(false);
+                    return await replyService.Task.ConfigureAwait(false);
                 }
                 else if (task.IsCanceled)
                 {
                     // If the timeout was canceled we delay the completion of the request to give a chance to other
                     // members of this replica group to reply
                     return await
-                        replyServant.GetReplicaGroupRepliesAsync(start, _latencyMultiplier).ConfigureAwait(false);
+                        replyService.GetReplicaGroupRepliesAsync(start, _latencyMultiplier).ConfigureAwait(false);
                 }
                 // else timeout, so we retry until _retryCount
             }
 
-            replyServant.SetEmptyResult(); // _retryCount exceeded
-            return await replyServant.Task.ConfigureAwait(false);
+            replyService.SetEmptyResult(); // _retryCount exceeded
+            return await replyService.Task.ConfigureAwait(false);
         }
     }
 
-    /// <summary>The base class of all Reply servant that helps collect / gather the reply(ies) to a lookup reques.
+    /// <summary>The base class of all Reply service that helps collect / gather the reply(ies) to a lookup request.
     /// </summary>
-    internal class ReplyServant<TResult> : IService, IDisposable
+    internal class ReplyService<TResult> : IService, IDisposable
     {
         internal CancellationToken CancellationToken => _cancellationSource.Token;
-        internal Identity Identity { get; }
+        internal string Path { get; }
 
         internal Task<TResult> Task => _completionSource.Task;
 
@@ -291,7 +291,7 @@ namespace ZeroC.Ice.Discovery
         public void Dispose()
         {
             _cancellationSource.Dispose();
-            _replyServer.Remove(Identity);
+            _replyServer.Remove(Path);
         }
 
         internal async Task<TResult> GetReplicaGroupRepliesAsync(TimeSpan start, int latencyMultiplier)
@@ -311,10 +311,10 @@ namespace ZeroC.Ice.Discovery
 
         internal void SetEmptyResult() => _completionSource.SetResult(_emptyResult);
 
-        private protected ReplyServant(TResult emptyResult, Server replyServer)
+        private protected ReplyService(TResult emptyResult, Server replyServer)
         {
-            // Add servant (this) to server with new UUID identity.
-            Identity = replyServer.AddWithUUID(this, IServicePrx.Factory).Identity;
+            // Add service (this) to server with new UUID path.
+            Path = replyServer.AddWithUUID(this, IServicePrx.Factory).Path;
 
             _cancellationSource = new();
             _completionSource = new();
@@ -333,8 +333,8 @@ namespace ZeroC.Ice.Discovery
         private protected void SetResult(TResult result) => _completionSource.SetResult(result);
     }
 
-    /// <summary>Servant class that implements the Slice interface FindAdapterByIdReply.</summary>
-    internal sealed class FindAdapterByIdReply : ReplyServant<IServicePrx?>, IAsyncFindAdapterByIdReply
+    /// <summary>Service class that implements the Slice interface FindAdapterByIdReply.</summary>
+    internal sealed class FindAdapterByIdReply : ReplyService<IServicePrx?>, IAsyncFindAdapterByIdReply
     {
         private readonly object _mutex = new();
         private readonly HashSet<IServicePrx> _proxies = new();
@@ -387,8 +387,8 @@ namespace ZeroC.Ice.Discovery
         }
     }
 
-    /// <summary>Servant class that implements the Slice interface FindObjectByIdReply.</summary>
-    internal class FindObjectByIdReply : ReplyServant<IServicePrx?>, IAsyncFindObjectByIdReply
+    /// <summary>Service class that implements the Slice interface FindObjectByIdReply.</summary>
+    internal class FindObjectByIdReply : ReplyService<IServicePrx?>, IAsyncFindObjectByIdReply
     {
         public ValueTask FoundObjectByIdAsync(Identity id, IServicePrx proxy, Current current, CancellationToken cancel)
         {
