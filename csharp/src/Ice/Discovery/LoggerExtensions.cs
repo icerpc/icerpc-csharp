@@ -7,22 +7,26 @@ namespace ZeroC.Ice.Discovery
 {
     internal static class LoggerExtensions
     {
+        private const int FoundAdapterByIdRequestFailed = 0;
+        private const int FoundObjectByIdRequestFailed = 1;
+        private const int LookupRequestFailed = 2;
+
         private static readonly Action<ILogger, IFindAdapterByIdReplyPrx, Exception> _foundAdapterByIdRequestFailed =
             LoggerMessage.Define<IFindAdapterByIdReplyPrx>(
                 LogLevel.Error,
-                GetEventId(DiscoveryEvent.FoundAdapterByIdRequestFailed),
+                new EventId(FoundAdapterByIdRequestFailed, nameof(FoundAdapterByIdRequestFailed)),
                 "Ice discovery failed to send foundAdapterById to `{ReplyProxy}'");
 
         private static readonly Action<ILogger, IFindObjectByIdReplyPrx, Exception> _foundObjectByIdRequestFailed =
             LoggerMessage.Define<IFindObjectByIdReplyPrx>(
                 LogLevel.Error,
-                GetEventId(DiscoveryEvent.FoundObjectByIdRequestFailed),
+                new EventId(FoundObjectByIdRequestFailed, nameof(FoundObjectByIdRequestFailed)),
                 "Ice discovery failed to send foundObjectById to `{ReplyProxy}'");
 
         private static readonly Action<ILogger, ILookupPrx, Exception> _lookupRequestFailed =
             LoggerMessage.Define<ILookupPrx>(
                 LogLevel.Error,
-                GetEventId(DiscoveryEvent.LookupRequestFailed),
+                new EventId(LookupRequestFailed, nameof(LookupRequestFailed)),
                 "Ice discovery failed to send lookup request using lookup `{LookupProxy}'");
 
         internal static void LogFoundAdapterByIdRequestFailed(
@@ -42,14 +46,5 @@ namespace ZeroC.Ice.Discovery
             ILookupPrx lookup,
             Exception ex) =>
             _lookupRequestFailed(logger, lookup, ex);
-
-        private static EventId GetEventId(DiscoveryEvent e) => new((int)e, e.ToString());
-
-        private enum DiscoveryEvent
-        {
-            FoundAdapterByIdRequestFailed,
-            FoundObjectByIdRequestFailed,
-            LookupRequestFailed
-        }
     }
 }

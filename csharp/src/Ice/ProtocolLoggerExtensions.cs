@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
+    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Protocol" category.
+    /// </summary>
     internal static class ProtocolLoggerExtensions
     {
         internal const int ReceivedIce1CloseConnectionFrame = 0;
