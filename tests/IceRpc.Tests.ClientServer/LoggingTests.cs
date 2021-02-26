@@ -213,7 +213,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(TCP", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(tcp", StringComparison.Ordinal));
             }
         }
 
