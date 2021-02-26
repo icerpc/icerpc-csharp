@@ -272,6 +272,44 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(IServicePrx.Equals(prx, null));
         }
 
+        /// <summary>Test that proxies that are equal produce the same hash code.</summary>
+        [Test]
+        public void Proxy_HashCode()
+        {
+            var prx1 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
+            var prx2 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
+
+            var prx3 = IServicePrx.Parse("bar:tcp -h 127.0.0.1 -p 10000", Communicator);
+
+            CheckGetHashCode(prx1, prx2);
+
+            CheckGetHashCode(prx1.Clone(cacheConnection: true), prx2.Clone(cacheConnection: true));
+
+            CheckGetHashCode(prx1.Clone(endpoints: prx3.Endpoints), prx2.Clone(endpoints: prx3.Endpoints));
+
+            CheckGetHashCode(prx1.Clone(invocationTimeout: TimeSpan.FromSeconds(1)),
+                             prx2.Clone(invocationTimeout: TimeSpan.FromSeconds(1)));
+
+            object label = new object();
+            CheckGetHashCode(prx1.Clone(label: label), prx2.Clone(label: label));
+
+            CheckGetHashCode(prx1.Clone(oneway: true), prx2.Clone(oneway: true));
+
+            CheckGetHashCode(prx1.Clone(preferExistingConnection: true), prx2.Clone(preferExistingConnection: true));
+
+            CheckGetHashCode(prx1.Clone(preferNonSecure: NonSecure.Always),
+                             prx2.Clone(preferNonSecure: NonSecure.Always));
+
+
+            static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
+            {
+                Assert.AreEqual(prx1, prx2);
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
+                // The second attempt should hit the hash code cache
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
+            }
+        }
+
         internal class DummyLocationService : ILocationService
         {
             public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
