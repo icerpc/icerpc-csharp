@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string> 
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "50ms" }
+                    {"Ice.ConnectTimeout", "200ms" }
                 },
                 loggerFactory: loggerFactory);
 
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string>
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "50ms" }
+                    {"Ice.ConnectTimeout", "200ms" }
                 },
                 loggerFactory: loggerFactory);
 
@@ -184,7 +184,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckStreamScope(scopes[1]);
                         CheckRequestScope(scopes[2]);
                         // The seding of the response always comes before the receiving of the request
-                        CollectionAssert.Contains(events, 18);
+                        CollectionAssert.Contains(events, 7);
                         break;
                     }
                     default:
