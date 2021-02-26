@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
 
@@ -12,6 +13,77 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class ProxyTests : ColocatedTest
     {
+        [Test]
+        public async Task Proxy_Clone_ArgumentException()
+        {
+            var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000", Communicator);
+            Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
+            var prxIce2 = IServicePrx.Parse("ice+tcp://host.zeroc.com/hello", Communicator);
+            Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
+            // Cannot set both label and clearLabel
+            Assert.Throws<ArgumentException>(() => prxIce2.Clone(label: "foo", clearLabel: true));
+            // Cannot set both locationService and clearLocationService
+            Assert.Throws<ArgumentException>(() => prxIce1.Clone(locationService: new DummyLocationService(),
+                                                                 clearLocationService: true));
+            // locationService applies only to Ice1 proxies
+            Assert.Throws<ArgumentException>(() => prxIce2.Clone(locationService: new DummyLocationService()));
+            // clearLocationService applies only to Ice1 proxies
+            Assert.Throws<ArgumentException>(() => prxIce2.Clone(clearLocationService: true));
+
+            // Endpoints protocol must match the proxy protocol
+            Assert.Throws<ArgumentException>(() => prxIce1.Clone(endpoints: prxIce2.Endpoints));
+            Assert.Throws<ArgumentException>(() => prxIce2.Clone(endpoints: prxIce1.Endpoints));
+
+            // cannot set both Endpoints and locationService
+            Assert.Throws<ArgumentException>(() => IServicePrx.Parse("hello -t", Communicator).Clone(
+                endpoints: prxIce1.Endpoints,
+                locationService: new DummyLocationService()));
+
+            // Zero is not a valid invocation timeout
+            Assert.Throws<ArgumentException>(() => prxIce2.Clone(invocationTimeout: TimeSpan.Zero));
+
+            await using var serverIce1 = new Server(Communicator, new()
+            {
+                Protocol = Protocol.Ice1,
+                ColocationScope = ColocationScope.Communicator
+            });
+            var fixedPrxIce1 = serverIce1.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
+            var connectionIce1 = await fixedPrxIce1.GetConnectionAsync();
+            fixedPrxIce1 = fixedPrxIce1.Clone(fixedConnection: connectionIce1);
+            Assert.IsTrue(fixedPrxIce1.IsFixed);
+            Assert.AreEqual(Protocol.Ice1, fixedPrxIce1.Protocol);
+
+            await using var serverIce2 = new Server(Communicator, new()
+            {
+                ColocationScope = ColocationScope.Communicator
+            });
+            var fixedPrxIce2 = serverIce2.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
+            var connectionIce2 = await fixedPrxIce2.GetConnectionAsync();
+            fixedPrxIce2 = fixedPrxIce2.Clone(fixedConnection: connectionIce2);
+            Assert.IsTrue(fixedPrxIce2.IsFixed);
+            Assert.AreEqual(Protocol.Ice2, fixedPrxIce2.Protocol);
+
+            // Cannot change the endpoints of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(endpoints: prxIce2.Endpoints));
+
+            // Cannot change the cache connection setting of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(cacheConnection: true));
+
+            // Cannot change the label of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(label: new object()));
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(clearLabel: true));
+
+            // Cannot change the location service of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce1.Clone(locationService: new DummyLocationService()));
+            Assert.Throws<ArgumentException>(() => fixedPrxIce1.Clone(clearLocationService: true));
+
+            // Cannot change the prefer existing connection setting of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferExistingConnection: true));
+
+            // Cannot change the prefer non secure setting of a fixed proxy
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferNonSecure: NonSecure.Always));
+        }
+
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice -t:tcp -h localhost -p 10000")]
@@ -20,7 +92,7 @@ namespace IceRpc.Tests.Api
         {
             var prx = IServicePrx.Parse(str, Communicator);
             Assert.AreEqual(Protocol.Ice1, prx.Protocol);
-            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
+            Assert.IsTrue(IServicePrx.TryParse(prx.ToString()!, Communicator, out IServicePrx? prx2));
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -102,6 +174,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => IServicePrx.Parse(str, Communicator));
+            Assert.IsFalse(IServicePrx.TryParse(str, Communicator, out _));
         }
 
         /// <summary>Test that the parsed proxy has the expected idenity and location</summary>
@@ -188,6 +261,17 @@ namespace IceRpc.Tests.Api
             CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
         }
 
+        [Test]
+        public void Proxy_Equals()
+        {
+            Assert.IsTrue(IServicePrx.Equals(null, null));
+            var prx = IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", Communicator);
+            Assert.IsTrue(IServicePrx.Equals(prx, prx));
+            Assert.IsTrue(IServicePrx.Equals(prx, IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", Communicator)));
+            Assert.IsFalse(IServicePrx.Equals(null, prx));
+            Assert.IsFalse(IServicePrx.Equals(prx, null));
+        }
+
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [Test]
         public void Proxy_HashCode()
@@ -224,6 +308,25 @@ namespace IceRpc.Tests.Api
                 // The second attempt should hit the hash code cache
                 Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
             }
+        }
+
+        internal class DummyLocationService : ILocationService
+        {
+            public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
+                string location,
+                TimeSpan endpointsMaxAge,
+                CancellationToken cancel) => throw new NotImplementedException();
+
+            public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
+                Identity identity,
+                TimeSpan endpointsMaxAge,
+                CancellationToken cancel) => throw new NotImplementedException();
+        }
+
+        public class GreeterService : IAsyncGreeterService
+        {
+            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
+                throw new NotImplementedException();
         }
     }
 }
