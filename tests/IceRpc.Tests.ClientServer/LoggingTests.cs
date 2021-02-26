@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string> 
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "50ms" }
+                    {"Ice.ConnectTimeout", "200ms" }
                 },
                 loggerFactory: loggerFactory);
 
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string>
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "50ms" }
+                    {"Ice.ConnectTimeout", "200ms" }
                 },
                 loggerFactory: loggerFactory);
 
