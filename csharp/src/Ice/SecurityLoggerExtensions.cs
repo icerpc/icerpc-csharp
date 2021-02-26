@@ -7,6 +7,8 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ZeroC.Ice
 {
+    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Security" category.
+    /// </summary>
     internal static class SecurityLoggerExtensions
     {
         private const int ConnectionNotTrusted = 0;
@@ -17,8 +19,8 @@ namespace ZeroC.Ice
         private const int TlsRemoteCertificateNotProvided = 5;
         private const int TlsRemoteCertificateNotProvidedIgnored = 6;
 
-        private static readonly Action<ILogger, Transport, Exception> _connectionNotTrusted =
-            LoggerMessage.Define<Transport>(
+        private static readonly Action<ILogger, string, Exception> _connectionNotTrusted =
+            LoggerMessage.Define<string>(
                 LogLevel.Debug,
                 new EventId(ConnectionNotTrusted, nameof(ConnectionNotTrusted)),
                 "{Transport} connection not trusted");
@@ -57,7 +59,7 @@ namespace ZeroC.Ice
                 "Tls certificate validation failed - remote certificate not provided (ignored)");
 
         internal static void LogConnectionNotTrusted(this ILogger logger, Transport transport) =>
-            _connectionNotTrusted(logger, transport, null!);
+            _connectionNotTrusted(logger, transport.ToString().ToLowerInvariant(), null!);
 
         internal static void LogTlsCertificateChainError(this ILogger logger, X509ChainStatusFlags status) =>
             _tlsCertificateChainError(logger, status, null!);

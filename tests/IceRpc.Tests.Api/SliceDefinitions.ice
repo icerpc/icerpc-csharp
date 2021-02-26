@@ -4,6 +4,16 @@
 
 module IceRpc::Tests::Api
 {
+    interface GreeterService
+    {
+        void SayHello();
+    }
+
+    interface DispatchInterceptorTestService
+    {
+        void Op();
+    }
+
     dictionary<string, string> Context;
     interface InvocationInterceptorTestService
     {

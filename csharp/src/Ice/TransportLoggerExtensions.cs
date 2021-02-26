@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 
 namespace ZeroC.Ice
 {
+    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Transport" category.
+    /// </summary>
     internal static class TransportLoggerExtensions
     {
         private const int AcceptingConnection = 0;
@@ -55,32 +57,32 @@ namespace ZeroC.Ice
         private const int StartSendingDatagrams = 43;
         private const int StopAcceptingConnections = 44;
 
-        private static readonly Action<ILogger, Transport, string, Exception> _acceptingConnection =
-            LoggerMessage.Define<Transport, string>(
+        private static readonly Action<ILogger, string, string, Exception> _acceptingConnection =
+            LoggerMessage.Define<string, string>(
                 LogLevel.Debug,
                 new EventId(AcceptingConnection, nameof(AcceptingConnection)),
                 "accepting {Transport} connection at {LocalAddress}");
 
-        private static readonly Action<ILogger, Transport, string, Exception> _acceptingConnectionFailed =
-            LoggerMessage.Define<Transport, string>(
+        private static readonly Action<ILogger, string, string, Exception> _acceptingConnectionFailed =
+            LoggerMessage.Define<string, string>(
                 LogLevel.Error,
                 new EventId(AcceptingConnectionFailed, nameof(AcceptingConnectionFailed)),
                 "failed to accept {Transport} connection at {LocalAddress}");
 
-        private static readonly Action<ILogger, Transport, string, Exception> _bindingSocketAttempt =
-            LoggerMessage.Define<Transport, string>(
+        private static readonly Action<ILogger, string, string, Exception> _bindingSocketAttempt =
+            LoggerMessage.Define<string, string>(
                 LogLevel.Debug,
                 new EventId(BindingSocketAttempt, nameof(BindingSocketAttempt)),
                 "attempting to bind to {Transport} socket: local address = {LocalAddress}");
 
-        private static readonly Action<ILogger, Transport, string, string, Exception> _connectionAccepted =
-            LoggerMessage.Define<Transport, string, string>(
+        private static readonly Action<ILogger, string, string, string, Exception> _connectionAccepted =
+            LoggerMessage.Define<string, string, string>(
                 LogLevel.Debug,
                 new EventId(ConnectionAccepted, nameof(ConnectionAccepted)),
                 "accepted {Transport} connection: local address = {LocalAddress}, peer address = {PeerAddress}");
 
-        private static readonly Action<ILogger, Transport, string, string, Exception> _connectionEstablished =
-            LoggerMessage.Define<Transport, string, string>(
+        private static readonly Action<ILogger, string, string, string, Exception> _connectionEstablished =
+            LoggerMessage.Define<string, string, string>(
                 LogLevel.Debug,
                 new EventId(ConnectionEstablished, nameof(ConnectionEstablished)),
                 "established {Transport} connection: local address {LocalAddress}, peer address {PeerAddress}");
@@ -90,8 +92,8 @@ namespace ZeroC.Ice
             new EventId(ConnectionCallbackException, nameof(ConnectionCallbackException)),
             "connection callback exception");
 
-        private static readonly Action<ILogger, Transport, Exception> _connectionClosed =
-            LoggerMessage.Define<Transport>(
+        private static readonly Action<ILogger, string, Exception> _connectionClosed =
+            LoggerMessage.Define<string>(
                 LogLevel.Debug,
                 new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
                 "closed {Transport} connection");
@@ -101,20 +103,20 @@ namespace ZeroC.Ice
             new EventId(ConnectionException, nameof(ConnectionException)),
             "connection exception");
 
-        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestAccepted =
-            LoggerMessage.Define<Transport>(
+        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestAccepted =
+            LoggerMessage.Define<string>(
                 LogLevel.Error,
                 new EventId(HttpUpgradeRequestAccepted, nameof(HttpUpgradeRequestAccepted)),
                 "accepted {Transport} connection HTTP upgrade request");
 
-        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestFailed =
-            LoggerMessage.Define<Transport>(
+        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestFailed =
+            LoggerMessage.Define<string>(
                 LogLevel.Error,
                 new EventId(HttpUpgradeRequestFailed, nameof(HttpUpgradeRequestFailed)),
                 "{Transport} connection HTTP upgrade request failed");
 
-        private static readonly Action<ILogger, Transport, Exception> _httpUpgradeRequestSucceed =
-            LoggerMessage.Define<Transport>(
+        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestSucceed =
+            LoggerMessage.Define<string>(
                 LogLevel.Debug,
                 new EventId(HttpUpgradeRequestSucceed, nameof(HttpUpgradeRequestSucceed)),
                 "{Transport} connection HTTP upgrade request succeed");
@@ -131,26 +133,26 @@ namespace ZeroC.Ice
                 new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
                 "published endpoints for server {Name}: {Endpoints}");
 
-        private static readonly Action<ILogger, Transport, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
-            LoggerMessage.Define<Transport, WSSocket.OpCode, int>(
+        private static readonly Action<ILogger, string, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
+            LoggerMessage.Define<string, WSSocket.OpCode, int>(
                 LogLevel.Debug,
                 new EventId(ReceivedWebSocketFrame, nameof(ReceivedWebSocketFrame)),
                 "received {Transport} {OpCode} frame with {Size} bytes payload");
 
-        private static readonly Action<ILogger, Transport, WSSocket.OpCode, int, Exception> _sendingWebSocketFrame =
-            LoggerMessage.Define<Transport, WSSocket.OpCode, int>(
+        private static readonly Action<ILogger, string, WSSocket.OpCode, int, Exception> _sendingWebSocketFrame =
+            LoggerMessage.Define<string, WSSocket.OpCode, int>(
                 LogLevel.Debug,
                 new EventId(SendingWebSocketFrame, nameof(SendingWebSocketFrame)),
                 "sending {Transport} {OpCode} frame with {Size} bytes payload");
 
-        private static readonly Action<ILogger, Transport, IAcceptor, Exception> _startAcceptingConnections =
-            LoggerMessage.Define<Transport, IAcceptor>(
+        private static readonly Action<ILogger, string, IAcceptor, Exception> _startAcceptingConnections =
+            LoggerMessage.Define<string, IAcceptor>(
                 LogLevel.Information,
                 new EventId(StartAcceptingConnections, nameof(StartAcceptingConnections)),
                 "start accepting {Transport} connections at {Acceptor}");
 
-        private static readonly Action<ILogger, Transport, IAcceptor, Exception> _stopAcceptingConnections =
-            LoggerMessage.Define<Transport, IAcceptor>(
+        private static readonly Action<ILogger, string, IAcceptor, Exception> _stopAcceptingConnections =
+            LoggerMessage.Define<string, IAcceptor>(
                 LogLevel.Information,
                 new EventId(StopAcceptingConnections, nameof(StopAcceptingConnections)),
                 "stop accepting {Transport} connections at {Acceptor}");
@@ -160,27 +162,27 @@ namespace ZeroC.Ice
             new EventId(PingEventHandlerException, nameof(PingEventHandlerException)),
             "ping event handler raised an exception");
 
-        private static readonly Action<ILogger, int, Transport, Exception> _receivedData =
-            LoggerMessage.Define<int, Transport>(
+        private static readonly Action<ILogger, int, string, Exception> _receivedData =
+            LoggerMessage.Define<int, string>(
                 LogLevel.Debug,
                 new EventId(ReceivedData, nameof(ReceivedData)),
                 "received {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, int, Transport, Exception> _sentData =
-            LoggerMessage.Define<int, Transport>(
+        private static readonly Action<ILogger, int, string, Exception> _sentData =
+            LoggerMessage.Define<int, string>(
                 LogLevel.Debug,
                 new EventId(SentData, nameof(SentData)),
                 "sent {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, Transport, string, string, IReadOnlyList<string>, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define<Transport, string, string, IReadOnlyList<string>>(
+        private static readonly Action<ILogger, string, string, string, IReadOnlyList<string>, Exception> _startReceivingDatagrams =
+            LoggerMessage.Define<string, string, string, IReadOnlyList<string>>(
                 LogLevel.Debug,
                 new EventId(StartReceivingDatagrams, nameof(StartReceivingDatagrams)),
                 "starting to receive {Transport} datagrams: local address = {LocalAddress}, " +
                 "peer address = {PeerAddress}, local interfaces = {LocalInterfaces}");
 
-        private static readonly Action<ILogger, Transport, string, string, IReadOnlyList<string>, Exception> _startSendingDatagrams =
-            LoggerMessage.Define<Transport, string, string, IReadOnlyList<string>>(
+        private static readonly Action<ILogger, string, string, string, IReadOnlyList<string>, Exception> _startSendingDatagrams =
+            LoggerMessage.Define<string, string, string, IReadOnlyList<string>>(
                 LogLevel.Debug,
                 new EventId(StartSendingDatagrams, nameof(StartSendingDatagrams)),
                 "starting to send {Transport} datagrams: local address = {LocalAddress}, " +
@@ -205,14 +207,14 @@ namespace ZeroC.Ice
                             nameof(DatagramConnectionReceiveCloseConnectionFrame)),
                 "ignoring close connection frame for datagram connection");
 
-        private static readonly Action<ILogger, Transport, int, int, Exception> _receiveBufferSizeAdjusted =
-            LoggerMessage.Define<Transport, int, int>(
+        private static readonly Action<ILogger, string, int, int, Exception> _receiveBufferSizeAdjusted =
+            LoggerMessage.Define<string, int, int>(
                 LogLevel.Debug,
                 new EventId(ReceiveBufferSizeAdjusted, nameof(ReceiveBufferSizeAdjusted)),
                 "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
-        private static readonly Action<ILogger, Transport, int, int, Exception> _sendBufferSizeAdjusted =
-            LoggerMessage.Define<Transport, int, int>(
+        private static readonly Action<ILogger, string, int, int, Exception> _sendBufferSizeAdjusted =
+            LoggerMessage.Define<string, int, int>(
                 LogLevel.Debug,
                 new EventId(SendBufferSizeAdjusted, nameof(SendBufferSizeAdjusted)),
                 "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
@@ -315,17 +317,17 @@ namespace ZeroC.Ice
         private static readonly Func<ILogger, long, string, IDisposable> _colocatedSocketScope =
             LoggerMessage.DefineScope<long, string>("socket(colocatedm ID = {ID}, server = {ServerName}");
 
-        private static readonly Func<ILogger, Transport, string, string, IDisposable> _socketScope =
-            LoggerMessage.DefineScope<Transport, string, string>(
+        private static readonly Func<ILogger, string, string, string, IDisposable> _socketScope =
+            LoggerMessage.DefineScope<string, string, string>(
                 "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress})");
 
-        private static readonly Func<ILogger, Transport, string, string, IReadOnlyList<string>, IDisposable> _datagramSocketScope =
-            LoggerMessage.DefineScope<Transport, string, string, IReadOnlyList<string>>(
+        private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _datagramSocketScope =
+            LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
                 "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress}, " +
                 "interfaces = {Interfaces})");
 
-        private static readonly Func<ILogger, Transport, string, string, IReadOnlyList<string>, IDisposable> _multicastSocketScope =
-            LoggerMessage.DefineScope<Transport, string, string, IReadOnlyList<string>>(
+        private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _multicastSocketScope =
+            LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
                 "socket({Transport}, local address = {LocalAddress}, multicast address =  {PeerAddress}, " +
                 "interfaces = {Interfaces})");
 
@@ -333,14 +335,14 @@ namespace ZeroC.Ice
             this ILogger logger,
             Transport transport,
             string localAddress) =>
-            _acceptingConnection(logger, transport, localAddress, null!);
+            _acceptingConnection(logger, transport.ToString().ToLowerInvariant(), localAddress, null!);
 
         internal static void LogAcceptingConnectionFailed(
             this ILogger logger,
             Transport transport,
             string localAddress,
             Exception ex) =>
-            _acceptingConnectionFailed(logger, transport, localAddress, ex);
+            _acceptingConnectionFailed(logger, transport.ToString().ToLowerInvariant(), localAddress, ex);
 
         internal static void LogConnectionCallbackException(this ILogger logger, Exception ex) =>
             _connectionCallbackException(logger, ex);
@@ -350,20 +352,20 @@ namespace ZeroC.Ice
             Transport transport,
             string localAddress,
             string remoteAddress) =>
-            _connectionAccepted(logger, transport, localAddress, remoteAddress, null!);
+            _connectionAccepted(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress, null!);
 
         internal static void LogConnectionClosed(
             this ILogger logger,
             Transport transport,
             Exception? exception = null) =>
-            _connectionClosed(logger, transport, exception!);
+            _connectionClosed(logger, transport.ToString().ToLowerInvariant(), exception!);
 
         internal static void LogConnectionEstablished(
             this ILogger logger,
             Transport transport,
             string localAddress,
             string peerAddress) =>
-            _connectionEstablished(logger, transport, localAddress, peerAddress, null!);
+            _connectionEstablished(logger, transport.ToString().ToLowerInvariant(), localAddress, peerAddress, null!);
 
         internal static void LogConnectionException(this ILogger logger, Exception ex) =>
             _connectionException(logger, ex);
@@ -371,18 +373,18 @@ namespace ZeroC.Ice
         internal static void LogHttpUpgradeRequestAccepted(
             this ILogger logger,
             Transport transport) =>
-            _httpUpgradeRequestAccepted(logger, transport, null!);
+            _httpUpgradeRequestAccepted(logger, transport.ToString().ToLowerInvariant(), null!);
 
         internal static void LogHttpUpgradeRequestFailed(
             this ILogger logger,
             Transport transport,
             Exception ex) =>
-            _httpUpgradeRequestFailed(logger, transport, ex);
+            _httpUpgradeRequestFailed(logger, transport.ToString().ToLowerInvariant(), ex);
 
         internal static void LogHttpUpgradeRequestSucceed(
             this ILogger logger,
             Transport transport) =>
-            _httpUpgradeRequestSucceed(logger, transport, null!);
+            _httpUpgradeRequestSucceed(logger, transport.ToString().ToLowerInvariant(), null!);
 
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
@@ -401,14 +403,14 @@ namespace ZeroC.Ice
             Transport transport,
             WSSocket.OpCode opCode,
             int size) =>
-            _receivedWebSocketFrame(logger, transport, opCode, size, null!);
+            _receivedWebSocketFrame(logger, transport.ToString().ToLowerInvariant(), opCode, size, null!);
 
         internal static void LogSendingWebSocketFrame(
             this ILogger logger,
             Transport transport,
             WSSocket.OpCode opCode,
             int size) =>
-            _sendingWebSocketFrame(logger, transport, opCode, size, null!);
+            _sendingWebSocketFrame(logger, transport.ToString().ToLowerInvariant(), opCode, size, null!);
 
         internal static void LogStartReceivingDatagrams(
             this ILogger logger,
@@ -416,7 +418,12 @@ namespace ZeroC.Ice
             string localAddress,
             string peerAddress,
             IReadOnlyList<string> interfaces) =>
-            _startReceivingDatagrams(logger, transport, localAddress, peerAddress, interfaces, null!);
+            _startReceivingDatagrams(logger,
+                                     transport.ToString().ToLowerInvariant(),
+                                     localAddress,
+                                     peerAddress,
+                                     interfaces,
+                                     null!);
 
         internal static void LogStartSendingDatagrams(
             this ILogger logger,
@@ -424,25 +431,36 @@ namespace ZeroC.Ice
             string localAddress,
             string peerAddress,
             IReadOnlyList<string> interfaces) =>
-            _startSendingDatagrams(logger, transport, localAddress, peerAddress, interfaces, null!);
+            _startSendingDatagrams(logger,
+                                   transport.ToString().ToLowerInvariant(),
+                                   localAddress,
+                                   peerAddress,
+                                   interfaces,
+                                   null!);
 
-        internal static void LogStartAcceptingConnections(this ILogger logger, Transport transport, IAcceptor acceptor) =>
-            _startAcceptingConnections(logger, transport, acceptor, null!);
+        internal static void LogStartAcceptingConnections(
+            this ILogger logger,
+            Transport transport,
+            IAcceptor acceptor) =>
+            _startAcceptingConnections(logger, transport.ToString().ToLowerInvariant(), acceptor, null!);
 
-        internal static void LogStopAcceptingConnections(this ILogger logger, Transport transport, IAcceptor acceptor) =>
-            _stopAcceptingConnections(logger, transport, acceptor, null!);
+        internal static void LogStopAcceptingConnections(
+            this ILogger logger,
+            Transport transport,
+            IAcceptor acceptor) =>
+            _stopAcceptingConnections(logger, transport.ToString().ToLowerInvariant(), acceptor, null!);
 
         internal static void LogPingEventHandlerException(this ILogger logger, Exception exception) =>
             _pingEventHanderException(logger, exception);
 
         internal static void LogReceivedData(this ILogger logger, int size, Transport transport) =>
-            _receivedData(logger, size, transport, null!);
+            _receivedData(logger, size, transport.ToString().ToLowerInvariant(), null!);
 
         internal static void LogSentData(this ILogger logger, int size, Transport transport) =>
-            _sentData(logger, size, transport, null!);
+            _sentData(logger, size, transport.ToString().ToLowerInvariant(), null!);
 
         internal static void LogBindingSocketAttempt(this ILogger logger, Transport transport, string localAddress) =>
-            _bindingSocketAttempt(logger, transport, localAddress, null!);
+            _bindingSocketAttempt(logger, transport.ToString().ToLowerInvariant(), localAddress, null!);
 
         internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
             _receivedDatagramExceededIncomingFrameMaxSize(logger, size, null!);
@@ -455,14 +473,22 @@ namespace ZeroC.Ice
             Transport transport,
             int requestedSize,
             int adjustedSize) =>
-            _receiveBufferSizeAdjusted(logger, transport, requestedSize, adjustedSize, null!);
+            _receiveBufferSizeAdjusted(logger,
+                                       transport.ToString().ToLowerInvariant(),
+                                       requestedSize,
+                                       adjustedSize,
+                                       null!);
 
         internal static void LogSendBufferSizeAdjusted(
             this ILogger logger,
             Transport transport,
             int requestedSize,
             int adjustedSize) =>
-            _sendBufferSizeAdjusted(logger, transport, requestedSize, adjustedSize, null!);
+            _sendBufferSizeAdjusted(logger,
+                                    transport.ToString().ToLowerInvariant(),
+                                    requestedSize,
+                                    adjustedSize,
+                                    null!);
 
         internal static void LogReceivedSlicFrame(
             this ILogger logger,
@@ -598,7 +624,7 @@ namespace ZeroC.Ice
             Transport transport,
             string localAddress,
             string remoteAddress) =>
-            _socketScope(logger, transport, localAddress, remoteAddress);
+            _socketScope(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress);
 
         internal static IDisposable StartColocatedSocketScope(
             this ILogger logger,
@@ -612,7 +638,11 @@ namespace ZeroC.Ice
             string localAddress,
             string remoteAddress,
             IReadOnlyList<string> interfaces) =>
-            _datagramSocketScope(logger, transport, localAddress, remoteAddress, interfaces);
+            _datagramSocketScope(logger,
+                transport.ToString().ToLowerInvariant(),
+                localAddress,
+                remoteAddress,
+                interfaces);
 
         internal static IDisposable StartMulticastSocketScope(
             this ILogger logger,
@@ -620,6 +650,10 @@ namespace ZeroC.Ice
             string localAddress,
             string multicastAddress,
             IReadOnlyList<string> interfaces) =>
-            _multicastSocketScope(logger, transport, localAddress, multicastAddress, interfaces);
+            _multicastSocketScope(logger,
+                                  transport.ToString().ToLowerInvariant(),
+                                  localAddress,
+                                  multicastAddress,
+                                  interfaces);
     }
 }
