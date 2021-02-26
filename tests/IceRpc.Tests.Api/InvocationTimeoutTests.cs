@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Collections.Immutable;
-using System.Threading.Tasks;
 using NUnit.Framework;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
@@ -37,8 +37,9 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection, await prx.GetConnectionAsync());
         }
 
-        public class TestService : IAsyncInvocationTimeoutTestService
+        public class TestService : IAsyncGreeterService
         {
+            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => throw new NotImplementedException();
         }
     }
 }
