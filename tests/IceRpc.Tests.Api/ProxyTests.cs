@@ -188,57 +188,41 @@ namespace IceRpc.Tests.Api
             CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
         }
 
+        /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [Test]
-        /// <summary>Check that the proxy hash collision rate fall within acceptable limits.</summary>
-        public async Task Proxy_Hash_CollisionRate_Test()
+        public void Proxy_HashCode()
         {
-            int maxCollisions = 10;
-            int maxIterations = 10000;
+            var prx1 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
+            var prx2 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
 
-            int collisions = await CheckHashCollisionsAsync(maxIterations, maxCollisions, obj => obj.GetHashCode());
-            Assert.LessOrEqual(collisions, maxCollisions);
+            var prx3 = IServicePrx.Parse("bar:tcp -h 127.0.0.1 -p 10000", Communicator);
 
-            collisions = await CheckHashCollisionsAsync(maxIterations,
-                                                        maxCollisions,
-                                                        obj => ProxyComparer.Identity.GetHashCode(obj));
-            Assert.LessOrEqual(collisions, maxCollisions);
+            CheckGetHashCode(prx1, prx2);
 
-            collisions = await CheckHashCollisionsAsync(maxIterations,
-                                                        maxCollisions,
-                                                        obj => ProxyComparer.IdentityAndFacet.GetHashCode(obj));
-            Assert.LessOrEqual(collisions, maxCollisions);
+            CheckGetHashCode(prx1.Clone(cacheConnection: true), prx2.Clone(cacheConnection: true));
 
-            static async Task<int> CheckHashCollisionsAsync(
-                int maxIterations,
-                int maxCollisions,
-                Func<IServicePrx, int> hasher)
+            CheckGetHashCode(prx1.Clone(endpoints: prx3.Endpoints), prx2.Clone(endpoints: prx3.Endpoints));
+
+            CheckGetHashCode(prx1.Clone(invocationTimeout: TimeSpan.FromSeconds(1)),
+                             prx2.Clone(invocationTimeout: TimeSpan.FromSeconds(1)));
+
+            object label = new object();
+            CheckGetHashCode(prx1.Clone(label: label), prx2.Clone(label: label));
+
+            CheckGetHashCode(prx1.Clone(oneway: true), prx2.Clone(oneway: true));
+
+            CheckGetHashCode(prx1.Clone(preferExistingConnection: true), prx2.Clone(preferExistingConnection: true));
+
+            CheckGetHashCode(prx1.Clone(preferNonSecure: NonSecure.Always),
+                             prx2.Clone(preferNonSecure: NonSecure.Always));
+
+
+            static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
             {
-                var rand = new Random();
-                await using var communicator = new Communicator();
-                int proxyCollisions = 0;
-                var seenProxy = new Dictionary<int, IServicePrx>();
-                for (int i = 0; proxyCollisions < maxCollisions && i < maxIterations; ++i)
-                {
-                    var obj = IServicePrx.Parse($"ice+tcp://host-{rand.Next(100)}:{rand.Next(65536)}/{i}", communicator);
-
-                    // Check the same proxy produce always the same hash
-                    int hash = hasher(obj);
-                    Assert.AreEqual(hash, hasher(obj));
-
-                    if (seenProxy.ContainsKey(hash))
-                    {
-                        if (obj.Equals(seenProxy[hash]))
-                        {
-                            continue;
-                        }
-                        ++proxyCollisions;
-                    }
-                    else
-                    {
-                        seenProxy[hash] = obj;
-                    }
-                }
-                return proxyCollisions;
+                Assert.AreEqual(prx1, prx2);
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
+                // The second attempt should hit the hash code cache
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
             }
         }
     }
