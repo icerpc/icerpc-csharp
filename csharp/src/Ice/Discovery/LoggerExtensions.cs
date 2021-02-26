@@ -5,6 +5,8 @@ using System;
 
 namespace ZeroC.Ice.Discovery
 {
+    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Discovery" category.
+    /// </summary>
     internal static class LoggerExtensions
     {
         private const int FoundAdapterByIdRequestFailed = 0;
