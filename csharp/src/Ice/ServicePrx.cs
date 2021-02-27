@@ -576,10 +576,20 @@ namespace ZeroC.Ice
             if (Protocol == Protocol.Ice1)
             {
                 Facet = options.Facet;
-                Identity = options.Identity;
                 Location = options.Location;
                 LocationService = options.LocationService;
-                Path = Identity.ToString();
+
+                if (options.Path.Length > 0)
+                {
+                    Debug.Assert(options.Identity == default);
+                    Identity = Identity.Parse(options.Path);
+                    Path = options.Path;
+                }
+                else
+                {
+                    Identity = options.Identity;
+                    Path = Identity.ToString();
+                }
             }
             else
             {
