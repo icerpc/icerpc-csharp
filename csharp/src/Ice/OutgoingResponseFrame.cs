@@ -322,7 +322,15 @@ namespace ZeroC.Ice
                 {
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
-                        request.Identity.IceWrite(ostr);
+                        if (request.Protocol == Protocol.Ice1) // TODO: need helper or always put path in Identity.Name
+                        {
+                            request.Identity.IceWrite(ostr);
+                        }
+                        else
+                        {
+                            ostr.WriteString(request.Path);
+                            ostr.WriteString("");
+                        }
                         ostr.WriteIce1Facet(request.Facet);
                         ostr.WriteString(request.Operation);
                         break;

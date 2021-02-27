@@ -91,6 +91,7 @@ namespace ZeroC.Ice.Test.ProtocolBridging
             TestHelper.Assert(current.Context.ContainsKey("Intercepted") || current.Context.ContainsKey("Direct"));
             throw new ObjectNotExistException();
         }
+
         public ITestIntfPrx OpNewProxy(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Context.Count == 1);
