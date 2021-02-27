@@ -51,7 +51,7 @@ namespace ZeroC.Ice
             GenericUriParserOptions.NoFragment |
             GenericUriParserOptions.NoUserInfo;
 
-        internal static string GetFirstSegment(string path)
+        internal static string GetCategory(string path)
         {
             int firstSlash = path.IndexOf('/');
             if (firstSlash == 0)
@@ -60,12 +60,7 @@ namespace ZeroC.Ice
                 firstSlash = path.IndexOf('/');
             }
 
-            if (firstSlash == -1)
-            {
-                return Uri.UnescapeDataString(path);
-            }
-
-            return Uri.UnescapeDataString(path[..firstSlash]);
+            return firstSlash == 0 || firstSlash == -1 ? "" : Uri.UnescapeDataString(path[..firstSlash]);
         }
 
         /// <summary>Checks if a string is an ice+transport URI, and not an endpoint string using the ice1 string

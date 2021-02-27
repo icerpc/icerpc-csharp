@@ -40,25 +40,25 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Converts an object identity to a relative URI string. All characters in category and name are
-        /// percent escaped, except unreserved characters.</summary>
-        /// <returns>A relative URI string [escapedCategory/]escapedName for this identity.</returns>
+        /// <summary>Converts an identity to a URI path. All characters in category and name are percent escaped, except
+        /// unreserved characters.</summary>
+        /// <returns>A URI path /[escapedCategory/]escapedName.</returns>
         public override string ToString()
         {
             if (string.IsNullOrEmpty(Name))
             {
                 // This struct was default initialized (null) or poorly initialized (empty name).
-                return "";
+                return "/";
             }
             Debug.Assert(Category != null);
 
             if (Category.Length == 0)
             {
-                return Uri.EscapeDataString(Name);
+                return $"/{Uri.EscapeDataString(Name)}";
             }
             else
             {
-                return $"{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}";
+                return $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}";
             }
         }
 

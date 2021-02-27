@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text;
 
 namespace ZeroC.Ice
 {
@@ -164,10 +165,32 @@ namespace ZeroC.Ice
         public string Facet { get; init; } = "";
 
         /// <inheritdoc/>
-        protected override string? DefaultMessage =>
-            Origin is RemoteExceptionOrigin origin ?
-                $"could not find service `{origin.Path}' while attempting to dispatch operation `{origin.Operation}'" :
-                    null;
+        protected override string? DefaultMessage
+        {
+            get
+            {
+                if (Origin is RemoteExceptionOrigin origin)
+                {
+                    var sb = new StringBuilder("could not find service `");
+                    sb.Append(origin.Path);
+                    sb.Append('\'');
+                    if (Facet.Length > 0)
+                    {
+                        sb.Append(" with facet `");
+                        sb.Append(Facet);
+                        sb.Append('\'');
+                    }
+                    sb.Append(" while attempting to dispatch operation `");
+                    sb.Append(origin.Operation);
+                    sb.Append('\'');
+                    return sb.ToString();
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
     }
 
     public partial class OperationNotExistException
@@ -175,9 +198,31 @@ namespace ZeroC.Ice
         public string Facet { get; init; } = "";
 
         /// <inheritdoc/>
-        protected override string? DefaultMessage =>
-            Origin is RemoteExceptionOrigin origin ?
-                $"could not find operation `{origin.Operation}' for service `{origin.Path}'" : null;
+        protected override string? DefaultMessage
+        {
+            get
+            {
+                if (Origin is RemoteExceptionOrigin origin)
+                {
+                    var sb = new StringBuilder("could not find operation `");
+                    sb.Append(origin.Operation);
+                    sb.Append("' for service `");
+                    sb.Append(origin.Path);
+                    sb.Append('\'');
+                    if (Facet.Length > 0)
+                    {
+                        sb.Append(" with facet `");
+                        sb.Append(Facet);
+                        sb.Append('\'');
+                    }
+                    return sb.ToString();
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
     }
 
     public partial class UnhandledException : RemoteException

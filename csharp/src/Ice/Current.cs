@@ -32,9 +32,6 @@ namespace ZeroC.Ice
         /// <summary>The target facet. ice1 only.</summary>
         public string Facet => IncomingRequestFrame.Facet;
 
-        /// <summary>The target identity. ice1 only.</summary>
-        public Identity Identity => IncomingRequestFrame.Identity;
-
         /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
         public bool IsIdempotent => IncomingRequestFrame.IsIdempotent;
 

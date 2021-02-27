@@ -522,7 +522,7 @@ namespace ZeroC.Ice
             {
                 if (!_serviceMap.TryGetValue((path, facet), out IService? service))
                 {
-                    if (!_categoryServiceMap.TryGetValue((UriParser.GetFirstSegment(path), facet), out service))
+                    if (!_categoryServiceMap.TryGetValue((UriParser.GetCategory(path), facet), out service))
                     {
                         _defaultServiceMap.TryGetValue(facet, out service);
                     }

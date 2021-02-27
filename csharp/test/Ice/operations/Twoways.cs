@@ -270,9 +270,9 @@ namespace ZeroC.Ice.Test.Operations
                 IMyClassPrx? r;
 
                 (r, c1, c2) = p.OpMyClass(p);
-                TestHelper.Assert(c1!.Path == "test");
-                TestHelper.Assert(c2!.Path == "noSuchIdentity");
-                TestHelper.Assert(r!.Path == "test");
+                TestHelper.Assert(c1!.Path == "/test");
+                TestHelper.Assert(c2!.Path == "/noSuchIdentity");
+                TestHelper.Assert(r!.Path == "/test");
                 r.OpVoid();
                 c1.OpVoid();
                 try

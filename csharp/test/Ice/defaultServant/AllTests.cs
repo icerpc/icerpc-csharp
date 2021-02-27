@@ -50,7 +50,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 identity = new Identity(name, identity.Category);
                 prx = IMyObjectPrx.Factory.Create(oa, identity.ToString());
                 await prx.IcePingAsync();
-                TestHelper.Assert(prx.GetName() == name);
+                TestHelper.Assert(prx.GetName() == $"/foo/{name}");
             }
 
             identity = new Identity("ObjectNotExist", identity.Category);
@@ -148,7 +148,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 identity = new Identity(name, "");
                 prx = IMyObjectPrx.Factory.Create(oa, identity.ToString());
                 await prx.IcePingAsync();
-                TestHelper.Assert(prx.GetName() == name);
+                TestHelper.Assert(prx.GetName() == $"/{name}");
             }
 
             removed = oa.RemoveDefault();
