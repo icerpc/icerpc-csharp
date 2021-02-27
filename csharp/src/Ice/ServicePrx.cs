@@ -24,7 +24,7 @@ namespace ZeroC.Ice
         public Encoding Encoding { get; }
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
         public string Facet { get; } = "";
-        public Identity Identity { get; }
+        public Identity Identity { get; } = Identity.Empty;
 
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; } =
             ImmutableList<InvocationInterceptor>.Empty;
@@ -581,7 +581,7 @@ namespace ZeroC.Ice
 
                 if (options.Path.Length > 0)
                 {
-                    Debug.Assert(options.Identity == default);
+                    Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
                     Identity = Identity.Parse(options.Path);
                     Path = options.Path;
                 }

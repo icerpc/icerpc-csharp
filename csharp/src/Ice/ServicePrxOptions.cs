@@ -20,7 +20,7 @@ namespace ZeroC.Ice
         public IReadOnlyList<Endpoint> Endpoints { get; set; } = ImmutableList<Endpoint>.Empty;
 
         public string Facet { get; set; } = ""; // ice1 only
-        public Identity Identity { get; set; } // ice1 only
+        public Identity Identity { get; set; } = Identity.Empty; // ice1 only
 
         public IReadOnlyList<InvocationInterceptor>? InvocationInterceptors { get; set; }
 

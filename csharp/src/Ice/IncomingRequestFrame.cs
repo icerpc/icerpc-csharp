@@ -29,7 +29,7 @@ namespace ZeroC.Ice
         public string Facet { get; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
-        public Identity Identity { get; }
+        public Identity Identity { get; } = Identity.Empty;
 
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
