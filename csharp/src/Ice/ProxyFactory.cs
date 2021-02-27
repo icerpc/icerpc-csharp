@@ -324,8 +324,7 @@ namespace ZeroC.Ice
         {
             if (istr.Communicator == null)
             {
-                throw new InvalidOperationException(
-                    "cannot read a proxy from an InputStream with a null communicator");
+                throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
             }
 
             if (istr.Encoding == Encoding.V11)
@@ -338,23 +337,10 @@ namespace ZeroC.Ice
 
                 var proxyData = new ProxyData11(istr);
 
-                if (proxyData.FacetPath.Length > 1)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with {proxyData.FacetPath.Length} elements in its facet path");
-                }
-
                 if ((byte)proxyData.Protocol == 0)
                 {
                     throw new InvalidDataException("received proxy with protocol set to 0");
                 }
-
-                if (proxyData.Protocol != Protocol.Ice1 && proxyData.InvocationMode != InvocationMode.Twoway)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
-                }
-
                 if (proxyData.ProtocolMinor != 0)
                 {
                     throw new InvalidDataException(
@@ -368,40 +354,40 @@ namespace ZeroC.Ice
 
                 string location = endpoints.Length == 0 ? istr.ReadString() : "";
 
-                Communicator communicator = istr.Communicator!;
-
-                ServicePrxOptions options;
-
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    options = new ServicePrxOptions()
+                    if (proxyData.FacetPath.Length > 1)
                     {
-                        Communicator = communicator,
-                        Encoding = proxyData.Encoding,
-                        Endpoints = endpoints,
-                        Facet = proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                        Identity = identity,
-                        IsOneway = proxyData.InvocationMode != InvocationMode.Twoway,
-                        Location = location,
-                        LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
-                        Protocol = Protocol.Ice1
-                    };
+                        throw new InvalidDataException(
+                            $"received proxy with {proxyData.FacetPath.Length} elements in its facet path");
+                    }
+
+                    return CreateIce1Proxy(proxyData.Encoding,
+                                           endpoints,
+                                           proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
+                                           identity,
+                                           proxyData.InvocationMode,
+                                           location);
                 }
                 else
                 {
-                    // TODO: extra validation and relative proxies
-
-                    options = new ServicePrxOptions()
+                    if (identity.Category.Length > 0)
                     {
-                        Communicator = communicator,
-                        Encoding = proxyData.Encoding,
-                        Endpoints = endpoints,
-                        Path = identity.Name,
-                        Protocol = proxyData.Protocol
-                    };
+                        throw new InvalidDataException(
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with category set");
+                    }
+                    if (proxyData.FacetPath.Length > 0)
+                    {
+                        throw new InvalidDataException(
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with facet");
+                    }
+                    if (proxyData.InvocationMode != InvocationMode.Twoway)
+                    {
+                        throw new InvalidDataException(
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
+                    }
+                    return CreateIce2Proxy(proxyData.Encoding, endpoints, identity.Name, proxyData.Protocol);
                 }
-
-                return factory.Create(options);
             }
             else
             {
@@ -417,72 +403,21 @@ namespace ZeroC.Ice
                 {
                     var proxyData = new ProxyData20(istr);
                     Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
+                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
 
                     if (proxyKind == ProxyKind20.Direct)
                     {
                         // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + hostname
                         // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for
                         // empty sequence), for a total of 7 bytes.
-                        IReadOnlyList<Endpoint> endpoints =
-                            istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol));
+                        endpoints = istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol));
 
                         if (endpoints.Count == 0)
                         {
                             throw new InvalidDataException("received a direct proxy with no endpoint");
                         }
-
-                        var options = new ServicePrxOptions()
-                        {
-                            Communicator = istr.Communicator!,
-                            Encoding = proxyData.Encoding ?? Encoding.V20,
-                            Endpoints = endpoints,
-                            Path = proxyData.Path,
-                            Protocol = protocol
-                        };
-                        return factory.Create(options);
                     }
-                    else // relative proxy
-                    {
-                        if (istr.Connection is Connection connection)
-                        {
-                            if (connection.Protocol != protocol)
-                            {
-                                throw new InvalidDataException(
-                                    $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                            }
-
-                            var options = new ServicePrxOptions()
-                            {
-                                Communicator = connection.Communicator,
-                                Connection = connection,
-                                Encoding = proxyData.Encoding ?? Encoding.V20,
-                                Path = proxyData.Path,
-                                Protocol = protocol
-                            };
-
-                            return factory.Create(options);
-                        }
-                        else
-                        {
-                            ServicePrx? source = istr.SourceProxy;
-
-                            if (source == null)
-                            {
-                                throw new InvalidOperationException(
-                                    "cannot read a relative proxy from InputStream created without a connection or proxy");
-                            }
-
-                            if (source.Protocol != protocol)
-                            {
-                                throw new InvalidDataException(
-                                    $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                            }
-
-                            return factory.Clone(source,
-                                                 encoding: proxyData.Encoding ?? Encoding.V20,
-                                                 path: proxyData.Path);
-                        }
-                    }
+                    return CreateIce2Proxy(proxyData.Encoding ?? Encoding.V20, endpoints, proxyData.Path, protocol);
                 }
                 else // an ice1 proxy
                 {
@@ -510,20 +445,97 @@ namespace ZeroC.Ice
                         location = istr.ReadString();
                     }
 
-                    Communicator communicator = istr.Communicator!;
+                    return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V11,
+                                           endpoints,
+                                           proxyData.Facet ?? "",
+                                           proxyData.Identity,
+                                           proxyData.InvocationMode ?? InvocationMode.Twoway,
+                                           location);
+                }
+            }
+
+            // Creates an ice1 proxy
+            T CreateIce1Proxy(
+                Encoding encoding,
+                IReadOnlyList<Endpoint> endpoints,
+                string facet,
+                Identity identity,
+                InvocationMode invocationMode,
+                string location)
+            {
+                Communicator communicator = istr.Communicator!;
+
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = communicator,
+                    Encoding = encoding,
+                    Endpoints = endpoints,
+                    Facet = facet,
+                    Identity = identity,
+                    IsOneway = invocationMode != InvocationMode.Twoway,
+                    Location = location,
+                    LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
+                    Protocol = Protocol.Ice1
+                };
+                return factory.Create(options);
+            }
+
+            // Creates an ice2+ proxy
+            T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
+            {
+                if (endpoints.Count > 0)
+                {
                     var options = new ServicePrxOptions()
                     {
-                        Communicator = communicator,
-                        Encoding = proxyData.Encoding ?? Encoding.V11,
+                        Communicator = istr.Communicator!,
+                        Encoding = encoding,
                         Endpoints = endpoints,
-                        Facet = proxyData.Facet ?? "",
-                        Identity = proxyData.Identity,
-                        IsOneway = (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway,
-                        Location = location,
-                        LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
-                        Protocol = Protocol.Ice1
+                        Path = path,
+                        Protocol = protocol
                     };
                     return factory.Create(options);
+                }
+                else // relative proxy
+                {
+                    if (istr.Connection is Connection connection)
+                    {
+                        if (connection.Protocol != protocol)
+                        {
+                            throw new InvalidDataException(
+                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
+                        }
+
+                        var options = new ServicePrxOptions()
+                        {
+                            Communicator = connection.Communicator,
+                            Connection = connection,
+                            Encoding = encoding,
+                            Path = path,
+                            Protocol = protocol
+                        };
+
+                        return factory.Create(options);
+                    }
+                    else
+                    {
+                        ServicePrx? source = istr.SourceProxy;
+
+                        if (source == null)
+                        {
+                            throw new InvalidOperationException(
+                                "cannot read a relative proxy from an InputStream created without a connection or proxy");
+                        }
+
+                        if (source.Protocol != protocol)
+                        {
+                            throw new InvalidDataException(
+                                $"received a relative proxy with invalid protocol {protocol.GetName()}");
+                        }
+
+                        return factory.Clone(source,
+                                             encoding: encoding,
+                                             path: path);
+                    }
                 }
             }
         }
