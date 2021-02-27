@@ -134,7 +134,7 @@ namespace ZeroC.Ice
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
-            return (endpoints, uri.AbsolutePath, proxyOptions);
+            return (endpoints, NormalizePath(uri.AbsolutePath), proxyOptions);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>

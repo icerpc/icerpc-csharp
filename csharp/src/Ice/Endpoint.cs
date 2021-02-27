@@ -305,7 +305,6 @@ namespace ZeroC.Ice
 
             if (path.Length > 0)
             {
-                sb.Append('/');
                 sb.Append(path);
             }
 

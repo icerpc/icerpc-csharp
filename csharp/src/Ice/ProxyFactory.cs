@@ -370,20 +370,36 @@ namespace ZeroC.Ice
 
                 Communicator communicator = istr.Communicator!;
 
-                // TODO: correct unmarshaling of ice2 proxies
+                ServicePrxOptions options;
 
-                var options = new ServicePrxOptions()
+                if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    Communicator = communicator,
-                    Encoding = proxyData.Encoding,
-                    Endpoints = endpoints,
-                    Facet = proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                    Identity = identity,
-                    IsOneway = proxyData.InvocationMode != InvocationMode.Twoway,
-                    Location = location,
-                    LocationService = proxyData.Protocol == Protocol.Ice1 ? communicator.DefaultLocationService : null,
-                    Protocol = proxyData.Protocol,
-                };
+                    options = new ServicePrxOptions()
+                    {
+                        Communicator = communicator,
+                        Encoding = proxyData.Encoding,
+                        Endpoints = endpoints,
+                        Facet = proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
+                        Identity = identity,
+                        IsOneway = proxyData.InvocationMode != InvocationMode.Twoway,
+                        Location = location,
+                        LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
+                        Protocol = Protocol.Ice1
+                    };
+                }
+                else
+                {
+                    // TODO: extra validation and relative proxies
+
+                    options = new ServicePrxOptions()
+                    {
+                        Communicator = communicator,
+                        Encoding = proxyData.Encoding,
+                        Endpoints = endpoints,
+                        Path = identity.Name,
+                        Protocol = proxyData.Protocol
+                    };
+                }
 
                 return factory.Create(options);
             }
@@ -480,7 +496,7 @@ namespace ZeroC.Ice
                     IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
                     string location = "";
 
-                    if (proxyKind == ProxyKind20.Direct)
+                    if (proxyKind == ProxyKind20.Ice1Direct)
                     {
                         endpoints = istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(Protocol.Ice1));
 
@@ -504,7 +520,7 @@ namespace ZeroC.Ice
                         Identity = proxyData.Identity,
                         IsOneway = (proxyData.InvocationMode ?? InvocationMode.Twoway) != InvocationMode.Twoway,
                         Location = location,
-                        LocationService = communicator.DefaultLocationService,
+                        LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
                         Protocol = Protocol.Ice1
                     };
                     return factory.Create(options);
