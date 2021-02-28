@@ -718,7 +718,7 @@ namespace ZeroC.Ice
 
             if (Protocol != Protocol.Ice1 && path != null)
             {
-                path = UriParser.NormalizePath(path);
+                path = Proxy.NormalizePath(path);
             }
 
             if (IsFixed || fixedConnection != null)
@@ -733,7 +733,7 @@ namespace ZeroC.Ice
                     Context = context?.ToImmutableSortedDictionary() ?? Context,
                     Encoding = encoding ?? Encoding,
                     Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = Protocol == Protocol.Ice1 ? UriParser.ParseIdentity(path) ?? Identity : default,
+                    Identity = Protocol == Protocol.Ice1 ? Identity.ParsePath(path) ?? Identity : default,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
@@ -751,7 +751,7 @@ namespace ZeroC.Ice
                     Encoding = encoding ?? Encoding,
                     Endpoints = newEndpoints,
                     Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = Protocol == Protocol.Ice1 ? UriParser.ParseIdentity(path) ?? Identity : default,
+                    Identity = Protocol == Protocol.Ice1 ? Identity.ParsePath(path) ?? Identity : default,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = oneway ?? IsOneway,

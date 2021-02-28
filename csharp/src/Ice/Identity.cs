@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ZeroC.Ice
 {
@@ -12,25 +13,25 @@ namespace ZeroC.Ice
 
         /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
         /// <param name="s">A string [escapedCategory/]escapedName.</param>
-        /// <param name="uriFormat">When true (the default), the string is a relative URI. When false, the string
+        /// <param name="uriPath">When true (the default), the string is a relative URI. When false, the string
         /// uses the ice1 format. See also <see cref="ToStringMode"/>.</param>
         /// <exception cref="FormatException">s is not in the correct format.</exception>
         /// <returns>An Identity equivalent to the identity contained in s.</returns>
-        public static Identity Parse(string s, bool uriFormat = true) =>
-            uriFormat ? UriParser.ParseIdentity(s)!.Value : Ice1Parser.ParseIdentity(s);
+        public static Identity Parse(string s, bool uriPath = true) =>
+            uriPath ? ParsePath(s)!.Value : Ice1Parser.ParseIdentity(s);
 
         /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
         /// <param name="s">A string containing an identity to convert.</param>
-        /// <param name="uriFormat">When true, the string is a relative URI. When false, the string uses the ice1
-        /// format. See also <see cref="ToStringMode"/>.</param>
+        /// <param name="uriPath">When true, the string is a URI path. When false, the string uses the ice1 format. See
+        /// also <see cref="ToStringMode"/>.</param>
         /// <param name="identity">When this method returns, contains an Identity struct equivalent to the identity
         /// contained in s, if the conversion succeeded, or a default identity if failed. </param>
         /// <returns>true if s was converted successfully; otherwise, false.</returns>
-        public static bool TryParse(string s, bool uriFormat, out Identity identity)
+        public static bool TryParse(string s, bool uriPath, out Identity identity)
         {
             try
             {
-                identity = Parse(s, uriFormat);
+                identity = Parse(s, uriPath);
                 return true;
             }
             catch
@@ -51,7 +52,7 @@ namespace ZeroC.Ice
             }
             Debug.Assert(Category != null);
 
-            string path = UriParser.NormalizePath(Name);
+            string path = Proxy.NormalizePath(Name);
             if (Name[0] == '/')
             {
                 // If Name starts with /, NormalizePath does not add an extra leading /, so we add it back.
@@ -92,6 +93,27 @@ namespace ZeroC.Ice
                 string escapedCategory = StringUtil.EscapeString(Category, mode, '/');
                 return $"{escapedCategory}/{escapedName}";
             }
+        }
+
+        internal static Identity? ParsePath(string? path)
+        {
+            if (path == null)
+            {
+                return null;
+            }
+
+            // Discard leading /
+            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
+            (string name, string category) = segments.Length switch
+            {
+                0 => throw new FormatException($"invalid identity `{path}'"),
+                1 => (Uri.UnescapeDataString(segments[0]), ""),
+                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
+                      Uri.UnescapeDataString(segments[0])),
+            };
+
+            return name.Length > 0 ? new Identity(name, category) :
+                throw new FormatException($"invalid empty name in identity `{path}'");
         }
     }
 

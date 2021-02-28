@@ -155,7 +155,7 @@ namespace ZeroC.Ice
                 {
                     Communicator = server.Communicator,
                     Endpoints = server.PublishedEndpoints,
-                    Path = UriParser.NormalizePath(path),
+                    Path = Proxy.NormalizePath(path),
                     Protocol = protocol
                 };
                 return factory.Create(options);
@@ -199,7 +199,7 @@ namespace ZeroC.Ice
                 {
                     Communicator = connection.Communicator,
                     Connection = connection,
-                    Path = UriParser.NormalizePath(path),
+                    Path = Proxy.NormalizePath(path),
                     Protocol = protocol
                 };
                 return factory.Create(options);

@@ -51,18 +51,6 @@ namespace ZeroC.Ice
             GenericUriParserOptions.NoFragment |
             GenericUriParserOptions.NoUserInfo;
 
-        internal static string GetCategory(string path)
-        {
-            int firstSlash = path.IndexOf('/');
-            if (firstSlash == 0)
-            {
-                path = path[1..]; // ignore leading / if found
-                firstSlash = path.IndexOf('/');
-            }
-
-            return firstSlash == 0 || firstSlash == -1 ? "" : Uri.UnescapeDataString(path[..firstSlash]);
-        }
-
         /// <summary>Checks if a string is an ice+transport URI, and not an endpoint string using the ice1 string
         /// format.</summary>
         /// <param name="s">The string to check.</param>
@@ -77,51 +65,12 @@ namespace ZeroC.Ice
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
 
-        internal static string NormalizePath(string path)
-        {
-            string[] segments = path.Split('/');
-            string normalized = string.Join('/', segments.Select(s => Uri.EscapeDataString(Uri.UnescapeDataString(s))));
-            if (normalized.StartsWith('/'))
-            {
-                return normalized;
-            }
-            else
-            {
-                return $"/{normalized}";
-            }
-        }
-
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(string uriString, Communicator communicator) =>
             Parse(uriString, serverEndpoints: true, communicator).Endpoints;
-
-        /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
-        /// <param name="path">A string [/][escapedCategory/]escapedName.</param>
-        /// <exception cref="FormatException">Thrown when <c>path</c> is not in the correct format.</exception>
-        /// <returns>An Identity equivalent to the identity contained in path.</returns>
-        internal static Identity? ParseIdentity(string? path)
-        {
-            if (path == null)
-            {
-                return null;
-            }
-
-            // Discard leading /
-            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
-            (string name, string category) = segments.Length switch
-            {
-                0 => throw new FormatException($"invalid identity `{path}'"),
-                1 => (Uri.UnescapeDataString(segments[0]), ""),
-                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
-                      Uri.UnescapeDataString(segments[0])),
-            };
-
-            return name.Length > 0 ? new Identity(name, category) :
-                throw new FormatException($"invalid empty name in identity `{path}'");
-        }
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
@@ -134,7 +83,7 @@ namespace ZeroC.Ice
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
-            return (endpoints, NormalizePath(uri.AbsolutePath), proxyOptions);
+            return (endpoints, Proxy.NormalizePath(uri.AbsolutePath), proxyOptions);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>

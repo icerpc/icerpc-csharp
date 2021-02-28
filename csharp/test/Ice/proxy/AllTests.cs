@@ -413,13 +413,13 @@ namespace ZeroC.Ice.Test.Proxy
 
             // Test for bug ICE-5543: escaped escapes in Identity.Parse
             var id = new Identity("test", ",X2QNUAzSBcJ_e$AV;E\\");
-            var id2 = Identity.Parse(id.ToString(communicator.ToStringMode), uriFormat: false);
+            var id2 = Identity.Parse(id.ToString(communicator.ToStringMode), uriPath: false);
             var id3 = Identity.Parse(id.ToString()); // new URI style
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
 
             id = new Identity("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\");
-            id2 = Identity.Parse(id.ToString(communicator.ToStringMode), uriFormat: false);
+            id2 = Identity.Parse(id.ToString(communicator.ToStringMode), uriPath: false);
             id3 = Identity.Parse(id.ToString());
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
@@ -427,20 +427,20 @@ namespace ZeroC.Ice.Test.Proxy
             id = new Identity("/test", "cat/");
             string idStr = id.ToString(communicator.ToStringMode);
             TestHelper.Assert(idStr == "cat\\//\\/test");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             id3 = Identity.Parse(id.ToString());
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
 
             // Input string in ice1 format with various pitfalls
             idStr = "\\342\\x82\\254\\60\\x9\\60\\";
-            id = Identity.Parse(idStr, uriFormat: false);
+            id = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id.Name == "€0\t0\\" && id.Category.Length == 0);
 
             try
             {
                 // Illegal character < 32
-                _ = Identity.Parse("xx\01FooBar", uriFormat: false);
+                _ = Identity.Parse("xx\01FooBar", uriPath: false);
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -450,7 +450,7 @@ namespace ZeroC.Ice.Test.Proxy
             try
             {
                 // Illegal surrogate
-                _ = Identity.Parse("xx\\ud911", uriFormat: false);
+                _ = Identity.Parse("xx\\ud911", uriPath: false);
                 TestHelper.Assert(false);
             }
             catch (FormatException)
@@ -468,17 +468,17 @@ namespace ZeroC.Ice.Test.Proxy
 
             idStr = id.ToString(ToStringMode.Unicode);
             TestHelper.Assert(idStr == "\\u007f€/test");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.ASCII);
             TestHelper.Assert(idStr == "\\u007f\\u20ac/test");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.Compat);
             TestHelper.Assert(idStr == "\\177\\342\\202\\254/test");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id == id2);
 
             // More unicode character
@@ -490,16 +490,16 @@ namespace ZeroC.Ice.Test.Proxy
 
             idStr = id.ToString(ToStringMode.Unicode);
             TestHelper.Assert(idStr == "greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.ASCII);
             TestHelper.Assert(idStr == "greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$");
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.Compat);
-            id2 = Identity.Parse(idStr, uriFormat: false);
+            id2 = Identity.Parse(idStr, uriPath: false);
             TestHelper.Assert(idStr == "greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$");
             TestHelper.Assert(id == id2);
 
