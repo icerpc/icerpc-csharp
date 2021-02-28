@@ -9,76 +9,6 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class IdentityTests
     {
-        /// <summary>Test Identity to path conversion.</summary>
-        /// <param name="id">The identity to convert to a URI path.</param>
-        /// <param name="expected">The expected result.</param>
-        [TestCaseSource(typeof(Identity_ToPath_TestCases))]
-        public void Identity_ToPath(Identity id, string expected) => Assert.AreEqual(expected, id.ToPath());
-
-        /// <summary>Test data for <see cref="Identity_ToPath"/>.</summary>
-        public class Identity_ToPath_TestCases : TestData<Identity, string>
-        {
-            public Identity_ToPath_TestCases()
-            {
-                Add(new Identity("foo", ""), "/foo");
-                Add(new Identity("foo", "bar"), "/bar/foo");
-                Add(new Identity("test", "\x7f€"), "/%7F%E2%82%AC/test");
-                Add(new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
-                    "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");
-            }
-        }
-
-        /// <summary>Test Identity to string conversion using the specified ToStringMode.</summary>
-        /// <param name="id">The identity to convert to a string.</param>
-        /// <param name="mode">The mode argument to call ToString</param>
-        /// <param name="expected">The expected result for ToString invocation.</param>
-        [TestCaseSource(typeof(Identity_ToStringMode_TestCases))]
-        public void Identity_ToStringMode(Identity id, ToStringMode mode, string expected)
-        {
-            Assert.AreEqual(expected, id.ToString(mode));
-            if (expected.Length == 0)
-            {
-                Assert.Throws<FormatException>(() => Identity.Parse(expected));
-            }
-            else
-            {
-                Assert.IsTrue(Identity.TryParse(expected, out Identity result));
-                Assert.IsTrue(id == result);
-            }
-        }
-
-        /// <summary>Test data for <see cref="Identity_ToStringMode"/>.</summary>
-        public class Identity_ToStringMode_TestCases : TestData<Identity, ToStringMode, string>
-        {
-            public Identity_ToStringMode_TestCases()
-            {
-                var id = new Identity("test", "\x7f€");
-                Add(id, ToStringMode.Unicode, "\\u007f€/test");
-                Add(id, ToStringMode.ASCII, "\\u007f\\u20ac/test");
-                Add(id, ToStringMode.Compat, "\\177\\342\\202\\254/test");
-
-                id = new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a");
-                Add(id, ToStringMode.Unicode, "greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$");
-                Add(id, ToStringMode.ASCII, "greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$");
-                Add(id,
-                    ToStringMode.Compat,
-                    "greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$");
-
-                // escaped escapes in Identity
-                id = new Identity("test", ",X2QNUAzSBcJ_e$AV;E\\");
-                Add(id, ToStringMode.Unicode, ",X2QNUAzSBcJ_e$AV;E\\\\/test");
-
-                id = new Identity("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\");
-                Add(id, ToStringMode.Unicode, ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test");
-
-                id = new Identity("/test", "cat/");
-                Add(id, ToStringMode.Unicode, "cat\\//\\/test");
-
-                Add(new Identity(), ToStringMode.Unicode, "");
-                Add(Identity.Empty, ToStringMode.Unicode, "");
-            }
-        }
-
         /// <summary>Identity.Parse for an invalid identity throws FormatException, Identity.TryParse
         /// for an invalid identity must return false.</summary>
         [TestCase("xx\01FooBar")] // Illegal character < 32
@@ -87,28 +17,84 @@ namespace IceRpc.Tests.Api
         [TestCase("cat//test")]
         [TestCase("")] // Empty name
         [TestCase("cat/")] // Empty name
-        public void Identity_Parse_Ice1InvalidInput(string str)
+        public void Identity_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str));
             Assert.False(Identity.TryParse(str, out _));
         }
 
-        /// <summary>Test that Identity.Parse produces the expected Identity values.</summary>
-        [TestCaseSource(typeof(Identity_Parse_Ice1ValidInput_TestCases))]
-        public void Identity_Parse_Ice1ValidInput(string str, Identity expected)
+        /// <summary>Verifies Identity.Parse succeeds and constructs the expected identity.</summary>
+        [TestCase("\\342\\x82\\254\\60\\x9\\60\\", "€0\t0\\", "")]
+        public void Identity_Parse_ValidInput(string str, string name, string category)
         {
-            Assert.AreEqual(expected, Identity.Parse(str));
+            Assert.AreEqual(new Identity(name, category), Identity.Parse(str));
         }
 
-        /// <summary>Test data for <see cref="Identity_Parse_Ice1ValidInput"/>.</summary>
-        public class Identity_Parse_Ice1ValidInput_TestCases : TestData<string, Identity>
+        /// <summary>Verifies that Identity can be converted to a URI path (with ToPath) and converted back to the same
+        /// identity (with FromPath).</summary>
+        /// <param name="name">The name field of the Identity.</param>
+        /// <param name="category">The category field of the Identity.</param>
+        /// <param name="path">The normalized URI path to check against.</param>
+        [TestCase("foo", "bar", "/bar/foo")]
+        [TestCase("foo", "", "/foo")]
+        [TestCase("test", "\x7f€", "/%7F%E2%82%AC/test")]
+        [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                  "greek \ud800\udd6a",
+                  "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24")]
+        [TestCase("/foo", "", "///foo")]
+        [TestCase("/foo", "bar", "/bar//foo")]
+        [TestCase("/foo", "/bar/", "/%2Fbar%2F//foo")]
+        [TestCase("foo/// ///#@", "", "//foo///%20///%23%40")]
+        public void Identity_ToPathFromPath(string name, string category, string path)
         {
-            public Identity_Parse_Ice1ValidInput_TestCases()
+            var identity = new Identity(name, category);
+            Assert.AreEqual(identity, Identity.FromPath(identity.ToPath()));
+            Assert.AreEqual(path, identity.ToPath());
+        }
+
+        /// <summary>Verifies that Identity can be converted to a string (with ToString) and converted back to the same
+        /// identity (with Parse).</summary>
+        /// <param name="name">The name field of the Identity.</param>
+        /// <param name="category">The category field of the Identity.</param>
+        /// <param name="unicode">The "stringified" unicode identity to check against.</param>
+        /// <param name="ascii">The "stringified" ascii identity to check against (optional).</param>
+        /// <param name="compat">The "stringified" compat identity to check against (optional).</param>
+
+        [TestCase("test", "\x7f€", "\\u007f€/test", "\\u007f\\u20ac/test", "\\177\\342\\202\\254/test")]
+        [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
+                  "greek \ud800\udd6a",
+                  "greek \ud800\udd6a/banana \\u000e-\ud83c\udf4c\u20ac\u00a2$",
+                  "greek \\U0001016a/banana \\u000e-\\U0001f34c\\u20ac\\u00a2$",
+                  "greek \\360\\220\\205\\252/banana \\016-\\360\\237\\215\\214\\342\\202\\254\\302\\242$")]
+        [TestCase("test", ",X2QNUAzSBcJ_e$AV;E\\", ",X2QNUAzSBcJ_e$AV;E\\\\/test")]
+        [TestCase("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\", ",X2QNUAz\\\\SB\\\\\\/cJ_e$AV;E\\\\\\\\/test")]
+        [TestCase("/test", "cat/", "cat\\//\\/test")]
+        public void Identity_ToStringParse(
+            string name,
+            string category,
+            string unicode,
+            string ascii = "",
+            string compat = "")
+        {
+            var identity = new Identity(name, category);
+
+            foreach (ToStringMode mode in Enum.GetValues(typeof(ToStringMode)))
             {
-                // Input string in ice1 format with various pitfalls
-                Add("\\342\\x82\\254\\60\\x9\\60\\", new Identity("€0\t0\\", ""));
-                Add("bar/foo", new Identity("foo", "bar"));
-                Add("foo", new Identity("foo", ""));
+                Assert.AreEqual(identity, Identity.Parse(identity.ToString(mode)));
+
+                var newIdentity = new Identity();
+                Assert.IsTrue(Identity.TryParse(identity.ToString(mode), out newIdentity));
+                Assert.AreEqual(identity, newIdentity);
+            }
+
+            Assert.AreEqual(unicode, identity.ToString(ToStringMode.Unicode));
+            if (ascii.Length > 0)
+            {
+                Assert.AreEqual(ascii, identity.ToString(ToStringMode.ASCII));
+            }
+            if (compat.Length > 0)
+            {
+                Assert.AreEqual(compat, identity.ToString(ToStringMode.Compat));
             }
         }
     }
