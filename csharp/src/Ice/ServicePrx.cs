@@ -124,6 +124,10 @@ namespace ZeroC.Ice
             {
                 return false;
             }
+            if (Path != other.Path)
+            {
+                return false;
+            }
             if (Protocol != other.Protocol)
             {
                 return false;
@@ -134,23 +138,9 @@ namespace ZeroC.Ice
                 return false;
             }
 
-            if (Protocol == Protocol.Ice1)
+            if (Protocol == Protocol.Ice1 && Facet != other.Facet)
             {
-                if (Facet != other.Facet)
-                {
-                    return false;
-                }
-                if (Identity != other.Identity)
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (Path != other.Path)
-                {
-                    return false;
-                }
+                return false;
             }
 
             if (IsFixed)
@@ -227,16 +217,12 @@ namespace ZeroC.Ice
                 hash.Add(_invocationTimeoutOverride);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
+                hash.Add(Path);
                 hash.Add(Protocol);
 
                 if (Protocol == Protocol.Ice1)
                 {
                     hash.Add(Facet);
-                    hash.Add(Identity);
-                }
-                else
-                {
-                    hash.Add(Path);
                 }
 
                 if (IsFixed)

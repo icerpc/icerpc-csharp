@@ -33,8 +33,8 @@ namespace ZeroC.Ice
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
-        /// <summary>Writes a request header body This implementation is slightly more efficient than the generated code
-        /// because it avoids the allocation of a dictionary to write the context.</summary>
+        /// <summary>Writes a request header body. This implementation is slightly more efficient than the generated
+        /// code because it avoids the allocation of a dictionary to write the context.</summary>
         internal static void WriteIce2RequestHeaderBody(
             this OutputStream ostr,
             string path,

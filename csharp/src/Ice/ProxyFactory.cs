@@ -135,16 +135,14 @@ namespace ZeroC.Ice
 
             if (protocol == Protocol.Ice1)
             {
-                var identity = Identity.FromPath(path);
-
                 var options = new ServicePrxOptions()
                 {
                     Communicator = server.Communicator,
-                    Endpoints = location.Length == 0 ? server.PublishedEndpoints : ImmutableArray<Endpoint>.Empty,
+                    Endpoints = location.Length == 0 ? server.PublishedEndpoints : ImmutableList<Endpoint>.Empty,
                     Facet = facet,
-                    Identity = identity,
                     Location = location,
                     IsOneway = server.IsDatagramOnly,
+                    Path = Proxy.NormalizePath(path),
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);
@@ -180,15 +178,13 @@ namespace ZeroC.Ice
 
             if (protocol == Protocol.Ice1)
             {
-                Identity identity = Identity.FromPath(path);
-
                 var options = new ServicePrxOptions()
                 {
                     Communicator = connection.Communicator,
                     Connection = connection,
                     Facet = facet,
-                    Identity = identity,
                     IsOneway = connection.Endpoint.IsDatagram,
+                    Path = Proxy.NormalizePath(path),
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);
