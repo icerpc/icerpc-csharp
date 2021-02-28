@@ -6,6 +6,8 @@ using System.Collections.Generic;
 
 namespace ZeroC.Ice
 {
+    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Location" category.
+    /// </summary>
     internal static class LocationLoggerExtensions
     {
         private const int ClearLocationEndpoints = 0;

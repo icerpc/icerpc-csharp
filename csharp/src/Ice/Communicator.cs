@@ -142,6 +142,8 @@ namespace ZeroC.Ice
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
 
+        internal ILogger DiscoveryLogger { get; }
+
         internal TimeSpan IdleTimeout { get; }
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
@@ -301,6 +303,7 @@ namespace ZeroC.Ice
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
+            DiscoveryLogger = LoggerFactory.CreateLogger("IceRpc.Discovery");
             LocationLogger = LoggerFactory.CreateLogger("IceRpc.Location");
             TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
             ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");

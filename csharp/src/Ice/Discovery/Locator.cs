@@ -19,7 +19,6 @@ namespace ZeroC.Ice.Discovery
         private readonly string _domainId;
         private readonly int _latencyMultiplier;
 
-        private readonly ILogger _logger;
         private readonly Server _locatorServer;
 
         private readonly ILookupPrx _lookup;
@@ -79,8 +78,6 @@ namespace ZeroC.Ice.Discovery
 
         internal Locator(Communicator communicator, DiscoveryServerOptions options)
         {
-            _logger = communicator.Logger;
-
             if (options.ColocationScope == ColocationScope.None)
             {
                 throw new ArgumentException("options.ColocationScope cannot be set to None", nameof(options));
@@ -240,9 +237,11 @@ namespace ZeroC.Ice.Discovery
                         if (sendTask.Exception!.InnerExceptions.Count == _lookups.Count)
                         {
                             // All the tasks failed: log warning and return empty result (no retry)
-                            if (_logger.IsEnabled(LogLevel.Error))
+                            if (Proxy.Communicator.DiscoveryLogger.IsEnabled(LogLevel.Error))
                             {
-                                _logger.LogLookupRequestFailed(_lookup, sendTask.Exception!.InnerException!);
+                                Proxy.Communicator.DiscoveryLogger.LogLookupRequestFailed(
+                                    _lookup,
+                                    sendTask.Exception!.InnerException!);
                             }
                             replyService.SetEmptyResult();
                             return await replyService.Task.ConfigureAwait(false);
