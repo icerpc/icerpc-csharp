@@ -12,10 +12,24 @@ namespace ZeroC.Ice
         public static readonly Identity Empty = new Identity("", "");
 
         /// <summary>Creates an Identity from a URI path.</summary>
-        /// <param name="s">A URI path.</param>
+        /// <param name="path">A URI path.</param>
         /// <exception cref="FormatException">s is not in the correct format.</exception>
         /// <returns>A new Identity struct.</returns>
-        public static Identity Parse(string s) => ParsePath(s)!.Value;
+        public static Identity FromPath(string path)
+        {
+            // Discard leading /
+            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
+            (string name, string category) = segments.Length switch
+            {
+                0 => throw new FormatException($"invalid identity `{path}'"),
+                1 => (Uri.UnescapeDataString(segments[0]), ""),
+                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
+                      Uri.UnescapeDataString(segments[0])),
+            };
+
+            return name.Length > 0 ? new Identity(name, category) :
+                throw new FormatException($"invalid empty name in identity `{path}'");
+        }
 
         /// <summary>Creates an Identity from a string in the ice1 format.</summary>
         /// <param name="s">A "stringified identity" in the ice1 format.</param>
@@ -99,7 +113,7 @@ namespace ZeroC.Ice
         {
             try
             {
-                identity = Parse(s);
+                identity = FromPath(s);
                 return true;
             }
             catch
@@ -161,27 +175,6 @@ namespace ZeroC.Ice
                 string escapedCategory = StringUtil.EscapeString(Category, mode, '/');
                 return $"{escapedCategory}/{escapedName}";
             }
-        }
-
-        internal static Identity? ParsePath(string? path)
-        {
-            if (path == null)
-            {
-                return null;
-            }
-
-            // Discard leading /
-            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
-            (string name, string category) = segments.Length switch
-            {
-                0 => throw new FormatException($"invalid identity `{path}'"),
-                1 => (Uri.UnescapeDataString(segments[0]), ""),
-                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
-                      Uri.UnescapeDataString(segments[0])),
-            };
-
-            return name.Length > 0 ? new Identity(name, category) :
-                throw new FormatException($"invalid empty name in identity `{path}'");
         }
     }
 

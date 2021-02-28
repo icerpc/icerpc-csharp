@@ -135,7 +135,7 @@ namespace ZeroC.Ice
 
             if (protocol == Protocol.Ice1)
             {
-                var identity = Identity.Parse(path);
+                var identity = Identity.FromPath(path);
 
                 var options = new ServicePrxOptions()
                 {
@@ -180,7 +180,7 @@ namespace ZeroC.Ice
 
             if (protocol == Protocol.Ice1)
             {
-                Identity identity = Identity.Parse(path);
+                Identity identity = Identity.FromPath(path);
 
                 var options = new ServicePrxOptions()
                 {

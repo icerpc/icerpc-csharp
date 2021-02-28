@@ -292,7 +292,7 @@ namespace ZeroC.Ice
                 else
                 {
                     // When reading ToString() gives the path back.
-                    Identity.Parse(Path).IceWrite(ostr);
+                    Identity.FromPath(Path).IceWrite(ostr);
                 }
 
                 ostr.WriteProxyData11(Facet, invocationMode ?? InvocationMode.Twoway, Protocol, Encoding);
@@ -581,7 +581,7 @@ namespace ZeroC.Ice
                 if (options.Path.Length > 0)
                 {
                     Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
-                    Identity = Identity.Parse(options.Path);
+                    Identity = Identity.FromPath(options.Path);
                     Path = options.Path;
                 }
                 else
@@ -733,11 +733,11 @@ namespace ZeroC.Ice
                     Context = context?.ToImmutableSortedDictionary() ?? Context,
                     Encoding = encoding ?? Encoding,
                     Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = Protocol == Protocol.Ice1 ? Identity.ParsePath(path) ?? Identity : default,
+                    Identity = path == null ? Identity : Identity.Empty,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
-                    Path = Protocol == Protocol.Ice1 ? "" : path ?? Path,
+                    Path = path ?? (Protocol == Protocol.Ice1 ? "" : Path),
                     Protocol = Protocol
                 };
             }
@@ -751,14 +751,14 @@ namespace ZeroC.Ice
                     Encoding = encoding ?? Encoding,
                     Endpoints = newEndpoints,
                     Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = Protocol == Protocol.Ice1 ? Identity.ParsePath(path) ?? Identity : default,
+                    Identity = path == null ? Identity : Identity.Empty,
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = oneway ?? IsOneway,
                     Label = clearLabel ? null : label ?? Label,
                     Location = newLocation ?? Location,
                     LocationService = clearLocationService ? null : locationService ?? LocationService,
-                    Path = Protocol == Protocol.Ice1 ? "" : path ?? Path,
+                    Path = path ?? (Protocol == Protocol.Ice1 ? "" : Path),
                     PreferExistingConnectionOverride = preferExistingConnection ?? _preferExistingConnectionOverride,
                     PreferNonSecureOverride = preferNonSecure ?? _preferNonSecureOverride,
                     Protocol = Protocol

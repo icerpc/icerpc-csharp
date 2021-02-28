@@ -328,7 +328,7 @@ namespace ZeroC.Ice
                         }
                         else
                         {
-                            Identity.Parse(request.Path).IceWrite(ostr);
+                            Identity.FromPath(request.Path).IceWrite(ostr);
                         }
                         ostr.WriteIce1Facet(request.Facet);
                         ostr.WriteString(request.Operation);

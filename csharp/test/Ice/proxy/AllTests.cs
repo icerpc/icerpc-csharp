@@ -414,13 +414,13 @@ namespace ZeroC.Ice.Test.Proxy
             // Test for bug ICE-5543: escaped escapes in Identity.Parse
             var id = new Identity("test", ",X2QNUAzSBcJ_e$AV;E\\");
             var id2 = Identity.ParseIce1(id.ToString(communicator.ToStringMode));
-            var id3 = Identity.Parse(id.ToString()); // new URI style
+            var id3 = Identity.FromPath(id.ToString()); // new URI style
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
 
             id = new Identity("test", ",X2QNUAz\\SB\\/cJ_e$AV;E\\\\");
             id2 = Identity.ParseIce1(id.ToString(communicator.ToStringMode));
-            id3 = Identity.Parse(id.ToString());
+            id3 = Identity.FromPath(id.ToString());
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
 
@@ -428,7 +428,7 @@ namespace ZeroC.Ice.Test.Proxy
             string idStr = id.ToString(communicator.ToStringMode);
             TestHelper.Assert(idStr == "cat\\//\\/test");
             id2 = Identity.ParseIce1(idStr);
-            id3 = Identity.Parse(id.ToString());
+            id3 = Identity.FromPath(id.ToString());
             TestHelper.Assert(id == id2);
             TestHelper.Assert(id == id3);
 
@@ -463,7 +463,7 @@ namespace ZeroC.Ice.Test.Proxy
 
             idStr = id.ToString();
             TestHelper.Assert(idStr == "/%7F%E2%82%AC/test");
-            id2 = Identity.Parse(idStr);
+            id2 = Identity.FromPath(idStr);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.Unicode);
@@ -485,7 +485,7 @@ namespace ZeroC.Ice.Test.Proxy
             id = new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a");
             idStr = id.ToString();
             TestHelper.Assert(idStr == "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");
-            id2 = Identity.Parse(idStr);
+            id2 = Identity.FromPath(idStr);
             TestHelper.Assert(id == id2);
 
             idStr = id.ToString(ToStringMode.Unicode);
