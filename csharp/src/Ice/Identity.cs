@@ -11,27 +11,95 @@ namespace ZeroC.Ice
         /// <summary>The empty Identity.</summary>
         public static readonly Identity Empty = new Identity("", "");
 
-        /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
-        /// <param name="s">A string [escapedCategory/]escapedName.</param>
-        /// <param name="uriPath">When true (the default), the string is a relative URI. When false, the string
-        /// uses the ice1 format. See also <see cref="ToStringMode"/>.</param>
+        /// <summary>Creates an Identity from a URI path.</summary>
+        /// <param name="s">A URI path.</param>
         /// <exception cref="FormatException">s is not in the correct format.</exception>
-        /// <returns>An Identity equivalent to the identity contained in s.</returns>
-        public static Identity Parse(string s, bool uriPath = true) =>
-            uriPath ? ParsePath(s)!.Value : Ice1Parser.ParseIdentity(s);
+        /// <returns>A new Identity struct.</returns>
+        public static Identity Parse(string s) => ParsePath(s)!.Value;
 
-        /// <summary>Converts the string representation of an identity to its equivalent Identity struct.</summary>
-        /// <param name="s">A string containing an identity to convert.</param>
-        /// <param name="uriPath">When true, the string is a URI path. When false, the string uses the ice1 format. See
-        /// also <see cref="ToStringMode"/>.</param>
-        /// <param name="identity">When this method returns, contains an Identity struct equivalent to the identity
-        /// contained in s, if the conversion succeeded, or a default identity if failed. </param>
-        /// <returns>true if s was converted successfully; otherwise, false.</returns>
-        public static bool TryParse(string s, bool uriPath, out Identity identity)
+        /// <summary>Creates an Identity from a string in the ice1 format.</summary>
+        /// <param name="s">A "stringified identity" in the ice1 format.</param>
+        /// <exception cref="FormatException">s is not in the correct format.</exception>
+        /// <returns>A new Identity struct.</returns>
+        public static Identity ParseIce1(string s)
+        {
+            // Find unescaped separator; note that the string may contain an escaped backslash before the separator.
+            int slash = -1, pos = 0;
+            while ((pos = s.IndexOf('/', pos)) != -1)
+            {
+                int escapes = 0;
+                while (pos - escapes > 0 && s[pos - escapes - 1] == '\\')
+                {
+                    escapes++;
+                }
+
+                // We ignore escaped escapes
+                if (escapes % 2 == 0)
+                {
+                    if (slash == -1)
+                    {
+                        slash = pos;
+                    }
+                    else
+                    {
+                        // Extra unescaped slash found.
+                        throw new FormatException($"unescaped backslash in identity `{s}'");
+                    }
+                }
+                pos++;
+            }
+
+            string category;
+            string? name = null;
+            if (slash == -1)
+            {
+                try
+                {
+                    name = StringUtil.UnescapeString(s, 0, s.Length, "/");
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new FormatException($"invalid name in identity `{s}'", ex);
+                }
+                category = "";
+            }
+            else
+            {
+                try
+                {
+                    category = StringUtil.UnescapeString(s, 0, slash, "/");
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new FormatException($"invalid category in identity `{s}'", ex);
+                }
+
+                if (slash + 1 < s.Length)
+                {
+                    try
+                    {
+                        name = StringUtil.UnescapeString(s, slash + 1, s.Length, "/");
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        throw new FormatException($"invalid name in identity `{s}'", ex);
+                    }
+                }
+            }
+
+            return name?.Length > 0 ? new Identity(name, category) :
+                throw new FormatException($"invalid empty name in identity `{s}'");
+        }
+
+        /// <summary>Attempts to create an Identity from a URI path.</summary>
+        /// <param name="s">A URI path.</param>
+        /// <param name="identity">When this method succeeds, contains an Identity struct parsed from s.</param>
+        /// <returns>True if <c>s</c> was parsed successfully; otherwise, false.</returns>
+        public static bool TryParse(string s, out Identity identity)
         {
             try
             {
-                identity = Parse(s, uriPath);
+                identity = Parse(s);
                 return true;
             }
             catch
