@@ -9,36 +9,22 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class IdentityTests
     {
-        /// <summary>Test Identity to string conversion.</summary>
-        /// <param name="id">The identity to convert to a string.</param>
+        /// <summary>Test Identity to path conversion.</summary>
+        /// <param name="id">The identity to convert to a URI path.</param>
         /// <param name="expected">The expected result.</param>
-        [TestCaseSource(typeof(Identity_ToString_TestCases))]
-        public void Identity_ToString(Identity id, string expected)
-        {
-            Assert.AreEqual(expected, id.ToString());
-            if (expected.Length == 0)
-            {
-                Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: true));
-            }
-            else
-            {
-                Assert.IsTrue(Identity.TryParse(expected, uriFormat: true, out Identity result));
-                Assert.IsTrue(id == result);
-            }
-        }
+        [TestCaseSource(typeof(Identity_ToPath_TestCases))]
+        public void Identity_ToPath(Identity id, string expected) => Assert.AreEqual(expected, id.ToPath());
 
-        /// <summary>Test data for <see cref="Identity_ToString"/>.</summary>
-        public class Identity_ToString_TestCases : TestData<Identity, string>
+        /// <summary>Test data for <see cref="Identity_ToPath"/>.</summary>
+        public class Identity_ToPath_TestCases : TestData<Identity, string>
         {
-            public Identity_ToString_TestCases()
+            public Identity_ToPath_TestCases()
             {
-                Add(new Identity(), "");
-                Add(Identity.Empty, "");
-                Add(new Identity("foo", ""), "foo");
-                Add(new Identity("foo", "bar"), "bar/foo");
-                Add(new Identity("test", "\x7f€"), "%7F%E2%82%AC/test");
+                Add(new Identity("foo", ""), "/foo");
+                Add(new Identity("foo", "bar"), "/bar/foo");
+                Add(new Identity("test", "\x7f€"), "/%7F%E2%82%AC/test");
                 Add(new Identity("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024", "greek \ud800\udd6a"),
-                    "greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");
+                    "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24");
             }
         }
 
@@ -52,11 +38,11 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(expected, id.ToString(mode));
             if (expected.Length == 0)
             {
-                Assert.Throws<FormatException>(() => Identity.Parse(expected, uriFormat: false));
+                Assert.Throws<FormatException>(() => Identity.Parse(expected));
             }
             else
             {
-                Assert.IsTrue(Identity.TryParse(expected, uriFormat: false, out Identity result));
+                Assert.IsTrue(Identity.TryParse(expected, out Identity result));
                 Assert.IsTrue(id == result);
             }
         }
@@ -103,15 +89,15 @@ namespace IceRpc.Tests.Api
         [TestCase("cat/")] // Empty name
         public void Identity_Parse_Ice1InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => Identity.Parse(str, uriFormat: false));
-            Assert.False(Identity.TryParse(str, uriFormat: false, out _));
+            Assert.Throws<FormatException>(() => Identity.Parse(str));
+            Assert.False(Identity.TryParse(str, out _));
         }
 
         /// <summary>Test that Identity.Parse produces the expected Identity values.</summary>
         [TestCaseSource(typeof(Identity_Parse_Ice1ValidInput_TestCases))]
         public void Identity_Parse_Ice1ValidInput(string str, Identity expected)
         {
-            Assert.AreEqual(expected, Identity.Parse(str, uriFormat: false));
+            Assert.AreEqual(expected, Identity.Parse(str));
         }
 
         /// <summary>Test data for <see cref="Identity_Parse_Ice1ValidInput"/>.</summary>

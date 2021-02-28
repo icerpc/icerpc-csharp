@@ -129,10 +129,6 @@ namespace IceRpc.Tests.Api
         {
             public ParseProxyWithIdentityAndLocationTestCases()
             {
-                Add("ice:test", "test");
-                Add(" ice:test ", "test");
-                Add(" ice:test", "test");
-                Add("ice:test ", "test");
                 Add("test", "test");
                 Add(" test ", "test");
                 Add(" test", "test");
@@ -149,19 +145,6 @@ namespace IceRpc.Tests.Api
                 Add("test\\004test", "test\u0004test");
                 Add("test\\1114test", "test\u00494test");
                 Add("test\\b\\f\\n\\r\\t\\'\\\"\\\\test", "test\b\f\n\r\t\'\"\\test");
-
-                Add("ice:category/test", "test", "category");
-
-                Add("ice:loc0/loc1/category/test", "test", "category", new string[] { "loc0", "loc1" });
-                Add("ice+tcp://host:10000/loc0/loc1//test?source-address=::1",
-                    "test",
-                    "",
-                    new string[] { "loc0", "loc1" });
-
-                Add("ice:server//test", "test", "", new string[] { "server" });
-                Add("ice:server/category/test", "test", "category", new string[] { "server" });
-                Add("ice:server:tcp/category/test", "test", "category", new string[] { "server:tcp" });
-                Add("ice:server%3Atcp/category/test", "test", "category", new string[] { "server:tcp" });
                 Add("category/test", "test", "category");
             }
 
@@ -215,7 +198,6 @@ namespace IceRpc.Tests.Api
 
             CheckGetHashCode(prx1.Clone(preferNonSecure: NonSecure.Always),
                              prx2.Clone(preferNonSecure: NonSecure.Always));
-
 
             static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
             {

@@ -113,7 +113,7 @@ namespace ZeroC.Ice
         {
             try
             {
-                identity = FromPath(s);
+                identity = Parse(s);
                 return true;
             }
             catch
