@@ -40,9 +40,8 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Converts an identity to a URI path. All characters in category and name are percent escaped, except
-        /// unreserved characters.</summary>
-        /// <returns>A URI path /[escapedCategory/]escapedName.</returns>
+        /// <summary>Converts an identity to a normalized URI path.</summary>
+        /// <returns>A URI path.</returns>
         public override string ToString()
         {
             if (string.IsNullOrEmpty(Name))
@@ -52,13 +51,21 @@ namespace ZeroC.Ice
             }
             Debug.Assert(Category != null);
 
+            string path = UriParser.NormalizePath(Name);
+            if (Name[0] == '/')
+            {
+                // If Name starts with /, NormalizePath does not add an extra leading /, so we add it back.
+                path = $"/{path}";
+            }
+
             if (Category.Length == 0)
             {
-                return $"/{Uri.EscapeDataString(Name)}";
+                // start with double `/` when normalized name contains `/` to ensure proper round-trip.
+                return path[1..].Contains('/') ? $"/{path}" : path;
             }
             else
             {
-                return $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}";
+                return $"/{Uri.EscapeDataString(Category)}{path}";
             }
         }
 

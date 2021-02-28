@@ -291,9 +291,8 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    // Write path in identity name and leave category empty
-                    ostr.WriteString(Path);
-                    ostr.WriteString(""); // empty category
+                    // When reading ToString() gives the path back.
+                    Identity.Parse(Path).IceWrite(ostr);
                 }
 
                 ostr.WriteProxyData11(Facet, invocationMode ?? InvocationMode.Twoway, Protocol, Encoding);

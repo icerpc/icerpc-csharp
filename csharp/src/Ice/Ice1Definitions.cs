@@ -169,7 +169,7 @@ namespace ZeroC.Ice
         /// <returns>The exception read from the stream.</returns>
         internal static RemoteException ReadIce1SystemException(this InputStream istr, ReplyStatus replyStatus)
         {
-            Debug.Assert(istr.Encoding == Encoding);
+            Debug.Assert(istr.Encoding == Encoding.V11);
             Debug.Assert((byte)replyStatus > (byte)ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -187,13 +187,15 @@ namespace ZeroC.Ice
                     {
                         systemException = new OperationNotExistException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToString(), operation)){ Facet = facet };
+                            new RemoteExceptionOrigin(identity.ToString(), operation))
+                        { Facet = facet };
                     }
                     else
                     {
                         systemException = new ObjectNotExistException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToString(), operation)){ Facet = facet };
+                            new RemoteExceptionOrigin(identity.ToString(), operation))
+                        { Facet = facet };
                     }
                     break;
 

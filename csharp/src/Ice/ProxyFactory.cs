@@ -371,11 +371,6 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    if (identity.Category.Length > 0)
-                    {
-                        throw new InvalidDataException(
-                            $"received proxy for protocol {proxyData.Protocol.GetName()} with category set");
-                    }
                     if (proxyData.FacetPath.Length > 0)
                     {
                         throw new InvalidDataException(
@@ -386,7 +381,7 @@ namespace ZeroC.Ice
                         throw new InvalidDataException(
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
                     }
-                    return CreateIce2Proxy(proxyData.Encoding, endpoints, identity.Name, proxyData.Protocol);
+                    return CreateIce2Proxy(proxyData.Encoding, endpoints, identity.ToString(), proxyData.Protocol);
                 }
             }
             else
