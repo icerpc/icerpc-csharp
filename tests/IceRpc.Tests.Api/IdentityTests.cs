@@ -30,6 +30,18 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(new Identity(name, category), Identity.Parse(str));
         }
 
+        /// <summary>Verifies that a URI path can be converted to an identity and identity.ToPath() returns a normalized
+        /// version of path.</summary>
+        /// <param name="path">The path to check.</param>
+        [TestCase("foo/bar")]
+        [TestCase("/")]
+        [TestCase("/foo/")]
+        public void Identity_FromPathToPath(string path)
+        {
+            var identity = Identity.FromPath(path);
+            Assert.AreEqual(Proxy.NormalizePath(path), identity.ToPath());
+        }
+
         /// <summary>Verifies that Identity can be converted to a URI path (with ToPath) and converted back to the same
         /// identity (with FromPath).</summary>
         /// <param name="name">The name field of the Identity.</param>
@@ -45,6 +57,8 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo", "bar", "/bar//foo")]
         [TestCase("/foo", "/bar/", "/%2Fbar%2F//foo")]
         [TestCase("foo/// ///#@", "", "//foo///%20///%23%40")]
+        [TestCase("", "", "/")] // empty identity
+        [TestCase("", "cat/", "/cat%2F/")] // category with trailing slash and empty name
         public void Identity_ToPathFromPath(string name, string category, string path)
         {
             var identity = new Identity(name, category);

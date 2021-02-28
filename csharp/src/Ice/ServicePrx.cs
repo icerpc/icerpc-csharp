@@ -568,10 +568,23 @@ namespace ZeroC.Ice
                 {
                     Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
                     Identity = Identity.FromPath(options.Path);
+
+                    if (Identity.Name.Length == 0)
+                    {
+                        throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
+                                                    nameof(options.Path));
+                    }
+
                     Path = options.Path;
                 }
                 else
                 {
+                    if (options.Identity.Name.Length == 0)
+                    {
+                        throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
+                                                    nameof(options.Identity));
+                    }
+
                     Identity = options.Identity;
                     Path = Identity.ToPath();
                 }

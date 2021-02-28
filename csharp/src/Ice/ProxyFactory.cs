@@ -326,7 +326,7 @@ namespace ZeroC.Ice
             if (istr.Encoding == Encoding.V11)
             {
                 var identity = new Identity(istr);
-                if (identity.Name.Length == 0)
+                if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
                 {
                     return null;
                 }
@@ -413,12 +413,6 @@ namespace ZeroC.Ice
                 else // an ice1 proxy
                 {
                     var proxyData = new Ice1ProxyData20(istr);
-
-                    if (proxyData.Identity.Name.Length == 0)
-                    {
-                        throw new InvalidDataException("received non-null proxy with empty identity name");
-                    }
-
                     IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
                     string location = "";
 

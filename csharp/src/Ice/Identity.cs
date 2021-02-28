@@ -11,24 +11,22 @@ namespace ZeroC.Ice
         /// <summary>The empty Identity.</summary>
         public static readonly Identity Empty = new Identity("", "");
 
-        /// <summary>Creates an Identity from a URI path.</summary>
+        /// <summary>Creates an Identity from a URI path. This method never fails.</summary>
         /// <param name="path">A URI path.</param>
-        /// <exception cref="FormatException">s is not in the correct format.</exception>
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
             // Discard leading /
             string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
-            (string name, string category) = segments.Length switch
+
+            // The returns Identity.Name can be empty.
+            return segments.Length switch
             {
-                0 => throw new FormatException($"invalid identity `{path}'"),
-                1 => (Uri.UnescapeDataString(segments[0]), ""),
-                _ => (string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
+                0 => Empty, // this is actually impossible, segments.Length is always >= 1
+                1 => new Identity(Uri.UnescapeDataString(segments[0]), ""),
+                _ => new Identity(string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
                       Uri.UnescapeDataString(segments[0])),
             };
-
-            return name.Length > 0 ? new Identity(name, category) :
-                throw new FormatException($"invalid empty name in identity `{path}'");
         }
 
         /// <summary>Creates an Identity from a string in the ice1 format.</summary>
@@ -127,15 +125,14 @@ namespace ZeroC.Ice
         /// <returns>A normalized URI path.</returns>
         public string ToPath()
         {
-            if (string.IsNullOrEmpty(Name))
+            if (Name == null)
             {
-                // This struct was default initialized (null) or poorly initialized (empty name).
-                return "/";
+                return "/"; // This struct was default initialized (null)
             }
             Debug.Assert(Category != null);
 
             string path = Proxy.NormalizePath(Name);
-            if (Name[0] == '/')
+            if (Name.Length > 0 && Name[0] == '/')
             {
                 // If Name starts with /, NormalizePath does not add an extra leading /, so we add it back.
                 path = $"/{path}";
