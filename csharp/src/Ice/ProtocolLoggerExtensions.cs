@@ -114,7 +114,7 @@ namespace ZeroC.Ice
 
         private static readonly Func<ILogger, string, string, Protocol, int, Encoding, IReadOnlyDictionary<string, string>, IDisposable> _requestScope =
             LoggerMessage.DefineScope<string, string, Protocol, int, Encoding, IReadOnlyDictionary<string, string>>(
-                "request(identity = {Identity}, operation = {Operation}, protocol = {Protocol}, " +
+                "request(path = {Path}, operation = {Operation}, protocol = {Protocol}, " +
                 "payload size = {PayloadSize}, payload encoding = {PayloadEncoding}, context = {Context}");
 
         private static readonly Action<ILogger, Encoding, Exception> _sendIce1ValidateConnectionFrame =
@@ -280,7 +280,7 @@ namespace ZeroC.Ice
 
         internal static IDisposable? StartRequestScope(this ILogger logger, OutgoingRequestFrame request) =>
             _requestScope(logger,
-                          request.Identity.ToString(),
+                          request.Path,
                           request.Operation,
                           request.Protocol,
                           request.PayloadSize,
@@ -289,7 +289,7 @@ namespace ZeroC.Ice
 
         internal static IDisposable? StartRequestScope(this ILogger logger, IncomingRequestFrame request) =>
             _requestScope(logger,
-                          request.Identity.ToString(),
+                          request.Path,
                           request.Operation,
                           request.Protocol,
                           request.PayloadSize,

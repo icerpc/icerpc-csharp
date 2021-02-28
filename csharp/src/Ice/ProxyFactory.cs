@@ -381,7 +381,7 @@ namespace ZeroC.Ice
                         throw new InvalidDataException(
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
                     }
-                    return CreateIce2Proxy(proxyData.Encoding, endpoints, identity.ToString(), proxyData.Protocol);
+                    return CreateIce2Proxy(proxyData.Encoding, endpoints, identity.ToPath(), proxyData.Protocol);
                 }
             }
             else

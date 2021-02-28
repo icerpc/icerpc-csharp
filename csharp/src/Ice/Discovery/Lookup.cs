@@ -60,7 +60,7 @@ namespace ZeroC.Ice.Discovery
                 return; // Ignore
             }
 
-            if (await _registryService.FindObjectAsync(id.ToString(), cancel).ConfigureAwait(false)
+            if (await _registryService.FindObjectAsync(id.ToPath(), cancel).ConfigureAwait(false)
                 is IServicePrx proxy)
             {
                 // Reply to the multicast request using the given proxy.

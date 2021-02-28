@@ -587,7 +587,7 @@ namespace ZeroC.Ice
                 else
                 {
                     Identity = options.Identity;
-                    Path = Identity.ToString();
+                    Path = Identity.ToPath();
                 }
             }
             else

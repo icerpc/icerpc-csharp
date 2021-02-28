@@ -35,7 +35,7 @@ namespace ZeroC.Ice
         /// <param name="s">A "stringified identity" in the ice1 format.</param>
         /// <exception cref="FormatException">s is not in the correct format.</exception>
         /// <returns>A new Identity struct.</returns>
-        public static Identity ParseIce1(string s)
+        public static Identity Parse(string s)
         {
             // Find unescaped separator; note that the string may contain an escaped backslash before the separator.
             int slash = -1, pos = 0;
@@ -105,8 +105,8 @@ namespace ZeroC.Ice
                 throw new FormatException($"invalid empty name in identity `{s}'");
         }
 
-        /// <summary>Attempts to create an Identity from a URI path.</summary>
-        /// <param name="s">A URI path.</param>
+        /// <summary>Attempts to create an Identity from string in the ice1 format.</summary>
+        /// <param name="s">A "stringified identity" in the ice1 format</param>
         /// <param name="identity">When this method succeeds, contains an Identity struct parsed from s.</param>
         /// <returns>True if <c>s</c> was parsed successfully; otherwise, false.</returns>
         public static bool TryParse(string s, out Identity identity)
@@ -123,9 +123,9 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Converts an identity to a normalized URI path.</summary>
-        /// <returns>A URI path.</returns>
-        public override string ToString()
+        /// <summary>Converts this identity into a normalized URI path. See <see cref="Proxy.NormalizePath"/>.</summary>
+        /// <returns>A normalized URI path.</returns>
+        public string ToPath()
         {
             if (string.IsNullOrEmpty(Name))
             {
@@ -143,7 +143,7 @@ namespace ZeroC.Ice
 
             if (Category.Length == 0)
             {
-                // start with double `/` when normalized name contains `/` to ensure proper round-trip.
+                // Start with double `/` when normalized name contains `/` to ensure proper round-trip.
                 return path[1..].Contains('/') ? $"/{path}" : path;
             }
             else
@@ -152,10 +152,13 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Converts an object identity to a string, using the format specified by ToStringMode.</summary>
-        /// <param name="mode">Specifies if and how non-printable ASCII characters are escaped in the result. See
+        /// <inheritdoc/>
+        public override string ToString() => ToString(ToStringMode.Unicode);
+
+        /// <summary>Converts this identity into a string, using the format specified by ToStringMode.</summary>
+        /// <param name="mode">Specifies how non-printable ASCII characters are escaped in the resulting string. See
         /// <see cref="ToStringMode"/>.</param>
-        /// <returns>The string representation of the object identity.</returns>
+        /// <returns>The string representation of this identity.</returns>
         public string ToString(ToStringMode mode)
         {
             if (string.IsNullOrEmpty(Name))
@@ -183,13 +186,13 @@ namespace ZeroC.Ice
     {
         /// <summary>Characters with ordinal values greater than 127 are kept as-is in the resulting string.
         /// Non-printable ASCII characters with ordinal values 127 and below are encoded as \\t, \\n (etc.). This
-        /// corresponds to the default mode with Ice 3.7.</summary>
+        /// corresponds to the default format with IceRPC and Ice 3.7.</summary>
         Unicode,
 
         /// <summary>Characters with ordinal values greater than 127 are encoded as universal character names in
         /// the resulting string: \\unnnn for BMP characters and \\Unnnnnnnn for non-BMP characters.
         /// Non-printable ASCII characters with ordinal values 127 and below are encoded as \\t, \\n (etc.)
-        /// or \\unnnn. This is an optional mode provided by Ice 3.7.</summary>
+        /// or \\unnnn. This is an optional format introduced in Ice 3.7.</summary>
         ASCII,
 
         /// <summary>Characters with ordinal values greater than 127 are encoded as a sequence of UTF-8 bytes using

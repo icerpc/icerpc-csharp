@@ -141,7 +141,7 @@ namespace ZeroC.Ice
             }
 
             // Parsing the identity may raise FormatException.
-            Identity identity = Identity.ParseIce1(identityString);
+            Identity identity = Identity.Parse(identityString);
 
             string facet = "";
             Encoding encoding = Ice1Definitions.Encoding;

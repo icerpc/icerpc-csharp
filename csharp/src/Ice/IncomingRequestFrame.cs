@@ -172,7 +172,7 @@ namespace ZeroC.Ice
             {
                 var requestHeader = new Ice1RequestHeader(istr);
                 Identity = requestHeader.Identity;
-                Path = Identity.ToString();
+                Path = Identity.ToPath();
                 Facet = Ice1Definitions.GetFacet(requestHeader.FacetPath);
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
