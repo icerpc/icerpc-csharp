@@ -202,7 +202,6 @@ namespace IceRpc.Tests.ClientServer
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
                 });
 
-            // This should throw the client doesn't trust the server certificate.
             await WithSecureServerAsync(clientCommunicator, serverCommunicator,
                 (server, prx) =>
                 {
@@ -216,7 +215,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("c_rsa_ca2.p12", "cacert1.der")]
         // Client certificate expired
         [TestCase("c_rsa_ca1_exp.p12", "cacert1.der")]
-        // The server request a client certificate and the client doesn't provide it
+        // The server requests a certificate but the client doesn't provide one
         [TestCase("", "cacert1.der")]
         public async Task TlsConfiguration_Fail_WithUntrustedClient(string clientCertFile, string caFile)
         {
@@ -252,7 +251,6 @@ namespace IceRpc.Tests.ClientServer
             }
             await using var serverCommunicator = new Communicator(tlsServerOptions: tlsServerOptions);
 
-            // This should throw the server doesn't trust the client certificate.
             await WithSecureServerAsync(clientCommunicator, serverCommunicator,
                 (server, prx) =>
                 {
