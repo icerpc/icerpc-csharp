@@ -75,7 +75,7 @@ namespace ZeroC.Ice
 
             RemoteException? remoteEx = null;
             string? errorMessage = null;
-            RemoteExceptionOrigin? origin = null;
+            RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
             // The unmarshaling of remote exceptions is similar with the 1.1 and 2.0 encodings, in particular we can
             // read the indirection table (if there is one) immediately after reading each slice header because the
@@ -94,9 +94,10 @@ namespace ZeroC.Ice
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
                     if (Communicator.FindRemoteExceptionFactory(typeId) is
-                        Func<string?, RemoteExceptionOrigin?, RemoteException> factory)
+                        Func<string?, RemoteExceptionOrigin, RemoteException> factory)
                     {
-                        // The 1.1 encoding does not carry the error message or origin so they are always null.
+                        // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
+                        // and origin is always Unknown.
                         remoteEx = factory(errorMessage, origin);
                     }
                     else if (SkipSlice(typeId)) // Slice off what we don't understand.
@@ -126,7 +127,7 @@ namespace ZeroC.Ice
                     }
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    Func<string?, RemoteExceptionOrigin?, RemoteException>? factory =
+                    Func<string?, RemoteExceptionOrigin, RemoteException>? factory =
                         Communicator.FindRemoteExceptionFactory(typeId);
                     if (factory != null)
                     {
@@ -223,13 +224,11 @@ namespace ZeroC.Ice
         /// <returns>Null when no type ID was encoded (because of formal type optimization) or a non-empty array of type
         /// IDs. With the compact format, this array contains a single element. Also returns an error message for remote
         /// exceptions.</returns>
-        private (string[]? AllTypeIds,
-                 string? ErrorMessage,
-                 RemoteExceptionOrigin? Origin) ReadFirstSliceHeaderIntoCurrent20()
+        private (string[]? AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) ReadFirstSliceHeaderIntoCurrent20()
         {
             string[]? typeIds;
             string? errorMessage = null;
-            RemoteExceptionOrigin? origin = null;
+            RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
             _current.SliceFlags = (EncodingDefinitions.SliceFlags)ReadByte();
             EncodingDefinitions.TypeIdKind typeIdKind = _current.SliceFlags.GetTypeIdKind();

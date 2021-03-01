@@ -261,7 +261,7 @@ namespace ZeroC.Ice
                 IService? service = Find(current.Path, current.Facet);
                 if (service == null)
                 {
-                    throw new ObjectNotExistException(RetryPolicy.OtherReplica);
+                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                 }
 
                 return await service.DispatchAsync(request, current, cancel).ConfigureAwait(false);

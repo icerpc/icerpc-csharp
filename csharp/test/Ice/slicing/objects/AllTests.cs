@@ -1614,7 +1614,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(p2.Ps.Equals("preserved"));
                 TestHelper.Assert(p2.Pb == p2);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1630,7 +1630,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(!(r is PCUnknown));
                 TestHelper.Assert(r.Pi == 3);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1647,7 +1647,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(p2.Pi == 3);
                 TestHelper.Assert(p2.Pbs[0] == p2);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1664,7 +1664,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(p2.Pi == 3);
                 TestHelper.Assert(p2.Pbs[0] == p2);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1701,7 +1701,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(p3.Pcd2 == p3.Pi);
                 TestHelper.Assert(p3.Pcd3 == p3.Pbs[10]);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1716,7 +1716,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(slices.Count == 1);
                 TestHelper.Assert(slices[0].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Objects::PSUnknown"));
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1816,7 +1816,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 Preserved? p = testPrx.PBSUnknownAsPreserved();
                 testPrx.CheckPBSUnknown(p);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 
@@ -1890,7 +1890,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     TestHelper.Assert(false);
                 }
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
 

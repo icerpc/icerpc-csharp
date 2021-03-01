@@ -206,7 +206,7 @@ namespace ZeroC.Ice
 
         private readonly object _mutex = new object();
 
-        private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin?, RemoteException>?> _remoteExceptionFactoryCache =
+        private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
         private int _retryBufferSize;
 
@@ -697,7 +697,7 @@ namespace ZeroC.Ice
                return null;
            });
 
-        internal Func<string?, RemoteExceptionOrigin?, RemoteException>? FindRemoteExceptionFactory(string typeId) =>
+        internal Func<string?, RemoteExceptionOrigin, RemoteException>? FindRemoteExceptionFactory(string typeId) =>
             _remoteExceptionFactoryCache.GetOrAdd(typeId, typeId =>
             {
                 string className = TypeIdToClassName(typeId);
@@ -712,8 +712,8 @@ namespace ZeroC.Ice
                         new Type[] { typeof(string), typeof(RemoteExceptionOrigin) },
                         null);
                     Debug.Assert(method != null);
-                    return (Func<string?, RemoteExceptionOrigin?, RemoteException>)Delegate.CreateDelegate(
-                        typeof(Func<string?, RemoteExceptionOrigin?, RemoteException>), method);
+                    return (Func<string?, RemoteExceptionOrigin, RemoteException>)Delegate.CreateDelegate(
+                        typeof(Func<string?, RemoteExceptionOrigin, RemoteException>), method);
                 }
                 return null;
             });

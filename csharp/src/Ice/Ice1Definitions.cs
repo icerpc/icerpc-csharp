@@ -132,7 +132,7 @@ namespace ZeroC.Ice
                     }
                 }
 
-                if (istr?.ReadIce1SystemException(replyStatus) is ObjectNotExistException one)
+                if (istr?.ReadIce1SystemException(replyStatus) is ServiceNotFoundException one)
                 {
                     // 1.1 System exceptions
                     if (proxy.IsIndirect)
@@ -185,14 +185,14 @@ namespace ZeroC.Ice
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
-                        systemException = new OperationNotExistException(
+                        systemException = new OperationNotFoundException(
                             message: null,
                             new RemoteExceptionOrigin(identity.ToPath(), operation))
                         { Facet = facet };
                     }
                     else
                     {
-                        systemException = new ObjectNotExistException(
+                        systemException = new ServiceNotFoundException(
                             message: null,
                             new RemoteExceptionOrigin(identity.ToPath(), operation))
                         { Facet = facet };

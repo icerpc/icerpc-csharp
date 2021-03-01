@@ -82,7 +82,7 @@ namespace ZeroC.Ice
         public bool ConvertToUnhandled { get; set; }
 
         /// <summary>The remote exception origin.</summary>
-        public RemoteExceptionOrigin? Origin { get; internal set; }
+        public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
         internal RetryPolicy RetryPolicy { get; }
 
@@ -119,7 +119,7 @@ namespace ZeroC.Ice
         /// <summary>Constructs a remote exception with the provided message and origin.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="origin">The remote exception origin.</param>
-        protected internal RemoteException(string? message, RemoteExceptionOrigin? origin)
+        protected internal RemoteException(string? message, RemoteExceptionOrigin origin)
             : base(message)
         {
             Origin = origin;
@@ -160,7 +160,12 @@ namespace ZeroC.Ice
         public static SlicedData? GetSlicedData(this RemoteException ex) => ex.SlicedData;
     }
 
-    public partial class ObjectNotExistException
+    public partial struct RemoteExceptionOrigin
+    {
+        public static readonly RemoteExceptionOrigin Unknown = new("", "");
+    }
+
+    public partial class ServiceNotFoundException
     {
         public string Facet { get; init; } = "";
 
@@ -169,10 +174,10 @@ namespace ZeroC.Ice
         {
             get
             {
-                if (Origin is RemoteExceptionOrigin origin)
+                if (Origin != RemoteExceptionOrigin.Unknown)
                 {
                     var sb = new StringBuilder("could not find service `");
-                    sb.Append(origin.Path);
+                    sb.Append(Origin.Path);
                     sb.Append('\'');
                     if (Facet.Length > 0)
                     {
@@ -181,7 +186,7 @@ namespace ZeroC.Ice
                         sb.Append('\'');
                     }
                     sb.Append(" while attempting to dispatch operation `");
-                    sb.Append(origin.Operation);
+                    sb.Append(Origin.Operation);
                     sb.Append('\'');
                     return sb.ToString();
                 }
@@ -193,7 +198,7 @@ namespace ZeroC.Ice
         }
     }
 
-    public partial class OperationNotExistException
+    public partial class OperationNotFoundException
     {
         public string Facet { get; init; } = "";
 
@@ -202,12 +207,12 @@ namespace ZeroC.Ice
         {
             get
             {
-                if (Origin is RemoteExceptionOrigin origin)
+                if (Origin != RemoteExceptionOrigin.Unknown)
                 {
                     var sb = new StringBuilder("could not find operation `");
-                    sb.Append(origin.Operation);
+                    sb.Append(Origin.Operation);
                     sb.Append("' for service `");
-                    sb.Append(origin.Path);
+                    sb.Append(Origin.Path);
                     sb.Append('\'');
                     if (Facet.Length > 0)
                     {
@@ -239,9 +244,9 @@ namespace ZeroC.Ice
             get
             {
                 string message = "unhandled exception";
-                if (Origin is RemoteExceptionOrigin origin)
+                if (Origin != RemoteExceptionOrigin.Unknown)
                 {
-                    message += $" while dispatching `{origin.Operation}' on service `{origin.Path}'";
+                    message += $" while dispatching `{Origin.Operation}' on service `{Origin.Path}'";
                 }
 #if DEBUG
                 message += $":\n{InnerException}\n---";

@@ -381,9 +381,9 @@ namespace ZeroC.Ice.Test.Exceptions
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException ex)
+                catch (ServiceNotFoundException ex)
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
+                    TestHelper.Assert(ex.Origin.Path == "/does%20not%20exist");
                     TestHelper.Assert(ex.Message.Contains("service")); // verify we don't get system message
                 }
                 catch
@@ -407,7 +407,7 @@ namespace ZeroC.Ice.Test.Exceptions
                         await thrower2.IcePingAsync();
                         TestHelper.Assert(false);
                     }
-                    catch (ObjectNotExistException ex)
+                    catch (ServiceNotFoundException ex)
                     {
                         TestHelper.Assert(ex.Facet == "no such facet");
                         TestHelper.Assert(ex.Message.Contains("with facet")); // verify we don't get system message
@@ -430,9 +430,9 @@ namespace ZeroC.Ice.Test.Exceptions
                 thrower2.NoSuchOperation();
                 TestHelper.Assert(false);
             }
-            catch (OperationNotExistException ex)
+            catch (OperationNotFoundException ex)
             {
-                TestHelper.Assert(ex.Origin!.Value.Operation == "noSuchOperation");
+                TestHelper.Assert(ex.Origin.Operation == "noSuchOperation");
                 TestHelper.Assert(ex.Message.Contains("could not find operation")); // verify we don't get system message
             }
             catch
@@ -457,12 +457,12 @@ namespace ZeroC.Ice.Test.Exceptions
                 // With ice1, the origin is not set; with ice2, it is.
                 if (ice1)
                 {
-                    TestHelper.Assert(ex.Origin == null);
+                    TestHelper.Assert(ex.Origin == RemoteExceptionOrigin.Unknown);
                 }
                 else
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Path == thrower.Path &&
-                                      ex.Origin!.Value.Operation == "throwLocalException");
+                    TestHelper.Assert(ex.Origin.Path == thrower.Path &&
+                                      ex.Origin.Operation == "throwLocalException");
                 }
             }
             catch
@@ -764,9 +764,9 @@ namespace ZeroC.Ice.Test.Exceptions
                         TestHelper.Assert(exc.InnerException != null);
                         throw exc.InnerException;
                     }
-                    catch (ObjectNotExistException ex)
+                    catch (ServiceNotFoundException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
+                        TestHelper.Assert(ex.Origin.Path == "/does%20not%20exist");
                     }
                     catch
                     {
@@ -796,7 +796,7 @@ namespace ZeroC.Ice.Test.Exceptions
                             TestHelper.Assert(exc.InnerException != null);
                             throw exc.InnerException;
                         }
-                        catch (ObjectNotExistException ex)
+                        catch (ServiceNotFoundException ex)
                         {
                             TestHelper.Assert(ex.Facet == "no such facet");
                         }
@@ -827,9 +827,9 @@ namespace ZeroC.Ice.Test.Exceptions
                         TestHelper.Assert(exc.InnerException != null);
                         throw exc.InnerException;
                     }
-                    catch (OperationNotExistException ex)
+                    catch (OperationNotFoundException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Operation.Equals("noSuchOperation"));
+                        TestHelper.Assert(ex.Origin.Operation.Equals("noSuchOperation"));
                     }
                     catch
                     {
@@ -934,9 +934,9 @@ namespace ZeroC.Ice.Test.Exceptions
                     {
                         throw exc.InnerException;
                     }
-                    catch (ObjectNotExistException ex)
+                    catch (ServiceNotFoundException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
+                        TestHelper.Assert(ex.Origin.Path == "/does%20not%20exist");
                     }
                     catch
                     {
@@ -966,7 +966,7 @@ namespace ZeroC.Ice.Test.Exceptions
                             TestHelper.Assert(exc.InnerException != null);
                             throw exc.InnerException;
                         }
-                        catch (ObjectNotExistException ex)
+                        catch (ServiceNotFoundException ex)
                         {
                             TestHelper.Assert(ex.Facet == "no such facet");
                         }
@@ -997,9 +997,9 @@ namespace ZeroC.Ice.Test.Exceptions
                         TestHelper.Assert(exc.InnerException != null);
                         throw exc.InnerException;
                     }
-                    catch (OperationNotExistException ex)
+                    catch (OperationNotFoundException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Operation == "noSuchOperation");
+                        TestHelper.Assert(ex.Origin.Operation == "noSuchOperation");
                     }
                     catch
                     {

@@ -28,7 +28,7 @@ namespace ZeroC.IceSSL.Test.Configuration
             }
             else
             {
-                throw new OperationNotExistException();
+                throw new OperationNotFoundException();
             }
         }
     }

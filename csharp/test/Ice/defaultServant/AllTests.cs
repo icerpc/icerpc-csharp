@@ -60,7 +60,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 await prx.IcePingAsync();
                 TestHelper.Assert(false);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
                 // Expected
             }
@@ -70,7 +70,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                 prx.GetName();
                 TestHelper.Assert(false);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
                 // Expected
             }
@@ -86,7 +86,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                     await prx.IcePingAsync();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                     // Expected
                 }
@@ -96,7 +96,7 @@ namespace ZeroC.Ice.Test.DefaultServant
                     prx.GetName();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                     // Expected
                 }
@@ -112,7 +112,7 @@ namespace ZeroC.Ice.Test.DefaultServant
             {
                 await prx.IcePingAsync();
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
                 // Expected
             }

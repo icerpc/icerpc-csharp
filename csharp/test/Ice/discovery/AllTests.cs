@@ -81,7 +81,7 @@ namespace ZeroC.Ice.Test.Discovery
                     await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                 }
 
@@ -135,14 +135,14 @@ namespace ZeroC.Ice.Test.Discovery
                 {
                     await IServicePrx.Parse("object @ oa1", communicator).IcePingAsync();
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                 }
                 try
                 {
                     await IServicePrx.Parse("object @ oa2", communicator).IcePingAsync();
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                 }
 

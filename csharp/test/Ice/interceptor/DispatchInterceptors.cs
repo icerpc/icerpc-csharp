@@ -30,7 +30,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     }
                     else if (context == "notExist")
                     {
-                        throw new ObjectNotExistException();
+                        throw new ServiceNotFoundException();
                     }
                 }
 
@@ -44,7 +44,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     }
                     else if (context == "notExist")
                     {
-                        throw new ObjectNotExistException();
+                        throw new ServiceNotFoundException();
                     }
                 }
 

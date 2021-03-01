@@ -825,7 +825,7 @@ namespace ZeroC.Ice.Test.Proxy
                     await IMyDerivedClassPrx.Factory.Clone(cl, facet: "facet").IcePingAsync();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                 }
             }

@@ -18,13 +18,13 @@ namespace ZeroC.Ice.Test.Retry
         {
             if (++_n < n)
             {
-                throw new ObjectNotExistException(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
+                throw new ServiceNotFoundException(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
             }
             _n = 0;
         }
 
         public void OtherReplica(Current current, CancellationToken cancel) =>
-            throw new ObjectNotExistException(RetryPolicy.OtherReplica);
+            throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
     }
     public static class AllTests
     {

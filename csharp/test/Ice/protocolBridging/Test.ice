@@ -28,9 +28,9 @@ module ZeroC::Ice::Test::ProtocolBridging
         // Operation that throws remote exception
         void opMyError();
 
-        // Operation that throws ObjectNotExistException (one of the special
+        // Operation that throws ServiceNotFoundException (one of the special
         // ice1 system exceptions)
-        void opObjectNotExistException();
+        void opServiceNotFoundException();
 
         // Operation that returns a new proxy
         TestIntf opNewProxy();
