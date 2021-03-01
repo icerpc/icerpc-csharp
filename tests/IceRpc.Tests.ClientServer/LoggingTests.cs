@@ -239,7 +239,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Name = "LoggingService",
                         ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(portNumber)
+                        Endpoints = GetTestEndpoint(port: portNumber)
                     },
                     true => new ServerOptions
                     {

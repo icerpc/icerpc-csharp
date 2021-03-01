@@ -4,6 +4,11 @@
 
 module IceRpc::Tests::ClientServer
 {
+    interface GreeterTestService
+    {
+        void SayHello();
+    }
+
     interface LoggingTestService
     {
         void op();

@@ -147,31 +147,36 @@ namespace ZeroC.Ice
                 if (host == null)
                 {
                     // Server-side connection
-                    SslServerAuthenticationOptions options = new();
-                    options.ServerCertificate = _engine.TlsServerOptions.ServerCertificate;
-                    options.ClientCertificateRequired = _engine.TlsServerOptions.RequireClientCertificate;
-                    options.EnabledSslProtocols = _engine.TlsServerOptions.EnabledSslProtocols!.Value;
-                    options.RemoteCertificateValidationCallback =
+                    var options = new SslServerAuthenticationOptions
+                    {
+                        ServerCertificate = _engine.TlsServerOptions.ServerCertificate,
+                        ClientCertificateRequired = _engine.TlsServerOptions.RequireClientCertificate,
+                        EnabledSslProtocols = _engine.TlsServerOptions.EnabledSslProtocols!.Value,
+                        RemoteCertificateValidationCallback =
                         _engine.TlsServerOptions.ClientCertificateValidationCallback ??
-                        GetRemoteCertificateValidationCallback(incoming: true);
-                    options.CertificateRevocationCheckMode = X509RevocationMode.NoCheck;
+                        GetRemoteCertificateValidationCallback(incoming: true),
+                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck
+                    };
                     await _sslStream.AuthenticateAsServerAsync(options, cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     // Client-side connection
-                    SslClientAuthenticationOptions options = new();
-                    options.TargetHost = host;
-                    options.ClientCertificates = _engine.TlsClientOptions.ClientCertificates;
-                    options.EnabledSslProtocols = _engine.TlsClientOptions.EnabledSslProtocols!.Value;
-                    options.RemoteCertificateValidationCallback =
+                    var options = new SslClientAuthenticationOptions
+                    {
+                        TargetHost = host,
+                        ClientCertificates = _engine.TlsClientOptions.ClientCertificates,
+                        EnabledSslProtocols = _engine.TlsClientOptions.EnabledSslProtocols!.Value,
+                        RemoteCertificateValidationCallback =
                         _engine.TlsClientOptions.ServerCertificateValidationCallback ??
-                        GetRemoteCertificateValidationCallback(incoming: false);
+                            GetRemoteCertificateValidationCallback(incoming: false),
+                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck
+                    };
                     options.LocalCertificateSelectionCallback =
                         _engine.TlsClientOptions.ClientCertificateSelectionCallback ??
-                        (options.ClientCertificates?.Count > 0 ?
-                            CertificateSelectionCallback : (LocalCertificateSelectionCallback?)null);
-                    options.CertificateRevocationCheckMode = X509RevocationMode.NoCheck;
+                            (options.ClientCertificates?.Count > 0 ?
+                                CertificateSelectionCallback : (LocalCertificateSelectionCallback?)null);
+
                     await _sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
                 }
             }
