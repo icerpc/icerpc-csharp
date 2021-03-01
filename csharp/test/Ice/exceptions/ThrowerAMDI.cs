@@ -11,11 +11,8 @@ namespace ZeroC.Ice.Test.Exceptions
     {
         private IServicePrx _target;
 
-        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
-            => _target.ForwardAsync(request, current.IsOneway, cancel: cancel);
+        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(Current current, CancellationToken cancel) =>
+            _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
 
         internal Forwarder(IServicePrx target) => _target = target;
     }

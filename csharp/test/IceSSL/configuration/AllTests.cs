@@ -17,10 +17,7 @@ namespace ZeroC.IceSSL.Test.Configuration
 {
     public class Blobject : IService
     {
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             if (current.Operation.Equals("ice_ping"))
             {

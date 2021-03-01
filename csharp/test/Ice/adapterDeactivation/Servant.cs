@@ -10,14 +10,11 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
 {
     public sealed class Servant : IService
     {
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Path == "/test");
             IService servant = new TestIntf();
-            return servant.DispatchAsync(request, current, cancel);
+            return servant.DispatchAsync(current, cancel);
         }
     }
 }

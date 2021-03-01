@@ -14,16 +14,16 @@ namespace ZeroC.Ice
         /// <returns>The <c>server</c> argument.</returns>
         public static Server Use(
             this Server server,
-            Func<IncomingRequestFrame, Current, Func<ValueTask<OutgoingResponseFrame>>, CancellationToken, ValueTask<OutgoingResponseFrame>> dispatchInterceptor) =>
+            Func<Current, Func<ValueTask<OutgoingResponseFrame>>, CancellationToken, ValueTask<OutgoingResponseFrame>> dispatchInterceptor) =>
             server.Use(
-                next => (request, current, cancel) =>
+                next => (current, cancel) =>
                 {
-                    return dispatchInterceptor(request, current, SimpleNext, cancel);
+                    return dispatchInterceptor(current, SimpleNext, cancel);
 
                     // Parameterless version of next
                     ValueTask<OutgoingResponseFrame> SimpleNext()
                     {
-                        return next(request, current, cancel);
+                        return next(current, cancel);
                     }
                 });
     }

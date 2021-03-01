@@ -19,17 +19,13 @@ namespace ZeroC.Ice
     public interface IService
     {
         /// <summary>Dispatches a request on this servant.</summary>
-        /// <param name="request">The <see cref="IncomingRequestFrame"/> to dispatch.</param>
         /// <param name="current">Holds decoded header data and other information about the current request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
         /// </param>
         /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
         /// <exception cref="Exception">Any exception thrown by DispatchAsync will be marshaled into the response
         /// frame.</exception>
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             // TODO: switch to abstract method (but doesn't work as of .NET 5 RC1).
             Debug.Assert(false);
@@ -140,65 +136,49 @@ namespace ZeroC.Ice
         }
 
         /// <summary>Dispatches an ice_id request.</summary>
-        /// <param name="request">The request frame.</param>
         /// <param name="current">The current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponseFrame> IceDIceIdAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        protected async ValueTask<OutgoingResponseFrame> IceDIceIdAsync(Current current, CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+            current.IncomingRequestFrame.ReadEmptyArgs();
             string returnValue = await IceIdAsync(current, cancel).ConfigureAwait(false);
             return Response.IceId(current, returnValue);
         }
 
         /// <summary>Dispatches an ice_ids request.</summary>
-        /// <param name="request">The request frame.</param>
         /// <param name="current">The current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponseFrame> IceDIceIdsAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        protected async ValueTask<OutgoingResponseFrame> IceDIceIdsAsync(Current current, CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+            current.IncomingRequestFrame.ReadEmptyArgs();
             IEnumerable<string> returnValue = await IceIdsAsync(current, cancel).ConfigureAwait(false);
             return Response.IceIds(current, returnValue);
         }
 
         /// <summary>Dispatches an ice_isA request.</summary>
-        /// <param name="request">The request frame.</param>
         /// <param name="current">The current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponseFrame> IceDIceIsAAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        protected async ValueTask<OutgoingResponseFrame> IceDIceIsAAsync(Current current, CancellationToken cancel)
         {
-            string id = Request.IceIsA(current.Connection, request);
+            string id = Request.IceIsA(current.Connection, current.IncomingRequestFrame);
             bool returnValue = await IceIsAAsync(id, current, cancel).ConfigureAwait(false);
             return Response.IceIsA(current, returnValue);
         }
 
         /// <summary>Dispatches an ice_ping request.</summary>
-        /// <param name="request">The request frame.</param>
         /// <param name="current">The current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponseFrame> IceDIcePingAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        protected async ValueTask<OutgoingResponseFrame> IceDIcePingAsync(Current current, CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+            current.IncomingRequestFrame.ReadEmptyArgs();
             await IcePingAsync(current, cancel).ConfigureAwait(false);
             return OutgoingResponseFrame.WithVoidReturnValue(current);
         }

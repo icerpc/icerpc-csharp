@@ -7,10 +7,7 @@ namespace ZeroC.Ice.Test.Objects
 {
     public sealed class UnexpectedObjectExceptionTest : IService
     {
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             var ae = new AlsoEmpty();
             var responseFrame =

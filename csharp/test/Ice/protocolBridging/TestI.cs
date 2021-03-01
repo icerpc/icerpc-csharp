@@ -10,32 +10,29 @@ namespace ZeroC.Ice.Test.ProtocolBridging
     {
         private IServicePrx _target;
 
-        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(Current current, CancellationToken cancel)
         {
             if (current.Operation == "op" || current.Operation == "opVoid")
             {
-                TestHelper.Assert(request.Context.Count == 1);
-                TestHelper.Assert(request.Context["MyCtx"] == "hello");
+                TestHelper.Assert(current.Context.Count == 1);
+                TestHelper.Assert(current.Context["MyCtx"] == "hello");
 
                 if (current.Operation == "opVoid")
                 {
-                    request.Context.Clear();
+                    current.Context.Clear();
                 }
             }
             else
             {
-                TestHelper.Assert(request.Context.Count == 0);
+                TestHelper.Assert(current.Context.Count == 0);
             }
 
             if (current.Operation != "opVoid" && current.Operation != "shutdown")
             {
-                request.Context["Intercepted"] = "1";
+                current.Context["Intercepted"] = "1";
             }
 
-            return _target.ForwardAsync(request, current.IsOneway, cancel: cancel);
+            return _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
         }
 
         internal Forwarder(IServicePrx target) => _target = target;

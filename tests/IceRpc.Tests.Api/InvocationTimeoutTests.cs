@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
         public async Task InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
         {
             Server.Use(
-                async (request, current, next, cancel) =>
+                async (current, next, cancel) =>
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                     return await next();
