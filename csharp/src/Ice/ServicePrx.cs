@@ -273,12 +273,25 @@ namespace ZeroC.Ice
             {
                 if (Protocol == Protocol.Ice1)
                 {
+                    Debug.Assert(Identity.Name.Length > 0);
                     Identity.IceWrite(ostr);
                 }
                 else
                 {
-                    // When reading ToString() gives the path back.
-                    Identity.FromPath(Path).IceWrite(ostr);
+                    var identity = Identity.FromPath(Path);
+                    if (identity.Name.Length == 0)
+                    {
+                        // Unfortunately this can happen by accident: you create an ice2 proxy with some random path
+                        // that happens to have an empty identity name, and when you attempt to marshal it with 1.1, you
+                        // get this exception. This should be very rare, as you typically never marshal an ice2 proxy in
+                        // a 1.1-encoded payload.
+                        throw new InvalidOperationException(
+                            @$"cannot marshal proxy with path `{Path
+                            }' using encoding 1.1 as the resulting identity name is empty");
+                    }
+
+                    // When reading, identity.ToPath() gives the path back.
+                    identity.IceWrite(ostr);
                 }
 
                 ostr.WriteProxyData11(Facet, invocationMode ?? InvocationMode.Twoway, Protocol, Encoding);
@@ -296,6 +309,7 @@ namespace ZeroC.Ice
                 if (Protocol == Protocol.Ice1)
                 {
                     ostr.Write(Endpoints.Count > 0 ? ProxyKind20.Ice1Direct : ProxyKind20.Ice1Indirect);
+                    Debug.Assert(Identity.Name.Length > 0);
                     var proxyData = new Ice1ProxyData20(Identity,
                                                         facet: Facet.Length > 0 ? Facet : null,
                                                         encoding: Encoding != Encoding.V11 ? Encoding : null,
