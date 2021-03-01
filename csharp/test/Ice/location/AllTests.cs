@@ -259,11 +259,11 @@ namespace ZeroC.Ice.Test.Location
             obj1 = ITestIntfPrx.Parse(ice1 ? "test@TestAdapter" : "ice:TestAdapter//test", communicator);
             IHelloPrx? hello = obj1.GetHello();
             TestHelper.Assert(hello != null);
-            TestHelper.Assert(hello.Location.Count == 1 && hello.Location[0] == "TestAdapter");
+            TestHelper.Assert(hello.Location == "TestAdapter");
             hello.SayHello();
             hello = obj1.GetReplicatedHello();
             TestHelper.Assert(hello != null);
-            TestHelper.Assert(hello.Location.Count == 1 && hello.Location[0] == "ReplicatedAdapter");
+            TestHelper.Assert(hello.Location == "ReplicatedAdapter");
             hello.SayHello();
             output.WriteLine("ok");
 
@@ -287,7 +287,7 @@ namespace ZeroC.Ice.Test.Location
             }
             TestHelper.Assert(locator.GetRequestCount() > count && locator.GetRequestCount() < count + 999);
             count = locator.GetRequestCount();
-            hello = hello.Clone(location: ImmutableArray.Create("unknown"));
+            hello = hello.Clone(location: "unknown");
             for (int i = 0; i < 1000; i++)
             {
                 results.Add(hello.SayHelloAsync().ContinueWith(
@@ -613,7 +613,7 @@ namespace ZeroC.Ice.Test.Location
                 communicator,
                 new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
 
-            var id = new Identity(Guid.NewGuid().ToString(), "");
+            var id = Guid.NewGuid().ToString();
             server.Add(id, new Hello());
             await server.ActivateAsync();
 
@@ -636,7 +636,7 @@ namespace ZeroC.Ice.Test.Location
             // Ensure that calls on the direct proxy is colocated
             helloPrx = await IHelloPrx.Factory.CheckedCastAsync(IServicePrx.Factory.Create(server, id).Clone(
                 endpoints: server.PublishedEndpoints,
-                location: ImmutableArray<string>.Empty));
+                location: ""));
             TestHelper.Assert(helloPrx != null && await helloPrx.GetConnectionAsync() is ColocatedConnection);
 
             output.WriteLine("ok");

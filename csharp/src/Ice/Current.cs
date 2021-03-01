@@ -29,11 +29,8 @@ namespace ZeroC.Ice
         /// <summary>The encoding used by the request.</summary>
         public Encoding Encoding => IncomingRequestFrame.PayloadEncoding;
 
-        /// <summary>The Ice object facet.</summary>
+        /// <summary>The target facet. ice1 only.</summary>
         public string Facet => IncomingRequestFrame.Facet;
-
-        /// <summary>The Ice object Identity.</summary>
-        public Identity Identity => IncomingRequestFrame.Identity;
 
         /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
         public bool IsIdempotent => IncomingRequestFrame.IsIdempotent;
@@ -41,11 +38,11 @@ namespace ZeroC.Ice
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
         public bool IsOneway => !Stream.IsBidirectional;
 
-        /// <summary>The location of the target Ice object.</summary>
-        public IReadOnlyList<string> Location => IncomingRequestFrame.Location;
-
         /// <summary>The operation name.</summary>
         public string Operation => IncomingRequestFrame.Operation;
+
+        /// <summary>The path (percent-escaped).</summary>
+        public string Path => IncomingRequestFrame.Path;
 
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => IncomingRequestFrame.Protocol;

@@ -132,7 +132,7 @@ namespace ZeroC.Ice
                     }
                 }
 
-                if (istr?.ReadIce1SystemException(replyStatus) is ObjectNotExistException one)
+                if (istr?.ReadIce1SystemException(replyStatus) is ServiceNotFoundException one)
                 {
                     // 1.1 System exceptions
                     if (proxy.IsIndirect)
@@ -169,7 +169,7 @@ namespace ZeroC.Ice
         /// <returns>The exception read from the stream.</returns>
         internal static RemoteException ReadIce1SystemException(this InputStream istr, ReplyStatus replyStatus)
         {
-            Debug.Assert(istr.Encoding == Encoding);
+            Debug.Assert(istr.Encoding == Encoding.V11);
             Debug.Assert((byte)replyStatus > (byte)ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -185,15 +185,17 @@ namespace ZeroC.Ice
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
-                        systemException = new OperationNotExistException(
+                        systemException = new OperationNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity, facet, operation));
+                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                        { Facet = facet };
                     }
                     else
                     {
-                        systemException = new ObjectNotExistException(
+                        systemException = new ServiceNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity, facet, operation));
+                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                        { Facet = facet };
                     }
                     break;
 

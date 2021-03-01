@@ -32,8 +32,5 @@ module ZeroC::Ice::Test::Proxy
     interface MyDerivedClass : MyClass
     {
         Object* echo(Object* obj);
-
-        // Gets the location carried by this ice2 request.
-        Ice::StringSeq getLocation();
     }
 }

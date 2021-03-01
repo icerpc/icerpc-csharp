@@ -9,24 +9,24 @@ namespace ZeroC.Ice.Test.DefaultServant
     {
         public ValueTask IcePingAsync(Current current, CancellationToken cancel)
         {
-            string name = current.Identity.Name;
+            string path = current.Path;
 
-            if (name == "ObjectNotExist")
+            if (path == "/foo/ObjectNotExist")
             {
-                throw new ObjectNotExistException();
+                throw new ServiceNotFoundException();
             }
             return default;
         }
 
         public string GetName(Current current, CancellationToken cancel)
         {
-            string name = current.Identity.Name;
+            string path = current.Path;
 
-            if (name == "ObjectNotExist")
+            if (path == "/foo/ObjectNotExist")
             {
-                throw new ObjectNotExistException();
+                throw new ServiceNotFoundException();
             }
-            return name;
+            return path;
         }
     }
 }

@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text;
 
 namespace ZeroC.Ice
 {
@@ -81,7 +82,7 @@ namespace ZeroC.Ice
         public bool ConvertToUnhandled { get; set; }
 
         /// <summary>The remote exception origin.</summary>
-        public RemoteExceptionOrigin? Origin { get; internal set; }
+        public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
         internal RetryPolicy RetryPolicy { get; }
 
@@ -90,8 +91,8 @@ namespace ZeroC.Ice
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
-        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced during
-        /// unmarshaling, <c>null</c> is returned otherwise.</summary>
+        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced
+        /// during unmarshaling, <c>null</c> is returned otherwise.</summary>
         protected SlicedData? IceSlicedData { get; set; }
         internal SlicedData? SlicedData => IceSlicedData;
 
@@ -118,7 +119,7 @@ namespace ZeroC.Ice
         /// <summary>Constructs a remote exception with the provided message and origin.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="origin">The remote exception origin.</param>
-        protected internal RemoteException(string? message, RemoteExceptionOrigin? origin)
+        protected internal RemoteException(string? message, RemoteExceptionOrigin origin)
             : base(message)
         {
             Origin = origin;
@@ -159,23 +160,74 @@ namespace ZeroC.Ice
         public static SlicedData? GetSlicedData(this RemoteException ex) => ex.SlicedData;
     }
 
-    public partial class ObjectNotExistException
+    public partial struct RemoteExceptionOrigin
     {
-        /// <inheritdoc/>
-        protected override string? DefaultMessage =>
-            Origin is RemoteExceptionOrigin origin ?
-                $@"could not find servant for Ice object `{origin.Identity}'" +
-                (origin.Facet.Length > 0 ? $" with facet `{origin.Facet}'" : "") +
-                $" while attempting to dispatch operation `{origin.Operation}'" : null;
+        public static readonly RemoteExceptionOrigin Unknown = new("", "");
     }
 
-    public partial class OperationNotExistException
+    public partial class ServiceNotFoundException
     {
+        public string Facet { get; init; } = "";
+
         /// <inheritdoc/>
-        protected override string? DefaultMessage =>
-            Origin is RemoteExceptionOrigin origin ?
-                $"could not find operation `{origin.Operation}' for Ice object `{origin.Identity}'" +
-                (origin.Facet.Length > 0 ? $" with facet `{origin.Facet}'" : "") : null;
+        protected override string? DefaultMessage
+        {
+            get
+            {
+                if (Origin != RemoteExceptionOrigin.Unknown)
+                {
+                    var sb = new StringBuilder("could not find service `");
+                    sb.Append(Origin.Path);
+                    sb.Append('\'');
+                    if (Facet.Length > 0)
+                    {
+                        sb.Append(" with facet `");
+                        sb.Append(Facet);
+                        sb.Append('\'');
+                    }
+                    sb.Append(" while attempting to dispatch operation `");
+                    sb.Append(Origin.Operation);
+                    sb.Append('\'');
+                    return sb.ToString();
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+    }
+
+    public partial class OperationNotFoundException
+    {
+        public string Facet { get; init; } = "";
+
+        /// <inheritdoc/>
+        protected override string? DefaultMessage
+        {
+            get
+            {
+                if (Origin != RemoteExceptionOrigin.Unknown)
+                {
+                    var sb = new StringBuilder("could not find operation `");
+                    sb.Append(Origin.Operation);
+                    sb.Append("' for service `");
+                    sb.Append(Origin.Path);
+                    sb.Append('\'');
+                    if (Facet.Length > 0)
+                    {
+                        sb.Append(" with facet `");
+                        sb.Append(Facet);
+                        sb.Append('\'');
+                    }
+                    return sb.ToString();
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
     }
 
     public partial class UnhandledException : RemoteException
@@ -192,13 +244,9 @@ namespace ZeroC.Ice
             get
             {
                 string message = "unhandled exception";
-                if (Origin is RemoteExceptionOrigin origin)
+                if (Origin != RemoteExceptionOrigin.Unknown)
                 {
-                    message += $" while dispatching `{origin.Operation}' on Ice object `{origin.Identity}'";
-                    if (origin.Facet.Length > 0)
-                    {
-                        message += $" with facet `{origin.Facet}'";
-                    }
+                    message += $" while dispatching `{Origin.Operation}' on service `{Origin.Path}'";
                 }
 #if DEBUG
                 message += $":\n{InnerException}\n---";

@@ -100,13 +100,8 @@ namespace ZeroC.Ice.Discovery
             }
         }
 
-        internal async ValueTask<IServicePrx?> FindObjectAsync(Identity identity, CancellationToken cancel)
+        internal async ValueTask<IServicePrx?> FindObjectAsync(string path, CancellationToken cancel)
         {
-            if (identity.Name.Length == 0)
-            {
-                return null;
-            }
-
             var candidates = new List<string>();
 
             lock (_mutex)
@@ -116,15 +111,12 @@ namespace ZeroC.Ice.Discovery
                 candidates.AddRange(_servers.Keys);
             }
 
-            foreach (string id in candidates)
+            foreach (string location in candidates)
             {
                 try
                 {
                     // This proxy is an indirect proxy with a location (the replica group ID or adapter ID).
-                    IServicePrx proxy = IServicePrx.Factory.Clone(
-                        _dummyProxy,
-                        identity: identity,
-                        location: ImmutableArray.Create(id));
+                    IServicePrx proxy = IServicePrx.Factory.Clone(_dummyProxy, location: location, path: path);
                     await proxy.IcePingAsync(cancel: cancel).ConfigureAwait(false);
                     return proxy;
                 }

@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc.Protocol", LogLevel.Debug));
             await using var communicator = new Communicator(
-                new Dictionary<string, string> 
+                new Dictionary<string, string>
                 {
                     // Speed up windows testing by speeding up the connection failure
                     {"Ice.ConnectTimeout", "200ms" }
@@ -127,7 +127,6 @@ namespace IceRpc.Tests.ClientServer
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
 
-
             var events = new List<int>();
             // The order of sending/received requests and response logs is not deterministic.
             foreach (JsonDocument entry in logEntries)
@@ -225,7 +224,7 @@ namespace IceRpc.Tests.ClientServer
 
         private static void CheckRequestScope(JsonElement scope)
         {
-            Assert.AreEqual("hello", scope.GetProperty("Identity").GetString());
+            Assert.AreEqual("/hello", scope.GetProperty("Path").GetString());
             Assert.AreEqual("ice_ping", scope.GetProperty("Operation").GetString());
             Assert.AreEqual("Ice2", scope.GetProperty("Protocol").GetString());
             Assert.AreEqual(4, scope.GetProperty("PayloadSize").GetInt32());
@@ -240,7 +239,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Name = "LoggingService",
                         ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(portNumber)
+                        Endpoints = GetTestEndpoint(port: portNumber)
                     },
                     true => new ServerOptions
                     {

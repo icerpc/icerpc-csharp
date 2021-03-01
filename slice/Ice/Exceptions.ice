@@ -6,35 +6,30 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Identity.ice>
-
 [cs:namespace(ZeroC)]
 module Ice
 {
     /// Represents the origin of a remote exception. With the Ice 2.0 encoding, all remote exceptions have an implicit
-    /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is only set and
-    /// marshaled for {@link ObjectNotExistException} and {@link OperationNotExistException}.
+    /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is set for
+    /// {@link ServiceNotFoundException} and {@link OperationNotFoundException}, and is otherwise set to an unknown
+    /// (all empty) value.
     [cs:readonly] struct RemoteExceptionOrigin
     {
-        /// The Ice object Identity.
-        Identity identity;
-
-        /// The Ice object facet.
-        string facet;
+        /// The path of the target service.
+        string path;
 
         /// The operation name.
         string operation;
     }
 
-    /// The object adapter could not find a servant for the target object.
-    exception ObjectNotExistException
+    /// The server could not find this service.
+    exception ServiceNotFoundException
     {
     }
 
-    /// The object adapter found a servant for the target object but this servant does not implement the requested
-    /// operation. This exception is typically thrown when a client with newer Slice definitions calls an implementation
-    /// based on older Slice definitions.
-    exception OperationNotExistException
+    /// The server found a service but this service does not implement the requested operation. This exception is
+    /// typically thrown when a client with newer Slice definitions calls a server using older Slice definitions.
+    exception OperationNotFoundException
     {
     }
 

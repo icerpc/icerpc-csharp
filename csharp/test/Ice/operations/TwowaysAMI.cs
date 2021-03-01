@@ -117,9 +117,9 @@ namespace ZeroC.Ice.Test.Operations
 
             {
                 (IMyClassPrx? returnValue, IMyClassPrx? p2, IMyClassPrx? p3) = p.OpMyClassAsync(p).Result;
-                TestHelper.Assert(p2!.Identity.Equals(Identity.Parse("test")));
-                TestHelper.Assert(p3!.Identity.Equals(Identity.Parse("noSuchIdentity")));
-                TestHelper.Assert(returnValue!.Identity.Equals(Identity.Parse("test")));
+                TestHelper.Assert(p2!.Path == "/test");
+                TestHelper.Assert(p3!.Path == "/noSuchIdentity");
+                TestHelper.Assert(returnValue!.Path == "/test");
             }
 
             {

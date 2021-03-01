@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Interceptor
             throw new InvalidInputException("badAdd");
 
         public int NotExistAdd(int x, int y, Current current, CancellationToken cancel) =>
-            throw new ObjectNotExistException();
+            throw new ServiceNotFoundException();
 
         public void Op1(Current current, CancellationToken cancel) =>
             TestHelper.Assert(DispatchInterceptors.LocalContext.Value == int.Parse(current.Context["local-user"]));

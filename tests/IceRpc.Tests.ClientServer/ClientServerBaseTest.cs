@@ -53,16 +53,16 @@ namespace IceRpc.Tests.ClientServer
             await Communicator.DisposeAsync();
         }
 
-        public string GetTestEndpoint(int port = 0) =>
+        public string GetTestEndpoint(string host = "127.0.0.1", int port = 0) =>
             Protocol == Protocol.Ice2 ?
-                $"ice+{Transport}://localhost:{GetTestPort(port)}" :
-                $"{Transport} -h localhost -p {GetTestPort(port)}";
+                $"ice+{Transport}://{host}:{GetTestPort(port)}" :
+                $"{Transport} -h {host} -p {GetTestPort(port)}";
 
         public int GetTestPort(int num) => _basePort + num;
 
-        public string GetTestProxy(string identity, int port = 0) =>
+        public string GetTestProxy(string identity, string host = "127.0.0.1", int port = 0) =>
             Protocol == Protocol.Ice2 ?
-                $"ice+{Transport}://localhost:{GetTestPort(port)}/{identity}" :
-                $"{identity}:{Transport} -h localhost -p {GetTestPort(port)}";
+                $"ice+{Transport}://{host}:{GetTestPort(port)}/{identity}" :
+                $"{identity}:{Transport} -h {host} -p {GetTestPort(port)}";
     }
 }

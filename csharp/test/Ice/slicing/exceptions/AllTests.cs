@@ -707,7 +707,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     // Exceptions are always marshaled in sliced format; format:compact applies only to in-parameters and
                     // return values.
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                 }
                 catch
@@ -784,7 +784,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(ex.Kp.Equals("preserved"));
                     TestHelper.Assert(ex.Kpd.Equals("derived"));
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                 }
                 catch
@@ -803,7 +803,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(ex.Kp.Equals("preserved"));
                     TestHelper.Assert(ex.Kpd.Equals("derived"));
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                 }
                 catch
@@ -827,7 +827,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(pc!.Pc.Equals("pc"));
                     TestHelper.Assert(ex.P2 == ex.P1);
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                 }
                 catch
@@ -851,7 +851,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(pc!.Pc.Equals("pc"));
                     TestHelper.Assert(ex.P2 == ex.P1);
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                 }
                 catch
