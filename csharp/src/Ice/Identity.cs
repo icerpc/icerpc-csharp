@@ -35,7 +35,7 @@ namespace ZeroC.Ice
         /// <returns>A new Identity struct.</returns>
         public static Identity Parse(string s)
         {
-            // Find unescaped separator; note that the string may contain an escaped backslash before the separator.
+            // Find unescaped separator. Note that the string may contain an escaped backslash before the separator.
             int slash = -1, pos = 0;
             while ((pos = s.IndexOf('/', pos)) != -1)
             {
