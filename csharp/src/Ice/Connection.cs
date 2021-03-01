@@ -525,7 +525,7 @@ namespace ZeroC.Ice
                 {
                     if (stream.IsBidirectional)
                     {
-                        response = new OutgoingResponseFrame(request, new ObjectNotExistException());
+                        response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
                     }
                 }
                 else

@@ -10,8 +10,9 @@
 module Ice
 {
     /// Represents the origin of a remote exception. With the Ice 2.0 encoding, all remote exceptions have an implicit
-    /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is only set for
-    /// {@link ObjectNotExistException} and {@link OperationNotExistException}.
+    /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is set for
+    /// {@link ServiceNotFoundException} and {@link OperationNotFoundException}, and is otherwise set to an unknown
+    /// (all empty) value.
     [cs:readonly] struct RemoteExceptionOrigin
     {
         /// The path of the target service.
@@ -22,15 +23,13 @@ module Ice
     }
 
     /// The server could not find this service.
-    // TODO: rename to ServiceNotFoundException
-    exception ObjectNotExistException
+    exception ServiceNotFoundException
     {
     }
 
     /// The server found a service but this service does not implement the requested operation. This exception is
     /// typically thrown when a client with newer Slice definitions calls a server using older Slice definitions.
-    // TODO: rename to OperationNotFoundException
-    exception OperationNotExistException
+    exception OperationNotFoundException
     {
     }
 

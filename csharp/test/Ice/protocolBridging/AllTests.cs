@@ -76,10 +76,10 @@ namespace ZeroC.Ice.Test.ProtocolBridging
 
             try
             {
-                prx.OpObjectNotExistException();
+                prx.OpServiceNotFoundException();
                 TestHelper.Assert(false);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
             }
 

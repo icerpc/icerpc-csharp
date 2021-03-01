@@ -280,8 +280,8 @@ namespace ZeroC.Ice
             {
                 replyStatus = exception switch
                 {
-                    ObjectNotExistException _ => ReplyStatus.ObjectNotExistException,
-                    OperationNotExistException _ => ReplyStatus.OperationNotExistException,
+                    ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
+                    OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
                     UnhandledException _ => ReplyStatus.UnknownLocalException,
                     _ => ReplyStatus.UserException
                 };

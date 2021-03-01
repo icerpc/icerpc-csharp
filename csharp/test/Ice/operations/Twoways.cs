@@ -280,7 +280,7 @@ namespace ZeroC.Ice.Test.Operations
                     c2.OpVoid();
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                 }
 

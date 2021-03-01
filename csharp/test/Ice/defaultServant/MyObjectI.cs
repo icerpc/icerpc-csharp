@@ -13,7 +13,7 @@ namespace ZeroC.Ice.Test.DefaultServant
 
             if (path == "/foo/ObjectNotExist")
             {
-                throw new ObjectNotExistException();
+                throw new ServiceNotFoundException();
             }
             return default;
         }
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.DefaultServant
 
             if (path == "/foo/ObjectNotExist")
             {
-                throw new ObjectNotExistException();
+                throw new ServiceNotFoundException();
             }
             return path;
         }

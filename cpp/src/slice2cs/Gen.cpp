@@ -1756,7 +1756,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
 
     // protected internal constructor used for unmarshaling (always generated).
     _out << sp;
-    _out << nl << "protected internal " << name << "(string? message, ZeroC.Ice.RemoteExceptionOrigin? origin)";
+    _out << nl << "protected internal " << name << "(string? message, ZeroC.Ice.RemoteExceptionOrigin origin)";
     // We call the base class constructor to initialize the base class fields.
     _out.inc();
     _out << nl << ": base(message, origin)";
@@ -2815,7 +2815,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
              << "Async(request, current, cancel),";
     }
 
-    _out << nl << "_ => throw new ZeroC.Ice.OperationNotExistException()";
+    _out << nl << "_ => throw new ZeroC.Ice.OperationNotFoundException()";
 
     _out << eb << ";"; // switch expression
     _out.dec(); // method
@@ -3410,7 +3410,7 @@ Slice::Gen::RemoteExceptionFactoryVisitor::visitExceptionStart(const ExceptionPt
     _out << nl << "public static class " << name;
     _out << sb;
     _out << nl << "public static " << prefix << "ZeroC.Ice.RemoteException Create(string? message, "
-         << prefix << "ZeroC.Ice.RemoteExceptionOrigin? origin) =>";
+         << prefix << "ZeroC.Ice.RemoteExceptionOrigin origin) =>";
     _out.inc();
     _out << nl << "new global::" << ns << "." << name << "(message, origin);";
     _out.dec();

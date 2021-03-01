@@ -477,7 +477,7 @@ namespace ZeroC.Ice.Test.Binding
                         await prx.IcePingAsync();
                         TestHelper.Assert(false);
                     }
-                    catch (ObjectNotExistException)
+                    catch (ServiceNotFoundException)
                     {
                         // Expected. Server is reachable but there's no "dummy" object
                     }
@@ -511,7 +511,7 @@ namespace ZeroC.Ice.Test.Binding
                         var prx = IServicePrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
                         await prx.IcePingAsync();
                     }
-                    catch (ObjectNotExistException)
+                    catch (ServiceNotFoundException)
                     {
                         // Expected, no object registered.
                     }
@@ -577,7 +577,7 @@ namespace ZeroC.Ice.Test.Binding
                         var prx = IServicePrx.Parse(getProxy("dummy", "127.0.0.1"), clientCommunicator);
                         await prx.IcePingAsync();
                     }
-                    catch (ObjectNotExistException)
+                    catch (ServiceNotFoundException)
                     {
                         // Expected, no object registered.
                     }

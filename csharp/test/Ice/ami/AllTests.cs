@@ -487,7 +487,7 @@ namespace ZeroC.Ice.Test.AMI
                     // connection.
                     Task.Run(async () => await p.IcePingAsync()).Wait();
                 }
-                catch (OperationNotExistException)
+                catch (OperationNotFoundException)
                 {
                     // Expected with cross testing, this opXxxAsyncDispatch methods are C# only.
                 }
@@ -544,7 +544,7 @@ namespace ZeroC.Ice.Test.AMI
                         }
                     }
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                     output.WriteLine("not supported");
                 }
@@ -599,7 +599,7 @@ namespace ZeroC.Ice.Test.AMI
                         }
                     }
                 }
-                catch (ObjectNotExistException)
+                catch (ServiceNotFoundException)
                 {
                     output.WriteLine("not supported");
                 }

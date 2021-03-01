@@ -48,7 +48,7 @@ namespace ZeroC.Ice.Test.Retry
                 bidir.OtherReplica(cancel: CancellationToken.None);
                 TestHelper.Assert(false);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
             }
 
@@ -59,7 +59,7 @@ namespace ZeroC.Ice.Test.Retry
                 bidir.AfterDelay(2, cancel: CancellationToken.None);
                 TestHelper.Assert(current.Protocol == Protocol.Ice2);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
                 TestHelper.Assert(current.Protocol == Protocol.Ice1);
             }

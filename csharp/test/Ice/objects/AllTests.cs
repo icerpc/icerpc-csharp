@@ -174,7 +174,7 @@ namespace ZeroC.Ice.Test.Objects
             {
                 initial.SetG(new G(new S("hello"), "g"));
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
             output.WriteLine("ok");
@@ -191,7 +191,7 @@ namespace ZeroC.Ice.Test.Objects
                 (retS, outS) = initial.OpBaseSeq(inS);
                 TestHelper.Assert(retS.Length == 1 && outS.Length == 1);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
             output.WriteLine("ok");
@@ -231,7 +231,7 @@ namespace ZeroC.Ice.Test.Objects
             {
                 TestHelper.Assert(initial.GetCompact() != null);
             }
-            catch (OperationNotExistException)
+            catch (OperationNotFoundException)
             {
             }
             output.WriteLine("ok");
