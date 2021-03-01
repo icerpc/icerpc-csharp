@@ -315,14 +315,21 @@ namespace ZeroC.Ice
                 ostr.Write(replyStatus);
             }
 
-            exception.Origin = new RemoteExceptionOrigin(request.Identity, request.Facet, request.Operation);
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             if (PayloadEncoding == Encoding.V11)
             {
                 switch (replyStatus)
                 {
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
-                        request.Identity.IceWrite(ostr);
+                        if (request.Protocol == Protocol.Ice1)
+                        {
+                            request.Identity.IceWrite(ostr);
+                        }
+                        else
+                        {
+                            Identity.FromPath(request.Path).IceWrite(ostr);
+                        }
                         ostr.WriteIce1Facet(request.Facet);
                         ostr.WriteString(request.Operation);
                         break;

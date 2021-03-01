@@ -96,7 +96,7 @@ namespace ZeroC.Ice.Test.AMI
         }
 
         private static ITestIntfPrx Self(Current current) =>
-            ITestIntfPrx.Factory.Create(current.Server, current.Identity);
+            ITestIntfPrx.Factory.Create(current.Server, current.Path);
 
         public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
         {

@@ -281,7 +281,7 @@ namespace ZeroC.Ice.Test.AMI
             {
                 if (ice1)
                 {
-                    ITestIntfPrx indirect = p.Clone(location: ImmutableArray.Create("dummy"));
+                    ITestIntfPrx indirect = p.Clone(location: "dummy");
 
                     try
                     {
@@ -314,7 +314,7 @@ namespace ZeroC.Ice.Test.AMI
             {
                 if (ice1)
                 {
-                    ITestIntfPrx i = p.Clone(location: ImmutableArray.Create("dummy"));
+                    ITestIntfPrx i = p.Clone(location: "dummy");
 
                     try
                     {

@@ -316,19 +316,19 @@ namespace ZeroC.Ice.Test.Objects
 
                 (IF2Prx? f21, IF2Prx? f22) =
                     initial.OpF2(IF2Prx.Parse(helper.GetTestProxy("F21"), communicator));
-                TestHelper.Assert(f21!.Identity.Name.Equals("F21"));
+                TestHelper.Assert(f21!.Path == "/F21");
                 f21.Op();
-                TestHelper.Assert(f22!.Identity.Name.Equals("F22"));
+                TestHelper.Assert(f22!.Path == "/F22");
 
                 if (initial.HasF3())
                 {
                     (F3? f31, F3? f32) = initial.OpF3(new F3(new F1("F11"), IF2Prx.Parse("F21", communicator)));
 
                     TestHelper.Assert(f31!.F1!.Name.Equals("F11"));
-                    TestHelper.Assert(f31!.F2!.Identity.Name.Equals("F21"));
+                    TestHelper.Assert(f31!.F2!.Path == "/F21");
 
                     TestHelper.Assert(f32!.F1!.Name.Equals("F12"));
-                    TestHelper.Assert(f32!.F2!.Identity.Name.Equals("F22"));
+                    TestHelper.Assert(f32!.F2!.Path == "/F22");
                 }
             }
             output.WriteLine("ok");

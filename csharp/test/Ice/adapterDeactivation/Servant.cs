@@ -15,8 +15,7 @@ namespace ZeroC.Ice.Test.AdapterDeactivation
             Current current,
             CancellationToken cancel)
         {
-            TestHelper.Assert(current.Identity.Category.Length == 0);
-            TestHelper.Assert(current.Identity.Name == "test");
+            TestHelper.Assert(current.Path == "/test");
             IService servant = new TestIntf();
             return servant.DispatchAsync(request, current, cancel);
         }

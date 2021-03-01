@@ -48,7 +48,7 @@ namespace ZeroC.Ice
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            IEnumerable<string>? location = null,
+            string? location = null,
             ILocationService? locationService = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
@@ -63,14 +63,13 @@ namespace ZeroC.Ice
                                                                  endpoints,
                                                                  facet: null,
                                                                  fixedConnection,
-                                                                 identity: null,
-                                                                 identityAndFacet: null,
                                                                  invocationInterceptors,
                                                                  invocationTimeout,
                                                                  label,
                                                                  location,
                                                                  locationService,
                                                                  oneway,
+                                                                 path: null,
                                                                  preferExistingConnection,
                                                                  preferNonSecure));
             return clone == impl ? proxy : (clone as T)!;
@@ -142,11 +141,25 @@ namespace ZeroC.Ice
             IProgress<bool>? progress = null) =>
             ServicePrx.InvokeAsync(proxy, request, oneway, progress);
 
-        /// <summary>Produces a string representation of a location.</summary>
-        /// <param name="location">The location.</param>
-        /// <returns>The location as a percent-escaped string with segments separated by '/'.</returns>
-        public static string ToLocationString(this IEnumerable<string> location) =>
-            string.Join('/', location.Select(s => Uri.EscapeDataString(s)));
+        /// <summary>Normalizes a URI path: adds a leading slash (if the path does not start with a slash) and
+        /// percent-escapes all characters except the unreserved characters, slash and the characters already escaped.
+        /// </summary>
+        /// <param name="path">The input path, with slash separators. It can be already partially or fully percent-
+        /// escaped.</param>
+        /// <returns>The normalized path.</returns>
+        public static string NormalizePath(string path)
+        {
+            string[] segments = path.Split('/');
+            string normalized = string.Join('/', segments.Select(s => Uri.EscapeDataString(Uri.UnescapeDataString(s))));
+            if (normalized.StartsWith('/'))
+            {
+                return normalized;
+            }
+            else
+            {
+                return $"/{normalized}";
+            }
+        }
 
         /// <summary>Converts a proxy to a set of proxy properties.</summary>
         /// <param name="proxy">The proxy for the target Ice object.</param>

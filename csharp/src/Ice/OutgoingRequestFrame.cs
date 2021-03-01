@@ -26,10 +26,10 @@ namespace ZeroC.Ice
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; }
 
-        /// <summary>The facet of the target Ice object.</summary>
-        public string Facet { get; }
+        /// <summary>The facet of the target service. ice1 only.</summary>
+        public string Facet { get; } = "";
 
-        /// <summary>The identity of the target Ice object.</summary>
+        /// <summary>The identity of the target service. ice1 only.</summary>
         public Identity Identity { get; }
 
         /// <inheritdoc/>
@@ -39,11 +39,11 @@ namespace ZeroC.Ice
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
 
-        /// <summary>The location of the target Ice object. With ice1, it is always empty.</summary>
-        public IReadOnlyList<string> Location { get; }
-
-        /// <summary>The operation called on the Ice object.</summary>
+        /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
+
+        /// <summary>The path of the target service.</summary>
+        public string Path { get; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
@@ -325,9 +325,7 @@ namespace ZeroC.Ice
             if (Protocol == Protocol.Ice2)
             {
                 OutputStream.Position start = ostr.StartFixedLengthSize(2);
-                ostr.WriteIce2RequestHeaderBody(Identity,
-                                                Facet,
-                                                Location,
+                ostr.WriteIce2RequestHeaderBody(Path,
                                                 Operation,
                                                 IsIdempotent,
                                                 Deadline,
@@ -353,11 +351,15 @@ namespace ZeroC.Ice
                    proxy.Communicator.CompressionLevel,
                    proxy.Communicator.CompressionMinSize)
         {
-            Identity = proxy.Identity;
+            if (Protocol == Protocol.Ice1)
+            {
+                Facet = proxy.Facet;
+                Identity = proxy.Identity;
+            }
+
             IsIdempotent = idempotent;
-            Facet = proxy.Facet;
-            Location = proxy.Location;
             Operation = operation;
+            Path = proxy.Path;
             PayloadEncoding = proxy.Encoding;
 
             Debug.Assert(proxy.InvocationTimeout != TimeSpan.Zero);

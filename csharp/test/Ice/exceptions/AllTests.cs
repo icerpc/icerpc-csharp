@@ -56,15 +56,6 @@ namespace ZeroC.Ice.Test.Exceptions
                 {
                 }
 
-                try
-                {
-                    server.Add("", obj);
-                    TestHelper.Assert(false);
-                }
-                catch (FormatException)
-                {
-                }
-
                 server.Remove("x");
                 server.Remove("x"); // as of Ice 4.0, Remove succeeds with multiple removals
                 output.WriteLine("ok");
@@ -383,17 +374,17 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
+                var path = "does not exist";
                 try
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ObjectNotExistException ex)
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Identity == identity);
-                    TestHelper.Assert(ex.Message.Contains("servant")); // verify we don't get system message
+                    TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
+                    TestHelper.Assert(ex.Message.Contains("service")); // verify we don't get system message
                 }
                 catch
                 {
@@ -403,29 +394,32 @@ namespace ZeroC.Ice.Test.Exceptions
 
             output.WriteLine("ok");
 
-            output.Write("catching object not exist exception... ");
-            output.Flush();
-
-            try
+            if (ice1)
             {
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
+                output.Write("catching object not exist exception... ");
+                output.Flush();
+
                 try
                 {
-                    await thrower2.IcePingAsync();
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
+                    try
+                    {
+                        await thrower2.IcePingAsync();
+                        TestHelper.Assert(false);
+                    }
+                    catch (ObjectNotExistException ex)
+                    {
+                        TestHelper.Assert(ex.Facet == "no such facet");
+                        TestHelper.Assert(ex.Message.Contains("with facet")); // verify we don't get system message
+                    }
+                }
+                catch
+                {
                     TestHelper.Assert(false);
                 }
-                catch (ObjectNotExistException ex)
-                {
-                    TestHelper.Assert(ex.Origin!.Value.Facet == "no such facet");
-                    TestHelper.Assert(ex.Message.Contains("with facet")); // verify we don't get system message
-                }
-            }
-            catch
-            {
-                TestHelper.Assert(false);
-            }
 
-            output.WriteLine("ok");
+                output.WriteLine("ok");
+            }
 
             output.Write("catching operation not exist exception... ");
             output.Flush();
@@ -467,7 +461,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 }
                 else
                 {
-                    TestHelper.Assert(ex.Origin!.Value.Identity == thrower.Identity &&
+                    TestHelper.Assert(ex.Origin!.Value.Path == thrower.Path &&
                                       ex.Origin!.Value.Operation == "throwLocalException");
                 }
             }
@@ -756,8 +750,8 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                var path = "does not exist";
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -772,7 +766,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Identity == identity);
+                        TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
                     }
                     catch
                     {
@@ -783,35 +777,38 @@ namespace ZeroC.Ice.Test.Exceptions
 
             output.WriteLine("ok");
 
-            output.Write("catching object not exist exception with AMI... ");
-            output.Flush();
-
+            if (ice1)
             {
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
-                try
+                output.Write("catching object not exist exception with AMI... ");
+                output.Flush();
+
                 {
-                    thrower2.ThrowAasAAsync(1).Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException exc)
-                {
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
                     try
                     {
-                        TestHelper.Assert(exc.InnerException != null);
-                        throw exc.InnerException;
-                    }
-                    catch (ObjectNotExistException ex)
-                    {
-                        TestHelper.Assert(ex.Origin!.Value.Facet.Equals("no such facet"));
-                    }
-                    catch
-                    {
+                        thrower2.ThrowAasAAsync(1).Wait();
                         TestHelper.Assert(false);
                     }
+                    catch (AggregateException exc)
+                    {
+                        try
+                        {
+                            TestHelper.Assert(exc.InnerException != null);
+                            throw exc.InnerException;
+                        }
+                        catch (ObjectNotExistException ex)
+                        {
+                            TestHelper.Assert(ex.Facet == "no such facet");
+                        }
+                        catch
+                        {
+                            TestHelper.Assert(false);
+                        }
+                    }
                 }
-            }
 
-            output.WriteLine("ok");
+                output.WriteLine("ok");
+            }
 
             output.Write("catching operation not exist exception with AMI... ");
             output.Flush();
@@ -923,8 +920,8 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var identity = Identity.Parse("does not exist");
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, identity: identity);
+                var path = "does not exist";
+                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -939,7 +936,7 @@ namespace ZeroC.Ice.Test.Exceptions
                     }
                     catch (ObjectNotExistException ex)
                     {
-                        TestHelper.Assert(ex.Origin!.Value.Identity == identity);
+                        TestHelper.Assert(ex.Origin!.Value.Path == "/does%20not%20exist");
                     }
                     catch
                     {
@@ -950,35 +947,38 @@ namespace ZeroC.Ice.Test.Exceptions
 
             output.WriteLine("ok");
 
-            output.Write("catching object not exist exception with AMI... ");
-            output.Flush();
-
+            if (ice1)
             {
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
-                try
+                output.Write("catching object not exist exception with AMI... ");
+                output.Flush();
+
                 {
-                    thrower2.ThrowAasAAsync(1).Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException exc)
-                {
+                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
                     try
                     {
-                        TestHelper.Assert(exc.InnerException != null);
-                        throw exc.InnerException;
-                    }
-                    catch (ObjectNotExistException ex)
-                    {
-                        TestHelper.Assert(ex.Origin!.Value.Facet == "no such facet");
-                    }
-                    catch
-                    {
+                        thrower2.ThrowAasAAsync(1).Wait();
                         TestHelper.Assert(false);
                     }
+                    catch (AggregateException exc)
+                    {
+                        try
+                        {
+                            TestHelper.Assert(exc.InnerException != null);
+                            throw exc.InnerException;
+                        }
+                        catch (ObjectNotExistException ex)
+                        {
+                            TestHelper.Assert(ex.Facet == "no such facet");
+                        }
+                        catch
+                        {
+                            TestHelper.Assert(false);
+                        }
+                    }
                 }
-            }
 
-            output.WriteLine("ok");
+                output.WriteLine("ok");
+            }
 
             output.Write("catching operation not exist exception with AMI... ");
             output.Flush();

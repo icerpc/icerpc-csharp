@@ -9,9 +9,9 @@ namespace ZeroC.Ice.Test.DefaultServant
     {
         public ValueTask IcePingAsync(Current current, CancellationToken cancel)
         {
-            string name = current.Identity.Name;
+            string path = current.Path;
 
-            if (name == "ObjectNotExist")
+            if (path == "/foo/ObjectNotExist")
             {
                 throw new ObjectNotExistException();
             }
@@ -20,13 +20,13 @@ namespace ZeroC.Ice.Test.DefaultServant
 
         public string GetName(Current current, CancellationToken cancel)
         {
-            string name = current.Identity.Name;
+            string path = current.Path;
 
-            if (name == "ObjectNotExist")
+            if (path == "/foo/ObjectNotExist")
             {
                 throw new ObjectNotExistException();
             }
-            return name;
+            return path;
         }
     }
 }

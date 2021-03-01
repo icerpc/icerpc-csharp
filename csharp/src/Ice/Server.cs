@@ -14,7 +14,7 @@ namespace ZeroC.Ice
 {
     /// <summary>The server provides an up-call interface from the Ice run time to the implementation of Ice
     /// objects. The server is responsible for receiving requests from endpoints, and for mapping between
-    /// servants, identities, and proxies.</summary>
+    /// services, identities, and proxies.</summary>
     public sealed class Server : IAsyncDisposable
     {
         /// <summary>Indicates under what circumstances this server accepts non-secure incoming connections.
@@ -78,22 +78,23 @@ namespace ZeroC.Ice
 
         private Task? _activateTask;
 
-        private readonly Dictionary<(string Category, string Facet), IService> _categoryServantMap = new();
+        private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
 
-        private readonly Dictionary<string, IService> _defaultServantMap = new();
+        private readonly Dictionary<string, IService> _defaultServiceMap = new();
 
         private readonly IList<Func<Dispatcher, Dispatcher>> _dispatchInterceptorList =
             new List<Func<Dispatcher, Dispatcher>>();
 
         private Dispatcher _dispatchPipeline;
 
-        private readonly Dictionary<(Identity Identity, string Facet), IService> _identityServantMap = new();
-
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
-        // protects _activateTask, _dispatchInterceptorList, _identityServantMap,
+        // protects _activateTask, _dispatchInterceptorList, _serviceMap,
         private readonly object _mutex = new();
+
+        private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
+
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -257,13 +258,13 @@ namespace ZeroC.Ice
             _dispatchPipeline = async (request, current, cancel) =>
             {
                 Debug.Assert(current.Server == this);
-                IService? servant = Find(current.Identity, current.Facet);
-                if (servant == null)
+                IService? service = Find(current.Path, current.Facet);
+                if (service == null)
                 {
                     throw new ObjectNotExistException(RetryPolicy.OtherReplica);
                 }
 
-                return await servant.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                return await service.DispatchAsync(request, current, cancel).ConfigureAwait(false);
             };
         }
 
@@ -353,7 +354,7 @@ namespace ZeroC.Ice
                                                           {
                                                             Communicator = Communicator,
                                                             Endpoints = PublishedEndpoints,
-                                                            Identity = new Identity("dummy", ""),
+                                                            Path = "dummy",
                                                             Protocol = PublishedEndpoints[0].Protocol
                                                           });
 
@@ -388,99 +389,62 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
+        /// <summary>Adds a service to this server's Active Service Map (ASM).</summary>
+        /// <param name="path">The path of the service.</param>
+        /// <param name="facet">The facet of the service.</param>
+        /// <param name="service">The service to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter.</param>
-        /// <returns>A proxy associated with this server, object identity and facet.</returns>
+        /// <returns>A proxy associated with this server, path and facet.</returns>
         public T Add<T>(
-            Identity identity,
+            string path,
             string facet,
-            IService servant,
+            IService service,
             IProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
-            Add(identity, facet, servant);
-            return proxyFactory.Create(this, identity, facet);
-        }
-
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, string facet, IService servant)
-        {
-            CheckIdentity(identity);
+            path = Proxy.NormalizePath(path);
             lock (_mutex)
             {
-                // We check for deactivation here because we don't want to keep this servant when the server is being
-                // deactivated or destroyed. In other languages, notably C++, keeping such a servant could lead to
-                // circular references and leaks.
                 if (_shutdownTask != null)
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
-                _identityServantMap.Add((identity, facet), servant);
+                _serviceMap.Add((path, facet), service);
+            }
+            return proxyFactory.Create(this, path, facet);
+        }
+
+        public T Add<T>(
+            string path,
+            IService service,
+            IProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
+            Add(path, "", service, proxyFactory);
+
+        /// <summary>Adds a service to this server's Active Service Map (ASM), using as key the provided path and facet.
+        /// </summary>
+        /// <param name="path">The path to the service.</param>
+        /// <param name="facet">The facet of the service.</param>
+        /// <param name="service">The service to add.</param>
+        public void Add(string path, string facet, IService service)
+        {
+            path = Proxy.NormalizePath(path);
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                }
+                _serviceMap.Add((path, facet), service);
             }
         }
 
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter.</param>
-        /// <returns>A proxy associated with this server, object identity and facet.</returns>
-        public T Add<T>(string identityAndFacet, IService servant, IProxyFactory<T> proxyFactory)
-            where T : class, IServicePrx
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Add(identity, facet, servant, proxyFactory);
-        }
+        public void Add(string path, IService service) => Add(path, "", service);
 
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and facet. Adding a servant with an identity and facet that are already in the ASM throws
-        /// ArgumentException.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(string identityAndFacet, IService servant)
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            Add(identity, facet, servant);
-        }
-
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and the default (empty) facet.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="servant">The servant to add.</param>
-        /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
-        /// for this parameter.</param>
-        /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
-        public T Add<T>(Identity identity, IService servant, IProxyFactory<T> proxyFactory)
-            where T : class, IServicePrx =>
-            Add(identity, "", servant, proxyFactory);
-
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key the provided
-        /// identity and the default (empty) facet.</summary>
-        /// <param name="identity">The identity of the Ice object incarnated by this servant. identity.Name cannot
-        /// be empty.</param>
-        /// <param name="servant">The servant to add.</param>
-        public void Add(Identity identity, IService servant) => Add(identity, "", servant);
-
-        /// <summary>Adds a default servant to this server's Active Servant Map (ASM), using as key the provided
+        /// <summary>Adds a default service to this server's Active Service Map (ASM), using as key the provided
         /// facet.</summary>
         /// <param name="facet">The facet.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(string facet, IService servant)
+        /// <param name="service">The default service to add.</param>
+        public void AddDefault(string facet, IService service)
         {
             lock (_mutex)
             {
@@ -488,21 +452,21 @@ namespace ZeroC.Ice
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
-                _defaultServantMap.Add(facet, servant);
+                _defaultServiceMap.Add(facet, service);
             }
         }
 
-        /// <summary>Adds a default servant to this server's Active Servant Map (ASM), using as key the default
+        /// <summary>Adds a default service to this server's Active Service Map (ASM), using as key the default
         /// (empty) facet.</summary>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefault(IService servant) => AddDefault("", servant);
+        /// <param name="service">The default service to add.</param>
+        public void AddDefault(IService service) => AddDefault("", service);
 
-        /// <summary>Adds a category-specific default servant to this server's Active Servant Map (ASM), using
+        /// <summary>Adds a category-specific default service to this server's Active Service Map (ASM), using
         /// as key the provided category and facet.</summary>
         /// <param name="category">The object identity category.</param>
         /// <param name="facet">The facet.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, string facet, IService servant)
+        /// <param name="service">The default service to add.</param>
+        public void AddDefaultForCategory(string category, string facet, IService service)
         {
             lock (_mutex)
             {
@@ -510,127 +474,110 @@ namespace ZeroC.Ice
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
                 }
-                _categoryServantMap.Add((category, facet), servant);
+                _categoryServiceMap.Add((category, facet), service);
             }
         }
 
-        /// <summary>Adds a category-specific default servant to this server's Active Servant Map (ASM), using
+        /// <summary>Adds a category-specific default service to this server's Active Service Map (ASM), using
         /// as key the provided category and the default (empty) facet.</summary>
         /// <param name="category">The object identity category.</param>
-        /// <param name="servant">The default servant to add.</param>
-        public void AddDefaultForCategory(string category, IService servant) =>
-            AddDefaultForCategory(category, "", servant);
+        /// <param name="service">The default service to add.</param>
+        public void AddDefaultForCategory(string category, IService service) =>
+            AddDefaultForCategory(category, "", service);
 
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key a unique identity
+        /// <summary>Adds a service to this server's Active Service Map (ASM), using as key a unique identity
         /// and the provided facet. This method creates the unique identity with a UUID name and an empty category.
         /// </summary>
         /// <param name="facet">The facet of the Ice object.</param>
-        /// <param name="servant">The servant to add.</param>
+        /// <param name="service">The service to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
-        public T AddWithUUID<T>(string facet, IService servant, IProxyFactory<T> proxyFactory)
+        public T AddWithUUID<T>(string facet, IService service, IProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
-            Add(new Identity(Guid.NewGuid().ToString(), ""), facet, servant, proxyFactory);
+            Add(Guid.NewGuid().ToString(), facet, service, proxyFactory);
 
-        /// <summary>Adds a servant to this server's Active Servant Map (ASM), using as key a unique identity
+        /// <summary>Adds a service to this server's Active Service Map (ASM), using as key a unique identity
         /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
         /// category.</summary>
-        /// <param name="servant">The servant to add.</param>
+        /// <param name="service">The service to add.</param>
         /// <param name="proxyFactory">The proxy factory used to manufacture the returned proxy. Pass INamePrx.Factory
         /// for this parameter.</param>
         /// <returns>A proxy associated with this server, object identity and the default facet.</returns>
-        public T AddWithUUID<T>(IService servant, IProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
-            AddWithUUID("", servant, proxyFactory);
+        public T AddWithUUID<T>(IService service, IProxyFactory<T> proxyFactory) where T : class, IServicePrx =>
+            AddWithUUID("", service, proxyFactory);
 
         /// <inheritdoc/>
         public ValueTask DisposeAsync() => new(ShutdownAsync());
 
-        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
-        /// servants currently in the ASM.</summary>
-        /// <param name="identity">The identity of the Ice object.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IService? Find(Identity identity, string facet = "")
+        /// <summary>Finds a service in the Active Service Map (ASM), taking into account the services and default
+        /// services currently in the ASM.</summary>
+        /// <param name="path">The path to the service.</param>
+        /// <param name="facet">The facet of the service.</param>
+        /// <returns>The corresponding service in the ASM, or null if the service was not found.</returns>
+        public IService? Find(string path, string facet = "")
         {
+            path = Proxy.NormalizePath(path);
             lock (_mutex)
             {
-                if (!_identityServantMap.TryGetValue((identity, facet), out IService? servant))
+                if (!_serviceMap.TryGetValue((path, facet), out IService? service))
                 {
-                    if (!_categoryServantMap.TryGetValue((identity.Category, facet), out servant))
+                    if (!_categoryServiceMap.TryGetValue((Identity.FromPath(path).Category, facet), out service))
                     {
-                        _defaultServantMap.TryGetValue(facet, out servant);
+                        _defaultServiceMap.TryGetValue(facet, out service);
                     }
                 }
-                return servant;
+                return service;
             }
         }
 
-        /// <summary>Finds a servant in the Active Servant Map (ASM), taking into account the servants and default
-        /// servants currently in the ASM.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <returns>The corresponding servant in the ASM, or null if the servant was not found.</returns>
-        public IService? Find(string identityAndFacet)
+        /// <summary>Removes a service previously added to the Active Service Map (ASM) using Add.</summary>
+        /// <param name="path">The path to the service.</param>
+        /// <param name="facet">The facet of the service.</param>
+        /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
+        public IService? Remove(string path, string facet = "")
         {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Find(identity, facet);
-        }
-
-        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
-        /// <param name="identity">The identity of the Ice object.</param>
-        /// <param name="facet">The facet of the Ice object.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IService? Remove(Identity identity, string facet = "")
-        {
+            path = Proxy.NormalizePath(path);
             lock (_mutex)
             {
-                if (_identityServantMap.TryGetValue((identity, facet), out IService? servant))
+                if (_serviceMap.TryGetValue((path, facet), out IService? service))
                 {
-                    _identityServantMap.Remove((identity, facet));
+                    _serviceMap.Remove((path, facet));
                 }
-                return servant;
+                return service;
             }
         }
 
-        /// <summary>Removes a servant previously added to the Active Servant Map (ASM) using Add.</summary>
-        /// <param name="identityAndFacet">A relative URI string [category/]identity[#facet].</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
-        public IService? Remove(string identityAndFacet)
-        {
-            (Identity identity, string facet) = UriParser.ParseIdentityAndFacet(identityAndFacet);
-            return Remove(identity, facet);
-        }
-
-        /// <summary>Removes a default servant previously added to the Active Servant Map (ASM) using AddDefault.
+        /// <summary>Removes a default service previously added to the Active Service Map (ASM) using AddDefault.
         /// </summary>
         /// <param name="facet">The facet.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
         public IService? RemoveDefault(string facet = "")
         {
             lock (_mutex)
             {
-                if (_defaultServantMap.TryGetValue(facet, out IService? servant))
+                if (_defaultServiceMap.TryGetValue(facet, out IService? service))
                 {
-                    _defaultServantMap.Remove(facet);
+                    _defaultServiceMap.Remove(facet);
                 }
-                return servant;
+                return service;
             }
         }
 
-        /// <summary>Removes a category-specific default servant previously added to the Active Servant Map (ASM) using
+        /// <summary>Removes a category-specific default service previously added to the Active Service Map (ASM) using
         /// AddDefaultForCategory.</summary>
-        /// <param name="category">The category associated with this default servant.</param>
+        /// <param name="category">The category associated with this default service.</param>
         /// <param name="facet">The facet.</param>
-        /// <returns>The servant that was just removed from the ASM, or null if the servant was not found.</returns>
+        /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
         public IService? RemoveDefaultForCategory(string category, string facet = "")
         {
             lock (_mutex)
             {
-                if (_categoryServantMap.TryGetValue((category, facet), out IService? servant))
+                if (_categoryServiceMap.TryGetValue((category, facet), out IService? service))
                 {
-                    _categoryServantMap.Remove((category, facet));
+                    _categoryServiceMap.Remove((category, facet));
                 }
-                return servant;
+                return service;
             }
         }
 
@@ -783,13 +730,12 @@ namespace ZeroC.Ice
 
             if (proxy.IsWellKnown || proxy.IsRelative)
             {
-                isLocal = Find(proxy.Identity, proxy.Facet) != null;
+                isLocal = Find(proxy.Path, proxy.Facet) != null;
             }
             else if (proxy.IsIndirect)
             {
                 // proxy is local if the proxy's location matches this adapter ID or replica group ID.
-                isLocal = proxy.Location.Count == 1 &&
-                    (proxy.Location[0] == AdapterId || proxy.Location[0] == ReplicaGroupId);
+                isLocal = proxy.Location == AdapterId || proxy.Location == ReplicaGroupId;
             }
             else
             {
@@ -825,14 +771,6 @@ namespace ZeroC.Ice
                 }
             }
             return null;
-        }
-
-        private static void CheckIdentity(Identity identity)
-        {
-            if (identity.Name.Length == 0)
-            {
-                throw new ArgumentException("identity name cannot be empty", nameof(identity));
-            }
         }
 
         private async Task UnregisterEndpointsAsync(CancellationToken cancel)
