@@ -138,11 +138,10 @@ namespace ZeroC.Ice
         /// <summary>The endpoints of this proxy. A proxy with a non-empty endpoint list is a direct proxy.</summary>
         public IReadOnlyList<Endpoint> Endpoints { get; }
 
-        /// <summary>The facet to use on the target Ice object. The empty string corresponds to the default facet.
-        /// </summary>
+        /// <summary>The facet of the target service. ice1 only.</summary>
         public string Facet { get; }
 
-        /// <summary>The identity of the target Ice object.</summary>
+        /// <summary>The identity of the target service. ice1 only.</summary>
         public Identity Identity { get; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>
@@ -168,11 +167,14 @@ namespace ZeroC.Ice
         /// </summary>
         public object? Label { get; }
 
-        /// <summary>Gets the location of this proxy. Ice uses this location to find the target object.</summary>
-        public IReadOnlyList<string> Location { get; }
+        /// <summary>Gets the location of this proxy. ice1 only.</summary>
+        public string Location { get; }
 
-        /// <summary>The location service associated with this proxy.</summary>
+        /// <summary>The location service associated with this proxy. ice1 only.</summary>
         public ILocationService? LocationService { get; }
+
+        /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
+        public string Path { get; }
 
         /// <summary>Indicates whether or not this proxy prefers using an existing connection over creating a new one.
         /// When <c>true</c> the proxy will prefer reusing an active connection to any of its endpoints, otherwise

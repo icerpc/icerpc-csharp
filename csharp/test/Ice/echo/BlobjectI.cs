@@ -14,7 +14,7 @@ namespace ZeroC.Ice.Test.Echo
             CancellationToken cancel)
         {
             TestHelper.Assert(current.Connection != null);
-            IServicePrx proxy = IServicePrx.Factory.Create(current.Connection, current.Identity, current.Facet);
+            IServicePrx proxy = IServicePrx.Factory.Create(current.Connection, current.Path, current.Facet);
             return proxy.ForwardAsync(request, current.IsOneway, cancel: cancel);
         }
     }

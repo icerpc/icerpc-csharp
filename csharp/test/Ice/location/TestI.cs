@@ -27,26 +27,25 @@ namespace ZeroC.Ice.Test.Location
             Task.WhenAll(_server1.ShutdownAsync(), _server2.ShutdownAsync());
 
         public IHelloPrx GetHello(Current current, CancellationToken cancel) =>
-            IHelloPrx.Factory.Create(_server1, "hello").Clone(
-                location: ImmutableArray.Create(_server1.AdapterId));
+            IHelloPrx.Factory.Create(_server1, "hello").Clone(location: _server1.AdapterId);
 
         public IHelloPrx GetReplicatedHello(Current current, CancellationToken cancel) =>
             IHelloPrx.Factory.Create(_server1, "hello");
 
         public void MigrateHello(Current current, CancellationToken cancel)
         {
-            var id = Identity.Parse("hello");
+            string path = "hello";
 
-            IService? servant = _server1.Remove(id);
+            IService? servant = _server1.Remove(path);
             if (servant != null)
             {
-                _registry.AddObject(_server2.Add(id, servant, IServicePrx.Factory), current, cancel);
+                _registry.AddObject(_server2.Add(path, servant, IServicePrx.Factory), current, cancel);
             }
             else
             {
-                servant = _server2.Remove(id);
+                servant = _server2.Remove(path);
                 TestHelper.Assert(servant != null);
-                _registry.AddObject(_server1.Add(id, servant, IServicePrx.Factory), current, cancel);
+                _registry.AddObject(_server1.Add(path, servant, IServicePrx.Factory), current, cancel);
             }
         }
     }

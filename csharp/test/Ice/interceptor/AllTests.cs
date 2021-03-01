@@ -43,7 +43,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 prx.NotExistAdd(33, 12);
                 TestHelper.Assert(false);
             }
-            catch (ObjectNotExistException)
+            catch (ServiceNotFoundException)
             {
                 // expected
             }
@@ -74,7 +74,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 catch (InvalidInputException) when (kind == "invalidInput")
                 {
                 }
-                catch (ObjectNotExistException) when (kind == "notExist")
+                catch (ServiceNotFoundException) when (kind == "notExist")
                 {
                 }
             }

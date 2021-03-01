@@ -434,10 +434,7 @@ namespace ZeroC.Ice
                     if (resolved != null)
                     {
                         endpoints = resolved.Endpoints;
-                        if (resolved.Location.Count > 0)
-                        {
-                            location = resolved.Location[0];
-                        }
+                        location = resolved.Location;
                     }
 
                     if (endpoints.Count == 0 && location.Length == 0)

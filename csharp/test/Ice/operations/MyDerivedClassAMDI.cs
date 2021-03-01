@@ -262,7 +262,7 @@ namespace ZeroC.Ice.Test.Operations
             Current current,
             CancellationToken cancel) =>
             new((
-                IMyClassPrx.Factory.Create(current.Server, current.Identity),
+                IMyClassPrx.Factory.Create(current.Server, current.Path),
                 p1,
                 IMyClassPrx.Factory.Create(current.Server, "noSuchIdentity")));
 

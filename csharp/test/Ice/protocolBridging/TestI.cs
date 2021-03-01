@@ -85,17 +85,18 @@ namespace ZeroC.Ice.Test.ProtocolBridging
             throw new MyError(42);
         }
 
-        public void OpObjectNotExistException(Current current, CancellationToken cancel)
+        public void OpServiceNotFoundException(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Context.Count == 1);
             TestHelper.Assert(current.Context.ContainsKey("Intercepted") || current.Context.ContainsKey("Direct"));
-            throw new ObjectNotExistException();
+            throw new ServiceNotFoundException();
         }
+
         public ITestIntfPrx OpNewProxy(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Context.Count == 1);
             TestHelper.Assert(current.Context.ContainsKey("Intercepted") || current.Context.ContainsKey("Direct"));
-            return ITestIntfPrx.Factory.Create(current.Server, current.Identity).Clone(
+            return ITestIntfPrx.Factory.Create(current.Server, current.Path).Clone(
                 encoding: current.Encoding);
         }
 
