@@ -248,7 +248,7 @@ namespace ZeroC.Ice
                 string option = s[beg..end];
                 if (option.Length != 2 || option[0] != '-')
                 {
-                    throw new FormatException("expected a proxy option but found `{option}' in `{s}'");
+                    throw new FormatException($"expected a proxy option but found `{option}' in `{s}'");
                 }
 
                 // Check for the presence of an option argument. The argument may be enclosed in single or double
