@@ -413,6 +413,11 @@ namespace ZeroC.Ice
                 else // an ice1 proxy
                 {
                     var proxyData = new Ice1ProxyData20(istr);
+                    if (proxyData.Identity.Name.Length == 0)
+                    {
+                        throw new InvalidDataException("received a non-null ice1 proxy with an empty name");
+                    }
+
                     IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
                     string location = "";
 
