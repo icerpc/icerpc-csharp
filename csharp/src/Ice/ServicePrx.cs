@@ -290,7 +290,6 @@ namespace ZeroC.Ice
                             }' using encoding 1.1 as the resulting identity name is empty");
                     }
 
-                    // When reading, identity.ToPath() gives the path back.
                     identity.IceWrite(ostr);
                 }
 
@@ -1272,15 +1271,17 @@ namespace ZeroC.Ice
             {
                 if (locationService != null)
                 {
-                    throw new ArgumentException($"{nameof(locationService)} applies only to ice1 proxies");
+                    throw new ArgumentException($"{nameof(locationService)} applies only to ice1 proxies",
+                                                nameof(locationService));
                 }
                 if (clearLocationService)
                 {
-                    throw new ArgumentException($"{nameof(clearLocationService)} applies only to ice1 proxies");
+                    throw new ArgumentException($"{nameof(clearLocationService)} applies only to ice1 proxies",
+                                                nameof(clearLocationService));
                 }
                 if (facet != null)
                 {
-                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies");
+                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies", nameof(facet));
                 }
             }
 

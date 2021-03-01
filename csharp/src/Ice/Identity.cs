@@ -19,7 +19,7 @@ namespace ZeroC.Ice
             // Discard leading /
             string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
 
-            // The returns Identity.Name can be empty.
+            // The returned Identity.Name can be empty.
             return segments.Length switch
             {
                 0 => Empty, // this is actually impossible, segments.Length is always >= 1

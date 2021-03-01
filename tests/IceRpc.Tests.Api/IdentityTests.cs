@@ -96,8 +96,7 @@ namespace IceRpc.Tests.Api
             {
                 Assert.AreEqual(identity, Identity.Parse(identity.ToString(mode)));
 
-                var newIdentity = new Identity();
-                Assert.IsTrue(Identity.TryParse(identity.ToString(mode), out newIdentity));
+                Assert.IsTrue(Identity.TryParse(identity.ToString(mode), out Identity newIdentity));
                 Assert.AreEqual(identity, newIdentity);
             }
 

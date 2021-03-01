@@ -191,6 +191,11 @@ namespace ZeroC.Ice
             }
             else
             {
+                if (facet.Length > 0)
+                {
+                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies", nameof(facet));
+                }
+
                 var options = new ServicePrxOptions()
                 {
                     Communicator = connection.Communicator,
