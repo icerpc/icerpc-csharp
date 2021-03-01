@@ -40,9 +40,7 @@ module Ice
     [cs:readonly]
     struct Ice2RequestHeaderBody
     {
-        Identity identity;
-        string? facet = "";      // null equivalent to empty string
-        StringSeq? location;     // null equivalent to empty sequence
+        string path;
         string operation;
         bool? \idempotent;       // null equivalent to false
         Priority? priority;      // null equivalent to 0
