@@ -75,7 +75,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("127.0.0.1", connection.LocalEndpoint!.Address.ToString());
             Assert.AreEqual("127.0.0.1", connection.RemoteEndpoint!.Address.ToString());
 
-
             if (transport == "ws")
             {
                 WSConnection wsConnection = (WSConnection)connection;
