@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -32,71 +33,58 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(called);
         }
 
-        [Test]
-        public async Task Connection_Information()
+        [TestCase("tcp", Protocol.Ice1)]
+        [TestCase("ws", Protocol.Ice1)]
+        [TestCase("udp", Protocol.Ice1)]
+        public async Task Connection_Information(string transport, Protocol protocol)
         {
+            await using var communicator = new Communicator();
+            await using var server = new Server(
+                communicator,
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 1, transport: transport, protocol: protocol),
+                    AcceptNonSecure = NonSecure.Always
+                });
+            await server.ActivateAsync();
+
+            var prx = IConnectionTestServicePrx.Parse(
+                GetTestProxy("test", port: 1, transport: transport, protocol: protocol),
+                communicator);
+
+            if (transport == "udp")
             {
-                await using var communicator = new Communicator();
-                await using var server = new Server(
-                    communicator,
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: 1, transport: "tcp"),
-                        AcceptNonSecure = NonSecure.Always
-                    });
-                await server.ActivateAsync();
-
-                var prx = IConnectionTestServicePrx.Parse(
-                    GetTestProxy("test", transport: "tcp", port: 1),
-                    communicator);
-
-
-                var connection = (await Prx.GetConnectionAsync()) as IPConnection;
-                Assert.NotNull(connection);
-                Assert.NotNull(connection!.RemoteEndpoint);
-                Assert.NotNull(connection!.LocalEndpoint);
-
-                Assert.AreEqual("localhost", connection!.Endpoint.Host);
-                Assert.IsTrue(connection.Endpoint.Port > 0);
-                Assert.AreEqual(null, connection.Endpoint["compress"]);
-                Assert.IsFalse(connection.IsIncoming);
-
-                Assert.AreEqual(null, connection.Server);
-                Assert.AreEqual(connection.Endpoint.Port, connection.RemoteEndpoint!.Port);
-                Assert.IsTrue(connection.LocalEndpoint!.Port > 0);
-
-                Assert.AreEqual("127.0.0.1", connection.LocalEndpoint!.Address.ToString());
-                Assert.AreEqual("127.0.0.1", connection.RemoteEndpoint!.Address.ToString());
+                prx = prx.Clone(preferNonSecure: NonSecure.Always, oneway: true);
             }
 
+
+            var connection = (await prx.GetConnectionAsync()) as IPConnection;
+            Assert.NotNull(connection);
+            Assert.NotNull(connection!.RemoteEndpoint);
+            Assert.NotNull(connection!.LocalEndpoint);
+
+            Assert.AreEqual("127.0.0.1", connection!.Endpoint.Host);
+            Assert.IsTrue(connection.Endpoint.Port > 0);
+            Assert.AreEqual(null, connection.Endpoint["compress"]);
+            Assert.IsFalse(connection.IsIncoming);
+
+            Assert.AreEqual(null, connection.Server);
+            Assert.AreEqual(connection.Endpoint.Port, connection.RemoteEndpoint!.Port);
+            Assert.IsTrue(connection.LocalEndpoint!.Port > 0);
+
+            Assert.AreEqual("127.0.0.1", connection.LocalEndpoint!.Address.ToString());
+            Assert.AreEqual("127.0.0.1", connection.RemoteEndpoint!.Address.ToString());
+
+
+            if (transport == "ws")
             {
-                await using var communicator = new Communicator();
-                await using var server = new Server(
-                    communicator,
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: 1, transport: "udp", protocol: Protocol.Ice1),
-                        AcceptNonSecure = NonSecure.Always
-                    });
-                await server.ActivateAsync();
-
-                var prx = IConnectionTestServicePrx.Parse(
-                    GetTestProxy("test", transport: "udp", port: 1, protocol: Protocol.Ice1),
-                    communicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
-
-                var connection = (await prx.GetConnectionAsync()) as UdpConnection;
-
-                int endpointPort = GetTestPort(1);
-                Assert.NotNull(connection);
-                Assert.IsFalse(connection!.IsIncoming);
-                Assert.IsNull(connection.Server);
-                Assert.IsTrue(connection.LocalEndpoint?.Port > 0);
-                Assert.AreEqual(endpointPort, connection.RemoteEndpoint?.Port);
-
-                Assert.AreEqual("127.0.0.1", connection.RemoteEndpoint!.Address.ToString());
-                Assert.AreEqual("127.0.0.1", connection.LocalEndpoint!.Address.ToString());
+                WSConnection wsConnection = (WSConnection)connection;
+                Assert.IsNotNull(wsConnection);
+                Assert.AreEqual("websocket", wsConnection.Headers["Upgrade"]);
+                Assert.AreEqual("Upgrade", wsConnection.Headers["Connection"]);
+                Assert.AreEqual("ice.zeroc.com", wsConnection.Headers["Sec-WebSocket-Protocol"]);
+                Assert.IsNotNull(wsConnection.Headers["Sec-WebSocket-Accept"]);
             }
         }
 
