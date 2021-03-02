@@ -127,7 +127,6 @@ namespace IceRpc.Tests.Api
 
             await server.DisposeAsync();
 
-
             await CheckServerEndpoint(communicator, "tcp -h {0} -p {1}", 10001);
             await CheckServerEndpoint(communicator, "ice+tcp://{0}:{1}", 10001);
 
