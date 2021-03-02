@@ -14,6 +14,7 @@ namespace IceRpc.Tests.Api
         /// <param name="path">The path to check.</param>
         /// <param name="newPath">The new normalized path, if different than normalize(path).</param>
         [TestCase("foo/bar")]
+        [TestCase("foo/bar")]
         [TestCase("/")]
         [TestCase("/foo/")]
         [TestCase("//foo", "/foo")]
@@ -31,6 +32,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Identity.FromPath for some path throws FormatException.</summary>
         [TestCase("/foo/bar/abc")] // too many slashes
+        [TestCase("foo/bar/abc")] // too many slashes
         [TestCase("///")] // too many slashes
         public void Identity_FromPath_InvalidInput(string path)
         {
@@ -56,6 +58,19 @@ namespace IceRpc.Tests.Api
         public void Identity_Parse_ValidInput(string str, string name, string category)
         {
             Assert.AreEqual(new Identity(name, category), Identity.Parse(str));
+        }
+
+        /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath.
+        /// </summary>
+        [TestCase("foo", "foo", "")]
+        [TestCase("/foo", "foo", "")]
+        [TestCase("foo/bar", "bar", "foo")]
+        [TestCase("foo/bar+", "bar+", "foo")]
+        public void Identity_FromSimpleString(string str, string name, string category)
+        {
+            var identity = new Identity(name, category);
+            Assert.AreEqual(identity, Identity.Parse(str));
+            Assert.AreEqual(identity, Identity.FromPath(str));
         }
 
         /// <summary>Verifies that any arbitrary Identity can represented by a URI path (i.e. produced from FromPath)
