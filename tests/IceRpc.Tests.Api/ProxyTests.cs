@@ -84,6 +84,13 @@ namespace IceRpc.Tests.Api
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferNonSecure: NonSecure.Always));
         }
 
+        [TestCase("foo/bar", "/foo/bar")]
+        [TestCase("\x7f€$%/!#$'()*+,:;=?@[]%2F ", "/%7F%E2%82%AC$%25/!#$'()*+,:;=%3F@[]%2F%20")]
+        public void Proxy_NormalizePath(string path, string normalizedPath)
+        {
+            Assert.AreEqual(normalizedPath, Proxy.NormalizePath(path));
+        }
+
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice -t:tcp -h localhost -p 10000")]
@@ -96,21 +103,25 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
-        [TestCase("ice+tcp://host.zeroc.com/identity#facet")]
+        [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity#facet")]
         [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
-        [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space")]
+        [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
+        [TestCase("ice+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
         [TestCase("ice+ws://host.zeroc.com//identity")]
-        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=100ms")]
+        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=100ms", "//identity")]
         [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=1s")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
-        [TestCase("ice:location//identity#facet")]
+        [TestCase("ice:location//identity#facet", "/location//identity#facet")]
         [TestCase("ice+tcp://host.zeroc.com//identity")]
+        [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F?invocation-timeout=100ms",
+                  "/%7F%E2%82%AC$%25/!#$'()*+,:;=@[]%20%2F")]
+        [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", @"/foo%5Cbar%5Cn%5Ct!")]
         // another syntax for empty port
-        [TestCase("ice+tcp://host.zeroc.com:/identity")]
+        [TestCase("ice+tcp://host.zeroc.com:/identity", "/identity")]
         [TestCase("ice+universal://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
@@ -118,16 +129,22 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+ws://host.zeroc.com/identity?resource=/foo%2Fbar?/xyz")]
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
-        [TestCase("ice+tcp://host:10000/test?source-address=::1")]
+        [TestCase("ice+tcp://host:10000/test?source-address=::1", "/test")]
+        [TestCase("ice+tcp://host:10000?source-address=::1", "/")]
         // a valid URI
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
-        public void Proxy_Parse_ValidInputUriFormat(string str)
+        public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
             var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
             Assert.AreEqual(prx, prx2); // round-trip works
+
+            if (path != null)
+            {
+                Assert.AreEqual(path, prx.Path);
+            }
         }
 
         /// <summary>Test that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>

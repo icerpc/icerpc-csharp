@@ -142,15 +142,18 @@ namespace ZeroC.Ice
             ServicePrx.InvokeAsync(proxy, request, oneway, progress);
 
         /// <summary>Normalizes a URI path: adds a leading slash (if the path does not start with a slash) and
-        /// percent-escapes all characters except the unreserved characters, slash and the characters already escaped.
-        /// </summary>
+        /// percent-escapes all characters except the unreserved characters, two reserved characters (/ and ?) and all
+        /// other characters such as %, \ and space.</summary>
         /// <param name="path">The input path, with slash separators. It can be already partially or fully percent-
         /// escaped.</param>
         /// <returns>The normalized path.</returns>
         public static string NormalizePath(string path)
         {
-            string[] segments = path.Split('/');
-            string normalized = string.Join('/', segments.Select(s => Uri.EscapeDataString(Uri.UnescapeDataString(s))));
+            string normalized = string.Join(
+                '/',
+                path.Split('/').Select(
+                    s => Uri.EscapeUriString(Uri.UnescapeDataString(s)).Replace("/", "%2F").Replace("?", "%3F")));
+
             if (normalized.StartsWith('/'))
             {
                 return normalized;

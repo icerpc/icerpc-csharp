@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Api
         /// <param name="path">The path to check.</param>
         /// <param name="newPath">The new normalized path, if different than normalize(path).</param>
         [TestCase("foo/bar")]
-        [TestCase("foo/bar")]
+        [TestCase("/foo/bar")]
         [TestCase("/")]
         [TestCase("/foo/")]
         [TestCase("//foo", "/foo")]
@@ -83,11 +83,11 @@ namespace IceRpc.Tests.Api
         [TestCase("test", "\x7f€", "/%7F%E2%82%AC/test")]
         [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
                   "greek \ud800\udd6a",
-                  "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24")]
+                  "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2$")]
         [TestCase("/foo", "", "/%2Ffoo")]
         [TestCase("/foo", "bar", "/bar/%2Ffoo")]
         [TestCase("/foo", "/bar/", "/%2Fbar%2F/%2Ffoo")]
-        [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
+        [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F#@")]
         [TestCase("", "", "/")] // empty identity
         [TestCase("", "cat/", "/cat%2F/")] // category with trailing slash and empty name
         public void Identity_ToPathFromPath(string name, string category, string path)

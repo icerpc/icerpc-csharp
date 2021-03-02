@@ -173,7 +173,7 @@ namespace ZeroC.Ice.Test.Proxy
             TestHelper.Assert(b1.Path == "/test");
 
             b1 = IServicePrx.Parse("ice:test#frag", communicator);
-            TestHelper.Assert(b1.Path == "/test%23frag");
+            TestHelper.Assert(b1.Path == "/test#frag");
 
             b1 = IServicePrx.Parse("ice:test ", communicator);
             TestHelper.Assert(b1.Path == "/test");
@@ -266,9 +266,9 @@ namespace ZeroC.Ice.Test.Proxy
             b1 = IServicePrx.Parse("ice:server/category/test", communicator);
             TestHelper.Assert(b1.Path == "/server/category/test");
             b1 = IServicePrx.Parse("ice:server:tcp/category/test", communicator);
-            TestHelper.Assert(b1.Path == "/server%3Atcp/category/test");
+            TestHelper.Assert(b1.Path == "/server:tcp/category/test");
 
-            // preferred syntax with escape:
+            // syntax with escape:
             TestHelper.Assert(b1.Equals(IServicePrx.Parse("ice:/server%3Atcp/category/test", communicator)));
 
             b1 = IServicePrx.Parse("category/test", communicator);
@@ -317,10 +317,10 @@ namespace ZeroC.Ice.Test.Proxy
             // End of ice1 format-only tests.
 
             b1 = IServicePrx.Parse("ice:id#facet", communicator);
-            TestHelper.Assert(b1.Path == "/id%23facet");
+            TestHelper.Assert(b1.Path == "/id#facet");
 
             b1 = IServicePrx.Parse("ice:id#facet%20x", communicator);
-            TestHelper.Assert(b1.Path == "/id%23facet%20x");
+            TestHelper.Assert(b1.Path == "/id#facet%20x");
 
             b1 = IServicePrx.Parse("id -f facet", communicator);
             TestHelper.Assert(b1.Identity.Name == "id" && b1.Identity.Category.Length == 0 && b1.Facet == "facet");

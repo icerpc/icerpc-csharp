@@ -83,6 +83,7 @@ namespace ZeroC.Ice
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
+            // We need to call NormalizePath for characters like # (escaped by Uri) and \ (not escaped by Uri).
             return (endpoints, Proxy.NormalizePath(uri.AbsolutePath), proxyOptions);
         }
 
