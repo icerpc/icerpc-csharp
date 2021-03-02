@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
             await using var server = new Server(communicator);
-            server.Use((request, current, next, cancel) => throw new ArgumentException());
+            server.Use((current, next, cancel) => throw new ArgumentException());
             var service = new TestService();
             var prx = server.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
             await server.ActivateAsync();
@@ -36,16 +36,16 @@ namespace IceRpc.Tests.Api
             var interceptorCalls = new List<string>();
 
             // Simple dispatch interceptor followed by regular dispatch interceptor
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
             {
                 interceptorCalls.Add("DispatchInterceptors -> 0");
                 var result = await next();
                 interceptorCalls.Add("DispatchInterceptors <- 0");
                 return result;
-            }).Use(next => async (request, current, cancel) =>
+            }).Use(next => async (current, cancel) =>
             {
                 interceptorCalls.Add("DispatchInterceptors -> 1");
-                var result = await next(request, current, cancel);
+                var result = await next(current, cancel);
                 interceptorCalls.Add("DispatchInterceptors <- 1");
                 return result;
             });

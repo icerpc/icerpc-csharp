@@ -2781,11 +2781,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<ZeroC.Ice.OutgoingResponseFrame> ZeroC.Ice.IService"
          << ".DispatchAsync("
-         << "ZeroC.Ice.IncomingRequestFrame request, "
          << "ZeroC.Ice.Current current, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "DispatchAsync(this, request, current, cancel);";
+    _out << nl << "DispatchAsync(this, current, cancel);";
     _out.dec();
 
     _out << sp;
@@ -2793,7 +2792,6 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "// and reuse the generated implementation.";
     _out << nl << "protected static global::System.Threading.Tasks.ValueTask<ZeroC.Ice.OutgoingResponseFrame> "
          << "DispatchAsync(" << fixId(name) << " servant, "
-         << "ZeroC.Ice.IncomingRequestFrame request, "
          << "ZeroC.Ice.Current current, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
@@ -2811,8 +2809,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     for(const auto& opName : allOpNames)
     {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second
-             << "Async(request, current, cancel),";
+        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(current, cancel),";
     }
 
     _out << nl << "_ => throw new ZeroC.Ice.OperationNotFoundException()";
@@ -2947,10 +2944,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         _out << "async ";
     }
     _out << "global::System.Threading.Tasks.ValueTask<ZeroC.Ice.OutgoingResponseFrame>";
-    _out << " " << internalName << "("
-         << "ZeroC.Ice.IncomingRequestFrame request, "
-         << "ZeroC.Ice.Current current, "
-         << "global::System.Threading.CancellationToken cancel)";
+    _out << " " << internalName << "(ZeroC.Ice.Current current, global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
@@ -2962,18 +2956,18 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "request.ReadEmptyArgs();";
+        _out << nl << "current.IncomingRequestFrame.ReadEmptyArgs();";
     }
     else if(params.size() == 1 && params.front()->stream())
     {
-        _out << nl << "var " << paramName(params.front(), "iceP_") << " = request.ReadArgs(";
+        _out << nl << "var " << paramName(params.front(), "iceP_") << " = current.IncomingRequestFrame.ReadArgs(";
         _out << "ZeroC.Ice.SocketStream.Ice" << streamDataReader(params.front()->type());
         _out << ");";
     }
     else
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(current.Connection, request);";
+            << " = Request." << fixId(opName) << "(current.Connection, current.IncomingRequestFrame);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (current, istr etc.)

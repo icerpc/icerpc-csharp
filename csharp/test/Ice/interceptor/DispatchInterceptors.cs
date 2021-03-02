@@ -20,7 +20,7 @@ namespace ZeroC.Ice.Test.Interceptor
 
         public static async ValueTask ActivateAsync(Server server)
         {
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
             {
                 if (current.Context.TryGetValue("raiseBeforeDispatch", out string? context))
                 {
@@ -51,7 +51,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 return response;
             });
 
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
             {
                     if (current.Operation == "addWithRetry")
                     {
@@ -72,7 +72,7 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
             });
 
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
                 {
                     if (current.Context.TryGetValue("retry", out string? context) && context.Equals("yes"))
                     {
@@ -86,38 +86,38 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
                 });
 
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
                 {
-                    if (current.Operation == "opWithBinaryContext" && request.Protocol == Protocol.Ice2)
+                    if (current.Operation == "opWithBinaryContext" && current.Protocol == Protocol.Ice2)
                     {
-                        Debug.Assert(request.BinaryContext.ContainsKey(3));
-                        short size = request.BinaryContext[3].Read(istr => istr.ReadShort());
+                        Debug.Assert(current.BinaryContext.ContainsKey(3));
+                        short size = current.BinaryContext[3].Read(istr => istr.ReadShort());
                         var t2 = new Token(1, "mytoken", Enumerable.Range(0, size).Select(i => (byte)2).ToArray());
-                        Debug.Assert(request.BinaryContext.ContainsKey(1));
-                        Token t1 = request.BinaryContext[1].Read(Token.IceReader);
+                        Debug.Assert(current.BinaryContext.ContainsKey(1));
+                        Token t1 = current.BinaryContext[1].Read(Token.IceReader);
                         TestHelper.Assert(t1.Hash == t2.Hash);
                         TestHelper.Assert(t1.Expiration == t2.Expiration);
                         TestHelper.Assert(t1.Payload.SequenceEqual(t2.Payload));
-                        Debug.Assert(request.BinaryContext.ContainsKey(2));
-                        string[] s2 = request.BinaryContext[2].Read(istr =>
+                        Debug.Assert(current.BinaryContext.ContainsKey(2));
+                        string[] s2 = current.BinaryContext[2].Read(istr =>
                             istr.ReadArray(1, InputStream.IceReaderIntoString));
                         TestHelper.Assert(Enumerable.Range(0, 10).Select(i => $"string-{i}").SequenceEqual(s2));
 
-                        if (request.HasCompressedPayload)
+                        if (current.IncomingRequestFrame.HasCompressedPayload)
                         {
-                            request.DecompressPayload();
+                            current.IncomingRequestFrame.DecompressPayload();
 
-                            Debug.Assert(request.BinaryContext.ContainsKey(3));
-                            size = request.BinaryContext[3].Read(istr => istr.ReadShort());
+                            Debug.Assert(current.BinaryContext.ContainsKey(3));
+                            size = current.BinaryContext[3].Read(istr => istr.ReadShort());
 
-                            Debug.Assert(request.BinaryContext.ContainsKey(1));
-                            t1 = request.BinaryContext[1].Read(Token.IceReader);
-                            t2 = request.ReadArgs(current.Connection, Token.IceReader);
+                            Debug.Assert(current.BinaryContext.ContainsKey(1));
+                            t1 = current.BinaryContext[1].Read(Token.IceReader);
+                            t2 = current.IncomingRequestFrame.ReadArgs(current.Connection, Token.IceReader);
                             TestHelper.Assert(t1.Hash == t2.Hash);
                             TestHelper.Assert(t1.Expiration == t2.Expiration);
                             TestHelper.Assert(t1.Payload.SequenceEqual(t2.Payload));
-                            Debug.Assert(request.BinaryContext.ContainsKey(2));
-                            s2 = request.BinaryContext[2].Read(istr =>
+                            Debug.Assert(current.BinaryContext.ContainsKey(2));
+                            s2 = current.BinaryContext[2].Read(istr =>
                                 istr.ReadArray(1, InputStream.IceReaderIntoString));
                             TestHelper.Assert(Enumerable.Range(0, 10).Select(i => $"string-{i}").SequenceEqual(s2));
                         }
@@ -125,12 +125,12 @@ namespace ZeroC.Ice.Test.Interceptor
                     return await next();
                 });
 
-            server.Use(async (request, current, next, cancel) =>
+            server.Use(async (current, next, cancel) =>
                 {
                     if (current.Operation == "op1")
                     {
                         LocalContext.Value = int.Parse(current.Context["local-user"]);
-                        if (request.Protocol == Protocol.Ice2)
+                        if (current.Protocol == Protocol.Ice2)
                         {
                             OutgoingResponseFrame response = await next();
                             response.BinaryContextOverride.Add(110, ostr => ostr.WriteInt(110));

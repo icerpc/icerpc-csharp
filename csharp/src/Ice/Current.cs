@@ -7,8 +7,11 @@ namespace ZeroC.Ice
 {
     /// <summary>Information about the current method dispatch for servers. Each method on the server has a
     /// Current as its final parameter.</summary>
-    public class Current
+    public sealed class Current
     {
+        /// <summary>The binary context carried by the incoming request frame.</summary>
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequestFrame.BinaryContext;
+
         /// <summary>The communicator.</summary>
         public Communicator Communicator => Server.Communicator;
 
@@ -32,6 +35,9 @@ namespace ZeroC.Ice
         /// <summary>The target facet. ice1 only.</summary>
         public string Facet => IncomingRequestFrame.Facet;
 
+        /// <summary>The incoming request frame.</summary>
+        public IncomingRequestFrame IncomingRequestFrame { get; }
+
         /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
         public bool IsIdempotent => IncomingRequestFrame.IsIdempotent;
 
@@ -52,7 +58,7 @@ namespace ZeroC.Ice
 
         /// <summary>The stream ID</summary>
         public long StreamId => Stream.Id;
-        internal IncomingRequestFrame IncomingRequestFrame { get; }
+
         internal SocketStream Stream { get; }
 
         internal Current(

@@ -7,10 +7,7 @@ namespace ZeroC.Ice.Test.Invoke
 {
     public class BlobjectI : IService
     {
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             if (current.Operation.Equals("opOneway"))
             {
@@ -23,7 +20,7 @@ namespace ZeroC.Ice.Test.Invoke
             }
             else if (current.Operation.Equals("opString"))
             {
-                string s = request.ReadArgs(current.Connection, InputStream.IceReaderIntoString);
+                string s = current.IncomingRequestFrame.ReadArgs(current.Connection, InputStream.IceReaderIntoString);
                 var responseFrame = OutgoingResponseFrame.WithReturnValue(
                     current,
                     compress: false,
@@ -43,7 +40,7 @@ namespace ZeroC.Ice.Test.Invoke
                     throw new MyException();
                 }
                 return new ValueTask<OutgoingResponseFrame>(
-                    new OutgoingResponseFrame(request, new MyException()));
+                    new OutgoingResponseFrame(current.IncomingRequestFrame, new MyException()));
             }
             else if (current.Operation.Equals("shutdown"))
             {
@@ -52,7 +49,7 @@ namespace ZeroC.Ice.Test.Invoke
             }
             else if (current.Operation.Equals("ice_isA"))
             {
-                string s = request.ReadArgs(current.Connection, InputStream.IceReaderIntoString);
+                string s = current.IncomingRequestFrame.ReadArgs(current.Connection, InputStream.IceReaderIntoString);
                 var responseFrame = OutgoingResponseFrame.WithReturnValue(current,
                                                                           compress: false,
                                                                           format: default,
