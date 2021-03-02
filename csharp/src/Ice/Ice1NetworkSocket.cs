@@ -26,7 +26,6 @@ namespace ZeroC.Ice
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private SingleStreamSocket _socket;
         private readonly AsyncSemaphore? _unidirectionalSerializeSemaphore;
 
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
@@ -37,7 +36,7 @@ namespace ZeroC.Ice
                 ArraySegment<byte> buffer;
                 if (Endpoint.IsDatagram)
                 {
-                    buffer = await _socket.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
+                    buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
                         if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
@@ -190,7 +189,7 @@ namespace ZeroC.Ice
         }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
-            _socket.CloseAsync(exception, cancel);
+            Underlying.CloseAsync(exception, cancel);
 
         public override SocketStream CreateStream(bool bidirectional, bool control) =>
             new Ice1NetworkSocketStream(this, bidirectional, control);
@@ -213,7 +212,6 @@ namespace ZeroC.Ice
             : base(endpoint, server, socket)
         {
             IdleTimeout = endpoint.Communicator.IdleTimeout;
-            _socket = socket;
 
             // If serialization is enabled on the server, create semaphore to limit the number of concurrent
             // dispatch per connection.
@@ -314,7 +312,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartSocketScope() => _socket.StartScope(Endpoint);
+        internal override IDisposable? StartSocketScope() => Underlying.StartScope(Endpoint);
 
         private long AllocateId(bool bidirectional)
         {
@@ -414,7 +412,7 @@ namespace ZeroC.Ice
             int offset = 0;
             while (offset != buffer.Count)
             {
-                int received = await _socket.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
+                int received = await Underlying.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
                 offset += received;
                 Received(received);
             }
@@ -422,7 +420,7 @@ namespace ZeroC.Ice
 
         private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
         {
-            int sent = await _socket.SendAsync(buffers, cancel).ConfigureAwait(false);
+            int sent = await Underlying.SendAsync(buffers, cancel).ConfigureAwait(false);
             Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
