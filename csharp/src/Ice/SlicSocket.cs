@@ -34,7 +34,7 @@ namespace ZeroC.Ice
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly BufferedReceiveOverSingleStreamSocket _socket;
+        private BufferedReceiveOverSingleStreamSocket? _socket;
         private Memory<byte>? _streamConsumedBuffer;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -236,13 +236,16 @@ namespace ZeroC.Ice
         }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
-            _socket.CloseAsync(exception, cancel);
+            (_socket ?? Underlying).CloseAsync(exception, cancel);
 
         public override SocketStream CreateStream(bool bidirectional, bool control) =>
             new SlicStream(this, bidirectional, control);
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
+            // Create a buffered receive single stream socket on top of the underlying socket.
+            _socket = new BufferedReceiveOverSingleStreamSocket(Underlying);
+
             if (IsIncoming)
             {
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
@@ -355,7 +358,6 @@ namespace ZeroC.Ice
             : base(endpoint, server, socket)
         {
             _idleTimeout = endpoint.Communicator.IdleTimeout;
-            _socket = new BufferedReceiveOverSingleStreamSocket(socket);
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
@@ -440,7 +442,7 @@ namespace ZeroC.Ice
         {
             for (int offset = 0; offset != buffer.Length;)
             {
-                int received = await _socket.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                int received = await _socket!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
                 offset += received;
                 Received(received);
             }
@@ -477,7 +479,7 @@ namespace ZeroC.Ice
         internal async ValueTask SendPacketAsync(IList<ArraySegment<byte>> buffer)
         {
             // Perform the write
-            int sent = await _socket.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+            int sent = await _socket!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
             Debug.Assert(sent == buffer.GetByteCount());
             Sent(sent);
         }
@@ -598,7 +600,7 @@ namespace ZeroC.Ice
             }
         }
 
-        internal override IDisposable? StartSocketScope() => _socket.StartScope(Endpoint);
+        internal override IDisposable? StartSocketScope() => (_socket ?? Underlying).StartScope(Endpoint);
 
         private void ReadParameters(InputStream istr)
         {
@@ -684,14 +686,14 @@ namespace ZeroC.Ice
         {
             // Receive at most 2 bytes for the Slic header (the minimum size of a Slic header). The first byte
             // will be the frame type and the second is the first byte of the Slic frame size.
-            ReadOnlyMemory<byte> buffer = await _socket.ReceiveAsync(2, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> buffer = await _socket!.ReceiveAsync(2, cancel).ConfigureAwait(false);
             var type = (SlicDefinitions.FrameType)buffer.Span[0];
             int sizeLength = buffer.Span[1].ReadSizeLength20();
             int size;
             if (sizeLength > 1)
             {
-                _socket.Rewind(1);
-                buffer = await _socket.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
+                _socket!.Rewind(1);
+                buffer = await _socket!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
                 size = buffer.Span.ReadSize20().Size;
             }
             else
@@ -705,9 +707,9 @@ namespace ZeroC.Ice
             if (type >= SlicDefinitions.FrameType.Stream && type <= SlicDefinitions.FrameType.StreamConsumed)
             {
                 int receiveSize = Math.Min(size, 8);
-                buffer = await _socket.ReceiveAsync(receiveSize, cancel).ConfigureAwait(false);
+                buffer = await _socket!.ReceiveAsync(receiveSize, cancel).ConfigureAwait(false);
                 (streamId, streamIdLength) = buffer.Span.ReadVarULong();
-                _socket.Rewind(receiveSize - streamIdLength);
+                _socket!.Rewind(receiveSize - streamIdLength);
             }
 
             Received(1 + sizeLength + streamIdLength);

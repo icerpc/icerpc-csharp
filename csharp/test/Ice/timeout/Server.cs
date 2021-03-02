@@ -23,11 +23,11 @@ namespace ZeroC.Ice.Test.Timeout
 
             server.Add("timeout", new Timeout());
             server.Use(
-                (request, current, next, cancel) =>
+                (current, next, cancel) =>
                 {
                     if (current.Operation == "checkDeadline")
                     {
-                        if (request.BinaryContext.TryGetValue(10, out ReadOnlyMemory<byte> value))
+                        if (current.BinaryContext.TryGetValue(10, out ReadOnlyMemory<byte> value))
                         {
                             current.Context["deadline"] = value.Read(istr => istr.ReadVarLong()).ToString();
                         }

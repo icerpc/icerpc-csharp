@@ -255,7 +255,7 @@ namespace ZeroC.Ice
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
-            _dispatchPipeline = async (request, current, cancel) =>
+            _dispatchPipeline = async (current, cancel) =>
             {
                 Debug.Assert(current.Server == this);
                 IService? service = Find(current.Path, current.Facet);
@@ -264,7 +264,7 @@ namespace ZeroC.Ice
                     throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                 }
 
-                return await service.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                return await service.DispatchAsync(current, cancel).ConfigureAwait(false);
             };
         }
 
@@ -673,13 +673,12 @@ namespace ZeroC.Ice
 
         /// <summary>Runs the request dispatch pipeline in a try/catch block</summary>
         internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
             Current current,
             CancellationToken cancel)
         {
             try
             {
-                return await _dispatchPipeline(request, current, cancel).ConfigureAwait(false);
+                return await _dispatchPipeline(current, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -699,7 +698,7 @@ namespace ZeroC.Ice
                         }
                     }
 
-                    return new OutgoingResponseFrame(request, actualEx);
+                    return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                 }
                 else
                 {
