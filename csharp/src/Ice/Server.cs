@@ -522,7 +522,17 @@ namespace ZeroC.Ice
             {
                 if (!_serviceMap.TryGetValue((path, facet), out IService? service))
                 {
-                    if (!_categoryServiceMap.TryGetValue((Identity.FromPath(path).Category, facet), out service))
+                    bool found = false;
+                    try
+                    {
+                        found = _categoryServiceMap.TryGetValue((Identity.FromPath(path).Category, facet), out service);
+                    }
+                    catch (FormatException)
+                    {
+                        // bad path ignored, found remains false
+                    }
+
+                    if (!found)
                     {
                         _defaultServiceMap.TryGetValue(facet, out service);
                     }

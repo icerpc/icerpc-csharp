@@ -9,24 +9,43 @@ namespace ZeroC.Ice
     public readonly partial struct Identity
     {
         /// <summary>The empty Identity.</summary>
-        public static readonly Identity Empty = new Identity("", "");
+        public static readonly Identity Empty = new("", "");
 
-        /// <summary>Creates an Identity from a URI path. This method never fails.</summary>
+        /// <summary>Creates an Identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
+        /// <exception cref="FormatException">path cannot be converted into an identity.</exception>
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            // Discard leading /
-            string[] segments = path.Length > 0 && path[0] == '/' ? path[1..].Split('/') : path.Split('/');
-
-            // The returned Identity.Name can be empty.
-            return segments.Length switch
+            if (path.Length == 0)
             {
-                0 => Empty, // this is actually impossible, segments.Length is always >= 1
-                1 => new Identity(Uri.UnescapeDataString(segments[0]), ""),
-                _ => new Identity(string.Join('/', segments.Skip(1).Select(s => Uri.UnescapeDataString(s))),
-                      Uri.UnescapeDataString(segments[0])),
-            };
+                return Empty;
+            }
+
+            int start = path[0] == '/' ? 1 : 0; // skip optional starting slash
+
+            int firstSlash = path.IndexOf('/', start);
+            int lastSlash = path.LastIndexOf('/');
+            if (lastSlash == 0)
+            {
+                lastSlash = -1;
+            }
+
+            if (firstSlash != lastSlash)
+            {
+                throw new FormatException($"too many slashes in path `{path}'");
+            }
+
+            if (firstSlash == -1)
+            {
+                // Name only
+                return new Identity(Uri.UnescapeDataString(path[start..]), "");
+            }
+            else
+            {
+                return new Identity(Uri.UnescapeDataString(path[(firstSlash + 1)..]),
+                                    Uri.UnescapeDataString(path[start..firstSlash]));
+            }
         }
 
         /// <summary>Creates an Identity from a string in the ice1 format.</summary>
@@ -131,21 +150,13 @@ namespace ZeroC.Ice
             }
             Debug.Assert(Category != null);
 
-            string path = Proxy.NormalizePath(Name);
-            if (Name.Length > 0 && Name[0] == '/')
+            if (Category.Length > 0)
             {
-                // If Name starts with /, NormalizePath does not add an extra leading /, so we add it back.
-                path = $"/{path}";
-            }
-
-            if (Category.Length == 0)
-            {
-                // Start with double `/` when normalized name contains `/` to ensure proper round-trip.
-                return path[1..].Contains('/') ? $"/{path}" : path;
+                return Proxy.NormalizePath($"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}");
             }
             else
             {
-                return $"/{Uri.EscapeDataString(Category)}{path}";
+                return Proxy.NormalizePath($"/{Uri.EscapeDataString(Name)}");
             }
         }
 

@@ -278,16 +278,20 @@ namespace ZeroC.Ice
                 }
                 else
                 {
-                    var identity = Identity.FromPath(Path);
+                    Identity identity;
+                    try
+                    {
+                        identity = Identity.FromPath(Path);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new InvalidOperationException(
+                            @$"cannot marshal proxy with path `{Path}' using encoding 1.1", ex);
+                    }
                     if (identity.Name.Length == 0)
                     {
-                        // Unfortunately this can happen by accident: you create an ice2 proxy with some random path
-                        // that happens to have an empty identity name, and when you attempt to marshal it with 1.1, you
-                        // get this exception. This should be very rare, as you typically never marshal an ice2 proxy in
-                        // a 1.1-encoded payload.
                         throw new InvalidOperationException(
-                            @$"cannot marshal proxy with path `{Path
-                            }' using encoding 1.1 as the resulting identity name is empty");
+                            @$"cannot marshal proxy with path `{Path}' using encoding 1.1");
                     }
 
                     identity.IceWrite(ostr);
@@ -527,12 +531,6 @@ namespace ZeroC.Ice
                         }
                         sb.AppendEndpoint(Endpoints[i], "", mainTransport != Endpoints[i].Transport, '$');
                     }
-                }
-
-                if (Facet.Length > 0)
-                {
-                    sb.Append('#');
-                    sb.Append(Uri.EscapeDataString(Facet));
                 }
 
                 return sb.ToString();

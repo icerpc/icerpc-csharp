@@ -328,7 +328,16 @@ namespace ZeroC.Ice
                         }
                         else
                         {
-                            Identity.FromPath(request.Path).IceWrite(ostr);
+                            var identity = Identity.Empty;
+                            try
+                            {
+                                identity = Identity.FromPath(request.Path);
+                            }
+                            catch (FormatException)
+                            {
+                                // ignored, i.e. we'll marshal an empty identity
+                            }
+                            identity.IceWrite(ostr);
                         }
                         ostr.WriteIce1Facet(request.Facet);
                         ostr.WriteString(request.Operation);
