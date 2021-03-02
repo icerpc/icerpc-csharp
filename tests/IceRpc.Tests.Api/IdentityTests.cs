@@ -9,6 +9,49 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class IdentityTests
     {
+        /// <summary>Verifies that a compatible URI path can be converted to an identity and identity.ToPath() returns a
+        /// normalized version of path.</summary>
+        /// <param name="path">The path to check.</param>
+        /// <param name="newPath">The new normalized path, if different than normalize(path).</param>
+        [TestCase("foo/bar")]
+        [TestCase("foo/bar")]
+        [TestCase("/")]
+        [TestCase("/foo/")]
+        [TestCase("//foo", "/foo")]
+        [TestCase("//", "/")]
+        public void Identity_FromPathToPath(string path, string newPath = "")
+        {
+            var identity = Identity.FromPath(path);
+            if (newPath.Length == 0)
+            {
+                newPath = Proxy.NormalizePath(path);
+            }
+
+            Assert.AreEqual(newPath, identity.ToPath());
+        }
+
+        /// <summary>Identity.FromPath for some path throws FormatException.</summary>
+        [TestCase("/foo/bar/abc")] // too many slashes
+        [TestCase("foo/bar/abc")] // too many slashes
+        [TestCase("///")] // too many slashes
+        public void Identity_FromPath_InvalidInput(string path)
+        {
+            Assert.Throws<FormatException>(() => Identity.FromPath(path));
+        }
+
+        /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath.
+        /// </summary>
+        [TestCase("foo", "foo", "")]
+        [TestCase("/foo", "foo", "")]
+        [TestCase("foo/bar", "bar", "foo")]
+        [TestCase("foo/bar+", "bar+", "foo")]
+        public void Identity_FromSimpleString(string str, string name, string category)
+        {
+            var identity = new Identity(name, category);
+            Assert.AreEqual(identity, Identity.Parse(str));
+            Assert.AreEqual(identity, Identity.FromPath(str));
+        }
+
         /// <summary>Identity.Parse for an invalid identity throws FormatException, Identity.TryParse
         /// for an invalid identity must return false.</summary>
         [TestCase("xx\01FooBar")] // Illegal character < 32
@@ -30,20 +73,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(new Identity(name, category), Identity.Parse(str));
         }
 
-        /// <summary>Verifies that a URI path can be converted to an identity and identity.ToPath() returns a normalized
-        /// version of path.</summary>
-        /// <param name="path">The path to check.</param>
-        [TestCase("foo/bar")]
-        [TestCase("/")]
-        [TestCase("/foo/")]
-        public void Identity_FromPathToPath(string path)
-        {
-            var identity = Identity.FromPath(path);
-            Assert.AreEqual(Proxy.NormalizePath(path), identity.ToPath());
-        }
-
-        /// <summary>Verifies that Identity can be converted to a URI path (with ToPath) and converted back to the same
-        /// identity (with FromPath).</summary>
+        /// <summary>Verifies that any arbitrary Identity can represented by a URI path (i.e. produced from FromPath)
+        /// and that ToPath then returns the same path.</summary>
         /// <param name="name">The name field of the Identity.</param>
         /// <param name="category">The category field of the Identity.</param>
         /// <param name="path">The normalized URI path to check against.</param>
@@ -53,10 +84,10 @@ namespace IceRpc.Tests.Api
         [TestCase("banana \x0E-\ud83c\udf4c\u20ac\u00a2\u0024",
                   "greek \ud800\udd6a",
                   "/greek%20%F0%90%85%AA/banana%20%0E-%F0%9F%8D%8C%E2%82%AC%C2%A2%24")]
-        [TestCase("/foo", "", "///foo")]
-        [TestCase("/foo", "bar", "/bar//foo")]
-        [TestCase("/foo", "/bar/", "/%2Fbar%2F//foo")]
-        [TestCase("foo/// ///#@", "", "//foo///%20///%23%40")]
+        [TestCase("/foo", "", "/%2Ffoo")]
+        [TestCase("/foo", "bar", "/bar/%2Ffoo")]
+        [TestCase("/foo", "/bar/", "/%2Fbar%2F/%2Ffoo")]
+        [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
         [TestCase("", "", "/")] // empty identity
         [TestCase("", "cat/", "/cat%2F/")] // category with trailing slash and empty name
         public void Identity_ToPathFromPath(string name, string category, string path)
