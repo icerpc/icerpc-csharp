@@ -10,6 +10,79 @@ namespace IceRpc.Tests.Api
     public class ServerTests
     {
         [Test]
+        public async Task Server_ArgumentException()
+        {
+            await using var communicator = new Communicator();
+
+            // A hostname cannot be used with an ephemereal port 0
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 0" }));
+
+            // ReplicaGroupId is set but options.AdapterId is not
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator, new ServerOptions() { ReplicaGroupId = "replica-group" }));
+
+            // LocatorRegistry is set but options.AdapterId is not
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     LocatorRegistry = ILocatorRegistryPrx.Parse("default", communicator)
+                                 }));
+
+            // IncomingFrameMaxSize cannot be less than 1KB
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));
+
+            // AdapterId set for an ice2 server
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     AdapterId = "adapter-id",
+                                     Endpoints = "ice+tcp://localhost:10000"
+                                 }));
+
+            // AdapterId set for an ice2 server
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     AdapterId = "adapter-id",
+                                     Protocol = Protocol.Ice2
+                                 }));
+
+            // Server can only accept secure connections
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     AcceptNonSecure = NonSecure.Never,
+                                     Endpoints = "tcp -h localhost -p 10000"
+                                 }));
+
+            // only one endpoint is allowed when a dynamic IP port (:0) is configured
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     AcceptNonSecure = NonSecure.Never,
+                                     Endpoints = "ice+tcp://localhost:0?alt-endpoint=localhost1:10000"
+                                 }));
+
+            // both PublishedHost and PublishedEndpoints are empty"
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     PublishedEndpoints = "",
+                                     PublishedHost = "",
+                                     Endpoints = "ice+tcp://localhost:10000"
+                                 }));
+
+        }
+
+        [Test]
         public async Task Server_EndpointInformation()
         {
             await using var communicator = new Communicator();
