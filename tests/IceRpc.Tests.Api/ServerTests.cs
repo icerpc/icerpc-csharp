@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Api
     public class ServerTests
     {
         [Test]
-        public async Task Server_ArgumentException()
+        public async Task Server_Exceptions()
         {
             await using var communicator = new Communicator();
 
@@ -80,6 +80,20 @@ namespace IceRpc.Tests.Api
                                      Endpoints = "ice+tcp://localhost:10000"
                                  }));
 
+            {
+                // Activating twice the server is incorrect
+                await using var server = new Server(communicator);
+                await server.ActivateAsync();
+                Assert.ThrowsAsync<System.InvalidOperationException>(async () => await server.ActivateAsync());
+            }
+
+            {
+                // cannot add an dispatchInterceptor to a server after activation"
+                await using var server = new Server(communicator);
+                await server.ActivateAsync();
+                Assert.Throws<System.InvalidOperationException>(
+                    () => server.Use(next => async (current, cancel) => await next(current, cancel)));
+            }
         }
 
         [Test]
