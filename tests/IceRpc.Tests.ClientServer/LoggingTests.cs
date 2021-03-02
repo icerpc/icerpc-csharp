@@ -13,6 +13,7 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
     public class LoggingTests : ClientServerBaseTest
     {

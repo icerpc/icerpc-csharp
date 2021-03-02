@@ -19,58 +19,6 @@ namespace ZeroC.Ice.Test.Info
             bool ice1 = helper.Protocol == Protocol.Ice1;
             string transport = helper.Transport;
             TextWriter output = helper.Output;
-            output.Write("testing proxy endpoint information... ");
-            output.Flush();
-            {
-                string ice1Prx = @"test -t:tcp -h tcphost -p 10000 -t 1200 -z
-                    --sourceAddress 10.10.10.10: udp -h udphost -p 10001 --interface eth0 --ttl 5
-                    --sourceAddress 10.10.10.10:opaque -e 1.8 -t 100 -v ABCD";
-
-                string ice2Prx = "ice+tcp://tcphost:10000/test?source-address=10.10.10.10" +
-                    "&alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD";
-
-                var p1 = IServicePrx.Parse(ice1 ? ice1Prx : ice2Prx, communicator);
-
-                IReadOnlyList<Endpoint> endps = p1.Endpoints;
-
-                Endpoint tcpEndpoint = endps[0];
-                TestHelper.Assert(tcpEndpoint.Transport == Transport.TCP && !tcpEndpoint.IsAlwaysSecure);
-                TestHelper.Assert(tcpEndpoint.Host == "tcphost");
-                TestHelper.Assert(tcpEndpoint.Port == 10000);
-                TestHelper.Assert(tcpEndpoint["source-address"] == "10.10.10.10");
-                if (ice1)
-                {
-                    TestHelper.Assert(tcpEndpoint["timeout"] == "1200");
-                    TestHelper.Assert(tcpEndpoint["compress"] == "true");
-                }
-                TestHelper.Assert(!tcpEndpoint.IsDatagram);
-
-                if (ice1)
-                {
-                    Endpoint udpEndpoint = endps[1];
-                    TestHelper.Assert(udpEndpoint.Host == "udphost");
-                    TestHelper.Assert(udpEndpoint.Port == 10001);
-                    TestHelper.Assert(udpEndpoint["interface"] == "eth0");
-                    TestHelper.Assert(udpEndpoint["ttl"] == "5");
-                    TestHelper.Assert(udpEndpoint["source-address"] == "10.10.10.10");
-                    TestHelper.Assert(udpEndpoint["timeout"] == null);
-                    TestHelper.Assert(udpEndpoint["compress"] == null);
-                    TestHelper.Assert(!udpEndpoint.IsAlwaysSecure);
-                    TestHelper.Assert(udpEndpoint.IsDatagram);
-                    TestHelper.Assert(udpEndpoint.Transport == Transport.UDP);
-
-                    Endpoint opaqueEndpoint = endps[2];
-                    TestHelper.Assert(opaqueEndpoint["value"] == "ABCD");
-                    TestHelper.Assert(opaqueEndpoint["value-encoding"] == "1.8");
-                }
-                else
-                {
-                    Endpoint universalEndpoint = endps[1];
-                    TestHelper.Assert(universalEndpoint.Transport == (Transport)100);
-                    TestHelper.Assert(universalEndpoint["option"] == "ABCD");
-                }
-            }
-            output.WriteLine("ok");
 
             Server server;
             output.Write("test server endpoint information... ");
