@@ -125,6 +125,7 @@ namespace IceRpc.Tests.ClientServer
             var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
+            writer.Flush();
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
 

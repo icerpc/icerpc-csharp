@@ -84,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
 
                 var prx = IConnectionTestServicePrx.Parse(
                     GetTestProxy("test", transport: "udp", port: 1, protocol: Protocol.Ice1),
-                    communicator).Clone(oneway: true, preferNonSecure: NonSecure.Never);
+                    communicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
 
                 var connection = (await prx.GetConnectionAsync()) as UdpConnection;
 
