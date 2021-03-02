@@ -58,7 +58,6 @@ namespace IceRpc.Tests.ClientServer
                 prx = prx.Clone(preferNonSecure: NonSecure.Always, oneway: true);
             }
 
-
             var connection = (await prx.GetConnectionAsync()) as IPConnection;
             Assert.NotNull(connection);
             Assert.NotNull(connection!.RemoteEndpoint);
