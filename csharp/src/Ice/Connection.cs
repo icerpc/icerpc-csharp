@@ -534,13 +534,13 @@ namespace ZeroC.Ice
                     var current = new Current(server, request, stream, this);
                     if (server.TaskScheduler != null)
                     {
-                        response = await TaskRun(() => server.DispatchAsync(request, current, cancel),
+                        response = await TaskRun(() => server.DispatchAsync(current, cancel),
                                                 cancel,
                                                 server.TaskScheduler).ConfigureAwait(false);
                     }
                     else
                     {
-                        response = await server.DispatchAsync(request, current, cancel).ConfigureAwait(false);
+                        response = await server.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
                 }
 

@@ -19,24 +19,21 @@ namespace ZeroC.Ice.Test.Compress
             _compressed = compressed;
         }
 
-        public async ValueTask<OutgoingResponseFrame> DispatchAsync(
-            IncomingRequestFrame request,
-            Current current,
-            CancellationToken cancel)
+        public async ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             if (current.Operation == "opCompressArgs" || current.Operation == "opCompressArgsAndReturn")
             {
-                if (request.PayloadEncoding == Encoding.V20)
+                if (current.Encoding == Encoding.V20)
                 {
-                    TestHelper.Assert(request.HasCompressedPayload == _compressed);
+                    TestHelper.Assert(current.IncomingRequestFrame.HasCompressedPayload == _compressed);
                     if (!_compressed)
                     {
                         // Ensure payload count is less than Ice.CompressionMinSize
-                        TestHelper.Assert(request.PayloadSize < 1024);
+                        TestHelper.Assert(current.IncomingRequestFrame.PayloadSize < 1024);
                     }
                 }
             }
-            OutgoingResponseFrame response = await _servant.DispatchAsync(request, current, cancel);
+            OutgoingResponseFrame response = await _servant.DispatchAsync(current, cancel);
             if (current.Operation == "opCompressReturn" || current.Operation == "opCompressArgsAndReturn")
             {
                 if (response.PayloadEncoding == Encoding.V20)
