@@ -19,6 +19,23 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public void InvocationRetries_Cancelation()
         {
+            var service = new RetryService();
+            IRetryServicePrx retry = Server.Add("retry", service, IRetryServicePrx.Factory).Clone(
+                invocationTimeout: TimeSpan.FromMilliseconds(1000));
+            //await prx.OpIdempotentAsync(0);
+            // No more than 2 retries before timeout kicks-in
+            Assert.ThrowsAsync<TaskCanceledException> (async () => await retry.OpIdempotentAsync(4));
+            Assert.AreEqual(3, service.Attempts);
+        }
+
+        [Test]
+        public void InvocationRetries_KillConnection()
+        {
+            var service = new RetryService();
+            IRetryServicePrx retry = Server.Add("retry", service, IRetryServicePrx.Factory);
+
+            Assert.ThrowsAsync<ConnectionLostException>(async () => await retry.OpAsync(true));
+            Assert.AreEqual(1, service.Attempts);
         }
 
         public sealed class NonReplicated : IAsyncRetryNonReplicatedService
@@ -30,6 +47,7 @@ namespace IceRpc.Tests.ClientServer
 
         internal class RetryService : IAsyncRetryService
         {
+            internal int Attempts; 
             private int _counter;
 
             public ValueTask<int> OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
@@ -74,6 +92,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<int> OpIdempotentAsync(int nRetry, Current current, CancellationToken cancel)
             {
+                Attempts++;
                 int[] delays = new int[] { 0, 1, 10000 };
                 if (nRetry > _counter)
                 {
