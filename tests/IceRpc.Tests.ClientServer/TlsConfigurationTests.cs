@@ -13,7 +13,8 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [Parallelizable]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Parallelizable(scope: ParallelScope.All)]
     public class TlsConfigurationTests : ClientServerBaseTest
     {
         private static int _portNumber;

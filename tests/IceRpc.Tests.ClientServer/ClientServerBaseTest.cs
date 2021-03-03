@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.ClientServer.BasePort"]!);
             }
-            _basePort = Interlocked.Add(ref _nextBasePort, 100) + basePort;
+            _basePort = Interlocked.Add(ref _nextBasePort, 25) + basePort;
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
@@ -43,26 +43,35 @@ namespace IceRpc.Tests.ClientServer
                 });
         }
 
-        [OneTimeSetUp]
+        [SetUp]
         public async Task InitializeAsync() => await Server.ActivateAsync();
 
-        [OneTimeTearDown]
+        [TearDown]
         public async Task DisposeAsync()
         {
             await Server.DisposeAsync();
             await Communicator.DisposeAsync();
         }
 
-        public string GetTestEndpoint(string host = "127.0.0.1", int port = 0) =>
-            Protocol == Protocol.Ice2 ?
-                $"ice+{Transport}://{host}:{GetTestPort(port)}" :
-                $"{Transport} -h {host} -p {GetTestPort(port)}";
+        public string GetTestEndpoint(
+            string host = "127.0.0.1",
+            int port = 0,
+            string? transport = null,
+            Protocol? protocol = null) =>
+            (protocol ?? Protocol) == Protocol.Ice2 ?
+                $"ice+{transport ?? Transport}://{host}:{GetTestPort(port)}" :
+                $"{transport ?? Transport} -h {host} -p {GetTestPort(port)}";
 
         public int GetTestPort(int num) => _basePort + num;
 
-        public string GetTestProxy(string identity, string host = "127.0.0.1", int port = 0) =>
-            Protocol == Protocol.Ice2 ?
-                $"ice+{Transport}://{host}:{GetTestPort(port)}/{identity}" :
-                $"{identity}:{Transport} -h {host} -p {GetTestPort(port)}";
+        public string GetTestProxy(
+            string identity,
+            string host = "127.0.0.1",
+            int port = 0,
+            string? transport = null,
+            Protocol? protocol = null) =>
+            (protocol ?? Protocol) == Protocol.Ice2 ?
+                $"ice+{transport ?? Transport}://{host}:{GetTestPort(port)}/{identity}" :
+                $"{identity}:{transport ?? Transport} -h {host} -p {GetTestPort(port)}";
     }
 }
