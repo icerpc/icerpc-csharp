@@ -249,15 +249,6 @@ namespace IceRpc.Tests.ClientServer
                 _counter = 0;
                 return default;
             }
-
-            public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
-            {
-                current.Server.ShutdownAsync();
-                return default;
-            }
-
-            public async ValueTask SleepAsync(int delay, Current current, CancellationToken cancel) =>
-                await Task.Delay(delay, cancel);
         }
     }
 
