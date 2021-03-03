@@ -87,14 +87,7 @@ namespace ZeroC.Test
             Dictionary<string, string> properties,
             ICommunicatorObserver? observer = null)
         {
-            var tlsServerOptions = new TlsServerOptions();
-            if (properties.TryGetValue("Test.Transport", out string? value))
-            {
-                // When running test with WSS, disable client authentication for browser compatibility
-                tlsServerOptions.RequireClientCertificate = value == "ssl";
-            }
-
-            return new Communicator(properties, tlsServerOptions: tlsServerOptions, observer: observer);
+            return new Communicator(properties, observer: observer);
         }
 
         public string GetTestEndpoint(

@@ -43,5 +43,7 @@ namespace ZeroC.Ice
         public bool SerializeDispatch { get; set; }
 
         public TaskScheduler? TaskScheduler { get; set; }
+
+        public TlsServerOptions? TlsOptions { get; set; }
     }
 }

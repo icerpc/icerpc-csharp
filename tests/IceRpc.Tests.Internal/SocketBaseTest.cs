@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroC.Ice;
@@ -42,20 +43,7 @@ namespace IceRpc.Tests.Internal
             TransportName = transport;
             IsSecure = secure;
 
-            _serverCommunicator = new Communicator(
-                new Dictionary<string, string>
-                {
-                    { "IceSSL.DefaultDir", "../../../certs" },
-                    { "IceSSL.CertFile", "server.p12" },
-                    { "IceSSL.Password", "password" },
-                    { "IceSSL.Keychain", "test.keychain" },
-                    { "IceSSL.KeychainPassword", "password" },
-                    // { "Ice.Trace.Transport", "3" },
-                    // { "IceSSL.Trace.Security", "2" },
-                },
-                tlsServerOptions: new TlsServerOptions() {
-                    RequireClientCertificate = false
-                });
+            _serverCommunicator = new Communicator();
 
             string endpointTransport = transport == "colocated" ? "tcp" : transport;
 
@@ -71,16 +59,20 @@ namespace IceRpc.Tests.Internal
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                     ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
                     Endpoints = endpoint,
+                    TlsOptions = new TlsServerOptions()
+                    {
+                        RequireClientCertificate = false,
+                        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                    }
                 });
 
             _clientCommunicator = new Communicator(
-                new Dictionary<string, string>
+                tlsClientOptions: new TlsClientOptions()
                 {
-                    { "Ice.Default.PreferNonSecure", secure ? "Never" : "Always" },
-                    { "IceSSL.DefaultDir", "../../../certs" },
-                    { "IceSSL.CAs", "cacert.pem" },
-                    // { "Ice.Trace.Transport", "3" },
-                    // { "IceSSL.Trace.Security", "2" },
+                    CertificateAuthorities = new X509Certificate2Collection()
+                    {
+                        new X509Certificate2("../../../certs/cacert.pem")
+                    }
                 });
 
             var proxy = IServicePrx.Factory.Create(_server, "dummy");

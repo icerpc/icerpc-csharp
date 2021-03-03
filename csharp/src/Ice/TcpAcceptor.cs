@@ -30,7 +30,7 @@ namespace ZeroC.Ice
 
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
+                var socket = ((TcpEndpoint)Endpoint).CreateSocket(_server, fd);
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
                     Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _server),

@@ -13,33 +13,33 @@ namespace ZeroC.Ice
         /// <summary>Gets or sets the certificates of trusted certificate authorities. These authorities are used to
         /// verify client authentication. Setting this is incompatible with setting
         /// <see cref="ClientCertificateValidationCallback"/>.</summary>
-        public X509Certificate2Collection? ClientCertificateCertificateAuthorities
+        public X509Certificate2Collection? CertificateAuthorities
         {
-            get => _clientCertificateCertificateAuthorities;
+            get => _certificateAuthorities;
             set
             {
-                if (ClientCertificateValidationCallback != null)
+                if (value != null && ClientCertificateValidationCallback != null)
                 {
                     throw new ArgumentException(
-                        @$"Using the {nameof(ClientCertificateCertificateAuthorities)} is incompatible with using the {
+                        @$"Using the {nameof(CertificateAuthorities)} is incompatible with using the {
                            nameof(ClientCertificateValidationCallback)}");
                 }
-                _clientCertificateCertificateAuthorities = value;
+                _certificateAuthorities = value;
             }
         }
 
         /// <summary>Gets or sets the callback that will be used to verify the client certificate. Setting this is
-        /// incompatible with setting <see cref="ClientCertificateCertificateAuthorities"/>.</summary>
+        /// incompatible with setting <see cref="CertificateAuthorities"/>.</summary>
         public RemoteCertificateValidationCallback? ClientCertificateValidationCallback
         {
             get => _clientCertificateValidationCallback;
             set
             {
-                if (ClientCertificateCertificateAuthorities != null)
+                if (value != null && CertificateAuthorities != null)
                 {
                     throw new ArgumentException(
                         @$"Using the {nameof(ClientCertificateValidationCallback)} is incompatible with using the {
-                           nameof(ClientCertificateCertificateAuthorities)}");
+                           nameof(CertificateAuthorities)}");
                 }
 
                 _clientCertificateValidationCallback = value;
@@ -67,6 +67,20 @@ namespace ZeroC.Ice
         /// <summary>Gets or sets the certificate user for incoming connections.</summary>
         public X509Certificate2? ServerCertificate { get; set; }
         private RemoteCertificateValidationCallback? _clientCertificateValidationCallback;
-        private X509Certificate2Collection? _clientCertificateCertificateAuthorities;
+        private X509Certificate2Collection? _certificateAuthorities;
+
+        public TlsServerOptions()
+        {
+        }
+
+        public TlsServerOptions(TlsServerOptions other)
+        {
+            CertificateAuthorities = other.CertificateAuthorities;
+            ClientCertificateValidationCallback = other.ClientCertificateValidationCallback;
+            EnabledSslProtocols = other.EnabledSslProtocols;
+            RequireClientCertificate = other.RequireClientCertificate;
+            UseMachineContext = other.UseMachineContext;
+            ServerCertificate = other.ServerCertificate;
+        }
     }
 }
