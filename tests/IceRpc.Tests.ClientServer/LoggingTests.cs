@@ -13,6 +13,7 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
     public class LoggingTests : ClientServerBaseTest
     {
@@ -124,6 +125,7 @@ namespace IceRpc.Tests.ClientServer
             var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
+            writer.Flush();
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
 
