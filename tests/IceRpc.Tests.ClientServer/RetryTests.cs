@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
         {
             // No more than 2 retries before timeout kicks-in
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500));
-            Assert.CatchAsync<OperationCanceledException> (async () => await Retry.OpIdempotentAsync(4));
+            Assert.CatchAsync<OperationCanceledException>(async () => await Retry.OpIdempotentAsync(4));
             Assert.AreEqual(3, Service.Attempts);
         }
 
