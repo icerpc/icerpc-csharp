@@ -12,12 +12,12 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationRetriesTests : ClientServerBaseTest
+    public class RetryTests : ClientServerBaseTest
     {
         RetryService Service;
         IRetryServicePrx Retry;
 
-        public InvocationRetriesTests()
+        public RetryTests()
         {
             Service = new RetryService();
             Server.Use(async (current, next, cancel) =>
@@ -29,7 +29,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public void InvocationRetries_Cancelation()
+        public void Retry_Cancelation()
         {
             // No more than 2 retries before timeout kicks-in
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500));
@@ -38,28 +38,28 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public void InvocationRetries_KillConnection()
+        public void Retry_KillConnection()
         {
             Assert.ThrowsAsync<ConnectionLostException>(async () => await Retry.OpAsync(true));
             Assert.AreEqual(1, Service.Attempts);
         }
 
         [Test]
-        public void InvocationRetries_OpNotIdempotent()
+        public void Retry_OpNotIdempotent()
         {
             Assert.ThrowsAsync<UnhandledException>(async () => await Retry.OpNotIdempotentAsync());
             Assert.AreEqual(1, Service.Attempts);
         }
 
         [Test]
-        public void InvocationRetries_SystemException()
+        public void Retry_SystemException()
         {
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await Retry.OpSystemExceptionAsync());
             Assert.AreEqual(1, Service.Attempts);
         }
 
         [Test]
-        public async Task InvocationRetries_FixedReference()
+        public async Task Retry_FixedReference()
         {
             var server = new Server(Communicator, new ServerOptions() { Protocol = Protocol.Ice2 });
             var bidir = server.AddWithUUID(new Bidir(), IRetryBidirServicePrx.Factory);
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task InvocationRetries_AfterDelay()
+        public async Task Retry_AfterDelay()
         {
             // No retries before timeout kicks-in
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(400));
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task InvocationRetries_OtherReplica()
+        public async Task Retry_OtherReplica()
         {
             await using var server1 = new Server(
                 Communicator,
@@ -125,7 +125,7 @@ namespace IceRpc.Tests.ClientServer
 
         [TestCase(1024, 1024)]
         [TestCase(1024, 2048)]
-        public async Task InvocationRetries_RetryRequestSizeMax(int maxSize, int requestSize)
+        public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
         {
             await using var communicator = new Communicator(
                 new Dictionary<string, string>
@@ -148,7 +148,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task InvocationRetries_RetryBufferMaxSize()
+        public async Task Retry_RetryBufferMaxSize()
         {
             await using var communicator = new Communicator(
                 new Dictionary<string, string>
@@ -171,13 +171,6 @@ namespace IceRpc.Tests.ClientServer
 
             await retry.Clone(label: "conn-1").OpWithDataAsync(2, 100, data);
         }
-
-        public sealed class NonReplicated : IAsyncRetryNonReplicatedService
-        {
-            public ValueTask OtherReplicaAsync(Current current, CancellationToken cancel) =>
-                throw new RetrySystemFailure(RetryPolicy.OtherReplica);
-        }
-
 
         internal class RetryService : IAsyncRetryService
         {
@@ -205,7 +198,10 @@ namespace IceRpc.Tests.ClientServer
                 return default;
             }
 
-            public async ValueTask OpBidirRetryAsync(IRetryBidirServicePrx bidir, Current current, CancellationToken cancel)
+            public async ValueTask OpBidirRetryAsync(
+                IRetryBidirServicePrx bidir,
+                Current current,
+                CancellationToken cancel)
             {
                 bidir = bidir.Clone(fixedConnection: current.Connection);
                 Assert.ThrowsAsync< ServiceNotFoundException>(
