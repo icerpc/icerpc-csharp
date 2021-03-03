@@ -22,16 +22,10 @@ namespace ZeroC.Ice
                 return Empty;
             }
 
-            int start = path[0] == '/' ? 1 : 0; // skip optional starting slash
+            string workingPath = UriParser.NormalizePath(path)[1..]; // checks path and removes leading /.
 
-            int firstSlash = path.IndexOf('/', start);
-            int lastSlash = path.LastIndexOf('/');
-            if (lastSlash == 0)
-            {
-                lastSlash = -1;
-            }
-
-            if (firstSlash != lastSlash)
+            int firstSlash = workingPath.IndexOf('/');
+            if (firstSlash != workingPath.LastIndexOf('/'))
             {
                 throw new FormatException($"too many slashes in path `{path}'");
             }
@@ -39,12 +33,12 @@ namespace ZeroC.Ice
             if (firstSlash == -1)
             {
                 // Name only
-                return new Identity(Uri.UnescapeDataString(path[start..]), "");
+                return new Identity(Uri.UnescapeDataString(workingPath), "");
             }
             else
             {
-                return new Identity(Uri.UnescapeDataString(path[(firstSlash + 1)..]),
-                                    Uri.UnescapeDataString(path[start..firstSlash]));
+                return new Identity(Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]),
+                                    Uri.UnescapeDataString(workingPath[0..firstSlash]));
             }
         }
 
@@ -140,8 +134,8 @@ namespace ZeroC.Ice
             }
         }
 
-        /// <summary>Converts this identity into a normalized URI path. See <see cref="Proxy.NormalizePath"/>.</summary>
-        /// <returns>A normalized URI path.</returns>
+        /// <summary>Converts this identity into a URI path.</summary>
+        /// <returns>A URI path.</returns>
         public string ToPath()
         {
             if (Name == null)
@@ -150,14 +144,12 @@ namespace ZeroC.Ice
             }
             Debug.Assert(Category != null);
 
-            if (Category.Length > 0)
-            {
-                return Proxy.NormalizePath($"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}");
-            }
-            else
-            {
-                return Proxy.NormalizePath($"/{Uri.EscapeDataString(Name)}");
-            }
+            string path = Category.Length > 0 ?
+                $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
+                $"/{Uri.EscapeDataString(Name)}";
+
+            Debug.Assert(UriParser.IsValidPath(path));
+            return path;
         }
 
         /// <inheritdoc/>
