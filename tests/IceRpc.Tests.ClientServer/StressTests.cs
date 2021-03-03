@@ -9,11 +9,12 @@ using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Parallelizable(scope: ParallelScope.All)]
     [TestFixture(Protocol.Ice1, "tcp")]
     [TestFixture(Protocol.Ice1, "ws")]
     [TestFixture(Protocol.Ice2, "tcp")]
     [TestFixture(Protocol.Ice2, "ws")]
-    [Parallelizable]
     public class StressTests : ClientServerBaseTest
     {
         private IStressTestServicePrx Prx { get; }
