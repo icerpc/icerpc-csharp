@@ -599,23 +599,6 @@ Slice::CsVisitor::writeValue(const TypePtr& type, const string& ns)
 }
 
 void
-Slice::CsVisitor::writeDataMemberDefaultValues(const MemberList& members, const string& ns, unsigned int baseTypes)
-{
-    // This helper function is called only for class/exception data members.
-
-    for (const auto& p: members)
-    {
-        TypePtr memberType = p->type();
-        if (p->defaultValueType())
-        {
-            _out << nl << "this." << fixId(fieldName(p), baseTypes) << " = ";
-            writeConstantValue(_out, memberType, p->defaultValueType(), p->defaultValue(), ns);
-            _out << ";";
-        }
-    }
-}
-
-void
 Slice::CsVisitor::writeSuppressNonNullableWarnings(const MemberList& members, unsigned int baseTypes)
 {
     // This helper function is called only for class/exception data members.
@@ -1252,39 +1235,9 @@ Slice::Gen::TypesVisitor::TypesVisitor(IceUtilInternal::Output& out) :
 bool
 Slice::Gen::TypesVisitor::visitModuleStart(const ModulePtr& p)
 {
-    if (p->hasClassDefs() || p->hasConsts() || p->hasEnums() || p->hasExceptions() || p->hasStructs())
+    if (p->hasClassDefs() || p->hasEnums() || p->hasExceptions() || p->hasStructs())
     {
         openNamespace(p);
-
-        // Write constants if there are any
-        if (!p->consts().empty())
-        {
-            emitCommonAttributes();
-            _out << nl << "public static partial class Constants";
-            _out << sb;
-            bool firstOne = true;
-            for (auto q : p->consts())
-            {
-                if (firstOne)
-                {
-                    firstOne = false;
-                }
-                else
-                {
-                    _out << sp;
-                }
-
-                // TODO: doc comments
-
-                string name = fixId(q->name());
-                string ns = getNamespace(q);
-                emitCustomAttributes(q);
-                _out << nl << "public const " << typeToString(q->type(), ns) << " " << name << " = ";
-                writeConstantValue(_out, q->type(), q->valueType(), q->value(), ns);
-                _out << ";";
-            }
-            _out << eb;
-        }
         return true;
     }
     else
@@ -1476,7 +1429,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
                          << fixId(d->name(), Slice::ObjectType) << ";";
                 }
             }
-            writeDataMemberDefaultValues(dataMembers, ns, ObjectType);
+
             if (partialInitialize)
             {
                 _out << nl << "Initialize();";
@@ -1750,7 +1703,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << nl << ": base(retryPolicy)";
         _out.dec();
         _out << sb;
-        writeDataMemberDefaultValues(dataMembers, ns, Slice::ExceptionType);
         _out << eb;
     }
 

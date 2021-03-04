@@ -101,7 +101,7 @@ namespace IceRpc.Test.Alias
                 }
                 {
                     var (p1, p2, p3) = prx.OpLong(8L, long.MinValue, long.MaxValue);
-                    TestHelper.Assert(p1 == 8L );
+                    TestHelper.Assert(p1 == 8L);
                     TestHelper.Assert(p2 == long.MinValue);
                     TestHelper.Assert(p3 == long.MaxValue);
                 }
@@ -168,9 +168,9 @@ namespace IceRpc.Test.Alias
                     TestHelper.Assert(p3 == null);
                 }
                 {
-                    string[] ss1 = {"abc", "de", "fghi"};
-                    string[] ss2 = {"hello", "world"};
-                    string[] ss3 = {"1", "22", ""};
+                    string[] ss1 = { "abc", "de", "fghi" };
+                    string[] ss2 = { "hello", "world" };
+                    string[] ss3 = { "1", "22", "" };
 
                     var (p1, p2, p3, p4) = prx.OpStringSeq(ss1, ss2, ss3, null);
                     TestHelper.Assert(p1.Length == 3);
@@ -348,14 +348,6 @@ namespace IceRpc.Test.Alias
 
                 TestHelper.Assert(Enum.GetUnderlyingType(typeof(Enum1)) == typeof(int));
                 TestHelper.Assert(Enum.GetUnderlyingType(typeof(Enum2)) == typeof(int));
-            }
-            Console.Out.WriteLine("ok");
-
-            Console.Out.Write("testing constants with aliases... ");
-            Console.Out.Flush();
-            {
-                TestHelper.Assert(Constants.const1.GetType() == typeof(int));
-                TestHelper.Assert(Constants.const1 == 79);
             }
             Console.Out.WriteLine("ok");
 

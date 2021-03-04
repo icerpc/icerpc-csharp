@@ -88,9 +88,6 @@ module IceRpc::Test::Alias
     using stringStackA = [cs:generic(Stack)] stringQueueA;
     using stringListA2 = [cs:generic(List)] stringStackA;
 
-    // constants
-    const intA const1 = 79;
-
     // inheritance from aliases, and members with aliases
     class Class2 : Class1A
     {
@@ -153,7 +150,7 @@ module IceRpc::Test::Alias
 
     enum Enum2 : intA
     {
-        Test1 = const1
+        Test1 = 79
     }
 
     interface Interface2 : Interface1A

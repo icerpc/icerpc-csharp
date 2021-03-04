@@ -114,9 +114,6 @@ exception BaseMethods
     int ToString;
 }
 
-const int protected = 0;
-const int public = 1;
-
 //
 // System as inner module.
 //

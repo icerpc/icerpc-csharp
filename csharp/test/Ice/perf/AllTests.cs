@@ -11,6 +11,8 @@ namespace IceRpc.Test.Perf
 {
     public static class AllTests
     {
+        const int ByteSeqSize = 1024000; // 1MB
+
         public static void RunTest(System.IO.TextWriter output, int repetitions, string name, Action invocation,
             Action warmUpInvocation)
         {
@@ -67,8 +69,8 @@ namespace IceRpc.Test.Perf
             var perf = IPerformancePrx.Parse(helper.GetTestProxy("perf", 0), communicator);
 
             RunTest(output, 10000, "latency", async () => await perf.IcePingAsync());
-            RunTest<byte>(output, 1000, "sending byte sequence", v => perf.SendBytes(v), Constants.ByteSeqSize);
-            RunTest<byte>(output, 1000, "received byte sequence", sz => perf.ReceiveBytes(sz), Constants.ByteSeqSize);
+            RunTest<byte>(output, 1000, "sending byte sequence", v => perf.SendBytes(v), ByteSeqSize);
+            RunTest<byte>(output, 1000, "received byte sequence", sz => perf.ReceiveBytes(sz), ByteSeqSize);
 
             await perf.ShutdownAsync();
         }

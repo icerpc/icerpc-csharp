@@ -9,29 +9,19 @@
 module IceRpc::Test::Enums
 {
 
-const byte ByteConst1 = 10;
-const short ShortConst1 = 20;
-const int IntConst1 = 30;
-const long LongConst1 = 40;
-
-const byte ByteConst2 = 226;
-const short ShortConst2 = 32766;
-const int IntConst2 = 2147483647;
-const long LongConst2 = 2147483646;
-
 enum ByteEnum
 {
     benum1,
     benum2,
-    benum3 = ByteConst1,
+    benum3 = 10,
     benum4,
-    benum5 = ShortConst1,
+    benum5 = 20,
     benum6,
-    benum7 = IntConst1,
+    benum7 = 30,
     benum8,
-    benum9 = LongConst1,
+    benum9 = 40,
     benum10,
-    benum11 = ByteConst2
+    benum11 = 226
 }
 sequence<ByteEnum> ByteEnumSeq;
 
@@ -39,15 +29,15 @@ enum ShortEnum
 {
     senum1 = 3,
     senum2,
-    senum3 = ByteConst1,
+    senum3 = 10,
     senum4,
-    senum5 = ShortConst1,
+    senum5 = 20,
     senum6,
-    senum7 = IntConst1,
+    senum7 = 30,
     senum8,
-    senum9 = LongConst1,
+    senum9 = 40,
     senum10,
-    senum11 = ShortConst2
+    senum11 = 32766
 }
 sequence<ShortEnum> ShortEnumSeq;
 
@@ -55,16 +45,16 @@ enum IntEnum
 {
     ienum1,
     ienum2,
-    ienum3 = ByteConst1,
+    ienum3 = 10,
     ienum4,
-    ienum5 = ShortConst1,
+    ienum5 = 20,
     ienum6,
-    ienum7 = IntConst1,
+    ienum7 = 30,
     ienum8,
-    ienum9 = LongConst1,
+    ienum9 = 40,
     ienum10,
-    ienum11 = IntConst2,
-    ienum12 = LongConst2
+    ienum11 = 2147483647,
+    ienum12 = 2147483646
 }
 sequence<IntEnum> IntEnumSeq;
 
@@ -80,15 +70,15 @@ enum FLByteEnum : byte // Fixed-length
 {
     benum1,
     benum2,
-    benum3 = ByteConst1,
+    benum3 = 10,
     benum4,
-    benum5 = ShortConst1,
+    benum5 = 20,
     benum6,
-    benum7 = IntConst1,
+    benum7 = 30,
     benum8,
-    benum9 = LongConst1,
+    benum9 = 40,
     benum10,
-    benum11 = ByteConst2
+    benum11 = 226
 }
 sequence<FLByteEnum> FLByteEnumSeq;
 
@@ -96,15 +86,15 @@ enum FLShortEnum : short
 {
     senum1 = -3,
     senum2,
-    senum3 = ByteConst1,
+    senum3 = 10,
     senum4,
-    senum5 = ShortConst1,
+    senum5 = 20,
     senum6,
-    senum7 = IntConst1,
+    senum7 = 30,
     senum8,
-    senum9 = LongConst1,
+    senum9 = 40,
     senum10,
-    senum11 = ShortConst2
+    senum11 = 32766
 }
 sequence<FLShortEnum> FLShortEnumSeq;
 
@@ -112,15 +102,15 @@ enum FLUShortEnum : ushort
 {
     senum1 = 3,
     senum2,
-    senum3 = ByteConst1,
+    senum3 = 10,
     senum4,
-    senum5 = ShortConst1,
+    senum5 = 20,
     senum6,
-    senum7 = IntConst1,
+    senum7 = 30,
     senum8,
-    senum9 = LongConst1,
+    senum9 = 40,
     senum10,
-    senum11 = ShortConst2
+    senum11 = 32766
 }
 sequence<FLUShortEnum> FLUShortEnumSeq;
 
@@ -128,16 +118,16 @@ enum FLIntEnum : int
 {
     ienum1 = -3,
     ienum2,
-    ienum3 = ByteConst1,
+    ienum3 = 10,
     ienum4,
-    ienum5 = ShortConst1,
+    ienum5 = 20,
     ienum6,
-    ienum7 = IntConst1,
+    ienum7 = 30,
     ienum8,
-    ienum9 = LongConst1,
+    ienum9 = 40,
     ienum10,
-    ienum11 = IntConst2,
-    ienum12 = LongConst2
+    ienum11 = 2147483647,
+    ienum12 = 2147483646
 }
 sequence<FLIntEnum> FLIntEnumSeq;
 
@@ -145,16 +135,16 @@ enum FLUIntEnum : uint
 {
     ienum1,
     ienum2,
-    ienum3 = ByteConst1,
+    ienum3 = 10,
     ienum4,
-    ienum5 = ShortConst1,
+    ienum5 = 20,
     ienum6,
-    ienum7 = IntConst1,
+    ienum7 = 30,
     ienum8,
-    ienum9 = LongConst1,
+    ienum9 = 40,
     ienum10,
-    ienum11 = IntConst2,
-    ienum12 = LongConst2
+    ienum11 = 2147483647,
+    ienum12 = 2147483646
 }
 sequence<FLUIntEnum> FLUIntEnumSeq;
 
