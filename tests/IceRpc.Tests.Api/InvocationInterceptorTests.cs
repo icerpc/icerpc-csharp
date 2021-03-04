@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Api
                             await Task.Delay(100, default);
                             return await next(target, request, cancel);
                         }));
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation interceptors are called in the expected order.</summary>

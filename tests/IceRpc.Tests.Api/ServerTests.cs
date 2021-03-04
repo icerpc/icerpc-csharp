@@ -94,6 +94,35 @@ namespace IceRpc.Tests.Api
                 Assert.Throws<System.InvalidOperationException>(
                     () => server.Use(next => async (current, cancel) => await next(current, cancel)));
             }
+
+            {
+                await using var server1 = new Server(
+                    communicator,
+                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+  
+                Assert.ThrowsAsync<TransportException>(async () =>
+                    {
+                        await using var server2 = new Server(
+                            communicator,
+                            new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                    });
+            }
+
+            {
+                 await using var server1 = new Server(
+                    communicator,
+                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+
+                IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
+                Connection connection = await prx.GetConnectionAsync();
+
+                await using var server2 = new Server(communicator);
+                Assert.DoesNotThrow(() => connection.Server = server2);
+                Assert.DoesNotThrow(() => connection.Server = null);
+                await server2.DisposeAsync();
+                // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
+                Assert.DoesNotThrow(() => connection.Server = server2);
+            }
         }
 
         [Test]
@@ -152,6 +181,18 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("127.0.0.1", server.PublishedEndpoints[0].Host);
                 Assert.AreEqual(port, server.PublishedEndpoints[0].Port);
             }
+        }
+
+        [TestCase("tcp -h localhost -p 12345 -t 30000")]
+        [TestCase("ice+tcp://localhost:12345")]
+        public async Task Server_PublishedEndpoints(string endpoint)
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server(communicator, new ServerOptions() { PublishedEndpoints = endpoint });
+
+            Assert.AreEqual(1, server.PublishedEndpoints.Count);
+            Assert.IsNotNull(server.PublishedEndpoints[0]);
+            Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
         }
     }
 }

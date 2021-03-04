@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Api
             // Establish a connection
             var connection = await prx.GetConnectionAsync();
 
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.AreEqual(connection, await prx.GetConnectionAsync());
         }
 
