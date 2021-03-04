@@ -68,7 +68,7 @@ namespace IceRpc.Test.Slicing.Objects
         {
             TestHelper.Assert(obj is SUnknown);
             var su = (SUnknown)obj;
-            TestHelper.Assert(su.Su.Equals("SUnknown.su"));
+            TestHelper.Assert(su.Su == "SUnknown.su");
         }
 
         public B OneElementCycle(Current current, CancellationToken cancel)
@@ -261,8 +261,8 @@ namespace IceRpc.Test.Slicing.Objects
             TestHelper.Assert(p is PSUnknown);
             var pu = (PSUnknown)p;
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
-            TestHelper.Assert(pu.Psu.Equals("unknown"));
+            TestHelper.Assert(pu.Ps == "preserved");
+            TestHelper.Assert(pu.Psu == "unknown");
             TestHelper.Assert(pu.Graph == null);
             TestHelper.Assert(pu.Cl != null && pu.Cl.I == 15);
         }
@@ -284,8 +284,8 @@ namespace IceRpc.Test.Slicing.Objects
             TestHelper.Assert(p is PSUnknown);
             var pu = (PSUnknown)p;
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
-            TestHelper.Assert(pu.Psu.Equals("unknown"));
+            TestHelper.Assert(pu.Ps == "preserved");
+            TestHelper.Assert(pu.Psu == "unknown");
             TestHelper.Assert(pu.Graph != pu.Graph!.Next);
             TestHelper.Assert(pu.Graph.Next != pu.Graph.Next!.Next);
             TestHelper.Assert(pu.Graph.Next.Next!.Next == pu.Graph);
@@ -304,7 +304,7 @@ namespace IceRpc.Test.Slicing.Objects
             TestHelper.Assert(p is PSUnknown2);
             var pu = (PSUnknown2)p;
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
+            TestHelper.Assert(pu.Ps == "preserved");
             TestHelper.Assert(pu.Pb == pu);
         }
 
