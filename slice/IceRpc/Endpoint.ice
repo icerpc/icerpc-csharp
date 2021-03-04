@@ -4,7 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/BuiltinSequences.ice>
+#include <IceRpc/BuiltinSequences.ice>
 
 module IceRpc
 {

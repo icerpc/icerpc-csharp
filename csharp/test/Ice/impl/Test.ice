@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <Ice/Context.ice>
+#include <IceRpc/Context.ice>
 
 module IceRpc::Test::Impl
 {

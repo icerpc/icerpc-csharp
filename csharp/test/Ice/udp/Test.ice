@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <Ice/Identity.ice>
+#include <IceRpc/Identity.ice>
 
 [[suppress-warning(reserved-identifier)]]
 

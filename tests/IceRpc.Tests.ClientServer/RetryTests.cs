@@ -172,7 +172,6 @@ namespace IceRpc.Tests.ClientServer
         internal class RetryService : IAsyncRetryService
         {
             internal int Attempts;
-            private int _counter;
 
             public ValueTask OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
             {

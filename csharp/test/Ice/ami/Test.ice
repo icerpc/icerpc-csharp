@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <Ice/BuiltinSequences.ice>
-#include <Ice/Identity.ice>
+#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Identity.ice>
 
 [[suppress-warning(reserved-identifier)]]
 

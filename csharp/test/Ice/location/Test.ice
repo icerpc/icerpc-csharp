@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <Ice/Locator.ice>
+#include <IceRpc/Locator.ice>
 
 [[suppress-warning(reserved-identifier)]]
 

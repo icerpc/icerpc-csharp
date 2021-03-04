@@ -6,10 +6,10 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/BuiltinSequences.ice>
-#include <Ice/Encoding.ice>
-#include <Ice/Identity.ice>
-#include <Ice/Protocol.ice>
+#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Encoding.ice>
+#include <IceRpc/Identity.ice>
+#include <IceRpc/Protocol.ice>
 
 module IceRpc
 {

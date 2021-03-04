@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Context.ice>
+#include <IceRpc/Context.ice>
 
 module IceRpc::Test::Operations
 {

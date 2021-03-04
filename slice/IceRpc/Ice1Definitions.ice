@@ -5,9 +5,9 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/BuiltinSequences.ice>
-#include <Ice/Context.ice>
-#include <Ice/Identity.ice>
+#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Context.ice>
+#include <IceRpc/Identity.ice>
 
 module IceRpc
 {
