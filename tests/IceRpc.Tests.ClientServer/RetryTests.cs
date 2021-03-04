@@ -74,12 +74,11 @@ namespace IceRpc.Tests.ClientServer
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(400));
             Assert.CatchAsync<OperationCanceledException>(async () => await Retry.OpAfterDelayAsync(2, 600));
 
-            // 4 attempts before timeout kicks-in
+            // 5 attempts before timeout kicks-in
             Service.Attempts = 0;
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000));
-            int n = await Retry.OpAfterDelayAsync(4, 50);
-            Assert.AreEqual(4, n);
-            Assert.AreEqual(4, Service.Attempts);
+            await Retry.OpAfterDelayAsync(4, 50);
+            Assert.AreEqual(5, Service.Attempts);
 
             // No more than 5 invocation attempts with the default settings
             Service.Attempts = 0;
@@ -174,19 +173,15 @@ namespace IceRpc.Tests.ClientServer
 
         internal class RetryService : IAsyncRetryService
         {
-            internal int Attempts; 
-            private int _counter;
+            internal int Attempts;
 
-            public ValueTask<int> OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
+            public ValueTask OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
             {
-                if (retries > _counter)
-                {
-                    _counter++;
+                if (retries >= Attempts)
+                {                    
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
-                int counter = _counter;
-                _counter = 0;
-                return new(counter);
+                return default;
             }
 
             public ValueTask OpAsync(bool kill, Current current, CancellationToken cancel)
@@ -213,16 +208,15 @@ namespace IceRpc.Tests.ClientServer
                 await bidir.AfterDelayAsync(2, cancel: CancellationToken.None);
             }
 
-            public ValueTask<int> OpIdempotentAsync(int nRetry, Current current, CancellationToken cancel)
+            public ValueTask OpIdempotentAsync(int nRetry, Current current, CancellationToken cancel)
             {
                 int[] delays = new int[] { 0, 1, 10000 };
-                if (nRetry > _counter)
+                if (nRetry >= Attempts)
                 {
-                    throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delays[_counter++ % 3])));
+                    throw new RetrySystemFailure(
+                        RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delays[(Attempts - 1) % 3])));
                 }
-                int counter = _counter;
-                _counter = 0;
-                return new(counter);
+                return default;
             }
 
             public ValueTask OpNotIdempotentAsync(Current current, CancellationToken cancel) =>
@@ -238,11 +232,10 @@ namespace IceRpc.Tests.ClientServer
                 Current current,
                 CancellationToken cancel)
             {
-                if (retries > _counter++)
+                if (retries >= Attempts)
                 {
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
-                _counter = 0;
                 return default;
             }
         }
