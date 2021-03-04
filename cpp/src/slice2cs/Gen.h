@@ -45,9 +45,6 @@ protected:
 
     std::string writeValue(const TypePtr&, const std::string&);
 
-    // Generate assignment statements for those data members that have default values.
-    void writeDataMemberDefaultValues(const MemberList&, const std::string&, unsigned int);
-
     // Generate this.X = null! for non-nullable fields.
     void writeSuppressNonNullableWarnings(const MemberList&, unsigned int);
 

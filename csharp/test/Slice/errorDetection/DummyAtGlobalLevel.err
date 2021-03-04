@@ -6,4 +6,3 @@ DummyAtGlobalLevel.ice:11: `IntSeq': a sequence can only be defined at module sc
 DummyAtGlobalLevel.ice:14: `S': a structure can only be defined at module scope
 DummyAtGlobalLevel.ice:18: `StringDict': a dictionary can only be defined at module scope
 DummyAtGlobalLevel.ice:20: `E': an enumeration can only be defined at module scope
-DummyAtGlobalLevel.ice:22: `x': a constant can only be defined at module scope
