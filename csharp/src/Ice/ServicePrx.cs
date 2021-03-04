@@ -726,9 +726,9 @@ namespace ZeroC.Ice
                                   preferExistingConnection,
                                   preferNonSecure);
 
-            if (Protocol != Protocol.Ice1 && path != null)
+            if (path != null)
             {
-                path = Proxy.NormalizePath(path);
+                path = UriParser.NormalizePath(path);
             }
 
             if (IsFixed || fixedConnection != null)

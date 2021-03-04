@@ -9,25 +9,20 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class IdentityTests
     {
-        /// <summary>Verifies that a compatible URI path can be converted to an identity and identity.ToPath() returns a
-        /// normalized version of path.</summary>
+        /// <summary>Verifies that a URI path can be converted to an identity.</summary>
         /// <param name="path">The path to check.</param>
-        /// <param name="newPath">The new normalized path, if different than normalize(path).</param>
-        [TestCase("foo/bar")]
-        [TestCase("foo/bar")]
+        /// <param name="normalizedPath">The path returned by ToPath if different than path.</param>
+        [TestCase("foo/bar", "/foo/bar")]
+        [TestCase("/foo/bar")]
+        [TestCase("/foo:foo/bar$bar", "/foo%3Afoo/bar%24bar")]
         [TestCase("/")]
         [TestCase("/foo/")]
         [TestCase("//foo", "/foo")]
         [TestCase("//", "/")]
-        public void Identity_FromPathToPath(string path, string newPath = "")
+        public void Identity_FromPathToPath(string path, string? normalizedPath = null)
         {
             var identity = Identity.FromPath(path);
-            if (newPath.Length == 0)
-            {
-                newPath = Proxy.NormalizePath(path);
-            }
-
-            Assert.AreEqual(newPath, identity.ToPath());
+            Assert.AreEqual(normalizedPath ?? path, identity.ToPath());
         }
 
         /// <summary>Identity.FromPath for some path throws FormatException.</summary>

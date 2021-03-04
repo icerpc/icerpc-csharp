@@ -142,7 +142,7 @@ namespace ZeroC.Ice
                     Facet = facet,
                     Location = location,
                     IsOneway = server.IsDatagramOnly,
-                    Path = Proxy.NormalizePath(path),
+                    Path = UriParser.NormalizePath(path),
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);
@@ -153,7 +153,7 @@ namespace ZeroC.Ice
                 {
                     Communicator = server.Communicator,
                     Endpoints = server.PublishedEndpoints,
-                    Path = Proxy.NormalizePath(path),
+                    Path = UriParser.NormalizePath(path),
                     Protocol = protocol
                 };
                 return factory.Create(options);
@@ -184,7 +184,7 @@ namespace ZeroC.Ice
                     Connection = connection,
                     Facet = facet,
                     IsOneway = connection.Endpoint.IsDatagram,
-                    Path = Proxy.NormalizePath(path),
+                    Path = UriParser.NormalizePath(path),
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);
@@ -200,7 +200,7 @@ namespace ZeroC.Ice
                 {
                     Communicator = connection.Communicator,
                     Connection = connection,
-                    Path = Proxy.NormalizePath(path),
+                    Path = UriParser.NormalizePath(path),
                     Protocol = protocol
                 };
                 return factory.Create(options);

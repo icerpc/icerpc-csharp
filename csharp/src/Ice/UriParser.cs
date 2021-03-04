@@ -44,7 +44,6 @@ namespace ZeroC.Ice
 
         // Common options for the generic URI parsers registered for the ice and ice+transport schemes.
         private const GenericUriParserOptions ParserOptions =
-            GenericUriParserOptions.DontConvertPathBackslashes |
             GenericUriParserOptions.DontUnescapePathDotsAndSlashes |
             GenericUriParserOptions.Idn |
             GenericUriParserOptions.IriParsing |
@@ -65,6 +64,38 @@ namespace ZeroC.Ice
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
 
+        /// <summary>Checks if <c>path</c> contains only unreserved characters, %, or reserved characters other than ?.
+        /// </summary>
+        /// <param name="path">The path to check.</param>
+        /// <returns>True if <c>path</c> is a valid path; otherwise, false.</returns>
+        internal static bool IsValidPath(string path)
+        {
+            const string invalidChars = "\"<>?\\^`{|}";
+
+            foreach (char c in path)
+            {
+                if (c.CompareTo('\x20') <= 0 || c.CompareTo('\x7F') >= 0 || invalidChars.Contains(c))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>Makes sure path is valid and adds a leading slash to path if it does not have one already.
+        /// </summary>
+        internal static string NormalizePath(string path)
+        {
+            if (!IsValidPath(path))
+            {
+                throw new FormatException(
+                    @$"invalid path `{path
+                    }'; a valid path can only contain unreserved characters, `%' and reserved characters other than `?'");
+            }
+
+            return path.Length > 0 && path[0] == '/' ? path : $"/{path}";
+        }
+
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
@@ -83,7 +114,8 @@ namespace ZeroC.Ice
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
-            return (endpoints, Proxy.NormalizePath(uri.AbsolutePath), proxyOptions);
+            Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
+            return (endpoints, uri.AbsolutePath, proxyOptions);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>

@@ -374,7 +374,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 try
                 {
                     IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
@@ -750,7 +750,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
@@ -920,7 +920,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
