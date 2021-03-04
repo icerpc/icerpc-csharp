@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Perf
+module IceRpc::Test::Perf
 {
 
 sequence<byte> ByteSeq;

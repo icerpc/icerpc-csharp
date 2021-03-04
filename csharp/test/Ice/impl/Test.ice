@@ -6,7 +6,7 @@
 
 #include <Ice/Context.ice>
 
-module ZeroC::Ice::Test::Impl
+module IceRpc::Test::Impl
 {
 
 enum MyEnum
@@ -184,7 +184,7 @@ interface MyClass
 
     int opByteSOnewayCallCount();
 
-    Ice::Context opContext();
+    IceRpc::Context opContext();
 
     void opDoubleMarshaling(double p1, DoubleS p2);
 

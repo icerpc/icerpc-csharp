@@ -9,7 +9,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Exceptions
+module IceRpc::Test::Exceptions
 {
 
 interface Empty
@@ -53,7 +53,7 @@ interface Thrower
     void throwLocalException();
     void throwNonIceException();
     void throwAssertException();
-    Ice::ByteSeq sendAndReceive(Ice::ByteSeq seq);
+    IceRpc::ByteSeq sendAndReceive(IceRpc::ByteSeq seq);
 
     idempotent void throwLocalExceptionIdempotent();
 

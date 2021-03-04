@@ -6,8 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// A sequence of bools.
     sequence<bool> BoolSeq;

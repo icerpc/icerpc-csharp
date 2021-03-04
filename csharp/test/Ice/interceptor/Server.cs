@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Interceptor
+namespace IceRpc.Test.Interceptor
 {
     public class ServerApp : TestHelper
     {
@@ -34,7 +34,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 {
                     {
                         "Ice.Plugin.DispatchPlugin",
-                        $"{pluginPath}:ZeroC.Ice.Test.Interceptor.DispatchPluginFactory"
+                        $"{pluginPath}:IceRpc.Test.Interceptor.DispatchPluginFactory"
                     }
                 });
 

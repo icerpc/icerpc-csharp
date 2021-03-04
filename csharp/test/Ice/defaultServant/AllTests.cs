@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.DefaultServant
+namespace IceRpc.Test.DefaultServant
 {
     public static class AllTests
     {

@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Discovery
+namespace IceRpc.Test.Discovery
 {
     public sealed class Controller : IAsyncController
     {

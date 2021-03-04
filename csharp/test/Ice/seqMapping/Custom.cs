@@ -3,7 +3,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace ZeroC.Ice.Test.SeqMapping
+namespace IceRpc.Test.SeqMapping
 {
     public class Custom<T> : IReadOnlyCollection<T>
     {

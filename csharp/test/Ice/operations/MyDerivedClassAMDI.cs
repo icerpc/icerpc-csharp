@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Operations
+namespace IceRpc.Test.Operations
 {
     public sealed class AsyncMyDerivedClass : IAsyncMyDerivedClass
     {

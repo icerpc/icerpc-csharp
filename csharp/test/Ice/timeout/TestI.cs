@@ -3,9 +3,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Timeout
+namespace IceRpc.Test.Timeout
 {
     internal class Timeout : ITimeout
     {

@@ -9,7 +9,7 @@
 
 #include <Test.ice>
 
-module ZeroC::Ice::Test::Slicing::Objects
+module IceRpc::Test::Slicing::Objects
 {
 
 class SBSUnknownDerived : SBase

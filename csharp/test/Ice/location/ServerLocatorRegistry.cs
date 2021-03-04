@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Location
+namespace IceRpc.Test.Location
 {
     public class ServerLocatorRegistry : ITestLocatorRegistry
     {

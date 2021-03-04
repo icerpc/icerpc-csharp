@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Encoding
 {
@@ -15,7 +14,7 @@ namespace IceRpc.Tests.Encoding
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesSequencesTests
     {
-        private ZeroC.Ice.Encoding _encoding;
+        private IceRpc.Encoding _encoding;
         private byte[] _buffer;
         private List<ArraySegment<byte>> _data;
         private OutputStream _ostr;
@@ -23,7 +22,7 @@ namespace IceRpc.Tests.Encoding
 
         public BuiltInTypesSequencesTests(byte encodingMajor, byte encodingMinor)
         {
-            _encoding = new ZeroC.Ice.Encoding(encodingMajor, encodingMinor);
+            _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[1024 * 1024];
             _data = new List<ArraySegment<byte>>() { _buffer };
             _ostr = new OutputStream(_encoding, _data);

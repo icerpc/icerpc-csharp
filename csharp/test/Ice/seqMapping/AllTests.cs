@@ -2,9 +2,9 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.SeqMapping
+namespace IceRpc.Test.SeqMapping
 {
     public static class AllTests
     {

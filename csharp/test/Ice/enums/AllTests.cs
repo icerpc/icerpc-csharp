@@ -2,9 +2,9 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Enums
+namespace IceRpc.Test.Enums
 {
     public static class AllTests
     {

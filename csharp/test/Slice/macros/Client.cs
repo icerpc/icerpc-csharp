@@ -2,9 +2,9 @@
 
 using System;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Slice.Test.Macros
+namespace IceRpc.Slice.Test.Macros
 {
     public static class Client
     {
@@ -25,7 +25,7 @@ namespace ZeroC.Slice.Test.Macros
 
                 var c = new CsOnly();
                 TestHelper.Assert(c.Lang.Equals("cs"));
-                TestHelper.Assert(c.Version == Ice.Runtime.IntVersion);
+                TestHelper.Assert(c.Version == IceRpc.Runtime.IntVersion);
                 Console.Out.WriteLine("ok");
             }
             catch (Exception ex)

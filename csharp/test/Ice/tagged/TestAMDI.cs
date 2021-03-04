@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Tagged
+namespace IceRpc.Test.Tagged
 {
     public class AsyncInitial : IAsyncInitial
     {

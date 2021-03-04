@@ -10,7 +10,7 @@
 #include <Ice/Identity.ice>
 #include <Ice/Process.ice>
 
-[cs:namespace(ZeroC)]
+[cs:namespace(IceRpc.Interop.ZeroC)]
 module Ice
 {
     /// This exception is thrown when a server tries to register endpoints for an object adapter that is already active.

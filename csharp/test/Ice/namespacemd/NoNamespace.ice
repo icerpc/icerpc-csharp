@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::NamespaceMD::NoNamespace
+module IceRpc::Test::NamespaceMD::NoNamespace
 {
 class C1
 {

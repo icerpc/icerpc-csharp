@@ -2,9 +2,9 @@
 
 using System.Collections.Generic;
 using System.Threading;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Interceptor
+namespace IceRpc.Test.Interceptor
 {
     public class MyObject : IMyObject
     {

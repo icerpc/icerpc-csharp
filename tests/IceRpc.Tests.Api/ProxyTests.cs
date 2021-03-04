@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
 {

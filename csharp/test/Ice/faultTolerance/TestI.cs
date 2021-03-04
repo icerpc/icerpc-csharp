@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.FaultTolerance
+namespace IceRpc.Test.FaultTolerance
 {
     public sealed class TestIntf : ITestIntf
     {

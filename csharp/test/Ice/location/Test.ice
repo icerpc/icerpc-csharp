@@ -8,7 +8,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Location
+module IceRpc::Test::Location
 {
 
 interface TestLocatorRegistry : ::Ice::LocatorRegistry

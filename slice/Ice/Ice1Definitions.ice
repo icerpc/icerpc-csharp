@@ -9,8 +9,7 @@
 #include <Ice/Context.ice>
 #include <Ice/Identity.ice>
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     // These definitions help with the encoding of ice1 frames.
 
@@ -50,7 +49,7 @@ module Ice
     [cs:readonly]
     struct Ice1RequestHeader
     {
-        Identity identity;
+        Ice::Identity identity;
         StringSeq facetPath;
         string operation;
         OperationMode operationMode;

@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.NamespaceMD
+namespace IceRpc.Test.NamespaceMD
 {
     public class ServerApp : TestHelper
     {

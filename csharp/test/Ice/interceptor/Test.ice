@@ -8,7 +8,7 @@
 
 #include <Ice/Context.ice>
 
-module ZeroC::Ice::Test::Interceptor
+module IceRpc::Test::Interceptor
 {
 
 sequence<byte> ByteSeq;
@@ -41,7 +41,7 @@ interface MyObject
 
     void op1();
 
-    Ice::Context op2();
+    IceRpc::Context op2();
 
     int op3();
 

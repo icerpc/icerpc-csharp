@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Tagged
+namespace IceRpc.Test.Tagged
 {
     public class Initial : IInitial
     {

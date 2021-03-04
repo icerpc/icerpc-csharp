@@ -6,9 +6,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Interceptor
+namespace IceRpc.Test.Interceptor
 {
     public static class AllTests
     {

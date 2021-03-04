@@ -3,7 +3,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Invoke
+namespace IceRpc.Test.Invoke
 {
     public class BlobjectI : IService
     {
@@ -53,7 +53,7 @@ namespace ZeroC.Ice.Test.Invoke
                 var responseFrame = OutgoingResponseFrame.WithReturnValue(current,
                                                                           compress: false,
                                                                           format: default,
-                                                                          s == "::ZeroC::Ice::Test::Invoke::MyClass",
+                                                                          s == "::IceRpc::Test::Invoke::MyClass",
                                                                           OutputStream.IceWriterFromBool);
                 return new ValueTask<OutgoingResponseFrame>(responseFrame);
             }

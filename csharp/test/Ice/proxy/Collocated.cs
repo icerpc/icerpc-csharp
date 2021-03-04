@@ -2,9 +2,9 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Proxy
+namespace IceRpc.Test.Proxy
 {
     public class Collocated : TestHelper
     {

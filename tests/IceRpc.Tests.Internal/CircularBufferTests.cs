@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Internal
 {

@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::DefaultServant
+module IceRpc::Test::DefaultServant
 {
     interface MyObject
     {

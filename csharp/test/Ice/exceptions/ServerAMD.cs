@@ -2,9 +2,9 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Exceptions
+namespace IceRpc.Test.Exceptions
 {
     public class ServerAppAMD : TestHelper
     {
@@ -21,7 +21,7 @@ namespace ZeroC.Ice.Test.Exceptions
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new AsyncThrower();
-            ZeroC.Ice.IServicePrx prx = server.Add("thrower", obj, ZeroC.Ice.IServicePrx.Factory);
+            IceRpc.IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
             server2.Add("thrower", obj);
             server3.Add("thrower", obj);
             await server.ActivateAsync();

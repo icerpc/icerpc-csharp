@@ -2,10 +2,11 @@
 
 using System;
 using System.Threading.Tasks;
-using ZeroC.Ice.Discovery;
-using ZeroC.Test;
+using IceRpc.Interop.ZeroC.Ice;
+using IceRpc.Interop.ZeroC.Ice.Discovery;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Discovery
+namespace IceRpc.Test.Discovery
 {
     public class ServerApp : TestHelper
     {

@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::FaultTolerance
+module IceRpc::Test::FaultTolerance
 {
 
 interface TestIntf

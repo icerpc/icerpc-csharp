@@ -20,7 +20,9 @@
 #   define NODEFAULT(X) /**/
 #endif
 
-module ZeroC::Slice::Test::Macros
+[[suppress-warning(reserved-identifier)]]
+
+module IceRpc::Slice::Test::Macros
 {
 
 class Default

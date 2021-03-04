@@ -6,7 +6,7 @@
 
 [[preserve-case]]
 
-module ZeroC::Slice::Test::Escape::Clash
+module IceRpc::Slice::Test::Escape::Clash
 {
 
 interface Intf

@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Tagged
+module IceRpc::Test::Tagged
 {
 
 class OneTagged

@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Threading;
-using ZeroC.Ice.Test.Inheritance.MA;
-using ZeroC.Ice.Test.Inheritance.MB;
+using IceRpc.Test.Inheritance.MA;
+using IceRpc.Test.Inheritance.MB;
 
-namespace ZeroC.Ice.Test.Inheritance
+namespace IceRpc.Test.Inheritance
 {
     public sealed class InitialI : IInitial
     {

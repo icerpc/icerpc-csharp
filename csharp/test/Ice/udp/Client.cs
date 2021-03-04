@@ -3,9 +3,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.UDP
+namespace IceRpc.Test.UDP
 {
     public class Client : TestHelper
     {

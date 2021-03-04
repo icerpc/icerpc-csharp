@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using System.Threading;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.UDP
+namespace IceRpc.Test.UDP
 {
     public sealed class TestIntf : ITestIntf
     {

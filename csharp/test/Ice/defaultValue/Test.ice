@@ -5,7 +5,7 @@
 // deprecated for enumerator references
 [[suppress-warning(all)]]
 
-module ZeroC::Ice::Test::DefaultValue
+module IceRpc::Test::DefaultValue
 {
 
 enum Color { red, green, blue }

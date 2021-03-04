@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -166,7 +165,7 @@ namespace IceRpc.Tests
             }
             writer.WriteEndObject();
             writer.Flush();
-            textWriter.Write(Encoding.UTF8.GetString(output.ToArray()));
+            textWriter.Write(System.Text.Encoding.UTF8.GetString(output.ToArray()));
 
             textWriter.Write(Environment.NewLine);
         }

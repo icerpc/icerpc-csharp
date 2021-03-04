@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Ice.Discovery;
-using ZeroC.Test;
+using IceRpc.Interop.ZeroC.Ice.Discovery;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Discovery
+namespace IceRpc.Test.Discovery
 {
     public static class AllTests
     {

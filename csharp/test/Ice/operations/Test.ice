@@ -9,7 +9,7 @@
 
 #include <Ice/Context.ice>
 
-module ZeroC::Ice::Test::Operations
+module IceRpc::Test::Operations
 {
 
 enum MyEnum
@@ -227,7 +227,7 @@ interface MyClass
 
     int opByteSOnewayCallCount();
 
-    Ice::Context opContext();
+    IceRpc::Context opContext();
 
     void opDoubleMarshaling(double p1, DoubleS p2);
 

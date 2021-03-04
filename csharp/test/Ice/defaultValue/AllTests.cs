@@ -2,9 +2,9 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.DefaultValue
+namespace IceRpc.Test.DefaultValue
 {
     public static class AllTests
     {

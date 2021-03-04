@@ -8,8 +8,7 @@
 #include <Ice/Context.ice>
 #include <Ice/Identity.ice>
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     // These definitions help with the encoding of ice2 frames.
 

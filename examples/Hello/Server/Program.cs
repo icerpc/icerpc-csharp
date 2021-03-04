@@ -4,7 +4,7 @@ using Demo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using ZeroC.Ice;
+using IceRpc;
 
 try
 {

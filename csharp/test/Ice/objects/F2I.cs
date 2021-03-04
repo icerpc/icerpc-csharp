@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Objects
+namespace IceRpc.Test.Objects
 {
     public sealed class F2 : IF2
     {

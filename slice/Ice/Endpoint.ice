@@ -6,8 +6,7 @@
 
 #include <Ice/BuiltinSequences.ice>
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// Identifies a transport protocol that Ice can use to send requests and receive responses. The enumerators of
     /// Transport correspond to the transports that the Ice runtime knows and implements in some programming languages

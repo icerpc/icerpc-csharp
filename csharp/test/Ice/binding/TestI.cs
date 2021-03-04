@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Binding
+namespace IceRpc.Test.Binding
 {
     public class TestIntf : ITestIntf
     {

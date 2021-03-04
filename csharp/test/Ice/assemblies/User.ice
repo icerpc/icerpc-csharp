@@ -5,7 +5,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Assemblies::User
+module IceRpc::Test::Assemblies::User
 {
     class UserInfo
     {
@@ -13,6 +13,6 @@ module ZeroC::Ice::Test::Assemblies::User
 
     interface Registry
     {
-        UserInfo getUserInfo(string id, ZeroC::Ice::Test::Assemblies::Core::Data data);
+        UserInfo getUserInfo(string id, IceRpc::Test::Assemblies::Core::Data data);
     }
 }

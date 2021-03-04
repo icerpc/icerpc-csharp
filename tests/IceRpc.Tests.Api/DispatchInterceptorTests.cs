@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
 {

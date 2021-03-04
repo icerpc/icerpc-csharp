@@ -9,7 +9,7 @@
 
 #include <Ice/Identity.ice>
 
-module ZeroC::Ice::Test::Objects
+module IceRpc::Test::Objects
 {
 
 class IdentityWrapper
@@ -86,7 +86,7 @@ module Inner
 
 class A
 {
-    ZeroC::Ice::Test::Objects::A theA;
+    IceRpc::Test::Objects::A theA;
 }
 
 exception Ex
@@ -99,7 +99,7 @@ module Sub
 
 class A
 {
-    ZeroC::Ice::Test::Objects::Inner::A theA;
+    IceRpc::Test::Objects::Inner::A theA;
 }
 
 exception Ex

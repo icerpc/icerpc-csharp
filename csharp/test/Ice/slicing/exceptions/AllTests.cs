@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Slicing.Exceptions
+namespace IceRpc.Test.Slicing.Exceptions
 {
     public static class AllTests
     {
@@ -56,7 +56,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 catch (Base b)
                 {
                     TestHelper.Assert(b.B.Equals("Base.b"));
-                    TestHelper.Assert(b.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.Base"));
+                    TestHelper.Assert(b.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.Base"));
                 }
                 catch
                 {
@@ -104,7 +104,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 catch (Base b)
                 {
                     TestHelper.Assert(b.B.Equals("UnknownDerived.b"));
-                    TestHelper.Assert(b.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.Base"));
+                    TestHelper.Assert(b.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.Base"));
                 }
                 catch
                 {
@@ -153,7 +153,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     TestHelper.Assert(k.B.Equals("KnownDerived.b"));
                     TestHelper.Assert(k.Kd.Equals("KnownDerived.kd"));
-                    TestHelper.Assert(k.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownDerived"));
+                    TestHelper.Assert(k.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownDerived"));
                 }
                 catch
                 {
@@ -203,7 +203,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     TestHelper.Assert(k.B.Equals("KnownDerived.b"));
                     TestHelper.Assert(k.Kd.Equals("KnownDerived.kd"));
-                    TestHelper.Assert(k.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownDerived"));
+                    TestHelper.Assert(k.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownDerived"));
                 }
                 catch
                 {
@@ -252,7 +252,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 catch (Base b)
                 {
                     TestHelper.Assert(b.B.Equals("UnknownIntermediate.b"));
-                    TestHelper.Assert(b.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.Base"));
+                    TestHelper.Assert(b.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.Base"));
                 }
                 catch
                 {
@@ -302,7 +302,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(ki.B.Equals("KnownIntermediate.b"));
                     TestHelper.Assert(ki.Ki.Equals("KnownIntermediate.ki"));
                     TestHelper.Assert(ki.GetType().FullName!.Equals(
-                        "ZeroC.Ice.Test.Slicing.Exceptions.KnownIntermediate"));
+                        "IceRpc.Test.Slicing.Exceptions.KnownIntermediate"));
                 }
                 catch
                 {
@@ -353,7 +353,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(kmd.B.Equals("KnownMostDerived.b"));
                     TestHelper.Assert(kmd.Ki.Equals("KnownMostDerived.ki"));
                     TestHelper.Assert(kmd.Kmd.Equals("KnownMostDerived.kmd"));
-                    TestHelper.Assert(kmd.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownMostDerived"));
+                    TestHelper.Assert(kmd.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownMostDerived"));
                 }
                 catch
                 {
@@ -404,7 +404,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     TestHelper.Assert(ki.B.Equals("KnownIntermediate.b"));
                     TestHelper.Assert(ki.Ki.Equals("KnownIntermediate.ki"));
-                    TestHelper.Assert(ki.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownIntermediate"));
+                    TestHelper.Assert(ki.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownIntermediate"));
                 }
                 catch
                 {
@@ -455,7 +455,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(kmd.B.Equals("KnownMostDerived.b"));
                     TestHelper.Assert(kmd.Ki.Equals("KnownMostDerived.ki"));
                     TestHelper.Assert(kmd.Kmd.Equals("KnownMostDerived.kmd"));
-                    TestHelper.Assert(kmd.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownMostDerived"));
+                    TestHelper.Assert(kmd.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownMostDerived"));
                 }
                 catch
                 {
@@ -507,7 +507,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(kmd.B.Equals("KnownMostDerived.b"));
                     TestHelper.Assert(kmd.Ki.Equals("KnownMostDerived.ki"));
                     TestHelper.Assert(kmd.Kmd.Equals("KnownMostDerived.kmd"));
-                    TestHelper.Assert(kmd.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownMostDerived"));
+                    TestHelper.Assert(kmd.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownMostDerived"));
                 }
                 catch
                 {
@@ -558,7 +558,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     TestHelper.Assert(ki.B.Equals("UnknownMostDerived1.b"));
                     TestHelper.Assert(ki.Ki.Equals("UnknownMostDerived1.ki"));
-                    TestHelper.Assert(ki.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownIntermediate"));
+                    TestHelper.Assert(ki.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownIntermediate"));
                 }
                 catch
                 {
@@ -608,7 +608,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     TestHelper.Assert(ki.B.Equals("UnknownMostDerived1.b"));
                     TestHelper.Assert(ki.Ki.Equals("UnknownMostDerived1.ki"));
-                    TestHelper.Assert(ki.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.KnownIntermediate"));
+                    TestHelper.Assert(ki.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.KnownIntermediate"));
                 }
                 catch
                 {
@@ -657,7 +657,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 catch (Base b)
                 {
                     TestHelper.Assert(b.B.Equals("UnknownMostDerived2.b"));
-                    TestHelper.Assert(b.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Exceptions.Base"));
+                    TestHelper.Assert(b.GetType().FullName!.Equals("IceRpc.Test.Slicing.Exceptions.Base"));
                 }
                 catch
                 {
@@ -729,7 +729,7 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     SlicedData slicedData = ex.GetSlicedData()!.Value;
                     TestHelper.Assert(slicedData.Slices.Count == 1);
-                    TestHelper.Assert(slicedData.Slices[0].TypeId! == "::ZeroC::Ice::Test::Slicing::Exceptions::ServerPrivateException");
+                    TestHelper.Assert(slicedData.Slices[0].TypeId! == "::IceRpc::Test::Slicing::Exceptions::ServerPrivateException");
                 }
                 catch
                 {
@@ -750,8 +750,8 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                 {
                     IReadOnlyList<SliceInfo> slices = ex.GetSlicedData()!.Value.Slices;
                     TestHelper.Assert(slices.Count == 2);
-                    TestHelper.Assert(slices[1].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Exceptions::SPreserved1"));
-                    TestHelper.Assert(slices[0].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Exceptions::SPreserved2"));
+                    TestHelper.Assert(slices[1].TypeId!.Equals("::IceRpc::Test::Slicing::Exceptions::SPreserved1"));
+                    TestHelper.Assert(slices[0].TypeId!.Equals("::IceRpc::Test::Slicing::Exceptions::SPreserved2"));
                 }
 
                 try
@@ -764,8 +764,8 @@ namespace ZeroC.Ice.Test.Slicing.Exceptions
                     TestHelper.Assert(ex.Kp.Equals("preserved"));
                     IReadOnlyList<SliceInfo> slices = ex.GetSlicedData()!.Value.Slices;
                     TestHelper.Assert(slices.Count == 2);
-                    TestHelper.Assert(slices[1].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Exceptions::SPreserved1"));
-                    TestHelper.Assert(slices[0].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Exceptions::SPreserved2"));
+                    TestHelper.Assert(slices[1].TypeId!.Equals("::IceRpc::Test::Slicing::Exceptions::SPreserved1"));
+                    TestHelper.Assert(slices[0].TypeId!.Equals("::IceRpc::Test::Slicing::Exceptions::SPreserved2"));
                 }
 
                 await using var server = new Server(communicator, new() { Protocol = helper.Protocol });

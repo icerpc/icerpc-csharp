@@ -4,7 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Alias
+module IceRpc::Test::Alias
 {
     struct Struct1
     {

@@ -9,7 +9,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Proxy
+module IceRpc::Test::Proxy
 {
     interface RelativeTest
     {
@@ -24,7 +24,7 @@ module ZeroC::Ice::Test::Proxy
     interface MyClass
     {
         void shutdown();
-        Ice::Context getContext();
+        IceRpc::Context getContext();
 
         RelativeTest opRelative(Callback callback);
     }
