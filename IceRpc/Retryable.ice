@@ -6,8 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// The RetryAbility is carried by remote exceptions to indicate the ability for retrying
     enum Retryable : byte

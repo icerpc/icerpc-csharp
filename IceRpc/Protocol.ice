@@ -4,8 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// Represents a version of the Ice protocol.
     unchecked enum Protocol : byte

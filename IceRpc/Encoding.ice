@@ -4,8 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// The Ice encoding defines how Slice constructs are marshaled to and later unmarshaled from sequences of bytes.
     /// An Encoding struct holds a version of the Ice encoding.

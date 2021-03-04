@@ -4,12 +4,12 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Endpoint.ice>
-#include <Ice/Identity.ice>
+#include <IceRpc/Endpoint.ice>
+#include <IceRpc/Identity.ice>
 
 /// Ice Discovery is a built-in {@see Ice::Locator} implementation that locates (or discovers) objects and object
 /// adapters using UDP multicast.
-[cs:namespace(ZeroC)]
+[cs:namespace(IceRpc.Interop.ZeroC)]
 module Ice::Discovery
 {
     interface FindAdapterByIdReply;

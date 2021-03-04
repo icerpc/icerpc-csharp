@@ -6,13 +6,12 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/BuiltinSequences.ice>
-#include <Ice/Encoding.ice>
-#include <Ice/Identity.ice>
-#include <Ice/Protocol.ice>
+#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Encoding.ice>
+#include <IceRpc/Identity.ice>
+#include <IceRpc/Protocol.ice>
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     // These definitions help with the encoding of proxies.
 
@@ -94,7 +93,7 @@ module Ice
     [cs:readonly]
     struct Ice1ProxyData20
     {
-        Identity identity;
+        Ice::Identity identity;
         string? facet;                       // null equivalent to ""
         Encoding? encoding;                  // null is equivalent to Encoding 1.1
         InvocationMode? invocationMode;      // null is equivalent to Twoway

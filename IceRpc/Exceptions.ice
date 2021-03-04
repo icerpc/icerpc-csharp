@@ -6,8 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(ZeroC)]
-module Ice
+module IceRpc
 {
     /// Represents the origin of a remote exception. With the Ice 2.0 encoding, all remote exceptions have an implicit
     /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is set for
