@@ -10,6 +10,24 @@ namespace ZeroC.Ice
     /// <summary>This class represents the client side TLS configuration.</summary>
     public class TlsClientOptions
     {
+        /// <summary>Gets or sets the certificates collection that will be used as trusted certificate authorities
+        /// to verify the server certificate. Setting this is incompatible with setting
+        /// <see cref="ServerCertificateValidationCallback"/>.</summary>
+        public X509Certificate2Collection? CertificateAuthorities
+        {
+            get => _certificateAuthorities;
+            set
+            {
+                if (value != null && ServerCertificateValidationCallback != null)
+                {
+                    throw new ArgumentException(
+                        @$"Using the {nameof(CertificateAuthorities)} is incompatible with using the {
+                           nameof(ServerCertificateValidationCallback)}");
+                }
+                _certificateAuthorities = value;
+            }
+        }
+
         /// <summary>Gets or sets the certificates used to authenticate client connections. If the
         /// <see cref="ClientCertificateSelectionCallback"/> is defined, the certificates are provided to the callback.
         /// Otherwise, the built-in certificate selection callback will select a certificate that matches one of the
@@ -25,36 +43,18 @@ namespace ZeroC.Ice
         /// Tls13, None or a combination of these, other values are not accepted.</summary>
         public SslProtocols? EnabledSslProtocols { get; set; }
 
-        /// <summary>Gets or sets the certificates collection that will be used as trusted certificate authorities
-        /// to verify the server certificate. Setting this is incompatible with setting
-        /// <see cref="ServerCertificateValidationCallback"/>.</summary>
-        public X509Certificate2Collection? ServerCertificateCertificateAuthorities
-        {
-            get => _serverCertificateCertificateAuthorities;
-            set
-            {
-                if (ServerCertificateValidationCallback != null)
-                {
-                    throw new ArgumentException(
-                        @$"Using the {nameof(ServerCertificateCertificateAuthorities)} is incompatible with using the {
-                           nameof(ServerCertificateValidationCallback)}");
-                }
-                _serverCertificateCertificateAuthorities = value;
-            }
-        }
-
         /// <summary>Gets or sets the callback that will be used to verify the server certificate. Setting this is
-        /// incompatible with setting <see cref="ServerCertificateCertificateAuthorities"/>.</summary>
+        /// incompatible with setting <see cref="CertificateAuthorities"/>.</summary>
         public RemoteCertificateValidationCallback? ServerCertificateValidationCallback
         {
             get => _serverCertificateValidationCallback;
             set
             {
-                if (ServerCertificateCertificateAuthorities != null)
+                if (value != null && CertificateAuthorities != null)
                 {
                     throw new ArgumentException(
                         @$"Using the {nameof(ServerCertificateValidationCallback)} is incompatible with using the {
-                           nameof(ServerCertificateCertificateAuthorities)}");
+                           nameof(CertificateAuthorities)}");
                 }
 
                 _serverCertificateValidationCallback = value;
@@ -69,7 +69,21 @@ namespace ZeroC.Ice
         /// of the value of this property.</summary>
         public bool UseMachineContext { get; set; }
 
-        private X509Certificate2Collection? _serverCertificateCertificateAuthorities;
+        private X509Certificate2Collection? _certificateAuthorities;
         private RemoteCertificateValidationCallback? _serverCertificateValidationCallback;
+
+        public TlsClientOptions()
+        {
+        }
+
+        public TlsClientOptions(TlsClientOptions other)
+        {
+            CertificateAuthorities = other.CertificateAuthorities;
+            ClientCertificates = other.ClientCertificates;
+            ClientCertificateSelectionCallback = other.ClientCertificateSelectionCallback;
+            EnabledSslProtocols =  other.EnabledSslProtocols;
+            ServerCertificateValidationCallback = other.ServerCertificateValidationCallback;
+            UseMachineContext = other.UseMachineContext;
+        }
     }
 }

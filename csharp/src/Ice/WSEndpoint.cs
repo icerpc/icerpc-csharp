@@ -168,8 +168,8 @@ namespace ZeroC.Ice
         internal override SingleStreamSocket CreateSocket(EndPoint addr) =>
             new WSSocket(Communicator, base.CreateSocket(addr));
 
-        internal override SingleStreamSocket CreateSocket(Socket socket) =>
-            new WSSocket(Communicator, base.CreateSocket(socket));
+        internal override SingleStreamSocket CreateSocket(Server server, Socket socket) =>
+            new WSSocket(Communicator, base.CreateSocket(server, socket));
 
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,

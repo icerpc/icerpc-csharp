@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace ZeroC.Ice
 {
@@ -309,7 +308,7 @@ namespace ZeroC.Ice
         internal virtual SingleStreamSocket CreateSocket(EndPoint addr) =>
             new TcpSocket(Communicator, addr);
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket) =>
-            new TcpSocket(Communicator, socket);
+        internal virtual SingleStreamSocket CreateSocket(Server server, Socket socket) =>
+            new TcpSocket(server, socket);
     }
 }

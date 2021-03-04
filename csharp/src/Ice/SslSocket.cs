@@ -20,7 +20,7 @@ namespace ZeroC.Ice
         public override SslStream? SslStream => _sslStream;
 
         private readonly Communicator _communicator;
-        private readonly SslEngine _engine;
+        private readonly Server? _server;
         private SslStream? _sslStream;
         private BufferedStream? _writeStream;
         private readonly SingleStreamSocket _underlying;
@@ -28,6 +28,7 @@ namespace ZeroC.Ice
         public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
         {
             // The endpoint host is only use for client-side authentication.
+            Debug.Assert(_server != null);
             await AuthenticateAsync(host: null, cancel).ConfigureAwait(false);
             return this;
         }
@@ -130,7 +131,14 @@ namespace ZeroC.Ice
         internal SslSocket(Communicator communicator, SingleStreamSocket underlying)
         {
             _communicator = communicator;
-            _engine = communicator.SslEngine;
+            _underlying = underlying;
+        }
+
+        // Only for use by TcpEndpoint.
+        internal SslSocket(Server server, SingleStreamSocket underlying)
+        {
+            _communicator = server.Communicator;
+            _server = server;
             _underlying = underlying;
         }
 
@@ -147,14 +155,15 @@ namespace ZeroC.Ice
                 if (host == null)
                 {
                     // Server-side connection
+                    Debug.Assert(_server != null);
                     var options = new SslServerAuthenticationOptions
                     {
-                        ServerCertificate = _engine.TlsServerOptions.ServerCertificate,
-                        ClientCertificateRequired = _engine.TlsServerOptions.RequireClientCertificate,
-                        EnabledSslProtocols = _engine.TlsServerOptions.EnabledSslProtocols!.Value,
+                        ServerCertificate = _server.TlsOptions?.ServerCertificate,
+                        ClientCertificateRequired = _server.TlsOptions?.RequireClientCertificate ?? false,
+                        EnabledSslProtocols = _server.TlsOptions?.EnabledSslProtocols ?? SslProtocols.None,
                         RemoteCertificateValidationCallback =
-                        _engine.TlsServerOptions.ClientCertificateValidationCallback ??
-                        GetRemoteCertificateValidationCallback(incoming: true),
+                            _server.TlsOptions?.ClientCertificateValidationCallback ??
+                            GetRemoteCertificateValidationCallback(incoming: true),
                         CertificateRevocationCheckMode = X509RevocationMode.NoCheck
                     };
                     await _sslStream.AuthenticateAsServerAsync(options, cancel).ConfigureAwait(false);
@@ -165,15 +174,15 @@ namespace ZeroC.Ice
                     var options = new SslClientAuthenticationOptions
                     {
                         TargetHost = host,
-                        ClientCertificates = _engine.TlsClientOptions.ClientCertificates,
-                        EnabledSslProtocols = _engine.TlsClientOptions.EnabledSslProtocols!.Value,
+                        ClientCertificates = _communicator.TlsOptions?.ClientCertificates,
+                        EnabledSslProtocols = _communicator.TlsOptions?.EnabledSslProtocols ?? SslProtocols.None,
                         RemoteCertificateValidationCallback =
-                        _engine.TlsClientOptions.ServerCertificateValidationCallback ??
+                            _communicator.TlsOptions?.ServerCertificateValidationCallback ??
                             GetRemoteCertificateValidationCallback(incoming: false),
                         CertificateRevocationCheckMode = X509RevocationMode.NoCheck
                     };
                     options.LocalCertificateSelectionCallback =
-                        _engine.TlsClientOptions.ClientCertificateSelectionCallback ??
+                        _communicator.TlsOptions?.ClientCertificateSelectionCallback ??
                             (options.ClientCertificates?.Count > 0 ?
                                 CertificateSelectionCallback : (LocalCertificateSelectionCallback?)null);
 
@@ -242,7 +251,7 @@ namespace ZeroC.Ice
                     // For an outgoing connection the peer must always provide a certificate, for an incoming
                     // connection the certificate is only required if the RequireClientCertificate option was
                     // set.
-                    if (!incoming || _engine.TlsServerOptions.RequireClientCertificate)
+                    if (!incoming || (_server!.TlsOptions?.RequireClientCertificate ?? false))
                     {
                         if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
                         {
@@ -270,11 +279,12 @@ namespace ZeroC.Ice
                 }
 
                 X509Certificate2Collection? trustedCertificateAuthorities = incoming ?
-                    _engine.TlsServerOptions.ClientCertificateCertificateAuthorities :
-                    _engine.TlsClientOptions.ServerCertificateCertificateAuthorities;
+                    _server!.TlsOptions?.CertificateAuthorities :
+                    _communicator.TlsOptions?.CertificateAuthorities;
 
                 bool useMachineContext = incoming ?
-                    _engine.TlsServerOptions.UseMachineContext : _engine.TlsClientOptions.UseMachineContext;
+                    (_server!.TlsOptions?.UseMachineContext ?? false) :
+                    (_communicator.TlsOptions?.UseMachineContext ?? false);
 
                 bool buildCustomChain =
                     (trustedCertificateAuthorities != null || useMachineContext) && certificate != null;

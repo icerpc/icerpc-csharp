@@ -20,6 +20,7 @@ namespace ZeroC.Ice
 
         private readonly EndPoint? _addr;
         private readonly Communicator _communicator;
+        private readonly Server? _server;
         private string _desc = "";
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
@@ -51,7 +52,8 @@ namespace ZeroC.Ice
                 SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    socket = new SslSocket(endpoint.Communicator, this);
+                    Debug.Assert(_server != null);
+                    socket = new SslSocket(_server, this);
                     await socket.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
                 }
 
@@ -223,9 +225,10 @@ namespace ZeroC.Ice
             }
         }
 
-        internal TcpSocket(Communicator communicator, Socket fd)
+        internal TcpSocket(Server server, Socket fd)
         {
-            _communicator = communicator;
+            _communicator = server.Communicator;
+            _server = server;
             Socket = fd;
             try
             {

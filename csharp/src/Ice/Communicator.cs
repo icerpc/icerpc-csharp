@@ -165,7 +165,7 @@ namespace ZeroC.Ice
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
         internal ILogger SecurityLogger { get; }
-        internal SslEngine SslEngine { get; }
+        internal TlsClientOptions? TlsOptions { get; }
         internal ILogger TransportLogger { get; }
         internal bool WarnConnections { get; }
         internal bool WarnDatagrams { get; }
@@ -217,20 +217,17 @@ namespace ZeroC.Ice
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="tlsClientOptions">Client side configuration for TLS connections.</param>
-        /// <param name="tlsServerOptions">Server side configuration for TLS connections.</param>
         public Communicator(
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            TlsClientOptions? tlsClientOptions = null,
-            TlsServerOptions? tlsServerOptions = null)
+            TlsClientOptions? tlsClientOptions = null)
             : this(ref _emptyArgs,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsClientOptions,
-                   tlsServerOptions)
+                   tlsClientOptions)
         {
         }
 
@@ -240,21 +237,18 @@ namespace ZeroC.Ice
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="tlsClientOptions">Client side configuration for TLS connections.</param>
-        /// <param name="tlsServerOptions">Server side configuration for TLS connections.</param>
         public Communicator(
             ref string[] args,
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            TlsClientOptions? tlsClientOptions = null,
-            TlsServerOptions? tlsServerOptions = null)
+            TlsClientOptions? tlsClientOptions = null)
             : this(ref args,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsClientOptions,
-                   tlsServerOptions)
+                   tlsClientOptions)
         {
         }
 
@@ -265,21 +259,18 @@ namespace ZeroC.Ice
         /// <param name="observer">The communicator observer used by the Ice run-time.</param>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="tlsClientOptions">Client side configuration for TLS connections.</param>
-        /// <param name="tlsServerOptions">Server side configuration for TLS connections.</param>
         public Communicator(
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            TlsClientOptions? tlsClientOptions = null,
-            TlsServerOptions? tlsServerOptions = null)
+            TlsClientOptions? tlsClientOptions = null)
             : this(ref _emptyArgs,
                    appSettings,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsClientOptions,
-                   tlsServerOptions)
+                   tlsClientOptions)
         {
         }
 
@@ -291,15 +282,13 @@ namespace ZeroC.Ice
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="tlsClientOptions">Client side configuration for TLS connections.</param>
-        /// <param name="tlsServerOptions">Server side configuration for TLS connections.</param>
         public Communicator(
             ref string[] args,
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            TlsClientOptions? tlsClientOptions = null,
-            TlsServerOptions? tlsServerOptions = null)
+            TlsClientOptions? tlsClientOptions = null)
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
@@ -457,7 +446,10 @@ namespace ZeroC.Ice
 
             _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
 
-            SslEngine = new SslEngine(this, tlsClientOptions, tlsServerOptions);
+            if (tlsClientOptions != null)
+            {
+                TlsOptions = new TlsClientOptions(tlsClientOptions);
+            }
 
             RegisterIce1Transport(Transport.TCP,
                                   "tcp",

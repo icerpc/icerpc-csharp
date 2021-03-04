@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -71,6 +70,9 @@ namespace ZeroC.Ice
         /// <summary>Returns the TaskScheduler used to dispatch requests.</summary>
         public TaskScheduler? TaskScheduler { get; }
 
+        // TLS Server side configuration
+        internal TlsServerOptions? TlsOptions { get; }
+
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDatagramOnly { get; }
 
@@ -133,6 +135,11 @@ namespace ZeroC.Ice
             ReplicaGroupId = options.ReplicaGroupId;
             SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
+
+            if (options.TlsOptions is TlsServerOptions tlsOptions)
+            {
+                TlsOptions = new TlsServerOptions(tlsOptions);
+            }
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
             IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
