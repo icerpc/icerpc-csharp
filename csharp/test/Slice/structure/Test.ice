@@ -2,7 +2,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 //
 
-module ZeroC::Slice::Test::Structure
+[[suppress-warning(reserved-identifier)]]
+
+module IceRpc::Slice::Test::Structure
 {
     sequence<string> StringSeq;
     sequence<int> IntList;

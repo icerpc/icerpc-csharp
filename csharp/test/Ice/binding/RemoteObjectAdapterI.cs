@@ -4,7 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Binding
+namespace IceRpc.Test.Binding
 {
     public class RemoteServer : IAsyncRemoteServer
     {

@@ -6,9 +6,9 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.AMI
+namespace IceRpc.Test.AMI
 {
     public static class AllTests
     {
@@ -114,14 +114,14 @@ namespace ZeroC.Ice.Test.AMI
             {
                 var ctx = new Dictionary<string, string>();
 
-                TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Result);
-                TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf", ctx).Result);
+                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").Result);
+                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx).Result);
 
                 await p.IcePingAsync();
                 await p.IcePingAsync(ctx);
 
-                TestHelper.Assert(p.IceIdAsync().Result.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
-                TestHelper.Assert(p.IceIdAsync(ctx).Result.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
+                TestHelper.Assert(p.IceIdAsync().Result.Equals("::IceRpc::Test::AMI::TestIntf"));
+                TestHelper.Assert(p.IceIdAsync(ctx).Result.Equals("::IceRpc::Test::AMI::TestIntf"));
 
                 TestHelper.Assert(p.IceIdsAsync().Result.Length == 2);
                 TestHelper.Assert(p.IceIdsAsync(ctx).Result.Length == 2);
@@ -161,16 +161,16 @@ namespace ZeroC.Ice.Test.AMI
                     {
                         var ctx = new Dictionary<string, string>();
 
-                        TestHelper.Assert(await p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf"));
-                        TestHelper.Assert(await p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf", ctx));
+                        TestHelper.Assert(await p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf"));
+                        TestHelper.Assert(await p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx));
 
                         await p.IcePingAsync();
                         await p.IcePingAsync(ctx);
 
                         string id = await p.IceIdAsync();
-                        TestHelper.Assert(id.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
+                        TestHelper.Assert(id.Equals("::IceRpc::Test::AMI::TestIntf"));
                         id = await p.IceIdAsync(ctx);
-                        TestHelper.Assert(id.Equals("::ZeroC::Ice::Test::AMI::TestIntf"));
+                        TestHelper.Assert(id.Equals("::IceRpc::Test::AMI::TestIntf"));
 
                         string[] ids = await p.IceIdsAsync();
                         TestHelper.Assert(ids.Length == 2);
@@ -213,10 +213,10 @@ namespace ZeroC.Ice.Test.AMI
             {
                 var ctx = new Dictionary<string, string>();
 
-                p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").ContinueWith(
+                p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").ContinueWith(
                     previous => TestHelper.Assert(previous.Result), TaskScheduler.Default).Wait();
 
-                p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf", ctx).ContinueWith(
+                p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx).ContinueWith(
                     previous => TestHelper.Assert(previous.Result), TaskScheduler.Default).Wait();
 
                 p.IcePingAsync().ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
@@ -224,11 +224,11 @@ namespace ZeroC.Ice.Test.AMI
                 p.IcePingAsync(ctx).ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
 
                 p.IceIdAsync().ContinueWith(
-                    previous => TestHelper.Assert(previous.Result == "::ZeroC::Ice::Test::AMI::TestIntf"),
+                    previous => TestHelper.Assert(previous.Result == "::IceRpc::Test::AMI::TestIntf"),
                     TaskScheduler.Default).Wait();
 
                 p.IceIdAsync(ctx).ContinueWith(
-                    previous => TestHelper.Assert(previous.Result == "::ZeroC::Ice::Test::AMI::TestIntf"),
+                    previous => TestHelper.Assert(previous.Result == "::IceRpc::Test::AMI::TestIntf"),
                     TaskScheduler.Default).Wait();
 
                 p.IceIdsAsync().ContinueWith(previous => TestHelper.Assert(previous.Result.Length == 2),
@@ -318,7 +318,7 @@ namespace ZeroC.Ice.Test.AMI
 
                     try
                     {
-                        i.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Wait();
+                        i.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").Wait();
                         TestHelper.Assert(false);
                     }
                     catch (AggregateException ex)
@@ -358,7 +358,7 @@ namespace ZeroC.Ice.Test.AMI
                 }
 
                 // Ensures no exception is called when response is received
-                TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::AMI::TestIntf").Result);
+                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").Result);
                 p.OpAsync().Wait();
                 p.OpWithResultAsync().Wait();
 

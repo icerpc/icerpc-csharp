@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Enums
+namespace IceRpc.Test.Enums
 {
     public class TestIntf : ITestIntf
     {

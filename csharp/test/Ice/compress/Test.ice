@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Compress
+module IceRpc::Test::Compress
 {
 
 sequence<byte> ByteSeq;

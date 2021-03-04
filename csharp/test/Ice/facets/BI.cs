@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Facets
+namespace IceRpc.Test.Facets
 {
     public sealed class B : IB
     {

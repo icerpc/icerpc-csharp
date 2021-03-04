@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.SeqMapping
+namespace IceRpc.Test.SeqMapping
 {
     public sealed class MyClass : IMyClass
     {

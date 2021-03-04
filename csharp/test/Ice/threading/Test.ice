@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Threading
+module IceRpc::Test::Threading
 {
 
 exception TestFailedException

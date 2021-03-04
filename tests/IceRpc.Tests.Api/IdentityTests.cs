@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
 {

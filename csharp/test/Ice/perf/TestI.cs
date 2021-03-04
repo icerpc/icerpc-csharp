@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Perf
+namespace IceRpc.Test.Perf
 {
     public sealed class PerformanceI : IPerformance
     {

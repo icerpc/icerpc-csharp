@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Slicing::Exceptions
+module IceRpc::Test::Slicing::Exceptions
 {
 
 exception Base

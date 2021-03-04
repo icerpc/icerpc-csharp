@@ -9,7 +9,7 @@
 
 #include <Test.ice>
 
-module ZeroC::Ice::Test::Slicing::Exceptions
+module IceRpc::Test::Slicing::Exceptions
 {
 
 class PreservedClass : BaseClass

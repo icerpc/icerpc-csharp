@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::DictMapping
+module IceRpc::Test::DictMapping
 {
 
 dictionary<int, int> NV;

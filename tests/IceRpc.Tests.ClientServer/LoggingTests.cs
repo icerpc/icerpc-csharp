@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {

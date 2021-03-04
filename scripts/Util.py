@@ -3491,12 +3491,12 @@ class CSharpMapping(Mapping):
             proccessType = current.testcase.getProcessType(process)
             if proccessType:
                 testdir = os.path.join(current.testcase.getPath(current), self.getBuildDir(proccessType, current))
-                if os.path.isfile(os.path.join(testdir, "Ice.dll")):
+                if os.path.isfile(os.path.join(testdir, "IceRpc.dll")):
                     plugindir = testdir
             plugindir += os.sep
 
         return {
-            "IceSSL" : plugindir + "Ice.dll:ZeroC.Ice.SslPluginFactory"
+            "IceSSL" : plugindir + "IceRpc.dll:ZeroC.Ice.SslPluginFactory"
         }[plugin]
 
     def getEnv(self, process, current):

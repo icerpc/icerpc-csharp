@@ -4,9 +4,11 @@
 
 #pragma once
 
+[[suppress-warning(reserved-identifier)]]
+
 [[preserve-case]]
 
-module ZeroC::Slice::Test::Escape
+module IceRpc::Slice::Test::Escape
 {
 
 module abstract

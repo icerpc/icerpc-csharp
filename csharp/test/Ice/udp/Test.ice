@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <Ice/Identity.ice>
+#include <IceRpc/Identity.ice>
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::UDP
+module IceRpc::Test::UDP
 {
 
 interface PingReply

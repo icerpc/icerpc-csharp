@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Slicing::Objects
+module IceRpc::Test::Slicing::Objects
 {
 
 class SBase

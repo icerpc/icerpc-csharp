@@ -2,9 +2,9 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Echo
+namespace IceRpc.Test.Echo
 {
     public class BlobjectI : IService
     {

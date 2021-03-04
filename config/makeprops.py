@@ -23,7 +23,7 @@ commonPreamble = """// Copyright (c) ZeroC, Inc. All rights reserved.
 """ % {'timestamp': time.ctime() }
 
 csPreamble = commonPreamble + """
-namespace ZeroC.Ice
+namespace IceRpc
 {
     internal static class %(classname)s
     {

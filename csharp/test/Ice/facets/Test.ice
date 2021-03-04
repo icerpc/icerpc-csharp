@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Facets
+module IceRpc::Test::Facets
 {
 
 interface Empty

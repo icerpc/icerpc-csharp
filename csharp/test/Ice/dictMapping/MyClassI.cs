@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.DictMapping
+namespace IceRpc.Test.DictMapping
 {
     public sealed class MyClass : IMyClass
     {

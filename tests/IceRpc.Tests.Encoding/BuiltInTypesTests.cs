@@ -3,7 +3,6 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Encoding
 {
@@ -13,14 +12,14 @@ namespace IceRpc.Tests.Encoding
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesTests
     {
-        private ZeroC.Ice.Encoding _encoding;
+        private IceRpc.Encoding _encoding;
         private List<ArraySegment<byte>> _data;
         private OutputStream _ostr;
         private InputStream _istr;
 
         public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
         {
-            _encoding = new ZeroC.Ice.Encoding(encodingMajor, encodingMinor);
+            _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _data = new List<ArraySegment<byte>>() { new byte[256] };
             _ostr = new OutputStream(_encoding, _data);
             _istr = new InputStream(_data[0], _encoding);

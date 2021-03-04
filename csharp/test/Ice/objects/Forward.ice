@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Objects
+module IceRpc::Test::Objects
 {
 
 class F1

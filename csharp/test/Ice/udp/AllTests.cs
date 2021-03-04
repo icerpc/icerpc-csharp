@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.UDP
+namespace IceRpc.Test.UDP
 {
     public static class AllTests
     {

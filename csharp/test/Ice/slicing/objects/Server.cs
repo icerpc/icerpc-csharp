@@ -2,9 +2,9 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Slicing.Objects
+namespace IceRpc.Test.Slicing.Objects
 {
     public class ServerApp : TestHelper
     {

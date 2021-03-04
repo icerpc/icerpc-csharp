@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.FaultTolerance
+namespace IceRpc.Test.FaultTolerance
 {
     public static class AllTests
     {

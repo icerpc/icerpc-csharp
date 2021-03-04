@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Enums
+module IceRpc::Test::Enums
 {
 
 enum ByteEnum

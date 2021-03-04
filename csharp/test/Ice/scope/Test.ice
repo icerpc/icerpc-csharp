@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Scope
+module IceRpc::Test::Scope
 {
     struct S
     {
@@ -147,17 +147,17 @@ module ZeroC::Ice::Test::Scope
     }
 }
 
-module ZeroC::Ice::Test::Scope::Inner::Test::Inner2
+module IceRpc::Test::Scope::Inner::Test::Inner2
 {
     interface I
     {
-        (ZeroC::Ice::Test::Scope::S r1, ZeroC::Ice::Test::Scope::S r2) opS(ZeroC::Ice::Test::Scope::S s1);
-        (ZeroC::Ice::Test::Scope::SSeq r1, ZeroC::Ice::Test::Scope::SSeq r2) opSSeq(ZeroC::Ice::Test::Scope::SSeq s1);
-        (ZeroC::Ice::Test::Scope::SMap r1, ZeroC::Ice::Test::Scope::SMap r2) opSMap(ZeroC::Ice::Test::Scope::SMap s1);
+        (IceRpc::Test::Scope::S r1, IceRpc::Test::Scope::S r2) opS(IceRpc::Test::Scope::S s1);
+        (IceRpc::Test::Scope::SSeq r1, IceRpc::Test::Scope::SSeq r2) opSSeq(IceRpc::Test::Scope::SSeq s1);
+        (IceRpc::Test::Scope::SMap r1, IceRpc::Test::Scope::SMap r2) opSMap(IceRpc::Test::Scope::SMap s1);
 
-        (ZeroC::Ice::Test::Scope::C r1, ZeroC::Ice::Test::Scope::C r2) opC(ZeroC::Ice::Test::Scope::C c1);
-        (ZeroC::Ice::Test::Scope::CSeq r1, ZeroC::Ice::Test::Scope::CSeq r2) opCSeq(ZeroC::Ice::Test::Scope::CSeq c1);
-        (ZeroC::Ice::Test::Scope::CMap r1, ZeroC::Ice::Test::Scope::CMap r2) opCMap(ZeroC::Ice::Test::Scope::CMap c1);
+        (IceRpc::Test::Scope::C r1, IceRpc::Test::Scope::C r2) opC(IceRpc::Test::Scope::C c1);
+        (IceRpc::Test::Scope::CSeq r1, IceRpc::Test::Scope::CSeq r2) opCSeq(IceRpc::Test::Scope::CSeq c1);
+        (IceRpc::Test::Scope::CMap r1, IceRpc::Test::Scope::CMap r2) opCMap(IceRpc::Test::Scope::CMap c1);
 
         void shutdown();
     }

@@ -2,9 +2,9 @@
 
 using System;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Alias
+namespace IceRpc.Test.Alias
 {
     public class Client : TestHelper
     {

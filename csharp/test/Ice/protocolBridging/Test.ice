@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::ProtocolBridging
+module IceRpc::Test::ProtocolBridging
 {
     exception MyError
     {

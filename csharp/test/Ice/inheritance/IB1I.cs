@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Inheritance
+namespace IceRpc.Test.Inheritance
 {
     public sealed class B1 : MB.IB1
     {

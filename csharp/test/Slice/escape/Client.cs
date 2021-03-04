@@ -5,43 +5,43 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice;
-using ZeroC.Slice.Test.Escape.@abstract;
-using ZeroC.Test;
+using IceRpc;
+using IceRpc.Slice.Test.Escape.@abstract;
+using IceRpc.Test;
 
 public class Client : TestHelper
 {
     public sealed class Case : Icase
     {
-        public ValueTask<int> catchAsync(int @checked, ZeroC.Ice.Current current, CancellationToken cancel) =>
+        public ValueTask<int> catchAsync(int @checked, IceRpc.Current current, CancellationToken cancel) =>
             new(0);
     }
 
     public sealed class Decimal : Idecimal
     {
-        public void @default(ZeroC.Ice.Current current, CancellationToken cancel)
+        public void @default(IceRpc.Current current, CancellationToken cancel)
         {
         }
     }
 
     public sealed class Explicit : Iexplicit
     {
-        public ValueTask<int> catchAsync(int @checked, ZeroC.Ice.Current current, CancellationToken cancel) =>
+        public ValueTask<int> catchAsync(int @checked, IceRpc.Current current, CancellationToken cancel) =>
             new(0);
 
-        public void @default(ZeroC.Ice.Current current, CancellationToken cancel) => Assert(current.Operation == "default");
+        public void @default(IceRpc.Current current, CancellationToken cancel) => Assert(current.Operation == "default");
     }
 
-    public sealed class Test1I : ZeroC.Slice.Test.Escape.@abstract.System.ITest
+    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
     {
-        public void op(ZeroC.Ice.Current current, CancellationToken cancel)
+        public void op(IceRpc.Current current, CancellationToken cancel)
         {
         }
     }
 
-    public sealed class Test2I : ZeroC.Slice.Test.Escape.System.ITest
+    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
     {
-        public void op(ZeroC.Ice.Current current, CancellationToken cancel)
+        public void op(IceRpc.Current current, CancellationToken cancel)
         {
         }
     }
@@ -97,7 +97,7 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        await using var server = new ZeroC.Ice.Server(Communicator);
+        await using var server = new IceRpc.Server(Communicator);
         server.Add("test", new Decimal());
         server.Add("test1", new Test1I());
         server.Add("test2", new Test2I());
@@ -111,12 +111,12 @@ public class Client : TestHelper
 
         Output.Write("testing System as module name... ");
         Output.Flush();
-        ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            ZeroC.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "test1");
+        IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
+            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "test1");
         t1.op();
 
-        ZeroC.Slice.Test.Escape.System.ITestPrx t2 =
-            ZeroC.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "test2");
+        IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
+            IceRpc.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "test2");
         t2.op();
         Output.WriteLine("ok");
 

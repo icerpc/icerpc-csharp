@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ice", "..\src\Ice\ice.csproj", "{516D755E-DA02-41CE-95A5-23D54691B642}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "icerpc", "..\src\IceRpc\ice.csproj", "{516D755E-DA02-41CE-95A5-23D54691B642}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
