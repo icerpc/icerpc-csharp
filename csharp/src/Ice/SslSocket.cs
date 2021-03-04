@@ -156,36 +156,42 @@ namespace ZeroC.Ice
                 {
                     // Server-side connection
                     Debug.Assert(_server != null);
-                    var options = new SslServerAuthenticationOptions
+                    if (_server.TlsOptions == null)
                     {
-                        ServerCertificate = _server.TlsOptions?.ServerCertificate,
-                        ClientCertificateRequired = _server.TlsOptions?.RequireClientCertificate ?? false,
-                        EnabledSslProtocols = _server.TlsOptions?.EnabledSslProtocols ?? SslProtocols.None,
-                        RemoteCertificateValidationCallback =
-                            _server.TlsOptions?.ClientCertificateValidationCallback ??
-                            GetRemoteCertificateValidationCallback(incoming: true),
-                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck
-                    };
-                    await _sslStream.AuthenticateAsServerAsync(options, cancel).ConfigureAwait(false);
+                        throw new InvalidOperationException(
+                            "cannot accept a tls connection no tls configuration was provided");
+                    }
+                    await _sslStream.AuthenticateAsServerAsync(_server.TlsOptions!, cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     // Client-side connection
-                    var options = new SslClientAuthenticationOptions
+                    var options = _communicator.TlsOptions;
+                    if (options == null)
                     {
-                        TargetHost = host,
-                        ClientCertificates = _communicator.TlsOptions?.ClientCertificates,
-                        EnabledSslProtocols = _communicator.TlsOptions?.EnabledSslProtocols ?? SslProtocols.None,
-                        RemoteCertificateValidationCallback =
-                            _communicator.TlsOptions?.ServerCertificateValidationCallback ??
-                            GetRemoteCertificateValidationCallback(incoming: false),
-                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck
-                    };
-                    options.LocalCertificateSelectionCallback =
-                        _communicator.TlsOptions?.ClientCertificateSelectionCallback ??
-                            (options.ClientCertificates?.Count > 0 ?
-                                CertificateSelectionCallback : (LocalCertificateSelectionCallback?)null);
-
+                        options = new SslClientAuthenticationOptions()
+                        {
+                            TargetHost = host
+                        };
+                    }
+                    else if (options.TargetHost == null)
+                    {
+                        options = new SslClientAuthenticationOptions
+                        {
+                            AllowRenegotiation = _communicator.TlsOptions!.AllowRenegotiation,
+                            ApplicationProtocols = _communicator.TlsOptions!.ApplicationProtocols,
+                            CertificateRevocationCheckMode = _communicator.TlsOptions!.CertificateRevocationCheckMode,
+                            CipherSuitesPolicy = _communicator.TlsOptions!.CipherSuitesPolicy,
+                            ClientCertificates = _communicator.TlsOptions!.ClientCertificates,
+                            EnabledSslProtocols = _communicator.TlsOptions!.EnabledSslProtocols,
+                            EncryptionPolicy = _communicator.TlsOptions!.EncryptionPolicy,
+                            LocalCertificateSelectionCallback =
+                                _communicator.TlsOptions!.LocalCertificateSelectionCallback,
+                            RemoteCertificateValidationCallback =
+                                _communicator.TlsOptions!.RemoteCertificateValidationCallback,
+                            TargetHost = host, // Host cannot be null
+                        };
+                    }
                     await _sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
                 }
             }
@@ -218,153 +224,6 @@ namespace ZeroC.Ice
             // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
             // small buffers will be sent within a single SSL frame.
             _writeStream = new BufferedStream(_sslStream);
-        }
-
-        private X509Certificate CertificateSelectionCallback(
-            object sender,
-            string targetHost,
-            X509CertificateCollection? certs,
-            X509Certificate? remoteCertificate,
-            string[]? acceptableIssuers)
-        {
-            Debug.Assert(certs != null && certs.Count > 0);
-            // Use the first certificate that match the acceptable issuers.
-            if (acceptableIssuers != null && acceptableIssuers.Length > 0)
-            {
-                foreach (X509Certificate certificate in certs)
-                {
-                    if (Array.IndexOf(acceptableIssuers, certificate.Issuer) != -1)
-                    {
-                        return certificate;
-                    }
-                }
-            }
-            return certs[0];
-        }
-
-        private RemoteCertificateValidationCallback GetRemoteCertificateValidationCallback(bool incoming)
-        {
-            return (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors) =>
-            {
-                if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) > 0)
-                {
-                    // For an outgoing connection the peer must always provide a certificate, for an incoming
-                    // connection the certificate is only required if the RequireClientCertificate option was
-                    // set.
-                    if (!incoming || (_server!.TlsOptions?.RequireClientCertificate ?? false))
-                    {
-                        if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
-                        {
-                            _communicator.SecurityLogger.LogTlsRemoteCertificateNotProvided();
-                        }
-                        return false;
-                    }
-                    else
-                    {
-                        errors ^= SslPolicyErrors.RemoteCertificateNotAvailable;
-                        if (_communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
-                        {
-                            _communicator.SecurityLogger.LogTlsRemoteCertificateNotProvidedIgnored();
-                        }
-                    }
-                }
-
-                if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) > 0)
-                {
-                    if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
-                    {
-                        _communicator.SecurityLogger.LogTlsHostnameMismatch();
-                    }
-                    return false;
-                }
-
-                X509Certificate2Collection? trustedCertificateAuthorities = incoming ?
-                    _server!.TlsOptions?.CertificateAuthorities :
-                    _communicator.TlsOptions?.CertificateAuthorities;
-
-                bool useMachineContext = incoming ?
-                    (_server!.TlsOptions?.UseMachineContext ?? false) :
-                    (_communicator.TlsOptions?.UseMachineContext ?? false);
-
-                bool buildCustomChain =
-                    (trustedCertificateAuthorities != null || useMachineContext) && certificate != null;
-                try
-                {
-                    // If using custom certificate authorities or the machine context and the peer provides a certificate,
-                    // we rebuild the certificate chain with our custom chain policy.
-                    if (buildCustomChain)
-                    {
-                        chain = new X509Chain(useMachineContext);
-                        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
-                        if (trustedCertificateAuthorities != null)
-                        {
-                            // We need to set this flag to be able to use a certificate authority from the extra store.
-                            chain.ChainPolicy.VerificationFlags =
-                                X509VerificationFlags.AllowUnknownCertificateAuthority;
-                            foreach (X509Certificate2 cert in trustedCertificateAuthorities)
-                            {
-                                chain.ChainPolicy.ExtraStore.Add(cert);
-                            }
-                        }
-                        chain.Build((X509Certificate2)certificate!);
-                    }
-
-                    if (chain != null && chain.ChainStatus != null)
-                    {
-                        var chainStatus = new List<X509ChainStatus>(chain.ChainStatus);
-
-                        if (trustedCertificateAuthorities != null)
-                        {
-                            // Untrusted root is OK when using our custom chain engine if the CA certificate is
-                            // present in the chain policy extra store.
-                            X509ChainElement root = chain.ChainElements[^1];
-                            if (chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
-                                chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
-                                chainStatus.Remove(
-                                    chainStatus.Find(status => status.Status == X509ChainStatusFlags.UntrustedRoot));
-                                errors ^= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                            else if (!chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
-                                     !chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
-                                chainStatus.Add(new X509ChainStatus() { Status = X509ChainStatusFlags.UntrustedRoot });
-                                errors |= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                        }
-
-                        foreach (X509ChainStatus status in chainStatus)
-                        {
-                            if (status.Status != X509ChainStatusFlags.NoError)
-                            {
-                                if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
-                                {
-                                    _communicator.SecurityLogger.LogTlsCertificateChainError(status.Status);
-                                }
-                                errors |= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                        }
-                    }
-                }
-                finally
-                {
-                    if (buildCustomChain)
-                    {
-                        chain!.Dispose();
-                    }
-                }
-
-                if (errors > 0)
-                {
-                    if (_communicator.SecurityLogger.IsEnabled(LogLevel.Error))
-                    {
-                        _communicator.SecurityLogger.LogTlsCertificateValidationFailed();
-                    }
-                    return false;
-                }
-                return true;
-            };
         }
     }
 }

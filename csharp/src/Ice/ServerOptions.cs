@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Net.Security;
 using System.Threading.Tasks;
 
 namespace ZeroC.Ice
@@ -44,6 +45,6 @@ namespace ZeroC.Ice
 
         public TaskScheduler? TaskScheduler { get; set; }
 
-        public TlsServerOptions? TlsOptions { get; set; }
+        public SslServerAuthenticationOptions? TlsOptions { get; set; }
     }
 }

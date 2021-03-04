@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -71,7 +72,7 @@ namespace ZeroC.Ice
         public TaskScheduler? TaskScheduler { get; }
 
         // TLS Server side configuration
-        internal TlsServerOptions? TlsOptions { get; }
+        internal SslServerAuthenticationOptions? TlsOptions { get; }
 
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDatagramOnly { get; }
@@ -125,6 +126,13 @@ namespace ZeroC.Ice
                 }
             }
 
+            if (options.AcceptNonSecure == NonSecure.Never && options.TlsOptions == null)
+            {
+                throw new ArgumentException(
+                    "server is configured to only accept secure connections but options.TlsOptions is not set",
+                    nameof(options));
+            }
+
             Communicator = communicator;
 
             AcceptNonSecure = options.AcceptNonSecure;
@@ -136,9 +144,23 @@ namespace ZeroC.Ice
             SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
 
-            if (options.TlsOptions is TlsServerOptions tlsOptions)
+
+            if (options.TlsOptions is SslServerAuthenticationOptions tlsOptions)
             {
-                TlsOptions = new TlsServerOptions(tlsOptions);
+                TlsOptions = new SslServerAuthenticationOptions()
+                {
+                    AllowRenegotiation = tlsOptions.AllowRenegotiation,
+                    ApplicationProtocols = tlsOptions.ApplicationProtocols,
+                    CertificateRevocationCheckMode = tlsOptions.CertificateRevocationCheckMode,
+                    CipherSuitesPolicy = tlsOptions.CipherSuitesPolicy,
+                    ClientCertificateRequired = tlsOptions.ClientCertificateRequired,
+                    EnabledSslProtocols = tlsOptions.EnabledSslProtocols,
+                    EncryptionPolicy = tlsOptions.EncryptionPolicy,
+                    RemoteCertificateValidationCallback = tlsOptions.RemoteCertificateValidationCallback,
+                    ServerCertificate = tlsOptions.ServerCertificate,
+                    ServerCertificateContext = tlsOptions.ServerCertificateContext,
+                    ServerCertificateSelectionCallback = tlsOptions.ServerCertificateSelectionCallback
+                };
             }
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
