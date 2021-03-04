@@ -92,7 +92,6 @@ enum color { blue }
 
 module B
 {
-    const color fc = blue;
     interface blue {}          // OK as of Ice 3.7 (enumerators are in their enum's namespace)
 }
 
@@ -163,11 +162,6 @@ module M1
         enum C { C1, C2, C3 }
     }
 }
-
-const Test::M1::M2::C MyConstant1 = Test::M1::M2::C2; // OK
-const ::Test::M1::M2::C MyConstant2 = Test::M1::M2::C2; // OK
-const Test::M1::M2::C MyConstant3 = ::Test::M1::M2::C2; // OK
-const ::Test::M1::M2::C MyConstant4 = ::Test::M1::M2::C2; // OK
 
 interface smnpTest1Class
 {

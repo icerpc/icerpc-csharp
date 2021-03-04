@@ -93,10 +93,6 @@ public class Client : TestHelper
         i.@goto = 1;
         i.@if = 2;
         Assert(i != null);
-        int j = Constants.@protected;
-        Assert(j == 0);
-        int k = Constants.@public;
-        Assert(k == 1);
     }
 
     public override async Task RunAsync(string[] args)

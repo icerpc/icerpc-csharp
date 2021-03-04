@@ -142,27 +142,27 @@ class C : B
 
 class WD
 {
-    tag(1) int? a = 5;
-    tag(2) string? s = "test";
+    tag(1) int? a;
+    tag(2) string? s;
 }
 
 exception TaggedException
 {
-    bool req = false;
-    tag(1) int? a = 5;
+    bool req;
+    tag(1) int? a;
     tag(2) string? b;
     tag(50) VarStruct? vs;
 }
 
 exception DerivedException : TaggedException
 {
-    tag(600) string? ss = "test";
+    tag(600) string? ss;
     tag(601) VarStruct? vs2;
 }
 
 exception RequiredException : TaggedException
 {
-    string ss = "test";
+    string ss;
     VarStruct vs2;
 }
 
