@@ -81,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
 
             // No more than 5 invocation attempts with the default settings
             Service.Attempts = 0;
-            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500));
+            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000));
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await Retry.OpAfterDelayAsync(5, 50));
             Assert.AreEqual(5, Service.Attempts);
         }
