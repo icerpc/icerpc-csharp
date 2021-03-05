@@ -266,13 +266,13 @@ namespace IceRpc.Test.Objects
 
             output.Write("testing partial Initialize...");
             output.Flush();
-            var ib1 = new IBase();
+            var ib1 = new IBase("");
             TestHelper.Assert(ib1.Id.Equals("My id"));
-            var id1 = new IDerived();
+            var id1 = new IDerived("", "");
             TestHelper.Assert(id1.Id.Equals("My id"));
             TestHelper.Assert(id1.Name.Equals("My name"));
 
-            var id2 = new IDerived2();
+            var id2 = new IDerived2("");
             TestHelper.Assert(id2.Id.Equals("My id"));
             var i2 = new I2();
             TestHelper.Assert(i2.Called);

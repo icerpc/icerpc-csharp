@@ -25,7 +25,7 @@ class SUnknown
 
 class D2 : B
 {
-    string sd2 = "";
+    string? sd2;
     B pd2;
 }
 

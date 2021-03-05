@@ -35,13 +35,8 @@ isIdempotent(const OperationPtr& operation)
 }
 
 bool
-isDefaultInitialized(const MemberPtr& member, bool considerDefaultValue)
+isDefaultInitialized(const MemberPtr& member)
 {
-    if (considerDefaultValue && member->defaultValueType())
-    {
-        return true;
-    }
-
     if (OptionalPtr::dynamicCast(member->type()))
     {
         return true;
@@ -52,7 +47,7 @@ isDefaultInitialized(const MemberPtr& member, bool considerDefaultValue)
     {
         for (auto m: st->dataMembers())
         {
-            if (!isDefaultInitialized(m, false))
+            if (!isDefaultInitialized(m))
             {
                 return false;
             }
@@ -1380,7 +1375,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         MemberList allMandatoryDataMembers;
         for (const auto& member: allDataMembers)
         {
-            if (!isDefaultInitialized(member, true))
+            if (!isDefaultInitialized(member))
             {
                 allMandatoryDataMembers.push_back(member);
             }
@@ -1407,7 +1402,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
                 vector<string> baseParamNames;
                 for (const auto& d: p->base()->allDataMembers())
                 {
-                    if (!isDefaultInitialized(d, true))
+                    if (!isDefaultInitialized(d))
                     {
                         baseParamNames.push_back(fixId(d->name()));
                     }
@@ -1423,7 +1418,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
             _out << sb;
             for (const auto& d : dataMembers)
             {
-                if (!isDefaultInitialized(d, true))
+                if (!isDefaultInitialized(d))
                 {
                     _out << nl << "this." << fixId(fieldName(d), Slice::ObjectType) << " = "
                          << fixId(d->name(), Slice::ObjectType) << ";";
@@ -1607,7 +1602,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
 
         if (hasPublicParameterlessCtor)
         {
-            hasPublicParameterlessCtor = isDefaultInitialized(member, true);
+            hasPublicParameterlessCtor = isDefaultInitialized(member);
         }
     }
 
