@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop.ZeroC.Ice;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,10 +10,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Reflection;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using IceRpc.Interop.ZeroC.Ice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -169,7 +167,7 @@ namespace IceRpc
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
         internal ILogger SecurityLogger { get; }
-        internal SslClientAuthenticationOptions? TlsOptions { get; }
+        internal SslClientAuthenticationOptions? AuthenticationOptions { get; }
         internal ILogger TransportLogger { get; }
         internal bool WarnConnections { get; }
         internal bool WarnDatagrams { get; }
@@ -220,18 +218,18 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="tlsOptions">Client side configuration for TLS connections.</param>
+        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
         public Communicator(
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? tlsOptions = null)
+            SslClientAuthenticationOptions? authenticationOptions = null)
             : this(ref _emptyArgs,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsOptions)
+                   authenticationOptions)
         {
         }
 
@@ -240,19 +238,19 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="tlsOptions">Client side configuration for TLS connections.</param>
+        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
         public Communicator(
             ref string[] args,
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? tlsOptions = null)
+            SslClientAuthenticationOptions? authenticationOptions = null)
             : this(ref args,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsOptions)
+                   authenticationOptions)
         {
         }
 
@@ -262,19 +260,19 @@ namespace IceRpc
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the Ice run-time.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="tlsOptions">Client side configuration for TLS connections.</param>
+        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
         public Communicator(
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? tlsOptions = null)
+            SslClientAuthenticationOptions? authenticationOptions = null)
             : this(ref _emptyArgs,
                    appSettings,
                    loggerFactory,
                    observer,
                    properties,
-                   tlsOptions)
+                   authenticationOptions)
         {
         }
 
@@ -285,14 +283,14 @@ namespace IceRpc
         /// <param name="loggerFactory">The loggerFactory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="tlsOptions">Client side configuration for TLS connections.</param>
+        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
         public Communicator(
             ref string[] args,
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? tlsOptions = null)
+            SslClientAuthenticationOptions? authenticationOptions = null)
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
@@ -450,21 +448,20 @@ namespace IceRpc
 
             _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
 
-            if (tlsOptions != null)
+            if (authenticationOptions != null)
             {
-                TlsOptions = new SslClientAuthenticationOptions()
+                AuthenticationOptions = new SslClientAuthenticationOptions()
                 {
-                    AllowRenegotiation = tlsOptions?.AllowRenegotiation ?? false,
-                    ApplicationProtocols = tlsOptions?.ApplicationProtocols,
-                    CertificateRevocationCheckMode =
-                        tlsOptions?.CertificateRevocationCheckMode ?? X509RevocationMode.NoCheck,
-                    CipherSuitesPolicy = tlsOptions?.CipherSuitesPolicy,
-                    ClientCertificates = tlsOptions?.ClientCertificates,
-                    EnabledSslProtocols = tlsOptions?.EnabledSslProtocols ?? SslProtocols.None,
-                    EncryptionPolicy = tlsOptions?.EncryptionPolicy ?? EncryptionPolicy.RequireEncryption,
-                    LocalCertificateSelectionCallback = tlsOptions?.LocalCertificateSelectionCallback,
-                    RemoteCertificateValidationCallback = tlsOptions?.RemoteCertificateValidationCallback,
-                    TargetHost = tlsOptions?.TargetHost
+                    AllowRenegotiation = authenticationOptions.AllowRenegotiation,
+                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                    CertificateRevocationCheckMode = authenticationOptions.CertificateRevocationCheckMode,
+                    CipherSuitesPolicy = authenticationOptions.CipherSuitesPolicy,
+                    ClientCertificates = authenticationOptions.ClientCertificates,
+                    EnabledSslProtocols = authenticationOptions.EnabledSslProtocols,
+                    EncryptionPolicy = authenticationOptions.EncryptionPolicy,
+                    LocalCertificateSelectionCallback = authenticationOptions.LocalCertificateSelectionCallback,
+                    RemoteCertificateValidationCallback = authenticationOptions.RemoteCertificateValidationCallback,
+                    TargetHost = authenticationOptions.TargetHost
                 };
             }
 

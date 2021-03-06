@@ -73,7 +73,7 @@ namespace IceRpc
         public TaskScheduler? TaskScheduler { get; }
 
         // TLS Server side configuration
-        internal SslServerAuthenticationOptions? TlsOptions { get; }
+        internal SslServerAuthenticationOptions? AuthenticationOptions { get; }
 
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDatagramOnly { get; }
@@ -127,7 +127,7 @@ namespace IceRpc
                 }
             }
 
-            if (options.AcceptNonSecure == NonSecure.Never && options.TlsOptions == null)
+            if (options.AcceptNonSecure == NonSecure.Never && options.AuthenticationOptions == null)
             {
                 throw new ArgumentException(
                     "server is configured to only accept secure connections but options.TlsOptions is not set",
@@ -146,9 +146,9 @@ namespace IceRpc
             TaskScheduler = options.TaskScheduler;
 
 
-            if (options.TlsOptions is SslServerAuthenticationOptions tlsOptions)
+            if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
             {
-                TlsOptions = new SslServerAuthenticationOptions()
+                AuthenticationOptions = new SslServerAuthenticationOptions()
                 {
                     AllowRenegotiation = tlsOptions.AllowRenegotiation,
                     ApplicationProtocols = tlsOptions.ApplicationProtocols,

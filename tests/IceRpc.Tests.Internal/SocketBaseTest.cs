@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Internal
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                     ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
                     Endpoints = endpoint,
-                    TlsOptions = new SslServerAuthenticationOptions()
+                    AuthenticationOptions = new SslServerAuthenticationOptions()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
@@ -67,10 +67,10 @@ namespace IceRpc.Tests.Internal
                 });
 
             _clientCommunicator = new Communicator(
-                tlsOptions: new SslClientAuthenticationOptions()
+                authenticationOptions: new SslClientAuthenticationOptions()
                 {
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        trustedCertificateAuthorities: new X509Certificate2Collection()
+                        certificateAuthorities: new X509Certificate2Collection()
                         {
                             new X509Certificate2("../../../certs/cacert.pem")
                         })

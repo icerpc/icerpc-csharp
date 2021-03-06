@@ -11,49 +11,46 @@ namespace IceRpc
         /// <summary>Returns a certificatve validation callback that can be used to validate server certificates.
         /// </summary>
         /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the server
-        /// certificate is build using the machine context, otherewise the certificate chain uses the user context.
-        /// </param>
-        /// <param name="trustedCertificateAuthorities">The certificates collection that will be used as trusted
+        /// certificate is built using the machine context, otherwise the certificate chain uses the current user
+        /// context.</param>
+        /// <param name="certificateAuthorities">The certificates collection that will be used as trusted
         /// certificate authorities to verify the server certificate.</param>
         /// <returns>The certificate validation callback</returns>
         public static RemoteCertificateValidationCallback GetServerCertificateValidationCallback(
             bool useMachineContext = false,
-            X509Certificate2Collection? trustedCertificateAuthorities = null) =>
-            GetRemoteCertificateValidationCallback(false, false, useMachineContext, trustedCertificateAuthorities);
+            X509Certificate2Collection? certificateAuthorities = null) =>
+            GetRemoteCertificateValidationCallback(true, useMachineContext, certificateAuthorities);
 
         /// <summary>Returns a certificatve validation callback that can be used to validate client certificates.
         /// </summary>
         /// <param name="clientCertificateRequired">When <c>true</c>the validation callback will only trust clients
         /// that provide a certificate context.</param>
         /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the client
-        /// certificate is build using the machine context, otherewise the certificate chain uses the user context.
-        /// </param>
-        /// <param name="trustedCertificateAuthorities">The certificates collection that will be used as trusted
+        /// certificate is built using the machine context, otherwise the certificate chain uses the current user
+        /// context.</param>
+        /// <param name="certificateAuthorities">The certificates collection that will be used as trusted
         /// certificate authorities to verify the client certificate.</param>
         /// <returns>The certificate validation callback</returns>
         public static RemoteCertificateValidationCallback GetClientCertificateValidationCallback(
             bool clientCertificateRequired = false,
             bool useMachineContext = false,
-            X509Certificate2Collection? trustedCertificateAuthorities = null) =>
-            GetRemoteCertificateValidationCallback(false,
-                                                   clientCertificateRequired,
+            X509Certificate2Collection? certificateAuthorities = null) =>
+            GetRemoteCertificateValidationCallback(clientCertificateRequired,
                                                    useMachineContext,
-                                                   trustedCertificateAuthorities);
+                                                   certificateAuthorities);
 
         private static RemoteCertificateValidationCallback GetRemoteCertificateValidationCallback(
-            bool incoming,
-            bool clientCertificateRequired,
+            bool peerCertificateRequired,
             bool useMachineContext,
-            X509Certificate2Collection? trustedCertificateAuthorities)
+            X509Certificate2Collection? certificateAuthorities)
         {
             return (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors) =>
             {
                 if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) > 0)
                 {
                     // For an outgoing connection the peer must always provide a certificate, for an incoming
-                    // connection the certificate is only required if the RequireClientCertificate option was
-                    // set.
-                    if (!incoming || clientCertificateRequired)
+                    // connection the certificate is only required if the RequireClientCertificate option was set.
+                    if (peerCertificateRequired)
                     {
                         return false;
                     }
@@ -69,23 +66,22 @@ namespace IceRpc
                 }
 
 
-                bool buildCustomChain =
-                    (trustedCertificateAuthorities != null || useMachineContext) && certificate != null;
+                bool buildCustomChain = (certificateAuthorities != null || useMachineContext) && certificate != null;
                 try
                 {
-                    // If using custom certificate authorities or the machine context and the peer provides a certificate,
-                    // we rebuild the certificate chain with our custom chain policy.
+                    // If using custom certificate authorities or the machine context and the peer provides a
+                    // certificate, we rebuild the certificate chain with our custom chain policy.
                     if (buildCustomChain)
                     {
                         chain = new X509Chain(useMachineContext);
                         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
-                        if (trustedCertificateAuthorities != null)
+                        if (certificateAuthorities != null)
                         {
                             // We need to set this flag to be able to use a certificate authority from the extra store.
                             chain.ChainPolicy.VerificationFlags =
                                 X509VerificationFlags.AllowUnknownCertificateAuthority;
-                            foreach (X509Certificate2 cert in trustedCertificateAuthorities)
+                            foreach (X509Certificate2 cert in certificateAuthorities)
                             {
                                 chain.ChainPolicy.ExtraStore.Add(cert);
                             }
@@ -97,7 +93,7 @@ namespace IceRpc
                     {
                         var chainStatus = new List<X509ChainStatus>(chain.ChainStatus);
 
-                        if (trustedCertificateAuthorities != null)
+                        if (certificateAuthorities != null)
                         {
                             // Untrusted root is OK when using our custom chain engine if the CA certificate is
                             // present in the chain policy extra store.

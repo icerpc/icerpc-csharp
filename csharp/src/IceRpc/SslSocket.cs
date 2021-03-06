@@ -156,17 +156,17 @@ namespace IceRpc
                 {
                     // Server-side connection
                     Debug.Assert(_server != null);
-                    if (_server.TlsOptions == null)
+                    if (_server.AuthenticationOptions == null)
                     {
                         throw new InvalidOperationException(
                             "cannot accept a tls connection no tls configuration was provided");
                     }
-                    await _sslStream.AuthenticateAsServerAsync(_server.TlsOptions!, cancel).ConfigureAwait(false);
+                    await _sslStream.AuthenticateAsServerAsync(_server.AuthenticationOptions!, cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     // Client-side connection
-                    var options = _communicator.TlsOptions;
+                    var options = _communicator.AuthenticationOptions;
                     if (options == null)
                     {
                         options = new SslClientAuthenticationOptions()
@@ -178,17 +178,17 @@ namespace IceRpc
                     {
                         options = new SslClientAuthenticationOptions
                         {
-                            AllowRenegotiation = _communicator.TlsOptions!.AllowRenegotiation,
-                            ApplicationProtocols = _communicator.TlsOptions!.ApplicationProtocols,
-                            CertificateRevocationCheckMode = _communicator.TlsOptions!.CertificateRevocationCheckMode,
-                            CipherSuitesPolicy = _communicator.TlsOptions!.CipherSuitesPolicy,
-                            ClientCertificates = _communicator.TlsOptions!.ClientCertificates,
-                            EnabledSslProtocols = _communicator.TlsOptions!.EnabledSslProtocols,
-                            EncryptionPolicy = _communicator.TlsOptions!.EncryptionPolicy,
+                            AllowRenegotiation = _communicator.AuthenticationOptions!.AllowRenegotiation,
+                            ApplicationProtocols = _communicator.AuthenticationOptions!.ApplicationProtocols,
+                            CertificateRevocationCheckMode = _communicator.AuthenticationOptions!.CertificateRevocationCheckMode,
+                            CipherSuitesPolicy = _communicator.AuthenticationOptions!.CipherSuitesPolicy,
+                            ClientCertificates = _communicator.AuthenticationOptions!.ClientCertificates,
+                            EnabledSslProtocols = _communicator.AuthenticationOptions!.EnabledSslProtocols,
+                            EncryptionPolicy = _communicator.AuthenticationOptions!.EncryptionPolicy,
                             LocalCertificateSelectionCallback =
-                                _communicator.TlsOptions!.LocalCertificateSelectionCallback,
+                                _communicator.AuthenticationOptions!.LocalCertificateSelectionCallback,
                             RemoteCertificateValidationCallback =
-                                _communicator.TlsOptions!.RemoteCertificateValidationCallback,
+                                _communicator.AuthenticationOptions!.RemoteCertificateValidationCallback,
                             TargetHost = host, // Host cannot be null
                         };
                     }

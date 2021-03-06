@@ -46,6 +46,6 @@ namespace IceRpc
 
         public TaskScheduler? TaskScheduler { get; set; }
 
-        public SslServerAuthenticationOptions? TlsOptions { get; set; }
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
     }
 }
