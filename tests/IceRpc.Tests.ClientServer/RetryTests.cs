@@ -75,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
 
             // 5 attempts before timeout kicks-in
             Service.Attempts = 0;
-            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000));
+            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(2000));
             await Retry.OpAfterDelayAsync(4, 50);
             Assert.AreEqual(5, Service.Attempts);
 

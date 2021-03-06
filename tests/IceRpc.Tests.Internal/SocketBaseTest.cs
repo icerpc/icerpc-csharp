@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,25 +54,26 @@ namespace IceRpc.Tests.Internal
 
             _server = new(
                 _serverCommunicator,
-                new()
+                new ServerOptions()
                 {
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                     ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
                     Endpoints = endpoint,
-                    TlsOptions = new TlsServerOptions()
+                    AuthenticationOptions = new SslServerAuthenticationOptions()
                     {
-                        RequireClientCertificate = false,
+                        ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                     }
                 });
 
             _clientCommunicator = new Communicator(
-                tlsClientOptions: new TlsClientOptions()
+                authenticationOptions: new SslClientAuthenticationOptions()
                 {
-                    CertificateAuthorities = new X509Certificate2Collection()
-                    {
-                        new X509Certificate2("../../../certs/cacert.pem")
-                    }
+                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection()
+                        {
+                            new X509Certificate2("../../../certs/cacert.pem")
+                        })
                 });
 
             var proxy = IServicePrx.Factory.Create(_server, "dummy");
