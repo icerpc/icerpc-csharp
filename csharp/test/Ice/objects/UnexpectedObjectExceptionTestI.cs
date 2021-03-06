@@ -3,7 +3,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Objects
+namespace IceRpc.Test.Objects
 {
     public sealed class UnexpectedObjectExceptionTest : IService
     {

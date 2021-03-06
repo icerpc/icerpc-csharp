@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>IceRpc</AssemblyName>
+        <Title>IceRpc .NET library</Title>
+        <OutputPath>../../lib</OutputPath>
+        <TargetFramework>net5.0</TargetFramework>
+
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+
+        <PackageVersion>4.0.0-alpha.0</PackageVersion>
+
+        <Authors>ZeroC</Authors>
+        <PackageId>zeroc.ice.net</PackageId>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
+        <PackageIcon>logo.png</PackageIcon>
+        <Copyright>Copyright (c) ZeroC, Inc. All rights reserved</Copyright>
+        <Description>IceRPC C#/.NET SDK.</Description>
+        <PackageReleaseNotes>TODO</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>IceRPC</PackageTags>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" PrivateAssets="All" />
+        <SliceCompile Include="../../../slice/$(AssemblyName)/*.ice" Exclude="../../../slice/$(AssemblyName)/*F.ice;../../../slice/$(AssemblyName)/BuiltinSequences.ice;../../../slice/$(AssemblyName)/Context.ice" />
+        <Compile Remove="generated\Metrics.cs" />
+        <SliceCompile Remove="..\..\..\slice\IceRpc\LocatorDiscovery.ice" />
+        <Compile Update="generated\Discovery.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Discovery.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Identity.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Identity.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Locator.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Locator.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Process.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Process.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Encoding.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Encoding.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Endpoint.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Endpoint.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Exceptions.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Exceptions.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Ice1Definitions.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Ice1Definitions.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Ice2Definitions.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Ice2Definitions.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Protocol.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Protocol.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\ProxyEncoding.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\ProxyEncoding.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\Retryable.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\Retryable.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\SlicDefinitions.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\SlicDefinitions.ice</SliceCompileSource>
+        </Compile>
+        <Compile Update="generated\BuiltinSequences.cs">
+          <SliceCompileSource>..\..\..\slice\IceRpc\BuiltinSequences.ice</SliceCompileSource>
+        </Compile>
+    </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+      <Content Include="..\..\..\LICENSE">
+        <PackagePath></PackagePath>
+        <Pack>true</Pack>
+      </Content>
+      <Content Include="..\..\..\build\zeroc.ice.net.props">
+          <Pack>true</Pack>
+          <PackagePath>build</PackagePath>
+      </Content>
+      <None Include="..\..\..\build\logo.png">
+          <Pack>True</Pack>
+          <PackagePath>.</PackagePath>
+      </None>
+      <Content Include="$(IceToolsPath)\slice2cs*">
+          <Pack>true</Pack>
+          <PackagePath>tools</PackagePath>
+      </Content>
+      <Content Include="..\..\..\slice\**\*.ice">
+        <Pack>true</Pack>
+        <PackagePath>slice</PackagePath>
+      </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <Content Remove="..\..\..\slice\IceRpc\BuiltinSequences.ice" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All" />
+      <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup>
+      <SliceCompile Include="..\..\..\slice\IceRpc\BuiltinSequences.ice" />
+    </ItemGroup>
+</Project>

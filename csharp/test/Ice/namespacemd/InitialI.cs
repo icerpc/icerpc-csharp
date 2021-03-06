@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.NamespaceMD
+namespace IceRpc.Test.NamespaceMD
 {
     public class Initial : IInitial
     {

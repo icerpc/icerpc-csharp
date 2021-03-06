@@ -10,7 +10,7 @@
 #include <Namespace.ice>
 #include <NoNamespace.ice>
 
-module ZeroC::Ice::Test::NamespaceMD
+module IceRpc::Test::NamespaceMD
 {
 
 interface Initial

@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -82,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
 
             // No more than 5 invocation attempts with the default settings
             Service.Attempts = 0;
-            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500));
+            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000));
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await Retry.OpAfterDelayAsync(5, 50));
             Assert.AreEqual(5, Service.Attempts);
         }
@@ -132,7 +131,6 @@ namespace IceRpc.Tests.ClientServer
                     { "Ice.RetryRequestMaxSize", $"{maxSize}" }
                 });
 
-            
             var retry = IRetryServicePrx.Parse(GetTestProxy("retry"), communicator);
             byte[] data = Enumerable.Range(0, requestSize).Select(i => (byte)i).ToArray();
             if (maxSize <= requestSize)
@@ -178,7 +176,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
             {
                 if (retries >= Attempts)
-                {                    
+                {
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
                 return default;

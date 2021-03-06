@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Interceptor
+namespace IceRpc.Test.Interceptor
 {
     public class Client : TestHelper
     {
@@ -24,7 +24,7 @@ namespace ZeroC.Ice.Test.Interceptor
                 {
                     {
                         "Ice.Plugin.InvocationPlugin",
-                        $"{pluginPath}:ZeroC.Ice.Test.Interceptor.InvocationPluginFactory"
+                        $"{pluginPath}:IceRpc.Test.Interceptor.InvocationPluginFactory"
                     }
                 });
 

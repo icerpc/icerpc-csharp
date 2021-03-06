@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Api
 {
@@ -96,21 +96,25 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
-        [TestCase("ice+tcp://host.zeroc.com/identity#facet")]
+        [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity%23facet")] // C# Uri parser escapes #
         [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
-        [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space")]
+        [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
+        [TestCase("ice+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
         [TestCase("ice+ws://host.zeroc.com//identity")]
-        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=100ms")]
+        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=100ms", "//identity")]
         [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=1s")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
-        [TestCase("ice:location//identity#facet")]
+        [TestCase("ice:location//identity#facet", "/location//identity%23facet")]
         [TestCase("ice+tcp://host.zeroc.com//identity")]
+        [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F?invocation-timeout=100ms",
+                  "/%7F%E2%82%AC$%25/!%23$'()*+,:;=@[]%20%2F")] // Only remarkable char is # converted into %23
+        [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
         // another syntax for empty port
-        [TestCase("ice+tcp://host.zeroc.com:/identity")]
+        [TestCase("ice+tcp://host.zeroc.com:/identity", "/identity")]
         [TestCase("ice+universal://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
@@ -118,19 +122,25 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+ws://host.zeroc.com/identity?resource=/foo%2Fbar?/xyz")]
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
-        [TestCase("ice+tcp://host:10000/test?source-address=::1")]
+        [TestCase("ice+tcp://host:10000/test?source-address=::1", "/test")]
+        [TestCase("ice+tcp://host:10000?source-address=::1", "/")]
         // a valid URI
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
-        public void Proxy_Parse_ValidInputUriFormat(string str)
+        public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
             var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
             Assert.AreEqual(prx, prx2); // round-trip works
+
+            if (path != null)
+            {
+                Assert.AreEqual(path, prx.Path);
+            }
         }
 
-        /// <summary>Test that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
+        /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("ice+tcp:identity?protocol=invalid")] // invalid protocol
@@ -167,9 +177,9 @@ namespace IceRpc.Tests.Api
         [TestCase("id:opaque -t -1 -v abcd")] // -t must be >= 0
         [TestCase("id:opaque -t 99 -v x?c")] // invalid char in v
         [TestCase("id:opaque -t 99 -v xc")] // invalid length for base64 input
-        [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Invalid Any IPv4 [TestCaseress in proxy endpoint
-        [TestCase("ice+tcp://[::0]/identity#facet")] // Invalid Any IPv6 [TestCaseress in proxy endpoint
-        [TestCase("identity:tcp -h 0.0.0.0")] // Invalid Any IPv4 [TestCaseress in proxy endpoint
+        [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Invalid Any IPv4 in proxy endpoint
+        [TestCase("ice+tcp://[::0]/identity#facet")] // Invalid Any IPv6 in proxy endpoint
+        [TestCase("identity:tcp -h 0.0.0.0")] // Invalid Any IPv4 in proxy endpoint
         [TestCase("identity:tcp -h [::0]")] // Invalid Any IPv6 address in proxy endpoint
         public void Proxy_Parse_InvalidInput(string str)
         {
@@ -177,7 +187,7 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(IServicePrx.TryParse(str, Communicator, out _));
         }
 
-        /// <summary>Test that the parsed proxy has the expected idenity and location</summary>
+        /// <summary>Test that the parsed proxy has the expected identity and location</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         /// <param name="name">The expected identity name for the parsed proxy.</param>
         /// <param name="category">The expected identity category for the parsed proxy.</param>

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Interceptor
+namespace IceRpc.Test.Interceptor
 {
     public sealed class AsyncMyObject : IAsyncMyObject
     {

@@ -3,13 +3,13 @@
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
 [assembly: AssemblyTitle("IceTest")]
 [assembly: AssemblyDescription("Ice test")]
 [assembly: AssemblyCompany("ZeroC, Inc.")]
 
-namespace ZeroC.Ice.Test.Impl
+namespace IceRpc.Test.Impl
 {
     public class ServerApp : TestHelper
     {

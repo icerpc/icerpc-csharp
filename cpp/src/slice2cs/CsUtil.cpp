@@ -254,7 +254,7 @@ Slice::getUnqualified(const string& type, const string& scope, bool builtin)
     {
         return type.substr(scope.size() + 1);
     }
-    else if (builtin || type.rfind("ZeroC", 0) == 0)
+    else if (builtin || type.rfind("IceRpc", 0) == 0)
     {
         return type;
     }
@@ -273,7 +273,7 @@ Slice::getUnqualified(const ContainedPtr& p, const string& package, const string
     {
         return name;
     }
-    else if (contPkg.rfind("ZeroC", 0) == 0)
+    else if (contPkg.rfind("IceRpc", 0) == 0)
     {
         return contPkg + "." + name;
     }
@@ -378,8 +378,8 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         "float",
         "double",
         "string",
-        "ZeroC.Ice.IServicePrx",
-        "ZeroC.Ice.AnyClass"
+        "IceRpc.IServicePrx",
+        "IceRpc.AnyClass"
     };
 
     BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
@@ -674,7 +674,7 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "ZeroC.Ice.OutputStream.IceWriterFrom" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.OutputStream.IceWriterFrom" << builtinSuffixTable[builtin->kind()];
     }
     else if (EnumPtr::dynamicCast(type))
     {
@@ -797,7 +797,7 @@ Slice::CsGenerator::inputStreamReader(const TypePtr& type, const string& scope)
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "ZeroC.Ice.InputStream.IceReaderInto" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.InputStream.IceReaderInto" << builtinSuffixTable[builtin->kind()];
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {
@@ -867,7 +867,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "ZeroC.Ice.ProxyFactory.ReadNullable(" << typeToString(underlying, scope) << ".Factory, istr);";
+            out << "IceRpc.ProxyFactory.ReadNullable(" << typeToString(underlying, scope) << ".Factory, istr);";
             return;
         }
         else if (underlying->isClassType())
@@ -896,7 +896,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "ZeroC.Ice.ProxyFactory.Read(" << typeToString(underlying, scope) << ".Factory, istr)";
+        out << "IceRpc.ProxyFactory.Read(" << typeToString(underlying, scope) << ".Factory, istr)";
     }
     else if (underlying->isClassType())
     {
@@ -1089,7 +1089,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "ZeroC.Ice.ProxyFactory.ReadTagged(" << typeToString(type, scope) << ".Factory, istr, " << tag << ")";
+        out << "IceRpc.ProxyFactory.ReadTagged(" << typeToString(type, scope) << ".Factory, istr, " << tag << ")";
     }
     else if (builtin)
     {

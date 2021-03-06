@@ -3,11 +3,11 @@
 using System.Diagnostics;
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Perf
+namespace IceRpc.Test.Perf
 {
     public sealed class PerformanceI : IPerformance
     {
-        private static readonly byte[] _bytes = new byte[Constants.ByteSeqSize];
+        private static readonly byte[] _bytes = new byte[1024000]; // 1MB];
 
         public void SendBytes(byte[] seq, Current current, CancellationToken cancel)
         {

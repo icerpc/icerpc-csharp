@@ -2,9 +2,9 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Slicing.Exceptions
+namespace IceRpc.Test.Slicing.Exceptions
 {
     public sealed class AsyncTestIntf : IAsyncTestIntf
     {

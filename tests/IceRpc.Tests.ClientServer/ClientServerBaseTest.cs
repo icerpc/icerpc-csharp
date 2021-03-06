@@ -3,8 +3,6 @@
 using NUnit.Framework;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice;
-
 namespace IceRpc.Tests.ClientServer
 {
     public class ClientServerBaseTest

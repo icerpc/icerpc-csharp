@@ -3,9 +3,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Exceptions
+namespace IceRpc.Test.Exceptions
 {
     public sealed class Forwarder : IService
     {

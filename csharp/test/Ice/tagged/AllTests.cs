@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Tagged
+namespace IceRpc.Test.Tagged
 {
     public static class AllTests
     {
@@ -449,25 +449,6 @@ namespace ZeroC.Ice.Test.Tagged
                 test(cb.obj != null);
                 factory.setEnabled(false);
                 */
-            }
-            output.WriteLine("ok");
-
-            output.Write("testing tagged with default values... ");
-            output.Flush();
-            {
-                var wd = (WD?)initial.PingPong(new WD());
-                TestHelper.Assert(wd != null);
-                TestHelper.Assert(wd.A == 5);
-                TestHelper.Assert(wd.S! == "test");
-                wd.A = null;
-                wd.S = null;
-                wd = (WD?)initial.PingPong(wd);
-                TestHelper.Assert(wd != null);
-                // When a tagged member is set to null (equivalent to not set) explicitly, it remains null / not set,
-                // even when it has a default value. This is consistent with the behavior for non-tagged optional
-                // data members with default values.
-                TestHelper.Assert(wd.A == null);
-                TestHelper.Assert(wd.S == null);
             }
             output.WriteLine("ok");
 

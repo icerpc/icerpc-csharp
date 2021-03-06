@@ -6,9 +6,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Proxy
+namespace IceRpc.Test.Proxy
 {
     internal sealed class MyDerivedClass : IMyDerivedClass
     {

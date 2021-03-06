@@ -7,11 +7,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using ZeroC.Ice;
-using ZeroC.Ice.Instrumentation;
+using IceRpc;
+using IceRpc.Instrumentation;
 
 // The new version of the Test helper classes. Will be renamed Test once all the tests have migrated to TestNew.
-namespace ZeroC.Test
+namespace IceRpc.Test
 {
     public abstract class TestHelper
     {
@@ -21,7 +21,7 @@ namespace ZeroC.Test
 
         public Communicator Communicator { get; private init; } = null!;
 
-        public Ice.Encoding Encoding => GetTestEncoding(Communicator.GetProperties());
+        public IceRpc.Encoding Encoding => GetTestEncoding(Communicator.GetProperties());
 
         public string Host => GetTestHost(Communicator.GetProperties());
 
@@ -226,7 +226,7 @@ namespace ZeroC.Test
             }
         }
 
-        public static Ice.Encoding GetTestEncoding(Dictionary<string, string> properties) =>
+        public static IceRpc.Encoding GetTestEncoding(Dictionary<string, string> properties) =>
             GetTestProtocol(properties).GetEncoding();
 
         public static string GetTestTransport(Dictionary<string, string> properties)

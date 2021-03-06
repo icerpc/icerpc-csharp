@@ -4,9 +4,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Compress
+namespace IceRpc.Test.Compress
 {
     internal sealed class Interceptor : IService
     {

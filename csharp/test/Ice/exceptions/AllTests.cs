@@ -3,9 +3,9 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Exceptions
+namespace IceRpc.Test.Exceptions
 {
     public static class AllTests
     {
@@ -374,7 +374,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 try
                 {
                     IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
@@ -750,7 +750,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {
@@ -920,7 +920,7 @@ namespace ZeroC.Ice.Test.Exceptions
             output.Flush();
 
             {
-                var path = "does not exist";
+                var path = "does%20not%20exist";
                 IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
                 try
                 {

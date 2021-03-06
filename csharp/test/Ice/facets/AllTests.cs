@@ -3,9 +3,9 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Facets
+namespace IceRpc.Test.Facets
 {
     public static class AllTests
     {

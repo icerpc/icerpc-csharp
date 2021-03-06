@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.DictMapping
+namespace IceRpc.Test.DictMapping
 {
     public sealed class AsyncMyClass : IAsyncMyClass
     {

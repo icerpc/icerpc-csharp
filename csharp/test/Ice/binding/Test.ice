@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Binding
+module IceRpc::Test::Binding
 {
 
 interface TestIntf

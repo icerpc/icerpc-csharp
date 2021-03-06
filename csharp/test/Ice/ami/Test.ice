@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <Ice/BuiltinSequences.ice>
-#include <Ice/Identity.ice>
+#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Identity.ice>
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::AMI
+module IceRpc::Test::AMI
 {
 
 exception TestIntfException
@@ -25,7 +25,7 @@ enum CloseMode
 interface TestIntf
 {
     void op();
-    void opWithPayload(Ice::ByteSeq seq);
+    void opWithPayload(IceRpc::ByteSeq seq);
     int opWithResult();
     void opWithUE();
     void close(CloseMode mode);

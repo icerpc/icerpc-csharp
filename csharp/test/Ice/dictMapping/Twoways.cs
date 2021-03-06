@@ -3,9 +3,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.DictMapping
+namespace IceRpc.Test.DictMapping
 {
     internal abstract class DictionaryComparer<TKey, TValue> : EqualityComparer<IReadOnlyDictionary<TKey, TValue>>
         where TKey : notnull

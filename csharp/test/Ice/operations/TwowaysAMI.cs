@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Operations
+namespace IceRpc.Test.Operations
 {
     internal class MemoryStreamWithDisposeCheck : MemoryStream
     {
@@ -52,7 +52,7 @@ namespace ZeroC.Ice.Test.Operations
             }
 
             {
-                TestHelper.Assert(p.IceIsAAsync("::ZeroC::Ice::Test::Operations::MyClass").Result);
+                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::Operations::MyClass").Result);
             }
 
             {
@@ -60,7 +60,7 @@ namespace ZeroC.Ice.Test.Operations
             }
 
             {
-                TestHelper.Assert(p.IceIdAsync().Result.Equals("::ZeroC::Ice::Test::Operations::MyDerivedClass"));
+                TestHelper.Assert(p.IceIdAsync().Result.Equals("::IceRpc::Test::Operations::MyDerivedClass"));
             }
 
             {

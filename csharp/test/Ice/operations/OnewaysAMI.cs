@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Operations
+namespace IceRpc.Test.Operations
 {
     public static class OnewaysAMI
     {
@@ -58,7 +58,7 @@ namespace ZeroC.Ice.Test.Operations
                 cb.Check();
             }
 
-            bool b = p.IceIsAAsync("::ZeroC::Ice::Test::Operations::MyClass").Result;
+            bool b = p.IceIsAAsync("::IceRpc::Test::Operations::MyClass").Result;
             string id = p.IceIdAsync().Result;
             string[] ids = p.IceIdsAsync().Result;
 

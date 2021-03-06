@@ -6,12 +6,10 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Perf
+module IceRpc::Test::Perf
 {
 
 sequence<byte> ByteSeq;
-
-const int ByteSeqSize = 1024000; // 1MB
 
 interface Performance
 {

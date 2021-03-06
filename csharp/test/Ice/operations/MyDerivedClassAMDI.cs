@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Operations
+namespace IceRpc.Test.Operations
 {
     public sealed class AsyncMyDerivedClass : IAsyncMyDerivedClass
     {
@@ -883,87 +883,6 @@ namespace ZeroC.Ice.Test.Operations
 
         public ValueTask<MyStruct1> OpMyStruct1Async(MyStruct1 value, Current current, CancellationToken cancel) =>
             new(value);
-
-        public ValueTask<IEnumerable<string>> OpStringLiteralsAsync(Current current, CancellationToken cancel)
-        {
-            return new(new string[]
-            {
-                Constants.s0,
-                Constants.s1,
-                Constants.s2,
-                Constants.s3,
-                Constants.s4,
-                Constants.s5,
-                Constants.s6,
-                Constants.s7,
-                Constants.s8,
-                Constants.s9,
-                Constants.s10,
-                Constants.sw0,
-                Constants.sw1,
-                Constants.sw2,
-                Constants.sw3,
-                Constants.sw4,
-                Constants.sw5,
-                Constants.sw6,
-                Constants.sw7,
-                Constants.sw8,
-                Constants.sw9,
-                Constants.sw10,
-
-                Constants.ss0,
-                Constants.ss1,
-                Constants.ss2,
-                Constants.ss3,
-                Constants.ss4,
-                Constants.ss5,
-
-                Constants.su0,
-                Constants.su1,
-                Constants.su2
-            });
-        }
-
-        public ValueTask<IEnumerable<string>> OpWStringLiteralsAsync(Current current, CancellationToken cancel)
-        {
-            return new(new string[]
-            {
-                Constants.s0,
-                Constants.s1,
-                Constants.s2,
-                Constants.s3,
-                Constants.s4,
-                Constants.s5,
-                Constants.s6,
-                Constants.s7,
-                Constants.s8,
-                Constants.s9,
-                Constants.s10,
-
-                Constants.sw0,
-                Constants.sw1,
-                Constants.sw2,
-                Constants.sw3,
-                Constants.sw4,
-                Constants.sw5,
-                Constants.sw6,
-                Constants.sw7,
-                Constants.sw8,
-                Constants.sw9,
-                Constants.sw10,
-
-                Constants.ss0,
-                Constants.ss1,
-                Constants.ss2,
-                Constants.ss3,
-                Constants.ss4,
-                Constants.ss5,
-
-                Constants.su0,
-                Constants.su1,
-                Constants.su2
-            });
-        }
 
         public async ValueTask<IMyClass.OpMStruct1MarshaledReturnValue> OpMStruct1Async(Current current, CancellationToken cancel)
         {

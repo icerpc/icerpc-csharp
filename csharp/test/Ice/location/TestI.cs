@@ -3,9 +3,9 @@
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Location
+namespace IceRpc.Test.Location
 {
     public class TestIntf : ITestIntf
     {

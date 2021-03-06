@@ -4,9 +4,11 @@
 
 #pragma once
 
+[[suppress-warning(reserved-identifier)]]
+
 [[preserve-case]]
 
-module ZeroC::Slice::Test::Escape
+module IceRpc::Slice::Test::Escape
 {
 
 module abstract
@@ -111,9 +113,6 @@ exception BaseMethods
     int ReferenceEquals;
     int ToString;
 }
-
-const int protected = 0;
-const int public = 1;
 
 //
 // System as inner module.

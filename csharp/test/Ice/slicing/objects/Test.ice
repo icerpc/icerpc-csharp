@@ -7,28 +7,28 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Slicing::Objects
+module IceRpc::Test::Slicing::Objects
 {
 
 class SBase
 {
-    string sb = "";
+    string? sb;
 }
 
 class SBSKnownDerived : SBase
 {
-    string sbskd = "";
+    string? sbskd;
 }
 
 class B
 {
-    string sb = "";
+    string? sb;
     B pb;
 }
 
 class D1 : B
 {
-    string sd1 = "";
+    string? sd1;
     B pd1;
 }
 
@@ -76,7 +76,7 @@ sequence<PBase> PBaseSeq;
 [preserve-slice]
 class Preserved : PBase
 {
-    string ps = "";
+    string? ps;
 }
 
 class PDerived : Preserved

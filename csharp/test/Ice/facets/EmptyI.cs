@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace ZeroC.Ice.Test.Facets
+namespace IceRpc.Test.Facets
 {
     public sealed class Empty : IEmpty
     {

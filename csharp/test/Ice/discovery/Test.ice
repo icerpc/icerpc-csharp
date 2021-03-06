@@ -8,7 +8,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Discovery
+module IceRpc::Test::Discovery
 {
     interface TestIntf
     {

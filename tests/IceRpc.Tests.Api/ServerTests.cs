@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading.Tasks;
+using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
-using ZeroC.Ice;
+using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
@@ -108,7 +108,7 @@ namespace IceRpc.Tests.Api
                 await using var server1 = new Server(
                     communicator,
                     new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
-  
+
                 Assert.ThrowsAsync<TransportException>(async () =>
                     {
                         await using var server2 = new Server(

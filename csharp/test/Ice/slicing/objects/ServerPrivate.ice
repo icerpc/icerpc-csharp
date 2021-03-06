@@ -9,7 +9,7 @@
 
 #include <Test.ice>
 
-module ZeroC::Ice::Test::Slicing::Objects
+module IceRpc::Test::Slicing::Objects
 {
 
 class SBSUnknownDerived : SBase
@@ -25,7 +25,7 @@ class SUnknown
 
 class D2 : B
 {
-    string sd2 = "";
+    string? sd2;
     B pd2;
 }
 

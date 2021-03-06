@@ -6,9 +6,9 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Context.ice>
+#include <IceRpc/Context.ice>
 
-module ZeroC::Ice::Test::Interceptor
+module IceRpc::Test::Interceptor
 {
 
 sequence<byte> ByteSeq;
@@ -41,7 +41,7 @@ interface MyObject
 
     void op1();
 
-    Ice::Context op2();
+    IceRpc::Context op2();
 
     int op3();
 

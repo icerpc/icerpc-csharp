@@ -9,7 +9,6 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Ice;
 
 namespace IceRpc.Tests.Internal
 {

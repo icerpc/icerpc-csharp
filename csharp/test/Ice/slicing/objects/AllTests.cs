@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Slicing.Objects
+namespace IceRpc.Test.Slicing.Objects
 {
     public partial class PNode
     {
@@ -42,7 +42,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             try
             {
                 SBase? sb = testPrx.SBSUnknownDerivedAsSBase();
-                TestHelper.Assert(sb != null && sb.Sb.Equals("SBSUnknownDerived.sb"));
+                TestHelper.Assert(sb != null && sb.Sb!.Equals("SBSUnknownDerived.sb"));
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     o = testPrx.SBaseAsObject();
                     TestHelper.Assert(o != null);
-                    TestHelper.Assert(TypeExtensions.GetIceTypeId(o.GetType())!.Equals("::ZeroC::Ice::Test::Slicing::Objects::SBase"));
+                    TestHelper.Assert(TypeExtensions.GetIceTypeId(o.GetType())!.Equals("::IceRpc::Test::Slicing::Objects::SBase"));
                     sb = (SBase)o;
                 }
                 catch (Exception ex)
@@ -79,7 +79,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     output.WriteLine(ex.ToString());
                     TestHelper.Assert(false);
                 }
-                TestHelper.Assert(sb != null && sb.Sb.Equals("SBase.sb"));
+                TestHelper.Assert(sb != null && sb.Sb!.Equals("SBase.sb"));
             }
             output.WriteLine("ok");
 
@@ -88,10 +88,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 AnyClass? o = testPrx.SBaseAsObjectAsync().Result;
                 TestHelper.Assert(o != null);
-                TestHelper.Assert(o.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::SBase"));
+                TestHelper.Assert(o.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::SBase"));
                 var sb = (SBase)o;
                 TestHelper.Assert(sb != null);
-                TestHelper.Assert(sb.Sb.Equals("SBase.sb"));
+                TestHelper.Assert(sb.Sb!.Equals("SBase.sb"));
             }
             output.WriteLine("ok");
 
@@ -102,7 +102,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 try
                 {
                     sb = testPrx.SBaseAsSBase();
-                    TestHelper.Assert(sb != null && sb.Sb.Equals("SBase.sb"));
+                    TestHelper.Assert(sb != null && sb.Sb!.Equals("SBase.sb"));
                 }
                 catch (Exception ex)
                 {
@@ -116,7 +116,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             output.Flush();
             {
                 SBase? sb = testPrx.SBaseAsSBaseAsync().Result;
-                TestHelper.Assert(sb != null && sb.Sb.Equals("SBase.sb"));
+                TestHelper.Assert(sb != null && sb.Sb!.Equals("SBase.sb"));
             }
             output.WriteLine("ok");
 
@@ -128,7 +128,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 try
                 {
                     sb = testPrx.SBSKnownDerivedAsSBase();
-                    TestHelper.Assert(sb != null && sb.Sb.Equals("SBSKnownDerived.sb"));
+                    TestHelper.Assert(sb != null && sb.Sb!.Equals("SBSKnownDerived.sb"));
                     sbskd = (SBSKnownDerived)sb;
                 }
                 catch (Exception ex)
@@ -136,7 +136,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     output.WriteLine(ex.ToString());
                     TestHelper.Assert(false);
                 }
-                TestHelper.Assert(sbskd != null && sbskd.Sbskd.Equals("SBSKnownDerived.sbskd"));
+                TestHelper.Assert(sbskd != null && sbskd.Sbskd!.Equals("SBSKnownDerived.sbskd"));
             }
             output.WriteLine("ok");
 
@@ -144,10 +144,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             output.Flush();
             {
                 SBase? sb = testPrx.SBSKnownDerivedAsSBaseAsync().Result;
-                TestHelper.Assert(sb != null && sb.Sb.Equals("SBSKnownDerived.sb"));
+                TestHelper.Assert(sb != null && sb.Sb!.Equals("SBSKnownDerived.sb"));
                 var sbskd = (SBSKnownDerived)sb;
                 TestHelper.Assert(sbskd != null);
-                TestHelper.Assert(sbskd.Sbskd.Equals("SBSKnownDerived.sbskd"));
+                TestHelper.Assert(sbskd.Sbskd!.Equals("SBSKnownDerived.sbskd"));
             }
             output.WriteLine("ok");
 
@@ -158,7 +158,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 try
                 {
                     sbskd = testPrx.SBSKnownDerivedAsSBSKnownDerived();
-                    TestHelper.Assert(sbskd != null && sbskd.Sbskd.Equals("SBSKnownDerived.sbskd"));
+                    TestHelper.Assert(sbskd != null && sbskd.Sbskd!.Equals("SBSKnownDerived.sbskd"));
                 }
                 catch (Exception ex)
                 {
@@ -172,7 +172,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             output.Flush();
             {
                 SBSKnownDerived? sbskd = testPrx.SBSKnownDerivedAsSBSKnownDerivedAsync().Result;
-                TestHelper.Assert(sbskd != null && sbskd.Sbskd.Equals("SBSKnownDerived.sbskd"));
+                TestHelper.Assert(sbskd != null && sbskd.Sbskd!.Equals("SBSKnownDerived.sbskd"));
             }
             output.WriteLine("ok");
 
@@ -183,7 +183,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 try
                 {
                     sb = testPrx.SBSUnknownDerivedAsSBase();
-                    TestHelper.Assert(sb != null && sb.Sb.Equals("SBSUnknownDerived.sb"));
+                    TestHelper.Assert(sb != null && sb.Sb!.Equals("SBSUnknownDerived.sb"));
                 }
                 catch (Exception ex)
                 {
@@ -200,7 +200,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             }
             catch (InvalidDataException ex)
             {
-                TestHelper.Assert(ex.Message.Contains("::ZeroC::Ice::Test::Slicing::Objects::SBSUnknownDerived"));
+                TestHelper.Assert(ex.Message.Contains("::IceRpc::Test::Slicing::Objects::SBSUnknownDerived"));
             }
             catch (Exception ex)
             {
@@ -213,7 +213,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             output.Flush();
             {
                 SBase? sb = testPrx.SBSUnknownDerivedAsSBaseAsync().Result;
-                TestHelper.Assert(sb != null && sb.Sb.Equals("SBSUnknownDerived.sb"));
+                TestHelper.Assert(sb != null && sb.Sb!.Equals("SBSUnknownDerived.sb"));
             }
 
             // This test fails when using the compact format because the instance cannot
@@ -236,7 +236,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     AnyClass? o = testPrx.SUnknownAsObject();
                     var unknown = o as UnknownSlicedClass;
                     TestHelper.Assert(unknown != null);
-                    TestHelper.Assert(unknown.TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Objects::SUnknown"));
+                    TestHelper.Assert(unknown.TypeId!.Equals("::IceRpc::Test::Slicing::Objects::SUnknown"));
                     TestHelper.Assert(unknown.GetSlicedData() != null);
                     testPrx.CheckSUnknown(o);
                 }
@@ -257,7 +257,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     {
                         var unknown = (UnknownSlicedClass?)testPrx.SUnknownAsObjectAsync().Result;
                         TestHelper.Assert(unknown != null);
-                        TestHelper.Assert(unknown.TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Objects::SUnknown"));
+                        TestHelper.Assert(unknown.TypeId!.Equals("::IceRpc::Test::Slicing::Objects::SUnknown"));
                     }
                     catch (AggregateException ex)
                     {
@@ -280,8 +280,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     B? b = testPrx.OneElementCycle();
                     TestHelper.Assert(b != null);
-                    TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b.Sb.Equals("B1.sb"));
+                    TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b.Sb!.Equals("B1.sb"));
                     TestHelper.Assert(b.Pb == b);
                 }
                 catch (Exception ex)
@@ -297,8 +297,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 B? b = testPrx.OneElementCycleAsync().Result;
                 TestHelper.Assert(b != null);
-                TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b.Sb.Equals("B1.sb"));
+                TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b.Sb!.Equals("B1.sb"));
                 TestHelper.Assert(b.Pb == b);
             }
             output.WriteLine("ok");
@@ -310,13 +310,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     B? b1 = testPrx.TwoElementCycle();
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b1.Sb.Equals("B1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b1.Sb!.Equals("B1.sb"));
 
                     B? b2 = b1.Pb;
                     TestHelper.Assert(b2 != null);
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b2.Sb.Equals("B2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("B2.sb"));
                     TestHelper.Assert(b2.Pb == b1);
                 }
                 catch (Exception ex)
@@ -332,13 +332,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 B? b1 = testPrx.TwoElementCycleAsync().Result;
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b1.Sb.Equals("B1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b1.Sb!.Equals("B1.sb"));
 
                 B? b2 = b1.Pb;
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b2.Sb.Equals("B2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.Sb!.Equals("B2.sb"));
                 TestHelper.Assert(b2.Pb == b1);
             }
             output.WriteLine("ok");
@@ -350,13 +350,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     B? b1 = testPrx.D1AsB();
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                     TestHelper.Assert(b1.Pb != null);
                     TestHelper.Assert(b1.Pb != b1);
                     var d1 = (D1)b1;
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(d1.Pd1 != null);
                     TestHelper.Assert(d1.Pd1 != b1);
                     TestHelper.Assert(b1.Pb == d1.Pd1);
@@ -364,8 +364,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B b2 = b1.Pb;
                     TestHelper.Assert(b2 != null);
                     TestHelper.Assert(b2.Pb == b1);
-                    TestHelper.Assert(b2.Sb.Equals("D2.sb"));
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
                 }
                 catch (Exception ex)
                 {
@@ -380,13 +380,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 B? b1 = testPrx.D1AsBAsync().Result;
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                 TestHelper.Assert(b1.Pb != null);
                 TestHelper.Assert(b1.Pb != b1);
                 var d1 = (D1)b1;
                 TestHelper.Assert(d1 != null);
-                TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(d1.Pd1 != null);
                 TestHelper.Assert(d1.Pd1 != b1);
                 TestHelper.Assert(b1.Pb == d1.Pd1);
@@ -394,8 +394,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 B b2 = b1.Pb;
                 TestHelper.Assert(b2 != null);
                 TestHelper.Assert(b2.Pb == b1);
-                TestHelper.Assert(b2.Sb.Equals("D2.sb"));
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
             }
             output.WriteLine("ok");
 
@@ -406,15 +406,15 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     D1? d1 = testPrx.D1AsD1();
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(d1.Sb.Equals("D1.sb"));
+                    TestHelper.Assert(d1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(d1.Sb!.Equals("D1.sb"));
                     TestHelper.Assert(d1.Pb != null);
                     TestHelper.Assert(d1.Pb != d1);
 
                     B? b2 = d1.Pb;
                     TestHelper.Assert(b2 != null);
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                     TestHelper.Assert(b2.Pb == d1);
                 }
                 catch (Exception ex)
@@ -430,15 +430,15 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 D1? d1 = testPrx.D1AsD1Async().Result;
                 TestHelper.Assert(d1 != null);
-                TestHelper.Assert(d1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(d1.Sb.Equals("D1.sb"));
+                TestHelper.Assert(d1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(d1.Sb!.Equals("D1.sb"));
                 TestHelper.Assert(d1.Pb != null);
                 TestHelper.Assert(d1.Pb != d1);
 
                 B b2 = d1.Pb;
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                 TestHelper.Assert(b2.Pb == d1);
             }
             output.WriteLine("ok");
@@ -450,19 +450,19 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 {
                     B? b2 = testPrx.D2AsB();
                     TestHelper.Assert(b2 != null);
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                     TestHelper.Assert(b2.Pb != null);
                     TestHelper.Assert(b2.Pb != b2);
 
                     B? b1 = b2.Pb;
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                     TestHelper.Assert(b1.Pb == b2);
                     var d1 = (D1)b1;
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(d1.Pd1 == b2);
                 }
                 catch (Exception ex)
@@ -478,19 +478,19 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 B? b2 = testPrx.D2AsBAsync().Result;
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                 TestHelper.Assert(b2.Pb != null);
                 TestHelper.Assert(b2.Pb != b2);
 
                 B b1 = b2.Pb;
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                 TestHelper.Assert(b1.Pb == b2);
                 var d1 = (D1)b1;
                 TestHelper.Assert(d1 != null);
-                TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(d1.Pd1 == b2);
             }
             output.WriteLine("ok");
@@ -503,18 +503,18 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     (B? b1, B? b2) = testPrx.ParamTest1();
 
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                     TestHelper.Assert(b1.Pb == b2);
                     var d1 = (D1)b1;
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(d1.Pd1 == b2);
 
                     TestHelper.Assert(b2 != null);
                     // No factory, must be sliced
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                     TestHelper.Assert(b2.Pb == b1);
                 }
                 catch (Exception ex)
@@ -531,17 +531,17 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 (B? b1, B? b2) = testPrx.ParamTest1Async().Result;
 
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                 TestHelper.Assert(b1.Pb == b2);
                 var d1 = (D1)b1;
                 TestHelper.Assert(d1 != null);
-                TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(d1.Pd1 == b2);
 
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B")); // No factory, must be sliced
-                TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B")); // No factory, must be sliced
+                TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                 TestHelper.Assert(b2.Pb == b1);
             }
             output.WriteLine("ok");
@@ -556,18 +556,18 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     (b2, b1) = testPrx.ParamTest2();
 
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                     TestHelper.Assert(b1.Pb == b2);
                     var d1 = (D1)b1;
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(d1.Pd1 == b2);
 
                     TestHelper.Assert(b2 != null);
                     // No factory, must be sliced
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                     TestHelper.Assert(b2.Pb == b1);
                 }
                 catch (Exception ex)
@@ -583,18 +583,18 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             {
                 (B? b2, B? b1) = testPrx.ParamTest2Async().Result;
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(b1.Sb.Equals("D1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
                 TestHelper.Assert(b1.Pb == b2);
                 var d1 = (D1)b1;
                 TestHelper.Assert(d1 != null);
-                TestHelper.Assert(d1.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(d1.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(d1.Pd1 == b2);
 
                 TestHelper.Assert(b2 != null);
                 // No factory, must be sliced
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(b2.Sb.Equals("D2.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.Sb!.Equals("D2.sb"));
                 TestHelper.Assert(b2.Pb == b1);
             }
             output.WriteLine("ok");
@@ -666,18 +666,18 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B? b1 = testPrx.ReturnTest3(d1, d3);
 
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.Sb.Equals("D1.sb"));
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
                     var p1 = (D1)b1;
                     TestHelper.Assert(p1 != null);
-                    TestHelper.Assert(p1.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(p1.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(p1.Pd1 == b1.Pb);
 
                     B? b2 = b1.Pb;
                     TestHelper.Assert(b2 != null);
-                    TestHelper.Assert(b2.Sb.Equals("D3.sb"));
+                    TestHelper.Assert(b2.Sb!.Equals("D3.sb"));
                     // Sliced by server
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
                     TestHelper.Assert(b2.Pb == b1);
                     try
                     {
@@ -718,17 +718,17 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 B? b1 = testPrx.ReturnTest3Async(d1, d3).Result;
 
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.Sb.Equals("D1.sb"));
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b1.Sb!.Equals("D1.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
                 var p1 = (D1)b1;
                 TestHelper.Assert(p1 != null);
-                TestHelper.Assert(p1.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(p1.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(p1.Pd1 == b1.Pb);
 
                 B? b2 = b1.Pb;
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.Sb.Equals("D3.sb"));
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B")); // Sliced by server
+                TestHelper.Assert(b2.Sb!.Equals("D3.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B")); // Sliced by server
                 TestHelper.Assert(b2.Pb == b1);
                 try
                 {
@@ -767,8 +767,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B? b1 = testPrx.ReturnTest3(d3, d1);
 
                     TestHelper.Assert(b1 != null);
-                    TestHelper.Assert(b1.Sb.Equals("D3.sb"));
-                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B")); // Sliced by server
+                    TestHelper.Assert(b1.Sb!.Equals("D3.sb"));
+                    TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B")); // Sliced by server
 
                     try
                     {
@@ -781,12 +781,12 @@ namespace ZeroC.Ice.Test.Slicing.Objects
 
                     B? b2 = b1.Pb;
                     TestHelper.Assert(b2 != null);
-                    TestHelper.Assert(b2.Sb.Equals("D1.sb"));
-                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(b2.Sb!.Equals("D1.sb"));
+                    TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
                     TestHelper.Assert(b2.Pb == b1);
                     var p3 = (D1)b2;
                     TestHelper.Assert(p3 != null);
-                    TestHelper.Assert(p3.Sd1.Equals("D1.sd1"));
+                    TestHelper.Assert(p3.Sd1!.Equals("D1.sd1"));
                     TestHelper.Assert(p3.Pd1 == b1);
 
                     TestHelper.Assert(b1 != d1);
@@ -819,8 +819,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 B? b1 = testPrx.ReturnTest3Async(d3, d1).Result;
 
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.Sb.Equals("D3.sb"));
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B")); // Sliced by server
+                TestHelper.Assert(b1.Sb!.Equals("D3.sb"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B")); // Sliced by server
 
                 try
                 {
@@ -833,12 +833,12 @@ namespace ZeroC.Ice.Test.Slicing.Objects
 
                 B? b2 = b1.Pb;
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.Sb.Equals("D1.sb"));
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(b2.Sb!.Equals("D1.sb"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
                 TestHelper.Assert(b2.Pb == b1);
                 var p3 = (D1)b2;
                 TestHelper.Assert(p3 != null);
-                TestHelper.Assert(p3.Sd1.Equals("D1.sd1"));
+                TestHelper.Assert(p3.Sd1!.Equals("D1.sd1"));
                 TestHelper.Assert(p3.Pd1 == b1);
 
                 TestHelper.Assert(b1 != d1);
@@ -856,19 +856,19 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     (B? ret, B? p1, B? p2) = testPrx.ParamTest3();
 
                     TestHelper.Assert(p1 != null);
-                    TestHelper.Assert(p1.Sb.Equals("D2.sb (p1 1)"));
+                    TestHelper.Assert(p1.Sb!.Equals("D2.sb (p1 1)"));
                     TestHelper.Assert(p1.Pb == null);
-                    TestHelper.Assert(p1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(p1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                     TestHelper.Assert(p2 != null);
-                    TestHelper.Assert(p2.Sb.Equals("D2.sb (p2 1)"));
+                    TestHelper.Assert(p2.Sb!.Equals("D2.sb (p2 1)"));
                     TestHelper.Assert(p2.Pb == null);
-                    TestHelper.Assert(p2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(p2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                     TestHelper.Assert(ret != null);
-                    TestHelper.Assert(ret.Sb.Equals("D1.sb (p2 2)"));
+                    TestHelper.Assert(ret.Sb!.Equals("D1.sb (p2 2)"));
                     TestHelper.Assert(ret.Pb == null);
-                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
                 }
                 catch (Exception ex)
                 {
@@ -884,19 +884,19 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 (B? ret, B? p1, B? p2) = testPrx.ParamTest3Async().Result;
 
                 TestHelper.Assert(p1 != null);
-                TestHelper.Assert(p1.Sb.Equals("D2.sb (p1 1)"));
+                TestHelper.Assert(p1.Sb!.Equals("D2.sb (p1 1)"));
                 TestHelper.Assert(p1.Pb == null);
-                TestHelper.Assert(p1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(p1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                 TestHelper.Assert(p2 != null);
-                TestHelper.Assert(p2.Sb.Equals("D2.sb (p2 1)"));
+                TestHelper.Assert(p2.Sb!.Equals("D2.sb (p2 1)"));
                 TestHelper.Assert(p2.Pb == null);
-                TestHelper.Assert(p2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(p2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                 TestHelper.Assert(ret != null);
-                TestHelper.Assert(ret.Sb.Equals("D1.sb (p2 2)"));
+                TestHelper.Assert(ret.Sb!.Equals("D1.sb (p2 2)"));
                 TestHelper.Assert(ret.Pb == null);
-                TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
             }
             output.WriteLine("ok");
 
@@ -908,14 +908,14 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     (B? ret, B? b) = testPrx.ParamTest4();
 
                     TestHelper.Assert(b != null);
-                    TestHelper.Assert(b.Sb.Equals("D4.sb (1)"));
+                    TestHelper.Assert(b.Sb!.Equals("D4.sb (1)"));
                     TestHelper.Assert(b.Pb == null);
-                    TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(b.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                     TestHelper.Assert(ret != null);
-                    TestHelper.Assert(ret.Sb.Equals("B.sb (2)"));
+                    TestHelper.Assert(ret.Sb!.Equals("B.sb (2)"));
                     TestHelper.Assert(ret.Pb == null);
-                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
                 }
                 catch (Exception ex)
                 {
@@ -931,14 +931,14 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 (B? b1, B? b2) = testPrx.ParamTest4Async().Result;
 
                 TestHelper.Assert(b2 != null);
-                TestHelper.Assert(b2.Sb.Equals("D4.sb (1)"));
+                TestHelper.Assert(b2.Sb!.Equals("D4.sb (1)"));
                 TestHelper.Assert(b2.Pb == null);
-                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
                 TestHelper.Assert(b1 != null);
-                TestHelper.Assert(b1.Sb.Equals("B.sb (2)"));
+                TestHelper.Assert(b1.Sb!.Equals("B.sb (2)"));
                 TestHelper.Assert(b1.Pb == null);
-                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(b1.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
             }
             output.WriteLine("ok");
 
@@ -964,8 +964,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B? ret = testPrx.ReturnTest3(d3, b2);
 
                     TestHelper.Assert(ret != null);
-                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(ret.Sb.Equals("D3.sb"));
+                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ret.Sb!.Equals("D3.sb"));
                     TestHelper.Assert(ret.Pb == ret);
                 }
                 catch (Exception ex)
@@ -996,8 +996,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 B? rv = testPrx.ReturnTest3Async(d3, b2).Result;
 
                 TestHelper.Assert(rv != null);
-                TestHelper.Assert(rv.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(rv.Sb.Equals("D3.sb"));
+                TestHelper.Assert(rv.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(rv.Sb!.Equals("D3.sb"));
                 TestHelper.Assert(rv.Pb == rv);
             }
             output.WriteLine("ok");
@@ -1026,8 +1026,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
 
                     B? ret = testPrx.ReturnTest3(d3, d12);
                     TestHelper.Assert(ret != null);
-                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(ret.Sb.Equals("D3.sb"));
+                    TestHelper.Assert(ret.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ret.Sb!.Equals("D3.sb"));
                     TestHelper.Assert(ret.Pb == ret);
                 }
                 catch (Exception ex)
@@ -1061,8 +1061,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 B? rv = testPrx.ReturnTest3Async(d3, d12).Result;
 
                 TestHelper.Assert(rv != null);
-                TestHelper.Assert(rv.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(rv.Sb.Equals("D3.sb"));
+                TestHelper.Assert(rv.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(rv.Sb!.Equals("D3.sb"));
                 TestHelper.Assert(rv.Pb == rv);
             }
             output.WriteLine("ok");
@@ -1142,13 +1142,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     TestHelper.Assert(ss2d2!.Pb == ss2b2);
                     TestHelper.Assert(ss2d4!.Pb == ss2b2);
 
-                    TestHelper.Assert(ss1b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(ss1d2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(ss1d4.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ss1b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ss1d2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(ss1d4.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
-                    TestHelper.Assert(ss2b2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                    TestHelper.Assert(ss2d2.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                    TestHelper.Assert(ss2d4.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ss2b2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                    TestHelper.Assert(ss2d2.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                    TestHelper.Assert(ss2d4.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
                 }
                 catch (Exception ex)
                 {
@@ -1230,13 +1230,13 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(ss2d6!.Pb == ss2b3);
                 TestHelper.Assert(ss2d6!.Pb == ss2b3);
 
-                TestHelper.Assert(ss1b3!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(ss1d5!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(ss1d6!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(ss1b3!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(ss1d5!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(ss1d6!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
 
-                TestHelper.Assert(ss2b3!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
-                TestHelper.Assert(ss2d5!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::D1"));
-                TestHelper.Assert(ss2d6!.GetType().GetIceTypeId()!.Equals("::ZeroC::Ice::Test::Slicing::Objects::B"));
+                TestHelper.Assert(ss2b3!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
+                TestHelper.Assert(ss2d5!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::D1"));
+                TestHelper.Assert(ss2d6!.GetType().GetIceTypeId()!.Equals("::IceRpc::Test::Slicing::Objects::B"));
             }
             output.WriteLine("ok");
 
@@ -1267,10 +1267,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                         B? b = bout[i * 10];
                         TestHelper.Assert(b != null);
                         string s = "D1." + i.ToString();
-                        TestHelper.Assert(b.Sb.Equals(s));
+                        TestHelper.Assert(b.Sb!.Equals(s));
                         TestHelper.Assert(b.Pb != null);
                         TestHelper.Assert(b.Pb != b);
-                        TestHelper.Assert(b.Pb.Sb.Equals(s));
+                        TestHelper.Assert(b.Pb.Sb!.Equals(s));
                         TestHelper.Assert(b.Pb.Pb == b.Pb);
                     }
 
@@ -1280,11 +1280,11 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                         B? b = ret[i * 20];
                         TestHelper.Assert(b != null);
                         string s = "D1." + (i * 20).ToString();
-                        TestHelper.Assert(b.Sb.Equals(s));
+                        TestHelper.Assert(b.Sb!.Equals(s));
                         TestHelper.Assert(b.Pb == (i == 0 ? null : ret[(i - 1) * 20]));
                         var d1 = (D1)b;
                         TestHelper.Assert(d1 != null);
-                        TestHelper.Assert(d1.Sd1.Equals(s));
+                        TestHelper.Assert(d1.Sd1 == s);
                         TestHelper.Assert(d1.Pd1 == d1);
                     }
                 }
@@ -1322,10 +1322,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B? b = bout[i * 10];
                     TestHelper.Assert(b != null);
                     string s = "D1." + i.ToString();
-                    TestHelper.Assert(b.Sb.Equals(s));
+                    TestHelper.Assert(b.Sb!.Equals(s));
                     TestHelper.Assert(b.Pb != null);
                     TestHelper.Assert(b.Pb != b);
-                    TestHelper.Assert(b.Pb.Sb.Equals(s));
+                    TestHelper.Assert(b.Pb.Sb!.Equals(s));
                     TestHelper.Assert(b.Pb.Pb == b.Pb);
                 }
 
@@ -1335,11 +1335,11 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     B? b = rv[i * 20];
                     TestHelper.Assert(b != null);
                     string s = "D1." + (i * 20).ToString();
-                    TestHelper.Assert(b.Sb.Equals(s));
+                    TestHelper.Assert(b.Sb!.Equals(s));
                     TestHelper.Assert(b.Pb == (i == 0 ? null : rv[(i - 1) * 20]));
                     var d1 = (D1)b;
                     TestHelper.Assert(d1 != null);
-                    TestHelper.Assert(d1.Sd1.Equals(s));
+                    TestHelper.Assert(d1.Sd1 == s);
                     TestHelper.Assert(d1.Pd1 == d1);
                 }
             }
@@ -1355,10 +1355,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 }
                 catch (BaseException e)
                 {
-                    TestHelper.Assert(e.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Objects.BaseException"));
-                    TestHelper.Assert(e.Sbe.Equals("sbe"));
+                    TestHelper.Assert(e.GetType().FullName!.Equals("IceRpc.Test.Slicing.Objects.BaseException"));
+                    TestHelper.Assert(e.Sbe!.Equals("sbe"));
                     TestHelper.Assert(e.Pb != null);
-                    TestHelper.Assert(e.Pb.Sb.Equals("sb"));
+                    TestHelper.Assert(e.Pb.Sb!.Equals("sb"));
                     TestHelper.Assert(e.Pb.Pb == e.Pb);
                 }
                 catch (Exception ex)
@@ -1382,9 +1382,9 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     {
                         TestHelper.Assert(ae.InnerException != null);
                         var e = (BaseException)ae.InnerException;
-                        TestHelper.Assert(e.Sbe.Equals("sbe"));
+                        TestHelper.Assert(e.Sbe!.Equals("sbe"));
                         TestHelper.Assert(e.Pb != null);
-                        TestHelper.Assert(e.Pb.Sb.Equals("sb"));
+                        TestHelper.Assert(e.Pb.Sb!.Equals("sb"));
                         TestHelper.Assert(e.Pb.Pb == e.Pb);
                     }
                     catch (Exception ex)
@@ -1406,16 +1406,16 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 }
                 catch (DerivedException e)
                 {
-                    TestHelper.Assert(e.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Objects.DerivedException"));
-                    TestHelper.Assert(e.Sbe.Equals("sbe"));
+                    TestHelper.Assert(e.GetType().FullName!.Equals("IceRpc.Test.Slicing.Objects.DerivedException"));
+                    TestHelper.Assert(e.Sbe!.Equals("sbe"));
                     TestHelper.Assert(e.Pb != null);
-                    TestHelper.Assert(e.Pb.Sb.Equals("sb1"));
+                    TestHelper.Assert(e.Pb.Sb!.Equals("sb1"));
                     TestHelper.Assert(e.Pb.Pb == e.Pb);
-                    TestHelper.Assert(e.Sde.Equals("sde1"));
+                    TestHelper.Assert(e.Sde!.Equals("sde1"));
                     TestHelper.Assert(e.Pd1 != null);
-                    TestHelper.Assert(e.Pd1.Sb.Equals("sb2"));
+                    TestHelper.Assert(e.Pd1.Sb!.Equals("sb2"));
                     TestHelper.Assert(e.Pd1.Pb == e.Pd1);
-                    TestHelper.Assert(e.Pd1.Sd1.Equals("sd2"));
+                    TestHelper.Assert(e.Pd1.Sd1!.Equals("sd2"));
                     TestHelper.Assert(e.Pd1.Pd1 == e.Pd1);
                 }
                 catch (Exception ex)
@@ -1439,15 +1439,15 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     {
                         TestHelper.Assert(ae.InnerException != null);
                         var e = (DerivedException)ae.InnerException;
-                        TestHelper.Assert(e.Sbe.Equals("sbe"));
+                        TestHelper.Assert(e.Sbe!.Equals("sbe"));
                         TestHelper.Assert(e.Pb != null);
-                        TestHelper.Assert(e.Pb.Sb.Equals("sb1"));
+                        TestHelper.Assert(e.Pb.Sb!.Equals("sb1"));
                         TestHelper.Assert(e.Pb.Pb == e.Pb);
-                        TestHelper.Assert(e.Sde.Equals("sde1"));
+                        TestHelper.Assert(e.Sde!.Equals("sde1"));
                         TestHelper.Assert(e.Pd1 != null);
-                        TestHelper.Assert(e.Pd1.Sb.Equals("sb2"));
+                        TestHelper.Assert(e.Pd1.Sb!.Equals("sb2"));
                         TestHelper.Assert(e.Pd1.Pb == e.Pd1);
-                        TestHelper.Assert(e.Pd1.Sd1.Equals("sd2"));
+                        TestHelper.Assert(e.Pd1.Sd1!.Equals("sd2"));
                         TestHelper.Assert(e.Pd1.Pd1 == e.Pd1);
                     }
                     catch (Exception ex)
@@ -1469,16 +1469,16 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 }
                 catch (DerivedException e)
                 {
-                    TestHelper.Assert(e.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Objects.DerivedException"));
-                    TestHelper.Assert(e.Sbe.Equals("sbe"));
+                    TestHelper.Assert(e.GetType().FullName!.Equals("IceRpc.Test.Slicing.Objects.DerivedException"));
+                    TestHelper.Assert(e.Sbe!.Equals("sbe"));
                     TestHelper.Assert(e.Pb != null);
-                    TestHelper.Assert(e.Pb.Sb.Equals("sb1"));
+                    TestHelper.Assert(e.Pb.Sb!.Equals("sb1"));
                     TestHelper.Assert(e.Pb.Pb == e.Pb);
-                    TestHelper.Assert(e.Sde.Equals("sde1"));
+                    TestHelper.Assert(e.Sde!.Equals("sde1"));
                     TestHelper.Assert(e.Pd1 != null);
-                    TestHelper.Assert(e.Pd1.Sb.Equals("sb2"));
+                    TestHelper.Assert(e.Pd1.Sb!.Equals("sb2"));
                     TestHelper.Assert(e.Pd1.Pb == e.Pd1);
-                    TestHelper.Assert(e.Pd1.Sd1.Equals("sd2"));
+                    TestHelper.Assert(e.Pd1.Sd1!.Equals("sd2"));
                     TestHelper.Assert(e.Pd1.Pd1 == e.Pd1);
                 }
                 catch (Exception ex)
@@ -1502,15 +1502,15 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     {
                         TestHelper.Assert(ae.InnerException != null);
                         var e = (DerivedException)ae.InnerException;
-                        TestHelper.Assert(e.Sbe.Equals("sbe"));
+                        TestHelper.Assert(e.Sbe!.Equals("sbe"));
                         TestHelper.Assert(e.Pb != null);
-                        TestHelper.Assert(e.Pb.Sb.Equals("sb1"));
+                        TestHelper.Assert(e.Pb.Sb!.Equals("sb1"));
                         TestHelper.Assert(e.Pb.Pb == e.Pb);
-                        TestHelper.Assert(e.Sde.Equals("sde1"));
+                        TestHelper.Assert(e.Sde!.Equals("sde1"));
                         TestHelper.Assert(e.Pd1 != null);
-                        TestHelper.Assert(e.Pd1.Sb.Equals("sb2"));
+                        TestHelper.Assert(e.Pd1.Sb!.Equals("sb2"));
                         TestHelper.Assert(e.Pd1.Pb == e.Pd1);
-                        TestHelper.Assert(e.Pd1.Sd1.Equals("sd2"));
+                        TestHelper.Assert(e.Pd1.Sd1!.Equals("sd2"));
                         TestHelper.Assert(e.Pd1.Pd1 == e.Pd1);
                     }
                     catch (Exception ex)
@@ -1532,10 +1532,10 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 }
                 catch (BaseException e)
                 {
-                    TestHelper.Assert(e.GetType().FullName!.Equals("ZeroC.Ice.Test.Slicing.Objects.BaseException"));
-                    TestHelper.Assert(e.Sbe.Equals("sbe"));
+                    TestHelper.Assert(e.GetType().FullName!.Equals("IceRpc.Test.Slicing.Objects.BaseException"));
+                    TestHelper.Assert(e.Sbe!.Equals("sbe"));
                     TestHelper.Assert(e.Pb != null);
-                    TestHelper.Assert(e.Pb.Sb.Equals("sb d2"));
+                    TestHelper.Assert(e.Pb.Sb!.Equals("sb d2"));
                     TestHelper.Assert(e.Pb.Pb == e.Pb);
                 }
                 catch (Exception ex)
@@ -1559,9 +1559,9 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                     {
                         TestHelper.Assert(ae.InnerException != null);
                         var e = (BaseException)ae.InnerException;
-                        TestHelper.Assert(e.Sbe.Equals("sbe"));
+                        TestHelper.Assert(e.Sbe!.Equals("sbe"));
                         TestHelper.Assert(e.Pb != null);
-                        TestHelper.Assert(e.Pb.Sb.Equals("sb d2"));
+                        TestHelper.Assert(e.Pb.Sb!.Equals("sb d2"));
                         TestHelper.Assert(e.Pb.Pb == e.Pb);
                     }
                     catch (Exception ex)
@@ -1611,7 +1611,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 TestHelper.Assert(r != null);
                 var p2 = (PDerived)r;
                 TestHelper.Assert(p2.Pi == 3);
-                TestHelper.Assert(p2.Ps.Equals("preserved"));
+                TestHelper.Assert(p2.Ps!.Equals("preserved"));
                 TestHelper.Assert(p2.Pb == p2);
             }
             catch (OperationNotFoundException)
@@ -1714,7 +1714,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 testPrx.CheckPBSUnknown(p);
                 IReadOnlyList<SliceInfo>? slices = p.GetSlicedData()!.Value.Slices;
                 TestHelper.Assert(slices.Count == 1);
-                TestHelper.Assert(slices[0].TypeId!.Equals("::ZeroC::Ice::Test::Slicing::Objects::PSUnknown"));
+                TestHelper.Assert(slices[0].TypeId!.Equals("::IceRpc::Test::Slicing::Objects::PSUnknown"));
             }
             catch (OperationNotFoundException)
             {
@@ -1734,7 +1734,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
                 var p2 = (PDerived?)testPrx.ExchangePBaseAsync(pd).Result;
                 TestHelper.Assert(p2 != null);
                 TestHelper.Assert(p2.Pi == 3);
-                TestHelper.Assert(p2.Ps.Equals("preserved"));
+                TestHelper.Assert(p2.Ps!.Equals("preserved"));
                 TestHelper.Assert(p2.Pb == p2);
             }
 

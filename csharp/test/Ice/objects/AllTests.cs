@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Objects
+namespace IceRpc.Test.Objects
 {
     public partial class IBase
     {
@@ -254,8 +254,8 @@ namespace ZeroC.Ice.Test.Objects
             }
             catch (InvalidDataException ex)
             {
-                TestHelper.Assert(ex.Message.Contains("ZeroC.Ice.Test.Objects.AlsoEmpty"));
-                TestHelper.Assert(ex.Message.Contains("ZeroC.Ice.Test.Objects.Empty"));
+                TestHelper.Assert(ex.Message.Contains("IceRpc.Test.Objects.AlsoEmpty"));
+                TestHelper.Assert(ex.Message.Contains("IceRpc.Test.Objects.Empty"));
             }
             catch (System.Exception ex)
             {
@@ -266,13 +266,13 @@ namespace ZeroC.Ice.Test.Objects
 
             output.Write("testing partial Initialize...");
             output.Flush();
-            var ib1 = new IBase();
+            var ib1 = new IBase("");
             TestHelper.Assert(ib1.Id.Equals("My id"));
-            var id1 = new IDerived();
+            var id1 = new IDerived("", "");
             TestHelper.Assert(id1.Id.Equals("My id"));
             TestHelper.Assert(id1.Name.Equals("My name"));
 
-            var id2 = new IDerived2();
+            var id2 = new IDerived2("");
             TestHelper.Assert(id2.Id.Equals("My id"));
             var i2 = new I2();
             TestHelper.Assert(i2.Called);

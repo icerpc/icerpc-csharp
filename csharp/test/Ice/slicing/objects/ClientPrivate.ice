@@ -9,7 +9,7 @@
 
 #include <Test.ice>
 
-module ZeroC::Ice::Test::Slicing::Objects
+module IceRpc::Test::Slicing::Objects
 {
 
 class CUnknown : SBase
@@ -19,14 +19,14 @@ class CUnknown : SBase
 
 class D3 : B
 {
-    string sd3 = "";
+    string? sd3;
     B pd3;
 }
 
 [preserve-slice]
 class PCUnknown : PBase
 {
-    string pu = "";
+    string? pu;
 }
 
 class PCDerived : PDerived

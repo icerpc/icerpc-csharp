@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Timeout
+module IceRpc::Test::Timeout
 {
 
 sequence<byte> ByteSeq;

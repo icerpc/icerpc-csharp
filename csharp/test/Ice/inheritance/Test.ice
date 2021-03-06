@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Inheritance
+module IceRpc::Test::Inheritance
 {
 
 module MA

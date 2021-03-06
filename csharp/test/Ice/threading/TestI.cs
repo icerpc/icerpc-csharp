@@ -3,7 +3,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.Threading
+namespace IceRpc.Test.Threading
 {
     public sealed class TestIntf : ITestIntf
     {

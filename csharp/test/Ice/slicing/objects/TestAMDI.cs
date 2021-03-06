@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Slicing.Objects
+namespace IceRpc.Test.Slicing.Objects
 {
     public sealed class AsyncTestIntf : IAsyncTestIntf
     {
@@ -56,7 +56,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
         {
             TestHelper.Assert(obj != null);
             var su = (SUnknown)obj;
-            TestHelper.Assert(su.Su.Equals("SUnknown.su"));
+            TestHelper.Assert(su.Su == "SUnknown.su");
             return default;
         }
 
@@ -273,8 +273,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             var pu = p as PSUnknown;
             TestHelper.Assert(pu != null);
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
-            TestHelper.Assert(pu.Psu.Equals("unknown"));
+            TestHelper.Assert(pu.Ps == "preserved");
+            TestHelper.Assert(pu.Psu == "unknown");
             TestHelper.Assert(pu.Graph == null);
             TestHelper.Assert(pu.Cl != null && pu.Cl.I == 15);
             return default;
@@ -296,8 +296,8 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             TestHelper.Assert(p is PSUnknown);
             var pu = (PSUnknown)p;
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
-            TestHelper.Assert(pu.Psu.Equals("unknown"));
+            TestHelper.Assert(pu.Ps == "preserved");
+            TestHelper.Assert(pu.Psu == "unknown");
             TestHelper.Assert(pu.Graph != pu.Graph!.Next);
             TestHelper.Assert(pu.Graph.Next != pu.Graph!.Next!.Next);
             TestHelper.Assert(pu.Graph!.Next!.Next!.Next == pu.Graph);
@@ -316,7 +316,7 @@ namespace ZeroC.Ice.Test.Slicing.Objects
             TestHelper.Assert(p is PSUnknown2);
             var pu = (PSUnknown2)p;
             TestHelper.Assert(pu.Pi == 5);
-            TestHelper.Assert(pu.Ps.Equals("preserved"));
+            TestHelper.Assert(pu.Ps == "preserved");
             TestHelper.Assert(pu.Pb == pu);
             return default;
         }

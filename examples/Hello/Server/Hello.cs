@@ -2,7 +2,7 @@
 
 using System;
 using System.Threading;
-using ZeroC.Ice;
+using IceRpc;
 
 namespace Demo
 {

@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Optional
+module IceRpc::Test::Optional
 {
     sequence<int?> OptIntSeq;
     sequence<string?> OptStringSeq;

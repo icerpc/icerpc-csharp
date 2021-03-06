@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module ZeroC::Ice::Test::Invoke
+module IceRpc::Test::Invoke
 {
 
 exception MyException

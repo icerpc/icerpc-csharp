@@ -2,7 +2,7 @@
 
 using System.Threading;
 
-namespace ZeroC.Ice.Test.Location
+namespace IceRpc.Test.Location
 {
     public class Hello : IHello
     {

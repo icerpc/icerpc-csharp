@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroC.Test;
+using IceRpc.Test;
 
-namespace ZeroC.Ice.Test.Operations
+namespace IceRpc.Test.Operations
 {
     public sealed class MyDerivedClass : IMyDerivedClass
     {
@@ -951,50 +951,6 @@ namespace ZeroC.Ice.Test.Operations
         public MyClass1? OpMyClass1(MyClass1? c, Current current, CancellationToken cancel) => c;
 
         public MyStruct1 OpMyStruct1(MyStruct1 s, Current current, CancellationToken cancel) => s;
-
-        public IEnumerable<string> OpStringLiterals(Current current, CancellationToken cancel)
-        {
-            return new string[]
-                {
-                        Constants.s0,
-                        Constants.s1,
-                        Constants.s2,
-                        Constants.s3,
-                        Constants.s4,
-                        Constants.s5,
-                        Constants.s6,
-                        Constants.s7,
-                        Constants.s8,
-                        Constants.s9,
-                        Constants.s10,
-
-                        Constants.sw0,
-                        Constants.sw1,
-                        Constants.sw2,
-                        Constants.sw3,
-                        Constants.sw4,
-                        Constants.sw5,
-                        Constants.sw6,
-                        Constants.sw7,
-                        Constants.sw8,
-                        Constants.sw9,
-                        Constants.sw10,
-
-                        Constants.ss0,
-                        Constants.ss1,
-                        Constants.ss2,
-                        Constants.ss3,
-                        Constants.ss4,
-                        Constants.ss5,
-
-                        Constants.su0,
-                        Constants.su1,
-                        Constants.su2
-                };
-        }
-
-        public IEnumerable<string> OpWStringLiterals(Current current, CancellationToken cancel) =>
-            OpStringLiterals(current, cancel);
 
         public IMyClass.OpMStruct1MarshaledReturnValue OpMStruct1(Current current, CancellationToken cancel) =>
             new(new Structure(null, MyEnum.enum1, new AnotherStruct("")), current);

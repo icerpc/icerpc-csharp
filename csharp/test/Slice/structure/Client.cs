@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using ZeroC.Ice;
-using ZeroC.Test;
+using IceRpc;
+using IceRpc.Test;
 
-namespace ZeroC.Slice.Test.Structure
+namespace IceRpc.Slice.Test.Structure
 {
     // Use reference equality for IntList
     public partial struct S3

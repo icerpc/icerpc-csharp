@@ -3,7 +3,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ZeroC.Ice.Test.DefaultServant
+namespace IceRpc.Test.DefaultServant
 {
     public sealed class MyObject : IMyObject
     {
