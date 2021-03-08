@@ -538,7 +538,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("true", proxyProps["Test.PreferExistingConnection"]);
         }
 
-            [Test]
+        [Test]
         public async Task Proxy_UriOptions()
         {
             await using var communicator = new Communicator();
