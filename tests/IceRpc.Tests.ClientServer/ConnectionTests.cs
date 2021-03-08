@@ -305,7 +305,6 @@ namespace IceRpc.Tests.ClientServer
             // No close timeout
             var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), Communicator);
 
-
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
 
