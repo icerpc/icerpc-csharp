@@ -22,10 +22,6 @@ namespace IceRpc
         /// </summary>
         public NonSecure AcceptNonSecure { get; }
 
-        /// <summary>Returns the adapter ID of this server, or the empty string if this server does not
-        /// have an adapter ID.</summary>
-        public string AdapterId { get; }
-
         public ColocationScope ColocationScope { get; }
 
         /// <summary>Returns the communicator of this server. It is used when unmarshaling proxies.</summary>
@@ -37,12 +33,6 @@ namespace IceRpc
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
-        /// <summary>The locator registry proxy associated with this server, if any. An indirect server
-        /// registers itself with the locator registry associated during activation, and unregisters during shutdown.
-        /// </summary>
-        /// <value>The locator registry proxy.</value>
-        public ILocatorRegistryPrx? LocatorRegistry { get; }
-
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
         public string Name { get; }
@@ -53,10 +43,6 @@ namespace IceRpc
 
         /// <summary>Returns the endpoints listed in a direct proxy created by this server.</summary>
         public IReadOnlyList<Endpoint> PublishedEndpoints { get; private set; } = ImmutableList<Endpoint>.Empty;
-
-        /// <summary>Returns the replica group ID of this server, or the empty string if this server
-        /// does not belong to a replica group.</summary>
-        public string ReplicaGroupId { get; }
 
         /// <summary>Indicates whether or not this server serializes the dispatching of requests received
         /// over the same connection.</summary>
@@ -80,7 +66,7 @@ namespace IceRpc
 
         private static ulong _counter; // used to generate names for nameless servers.
 
-        private Task? _activateTask;
+        private bool _activated;
 
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
@@ -94,7 +80,7 @@ namespace IceRpc
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
-        // protects _activateTask, _dispatchInterceptorList, _serviceMap,
+        // protects _activated, _dispatchInterceptorList, _serviceMap,
         private readonly object _mutex = new();
 
         private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
@@ -113,20 +99,6 @@ namespace IceRpc
         /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator, ServerOptions options)
         {
-            if (options.AdapterId.Length == 0)
-            {
-                if (options.ReplicaGroupId.Length > 0)
-                {
-                    throw new ArgumentException("options.ReplicaGroupId is set but options.AdapterId is not",
-                                                nameof(options));
-                }
-                if (options.LocatorRegistry != null)
-                {
-                    throw new ArgumentException("options.LocatorRegistry is set but options.AdapterId is not",
-                                                nameof(options));
-                }
-            }
-
             if (options.AcceptNonSecure == NonSecure.Never && options.AuthenticationOptions == null)
             {
                 throw new ArgumentException(
@@ -137,14 +109,10 @@ namespace IceRpc
             Communicator = communicator;
 
             AcceptNonSecure = options.AcceptNonSecure;
-            AdapterId = options.AdapterId;
             ColocationScope = options.ColocationScope;
-            LocatorRegistry = options.LocatorRegistry;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
-            ReplicaGroupId = options.ReplicaGroupId;
             SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
-
 
             if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
             {
@@ -175,12 +143,6 @@ namespace IceRpc
             {
                 if (UriParser.IsEndpointUri(options.Endpoints))
                 {
-                    if (AdapterId.Length > 0)
-                    {
-                        throw new ArgumentException("options.AdapterId set for an ice2 server",
-                                                    nameof(options));
-                    }
-
                     Protocol = Protocol.Ice2;
                     Endpoints = UriParser.ParseEndpoints(options.Endpoints, Communicator);
                 }
@@ -244,10 +206,6 @@ namespace IceRpc
             }
             else
             {
-                if (AdapterId.Length > 0 && options.Protocol != Protocol.Ice1)
-                {
-                    throw new ArgumentException("options.AdapterId set for an ice2 server", nameof(options));
-                }
                 Protocol = options.Protocol;
             }
 
@@ -329,7 +287,7 @@ namespace IceRpc
                 }
 
                 // Activating twice the server is incorrect
-                if (_activateTask != null)
+                if (_activated)
                 {
                     throw new InvalidOperationException($"server {Name} already activated");
                 }
@@ -357,65 +315,12 @@ namespace IceRpc
                     factory.Activate();
                 }
 
-                _activateTask = PerformActivateAsync(cancel);
+                _activated = true;
             }
-
-            await _activateTask.ConfigureAwait(false);
 
             if ((Communicator.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false) && Name.Length > 0)
             {
                 Console.Out.WriteLine($"{Name} ready");
-            }
-
-            async Task PerformActivateAsync(CancellationToken cancel)
-            {
-                // Register the published endpoints with the locator registry (ice1 only)
-
-                if (PublishedEndpoints.Count == 0 || AdapterId.Length == 0 || LocatorRegistry == null)
-                {
-                    return; // nothing to do
-                }
-
-                Debug.Assert(Protocol == Protocol.Ice1);
-
-                try
-                {
-                    var proxy = IServicePrx.Factory.Create(new ServicePrxOptions()
-                                                          {
-                                                            Communicator = Communicator,
-                                                            Endpoints = PublishedEndpoints,
-                                                            Path = "dummy",
-                                                            Protocol = PublishedEndpoints[0].Protocol
-                                                          });
-
-                    if (ReplicaGroupId.Length > 0)
-                    {
-                        await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
-                            AdapterId,
-                            ReplicaGroupId,
-                            proxy,
-                            cancel: cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
-                                                                         proxy,
-                                                                         cancel: cancel).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (Communicator.Logger.IsEnabled(LogLevel.Error))
-                    {
-                        Communicator.Logger.LogRegisterServerEndpointsFailure(this, ex);
-                    }
-                    throw;
-                }
-
-                if (Communicator.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Communicator.Logger.LogRegisterServerEndpointsSuccess(this, PublishedEndpoints);
-                }
             }
         }
 
@@ -652,29 +557,6 @@ namespace IceRpc
                     // _mutex.
                     Task[] tasks = _incomingConnectionFactories.Select(factory => factory.ShutdownAsync()).ToArray();
 
-                    // Wait for activation to complete. This is necessary avoid out of order locator updates.
-                    // _activateTask is readonly once _shutdownTask is non null.
-                    if (_activateTask != null)
-                    {
-                        try
-                        {
-                            await _activateTask.ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // Ignore
-                        }
-                    }
-
-                    try
-                    {
-                        await UnregisterEndpointsAsync(default).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // We can't throw exceptions in deactivate so we ignore failures to unregister endpoints
-                    }
-
                     if (_colocatedConnectionFactory != null)
                     {
                         await _colocatedConnectionFactory.ShutdownAsync().ConfigureAwait(false);
@@ -700,7 +582,7 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                if (_activateTask != null)
+                if (_activated)
                 {
                     throw new InvalidOperationException(
                         "cannot add an dispatchInterceptor to a server after activation");
@@ -771,11 +653,6 @@ namespace IceRpc
             {
                 isLocal = Find(proxy.Path, proxy.Facet) != null;
             }
-            else if (proxy.IsIndirect)
-            {
-                // proxy is local if the proxy's location matches this adapter ID or replica group ID.
-                isLocal = proxy.Location == AdapterId || proxy.Location == ReplicaGroupId;
-            }
             else
             {
                 lock (_mutex)
@@ -810,53 +687,6 @@ namespace IceRpc
                 }
             }
             return null;
-        }
-
-        private async Task UnregisterEndpointsAsync(CancellationToken cancel)
-        {
-            // At this point, _locator is read-only.
-
-            if (AdapterId.Length == 0 || LocatorRegistry == null)
-            {
-                return; // nothing to do
-            }
-
-            Debug.Assert(Protocol == Protocol.Ice1);
-
-            try
-            {
-                if (ReplicaGroupId.Length > 0)
-                {
-                    await LocatorRegistry.SetReplicatedAdapterDirectProxyAsync(
-                        AdapterId,
-                        ReplicaGroupId,
-                        proxy: null,
-                        cancel: cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    await LocatorRegistry.SetAdapterDirectProxyAsync(AdapterId,
-                                                                     proxy: null,
-                                                                     cancel: cancel).ConfigureAwait(false);
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if colocated call and OA is deactivated or the communicator is disposed, ignore.
-            }
-            catch (Exception ex)
-            {
-                if (Communicator.LocationLogger.IsEnabled(LogLevel.Error))
-                {
-                    Communicator.LocationLogger.LogUnregisterServerEndpointsFailure(this, ex);
-                }
-                throw;
-            }
-
-            if (Communicator.LocationLogger.IsEnabled(LogLevel.Debug))
-            {
-                Communicator.LocationLogger.LogUnregisterServerEndpointsSuccess(this);
-            }
         }
     }
 }
