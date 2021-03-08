@@ -1,19 +1,16 @@
-//
 // Copyright (c) ZeroC, Inc. All rights reserved.
-//
-
-#pragma once
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Test::ProtocolBridging
+module IceRpc::Tests::ClientServer
 {
-    exception MyError
+
+    exception ProtocolBridgingMyError
     {
         int number;
     }
 
-    interface TestIntf
+    interface ProtocolBridgingService
     {
         // Simple operations
         int op(int x);
@@ -28,13 +25,10 @@ module IceRpc::Test::ProtocolBridging
         // Operation that throws remote exception
         void opMyError();
 
-        // Operation that throws ServiceNotFoundException (one of the special
-        // ice1 system exceptions)
+        // Operation that throws ServiceNotFoundException (one of the special ice1 system exceptions)
         void opServiceNotFoundException();
 
         // Operation that returns a new proxy
-        TestIntf opNewProxy();
-
-        void shutdown();
+        ProtocolBridgingService opNewProxy();
     }
 }
