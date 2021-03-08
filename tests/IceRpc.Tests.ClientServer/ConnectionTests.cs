@@ -285,12 +285,13 @@ namespace IceRpc.Tests.ClientServer
             int port = Interlocked.Add(ref _nextPort, 1);
             var serverSemaphore = new SemaphoreSlim(0);
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
-            await using var communicator = new Communicator(
+            await using var communicator1 = new Communicator(
                 new Dictionary<string, string>
                 {
                     { "Ice.CloseTimeout", "50ms" }
                 });
-            await using var server = new Server(communicator,
+            await using var communicator2 = new Communicator(); // No close timeout
+            await using var server = new Server(communicator1,
                                                 new()
                                                 {
                                                     ColocationScope = ColocationScope.None,
@@ -301,9 +302,9 @@ namespace IceRpc.Tests.ClientServer
             await server.ActivateAsync();
 
 
-            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator1);
             // No close timeout
-            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), Communicator);
+            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator2);
 
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
