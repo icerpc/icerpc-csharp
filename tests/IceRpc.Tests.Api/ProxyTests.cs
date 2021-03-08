@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,6 +14,97 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class ProxyTests : ColocatedTest
     {
+        [TestCase("ice+tcp://localhost:10000/test")]
+        [TestCase("test:tcp -h localhost -p 10000")]
+        public async Task Proxy_Clone(string s)
+        {
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse(s, communicator);
+
+            Assert.IsFalse(prx.Clone(cacheConnection: false).CacheConnection);
+            Assert.IsTrue(prx.Clone(cacheConnection: true).CacheConnection);
+
+            var label = "my label";
+            prx = prx.Clone(label: label);
+            Assert.AreEqual(prx.Label, label);
+            prx = prx.Clone(clearLabel: true);
+            Assert.IsNull(prx.Label);
+
+            prx = prx.Clone(context: new Dictionary<string, string>
+            {
+                { "key1", "value1" },
+                { "key2", "value2" },
+            });
+            Assert.AreEqual(2, prx.Context.Count);
+            Assert.AreEqual("value1", prx.Context["key1"]);
+            Assert.AreEqual("value2", prx.Context["key2"]);
+
+            Assert.AreEqual(prx.Clone(encoding: Encoding.V11).Encoding, Encoding.V11);
+            Assert.AreEqual(prx.Clone(encoding: Encoding.V20).Encoding, Encoding.V20);
+
+            if (prx.Protocol == Protocol.Ice1)
+            {
+                var prx2 = IServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
+                Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
+            }
+            else
+            {
+                var prx2 = IServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
+                Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
+            }
+
+            if (prx.Protocol == Protocol.Ice1)
+            {
+                Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").Facet);
+                Assert.AreEqual("id", prx.Clone(location: "id").Location);
+            }
+
+            var server = new Server(communicator, 
+                                    new ServerOptions()
+                                    {
+                                        ColocationScope = ColocationScope.Communicator
+                                    });
+            prx = server.Add("test", new GreeterService(), IGreeterServicePrx.Factory);
+            var connection = await prx.GetConnectionAsync();
+            Assert.AreEqual(prx.Clone(fixedConnection: connection).GetCachedConnection(), connection);
+
+            prx = IServicePrx.Parse(s, communicator);
+
+            var intercetors = ImmutableList.Create<InvocationInterceptor>(
+                (target, request, next, cancel) => throw new ArgumentException());
+            Assert.AreEqual(intercetors, prx.Clone(invocationInterceptors: intercetors).InvocationInterceptors);
+
+            Assert.AreEqual(prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10)).InvocationTimeout,
+                            TimeSpan.FromMilliseconds(10));
+
+            Assert.IsFalse(prx.Clone(preferExistingConnection: false).PreferExistingConnection);
+            Assert.IsTrue(prx.Clone(preferExistingConnection: true).PreferExistingConnection);
+
+            Assert.IsFalse(prx.Clone(oneway: false).IsOneway);
+            Assert.IsTrue(prx.Clone(oneway: true).IsOneway);
+
+            if (prx.Protocol == Protocol.Ice1)
+            {
+                IServicePrx other = IServicePrx.Factory.Clone(prx, path: "test", facet: "facet");
+                Assert.AreEqual("facet", other.Facet);
+                Assert.AreEqual("test", other.Identity.Name);
+                Assert.AreEqual("", other.Identity.Category);
+
+                other = IServicePrx.Factory.Clone(other, path: "category/test");
+                Assert.AreEqual("", other.Facet);
+                Assert.AreEqual("test", other.Identity.Name);
+                Assert.AreEqual("category", other.Identity.Category);
+
+                other = IServicePrx.Factory.Clone(prx, path: "foo", facet: "facet1");
+                Assert.AreEqual("facet1", other.Facet);
+                Assert.AreEqual("foo", other.Identity.Name);
+                Assert.AreEqual("", other.Identity.Category);
+            }
+
+            Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure, NonSecure.Always);
+            Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Never).PreferNonSecure, NonSecure.Never);
+        }
+
         [Test]
         public async Task Proxy_Clone_ArgumentException()
         {
@@ -351,6 +443,145 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual((Transport)100, universalEndpoint.Transport);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
+        }
+
+        [TestCase(Protocol.Ice1, "fixed -t -e 1.1")]
+        [TestCase(Protocol.Ice2, "ice:/fixed?fixed=true")]
+        public async Task Proxy_Fixed(Protocol protocol, string expected)
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server(
+                communicator, 
+                new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
+            var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
+            Connection connection = await prx.GetConnectionAsync();
+            Assert.AreEqual(expected, IServicePrx.Factory.Create(connection, "fixed").ToString());
+        }
+
+        [Test]
+        public async Task Proxy_PropertyAsProxy()
+        {
+            string propertyPrefix = "Foo.Proxy";
+            string proxyString = "test:tcp -h localhost -p 10000";
+
+            await using var communicator = new Communicator();
+
+            communicator.SetProperty(propertyPrefix, proxyString);
+            var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            Assert.AreEqual(prx.Path, "/test");
+
+            Assert.IsTrue(prx.CacheConnection);
+            communicator.SetProperty($"{propertyPrefix}.CacheConnection", "0");
+            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            communicator.RemoveProperty($"{propertyPrefix}.CacheConnection");
+            Assert.IsFalse(prx.CacheConnection);
+
+            Assert.IsFalse(prx.Context.ContainsKey("c1"));
+            communicator.SetProperty($"{propertyPrefix}.Context.c1", "TEST1");
+            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            Assert.AreEqual(prx.Context["c1"], "TEST1");
+
+            Assert.IsFalse(prx.Context.ContainsKey("c2"));
+            communicator.SetProperty($"{propertyPrefix}.Context.c2", "TEST2");
+            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            Assert.AreEqual(prx.Context["c2"], "TEST2");
+
+            communicator.SetProperty($"{propertyPrefix}.Context.c1", "");
+            communicator.SetProperty($"{propertyPrefix}.Context.c2", "");
+
+            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
+
+            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "1s");
+            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
+            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
+
+            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            communicator.SetProperty($"{propertyPrefix}.PreferNonSecure", "SameHost");
+            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
+            communicator.RemoveProperty($"{propertyPrefix}.PreferNonSecure");
+            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+        }
+
+        [Test]
+        public async Task Proxy_ToProperty()
+        {
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator).Clone(
+                cacheConnection: true,
+                preferExistingConnection: true,
+                preferNonSecure: NonSecure.Never,
+                invocationTimeout: TimeSpan.FromSeconds(10));
+
+            Dictionary<string, string> proxyProps = prx.ToProperty("Test");
+            Assert.AreEqual(proxyProps.Count, 4);
+            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
+
+            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
+            Assert.AreEqual("Never", proxyProps["Test.PreferNonSecure"]);
+
+            ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator).Clone(
+                cacheConnection: false,
+                preferExistingConnection: false,
+                preferNonSecure: NonSecure.Always);
+
+            // TODO: LocationService should reject indirect locators.
+            ILocationService locationService = new LocationService(locator);
+            prx = prx.Clone(locationService: locationService);
+
+            proxyProps = prx.ToProperty("Test");
+
+            Assert.AreEqual(4, proxyProps.Count);
+            Assert.AreEqual("test -t -e 1.1", proxyProps["Test"]);
+            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
+            Assert.AreEqual("Never", proxyProps["Test.PreferNonSecure"]);
+            Assert.AreEqual("true", proxyProps["Test.PreferExistingConnection"]);
+        }
+
+        [Test]
+        public async Task Proxy_UriOptions()
+        {
+            await using var communicator = new Communicator();
+            string proxyString = "ice+tcp://localhost:10000/test";
+
+            var prx = IServicePrx.Parse(proxyString, communicator);
+
+            Assert.AreEqual("/test", prx.Path);
+            prx = IServicePrx.Parse($"{proxyString}?cache-connection=false", communicator);
+            Assert.IsFalse(prx.CacheConnection);
+
+            prx = IServicePrx.Parse(
+                    $"{proxyString}?context=c1=TEST1,c2=TEST&context=c2=TEST2,d%204=TEST%204,c3=TEST3",
+                    communicator);
+
+            Assert.AreEqual(prx.Context.Count, 4);
+            Assert.AreEqual(prx.Context["c1"], "TEST1");
+            Assert.AreEqual(prx.Context["c2"], "TEST2");
+            Assert.AreEqual(prx.Context["c3"], "TEST3");
+            Assert.AreEqual(prx.Context["d 4"], "TEST 4");
+
+            // This works because Context is a sorted dictionary
+            Assert.AreEqual(prx.ToString(), $"{proxyString}?context=c1=TEST1,c2=TEST2,c3=TEST3,d%204=TEST%204");
+
+            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
+            prx = IServicePrx.Parse($"{proxyString}?invocation-timeout=1s", communicator);
+            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
+
+            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            prx = IServicePrx.Parse($"{proxyString}?prefer-non-secure=SameHost", communicator);
+            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+
+            string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
+                    "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";
+            prx = IServicePrx.Parse(complicated, communicator);
+
+            Assert.AreEqual(prx.Endpoints.Count, 2);
+            Assert.AreEqual(prx.Endpoints[1].Transport, Transport.WS);
+            Assert.AreEqual(prx.Endpoints[1]["resource"], "/x/y");
+            Assert.AreEqual(prx.Endpoints[1]["source-address"], "::1");
+            Assert.AreEqual(prx.Context.Count, 2);
+            Assert.AreEqual(prx.Context["c 1"], "some value");
+            Assert.AreEqual(prx.Context["c5"], "v5");
         }
 
         internal class DummyLocationService : ILocationService
