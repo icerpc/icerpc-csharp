@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Api
                                      Endpoints = "ice+tcp://localhost:0?alt-endpoint=localhost1:10000"
                                  }));
 
-            // both PublishedHost and PublishedEndpoints are empty"
+            // both PublishedHost and PublishedEndpoints are empty
             Assert.Throws<System.ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
@@ -78,6 +78,15 @@ namespace IceRpc.Tests.Api
                                      PublishedEndpoints = "",
                                      PublishedHost = "",
                                      Endpoints = "ice+tcp://localhost:10000"
+                                 }));
+
+
+            // Accept only secure connections require tls configuration
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(communicator,
+                                 new ServerOptions()
+                                 {
+                                     AcceptNonSecure = NonSecure.Never
                                  }));
 
             {

@@ -13,8 +13,10 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(scope: ParallelScope.All)]
     public class RetryTests : ClientServerBaseTest
     {
-        RetryService Service;
-        IRetryServicePrx Retry;
+        internal RetryService Service;
+        internal IRetryServicePrx Retry;
+
+        private int _nextPort;
 
         public RetryTests()
         {
@@ -75,7 +77,7 @@ namespace IceRpc.Tests.ClientServer
 
             // 5 attempts before timeout kicks-in
             Service.Attempts = 0;
-            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(1000));
+            Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(2000));
             await Retry.OpAfterDelayAsync(4, 50);
             Assert.AreEqual(5, Service.Attempts);
 
@@ -89,12 +91,14 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_OtherReplica()
         {
+            int port1 = Interlocked.Add(ref _nextPort, 1);
+            int port2 = Interlocked.Add(ref _nextPort, 1);
             await using var server1 = new Server(
                 Communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1)
+                    Endpoints = GetTestEndpoint(port: port1)
                 });
 
             await using var server2 = new Server(
@@ -102,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 2)
+                    Endpoints = GetTestEndpoint(port: port2)
                 });
 
             server1.Add("replicated", new Replicated(fail: true));
@@ -111,8 +115,8 @@ namespace IceRpc.Tests.ClientServer
             await server1.ActivateAsync();
             await server2.ActivateAsync();
 
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), Communicator);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 2), Communicator);
+            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: port1), Communicator);
+            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: port2), Communicator);
 
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx1.OtherReplicaAsync());
             Assert.DoesNotThrowAsync(async () => await prx2.OtherReplicaAsync());
@@ -167,6 +171,43 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await t2);
 
             await retry.Clone(label: "conn-1").OpWithDataAsync(2, 100, data);
+        }
+
+        [Test]
+        public async Task Retry_ConnectionEstablishment()
+        {
+            int port1 = Interlocked.Add(ref _nextPort, 1);
+            int port2 = Interlocked.Add(ref _nextPort, 1);
+            int port3 = Interlocked.Add(ref _nextPort, 1);
+
+            await using var communicator = new Communicator(
+                new Dictionary<string, string>
+                {
+                    // Speed up windows testing by speeding up the connection failure
+                    {"Ice.ConnectTimeout", "200ms" }
+                });
+
+            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port1), communicator);
+            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port2), communicator);
+            var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port3), communicator);
+
+            prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints).Concat(prx3.Endpoints));
+
+            foreach (int port in new int[] { port1, port2, port3})
+            {
+                await using var server = new Server(
+                Communicator,
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: port)
+                });
+
+
+                server.Add("retry", new RetryService());
+                await server.ActivateAsync();
+                Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
+            }
         }
 
         internal class RetryService : IAsyncRetryService
