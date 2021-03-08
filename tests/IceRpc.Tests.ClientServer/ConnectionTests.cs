@@ -14,6 +14,8 @@ namespace IceRpc.Tests.ClientServer
     {
         private IConnectionTestServicePrx Prx { get; }
 
+        private int _nextPort;
+
         public ConnectionTests() =>
             Prx = Server.Add("test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
 
@@ -36,19 +38,20 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("udp", Protocol.Ice1)]
         public async Task Connection_Information(string transport, Protocol protocol)
         {
+            int port = Interlocked.Add(ref _nextPort, 1);
             await using var communicator = new Communicator();
             await using var server = new Server(
                 communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1, transport: transport, protocol: protocol),
+                    Endpoints = GetTestEndpoint(port: port, transport: transport, protocol: protocol),
                     AcceptNonSecure = NonSecure.Always
                 });
             await server.ActivateAsync();
 
             var prx = IConnectionTestServicePrx.Parse(
-                GetTestProxy("test", port: 1, transport: transport, protocol: protocol),
+                GetTestProxy("test", port: port, transport: transport, protocol: protocol),
                 communicator);
 
             if (transport == "udp")
@@ -87,6 +90,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Connection_InvocationHeartbeat()
         {
+            int port = Interlocked.Add(ref _nextPort, 1);
             await using var serverCommunicator = new Communicator(
                 new Dictionary<string, string>()
                 {
@@ -99,7 +103,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1)
+                    Endpoints = GetTestEndpoint(port: port)
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -108,7 +112,7 @@ namespace IceRpc.Tests.ClientServer
             bool closed = false;
             int heartbeat = 0;
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: 1), Communicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), Communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             connection.Closed += (sender, args) => closed = true;
@@ -158,6 +162,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Connection_HeartbeatOnIdle()
         {
+            int port = Interlocked.Add(ref _nextPort, 1);
             await using var serverCommunicator = new Communicator(
                 new Dictionary<string, string>()
                 {
@@ -170,7 +175,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1)
+                    Endpoints = GetTestEndpoint(port: port)
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -179,7 +184,7 @@ namespace IceRpc.Tests.ClientServer
             bool closed = false;
             int heartbeat = 0;
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: 1), Communicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), Communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             connection.Closed += (sender, args) => closed = true;
@@ -242,6 +247,88 @@ namespace IceRpc.Tests.ClientServer
 
             connection.KeepAlive = !keepAlive;
             Assert.AreEqual(!keepAlive, connection.KeepAlive);
+        }
+
+        [Test]
+        public async Task Connection_ConnectTimeout()
+        {
+            int port = Interlocked.Add(ref _nextPort, 1);
+            var semaphore = new SemaphoreSlim(0);
+            var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
+            await using var communicator = new Communicator(
+                new Dictionary<string, string>
+                {
+                    { "Ice.ConnectTimeout", "100ms" }
+                });
+            await using var server = new Server(communicator,
+                                                new()
+                                                {
+                                                    ColocationScope = ColocationScope.None,
+                                                    Endpoints = GetTestEndpoint(port: port),
+                                                    TaskScheduler = schedulerPair.ExclusiveScheduler
+                                                });
+            server.Add("test", new ConnectionTestService());
+            await server.ActivateAsync();
+            _ = Task.Factory.StartNew(() => semaphore.Wait(),
+                                      default,
+                                      TaskCreationOptions.None,
+                                      schedulerPair.ExclusiveScheduler);
+            await Task.Delay(100); // Give time to the previous task to put the server on hold
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            Assert.ThrowsAsync<ConnectTimeoutException>(async () => await prx.IcePingAsync());
+            semaphore.Release();
+        }
+
+        [Test]
+        public async Task Connection_CloseTimeout()
+        {
+            int port = Interlocked.Add(ref _nextPort, 1);
+            var serverSemaphore = new SemaphoreSlim(0);
+            var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
+            await using var communicator = new Communicator(
+                new Dictionary<string, string>
+                {
+                    { "Ice.CloseTimeout", "50ms" }
+                });
+            await using var server = new Server(communicator,
+                                                new()
+                                                {
+                                                    ColocationScope = ColocationScope.None,
+                                                    Endpoints = GetTestEndpoint(port: port),
+                                                    TaskScheduler = schedulerPair.ExclusiveScheduler
+                                                });
+            server.Add("test", new ConnectionTestService());
+            await server.ActivateAsync();
+
+
+            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            // No close timeout
+            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), Communicator);
+
+
+            Connection connection1 = await prx1.GetConnectionAsync();
+            Connection connection2 = await prx2.GetConnectionAsync();
+
+            _ = Task.Factory.StartNew(() => serverSemaphore.Wait(),
+                                      default,
+                                      TaskCreationOptions.None,
+                                      schedulerPair.ExclusiveScheduler);
+            await Task.Delay(100); // Give time to the previous task to put the server on hold
+
+            // Make sure there's no ReadAsync pending
+            _ = prx1.IcePingAsync();
+            _ = prx2.IcePingAsync();
+
+            var clientSemaphore = new SemaphoreSlim(0);
+            connection1.Closed += (sender, args) => clientSemaphore.Release();
+            _ = connection1.GoAwayAsync();
+            Assert.IsTrue(clientSemaphore.Wait(500));
+
+            connection2.Closed += (sender, args) => clientSemaphore.Release();
+            _ = connection2.GoAwayAsync();
+            Assert.IsFalse(clientSemaphore.Wait(500));
+
+            serverSemaphore.Release();
         }
 
         class ConnectionTestService : IAsyncConnectionTestService

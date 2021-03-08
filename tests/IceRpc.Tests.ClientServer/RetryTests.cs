@@ -203,7 +203,6 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint(port: port)
                 });
 
-
                 server.Add("retry", new RetryService());
                 await server.ActivateAsync();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
