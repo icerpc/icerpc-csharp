@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
-    class CompressTests : ClientServerBaseTest
+    class CompressTests
     {
         [TestCase(512, 100, "Optimal")]
         [TestCase(2048, 100, "Optimal")]
