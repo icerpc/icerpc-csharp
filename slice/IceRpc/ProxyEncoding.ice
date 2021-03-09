@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Identity.ice>
+#include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Encoding.ice>
 #include <IceRpc/Protocol.ice>

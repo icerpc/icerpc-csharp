@@ -1020,18 +1020,11 @@ Slice::CsVisitor::writeParamDocComment(const OperationPtr& op, const CommentInfo
 void
 Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
 {
-    if (prefix.empty())
+    if (prefix.empty() && !_namespaceStack.empty())
     {
-        if (_namespaceStack.empty())
-        {
-            // If it's a top-level module, check if it's itself enclosed in a namespace.
-            prefix = getNamespacePrefix(p);
-        }
-        else
-        {
             prefix = _namespaceStack.top();
-        }
     }
+
     if (!prefix.empty())
     {
         prefix += ".";
@@ -1045,7 +1038,19 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
     {
         _out << sp;
         emitCustomAttributes(p);
-        _out << nl << "namespace " << prefix << fixId(p->name());
+
+        _out << nl << "namespace ";
+        string ns = getNamespaceMetadata(p);
+        if (prefix.empty() && !ns.empty())
+        {
+            // If it's a top-level module, check if it's itself enclosed in a namespace.
+            _out << ns;
+        }
+        else
+        {
+            _out << prefix << fixId(p->name());
+        }
+
         _out << sb;
 
         _namespaceStack.push("");

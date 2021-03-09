@@ -189,7 +189,7 @@ Slice::builtinSuffix(const BuiltinPtr& builtin)
 }
 
 string
-Slice::getNamespacePrefix(const ContainedPtr& cont)
+Slice::getNamespaceMetadata(const ContainedPtr& cont)
 {
     //
     // Traverse to the top-level module.
@@ -226,22 +226,17 @@ Slice::getNamespacePrefix(const ContainedPtr& cont)
 string
 Slice::getNamespace(const ContainedPtr& cont)
 {
+    string ns = getNamespaceMetadata(cont);
+
+    if(!ns.empty())
+    {
+        return ns;
+    }
+
     string scope = fixId(cont->scope());
     if(scope.rfind(".") == scope.size() - 1)
     {
         scope = scope.substr(0, scope.size() - 1);
-    }
-    string prefix = getNamespacePrefix(cont);
-    if(!prefix.empty())
-    {
-        if(!scope.empty())
-        {
-            return prefix + "." + scope;
-        }
-        else
-        {
-            return prefix;
-        }
     }
 
     return scope;
