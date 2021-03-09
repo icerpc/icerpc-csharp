@@ -5,10 +5,9 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <Ice/Identity.ice>
+#include <Ice/Process.ice>
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Endpoint.ice>
-#include <IceRpc/Identity.ice>
-#include <IceRpc/Process.ice>
 
 [cs:namespace(IceRpc.Interop.ZeroC)]
 module Ice

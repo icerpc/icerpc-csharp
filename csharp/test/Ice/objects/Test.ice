@@ -7,7 +7,7 @@
 [[3.7]]
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/Identity.ice>
+#include <Ice/Identity.ice>
 
 module IceRpc::Test::Objects
 {

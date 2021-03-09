@@ -11,6 +11,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
+    [Timeout(10000)]
     public class RetryTests : ClientServerBaseTest
     {
         internal RetryService Service;
@@ -30,10 +31,12 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public void Retry_Cancelation()
+        public async Task Retry_Cancelation()
         {
             // No more than 2 retries before timeout kicks-in
             Retry = Retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(500));
+            Connection connection = await Retry.GetConnectionAsync();
+            Assert.IsNotNull(connection);
             Assert.CatchAsync<OperationCanceledException>(async () => await Retry.OpIdempotentAsync(4));
             Assert.AreEqual(3, Service.Attempts);
         }
@@ -202,7 +205,6 @@ namespace IceRpc.Tests.ClientServer
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(port: port)
                 });
-
 
                 server.Add("retry", new RetryService());
                 await server.ActivateAsync();

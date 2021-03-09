@@ -6,7 +6,6 @@
 
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Context.ice>
-#include <IceRpc/Identity.ice>
 
 module IceRpc
 {
