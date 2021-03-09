@@ -203,5 +203,16 @@ namespace IceRpc.Tests.Api
             Assert.IsNotNull(server.PublishedEndpoints[0]);
             Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
         }
+
+
+        [TestCase(" :" )]
+        [TestCase("tcp: ")]
+        [TestCase(":tcp")]
+        public async Task Server_InvalidEndpoints(string endpoint)
+        {
+            await using var communicator = new Communicator();
+            Assert.Throws<System.FormatException>(
+                () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
+        }
     }
 }
