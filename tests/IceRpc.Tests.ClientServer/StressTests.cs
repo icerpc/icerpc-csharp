@@ -14,6 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [TestFixture(Protocol.Ice1, "ws")]
     [TestFixture(Protocol.Ice2, "tcp")]
     [TestFixture(Protocol.Ice2, "ws")]
+    [Timeout(10000)]
     public class StressTests : ClientServerBaseTest
     {
         private IStressTestServicePrx Prx { get; }
