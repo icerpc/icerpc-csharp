@@ -22,7 +22,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
-                    ColocationScope = ColocationScope.Communicator,
+                    ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(protocol: protocol)
                 });
 
@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
-                    ColocationScope = ColocationScope.Communicator,
+                    ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
                 });
 
@@ -38,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
-                    ColocationScope = ColocationScope.Communicator,
+                    ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(port: 2, protocol: other)
                 });
 
@@ -70,6 +70,7 @@ namespace IceRpc.Tests.ClientServer
             var forwardSamePrx = IProtocolBridgingServicePrx.Parse(
                 GetTestProxy("ForwardSame", protocol: protocol),
                 communicator);
+
             var forwardOtherPrx = IProtocolBridgingServicePrx.Parse(
                 GetTestProxy("ForwardOther", protocol: protocol),
                 communicator);
