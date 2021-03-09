@@ -5,7 +5,7 @@
 module IceRpc::Tests::ClientServer
 {
 
-    exception ProtocolBridgingMyError
+    exception ProtocolBridgingException
     {
         int number;
     }
@@ -23,7 +23,7 @@ module IceRpc::Tests::ClientServer
         [oneway] void opOneway(int x);
 
         // Operation that throws remote exception
-        void opMyError();
+        void opException();
 
         // Operation that throws ServiceNotFoundException (one of the special ice1 system exceptions)
         void opServiceNotFoundException();

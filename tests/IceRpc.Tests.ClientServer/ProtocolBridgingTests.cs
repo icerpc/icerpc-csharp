@@ -90,7 +90,7 @@ namespace IceRpc.Tests.ClientServer
 
                 await prx.OpOnewayAsync(42);
 
-                Assert.ThrowsAsync<ProtocolBridgingMyError>(async () => await prx.OpMyErrorAsync());
+                Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
                 return prx.OpNewProxy().Clone(context: new Dictionary<string, string> { { "Direct", "1" } });
@@ -100,19 +100,22 @@ namespace IceRpc.Tests.ClientServer
         internal class ProtocolBridgingService : IAsyncProtocolBridgingService
         {
             public ValueTask<int> OpAsync(int x, Current current, CancellationToken cancel) =>
-                new ValueTask<int>(x);
+                new (x);
 
-            public ValueTask OpMyErrorAsync(Current current, CancellationToken cancel) => throw new ProtocolBridgingMyError(42);
+            public ValueTask OpExceptionAsync(Current current, CancellationToken cancel) =>
+                throw new ProtocolBridgingException(42);
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel) =>
-                new ValueTask<IProtocolBridgingServicePrx>(
-                    IProtocolBridgingServicePrx.Factory.Create(current.Server, 
-                                                               current.Path).Clone(encoding: current.Encoding));
+                new (IProtocolBridgingServicePrx.Factory.Create(current.Server, 
+                                                                current.Path).Clone(encoding: current.Encoding));
 
             public ValueTask OpOnewayAsync(int x, Current current, CancellationToken cancel) => default;
 
-            public ValueTask<(int ReturnValue, string Y)> OpReturnOutAsync(int x, Current current, CancellationToken cancel) =>
-                new ValueTask<(int ReturnValue, string Y)>((x, $"value={x}"));
+            public ValueTask<(int ReturnValue, string Y)> OpReturnOutAsync(
+                int x,
+                Current current,
+                CancellationToken cancel) =>
+                new ((x, $"value={x}"));
 
             public ValueTask OpServiceNotFoundExceptionAsync(Current current, CancellationToken cancel) =>
                 throw new ServiceNotFoundException();
