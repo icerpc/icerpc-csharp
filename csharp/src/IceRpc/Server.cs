@@ -145,7 +145,6 @@ namespace IceRpc
             SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
 
-
             if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
             {
                 AuthenticationOptions = new SslServerAuthenticationOptions()

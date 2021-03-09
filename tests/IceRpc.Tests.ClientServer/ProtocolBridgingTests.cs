@@ -18,24 +18,24 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             Protocol other = protocol == Protocol.Ice1 ? Protocol.Ice2 : Protocol.Ice1;
             await using var serverForwarder = new Server(
-                communicator, 
-                new ServerOptions() 
-                {
-                    Endpoints = GetTestEndpoint(protocol: protocol) 
-                });
-            
-            await using var serverSame = new Server(
-                communicator, 
+                communicator,
                 new ServerOptions()
-                { 
+                {
+                    Endpoints = GetTestEndpoint(protocol: protocol)
+                });
+
+            await using var serverSame = new Server(
+                communicator,
+                new ServerOptions()
+                {
                     Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
                 });
-            
+
             await using var serverOther = new Server(
                 communicator,
                 new ServerOptions()
-                { 
-                    Endpoints = GetTestEndpoint(port: 2, protocol: other) 
+                {
+                    Endpoints = GetTestEndpoint(port: 2, protocol: other)
                 });
 
             var samePrx = serverSame.Add("same", new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
@@ -89,7 +89,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreNotEqual(newPrx.Protocol, forwardOtherPrx.Protocol);
             Assert.AreEqual(newPrx.Encoding, encoding);
             _ = await TestProxyAsync(newPrx, true);
-
 
             static void CheckContext(SortedDictionary<string, string> ctx, bool direct)
             {
@@ -147,7 +146,7 @@ namespace IceRpc.Tests.ClientServer
                 throw new ProtocolBridgingException(42);
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel) =>
-                new (IProtocolBridgingServicePrx.Factory.Create(current.Server, 
+                new (IProtocolBridgingServicePrx.Factory.Create(current.Server,
                                                                 current.Path).Clone(encoding: current.Encoding));
 
             public ValueTask OpOnewayAsync(int x, Current current, CancellationToken cancel) => default;

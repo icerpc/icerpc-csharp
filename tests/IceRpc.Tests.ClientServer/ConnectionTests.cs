@@ -330,7 +330,6 @@ namespace IceRpc.Tests.ClientServer
             server.Add("test", new ConnectionTestService());
             await server.ActivateAsync();
 
-
             var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator1);
             // No close timeout
             var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator2);
@@ -347,7 +346,6 @@ namespace IceRpc.Tests.ClientServer
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
             await Task.Delay(200); // Give time to the previous task to put the server on hold
-
 
             // Make sure there's no ReadAsync pending
             _ = prx1.IcePingAsync();
@@ -381,7 +379,6 @@ namespace IceRpc.Tests.ClientServer
             await server.ActivateAsync();
             await closure(server, prx);
         }
-
 
         class ConnectionTestService : IAsyncConnectionTestService
         {

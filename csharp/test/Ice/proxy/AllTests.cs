@@ -27,7 +27,6 @@ namespace IceRpc.Test.Proxy
             TestHelper.Assert(baseProxy != null);
 
             var b1 = IServicePrx.Parse("ice:test", communicator);
-            
 
             output.Write("testing checked cast... ");
             output.Flush();

@@ -80,7 +80,6 @@ namespace IceRpc.Tests.Api
                                      Endpoints = "ice+tcp://localhost:10000"
                                  }));
 
-
             // Accept only secure connections require tls configuration
             Assert.Throws<System.ArgumentException>(
                 () => new Server(communicator,
@@ -203,7 +202,6 @@ namespace IceRpc.Tests.Api
             Assert.IsNotNull(server.PublishedEndpoints[0]);
             Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
         }
-
 
         [TestCase(" :" )]
         [TestCase("tcp: ")]
