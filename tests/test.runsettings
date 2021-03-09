@@ -8,7 +8,7 @@
    <TestRunParameters>
        <Parameter name="IceRpc.Tests.DefaultTransport" value="tcp" />
        <Parameter name="IceRpc.Tests.DefaultHost" value="localhost" />
-       <Parameter name="IceRpc.Tests.Internal.BasePort" value="11500" />
-       <Parameter name="IceRpc.Tests.ClientServer.BasePort" value="12000" />
+       <Parameter name="IceRpc.Tests.Internal.BasePort" value="11000" />
+       <Parameter name="IceRpc.Tests.ClientServer.BasePort" value="13000" />
   </TestRunParameters>
 </RunSettings>

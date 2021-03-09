@@ -303,7 +303,7 @@ namespace IceRpc.Tests.ClientServer
                                       default,
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
-            await Task.Delay(100); // Give time to the previous task to put the server on hold
+            await Task.Delay(200); // Give time to the previous task to put the server on hold
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
             Assert.ThrowsAsync<ConnectTimeoutException>(async () => await prx.IcePingAsync());
             semaphore.Release();
@@ -356,12 +356,12 @@ namespace IceRpc.Tests.ClientServer
             using var clientSemaphore = new SemaphoreSlim(0);
             connection1.Closed += (sender, args) => clientSemaphore.Release();
             _ = connection1.GoAwayAsync();
-            Assert.IsTrue(clientSemaphore.Wait(500));
+            Assert.IsTrue(clientSemaphore.Wait(1000));
             Assert.AreEqual(0, clientSemaphore.CurrentCount);
 
             connection2.Closed += (sender, args) => clientSemaphore.Release();
             _ = connection2.GoAwayAsync();
-            Assert.IsFalse(clientSemaphore.Wait(500));
+            Assert.IsFalse(clientSemaphore.Wait(1000));
 
             serverSemaphore.Release();
         }
