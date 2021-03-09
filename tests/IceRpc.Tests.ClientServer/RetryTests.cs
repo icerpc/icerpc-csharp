@@ -13,8 +13,6 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class RetryTests : ClientServerBaseTest
     {
-        private int _nextPort;
-
         [Test]
         public async Task Retry_Cancelation()
         {
@@ -107,14 +105,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_OtherReplica()
         {
             await using var communicator = new Communicator();
-            int port1 = Interlocked.Add(ref _nextPort, 1);
-            int port2 = Interlocked.Add(ref _nextPort, 1);
             await using var server1 = new Server(
                 communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port1)
+                    Endpoints = GetTestEndpoint(port: 0)
                 });
 
             await using var server2 = new Server(
@@ -122,7 +118,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port2)
+                    Endpoints = GetTestEndpoint(port: 1)
                 });
 
             server1.Add("replicated", new Replicated(fail: true));
@@ -131,8 +127,8 @@ namespace IceRpc.Tests.ClientServer
             await server1.ActivateAsync();
             await server2.ActivateAsync();
 
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: port1), communicator);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: port2), communicator);
+            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
+            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
 
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx1.OtherReplicaAsync());
             Assert.DoesNotThrowAsync(async () => await prx2.OtherReplicaAsync());
@@ -195,10 +191,6 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_ConnectionEstablishment()
         {
-            int port1 = Interlocked.Add(ref _nextPort, 1);
-            int port2 = Interlocked.Add(ref _nextPort, 1);
-            int port3 = Interlocked.Add(ref _nextPort, 1);
-
             await using var communicator = new Communicator(
                 new Dictionary<string, string>
                 {
@@ -206,13 +198,13 @@ namespace IceRpc.Tests.ClientServer
                     {"Ice.ConnectTimeout", "200ms" }
                 });
 
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port1), communicator);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port2), communicator);
-            var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: port3), communicator);
+            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 0), communicator);
+            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 1), communicator);
+            var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 2), communicator);
 
             prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints).Concat(prx3.Endpoints));
 
-            foreach (int port in new int[] { port1, port2, port3})
+            foreach (int port in new int[] { 0, 1, 2 })
             {
                 await using var server = new Server(
                     communicator,
@@ -232,14 +224,13 @@ namespace IceRpc.Tests.ClientServer
             Dictionary<string, string> properties,
             Func<RetryService, IRetryServicePrx, Task> closure)
         {
-            int port = Interlocked.Increment(ref _nextPort);
             await using var communicator = new Communicator(properties);
             var service = new RetryService();
             var server = new Server(communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
             server.Use(async (current, next, cancel) =>
             {
@@ -248,7 +239,7 @@ namespace IceRpc.Tests.ClientServer
             });
             server.Add("retry", service);
             await server.ActivateAsync();
-            var retry = IRetryServicePrx.Parse(GetTestProxy("retry", port: port), communicator);
+            var retry = IRetryServicePrx.Parse(GetTestProxy("retry"), communicator);
             await closure(service, retry);
         }
 

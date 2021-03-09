@@ -12,8 +12,6 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class ConnectionTests : ClientServerBaseTest
     {
-        private int _nextPort;
-
         [Test]
         public async Task Connection_ClosedEvent()
         {
@@ -33,20 +31,19 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("udp", Protocol.Ice1)]
         public async Task Connection_Information(string transport, Protocol protocol)
         {
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var communicator = new Communicator();
             await using var server = new Server(
                 communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port, transport: transport, protocol: protocol),
+                    Endpoints = GetTestEndpoint(transport: transport, protocol: protocol),
                     AcceptNonSecure = NonSecure.Always
                 });
             await server.ActivateAsync();
 
             var prx = IConnectionTestServicePrx.Parse(
-                GetTestProxy("test", port: port, transport: transport, protocol: protocol),
+                GetTestProxy("test", transport: transport, protocol: protocol),
                 communicator);
 
             if (transport == "udp")
@@ -86,7 +83,6 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_InvocationHeartbeat()
         {
             await using var communicator = new Communicator();
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var serverCommunicator = new Communicator(
                 new Dictionary<string, string>()
                 {
@@ -99,7 +95,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -108,7 +104,7 @@ namespace IceRpc.Tests.ClientServer
             bool closed = false;
             int heartbeat = 0;
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             connection.Closed += (sender, args) => closed = true;
@@ -125,13 +121,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_CloseOnIdle()
         {
             await using var serverCommunicator = new Communicator();
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var server = new Server(
                 serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -144,7 +139,7 @@ namespace IceRpc.Tests.ClientServer
                     { "Ice.KeepAlive", "0" }
                 });
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), clientCommunicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test"), clientCommunicator);
             Connection connection = await prx.GetConnectionAsync();
 
             bool closed = false;
@@ -172,7 +167,6 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_HeartbeatOnIdle()
         {
             await using var communicator = new Communicator();
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var serverCommunicator = new Communicator(
                 new Dictionary<string, string>()
                 {
@@ -185,7 +179,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -194,7 +188,7 @@ namespace IceRpc.Tests.ClientServer
             bool closed = false;
             int heartbeat = 0;
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             connection.Closed += (sender, args) => closed = true;
@@ -247,13 +241,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_SetAcm(int idleTimeout, bool keepAlive)
         {
             await using var serverCommunicator = new Communicator();
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var server = new Server(
                 serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -266,7 +259,7 @@ namespace IceRpc.Tests.ClientServer
                     { "Ice.KeepAlive", $"{keepAlive}" }
                 });
 
-            var proxy = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            var proxy = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
             Connection connection = await proxy.GetConnectionAsync();
             Assert.AreEqual(TimeSpan.FromSeconds(idleTimeout), connection.IdleTimeout);
             Assert.AreEqual(keepAlive, connection.KeepAlive);
@@ -278,7 +271,6 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Connection_ConnectTimeout()
         {
-            int port = Interlocked.Add(ref _nextPort, 1);
             var semaphore = new SemaphoreSlim(0);
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var communicator = new Communicator(
@@ -290,7 +282,7 @@ namespace IceRpc.Tests.ClientServer
                                                 new()
                                                 {
                                                     ColocationScope = ColocationScope.None,
-                                                    Endpoints = GetTestEndpoint(port: port),
+                                                    Endpoints = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
@@ -300,7 +292,7 @@ namespace IceRpc.Tests.ClientServer
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
             await Task.Delay(200); // Give time to the previous task to put the server on hold
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator);
+            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
             Assert.ThrowsAsync<ConnectTimeoutException>(async () => await prx.IcePingAsync());
             semaphore.Release();
         }
@@ -308,7 +300,6 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Connection_CloseTimeout()
         {
-            int port = Interlocked.Add(ref _nextPort, 1);
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var communicator1 = new Communicator(
                 new Dictionary<string, string>
@@ -320,15 +311,15 @@ namespace IceRpc.Tests.ClientServer
                                                 new()
                                                 {
                                                     ColocationScope = ColocationScope.None,
-                                                    Endpoints = GetTestEndpoint(port: port),
+                                                    Endpoints = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
             await server.ActivateAsync();
 
-            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator1);
+            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator1);
             // No close timeout
-            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test", port: port), communicator2);
+            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator2);
 
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
@@ -359,14 +350,13 @@ namespace IceRpc.Tests.ClientServer
 
         private async Task WithServerAsync(Func<Server, IConnectionTestServicePrx, Task> closure)
         {
-            int port = Interlocked.Add(ref _nextPort, 1);
             await using var communicator = new Communicator();
             await using var server = new Server(
                 communicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: port)
+                    Endpoints = GetTestEndpoint()
                 });
             var prx = server.Add("test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
             await server.ActivateAsync();

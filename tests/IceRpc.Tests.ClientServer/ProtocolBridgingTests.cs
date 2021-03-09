@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Parallelizable(ParallelScope.All)]
     [Timeout(10000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {

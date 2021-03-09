@@ -259,7 +259,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
     [TestFixture(Protocol.Ice2, "ws", false)]
@@ -382,7 +381,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
