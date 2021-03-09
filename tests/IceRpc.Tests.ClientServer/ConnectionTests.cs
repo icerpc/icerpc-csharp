@@ -10,6 +10,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
+    [Timeout(10000)]
     public class ConnectionTests : ClientServerBaseTest
     {
         private IConnectionTestServicePrx Prx { get; }

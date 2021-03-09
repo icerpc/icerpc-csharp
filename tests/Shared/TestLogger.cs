@@ -12,8 +12,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
     public sealed class TestLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentDictionary<string, TestLogger> _loggers = new();
