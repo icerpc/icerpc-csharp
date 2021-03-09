@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
     [TestFixture(Protocol.Ice1, "tcp")]
     [TestFixture(Protocol.Ice1, "ws")]
     [TestFixture(Protocol.Ice2, "tcp")]
@@ -51,7 +50,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Stress_Send_ByteSeq([Range(0, 65536, 16384)] int size)
+        public async Task Stress_Send_ByteSeq([Range(0, 2048, 1024)] int size)
         {
             var data = Enumerable.Range(0, size).Select(x => (byte)x).ToArray();
             await Prx.OpSendByteSeqAsync(data);
@@ -59,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Stress_Receive_ByteSeq([Range(0, 65536, 16384)] int size)
+        public async Task Stress_Receive_ByteSeq([Range(0, 2048, 1024)] int size)
         {
             var data = await Prx.OpReceiveByteSeqAsync(size);
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);

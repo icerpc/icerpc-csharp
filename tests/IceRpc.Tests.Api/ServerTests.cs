@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
-    [Parallelizable(scope: ParallelScope.All)]
     public class ServerTests
     {
         [Test]
@@ -91,7 +89,7 @@ namespace IceRpc.Tests.Api
                     communicator,
                     new ServerOptions() 
                     {
-                        ColocationScope = ColocationScope.None,
+                        ColocationScope = ColocationScope.Communicator,
                         Endpoints = "ice+tcp://127.0.0.1:15001" 
                     });
 

@@ -13,7 +13,6 @@ using NUnit.Framework;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
     [Timeout(10000)]
     public class LoggingTests : ClientServerBaseTest
     {
