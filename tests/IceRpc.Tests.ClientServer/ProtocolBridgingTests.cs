@@ -43,8 +43,23 @@ namespace IceRpc.Tests.ClientServer
             serverForwarder.Add("ForwardSame", new Forwarder(samePrx));
             serverForwarder.Add("ForwardOther", new Forwarder(otherPrx));
 
+            SortedDictionary<string, string>? ctxForwarded;
+
             await serverForwarder.ActivateAsync();
+
+            serverSame.Use(async (current, next, cancel) =>
+                            {
+                                ctxForwarded = current.Context;
+                                return await next();
+                            });
+
             await serverSame.ActivateAsync();
+
+            serverOther.Use(async (current, next, cancel) =>
+                            {
+                                ctxForwarded = current.Context;
+                                return await next();
+                            });
             await serverOther.ActivateAsync();
 
             var forwardSamePrx = IProtocolBridgingServicePrx.Parse(
@@ -55,40 +70,65 @@ namespace IceRpc.Tests.ClientServer
                 Communicator);
 
             // testing forwarding with same protocol
-            var newPrx = await TestProxyAsync(forwardSamePrx);
+            var newPrx = await TestProxyAsync(forwardSamePrx, false);
             Assert.AreEqual(newPrx.Protocol, forwardSamePrx.Protocol);
             Assert.AreEqual(newPrx.Encoding, forwardSamePrx.Encoding);
-            _ = await TestProxyAsync(newPrx);
+            _ = await TestProxyAsync(newPrx, true);
 
             // testing forwarding with other protocol
-            newPrx = await TestProxyAsync(forwardOtherPrx);
+            newPrx = await TestProxyAsync(forwardOtherPrx, false);
             Assert.AreNotEqual(newPrx.Protocol, forwardOtherPrx.Protocol);
             Assert.AreEqual(newPrx.Encoding, forwardOtherPrx.Encoding); // encoding must remain the same
-            _ = await TestProxyAsync(newPrx);
+            _ = await TestProxyAsync(newPrx, true);
 
             // testing forwarding with other protocol and other encoding
             Encoding encoding =
                 forwardOtherPrx.Encoding == Encoding.V11 ? Encoding.V20 : Encoding.V11;
-            newPrx = await TestProxyAsync(forwardOtherPrx.Clone(encoding: encoding));
+            newPrx = await TestProxyAsync(forwardOtherPrx.Clone(encoding: encoding), false);
             Assert.AreNotEqual(newPrx.Protocol, forwardOtherPrx.Protocol);
             Assert.AreEqual(newPrx.Encoding, encoding);
-            _ = await TestProxyAsync(newPrx);
+            _ = await TestProxyAsync(newPrx, true);
 
-            static async Task<IProtocolBridgingServicePrx> TestProxyAsync(IProtocolBridgingServicePrx prx)
+
+            static void CheckContext(SortedDictionary<string, string> ctx, bool direct)
+            {
+                Assert.AreEqual(2, ctx.Count);
+                Assert.AreEqual("hello", ctx["MyCtx"]);
+                if (direct)
+                {
+                    Assert.AreEqual("1", ctx["Direct"]);
+                }
+                else
+                {
+                    Assert.AreEqual("1", ctx["Forwarded"]);
+                }
+            }
+
+            async Task<IProtocolBridgingServicePrx> TestProxyAsync(IProtocolBridgingServicePrx prx, bool direct)
             {
                 var ctx = new Dictionary<string, string>(prx.Context)
                 {
                     { "MyCtx", "hello" }
                 };
 
+                ctxForwarded = null;
                 Assert.AreEqual(await prx.OpAsync(13, ctx), 13);
-                await prx.OpVoidAsync(ctx);
+                CheckContext(ctxForwarded!, direct);
 
-                (int v, string s) = await prx.OpReturnOutAsync(34);
+                ctxForwarded = null;
+                await prx.OpVoidAsync(ctx);
+                CheckContext(ctxForwarded!, direct);
+
+                ctxForwarded = null;
+                (int v, string s) = await prx.OpReturnOutAsync(34, ctx);
                 Assert.AreEqual(v, 34);
                 Assert.AreEqual(s, "value=34");
+                CheckContext(ctxForwarded!, direct);
 
+                ctxForwarded = null;
                 await prx.OpOnewayAsync(42);
+                // Don't check the context, it might not yet be set, oneway returns as soon as the request was set.
+                // CheckContext(ctxForwarded!, direct);
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
@@ -127,8 +167,11 @@ namespace IceRpc.Tests.ClientServer
         {
             private readonly IServicePrx _target;
 
-            ValueTask<OutgoingResponseFrame> IService.DispatchAsync(Current current, CancellationToken cancel) =>
-                _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
+            ValueTask<OutgoingResponseFrame> IService.DispatchAsync(Current current, CancellationToken cancel)
+            {
+                current.Context["Forwarded"] = "1";
+                return _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
+            }
 
             internal Forwarder(IServicePrx target) => _target = target;
         }
