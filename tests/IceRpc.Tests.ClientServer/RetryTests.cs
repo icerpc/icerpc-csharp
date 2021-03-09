@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
+    [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
     public class RetryTests : ClientServerBaseTest
     {
@@ -69,7 +69,12 @@ namespace IceRpc.Tests.ClientServer
             await WithRetryServiceAsync(async (service, retry) =>
             {
                 await using var communicator = new Communicator();
-                await using var server = new Server(communicator, new ServerOptions() { Protocol = Protocol.Ice2 });
+                await using var server = new Server(communicator,
+                    new ServerOptions()
+                    {
+                        ColocationScope = ColocationScope.None,
+                        Protocol = Protocol.Ice2
+                    });
                 var bidir = server.AddWithUUID(new Bidir(), IRetryBidirServicePrx.Factory);
                 (await retry.GetConnectionAsync()).Server = server;
                 await retry.OpBidirRetryAsync(bidir);
@@ -256,7 +261,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask OpAfterDelayAsync(int retries, int delay, Current current, CancellationToken cancel)
             {
-                if (retries >= Attempts)
+                if (Attempts <= retries)
                 {
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
@@ -287,10 +292,10 @@ namespace IceRpc.Tests.ClientServer
                 await bidir.AfterDelayAsync(2, cancel: CancellationToken.None);
             }
 
-            public ValueTask OpIdempotentAsync(int nRetry, Current current, CancellationToken cancel)
+            public ValueTask OpIdempotentAsync(int retries, Current current, CancellationToken cancel)
             {
-                int[] delays = new int[] { 0, 1, 10000 };
-                if (nRetry >= Attempts)
+                int[] delays = new int[] { 0, 0, 5000 };
+                if (Attempts <= retries)
                 {
                     throw new RetrySystemFailure(
                         RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delays[(Attempts - 1) % 3])));

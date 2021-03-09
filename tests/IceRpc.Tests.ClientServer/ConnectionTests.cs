@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
+    [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
     public class ConnectionTests : ClientServerBaseTest
     {
