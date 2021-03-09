@@ -18,39 +18,9 @@ namespace IceRpc.Tests.Api
             Assert.Throws<System.ArgumentException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 0" }));
 
-            // ReplicaGroupId is set but options.AdapterId is not
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator, new ServerOptions() { ReplicaGroupId = "replica-group" }));
-
-            // LocatorRegistry is set but options.AdapterId is not
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     LocatorRegistry = ILocatorRegistryPrx.Parse("default", communicator)
-                                 }));
-
             // IncomingFrameMaxSize cannot be less than 1KB
             Assert.Throws<System.ArgumentException>(
                 () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));
-
-            // AdapterId set for an ice2 server
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     AdapterId = "adapter-id",
-                                     Endpoints = "ice+tcp://localhost:10000"
-                                 }));
-
-            // AdapterId set for an ice2 server
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     AdapterId = "adapter-id",
-                                     Protocol = Protocol.Ice2
-                                 }));
 
             // Server can only accept secure connections
             Assert.Throws<System.ArgumentException>(
@@ -79,7 +49,6 @@ namespace IceRpc.Tests.Api
                                      PublishedHost = "",
                                      Endpoints = "ice+tcp://localhost:10000"
                                  }));
-
 
             // Accept only secure connections require tls configuration
             Assert.Throws<System.ArgumentException>(

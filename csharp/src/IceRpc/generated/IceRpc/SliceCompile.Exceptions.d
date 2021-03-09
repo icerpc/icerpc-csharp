@@ -2,9 +2,9 @@
 <dependencies>
   <source name="../../../slice/IceRpc/Exceptions.ice">
     <options>
-      <IceHome>/Users/jose/Documents/IceRPC/icerpc-csharp/build/..</IceHome>
-      <IceToolsPath>/Users/jose/Documents/IceRPC/icerpc-csharp/build/../cpp/bin</IceToolsPath>
-      <OutputDir>/Users/jose/Documents/IceRPC/icerpc-csharp/csharp/src/IceRpc/generated/IceRpc</OutputDir>
+      <IceHome>/Users/bernard/builds/icerpc-csharp/build/..</IceHome>
+      <IceToolsPath>/Users/bernard/builds/icerpc-csharp/build/../cpp/bin</IceToolsPath>
+      <OutputDir>/Users/bernard/builds/icerpc-csharp/csharp/src/IceRpc/generated/IceRpc</OutputDir>
     </options>
   </source>
 </dependencies>
