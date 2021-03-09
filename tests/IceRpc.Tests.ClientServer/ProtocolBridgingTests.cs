@@ -15,26 +15,27 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice1)]
         public async Task ProtocolBridging_Forward(Protocol protocol)
         {
+            await using var communicator = new Communicator();
             Protocol other = protocol == Protocol.Ice1 ? Protocol.Ice2 : Protocol.Ice1;
             await using var serverForwarder = new Server(
-                Communicator, 
+                communicator, 
                 new ServerOptions() 
                 {
-                    Endpoints = GetTestEndpoint(port: 1, protocol: protocol) 
+                    Endpoints = GetTestEndpoint(protocol: protocol) 
                 });
             
             await using var serverSame = new Server(
-                Communicator, 
+                communicator, 
                 new ServerOptions()
                 { 
-                    Endpoints = GetTestEndpoint(port: 2, protocol: protocol)
+                    Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
                 });
             
             await using var serverOther = new Server(
-                Communicator,
+                communicator,
                 new ServerOptions()
                 { 
-                    Endpoints = GetTestEndpoint(port: 3, protocol: other) 
+                    Endpoints = GetTestEndpoint(port: 2, protocol: other) 
                 });
 
             var samePrx = serverSame.Add("same", new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
@@ -63,11 +64,11 @@ namespace IceRpc.Tests.ClientServer
             await serverOther.ActivateAsync();
 
             var forwardSamePrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardSame", port: 1, protocol: protocol),
-                Communicator);
+                GetTestProxy("ForwardSame", protocol: protocol),
+                communicator);
             var forwardOtherPrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardOther", port: 1, protocol: protocol),
-                Communicator);
+                GetTestProxy("ForwardOther", protocol: protocol),
+                communicator);
 
             // testing forwarding with same protocol
             var newPrx = await TestProxyAsync(forwardSamePrx, false);

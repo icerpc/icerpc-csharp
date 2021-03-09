@@ -17,14 +17,37 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class StressTests : ClientServerBaseTest
     {
+        private Communicator Communicator { get; }
+        private Server Server { get; }
+        private Protocol Protocol { get; }
+        private string Transport { get; }
         private IStressTestServicePrx Prx { get; }
-        public TestService Servant { get; }
+        private TestService Servant { get; }
 
         public StressTests(Protocol protocol, string transport)
-            : base(protocol, transport)
         {
+            Protocol = protocol;
+            Transport = transport;
+            Communicator = new Communicator();
+            Server = new(
+                Communicator,
+                new()
+                {
+                    Endpoints = GetTestEndpoint(protocol: Protocol, transport: Transport),
+                    ColocationScope = ColocationScope.None
+                });
             Servant = new TestService();
             Prx = Server.AddWithUUID(Servant, IStressTestServicePrx.Factory);
+        }
+
+        [SetUp]
+        public async Task InitializeAsync() => await Server.ActivateAsync();
+
+        [TearDown]
+        public async Task DisposeAsync()
+        {
+            await Server.DisposeAsync();
+            await Communicator.DisposeAsync();
         }
 
         [Test]
