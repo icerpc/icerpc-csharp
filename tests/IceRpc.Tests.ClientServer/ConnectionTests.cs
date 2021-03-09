@@ -284,12 +284,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_CloseTimeout()
         {
             int port = Interlocked.Add(ref _nextPort, 1);
-            var serverSemaphore = new SemaphoreSlim(0);
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var communicator1 = new Communicator(
                 new Dictionary<string, string>
                 {
-                    { "Ice.CloseTimeout", "50ms" }
+                    { "Ice.CloseTimeout", "100ms" }
                 });
             await using var communicator2 = new Communicator(); // No close timeout
             await using var server = new Server(communicator1,
@@ -310,20 +309,26 @@ namespace IceRpc.Tests.ClientServer
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
 
-            _ = Task.Factory.StartNew(() => serverSemaphore.Wait(),
+            using var serverSemaphore = new SemaphoreSlim(0);
+            _ = Task.Factory.StartNew(() =>
+                                      {
+                                          serverSemaphore.Wait();
+                                      },
                                       default,
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
-            await Task.Delay(100); // Give time to the previous task to put the server on hold
+            await Task.Delay(200); // Give time to the previous task to put the server on hold
+
 
             // Make sure there's no ReadAsync pending
             _ = prx1.IcePingAsync();
             _ = prx2.IcePingAsync();
 
-            var clientSemaphore = new SemaphoreSlim(0);
+            using var clientSemaphore = new SemaphoreSlim(0);
             connection1.Closed += (sender, args) => clientSemaphore.Release();
             _ = connection1.GoAwayAsync();
             Assert.IsTrue(clientSemaphore.Wait(500));
+            Assert.AreEqual(0, clientSemaphore.CurrentCount);
 
             connection2.Closed += (sender, args) => clientSemaphore.Release();
             _ = connection2.GoAwayAsync();
