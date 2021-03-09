@@ -9,6 +9,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(scope: ParallelScope.All)]
+    [Timeout(10000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
         [TestCase(Protocol.Ice2)]
@@ -21,6 +22,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
+                    ColocationScope = ColocationScope.Communicator,
                     Endpoints = GetTestEndpoint(protocol: protocol)
                 });
 
@@ -28,6 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
+                    ColocationScope = ColocationScope.Communicator,
                     Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
                 });
 
@@ -35,6 +38,7 @@ namespace IceRpc.Tests.ClientServer
                 communicator,
                 new ServerOptions()
                 {
+                    ColocationScope = ColocationScope.Communicator,
                     Endpoints = GetTestEndpoint(port: 2, protocol: other)
                 });
 

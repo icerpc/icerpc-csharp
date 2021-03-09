@@ -12,12 +12,12 @@ namespace IceRpc.Tests.ClientServer
 
         public ClientServerBaseTest()
         {
-            int basePort = 13000;
+            int basePort = 12000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.ClientServer.BasePort"))
             {
                 basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.ClientServer.BasePort"]!);
             }
-            _basePort = Interlocked.Add(ref _nextBasePort, 25) + basePort;
+            _basePort = Interlocked.Add(ref _nextBasePort, 15) + basePort;
         }
 
         public string GetTestEndpoint(

@@ -29,9 +29,9 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
-            Server = new(
+            Server = new Server(
                 Communicator,
-                new()
+                new ServerOptions()
                 {
                     Endpoints = GetTestEndpoint(protocol: Protocol, transport: Transport),
                     ColocationScope = ColocationScope.None
@@ -51,7 +51,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Stress_Send_ByteSeq([Range(0, 65536, 9601)] int size)
+        public async Task Stress_Send_ByteSeq([Range(0, 65536, 16384)] int size)
         {
             var data = Enumerable.Range(0, size).Select(x => (byte)x).ToArray();
             await Prx.OpSendByteSeqAsync(data);
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Stress_Receive_ByteSeq([Range(0, 65536, 9601)] int size)
+        public async Task Stress_Receive_ByteSeq([Range(0, 65536, 16384)] int size)
         {
             var data = await Prx.OpReceiveByteSeqAsync(size);
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);

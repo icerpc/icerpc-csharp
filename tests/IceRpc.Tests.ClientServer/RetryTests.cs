@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.Fixtures)]
+    [Parallelizable(scope: ParallelScope.All)]
     [Timeout(10000)]
     public class RetryTests : ClientServerBaseTest
     {
@@ -233,7 +233,7 @@ namespace IceRpc.Tests.ClientServer
             Dictionary<string, string> properties,
             Func<RetryService, IRetryServicePrx, Task> closure)
         {
-            int port = Interlocked.Add(ref _nextPort, 1);
+            int port = Interlocked.Increment(ref _nextPort);
             await using var communicator = new Communicator(properties);
             var service = new RetryService();
             var server = new Server(communicator,
@@ -247,8 +247,9 @@ namespace IceRpc.Tests.ClientServer
                 service.Attempts++;
                 return await next();
             });
+            server.Add("retry", service);
             await server.ActivateAsync();
-            var retry = server.Add("retry", service, IRetryServicePrx.Factory);
+            var retry = IRetryServicePrx.Parse(GetTestProxy("retry", port: port), communicator);
             await closure(service, retry);
         }
 
@@ -345,7 +346,7 @@ namespace IceRpc.Tests.ClientServer
 
     public class Replicated : IAsyncRetryReplicatedService
     {
-        private bool _fail;
+        private readonly bool _fail;
         public Replicated(bool fail) => _fail = fail;
 
         public ValueTask OtherReplicaAsync(Current current, CancellationToken cancel)

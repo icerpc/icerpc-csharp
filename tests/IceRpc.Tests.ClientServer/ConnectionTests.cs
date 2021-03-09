@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.Fixtures)]
+    [Parallelizable(scope: ParallelScope.All)]
     [Timeout(10000)]
     public class ConnectionTests : ClientServerBaseTest
     {
@@ -23,10 +23,7 @@ namespace IceRpc.Tests.ClientServer
                 var connection = (await prx.GetConnectionAsync()) as IPConnection;
                 Assert.IsNotNull(connection);
                 bool called = false;
-                connection!.Closed += (sender, args) =>
-                {
-                    called = true;
-                };
+                connection!.Closed += (sender, args) => called = true;
                 await connection.GoAwayAsync();
                 Assert.IsTrue(called);
             });
@@ -338,10 +335,7 @@ namespace IceRpc.Tests.ClientServer
             Connection connection2 = await prx2.GetConnectionAsync();
 
             using var serverSemaphore = new SemaphoreSlim(0);
-            _ = Task.Factory.StartNew(() =>
-                                      {
-                                          serverSemaphore.Wait();
-                                      },
+            _ = Task.Factory.StartNew(() => serverSemaphore.Wait(),
                                       default,
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
