@@ -8,33 +8,38 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
+    [Parallelizable(ParallelScope.All)]
+    [Timeout(10000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
         [TestCase(Protocol.Ice2)]
         [TestCase(Protocol.Ice1)]
         public async Task ProtocolBridging_Forward(Protocol protocol)
         {
+            await using var communicator = new Communicator();
             Protocol other = protocol == Protocol.Ice1 ? Protocol.Ice2 : Protocol.Ice1;
             await using var serverForwarder = new Server(
-                Communicator, 
-                new ServerOptions() 
+                communicator,
+                new ServerOptions()
                 {
-                    Endpoints = GetTestEndpoint(port: 1, protocol: protocol) 
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(protocol: protocol)
                 });
-            
+
             await using var serverSame = new Server(
-                Communicator, 
+                communicator,
                 new ServerOptions()
-                { 
-                    Endpoints = GetTestEndpoint(port: 2, protocol: protocol)
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
                 });
-            
+
             await using var serverOther = new Server(
-                Communicator,
+                communicator,
                 new ServerOptions()
-                { 
-                    Endpoints = GetTestEndpoint(port: 3, protocol: other) 
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 2, protocol: other)
                 });
 
             var samePrx = serverSame.Add("same", new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
@@ -63,11 +68,12 @@ namespace IceRpc.Tests.ClientServer
             await serverOther.ActivateAsync();
 
             var forwardSamePrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardSame", port: 1, protocol: protocol),
-                Communicator);
+                GetTestProxy("ForwardSame", protocol: protocol),
+                communicator);
+
             var forwardOtherPrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardOther", port: 1, protocol: protocol),
-                Communicator);
+                GetTestProxy("ForwardOther", protocol: protocol),
+                communicator);
 
             // testing forwarding with same protocol
             var newPrx = await TestProxyAsync(forwardSamePrx, false);
@@ -88,7 +94,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreNotEqual(newPrx.Protocol, forwardOtherPrx.Protocol);
             Assert.AreEqual(newPrx.Encoding, encoding);
             _ = await TestProxyAsync(newPrx, true);
-
 
             static void CheckContext(SortedDictionary<string, string> ctx, bool direct)
             {
@@ -146,7 +151,7 @@ namespace IceRpc.Tests.ClientServer
                 throw new ProtocolBridgingException(42);
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel) =>
-                new (IProtocolBridgingServicePrx.Factory.Create(current.Server, 
+                new (IProtocolBridgingServicePrx.Factory.Create(current.Server,
                                                                 current.Path).Clone(encoding: current.Encoding));
 
             public ValueTask OpOnewayAsync(int x, Current current, CancellationToken cancel) => default;

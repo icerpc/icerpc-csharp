@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
-    [Parallelizable(scope: ParallelScope.All)]
     public class ServerTests
     {
         [Test]
@@ -89,7 +87,11 @@ namespace IceRpc.Tests.Api
             {
                  await using var server1 = new Server(
                     communicator,
-                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                    new ServerOptions() 
+                    {
+                        ColocationScope = ColocationScope.Communicator,
+                        Endpoints = "ice+tcp://127.0.0.1:15001" 
+                    });
 
                 IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
@@ -172,7 +174,6 @@ namespace IceRpc.Tests.Api
             Assert.IsNotNull(server.PublishedEndpoints[0]);
             Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
         }
-
 
         [TestCase(" :" )]
         [TestCase("tcp: ")]

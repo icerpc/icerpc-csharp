@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
 
         public SocketBaseTest(Protocol protocol, string transport, bool secure)
         {
-            int port = 12000;
+            int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
             {
                 port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!);

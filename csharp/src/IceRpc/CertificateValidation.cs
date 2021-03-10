@@ -65,7 +65,6 @@ namespace IceRpc
                     return false;
                 }
 
-
                 bool buildCustomChain = (certificateAuthorities != null || useMachineContext) && certificate != null;
                 try
                 {

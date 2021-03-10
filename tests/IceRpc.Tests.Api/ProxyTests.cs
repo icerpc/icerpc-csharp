@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("id", prx.Clone(location: "id").Location);
             }
 
-            var server = new Server(communicator, 
+            var server = new Server(communicator,
                                     new ServerOptions()
                                     {
                                         ColocationScope = ColocationScope.Communicator
@@ -451,7 +451,7 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
             await using var server = new Server(
-                communicator, 
+                communicator,
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
             Connection connection = await prx.GetConnectionAsync();
