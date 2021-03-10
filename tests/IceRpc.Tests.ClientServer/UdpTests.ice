@@ -15,10 +15,8 @@ module IceRpc::Tests::ClientServer
 
     interface UdpService
     {
-        int getValue();
         void ping(UdpPingReply reply);
         void sendByteSeq(UdpByteSeq seq, UdpPingReply? reply);
-        void pingBiDir(Ice::Identity id);
-        void shutdown();
+        void pingBiDir(string path);
     }
 }
