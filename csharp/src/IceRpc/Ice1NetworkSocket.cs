@@ -20,13 +20,13 @@ namespace IceRpc
 
         internal bool IsValidated { get; private set; }
 
-        private readonly AsyncSemaphore? _bidirectionalSerializeSemaphore;
+        private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         // The mutex is used to protect the next stream IDs and the send queue.
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly AsyncSemaphore? _unidirectionalSerializeSemaphore;
+        private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
         {
@@ -157,7 +157,7 @@ namespace IceRpc
                         {
                             stream = new Ice1NetworkSocketStream(this, streamId);
                             AsyncSemaphore? semaphore = stream.IsBidirectional ?
-                                _bidirectionalSerializeSemaphore : _unidirectionalSerializeSemaphore;
+                                _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
                             if (semaphore != null)
                             {
                                 await semaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -191,8 +191,12 @@ namespace IceRpc
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
             Underlying.CloseAsync(exception, cancel);
 
-        public override SocketStream CreateStream(bool bidirectional, bool control) =>
-            new Ice1NetworkSocketStream(this, bidirectional, control);
+        public override SocketStream CreateStream(bool bidirectional) =>
+            // The first unidirectional stream is always the control stream
+            new Ice1NetworkSocketStream(
+                this,
+                bidirectional,
+                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
 
         public override ValueTask InitializeAsync(CancellationToken cancel) => default;
 
@@ -213,12 +217,11 @@ namespace IceRpc
         {
             IdleTimeout = endpoint.Communicator.IdleTimeout;
 
-            // If serialization is enabled on the server, create semaphore to limit the number of concurrent
-            // dispatch per connection.
-            if (server?.SerializeDispatch ?? false)
+            // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
+            if (server != null)
             {
-                _bidirectionalSerializeSemaphore = new AsyncSemaphore(1);
-                _unidirectionalSerializeSemaphore = new AsyncSemaphore(1);
+                _bidirectionalStreamSemaphore = new AsyncSemaphore(server.MaxBidirectionalStreamCount);
+                _unidirectionalStreamSemaphore = new AsyncSemaphore(server.MaxUnidirectionalStreamCount);
             }
 
             // We use the same stream ID numbering scheme as Quic.
@@ -257,11 +260,11 @@ namespace IceRpc
             {
                 if (stream.IsBidirectional)
                 {
-                    _bidirectionalSerializeSemaphore?.Release();
+                    _bidirectionalStreamSemaphore?.Release();
                 }
                 else
                 {
-                    _unidirectionalSerializeSemaphore?.Release();
+                    _unidirectionalStreamSemaphore?.Release();
                 }
             }
         }

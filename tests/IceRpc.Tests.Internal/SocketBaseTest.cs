@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,7 @@ namespace IceRpc.Tests.Internal
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
+        private AsyncSemaphore _acceptSemaphore = new(1);
         private readonly Server _server;
         private readonly Communicator _clientCommunicator;
 
@@ -31,7 +33,11 @@ namespace IceRpc.Tests.Internal
         private static int _nextBasePort;
         private readonly Communicator _serverCommunicator;
 
-        public SocketBaseTest(Protocol protocol, string transport, bool secure)
+        public SocketBaseTest(
+            Protocol protocol,
+            string transport,
+            bool secure,
+            Action<ServerOptions>? serverOptionsBuilder = null)
         {
             int port = 12000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
@@ -43,7 +49,14 @@ namespace IceRpc.Tests.Internal
             TransportName = transport;
             IsSecure = secure;
 
-            _serverCommunicator = new Communicator();
+            using var loggerFactory = LoggerFactory.Create(
+                builder =>
+                {
+                    builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+                    builder.SetMinimumLevel(LogLevel.Debug);
+                });
+
+            _serverCommunicator = new Communicator(loggerFactory : loggerFactory);
 
             string endpointTransport = transport == "colocated" ? "tcp" : transport;
 
@@ -52,20 +65,21 @@ namespace IceRpc.Tests.Internal
             string endpoint = protocol == Protocol.Ice2 ?
                 $"ice+{endpointTransport}://localhost:{port}" : $"{endpointTransport} -h localhost -p {port}";
 
-            _server = new(
-                _serverCommunicator,
-                new ServerOptions()
+            var serverOptions = new ServerOptions()
+            {
+                AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
+                ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
+                Endpoints = endpoint,
+                AuthenticationOptions = new SslServerAuthenticationOptions()
                 {
-                    AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
-                    ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
-                    Endpoints = endpoint,
-                    AuthenticationOptions = new SslServerAuthenticationOptions()
-                    {
-                        ClientCertificateRequired = false,
-                        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                    }
-                });
+                    ClientCertificateRequired = false,
+                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                }
+            };
+            serverOptionsBuilder?.Invoke(serverOptions);
+            _server = new(_serverCommunicator, serverOptions);
 
+            // TODO: support something like communicator/connection option builder
             _clientCommunicator = new Communicator(
                 authenticationOptions: new SslClientAuthenticationOptions()
                 {
@@ -74,11 +88,20 @@ namespace IceRpc.Tests.Internal
                         {
                             new X509Certificate2("../../../certs/cacert.pem")
                         })
-                });
+                },
+                loggerFactory: loggerFactory);
 
-            var proxy = IServicePrx.Factory.Create(_server, "dummy");
-            ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
-            ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
+            if (transport == "colocated")
+            {
+                ClientEndpoint = new ColocatedEndpoint(_server);
+                ServerEndpoint = ClientEndpoint;
+            }
+            else
+            {
+                var proxy = IServicePrx.Factory.Create(_server, "dummy");
+                ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
+                ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
+            }
         }
 
         [OneTimeTearDown]
@@ -92,11 +115,21 @@ namespace IceRpc.Tests.Internal
 
         protected async ValueTask<IAcceptor> CreateAcceptorAsync()
         {
-            Endpoint serverEndpoint = (await ServerEndpoint.ExpandHostAsync(default)).First();
+            Endpoint serverEndpoint;
+            if (TransportName == "colocated")
+            {
+                serverEndpoint = ServerEndpoint;
+            }
+            else
+            {
+                serverEndpoint = (await ServerEndpoint.ExpandHostAsync(default)).First();
+            }
             return serverEndpoint.Acceptor(_server);
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync()
+        protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;
+
+        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync()
         {
             lock (_mutex)
             {
@@ -111,12 +144,25 @@ namespace IceRpc.Tests.Internal
                 // a single byte over the socket to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                SingleStreamSocket socket = (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
-                var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
-                await socket.SendAsync(buffer, default);
+                if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
+                {
+                    var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
+                    await socket.Underlying.SendAsync(buffer, default);
+                }
             }
-            Debug.Assert(connection.Endpoint.TransportName == TransportName);
-            return connection.Socket;
+            if (connection.Endpoint.TransportName != TransportName)
+            {
+                Debug.Assert(TransportName == "colocated");
+                Debug.Assert(connection.Socket is ColocatedSocket);
+            }
+            var options = new ServicePrxOptions()
+            {
+                Communicator = _clientCommunicator,
+                Connection = connection,
+                Path = "dummy",
+                Protocol = ClientEndpoint.Protocol
+            };
+            return (connection.Socket, IServicePrx.Factory.Create(options));
         }
 
         protected async Task<MultiStreamSocket> AcceptAsync()
@@ -126,18 +172,33 @@ namespace IceRpc.Tests.Internal
                 _acceptor ??= CreateAcceptorAsync().AsTask().Result;
             }
 
-            Connection connection = await _acceptor.AcceptAsync();
-            Debug.Assert(connection.Endpoint.TransportName == TransportName);
-            await connection.Socket.AcceptAsync(default);
-            if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
+            await _acceptSemaphore.EnterAsync();
+            try
             {
-                // If the accepted connection is not secured, we need to read the first byte from the socket.
-                // See above for the reason.
-                Memory<byte> buffer = new byte[1];
-                SingleStreamSocket socket = (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
-                await socket.ReceiveAsync(buffer, default);
+                Connection connection = await _acceptor.AcceptAsync();
+                Debug.Assert(connection.Endpoint.TransportName == TransportName);
+                await connection.Socket.AcceptAsync(default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
+                {
+                    // If the accepted connection is not secured, we need to read the first byte from the socket.
+                    // See above for the reason.
+                    if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
+                    {
+                        Memory<byte> buffer = new byte[1];
+                        await socket.Underlying.ReceiveAsync(buffer, default);
+                    }
+                }
+                return connection.Socket;
             }
-            return connection.Socket;
+            catch(Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+                throw;
+            }
+            finally
+            {
+                _acceptSemaphore.Release();
+            }
         }
     }
 }

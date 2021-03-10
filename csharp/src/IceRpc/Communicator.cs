@@ -155,8 +155,8 @@ namespace IceRpc
         internal ILogger Logger { get; }
         internal ILogger LocationLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
-        internal int MaxBidirectionalStreams { get; }
-        internal int MaxUnidirectionalStreams { get; }
+        internal int BidirectionalStreamMaxCount { get; } = 100;
+        internal int UnidirectionalStreamMaxCount { get; } = 100;
         internal int SlicPacketMaxSize { get; }
         internal int SlicStreamBufferMaxSize { get; }
 
@@ -391,20 +391,6 @@ namespace IceRpc
             }
 
             KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
-
-            MaxBidirectionalStreams = this.GetPropertyAsInt("Ice.MaxBidirectionalStreams") ?? 100;
-            if (MaxBidirectionalStreams < 1)
-            {
-                throw new InvalidConfigurationException(
-                    $"{MaxBidirectionalStreams} is not a valid value for Ice.MaxBidirectionalStreams");
-            }
-
-            MaxUnidirectionalStreams = this.GetPropertyAsInt("Ice.MaxUnidirectionalStreams") ?? 100;
-            if (MaxUnidirectionalStreams < 1)
-            {
-                throw new InvalidConfigurationException(
-                    $"{MaxBidirectionalStreams} is not a valid value for Ice.MaxUnidirectionalStreams");
-            }
 
             SlicPacketMaxSize = this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? 32 * 1024;
             if (SlicPacketMaxSize < 1024)

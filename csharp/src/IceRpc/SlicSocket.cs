@@ -238,8 +238,12 @@ namespace IceRpc
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
             (_socket ?? Underlying).CloseAsync(exception, cancel);
 
-        public override SocketStream CreateStream(bool bidirectional, bool control) =>
-            new SlicStream(this, bidirectional, control);
+        public override SocketStream CreateStream(bool bidirectional) =>
+            // The first unidirectional stream is always the control stream
+            new SlicStream(
+                this,
+                bidirectional,
+                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
@@ -250,6 +254,7 @@ namespace IceRpc
             {
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
+
                 if (type != SlicDefinitions.FrameType.Initialize)
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
@@ -366,11 +371,17 @@ namespace IceRpc
             PeerPacketMaxSize = endpoint.Communicator.SlicPacketMaxSize;
             PeerStreamBufferMaxSize = endpoint.Communicator.SlicStreamBufferMaxSize;
 
-            // If serialization is enabled on the server, we configure the maximum stream counts to 1 to ensure
-            // the peer won't open more than one stream.
-            bool serializeDispatch = server?.SerializeDispatch ?? false;
-            _maxBidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxBidirectionalStreams;
-            _maxUnidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxUnidirectionalStreams;
+            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
+            if (server != null)
+            {
+                _maxBidirectionalStreams = server.MaxBidirectionalStreamCount;
+                _maxUnidirectionalStreams = server.MaxUnidirectionalStreamCount;
+            }
+            else
+            {
+                _maxBidirectionalStreams = endpoint.Communicator.BidirectionalStreamMaxCount;
+                _maxUnidirectionalStreams = endpoint.Communicator.UnidirectionalStreamMaxCount;
+            }
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)

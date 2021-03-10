@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    [Timeout(10000)]
+    [Parallelizable(scope: ParallelScope.Fixtures)]
     public class SingleStreamSocketBaseTest : SocketBaseTest
     {
         protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
@@ -48,7 +48,6 @@ namespace IceRpc.Tests.Internal
 
     // Test the varions single socket implementations. We don't test Ice1 + WS here as it doesn't really
     // provide additional test coverage given that the WS socket has no protocol specific code.
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "ws", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
@@ -259,7 +258,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
     [TestFixture(Protocol.Ice2, "ws", false)]
@@ -382,7 +380,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
     [TestFixture(Protocol.Ice2, "tcp", false)]

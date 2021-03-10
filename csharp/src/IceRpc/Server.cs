@@ -43,6 +43,16 @@ namespace IceRpc
         /// <value>The locator registry proxy.</value>
         public ILocatorRegistryPrx? LocatorRegistry { get; }
 
+        /// <summary>Return the maximum number of bidirectional streams that the peer can open for each
+        /// connection.</summary>
+        /// <value>The maximum number of bidirectional streams</value>
+        public int MaxBidirectionalStreamCount { get; set; }
+
+        /// <summary>Return the maximum number of unidirectional streams that the peer can open for each
+        /// connection.</summary>
+        /// <value>The maximum number of unidirectional streams</value>
+        public int MaxUnidirectionalStreamCount { get; set; }
+
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
         public string Name { get; }
@@ -57,11 +67,6 @@ namespace IceRpc
         /// <summary>Returns the replica group ID of this server, or the empty string if this server
         /// does not belong to a replica group.</summary>
         public string ReplicaGroupId { get; }
-
-        /// <summary>Indicates whether or not this server serializes the dispatching of requests received
-        /// over the same connection.</summary>
-        /// <value>The serialize dispatch value.</value>
-        public bool SerializeDispatch { get; }
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
@@ -142,9 +147,7 @@ namespace IceRpc
             LocatorRegistry = options.LocatorRegistry;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
             ReplicaGroupId = options.ReplicaGroupId;
-            SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
-
 
             if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
             {
@@ -162,6 +165,20 @@ namespace IceRpc
                     ServerCertificateContext = tlsOptions.ServerCertificateContext,
                     ServerCertificateSelectionCallback = tlsOptions.ServerCertificateSelectionCallback
                 };
+            }
+
+            MaxBidirectionalStreamCount = options.BidirectionalStreamMaxCount;
+            if (MaxBidirectionalStreamCount < 1)
+            {
+                throw new ArgumentException(
+                    $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));
+            }
+
+            MaxUnidirectionalStreamCount = options.UnidirectionalStreamMaxCount;
+            if (MaxUnidirectionalStreamCount < 1)
+            {
+                throw new ArgumentException(
+                    $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));
             }
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;

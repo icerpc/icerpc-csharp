@@ -244,7 +244,7 @@ namespace IceRpc
                     throw new ConnectionClosedException(isClosedByPeer: false,
                                                         RetryPolicy.AfterDelay(TimeSpan.Zero));
                 }
-                return Socket.CreateStream(bidirectional, control: false);
+                return Socket.CreateStream(bidirectional);
             }
         }
 

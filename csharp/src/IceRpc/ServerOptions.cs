@@ -31,6 +31,10 @@ namespace IceRpc
 
         public ILocatorRegistryPrx? LocatorRegistry { get; set; } // only for ice1 servers
 
+        public int BidirectionalStreamMaxCount { get; set; } = 100;
+
+        public int UnidirectionalStreamMaxCount { get; set; } = 100;
+
         public string Name { get; set; } = "";
 
         public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
@@ -41,8 +45,6 @@ namespace IceRpc
         public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
 
         public string ReplicaGroupId { get; set; } = ""; // ice1 only
-
-        public bool SerializeDispatch { get; set; }
 
         public TaskScheduler? TaskScheduler { get; set; }
 

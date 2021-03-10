@@ -60,9 +60,8 @@ namespace IceRpc
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
-        /// protocol header. If a header is returned here, the implementation of the SendAsync method should this header
-        /// to be set at the start of the first segment.</summary>
-        // TODO: review summary above!
+        /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
+        /// this header to be set at the start of the first segment.</summary>
         protected virtual ReadOnlyMemory<byte> TransportHeader => default;
 
         /// <summary>The Reset event is triggered when a reset frame is received.</summary>
@@ -106,6 +105,9 @@ namespace IceRpc
                         long remaining = ioStream.Length - ioStream.Position;
                         if (remaining > 0)
                         {
+                            // Make sure there's enough space for the transport header
+                            remaining += TransportHeader.Length;
+
                             // In the case of a positive overflow, stick to the default size
                             bufferSize = (int)Math.Min(bufferSize, remaining);
                         }
@@ -160,7 +162,10 @@ namespace IceRpc
         /// <param name="buffer">The buffer with the data to send.</param>
         /// <param name="fin">True if no more data will be sent over this stream, False otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        protected abstract ValueTask SendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel);
+        protected abstract ValueTask SendAsync(
+            IList<ArraySegment<byte>> buffer,
+            bool fin,
+            CancellationToken cancel);
 
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>

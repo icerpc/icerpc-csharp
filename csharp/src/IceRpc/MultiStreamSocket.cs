@@ -73,6 +73,13 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(Exception exception, CancellationToken cancel);
 
+        /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
+        /// be immediately available after the stream creation. It will be available after the first successful send
+        /// call on the stream.</summary>
+        /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
+        /// <return>The outgoing stream.</return>
+        public abstract SocketStream CreateStream(bool bidirectional);
+
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
         {
@@ -80,21 +87,13 @@ namespace IceRpc
             GC.SuppressFinalize(this);
         }
 
-        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract Task PingAsync(CancellationToken cancel);
-
         /// <summary>Initializes the transport.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask InitializeAsync(CancellationToken cancel);
 
-        /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
-        /// be immediately available after the stream creation. It will be available after the first successful send
-        /// call on the stream.</summary>
-        /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
-        /// <param name="control"><c>True</c> to create a control stream, <c>false</c> otherwise.</param>
-        /// <return>The outgoing stream.</return>
-        public abstract SocketStream CreateStream(bool bidirectional, bool control);
+        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract Task PingAsync(CancellationToken cancel);
 
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
@@ -306,6 +305,7 @@ namespace IceRpc
         internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             SocketStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
+            Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
@@ -329,7 +329,8 @@ namespace IceRpc
 
         internal virtual async ValueTask<SocketStream> SendInitializeFrameAsync(CancellationToken cancel)
         {
-            SocketStream stream = CreateStream(bidirectional: false, control: true);
+            SocketStream stream = CreateStream(bidirectional: false);
+            Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
