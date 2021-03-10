@@ -284,49 +284,29 @@ namespace IceRpc.Tests.Api
         /// <param name="name">The expected identity name for the parsed proxy.</param>
         /// <param name="category">The expected identity category for the parsed proxy.</param>
         /// <param name="location">The expected location for the parsed proxy.</param>
-        [TestCaseSource(typeof(ParseProxyWithIdentityAndLocationTestCases))]
-        public void Proxy_Parse_InputWithIdentityAndLocation(
-            string str,
-            string name,
-            string category,
-            IReadOnlyList<string> location)
+        [TestCase("test", "test", "")]
+        [TestCase(" test ", "test", "")]
+        [TestCase(" test", "test", "")]
+        [TestCase("test ", "test", "")]
+        [TestCase("'test -f facet'", "test -f facet", "")]
+        [TestCase("\"test -f facet\"", "test -f facet", "")]
+        [TestCase("\"test -f facet@test\"", "test -f facet@test", "")]
+        [TestCase("\"test -f facet@test @test\"", "test -f facet@test @test", "")]
+        [TestCase("test\\040test", "test test", "")]
+        [TestCase("test\\40test", "test test", "")]
+        // Test some octal and hex corner cases.
+        [TestCase("test\\4test", "test\u0004test", "")]
+        [TestCase("test\\04test", "test\u0004test", "")]
+        [TestCase("test\\004test", "test\u0004test", "")]
+        [TestCase("test\\1114test", "test\u00494test", "")]
+        [TestCase("test\\b\\f\\n\\r\\t\\'\\\"\\\\test", "test\b\f\n\r\t\'\"\\test", "")]
+        [TestCase("category/test", "test", "category")]
+        public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
         {
             var prx = IServicePrx.Parse(str, Communicator);
             Assert.AreEqual(name, prx.Identity.Name);
             Assert.AreEqual(category, prx.Identity.Category);
-            Assert.AreEqual(location, prx.Location);
-            Assert.AreEqual(0, prx.Facet.Length);
-        }
-
-        /// <summary>Test data for <see cref="Proxy_Parse_InputWithIdentityAndLocation"/>.</summary>
-        public class ParseProxyWithIdentityAndLocationTestCases :
-            TestData<string, string, string, IReadOnlyList<string>>
-        {
-            public ParseProxyWithIdentityAndLocationTestCases()
-            {
-                Add("test", "test");
-                Add(" test ", "test");
-                Add(" test", "test");
-                Add("test ", "test");
-                Add("'test -f facet'", "test -f facet");
-                Add("\"test -f facet\"", "test -f facet");
-                Add("\"test -f facet@test\"", "test -f facet@test");
-                Add("\"test -f facet@test @test\"", "test -f facet@test @test");
-                Add("test\\040test", "test test");
-                Add("test\\40test", "test test");
-                // Test some octal and hex corner cases.
-                Add("test\\4test", "test\u0004test");
-                Add("test\\04test", "test\u0004test");
-                Add("test\\004test", "test\u0004test");
-                Add("test\\1114test", "test\u00494test");
-                Add("test\\b\\f\\n\\r\\t\\'\\\"\\\\test", "test\b\f\n\r\t\'\"\\test");
-                Add("category/test", "test", "category");
-            }
-
-            private void Add(string str, string name) => Add(str, name, "");
-
-            private void Add(string str, string name, string category) =>
-                Add(str, name, category, Array.Empty<string>());
+            Assert.AreEqual("", prx.Facet);
         }
 
         /// <summary>Test that the communicator default invocation interceptors are used when the
