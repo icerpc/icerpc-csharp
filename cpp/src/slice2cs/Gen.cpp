@@ -1020,6 +1020,9 @@ Slice::CsVisitor::writeParamDocComment(const OperationPtr& op, const CommentInfo
 void
 Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
 {
+    // Prefix is used for the class and exception factories namespaces.
+    // If prefix is not empty we purposefully ignore any namespace metadata.
+
     if (prefix.empty() && !_namespaceStack.empty())
     {
             prefix = _namespaceStack.top();
@@ -1043,7 +1046,6 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
         string ns = getNamespaceMetadata(p);
         if (prefix.empty() && !ns.empty())
         {
-            // If it's a top-level module, check if it's itself enclosed in a namespace.
             _out << ns;
         }
         else
