@@ -59,6 +59,48 @@ namespace IceRpc.Tests.ClientServer
             await PingAndWaitForReply(obj, host);
         }
 
+        [TestCase(32768, 16384)]
+        [TestCase(8192, 32768)]
+        public async Task Upd_SndSize(int size, int sndSize)
+        {
+            await using var server = await SetupServerAsync("127.0.0.1", 0);
+
+            await using var clientCoummunicator = new Communicator(
+                new Dictionary<string, string>
+                {
+                    { "Ice.UDP.SndSize", $"{sndSize}" }
+                });
+
+            IUdpServicePrx obj = IUdpServicePrx.Parse(GetTestProxy("test", "127.0.0.1", transport: "udp", protocol: Protocol.Ice1),
+              clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
+
+            var replyService = new PingReply(1);
+
+            await using var replyServer = new Server(
+                obj.Communicator,
+                new ServerOptions()
+                {
+                    AcceptNonSecure = NonSecure.Always,
+                    Endpoints = GetTestEndpoint(host: "127.0.0.1", port: 1, transport: "udp", protocol: Protocol.Ice1),
+                    PublishedHost = "127.0.0.1"
+                });
+            IUdpPingReplyPrx reply = replyServer.Add(Guid.NewGuid().ToString(), replyService, IUdpPingReplyPrx.Factory)
+                .Clone(oneway: true, preferNonSecure: NonSecure.Always);
+            await replyServer.ActivateAsync();
+
+            if (size > sndSize)
+            {
+                Assert.ThrowsAsync<TransportException>(async () => await obj.SendByteSeqAsync(new byte[size], reply));
+            }
+            else
+            {
+                await obj.SendByteSeqAsync(new byte[size], reply);
+                using var cancelation = new CancellationTokenSource(2000);
+                await Task.WhenAny(replyService.Completed, Task.Delay(-1, cancelation.Token));
+                Assert.IsTrue(replyService.Completed.IsCompleted);
+            }
+        }
+
         private async Task PingAndWaitForReply(IUdpServicePrx obj, string host)
         {
             var replyService = new PingReply(3);
