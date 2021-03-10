@@ -242,7 +242,6 @@ Slice::getNamespace(const ContainedPtr& cont)
         size_t pos = scope.find(".");
         if(pos != string::npos)
         {
-            abort();
             ns = ns + "." + scope.substr(pos + 1);
         }
     }
