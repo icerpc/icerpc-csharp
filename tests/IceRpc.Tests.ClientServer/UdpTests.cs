@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,13 +11,7 @@ namespace IceRpc.Tests.ClientServer
     public class UdpTests : ClientServerBaseTest
     {
         private Communicator ServerCommunicator { get; }
-        public UdpTests()
-        {
-            ServerCommunicator = new Communicator(new Dictionary<string, string>()
-                {
-                    { "Ice.UDP.RcvSize", "16K" }
-                });
-        }
+        public UdpTests() => ServerCommunicator = new Communicator();
 
         [TearDown]
         public async Task TearDown() =>
@@ -59,17 +52,13 @@ namespace IceRpc.Tests.ClientServer
             await PingAndWaitForReply(obj, host);
         }
 
-        [TestCase(32768, 16384)]
-        [TestCase(8192, 32768)]
-        public async Task Upd_SndSize(int size, int sndSize)
+        [TestCase(65535)]
+        [TestCase(8192)]
+        public async Task Upd_MaxDatagramSize(int size)
         {
             await using var server = await SetupServerAsync("127.0.0.1", 0);
 
-            await using var clientCoummunicator = new Communicator(
-                new Dictionary<string, string>
-                {
-                    { "Ice.UDP.SndSize", $"{sndSize}" }
-                });
+            await using var clientCoummunicator = new Communicator();
 
             IUdpServicePrx obj = IUdpServicePrx.Parse(GetTestProxy("test", "127.0.0.1", transport: "udp", protocol: Protocol.Ice1),
               clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
@@ -88,7 +77,8 @@ namespace IceRpc.Tests.ClientServer
                 .Clone(oneway: true, preferNonSecure: NonSecure.Always);
             await replyServer.ActivateAsync();
 
-            if (size > sndSize)
+            const int maxDatagramSize = 65535;
+            if (size >= maxDatagramSize)
             {
                 Assert.ThrowsAsync<TransportException>(async () => await obj.SendByteSeqAsync(new byte[size], reply));
             }
