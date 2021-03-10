@@ -2,8 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Identity.ice>
-
 module IceRpc::Tests::ClientServer
 {
     interface UdpPingReply
