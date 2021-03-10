@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(10000)]
     public class UdpTests : ClientServerBaseTest
     {
         private Communicator ServerCommunicator { get; }
@@ -26,7 +25,7 @@ namespace IceRpc.Tests.ClientServer
             await ServerCommunicator.DisposeAsync();
 
         [TestCase("127.0.0.1")]
-        [TestCase("\"::1\"")]
+        [TestCase("::1")]
         public async Task Upd_Request(string host)
         {
             await using var server = await SetupServerAsync(host, 0);
@@ -40,7 +39,7 @@ namespace IceRpc.Tests.ClientServer
             await PingBidirAndWaitForReply(obj, host);
         }
 
-        [TestCase("\"ff15::1:1\"", "\"::1\"")]
+        [TestCase("ff15::1:1", "::1")]
         [TestCase("239.255.1.1", "127.0.0.1")]
         public async Task Upd_MulticastRequest(string mcastAddress, string host)
         {
@@ -50,10 +49,10 @@ namespace IceRpc.Tests.ClientServer
 
             await using var clientCoummunicator = new Communicator();
 
-            var str = $"test -d:udp -h {mcastAddress} -p {GetTestPort(2)}";
+            var str = $"test -d:udp -h {EscapeIPv6Address(mcastAddress, Protocol.Ice1)} -p {GetTestPort(2)}";
             if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
-                str += $" --interface {host}";
+                str += $" --interface {EscapeIPv6Address(host, Protocol.Ice1)}";
             }
             var obj = IUdpServicePrx.Parse(str, clientCoummunicator).Clone(preferNonSecure: NonSecure.Always);
 
@@ -69,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     AcceptNonSecure = NonSecure.Always,
-                    Endpoints = GetTestEndpoint(port: 1, transport: "udp", protocol: Protocol.Ice1),
+                    Endpoints = GetTestEndpoint(host: host, port: 1, transport: "udp", protocol: Protocol.Ice1),
                     PublishedHost = host
                 });
             IUdpPingReplyPrx reply = replyServer.Add(Guid.NewGuid().ToString(), replyService, IUdpPingReplyPrx.Factory)
@@ -111,7 +110,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     AcceptNonSecure = NonSecure.Always,
-                    Endpoints = GetTestEndpoint(port: 1, transport: "udp", protocol: Protocol.Ice1),
+                    Endpoints = GetTestEndpoint(host: host, port: 1, transport: "udp", protocol: Protocol.Ice1),
                     PublishedHost = host
                 });
             IUdpPingReplyPrx reply = replyServer.Add(Guid.NewGuid().ToString(), replyService, IUdpPingReplyPrx.Factory)
@@ -161,10 +160,10 @@ namespace IceRpc.Tests.ClientServer
 
         public async Task<Server> SetupMulticastServerAsync(string mcastAddress, string host)
         {
-            string endpoint = $"udp -h {mcastAddress} -p {GetTestPort(2)}";
+            string endpoint = $"udp -h {EscapeIPv6Address(mcastAddress, Protocol.Ice1)} -p {GetTestPort(2)}";
             if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
             {
-                endpoint += $" --interface {host}";
+                endpoint += $" --interface {EscapeIPv6Address(host, Protocol.Ice1)}";
             }
 
             var server = new Server(
