@@ -1026,19 +1026,19 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
     // prefix and _namespaceStack can not both be non-empty
     assert((prefix.empty() && _namespaceStack.empty()) || (prefix.empty() ^ _namespaceStack.empty()));
 
-    // _namespaceStack will only be empty when we're at the the top level nested module
-    string lastNamespace = _namespaceStack.empty() ? "" : _namespaceStack.top();
-    string namespaceMetadata = getNamespaceMetadata(p);
-    bool topLevelWithMetadata = _namespaceStack.empty() && !namespaceMetadata.empty();
-
-    if (!lastNamespace.empty())
-    {
-        lastNamespace += ".";
-    }
-
     string ns;
     if (prefix.empty())
     {
+        // _namespaceStack will only be empty when we're at the the top level nested module
+        string lastNamespace = _namespaceStack.empty() ? "" : _namespaceStack.top();
+        string namespaceMetadata = getNamespaceMetadata(p);
+        bool topLevelWithMetadata = _namespaceStack.empty() && !namespaceMetadata.empty();
+
+        if (!lastNamespace.empty())
+        {
+            lastNamespace += ".";
+        }
+
         // Use of the cs:namespace metadata consumes the module name
         ns = topLevelWithMetadata ? namespaceMetadata : lastNamespace + fixId(p->name());
     }
