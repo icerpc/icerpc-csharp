@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_SendAsync_Cancelation()
+        public async Task SingleStreamSocket_SendAsync_Cancelation()
         {
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
             ClientSocket.Socket!.SendBufferSize = 4096;
@@ -162,6 +162,7 @@ namespace IceRpc.Tests.Internal
             do
             {
                 sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+                await Task.WhenAny(Task.Delay(500), sendTask.AsTask());
             }
             while (sendTask.IsCompleted);
             sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
