@@ -218,8 +218,6 @@ namespace IceRpc
                     }
                 },
                 Id).ConfigureAwait(false);
-
-            Release();
         }
 
         protected override async ValueTask SendAsync(
@@ -372,8 +370,6 @@ namespace IceRpc
                 throw new InvalidDataException("invalid stream consumed frame, flow control is not enabled");
             }
 
-            // If _sendPacketMaxSize == 0, we release the semaphore to allow new sends.
-            int previous = _sendCredit;
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)
             {

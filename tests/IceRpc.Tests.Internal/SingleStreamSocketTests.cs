@@ -158,14 +158,14 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
 
             // Wait for the SendAsync call to block.
-            ValueTask<int> sendTask;
+            Task<int> sendTask;
             do
             {
-                sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
-                await Task.WhenAny(Task.Delay(500), sendTask.AsTask());
+                sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
+                await Task.WhenAny(Task.Delay(500), sendTask);
             }
             while (sendTask.IsCompleted);
-            sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+            sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
             Assert.IsFalse(sendTask.IsCompleted);
 
             // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
