@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RunSettings>
   <RunConfiguration>
-    <MaxCpuCount>8</MaxCpuCount>
+    <MaxCpuCount>16</MaxCpuCount>
   </RunConfiguration>
   <NUnit>
   </NUnit>

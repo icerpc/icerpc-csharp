@@ -25,8 +25,16 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    - name: Api Tests
+      run: dotnet test --no-build tests\IceRpc.Tests.Api\IceRpc.Tests.Api.csproj -v:n --settings tests\test.runsettings --collect:"XPlat Code Coverage"    
+    - name: Client Server Tests
+      run: dotnet test --no-build tests\IceRpc.Tests.ClientServer\IceRpc.Tests.ClientServer.csproj -v:n --settings tests\test.runsettings --collect:"XPlat Code Coverage"
+    - name: Code Generation Tests
+      run: dotnet test --no-build tests\IceRpc.Tests.CodeGeneration\IceRpc.Tests.CodeGeneration.csproj -v:n --settings tests\test.runsettings --collect:"XPlat Code Coverage"
+    - name: Encoding Tests
+      run: dotnet test --no-build tests\IceRpc.Tests.Encoding\IceRpc.Tests.Encoding.csproj -v:n --settings tests\test.runsettings --collect:"XPlat Code Coverage"
+    - name: Internal Tests
+      run: dotnet test --no-build tests\IceRpc.Tests.Internal\IceRpc.Tests.Internal.csproj -v:n --settings tests\test.runsettings --collect:"XPlat Code Coverage"
     - name: ReportGenerator
       uses: danielpalme/ReportGenerator-GitHub-Action@4.8.4
       with:
