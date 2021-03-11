@@ -20,9 +20,9 @@ namespace IceRpc.Tests.ClientServer
 
         [TestCase(Protocol.Ice2, true)]
         [TestCase(Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice1, true)]
         // TODO enable once we fix https://github.com/zeroc-ice/icerpc-csharp/issues/140
-        // [TestCase(Protocol.Ice1, false)]
+        // [TestCase(Protocol.Ice1, true)]
+        [TestCase(Protocol.Ice1, false)]
         public async Task ProtocolBridging_Forward(Protocol protocol, bool colocated)
         {
             Protocol other = protocol == Protocol.Ice1 ? Protocol.Ice2 : Protocol.Ice1;
