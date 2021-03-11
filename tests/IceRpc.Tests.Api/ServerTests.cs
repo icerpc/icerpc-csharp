@@ -87,10 +87,10 @@ namespace IceRpc.Tests.Api
             {
                  await using var server1 = new Server(
                     communicator,
-                    new ServerOptions() 
+                    new ServerOptions()
                     {
                         ColocationScope = ColocationScope.Communicator,
-                        Endpoints = "ice+tcp://127.0.0.1:15001" 
+                        Endpoints = "ice+tcp://127.0.0.1:15001"
                     });
 
                 IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);

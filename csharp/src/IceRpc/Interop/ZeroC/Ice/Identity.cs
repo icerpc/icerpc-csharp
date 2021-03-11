@@ -2,9 +2,8 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 
-namespace IceRpc.Interop.ZeroC.Ice
+namespace IceRpc.Interop
 {
     public readonly partial struct Identity
     {

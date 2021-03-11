@@ -5,11 +5,11 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Identity.ice>
-#include <Ice/Process.ice>
+#include <IceRpc/Interop/Identity.ice>
+#include <IceRpc/Interop/Process.ice>
 #include <IceRpc/BuiltinSequences.ice>
 
-[cs:namespace(IceRpc.Interop.ZeroC)]
+[cs:namespace(IceRpc.Interop)]
 module Ice
 {
     /// This exception is thrown when a server tries to register endpoints for an object adapter that is already active.
