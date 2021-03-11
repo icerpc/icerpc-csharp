@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,10 @@ namespace IceRpc.Tests.ClientServer
     public class UdpTests : ClientServerBaseTest
     {
         private Communicator ServerCommunicator { get; }
-        public UdpTests() => ServerCommunicator = new Communicator();
+        public UdpTests() => ServerCommunicator = new Communicator(
+            new Dictionary<string, string>()
+            {
+            });
 
         [TearDown]
         public async Task TearDown() =>
@@ -60,13 +64,28 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        [TestCase(65535)]
-        [TestCase(8192)]
-        public async Task Upd_MaxDatagramSize(int size)
+        // This should fail package is larger than max datgram packet size
+        [TestCase(65535, 65535, 65535)]
+        // The client can send the package but the server would not receive it because it is larger than RcvSize
+        [TestCase(32768, 65535, 32768)]
+        // Send should fail the package is larger than SndSize
+        [TestCase(32768, 8192, 65535)]
+        // Send and Receive should work, package is smaller than both SndSize and RcvSize
+        [TestCase(32768, 65535, 65535)]
+        public async Task Upd_RequestSize(int size, int sndSize, int rcvSize)
         {
-            await using var server = await SetupServerAsync("127.0.0.1", 0);
+            await using var serverCommunicator = new Communicator(
+                new Dictionary<string, string>()
+                {
+                    { "Ice.UDP.RcvSize", $"{rcvSize}" }
+                });
+            await using var server = await SetupServerAsync("127.0.0.1", 0, serverCommunicator);
 
-            await using var clientCoummunicator = new Communicator();
+            await using var clientCoummunicator = new Communicator(
+                new Dictionary<string, string>()
+                {
+                    { "Ice.UDP.SndSize", $"{sndSize}" }
+                });
 
             IUdpServicePrx obj = IUdpServicePrx.Parse(GetTestProxy("test", "127.0.0.1", transport: "udp", protocol: Protocol.Ice1),
               clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
@@ -86,7 +105,7 @@ namespace IceRpc.Tests.ClientServer
             await replyServer.ActivateAsync();
 
             const int maxDatagramSize = 65535;
-            if (size >= maxDatagramSize)
+            if (size >= maxDatagramSize || size >= sndSize)
             {
                 Assert.ThrowsAsync<TransportException>(async () => await obj.SendByteSeqAsync(new byte[size], reply));
             }
@@ -95,7 +114,14 @@ namespace IceRpc.Tests.ClientServer
                 await obj.SendByteSeqAsync(new byte[size], reply);
                 using var cancelation = new CancellationTokenSource(2000);
                 await Task.WhenAny(replyService.Completed, Task.Delay(-1, cancelation.Token));
-                Assert.IsTrue(replyService.Completed.IsCompleted);
+                if (size < rcvSize)
+                {
+                    Assert.IsTrue(replyService.Completed.IsCompleted);
+                }
+                else
+                {
+                    Assert.IsFalse(replyService.Completed.IsCompleted);
+                }
             }
         }
 
@@ -183,10 +209,10 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private async Task<Server> SetupServerAsync(string host, int port)
+        private async Task<Server> SetupServerAsync(string host, int port, Communicator? communicator = null)
         {
             var server = new Server(
-                ServerCommunicator,
+                communicator ?? ServerCommunicator,
                 new()
                 {
                     AcceptNonSecure = NonSecure.Always,
