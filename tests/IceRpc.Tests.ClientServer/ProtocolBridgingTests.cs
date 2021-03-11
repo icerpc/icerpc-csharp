@@ -18,6 +18,22 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests() => Communicator = new Communicator();
 
+        [TearDown]
+        public async Task TearDownAsync()
+        {
+            foreach (var server in Servers)
+            {
+                try
+                {
+                    await server.DisposeAsync();
+                }
+                catch
+                {
+                }
+            }
+            await Communicator.DisposeAsync();
+        }
+
         [TestCase(Protocol.Ice2, true)]
         [TestCase(Protocol.Ice2, false)]
         // TODO enable once we fix https://github.com/zeroc-ice/icerpc-csharp/issues/140
