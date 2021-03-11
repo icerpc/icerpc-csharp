@@ -12,10 +12,7 @@ namespace IceRpc.Tests.ClientServer
     public class UdpTests : ClientServerBaseTest
     {
         private Communicator ServerCommunicator { get; }
-        public UdpTests() => ServerCommunicator = new Communicator(
-            new Dictionary<string, string>()
-            {
-            });
+        public UdpTests() => ServerCommunicator = new Communicator();
 
         [TearDown]
         public async Task TearDown() =>
@@ -26,11 +23,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task Upd_Request(string host)
         {
             await using var server = await SetupServerAsync(host, 0);
-
             await using var clientCoummunicator = new Communicator();
 
-            IUdpServicePrx obj = IUdpServicePrx.Parse(GetTestProxy("test", host, transport: "udp", protocol: Protocol.Ice1),
-              clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
+            IUdpServicePrx obj = IUdpServicePrx.Parse(
+                GetTestProxy("test", host, transport: "udp", protocol: Protocol.Ice1),
+                clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
 
             await PingAndWaitForReply(obj, host);
             // Disable dual mode sockets on macOS, see https://github.com/dotnet/corefx/issues/31182
@@ -87,8 +84,9 @@ namespace IceRpc.Tests.ClientServer
                     { "Ice.UDP.SndSize", $"{sndSize}" }
                 });
 
-            IUdpServicePrx obj = IUdpServicePrx.Parse(GetTestProxy("test", "127.0.0.1", transport: "udp", protocol: Protocol.Ice1),
-              clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
+            IUdpServicePrx obj = IUdpServicePrx.Parse(
+                GetTestProxy("test", "127.0.0.1", transport: "udp", protocol: Protocol.Ice1),
+                clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
 
             var replyService = new PingReply(1);
 
@@ -213,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var server = new Server(
                 communicator ?? ServerCommunicator,
-                new()
+                new ServerOptions()
                 {
                     AcceptNonSecure = NonSecure.Always,
                     Endpoints = GetTestEndpoint(host, port, transport: "udp", protocol: Protocol.Ice1),
@@ -295,7 +293,11 @@ namespace IceRpc.Tests.ClientServer
                 await IUdpPingReplyPrx.Factory.Create(current.Connection!, path).ReplyAsync(cancel: cancel);
             }
 
-            public async ValueTask SendByteSeqAsync(byte[] seq, IUdpPingReplyPrx? reply, Current current, CancellationToken cancel)
+            public async ValueTask SendByteSeqAsync(
+                byte[] seq,
+                IUdpPingReplyPrx? reply,
+                Current current,
+                CancellationToken cancel)
             {
                 if (reply != null)
                 {
