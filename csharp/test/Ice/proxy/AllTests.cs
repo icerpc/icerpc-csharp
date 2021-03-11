@@ -28,7 +28,6 @@ namespace IceRpc.Test.Proxy
 
             var b1 = IServicePrx.Parse("ice:test", communicator);
 
-
             output.Write("testing checked cast... ");
             output.Flush();
             var cl = await IMyClassPrx.Factory.CheckedCastAsync(baseProxy);

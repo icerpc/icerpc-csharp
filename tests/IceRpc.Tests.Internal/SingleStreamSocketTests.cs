@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_SendAsync_Cancelation()
+        public async Task SingleStreamSocket_SendAsync_Cancelation()
         {
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
             ClientSocket.Socket!.SendBufferSize = 4096;
@@ -158,13 +158,14 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
 
             // Wait for the SendAsync call to block.
-            ValueTask<int> sendTask;
+            Task<int> sendTask;
             do
             {
-                sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+                sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
+                await Task.WhenAny(Task.Delay(500), sendTask);
             }
             while (sendTask.IsCompleted);
-            sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token);
+            sendTask = ClientSocket.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
             Assert.IsFalse(sendTask.IsCompleted);
 
             // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
@@ -259,7 +260,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
     [TestFixture(Protocol.Ice2, "ws", false)]
@@ -382,7 +382,6 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
     [TestFixture(Protocol.Ice2, "tcp", false)]

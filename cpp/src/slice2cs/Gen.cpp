@@ -1027,7 +1027,7 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
     assert((prefix.empty() && _namespaceStack.empty()) || (prefix.empty() ^ _namespaceStack.empty()));
 
     // Any entry in _namespaceStack must either be empty or end in a period.
-    assert(_namespaceStack.empty() || _namespaceStack.top().empty() || _namespaceStack.top().back() == ".");
+    assert(_namespaceStack.empty() || _namespaceStack.top().empty() || _namespaceStack.top().back() == '.');
 
     if (prefix.empty())
     {

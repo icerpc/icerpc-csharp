@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Security;
@@ -9,17 +9,14 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
+    [Parallelizable(ParallelScope.All)]
     [Timeout(10000)]
     public class TlsConfigurationTests : ClientServerBaseTest
     {
-        private static int _portNumber;
-
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
         [TestCase("cacert2.p12", "cacert2.p12", "cacert2.pem")] // Using self-signed certs
         public async Task TlsConfiguration_With_TlsOptions(
@@ -377,13 +374,12 @@ namespace IceRpc.Tests.ClientServer
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure)
         {
-            int portNumber = GetNextPortNumber();
             await using var serverCommunicator = new Communicator();;
             await using var server = new Server(serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(hostname ?? "127.0.0.1", port: portNumber),
+                    Endpoints = GetTestEndpoint(hostname ?? "127.0.0.1"),
                     AcceptNonSecure = NonSecure.Never,
                     AuthenticationOptions = tlsServerOptions
                 });
@@ -391,14 +387,11 @@ namespace IceRpc.Tests.ClientServer
             server.Add("hello", new GreeterTestService());
             await server.ActivateAsync();
 
-            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "127.0.0.1", portNumber), clientCommunicator).Clone(
+            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "127.0.0.1"), clientCommunicator).Clone(
                 preferNonSecure: NonSecure.Never);
             closure(server, prx);
         }
-
-        private static int GetNextPortNumber() =>
-            Interlocked.Increment(ref _portNumber);
-
+        
         internal class GreeterTestService : IAsyncGreeterTestService
         {
             public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
