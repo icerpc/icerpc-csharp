@@ -236,18 +236,16 @@ Slice::getNamespace(const ContainedPtr& cont)
 
     string ns = getNamespaceMetadata(cont);
 
-    // If the namespace is not empty we strip the top level module from the scope
-    if(!ns.empty())
+    if(ns.empty())
     {
-        size_t pos = scope.find(".");
-        if(pos != string::npos)
-        {
-            ns = ns + "." + scope.substr(pos + 1);
-        }
+        return scope;
     }
-    else
+
+    // If the namespace is not empty we strip the top level module from the scope
+    size_t pos = scope.find(".");
+    if (pos != string::npos)
     {
-        ns = scope;
+        ns += "." + scope.substr(pos + 1);
     }
 
     return ns;
