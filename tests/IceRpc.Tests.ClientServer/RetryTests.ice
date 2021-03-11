@@ -18,11 +18,8 @@ module IceRpc::Tests::ClientServer
 
     interface RetryService
     {
-        void op(bool kill);
-        idempotent void opIdempotent(int c);
-        void opNotIdempotent();
-        void opSystemException();
-        void opAfterDelay(int retries, int delay);
+        idempotent void opIdempotent(int retries, int delay, bool kill);
+        void opNotIdempotent(int retries, int delay, bool kill);
         void opBidirRetry(RetryBidirService prx);
         void opWithData(int retries, int delay, RetryByteSeq data);
     }
