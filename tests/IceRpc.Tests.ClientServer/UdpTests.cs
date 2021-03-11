@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
         // This should fail packet is larger than max datgram packet size
         [TestCase(65535, 65535, 65535)]
         // The client can send the packet but the server would not receive it because it is larger than RcvSize
-        [TestCase(32768, 65535, 32768)]
+        [TestCase(32768, 65535, 8192)]
         // Send should fail the packet is larger than SndSize
         [TestCase(32768, 8192, 65535)]
         // Send and Receive should work, packet is smaller than both SndSize and RcvSize
