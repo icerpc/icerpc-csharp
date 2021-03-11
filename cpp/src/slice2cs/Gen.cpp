@@ -1023,39 +1023,67 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
     // Prefix is used for the class and exception factories namespaces.
     // If prefix is not empty we purposefully ignore any namespace metadata.
 
-    if (prefix.empty() && !_namespaceStack.empty())
-    {
-            prefix = _namespaceStack.top();
-    }
+    // prefix and _namespaceStack can not both be non-empty
+    assert((prefix.empty() && _namespaceStack.empty()) || (prefix.empty() ^ _namespaceStack.empty()));
 
-    if (!prefix.empty())
-    {
-        prefix += ".";
-    }
+    // Any entry in _namespaceStack must either be empty or end in a period.
+    assert(_namespaceStack.empty() || _namespaceStack.top().empty() || _namespaceStack.top().back() == ".");
 
-    if (p->hasOnlySubModules())
+    if (prefix.empty())
     {
-        _namespaceStack.push(prefix + fixId(p->name()));
-    }
-    else
-    {
-        _out << sp;
-        emitCustomAttributes(p);
-
-        _out << nl << "namespace ";
-        string ns = getNamespaceMetadata(p);
-        if (prefix.empty() && !ns.empty())
+        if(p->hasOnlySubModules())
         {
-            _out << ns;
+            string ns = fixId(p->name());
+
+            // _namespaceStack will only be empty when we're at the the top level nested module
+            if (_namespaceStack.empty() && !getNamespaceMetadata(p).empty())
+            {
+                // use the cs:namespace metadata (consuming this modules name)
+                ns = getNamespaceMetadata(p);
+            }
+            else if (!_namespaceStack.empty())
+            {
+                ns = _namespaceStack.top() + ns;
+            }
+            _namespaceStack.push(ns + ".");
         }
         else
         {
-            _out << prefix << fixId(p->name());
+            _out << nl << "namespace ";
+
+            // The top-level module
+            if (_namespaceStack.empty())
+            {
+                // Use any namespace metadata if specified
+                string ns = getNamespaceMetadata(p);
+                if (ns.empty())
+                {
+                    ns = fixId(p->name());
+                }
+                _out << ns;
+            }
+            else
+            {
+                string ns = _namespaceStack.top();
+                _out << ns + fixId(p->name());
+            }
+            _out << sb;
+            _namespaceStack.push("");
         }
-
-        _out << sb;
-
-        _namespaceStack.push("");
+    }
+    else
+    {
+        // We can assume that we're generating code for a top level module
+        // Ignore any cs:namespace metadata
+        if(p->hasOnlySubModules())
+        {
+            _namespaceStack.push(prefix + "." + fixId(p->name()) + ".");
+        }
+        else
+        {
+            _out << nl << "namespace " << prefix << "." << fixId(p->name()) << sb;
+            _namespaceStack.push("");
+        }
     }
 }
 
