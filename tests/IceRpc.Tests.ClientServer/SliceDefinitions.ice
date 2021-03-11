@@ -24,7 +24,8 @@ module IceRpc::Tests::ClientServer
 
     interface ConnectionTestService
     {
-        void sleep(int seconds);
+        void enter();
+        void release();
         void initiatePing();
     }
 }
