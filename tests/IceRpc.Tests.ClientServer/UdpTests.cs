@@ -29,27 +29,35 @@ namespace IceRpc.Tests.ClientServer
               clientCoummunicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
 
             await PingAndWaitForReply(obj, host);
-            await PingBidirAndWaitForReply(obj, host);
+            // Disable dual mode sockets on macOS, see https://github.com/dotnet/corefx/issues/31182
+            if (!OperatingSystem.IsMacOS() || !IsIPv6(host))
+            {
+                await PingBidirAndWaitForReply(obj, host);
+            }
         }
 
         [TestCase("ff15::1:1", "::1")]
         [TestCase("239.255.1.1", "127.0.0.1")]
         public async Task Upd_MulticastRequest(string mcastAddress, string host)
         {
-            await using var server1 = await SetupMulticastServerAsync(mcastAddress, host);
-            await using var server2 = await SetupMulticastServerAsync(mcastAddress, host);
-            await using var server3 = await SetupMulticastServerAsync(mcastAddress, host);
-
-            await using var clientCoummunicator = new Communicator();
-
-            var str = $"test -d:udp -h {EscapeIPv6Address(mcastAddress, Protocol.Ice1)} -p {GetTestPort(2)}";
-            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+            // Disable dual mode sockets on macOS, see https://github.com/dotnet/corefx/issues/31182
+            if (!OperatingSystem.IsMacOS() || !IsIPv6(host))
             {
-                str += $" --interface {EscapeIPv6Address(host, Protocol.Ice1)}";
-            }
-            var obj = IUdpServicePrx.Parse(str, clientCoummunicator).Clone(preferNonSecure: NonSecure.Always);
+                await using var server1 = await SetupMulticastServerAsync(mcastAddress, host);
+                await using var server2 = await SetupMulticastServerAsync(mcastAddress, host);
+                await using var server3 = await SetupMulticastServerAsync(mcastAddress, host);
 
-            await PingAndWaitForReply(obj, host);
+                await using var clientCoummunicator = new Communicator();
+
+                var str = $"test -d:udp -h {EscapeIPv6Address(mcastAddress, Protocol.Ice1)} -p {GetTestPort(2)}";
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+                {
+                    str += $" --interface {EscapeIPv6Address(host, Protocol.Ice1)}";
+                }
+                var obj = IUdpServicePrx.Parse(str, clientCoummunicator).Clone(preferNonSecure: NonSecure.Always);
+
+                await PingAndWaitForReply(obj, host);
+            }
         }
 
         [TestCase(65535)]

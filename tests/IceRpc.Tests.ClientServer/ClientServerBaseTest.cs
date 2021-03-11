@@ -23,8 +23,8 @@ namespace IceRpc.Tests.ClientServer
         public static string EscapeIPv6Address(string address, Protocol protocol = Protocol.Ice2) =>
             protocol switch
             {
-                Protocol.Ice1 => address.Contains(":") ? $"\"{address}\"" : address,
-                _ => address.Contains(":") ? $"[{address}]" : address,
+                Protocol.Ice1 => IsIPv6(address) ? $"\"{address}\"" : address,
+                _ => IsIPv6(address) ? $"[{address}]" : address,
             };
 
         public string GetTestEndpoint(
@@ -35,7 +35,6 @@ namespace IceRpc.Tests.ClientServer
             protocol == Protocol.Ice2 ?
                 $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{GetTestPort(port)}" :
                 $"{transport} -h {EscapeIPv6Address(host, protocol)} -p {GetTestPort(port)}";
-
 
         public int GetTestPort(int num) => _basePort + num;
 
@@ -48,5 +47,7 @@ namespace IceRpc.Tests.ClientServer
             protocol == Protocol.Ice2 ?
                 $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{GetTestPort(port)}/{identity}" :
                 $"{identity}:{transport} -h {EscapeIPv6Address(host, protocol)} -p {GetTestPort(port)}";
+
+        public static bool IsIPv6(string address) => address.Contains(":");
     }
 }
