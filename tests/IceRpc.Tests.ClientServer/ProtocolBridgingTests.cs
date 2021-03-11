@@ -12,68 +12,26 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
-        [TestCase(Protocol.Ice2)]
-        [TestCase(Protocol.Ice1)]
-        public async Task ProtocolBridging_Forward(Protocol protocol)
+        private Communicator Communicator { get; }
+        private List<Server> Servers { get; } = new List<Server>();
+        private SortedDictionary<string, string>? ForwardedContext {get; set; }
+
+        public ProtocolBridgingTests() => Communicator = new Communicator();
+
+        [TestCase(Protocol.Ice2, true)]
+        [TestCase(Protocol.Ice2, false)]
+        [TestCase(Protocol.Ice1, true)]
+        // TODO enable once we fix https://github.com/zeroc-ice/icerpc-csharp/issues/140
+        // [TestCase(Protocol.Ice1, false)]
+        public async Task ProtocolBridging_Forward(Protocol protocol, bool colocated)
         {
-            await using var communicator = new Communicator();
             Protocol other = protocol == Protocol.Ice1 ? Protocol.Ice2 : Protocol.Ice1;
-            await using var serverForwarder = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol)
-                });
 
-            await using var serverSame = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1, protocol: protocol)
-                });
+            var samePrx = await SetupServer("same", protocol, 1, colocated);
+            var otherPrx = await SetupServer("other", other, 2, colocated);
 
-            await using var serverOther = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 2, protocol: other)
-                });
-
-            var samePrx = serverSame.Add("same", new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
-            var otherPrx = serverOther.Add("other", new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
-
-            serverForwarder.Add("ForwardSame", new Forwarder(samePrx));
-            serverForwarder.Add("ForwardOther", new Forwarder(otherPrx));
-
-            SortedDictionary<string, string>? ctxForwarded;
-
-            await serverForwarder.ActivateAsync();
-
-            serverSame.Use(async (current, next, cancel) =>
-                            {
-                                ctxForwarded = current.Context;
-                                return await next();
-                            });
-
-            await serverSame.ActivateAsync();
-
-            serverOther.Use(async (current, next, cancel) =>
-                            {
-                                ctxForwarded = current.Context;
-                                return await next();
-                            });
-            await serverOther.ActivateAsync();
-
-            var forwardSamePrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardSame", protocol: protocol),
-                communicator);
-
-            var forwardOtherPrx = IProtocolBridgingServicePrx.Parse(
-                GetTestProxy("ForwardOther", protocol: protocol),
-                communicator);
+            (IProtocolBridgingServicePrx forwardSamePrx, IProtocolBridgingServicePrx forwardOtherPrx) =
+                await SetupForwarderServer(samePrx, otherPrx, protocol, colocated);
 
             // testing forwarding with same protocol
             var newPrx = await TestProxyAsync(forwardSamePrx, false);
@@ -116,21 +74,21 @@ namespace IceRpc.Tests.ClientServer
                     { "MyCtx", "hello" }
                 };
 
-                ctxForwarded = null;
+                ForwardedContext = null;
                 Assert.AreEqual(await prx.OpAsync(13, ctx), 13);
-                CheckContext(ctxForwarded!, direct);
+                CheckContext(ForwardedContext!, direct);
 
-                ctxForwarded = null;
+                ForwardedContext = null;
                 await prx.OpVoidAsync(ctx);
-                CheckContext(ctxForwarded!, direct);
+                CheckContext(ForwardedContext!, direct);
 
-                ctxForwarded = null;
+                ForwardedContext = null;
                 (int v, string s) = await prx.OpReturnOutAsync(34, ctx);
                 Assert.AreEqual(v, 34);
                 Assert.AreEqual(s, "value=34");
-                CheckContext(ctxForwarded!, direct);
+                CheckContext(ForwardedContext!, direct);
 
-                ctxForwarded = null;
+                ForwardedContext = null;
                 await prx.OpOnewayAsync(42);
                 // Don't check the context, it might not yet be set, oneway returns as soon as the request was set.
                 // CheckContext(ctxForwarded!, direct);
@@ -140,6 +98,68 @@ namespace IceRpc.Tests.ClientServer
 
                 return prx.OpNewProxy().Clone(context: new Dictionary<string, string> { { "Direct", "1" } });
             }
+        }
+
+        private async Task<IProtocolBridgingServicePrx> SetupServer(
+            string path,
+            Protocol protocol,
+            int port = 0,
+            bool colocated = false)
+        {
+            var serverOptions = colocated ?
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.Communicator,
+                    Protocol = protocol
+                }
+                :
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: port, protocol: protocol)
+                };
+
+            var server = new Server(Communicator, serverOptions);
+            var prx = server.Add(path, new ProtocolBridgingService(), IProtocolBridgingServicePrx.Factory);
+            server.Use(async (current, next, cancel) =>
+            {
+                ForwardedContext = current.Context;
+                return await next();
+            });
+            await server.ActivateAsync();
+            Servers.Add(server);
+            return prx;
+        }
+
+        private async Task<(IProtocolBridgingServicePrx, IProtocolBridgingServicePrx)> SetupForwarderServer(
+            IProtocolBridgingServicePrx samePrx,
+            IProtocolBridgingServicePrx otherPrx,
+            Protocol protocol,
+            bool colocated)
+        {
+            var serverOptions = colocated ?
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.Communicator,
+                    Protocol = protocol
+                }
+                :
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 0, protocol: protocol)
+                };
+
+            var server = new Server(Communicator, serverOptions);
+            var forwardSamePrx = server.Add("ForwardSame",
+                                            new Forwarder(samePrx),
+                                            IProtocolBridgingServicePrx.Factory);
+            var forwardOtherPrx = server.Add("ForwardOther",
+                                             new Forwarder(otherPrx),
+                                             IProtocolBridgingServicePrx.Factory);
+            await server.ActivateAsync();
+            Servers.Add(server);
+            return (forwardSamePrx, forwardOtherPrx);
         }
 
         internal class ProtocolBridgingService : IAsyncProtocolBridgingService
