@@ -2231,7 +2231,7 @@ yyreduce:
     if(yyvsp[-3])
     {
         StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[-4]);
-        size_t startPos = 0;
+        size_t startPos = -2;
         while((startPos = ident->v.find("::", startPos + 2)) != string::npos)
         {
             unit->popContainer();
