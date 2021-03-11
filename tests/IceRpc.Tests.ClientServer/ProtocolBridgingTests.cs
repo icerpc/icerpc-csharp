@@ -9,7 +9,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(10000)]
+    [Timeout(30000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
         [TestCase(Protocol.Ice2)]
