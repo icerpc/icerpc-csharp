@@ -12,7 +12,7 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
-        private Communicator _communicator;
+        private readonly Communicator _communicator;
         private Server _forwarderServer = null!;
         private Server _targetServer = null!;
         private SortedDictionary<string, string>? _forwardedContext;
@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
         [TearDown]
         public async Task TearDownAsync()
         {
-            await Task.WhenAll(_forwarderServer.DisposeAsync().AsTask(), _targetServer.DisposeAsync().AsTask());
+            await Task.WhenAll(_forwarderServer.ShutdownAsync(), _targetServer.ShutdownAsync());
             await _communicator.DisposeAsync();
         }
 
@@ -45,7 +45,6 @@ namespace IceRpc.Tests.ClientServer
             IProtocolBridgingServicePrx forwarderService =
                 await SetupForwarderServerAsync(forwarderProtocol, targetProtocol, colocated);
 
-            // testing forwarding with same protocol
             var newPrx = await TestProxyAsync(forwarderService, false);
             Assert.AreEqual(newPrx.Protocol, targetProtocol);
             _ = await TestProxyAsync(newPrx, true);
