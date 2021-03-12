@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,186 +16,22 @@ namespace IceRpc.Tests.ClientServer
     public class RetryTests : ClientServerBaseTest
     {
         [Test]
-        public async Task Retry_Idempotent()
-        {
-            await WithRetryServiceAsync(async (service, retry) =>
-            {
-                // No more than 5 attempts with default configuration
-                Connection connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                Assert.CatchAsync<RetrySystemFailure>(async () => await retry.OpIdempotentAsync(5, 0, false));
-                Assert.AreEqual(5, service.Attempts);
-
-                // No more than 5 attempts with default configuration
-                service.Attempts = 0;
-                connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                Assert.CatchAsync<ConnectionLostException>(async () => await retry.OpIdempotentAsync(5, 0, true));
-                Assert.AreEqual(5, service.Attempts);
-
-                // 4 failures the 5th attempt should succeed
-                service.Attempts = 0;
-                connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                await retry.OpIdempotentAsync(4, 0, false);
-                Assert.AreEqual(5, service.Attempts);
-
-                // 4 failures the 5th attempt should succeed
-                service.Attempts = 0;
-                connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                await retry.OpIdempotentAsync(4, 0, true);
-                Assert.AreEqual(5, service.Attempts);
-            });
-        }
-
-        [Test]
-        public async Task Retry_NotIdempotent()
-        {
-            await WithRetryServiceAsync(async (service, retry) =>
-            {
-                // No more than 5 attempts with default configuration
-                Connection connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                Assert.CatchAsync<RetrySystemFailure>(async () => await retry.OpNotIdempotentAsync(5, 0, false));
-                Assert.AreEqual(5, service.Attempts);
-
-                // Connection failure is not retryable for non idempotent operation
-                service.Attempts = 0;
-                connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                Assert.CatchAsync<ConnectionLostException>(async () => await retry.OpNotIdempotentAsync(5, 0, true));
-                Assert.AreEqual(1, service.Attempts);
-
-                // 4 failures the 5th attempt should succeed
-                service.Attempts = 0;
-                connection = await retry.GetConnectionAsync();
-                Assert.IsNotNull(connection);
-                await retry.OpNotIdempotentAsync(4, 0, false);
-                Assert.AreEqual(5, service.Attempts);
-            });
-        }
-
-        [Test]
-        public async Task Retry_FixedReference()
-        {
-            await WithRetryServiceAsync(async (service, retry) =>
-            {
-                await using var communicator = new Communicator();
-                await using var server = new Server(communicator,
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.None,
-                        Protocol = Protocol.Ice2
-                    });
-                var bidir = server.AddWithUUID(new Bidir(), IRetryBidirServicePrx.Factory);
-                (await retry.GetConnectionAsync()).Server = server;
-                await retry.OpBidirRetryAsync(bidir);
-            });
-        }
-
-        [Test]
         public async Task Retry_AfterDelay()
         {
-            await WithRetryServiceAsync(async (service, retry) =>
-            {
-                // No retries before timeout kicks-in
-                retry = retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(100));
-                Assert.CatchAsync<OperationCanceledException>(
-                    async () => await retry.OpNotIdempotentAsync(2, 1000, false));
-
-                // The second attempt succeed
-                service.Attempts = 0;
-                retry = retry.Clone(invocationTimeout: Timeout.InfiniteTimeSpan);
-                await retry.OpNotIdempotentAsync(1, 50, false);
-                Assert.AreEqual(2, service.Attempts);
-            });
-        }
-
-        [Test]
-        public async Task Retry_OtherReplica()
-        {
-            await using var communicator = new Communicator();
-            await using var server1 = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 0)
-                });
-
-            await using var server2 = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1)
-                });
-
-            server1.Add("replicated", new Replicated(fail: true));
-            server2.Add("replicated", new Replicated(fail: false));
-
-            await server1.ActivateAsync();
-            await server2.ActivateAsync();
-
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
-
-            Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx1.OtherReplicaAsync());
-            Assert.DoesNotThrowAsync(async () => await prx2.OtherReplicaAsync());
-
-            prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
-            Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
-        }
-
-        [TestCase(1024, 1024)]
-        [TestCase(1024, 2048)]
-        public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
-        {
             await WithRetryServiceAsync(
-                new Dictionary<string, string>
-                {
-                    { "Ice.RetryRequestMaxSize", $"{maxSize}" }
-                },
-                (service, retry) =>
-                {
-                    byte[] data = Enumerable.Range(0, requestSize).Select(i => (byte)i).ToArray();
-                    if (maxSize <= requestSize)
-                    {
-                        // Fails because retry request size limit
-                        Assert.ThrowsAsync<RetrySystemFailure>(async () => await retry.OpWithDataAsync(1, 0, data));
-                    }
-                    else
-                    {
-                        Assert.DoesNotThrowAsync(async () => await retry.OpWithDataAsync(1, 0, data));
-                    }
-                    return Task.CompletedTask;
-                });
-        }
-
-        [Test]
-        public async Task Retry_RetryBufferMaxSize()
-        {
-            await WithRetryServiceAsync(
-                new Dictionary<string, string>
-                {
-                    { "Ice.RetryBufferMaxSize", "2048" }
-                },
                 async (service, retry) =>
                 {
+                    // No retries before timeout kicks-in
+                    retry = retry.Clone(invocationTimeout: TimeSpan.FromMilliseconds(100));
+                    Assert.CatchAsync<OperationCanceledException>(
+                        async () => await retry.OpRetryAfterDelayAsync(1, 10000));
 
-                    byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
-                    // Use two connections to simulate two concurrent retries, the first should succeed
-                    // and the second should fail because the buffer size max.
-
-                    Task t1 = retry.Clone(label: "conn-1").OpWithDataAsync(2, 1000, data);
-                    await Task.Delay(100); // Ensure the first request it is send before the second request
-                    Task t2 = retry.Clone(label: "conn-2").OpWithDataAsync(2, 0, data);
-
-                    Assert.DoesNotThrowAsync(async () => await t1);
-                    Assert.ThrowsAsync<RetrySystemFailure>(async () => await t2);
-
-                    await retry.Clone(label: "conn-1").OpWithDataAsync(2, 100, data);
+                    // The second attempt succeed
+                    service.Attempts = 0;
+                    retry = retry.Clone(invocationTimeout: Timeout.InfiniteTimeSpan);
+                    long elapsedMilliseconds = await retry.OpRetryAfterDelayAsync(1, 100);
+                    Assert.AreEqual(2, service.Attempts);
+                    Assert.IsTrue(elapsedMilliseconds > 100);
                 });
         }
 
@@ -230,6 +67,232 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
+        [Test]
+        public async Task Retry_FixedReference()
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server(communicator,
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Protocol = Protocol.Ice2,
+                    Endpoints = GetTestEndpoint()
+                });
+            await server.ActivateAsync();
+            var proxy = server.Add("bidir", new Bidir(), IRetryBidirServicePrx.Factory);
+
+            Connection connection = await proxy.GetConnectionAsync();
+            connection.Server = server;
+            var bidir = proxy.Clone(fixedConnection: connection);
+
+            Assert.ThrowsAsync< ServiceNotFoundException>(
+                async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
+
+            // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
+            // because the exception uses the AfterDelay retry policy.
+            Assert.IsTrue(bidir.Protocol == Protocol.Ice2);
+            await bidir.AfterDelayAsync(2);
+        }
+
+        [TestCase(1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(0, 1, false)] // 0 failures, 1 max attempts, don't kill the connection
+        [TestCase(4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        public async Task Retry_Idempotent(int failedAttempts, int maxAttempts, bool killConnection)
+        {
+            await WithRetryServiceAsync(
+                new Dictionary<string, string>
+                {
+                    {"Ice.InvocationMaxAttempts", $"{maxAttempts}"}
+                },
+                async (service, retry) =>
+                {
+                    if (failedAttempts >= maxAttempts)
+                    {
+                        if (killConnection)
+                        {
+                            Assert.CatchAsync<ConnectionLostException>(
+                                async () => await retry.OpIdempotentAsync(failedAttempts, killConnection));
+                        }
+                        else
+                        {
+                            Assert.CatchAsync<RetrySystemFailure>(
+                                async () => await retry.OpIdempotentAsync(failedAttempts, killConnection));
+                        }
+                        Assert.AreEqual(maxAttempts, service.Attempts);
+                    }
+                    else
+                    {
+                        await retry.OpIdempotentAsync(failedAttempts, killConnection);
+                        Assert.AreEqual(failedAttempts + 1, service.Attempts);
+                    }
+                });
+        }
+
+        [Test]
+        public async Task Retry_No()
+        {
+            await WithRetryServiceAsync(
+                (service, retry) =>
+                {
+                    // There is a single attempt becasuse the retry policy doesn't allow to retry
+                    Assert.CatchAsync<RetrySystemFailure>(async () => await retry.OpRetryNoAsync());
+                    Assert.AreEqual(1, service.Attempts);
+                    return Task.CompletedTask;
+                });
+        }
+
+        [TestCase(1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(0, 1, false)] // 0 failures, 1 max attempts, don't kill the connection
+        [TestCase(4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        public async Task Retry_NoIdempotent(int failedAttempts, int maxAttempts, bool killConnection)
+        {
+            await WithRetryServiceAsync(
+                new Dictionary<string, string>
+                {
+                    {"Ice.InvocationMaxAttempts", $"{maxAttempts}"}
+                },
+                async (service, retry) =>
+                {
+                    if (failedAttempts > 0 && killConnection)
+                    {
+                        // Connection failure after sent is not retryable for non idempotent operation
+                        Assert.CatchAsync<ConnectionLostException>(
+                            async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
+                        Assert.AreEqual(1, service.Attempts);
+                    }
+                    else if (failedAttempts >= maxAttempts)
+                    {
+                        Assert.CatchAsync<RetrySystemFailure>(
+                            async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
+                        Assert.AreEqual(maxAttempts, service.Attempts);
+                    }
+                    else
+                    {
+                        await retry.OpNotIdempotentAsync(failedAttempts, killConnection);
+                        Assert.AreEqual(failedAttempts + 1, service.Attempts);
+                    }
+                });
+        }
+
+        [Test]
+        public async Task Retry_OtherReplica()
+        {
+            await using var communicator = new Communicator();
+            var calls = new List<string>();
+            await using var server1 = new Server(
+                communicator,
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 0)
+                });
+
+            server1.Use(async (current, next, cancel) =>
+                        {
+                            calls.Add("server1");
+                            return await next();
+                        });
+
+            await using var server2 = new Server(
+                communicator,
+                new ServerOptions()
+                {
+                    ColocationScope = ColocationScope.None,
+                    Endpoints = GetTestEndpoint(port: 1)
+                });
+            server2.Use(async (current, next, cancel) =>
+                        {
+                            calls.Add("server2");
+                            return await next();
+                        });
+
+            server1.Add("replicated", new Replicated(fail: true));
+            server2.Add("replicated", new Replicated(fail: false));
+
+            await server1.ActivateAsync();
+            await server2.ActivateAsync();
+
+            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
+            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
+
+            Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx1.OtherReplicaAsync());
+            Assert.AreEqual("server1", calls[0]);
+            Assert.AreEqual(1, calls.Count);
+
+            calls.Clear();
+            Assert.DoesNotThrowAsync(async () => await prx2.OtherReplicaAsync());
+            Assert.AreEqual("server2", calls[0]);
+            Assert.AreEqual(1, calls.Count);
+
+            calls.Clear();
+            prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
+            Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
+            Assert.AreEqual("server1", calls[0]);
+            Assert.AreEqual("server2", calls[1]);
+            Assert.AreEqual(2, calls.Count);
+        }
+
+        [Test]
+        public async Task Retry_RetryBufferMaxSize()
+        {
+            await WithRetryServiceAsync(
+                new Dictionary<string, string>
+                {
+                    { "Ice.RetryBufferMaxSize", "2048" }
+                },
+                async (service, retry) =>
+                {
+
+                    byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
+                    // Use two connections to simulate two concurrent requests, the first should succeed
+                    // and the second should fail because the buffer size max.
+
+                    Task t1 = retry.Clone(label: "conn-1").OpWithDataAsync(2, 1000, data);
+                    await Task.Delay(100); // Ensure the first request it is send before the second request
+                    Task t2 = retry.Clone(label: "conn-2").OpWithDataAsync(2, 0, data);
+
+                    Assert.DoesNotThrowAsync(async () => await t1);
+                    Assert.ThrowsAsync<RetrySystemFailure>(async () => await t2);
+
+                    await retry.Clone(label: "conn-1").OpWithDataAsync(2, 100, data);
+                });
+        }
+
+        [TestCase(1024, 1024)]
+        [TestCase(1024, 2048)]
+        public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
+        {
+            await WithRetryServiceAsync(
+                new Dictionary<string, string>
+                {
+                    { "Ice.RetryRequestMaxSize", $"{maxSize}" }
+                },
+                (service, retry) =>
+                {
+                    byte[] data = Enumerable.Range(0, requestSize).Select(i => (byte)i).ToArray();
+                    if (maxSize <= requestSize)
+                    {
+                        // Fails because retry request size limit
+                        Assert.ThrowsAsync<RetrySystemFailure>(async () => await retry.OpWithDataAsync(1, 0, data));
+                    }
+                    else
+                    {
+                        Assert.DoesNotThrowAsync(async () => await retry.OpWithDataAsync(1, 0, data));
+                    }
+                    return Task.CompletedTask;
+                });
+        }
+
         private async Task WithRetryServiceAsync(
             Dictionary<string, string> properties,
             Func<RetryService, IRetryServicePrx, Task> closure)
@@ -259,67 +322,78 @@ namespace IceRpc.Tests.ClientServer
         internal class RetryService : IAsyncRetryService
         {
             internal int Attempts;
+            private Stopwatch _stopwatch = new Stopwatch();
 
-            public async ValueTask OpBidirRetryAsync(
-                IRetryBidirServicePrx bidir,
+            public ValueTask OpIdempotentAsync(
+                int failedAttempts,
+                bool killConnection,
                 Current current,
                 CancellationToken cancel)
             {
-                bidir = bidir.Clone(fixedConnection: current.Connection);
-                Assert.ThrowsAsync< ServiceNotFoundException>(
-                    async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
-
-                // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
-                // because the exception uses the AfterDelay retry policy.
-                Assert.IsTrue(current.Protocol == Protocol.Ice2);
-                await bidir.AfterDelayAsync(2, cancel: CancellationToken.None);
-            }
-
-            public ValueTask OpIdempotentAsync(int retries, int delay, bool kill, Current current, CancellationToken cancel)
-            {
-                if (Attempts <= retries)
+                if (Attempts <= failedAttempts)
                 {
-                    if (kill)
+                    if (killConnection)
                     {
                         current.Connection.AbortAsync();
                     }
                     else
                     {
-                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
+                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
                     }
                 }
                 return default;
             }
 
-            public ValueTask OpNotIdempotentAsync(int retries, int delay, bool kill, Current current, CancellationToken cancel)
+            public ValueTask OpNotIdempotentAsync(
+                int failedAttempts,
+                bool killConnection,
+                Current current,
+                CancellationToken cancel)
             {
-                if (Attempts <= retries)
+                if (Attempts <= failedAttempts)
                 {
-                    if (kill)
+                    if (killConnection)
                     {
                         current.Connection.AbortAsync();
                     }
                     else
                     {
-                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
+                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
                     }
                 }
                 return default;
             }
 
-            public ValueTask OpWithDataAsync(
-                int retries,
+            public async ValueTask OpWithDataAsync(
+                int failedAttempts,
                 int delay,
                 byte[] data,
                 Current current,
                 CancellationToken cancel)
             {
-                if (retries >= Attempts)
+                if (failedAttempts >= Attempts)
                 {
+                    await Task.Delay(delay);
+                    throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                }
+            }
+
+            public ValueTask<long> OpRetryAfterDelayAsync(
+                int failedAttempts,
+                int delay,
+                Current current,
+                CancellationToken cancel)
+            {
+                if (failedAttempts >= Attempts)
+                {
+                    _stopwatch.Restart();
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
-                return default;
+                return new(_stopwatch.ElapsedMilliseconds);
             }
+
+            public ValueTask OpRetryNoAsync(Current current, CancellationToken cancel) =>
+                throw new RetrySystemFailure(RetryPolicy.NoRetry);
         }
     }
 
