@@ -189,7 +189,7 @@ Slice::builtinSuffix(const BuiltinPtr& builtin)
 }
 
 string
-Slice::getNamespacePrefix(const ContainedPtr& cont)
+Slice::getNamespaceMetadata(const ContainedPtr& cont)
 {
     //
     // Traverse to the top-level module.
@@ -227,24 +227,28 @@ string
 Slice::getNamespace(const ContainedPtr& cont)
 {
     string scope = fixId(cont->scope());
+
+    // Remove trailing .
     if(scope.rfind(".") == scope.size() - 1)
     {
         scope = scope.substr(0, scope.size() - 1);
     }
-    string prefix = getNamespacePrefix(cont);
-    if(!prefix.empty())
+
+    string ns = getNamespaceMetadata(cont);
+
+    if(ns.empty())
     {
-        if(!scope.empty())
-        {
-            return prefix + "." + scope;
-        }
-        else
-        {
-            return prefix;
-        }
+        return scope;
     }
 
-    return scope;
+    // If the namespace is not empty we strip the top level module from the scope
+    size_t pos = scope.find(".");
+    if (pos != string::npos)
+    {
+        ns += "." + scope.substr(pos + 1);
+    }
+
+    return ns;
 }
 
 string

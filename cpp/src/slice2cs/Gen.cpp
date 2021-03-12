@@ -1020,34 +1020,42 @@ Slice::CsVisitor::writeParamDocComment(const OperationPtr& op, const CommentInfo
 void
 Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
 {
+    // Prefix is used for the class and exception factories namespaces.
+    // If prefix is not empty we purposefully ignore any namespace metadata.
+
+    // prefix and _namespaceStack can not both be non-empty
+    assert((prefix.empty() && _namespaceStack.empty()) || (prefix.empty() ^ _namespaceStack.empty()));
+
+    string ns;
     if (prefix.empty())
     {
-        if (_namespaceStack.empty())
-        {
-            // If it's a top-level module, check if it's itself enclosed in a namespace.
-            prefix = getNamespacePrefix(p);
-        }
-        else
-        {
-            prefix = _namespaceStack.top();
-        }
-    }
-    if (!prefix.empty())
-    {
-        prefix += ".";
-    }
+        // _namespaceStack will only be empty when we're at the the top level nested module
+        string lastNamespace = _namespaceStack.empty() ? "" : _namespaceStack.top();
+        string namespaceMetadata = getNamespaceMetadata(p);
+        bool topLevelWithMetadata = _namespaceStack.empty() && !namespaceMetadata.empty();
 
-    if (p->hasOnlySubModules())
-    {
-        _namespaceStack.push(prefix + fixId(p->name()));
+        if (!lastNamespace.empty())
+        {
+            lastNamespace += ".";
+        }
+
+        // Use of the cs:namespace metadata consumes the module name
+        ns = topLevelWithMetadata ? namespaceMetadata : lastNamespace + fixId(p->name());
     }
     else
     {
-        _out << sp;
-        emitCustomAttributes(p);
-        _out << nl << "namespace " << prefix << fixId(p->name());
-        _out << sb;
+        // If prefix was not empty than p must be a top level module
+        // Do not include any cs:namespace metadata
+        ns = prefix + "." + fixId(p->name());
+    }
 
+    if(p->hasOnlySubModules())
+    {
+        _namespaceStack.push(ns);
+    }
+    else
+    {
+        _out << nl << "namespace " << ns << sb;
         _namespaceStack.push("");
     }
 }

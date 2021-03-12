@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Net.Security;
-using IceRpc.Interop.ZeroC.Ice;
+using IceRpc.Interop;
 using System.Threading.Tasks;
 
 namespace IceRpc
