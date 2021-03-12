@@ -391,7 +391,7 @@ namespace IceRpc.Tests.ClientServer
                 preferNonSecure: NonSecure.Never);
             closure(server, prx);
         }
-        
+
         internal class GreeterTestService : IAsyncGreeterTestService
         {
             public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
