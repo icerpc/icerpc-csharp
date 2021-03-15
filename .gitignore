@@ -46,8 +46,6 @@ vcproj
 *.swp
 .keychain
 
-
-
 # MSBuild Build System
 [Dd]ebug/
 [Dd]ebugPublic/

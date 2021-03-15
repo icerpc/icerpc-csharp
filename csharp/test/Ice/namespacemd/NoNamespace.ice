@@ -8,6 +8,15 @@
 
 module IceRpc::Test::NamespaceMD::NoNamespace
 {
+
+module N1::N2
+{
+    struct S1
+    {
+        int i;
+    }
+}
+
 class C1
 {
     int i;

@@ -12,7 +12,7 @@ using System.Net.Security;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Interop.ZeroC.Ice;
+using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -121,7 +121,7 @@ namespace IceRpc
         public Instrumentation.ICommunicatorObserver? Observer { get; }
 
         /// <summary>The output mode or format for ToString on Ice proxies when the protocol is ice1. See
-        /// <see cref="IceRpc.Interop.ZeroC.Ice.ToStringMode"/>.</summary>
+        /// <see cref="IceRpc.Interop.ToStringMode"/>.</summary>
         public ToStringMode ToStringMode { get; }
 
         // The communicator's cancellation token is notified of cancellation when the communicator is destroyed.

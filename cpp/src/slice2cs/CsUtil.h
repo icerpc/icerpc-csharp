@@ -20,8 +20,8 @@ std::string fixId(const std::string&, unsigned int = 0);
 // Returns the namespace of a Contained entity.
 std::string getNamespace(const ContainedPtr&);
 
-// Returns the namespace prefix of a Contained entity.
-std::string getNamespacePrefix(const ContainedPtr&);
+// Returns the namespace metadata of a Contained entity.
+std::string getNamespaceMetadata(const ContainedPtr&);
 
 std::string getUnqualified(const std::string&, const std::string&, bool builtin = false);
 std::string getUnqualified(const ContainedPtr&,

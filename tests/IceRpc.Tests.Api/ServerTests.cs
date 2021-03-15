@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop.ZeroC.Ice;
 using NUnit.Framework;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
-    [Parallelizable(scope: ParallelScope.All)]
     public class ServerTests
     {
         [Test]
@@ -17,18 +15,6 @@ namespace IceRpc.Tests.Api
             // A hostname cannot be used with an ephemereal port 0
             Assert.Throws<System.ArgumentException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 0" }));
-
-            // ReplicaGroupId is set but options.AdapterId is not
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator, new ServerOptions() { ReplicaGroupId = "replica-group" }));
-
-            // LocatorRegistry is set but options.AdapterId is not
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     LocatorRegistry = ILocatorRegistryPrx.Parse("default", communicator)
-                                 }));
 
             // Can't be less than 1
             Assert.Throws<System.ArgumentException>(
@@ -41,24 +27,6 @@ namespace IceRpc.Tests.Api
             // IncomingFrameMaxSize cannot be less than 1KB
             Assert.Throws<System.ArgumentException>(
                 () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));
-
-            // AdapterId set for an ice2 server
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     AdapterId = "adapter-id",
-                                     Endpoints = "ice+tcp://localhost:10000"
-                                 }));
-
-            // AdapterId set for an ice2 server
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     AdapterId = "adapter-id",
-                                     Protocol = Protocol.Ice2
-                                 }));
 
             // Server can only accept secure connections
             Assert.Throws<System.ArgumentException>(
@@ -127,7 +95,11 @@ namespace IceRpc.Tests.Api
             {
                  await using var server1 = new Server(
                     communicator,
-                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                    new ServerOptions()
+                    {
+                        ColocationScope = ColocationScope.Communicator,
+                        Endpoints = "ice+tcp://127.0.0.1:15001"
+                    });
 
                 IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
@@ -209,6 +181,16 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(1, server.PublishedEndpoints.Count);
             Assert.IsNotNull(server.PublishedEndpoints[0]);
             Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
+        }
+
+        [TestCase(" :" )]
+        [TestCase("tcp: ")]
+        [TestCase(":tcp")]
+        public async Task Server_InvalidEndpoints(string endpoint)
+        {
+            await using var communicator = new Communicator();
+            Assert.Throws<System.FormatException>(
+                () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
         }
     }
 }

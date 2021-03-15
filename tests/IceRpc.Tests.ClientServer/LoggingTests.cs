@@ -13,7 +13,8 @@ using NUnit.Framework;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(scope: ParallelScope.All)]
+    [Parallelizable(ParallelScope.All)]
+    [Timeout(10000)]
     public class LoggingTests : ClientServerBaseTest
     {
         /// <summary>Check that connection establishment retries are log with IceRpc.Protocol category log level is
@@ -35,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
                 loggerFactory: loggerFactory);
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://localhost/hello", communicator).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             foreach (JsonDocument entry in logEntries)
@@ -72,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
                 loggerFactory: loggerFactory);
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://localhost/hello", communicator).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
 
             Assert.AreEqual("", writer.ToString());
         }

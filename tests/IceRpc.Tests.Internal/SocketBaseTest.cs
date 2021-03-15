@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Internal
             bool secure,
             Action<ServerOptions>? serverOptionsBuilder = null)
         {
-            int port = 12000;
+            int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
             {
                 port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!);

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Net.Security;
-using IceRpc.Interop.ZeroC.Ice;
+using IceRpc.Interop;
 using System.Threading.Tasks;
 
 namespace IceRpc
@@ -20,16 +20,12 @@ namespace IceRpc
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
-        public string AdapterId { get; set; } = ""; // ice1 only
-
         public ColocationScope ColocationScope { get; set; }
 
         // TODO: should it be Endpoint?
         public string Endpoints { get; set; } = "";
 
         public int? IncomingFrameMaxSize { get; set; } // 0 means "infinite", null means use Communicator's value
-
-        public ILocatorRegistryPrx? LocatorRegistry { get; set; } // only for ice1 servers
 
         public int BidirectionalStreamMaxCount { get; set; } = 100;
 
@@ -43,8 +39,6 @@ namespace IceRpc
 
         // TODO: fix default
         public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
-
-        public string ReplicaGroupId { get; set; } = ""; // ice1 only
 
         public TaskScheduler? TaskScheduler { get; set; }
 

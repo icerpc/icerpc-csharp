@@ -5,7 +5,7 @@
 #pragma once
 
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Identity.ice>
+#include <IceRpc/Interop/Identity.ice>
 
 [[suppress-warning(reserved-identifier)]]
 

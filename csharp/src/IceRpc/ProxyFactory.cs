@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop.ZeroC.Ice;
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -118,8 +118,6 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Server server, string path, string facet = "")
             where T : class, IServicePrx
         {
-            string location = server.ReplicaGroupId.Length > 0 ? server.ReplicaGroupId : server.AdapterId;
-
             Protocol protocol =
                 server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
 
@@ -128,36 +126,16 @@ namespace IceRpc
                 throw new ArgumentException("facet must be empty when the protocol is not ice1", nameof(facet));
             }
 
-            if (location.Length > 0 && protocol != Protocol.Ice1)
+            var options = new ServicePrxOptions()
             {
-                throw new ArgumentException("location must be empty when the protocol is not ice1", nameof(facet));
-            }
-
-            if (protocol == Protocol.Ice1)
-            {
-                var options = new ServicePrxOptions()
-                {
-                    Communicator = server.Communicator,
-                    Endpoints = location.Length == 0 ? server.PublishedEndpoints : ImmutableList<Endpoint>.Empty,
-                    Facet = facet,
-                    Location = location,
-                    IsOneway = server.IsDatagramOnly,
-                    Path = UriParser.NormalizePath(path),
-                    Protocol = Protocol.Ice1
-                };
-                return factory.Create(options);
-            }
-            else
-            {
-                var options = new ServicePrxOptions()
-                {
-                    Communicator = server.Communicator,
-                    Endpoints = server.PublishedEndpoints,
-                    Path = UriParser.NormalizePath(path),
-                    Protocol = protocol
-                };
-                return factory.Create(options);
-            }
+                Communicator = server.Communicator,
+                Endpoints = server.PublishedEndpoints,
+                Facet = facet,
+                IsOneway = server.IsDatagramOnly,
+                Path = UriParser.NormalizePath(path),
+                Protocol = protocol
+            };
+            return factory.Create(options);
         }
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>

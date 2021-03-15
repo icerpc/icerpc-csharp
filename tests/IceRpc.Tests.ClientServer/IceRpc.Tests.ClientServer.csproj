@@ -11,6 +11,15 @@
     <Compile Include="..\Shared\TestLogger.cs">
       <Link>TestLogger.cs</Link>
     </Compile>
+    <Compile Update="generated\RetryTests.cs">
+      <SliceCompileSource>RetryTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\SliceDefinitions.cs">
+      <SliceCompileSource>SliceDefinitions.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\ProtocolBridgingTests.cs">
+      <SliceCompileSource>ProtocolBridgingTests.ice</SliceCompileSource>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="generated\StressTests.cs">
@@ -25,7 +34,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1" />
     <PackageReference Include="NUnit" Version="3.13.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
     <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />

@@ -400,8 +400,7 @@ namespace IceRpc
                     // Monitor is still only called every (IdleTimeout / 2) period.
                     _ = Socket.PingAsync(CancellationToken.None);
                 }
-
-                if (idleTime > IdleTimeout)
+                else if (idleTime > IdleTimeout)
                 {
                     if (Socket.OutgoingStreamCount > 0)
                     {
