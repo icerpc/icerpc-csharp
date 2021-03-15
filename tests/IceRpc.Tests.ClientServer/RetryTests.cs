@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string>
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "200ms" }
+                    {"Ice.ConnectTimeout", "1000ms" }
                 });
 
             var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 0, protocol: protocol),
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.ClientServer
             connection.Server = server;
             var bidir = proxy.Clone(fixedConnection: connection);
 
-            Assert.ThrowsAsync< ServiceNotFoundException>(
+            Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
 
             // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection

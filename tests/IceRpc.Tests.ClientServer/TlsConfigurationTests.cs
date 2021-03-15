@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
     public class TlsConfigurationTests : ClientServerBaseTest
     {
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
-        [TestCase("cacert2.p12", "cacert2.p12", "cacert2.pem")] // Using self-signed certs
+        [TestCase("cacert2.p12", "cacert2.p12", "cacert2.der")] // Using self-signed certs
         public async Task TlsConfiguration_With_TlsOptions(
             string clientCertFile,
             string serverCertFile,
@@ -275,7 +275,6 @@ namespace IceRpc.Tests.ClientServer
                 },
                 (server, prx) =>
                 {
-                    Assert.IsTrue(server.Endpoints.All(endpoint => endpoint.Host == targetHost));
                     if ((GetOperatingSystem() & mustSucceed) != 0)
                     {
                         Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
@@ -374,7 +373,7 @@ namespace IceRpc.Tests.ClientServer
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure)
         {
-            await using var serverCommunicator = new Communicator();;
+            await using var serverCommunicator = new Communicator();
             await using var server = new Server(serverCommunicator,
                 new ServerOptions()
                 {
