@@ -36,12 +36,12 @@ namespace IceRpc
         /// <summary>Return the maximum number of bidirectional streams that the peer can open for each
         /// connection.</summary>
         /// <value>The maximum number of bidirectional streams</value>
-        public int MaxBidirectionalStreamCount { get; set; }
+        public int BidirectionalStreamMaxCount { get; set; }
 
         /// <summary>Return the maximum number of unidirectional streams that the peer can open for each
         /// connection.</summary>
         /// <value>The maximum number of unidirectional streams</value>
-        public int MaxUnidirectionalStreamCount { get; set; }
+        public int UnidirectionalStreamMaxCount { get; set; }
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
@@ -136,15 +136,15 @@ namespace IceRpc
                 };
             }
 
-            MaxBidirectionalStreamCount = options.BidirectionalStreamMaxCount;
-            if (MaxBidirectionalStreamCount < 1)
+            BidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
+            if (BidirectionalStreamMaxCount < 1)
             {
                 throw new ArgumentException(
                     $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));
             }
 
-            MaxUnidirectionalStreamCount = options.UnidirectionalStreamMaxCount;
-            if (MaxUnidirectionalStreamCount < 1)
+            UnidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
+            if (UnidirectionalStreamMaxCount < 1)
             {
                 throw new ArgumentException(
                     $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));

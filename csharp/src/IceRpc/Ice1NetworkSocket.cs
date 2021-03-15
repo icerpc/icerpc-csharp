@@ -153,9 +153,9 @@ namespace IceRpc
                     {
                         // Create a new input stream for the request. If serialization is enabled, ensure we acquire
                         // the semaphore first to serialize the dispatching.
+                        stream = new Ice1NetworkSocketStream(this, streamId);
                         try
                         {
-                            stream = new Ice1NetworkSocketStream(this, streamId);
                             AsyncSemaphore? semaphore = stream.IsBidirectional ?
                                 _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
                             if (semaphore != null)
@@ -167,8 +167,8 @@ namespace IceRpc
                         }
                         catch
                         {
-                            // Ignore, if the connection is being closed or the stream has been aborted.
-                            stream?.Release();
+                            // Ignore, if the stream has been aborted.
+                            stream.Release();
                         }
                     }
                     else if (frameType == Ice1FrameType.ValidateConnection)
@@ -220,8 +220,8 @@ namespace IceRpc
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
             if (server != null)
             {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(server.MaxBidirectionalStreamCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(server.MaxUnidirectionalStreamCount);
+                _bidirectionalStreamSemaphore = new AsyncSemaphore(server.BidirectionalStreamMaxCount);
+                _unidirectionalStreamSemaphore = new AsyncSemaphore(server.UnidirectionalStreamMaxCount);
             }
 
             // We use the same stream ID numbering scheme as Quic.

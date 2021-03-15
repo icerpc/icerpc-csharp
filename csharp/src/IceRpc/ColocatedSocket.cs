@@ -18,6 +18,7 @@ namespace IceRpc
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
+        static private readonly object _pingFrame = new();
         private readonly AsyncSemaphore _bidirectionalStreamSemaphore;
         private readonly long _id;
         private readonly object _mutex = new();
@@ -64,17 +65,22 @@ namespace IceRpc
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
                         Debug.Assert(frame != null);
+                        stream = new ColocatedStream(this, streamId);
                         try
                         {
-                            stream = new ColocatedStream(this, streamId);
                             stream.ReceivedFrame(frame, fin);
                             return stream;
                         }
                         catch
                         {
-                            // Ignore, the connection is being closed or the stream got aborted.
-                            stream?.Release();
+                            // Ignore, the stream got aborted.
+                            stream.Release();
                         }
+                    }
+                    else if(streamId == -1)
+                    {
+                        Debug.Assert(frame == _pingFrame);
+                        ReceivedPing();
                     }
                     else
                     {
@@ -115,7 +121,11 @@ namespace IceRpc
             _peerUnidirectionalStreamSemaphore = (AsyncSemaphore?)semaphore;
         }
 
-        public override Task PingAsync(CancellationToken cancel) => Task.CompletedTask;
+        public override async Task PingAsync(CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
+            await _writer.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
+        }
 
         public override string ToString() =>
             $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Server.Name}\nincoming = {IsIncoming}";
@@ -134,8 +144,8 @@ namespace IceRpc
 
             if (!isIncoming)
             {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.MaxBidirectionalStreamCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.MaxUnidirectionalStreamCount);
+                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.BidirectionalStreamMaxCount);
+                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.UnidirectionalStreamMaxCount);
             }
             else
             {
@@ -161,8 +171,9 @@ namespace IceRpc
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore.Complete(exception);
-            _unidirectionalStreamSemaphore.Complete(exception);
+            var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            _bidirectionalStreamSemaphore.Complete(ex);
+            _unidirectionalStreamSemaphore.Complete(ex);
 
             return streamIds;
         }
@@ -189,28 +200,35 @@ namespace IceRpc
             bool fin,
             CancellationToken cancel)
         {
-            try
+            if (stream.IsStarted)
             {
-                if (stream.IsStarted)
+                try
                 {
                     await _writer.WriteAsync((stream.Id, frame, fin), cancel).ConfigureAwait(false);
                 }
-                else
+                catch (Exception ex)
                 {
-                    Debug.Assert(!stream.IsIncoming);
+                    throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                }
+            }
+            else
+            {
+                Debug.Assert(!stream.IsIncoming);
 
-                    if (!stream.IsControl)
-                    {
-                        // Wait on the stream semaphore to ensure that we don't open more streams than the peer
-                        // allows. The wait is done on the client side to ensure the sent callback for the request
-                        // isn't called until the server is ready to dispatch a new request.
-                        AsyncSemaphore semaphore = stream.IsBidirectional ?
-                            _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
-                        await semaphore.EnterAsync(cancel).ConfigureAwait(false);
-                    }
+                if (!stream.IsControl)
+                {
+                    // Wait on the stream semaphore to ensure that we don't open more streams than the peer
+                    // allows. The wait is done on the client side to ensure the sent callback for the request
+                    // isn't called until the server is ready to dispatch a new request.
+                    AsyncSemaphore semaphore = stream.IsBidirectional ?
+                        _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
+                    await semaphore.EnterAsync(cancel).ConfigureAwait(false);
+                }
 
-                    // Ensure we allocate and queue the first stream frame atomically to ensure the receiver won't
-                    // receive stream frames with out-of-order stream IDs.
+                // Ensure we allocate and queue the first stream frame atomically to ensure the receiver won't
+                // receive stream frames with out-of-order stream IDs.
+                try
+                {
                     ValueTask task;
                     lock (_mutex)
                     {
@@ -233,14 +251,10 @@ namespace IceRpc
                     }
                     await task.ConfigureAwait(false);
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                catch (Exception ex)
+                {
+                    throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                }
             }
         }
 

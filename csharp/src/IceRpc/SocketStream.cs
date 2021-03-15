@@ -269,7 +269,7 @@ namespace IceRpc
 
         internal virtual void ReceivedReset(long errorCode) => Reset?.Invoke(errorCode);
 
-        internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel)
+        internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
@@ -335,7 +335,8 @@ namespace IceRpc
             }
         }
 
-        internal async virtual ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
+        internal async virtual ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(
+            CancellationToken cancel = default)
         {
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
@@ -355,7 +356,8 @@ namespace IceRpc
             return request;
         }
 
-        internal async virtual ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
+        internal async virtual ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(
+            CancellationToken cancel = default)
         {
             ArraySegment<byte> data;
             try
@@ -391,7 +393,7 @@ namespace IceRpc
         internal virtual async ValueTask SendGoAwayFrameAsync(
             (long Bidirectional, long Unidirectional) streamIds,
             string reason,
-            CancellationToken cancel)
+            CancellationToken cancel = default)
         {
             var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
@@ -431,7 +433,7 @@ namespace IceRpc
             }
         }
 
-        internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel)
+        internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
         {
             var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
@@ -476,7 +478,7 @@ namespace IceRpc
             }
         }
 
-        internal async ValueTask SendRequestFrameAsync(OutgoingRequestFrame request, CancellationToken cancel)
+        internal async ValueTask SendRequestFrameAsync(OutgoingRequestFrame request, CancellationToken cancel = default)
         {
             try
             {
@@ -500,7 +502,7 @@ namespace IceRpc
 
         internal async ValueTask SendResponseFrameAsync(
             OutgoingResponseFrame response,
-            CancellationToken cancel)
+            CancellationToken cancel = default)
         {
             // Send the response frame.
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
@@ -519,7 +521,7 @@ namespace IceRpc
 
         private protected virtual async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
-            CancellationToken cancel)
+            CancellationToken cancel = default)
         {
             // The default implementation only supports the Ice2 protocol
             Debug.Assert(_socket.Endpoint.Protocol == Protocol.Ice2);
@@ -555,7 +557,9 @@ namespace IceRpc
             return buffer;
         }
 
-        private protected virtual async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
+        private protected virtual async ValueTask SendFrameAsync(
+            OutgoingFrame frame,
+            CancellationToken cancel = default)
         {
             // The default implementation only supports the Ice2 protocol
             Debug.Assert(_socket.Endpoint.Protocol == Protocol.Ice2);
@@ -609,7 +613,7 @@ namespace IceRpc
             }
         }
 
-        private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel)
+        private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {
             // Loop until we received enough data to fully fill the given buffer.
             int offset = 0;

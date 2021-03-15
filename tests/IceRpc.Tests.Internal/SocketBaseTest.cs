@@ -18,14 +18,13 @@ namespace IceRpc.Tests.Internal
     public class SocketBaseTest
     {
         private protected Endpoint ClientEndpoint { get; }
-        private protected Endpoint ServerEndpoint { get; }
-
         private protected bool IsSecure { get; }
+        private protected Server Server { get; }
+        private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
-        private AsyncSemaphore _acceptSemaphore = new(1);
-        private readonly Server _server;
+        private readonly AsyncSemaphore _acceptSemaphore = new(1);
         private readonly Communicator _clientCommunicator;
 
         // Protects the _acceptor data member
@@ -53,7 +52,7 @@ namespace IceRpc.Tests.Internal
                 builder =>
                 {
                     builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
-                    builder.SetMinimumLevel(LogLevel.Debug);
+                    builder.SetMinimumLevel(LogLevel.Information);
                 });
 
             _serverCommunicator = new Communicator(loggerFactory : loggerFactory);
@@ -77,7 +76,7 @@ namespace IceRpc.Tests.Internal
                 }
             };
             serverOptionsBuilder?.Invoke(serverOptions);
-            _server = new(_serverCommunicator, serverOptions);
+            Server = new(_serverCommunicator, serverOptions);
 
             // TODO: support something like communicator/connection option builder
             _clientCommunicator = new Communicator(
@@ -93,12 +92,12 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "colocated")
             {
-                ClientEndpoint = new ColocatedEndpoint(_server);
+                ClientEndpoint = new ColocatedEndpoint(Server);
                 ServerEndpoint = ClientEndpoint;
             }
             else
             {
-                var proxy = IServicePrx.Factory.Create(_server, "dummy");
+                var proxy = IServicePrx.Factory.Create(Server, "dummy");
                 ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
                 ServerEndpoint = IServicePrx.Parse(proxy.ToString()!, _serverCommunicator).Endpoints[0];
             }
@@ -109,7 +108,7 @@ namespace IceRpc.Tests.Internal
         {
             _acceptor?.Dispose();
             await _clientCommunicator.DisposeAsync();
-            await _server.DisposeAsync();
+            await Server.DisposeAsync();
             await _serverCommunicator.DisposeAsync();
         }
 
@@ -124,7 +123,7 @@ namespace IceRpc.Tests.Internal
             {
                 serverEndpoint = (await ServerEndpoint.ExpandHostAsync(default)).First();
             }
-            return serverEndpoint.Acceptor(_server);
+            return serverEndpoint.Acceptor(Server);
         }
 
         protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;

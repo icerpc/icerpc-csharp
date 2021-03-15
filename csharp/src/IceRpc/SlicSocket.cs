@@ -352,9 +352,13 @@ namespace IceRpc
             }
         }
 
-        public override Task PingAsync(CancellationToken cancel) =>
-            // TODO: shall we set a timer for expecting the Pong frame?
-            PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
+        public override Task PingAsync(CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
+            // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
+            // the pong from is received? which timeout to use for expecting the pong frame?
+            return PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
+        }
 
         internal SlicSocket(
             SingleStreamSocket socket,
@@ -374,8 +378,8 @@ namespace IceRpc
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
             if (server != null)
             {
-                _maxBidirectionalStreams = server.MaxBidirectionalStreamCount;
-                _maxUnidirectionalStreams = server.MaxUnidirectionalStreamCount;
+                _maxBidirectionalStreams = server.BidirectionalStreamMaxCount;
+                _maxUnidirectionalStreams = server.UnidirectionalStreamMaxCount;
             }
             else
             {
@@ -403,8 +407,9 @@ namespace IceRpc
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
+            var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            _bidirectionalStreamSemaphore?.Complete(ex);
+            _unidirectionalStreamSemaphore?.Complete(ex);
 
             return streamIds;
         }
@@ -534,7 +539,7 @@ namespace IceRpc
                 {
                     // The stream isn't started so we're responsible for releasing it. No stream reset will be
                     // sent to the peer for streams which are not started.
-                    stream.Release();
+                    stream.ReleaseStreamCount();
                     throw;
                 }
             }
@@ -565,7 +570,7 @@ namespace IceRpc
                 // frame to prevent a race where the peer could start a new stream before the stream count is
                 // decreased by release. If the stream is already released, this indicates that the stream got
                 // reset. In this case, we return since an empty stream last frame has been sent already.
-                if (stream.IsIncoming && fin && !stream.Release())
+                if (stream.IsIncoming && fin && !stream.ReleaseStreamCount())
                 {
                     return;
                 }
