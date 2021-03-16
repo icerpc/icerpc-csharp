@@ -411,7 +411,7 @@ namespace IceRpc
 
                 if (serverEndpoints && !IPAddress.TryParse(uri.Host, out IPAddress? address))
                 {
-                    throw new FormatException($"invalid DNS name in server endpoint `{uri}'");
+                    throw new FormatException($"invalid IP address `{uri.Host}' in server endpoint `{uri}'");
                 }
 
                 Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;

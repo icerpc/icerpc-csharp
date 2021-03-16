@@ -72,7 +72,6 @@ namespace IceRpc.Test.UDP
             }
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
-            Console.WriteLine($"endpoint: {endpoint}");
             Server mcastAdapter = new Server(
                 Communicator,
                 new()
