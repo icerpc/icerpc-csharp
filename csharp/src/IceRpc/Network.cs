@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,9 +9,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -306,27 +304,6 @@ namespace IceRpc
                         s.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.AddMembership, option);
                     }
                 }
-            }
-        }
-
-        internal static string SocketToString(Socket socket, EndPoint? target)
-        {
-            try
-            {
-                EndPoint? remote = GetRemoteAddress(socket);
-
-                var s = new System.Text.StringBuilder();
-                s.Append("local address = " + LocalAddrToString(GetLocalAddress(socket)));
-                if (remote == null)
-                {
-                    remote = target;
-                }
-                s.Append("\nremote address = " + RemoteAddrToString(remote));
-                return s.ToString();
-            }
-            catch (ObjectDisposedException)
-            {
-                return "<closed>";
             }
         }
 

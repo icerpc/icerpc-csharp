@@ -8,7 +8,7 @@ namespace IceRpc
 {
     internal static class ExceptionUtil
     {
-        /// <summary>Rethrows an an exception while preserving its stack trace. This method does not return and
+        /// <summary>Rethrows an exception while preserving its stack trace. This method does not return and
         /// is typically called as <code>throw ExceptionUtil.Throw(ex);</code>.</summary>
         internal static Exception Throw(Exception ex)
         {
