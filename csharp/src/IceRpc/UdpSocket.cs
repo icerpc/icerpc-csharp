@@ -25,7 +25,7 @@ namespace IceRpc
         private const int MaxPacketSize = 65535 - UdpOverhead;
         private const int UdpOverhead = 20 + 8;
 
-        private IPEndPoint _addr;
+        private EndPoint _addr;
         private readonly Communicator _communicator;
         private readonly bool _incoming;
         private readonly string? _multicastInterface;
@@ -37,13 +37,15 @@ namespace IceRpc
             Debug.Assert(_incoming);
             try
             {
+                Debug.Assert(_addr is IPEndPoint);
+                IPEndPoint addr = (IPEndPoint)_addr;
                 ILogger transportLogger = endpoint.Communicator.TransportLogger;
-                if (Network.IsMulticast(_addr))
+                if (Network.IsMulticast(addr.Address))
                 {
-                    Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, false);
+                    Socket.ExclusiveAddressUse = false;
                     Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-                    MulticastAddress = _addr;
+                    MulticastAddress = addr;
                     if (OperatingSystem.IsWindows())
                     {
                         // Windows does not allow binding to the multicast address itself so we bind to INADDR_ANY
@@ -51,11 +53,11 @@ namespace IceRpc
                         // be the multicast address and the client will therefore reject the datagram.
                         if (_addr.AddressFamily == AddressFamily.InterNetwork)
                         {
-                            _addr = new IPEndPoint(IPAddress.Any, _addr.Port);
+                            _addr = new IPEndPoint(IPAddress.Any, addr.Port);
                         }
                         else
                         {
-                            _addr = new IPEndPoint(IPAddress.IPv6Any, _addr.Port);
+                            _addr = new IPEndPoint(IPAddress.IPv6Any, addr.Port);
                         }
                     }
 
@@ -69,9 +71,8 @@ namespace IceRpc
 
                     if (endpoint.Port == 0)
                     {
-                        MulticastAddress.Port = _addr.Port;
+                        MulticastAddress.Port = ((IPEndPoint)_addr).Port;
                     }
-
                     Network.SetMulticastGroup(Socket, MulticastAddress.Address, _multicastInterface);
                 }
                 else
@@ -86,7 +87,7 @@ namespace IceRpc
             }
 
             Debug.Assert(endpoint != null);
-            return endpoint.Clone((ushort)_addr.Port);
+            return endpoint.Clone((ushort)((IPEndPoint)_addr).Port);
         }
 
         public override ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
@@ -96,8 +97,7 @@ namespace IceRpc
                 endpoint.Communicator.TransportLogger.LogStartReceivingDatagrams(
                     endpoint.Transport,
                     Network.LocalAddrToString(Socket),
-                    Network.RemoteAddrToString(Socket),
-                    GetLocalInterfaces());
+                    Network.RemoteAddrToString(Socket));
             }
             return new(this);
         }
@@ -122,8 +122,7 @@ namespace IceRpc
                     endpoint.Communicator.TransportLogger.LogStartSendingDatagrams(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket),
-                        GetLocalInterfaces());
+                        Network.RemoteAddrToString(Socket));
                 }
                 return this;
             }
@@ -254,13 +253,6 @@ namespace IceRpc
                 {
                     sb.Append($"\nmulticast address = {MulticastAddress}");
                 }
-
-                IReadOnlyList<string> interfaces = GetLocalInterfaces();
-                if (interfaces.Count != 0)
-                {
-                    sb.Append("\nlocal interfaces = ");
-                    sb.Append(string.Join(", ", interfaces));
-                }
                 return sb.ToString();
             }
             catch (ObjectDisposedException)
@@ -274,31 +266,39 @@ namespace IceRpc
         // Only for use by UdpEndpoint.
         internal UdpSocket(
             Communicator communicator,
-            EndPoint addr,
+            EndPoint endpoint,
             string? multicastInterface,
             int multicastTtl)
         {
             _communicator = communicator;
-            _addr = (IPEndPoint)addr;
+            _addr = endpoint;
             _multicastInterface = multicastInterface;
             _incoming = false;
 
-            Socket = Network.CreateSocket(true, _addr.AddressFamily);
+            IPEndPoint? ipEndpoint = (endpoint as IPEndPoint);
+            if (ipEndpoint != null)
+            {
+                Socket = Network.CreateSocket(true, ipEndpoint.AddressFamily);
+            }
+            else
+            {
+                Socket = Network.CreateSocket(true, null);
+            }
+
             try
             {
                 Network.SetBufSize(Socket, _communicator, Transport.UDP);
                 _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-
-                if (Network.IsMulticast(_addr))
+                if (ipEndpoint != null && Network.IsMulticast(ipEndpoint.Address))
                 {
                     if (_multicastInterface != null)
                     {
                         Debug.Assert(_multicastInterface.Length > 0);
-                        Network.SetMulticastInterface(Socket, _multicastInterface, _addr.AddressFamily);
+                        Network.SetMulticastInterface(Socket, _multicastInterface, ipEndpoint.AddressFamily);
                     }
                     if (multicastTtl != -1)
                     {
-                        Network.SetMulticastTtl(Socket, multicastTtl, _addr.AddressFamily);
+                        Socket.Ttl = (short)multicastTtl;
                     }
                 }
             }
@@ -342,29 +342,21 @@ namespace IceRpc
                 _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.Logger.IsEnabled(LogLevel.Critical))
             {
-                IReadOnlyList<string> interfaces = GetLocalInterfaces();
                 if (MulticastAddress != null)
                 {
                     return _communicator.Logger.StartMulticastSocketScope(endpoint.Transport,
                                                                           Network.LocalAddrToString(Socket),
-                                                                          MulticastAddress.ToString(),
-                                                                          interfaces);
+                                                                          MulticastAddress.ToString());
                 }
                 else
                 {
                     return _communicator.Logger.StartDatagramSocketScope(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
-                        _peerAddr?.ToString() ?? Network.RemoteAddrToString(Socket),
-                        interfaces);
+                        _peerAddr?.ToString() ?? Network.RemoteAddrToString(Socket));
                 }
             }
             return null;
         }
-
-        private IReadOnlyList<string> GetLocalInterfaces() =>
-            MulticastAddress == null ?
-                Network.GetHostsForEndpointExpand(_addr.ToString(), Network.EnableBoth, true) :
-                Network.GetInterfacesForMulticast(_multicastInterface, Network.GetIPVersion(MulticastAddress.Address));
     }
 }

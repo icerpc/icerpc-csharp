@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
                         throw;
                     }
                 });
-            await server.ActivateAsync();
+            server.Activate();
 
             var prx = server.Add("compress", new CompressService(), ICompressServicePrx.Factory);
 

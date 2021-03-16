@@ -20,7 +20,7 @@ namespace IceRpc.Tests.Api
             server.Use((current, next, cancel) => throw new ArgumentException());
             var service = new TestService();
             var prx = server.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
-            await server.ActivateAsync();
+            server.Activate();
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Api
                 return result;
             });
             var prx = server.AddWithUUID(new TestService(), IServicePrx.Factory);
-            await server.ActivateAsync();
+            server.Activate();
 
             await prx.IcePingAsync();
 

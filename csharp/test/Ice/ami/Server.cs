@@ -14,14 +14,14 @@ namespace IceRpc.Test.AMI
 
             server.Add("test", new TestIntf());
             server.Add("test2", new TestIntf2());
-            await server.ActivateAsync();
+            server.Activate();
 
             var server2 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
 
             server2.Add("serialized", new TestIntf());
-            await server2.ActivateAsync();
+            server2.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

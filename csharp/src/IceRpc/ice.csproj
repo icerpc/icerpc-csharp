@@ -22,20 +22,15 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="generated\IceRpc\Interop\Identity.cs" />
+        <Compile Include="generated\IceRpc\Interop\Locator.cs" />
+        <Compile Include="generated\IceRpc\Interop\Process.cs" />
+        <Compile Include="generated\IceRpc\Interop\Process.cs" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" PrivateAssets="All" />
         <SliceCompile Include="../../../slice/$(AssemblyName)/*.ice" Exclude="../../../slice/$(AssemblyName)/BuiltinSequences.ice;../../../slice/$(AssemblyName)/Context.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)" />
-        <SliceCompile Include="../../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop"/>
+        <SliceCompile Include="../../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop" />
         <Compile Update="generated\IceRpc\Interop\Discovery.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Discovery.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Identity.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\Identity.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Locator.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\Locator.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Process.cs">
-          <SliceCompileSource>..\..\..\slice\Ice\Process.ice</SliceCompileSource>
         </Compile>
         <Compile Update="generated\IceRpc\Encoding.cs">
           <SliceCompileSource>..\..\..\slice\IceRpc\Encoding.ice</SliceCompileSource>
@@ -89,7 +84,15 @@
       </Content>
     </ItemGroup>
     <ItemGroup>
+      <Compile Remove="generated\IceRpc\Interop\Identity.cs" />
+      <Compile Remove="generated\IceRpc\Interop\Locator.cs" />
+      <Compile Remove="generated\IceRpc\Interop\Process.cs" />
+    </ItemGroup>
+    <ItemGroup>
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.0-beta-20204-02" PrivateAssets="All" />
       <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="generated\IceRpc\Interop\" />
     </ItemGroup>
 </Project>

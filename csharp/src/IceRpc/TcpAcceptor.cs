@@ -57,7 +57,7 @@ namespace IceRpc
 
         internal TcpAcceptor(TcpEndpoint endpoint, Server server)
         {
-            Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
+            Debug.Assert(!endpoint.HasDnsHost); // not a DNS name
 
             _server = server;
             _addr = new IPEndPoint(endpoint.Address, endpoint.Port);

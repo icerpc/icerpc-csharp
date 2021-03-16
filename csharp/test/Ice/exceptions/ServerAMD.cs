@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Exceptions
 {
@@ -21,12 +20,12 @@ namespace IceRpc.Test.Exceptions
                 new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
 
             var obj = new AsyncThrower();
-            IceRpc.IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
+            IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
             server2.Add("thrower", obj);
             server3.Add("thrower", obj);
-            await server.ActivateAsync();
-            await server2.ActivateAsync();
-            await server3.ActivateAsync();
+            server.Activate();
+            server2.Activate();
+            server3.Activate();
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
 
@@ -35,7 +34,7 @@ namespace IceRpc.Test.Exceptions
                 new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
 
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
-            await forwarderAdapter.ActivateAsync();
+            forwarderAdapter.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

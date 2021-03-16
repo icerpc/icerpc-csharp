@@ -14,7 +14,7 @@ namespace IceRpc.Test.Slicing.Exceptions
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("Test", new TestIntf());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

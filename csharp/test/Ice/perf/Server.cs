@@ -13,7 +13,7 @@ namespace IceRpc.Test.Perf
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("perf", new PerformanceI());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

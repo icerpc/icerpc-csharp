@@ -18,9 +18,12 @@
     <Compile Include="../../FI.cs" />
     <Compile Include="../../HI.cs" />
     <Compile Include="../../Collocated.cs" />
-    <Compile Include="generated/Test.cs">
-      <SliceCompileSource>../../../Test.ice</SliceCompileSource>
+    <Compile Include="generated\Test.cs">
+      <SliceCompileSource>../../Test.ice</SliceCompileSource>
     </Compile>
     <SliceCompile Include="../../Test.ice" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="generated\" />
   </ItemGroup>
 </Project>

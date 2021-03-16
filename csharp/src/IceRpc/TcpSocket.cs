@@ -92,8 +92,7 @@ namespace IceRpc
             try
             {
                 // Bind the socket to the source address if one is set.
-                IPAddress? sourceAddress = (endpoint as IPEndpoint)?.SourceAddress;
-                if (sourceAddress != null)
+                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
                 {
                     Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
@@ -209,11 +208,19 @@ namespace IceRpc
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
-        internal TcpSocket(Communicator communicator, EndPoint addr)
+        internal TcpSocket(Communicator communicator, EndPoint endpoint)
         {
             _communicator = communicator;
-            _addr = addr;
-            Socket = Network.CreateSocket(false, _addr.AddressFamily);
+            _addr = endpoint;
+            if (endpoint is IPEndPoint ipEndpoint)
+            {
+                Socket = Network.CreateSocket(false, ipEndpoint.AddressFamily);
+            }
+            else
+            {
+                Socket = Network.CreateSocket(false, null);
+            }
+
             try
             {
                 Network.SetBufSize(Socket, _communicator, Transport.TCP);

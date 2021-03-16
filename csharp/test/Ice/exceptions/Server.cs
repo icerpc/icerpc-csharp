@@ -22,16 +22,16 @@ namespace IceRpc.Test.Exceptions
             IceRpc.IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
             server2.Add("thrower", obj);
             server3.Add("thrower", obj);
-            await server.ActivateAsync();
-            await server2.ActivateAsync();
-            await server3.ActivateAsync();
+            server.Activate();
+            server2.Activate();
+            server3.Activate();
 
             await using var communicator2 = new Communicator(Communicator.GetProperties());
             await using var forwarderAdapter = new Server(
                 communicator2,
                 new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
-            await forwarderAdapter.ActivateAsync();
+            forwarderAdapter.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

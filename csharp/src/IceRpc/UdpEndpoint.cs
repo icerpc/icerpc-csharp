@@ -129,11 +129,11 @@ namespace IceRpc
         }
 
         protected internal override Connection CreateConnection(
-            IPEndPoint address,
             object? label,
             CancellationToken cancel)
         {
-            UdpSocket socket = new(Communicator, address, MulticastInterface, MulticastTtl);
+            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            UdpSocket socket = new(Communicator, endpoint, MulticastInterface, MulticastTtl);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
         }
 
@@ -197,16 +197,19 @@ namespace IceRpc
                 multicastInterface = argument ?? throw new FormatException(
                     $"no argument provided for --interface option in endpoint `{endpointString}'");
 
-                if (multicastInterface == "*")
+                if (serverEndpoint)
                 {
-                    if (serverEndpoint)
-                    {
-                        multicastInterface = null;
-                    }
-                    else
-                    {
-                        throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
-                    }
+                    multicastInterface = null;
+                }
+                else if (multicastInterface == "*")
+                {
+                    throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
+                }
+                else if(!IPAddress.TryParse(host, out IPAddress? address) || !Network.IsMulticast(address))
+                {
+                    throw new FormatException(
+                        $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
+                        endpointString}'");
                 }
                 options.Remove("--interface");
             }

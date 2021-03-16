@@ -13,7 +13,7 @@ namespace IceRpc.Test.DictMapping
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("test", new AsyncMyClass());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

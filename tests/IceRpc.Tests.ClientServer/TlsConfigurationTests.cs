@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
     public class TlsConfigurationTests : ClientServerBaseTest
     {
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
-        [TestCase("cacert2.p12", "cacert2.p12", "cacert2.pem")] // Using self-signed certs
+        [TestCase("cacert2.p12", "cacert2.p12", "cacert2.der")] // Using self-signed certs
         public async Task TlsConfiguration_With_TlsOptions(
             string clientCertFile,
             string serverCertFile,
@@ -245,12 +245,12 @@ namespace IceRpc.Tests.ClientServer
         // a DNS altName that does not matches the target host
         [TestCase("s_rsa_ca1_cn5.p12", "localhost", OperatingSystem.None)]
         // Target host matches the certificate IP altName
-        [TestCase("s_rsa_ca1_cn6.p12", "127.0.0.1", OperatingSystem.All)]
+        [TestCase("s_rsa_ca1_cn6.p12", "::1", OperatingSystem.All)]
         // Target host does not match the certificate IP altName
-        [TestCase("s_rsa_ca1_cn7.p12", "127.0.0.1", OperatingSystem.None)]
+        [TestCase("s_rsa_ca1_cn7.p12", "::1", OperatingSystem.None)]
         // Target host is an IP address that matches the CN and the certificate doesn't include an IP
         // altName
-        [TestCase("s_rsa_ca1_cn8.p12", "127.0.0.1", OperatingSystem.All & ~OperatingSystem.MacOS)]
+        [TestCase("s_rsa_ca1_cn8.p12", "::1", OperatingSystem.All & ~OperatingSystem.MacOS)]
         public async Task TlsConfiguration_HostnameVerification(
             string serverCertFile,
             string targetHost,
@@ -275,7 +275,6 @@ namespace IceRpc.Tests.ClientServer
                 },
                 (server, prx) =>
                 {
-                    Assert.IsTrue(server.Endpoints.All(endpoint => endpoint.Host == targetHost));
                     if ((GetOperatingSystem() & mustSucceed) != 0)
                     {
                         Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
@@ -374,20 +373,20 @@ namespace IceRpc.Tests.ClientServer
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure)
         {
-            await using var serverCommunicator = new Communicator();;
+            await using var serverCommunicator = new Communicator(); ;
             await using var server = new Server(serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(hostname ?? "127.0.0.1"),
+                    Endpoints = GetTestEndpoint("::1"),
                     AcceptNonSecure = NonSecure.Never,
                     AuthenticationOptions = tlsServerOptions
                 });
 
             server.Add("hello", new GreeterTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
-            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "127.0.0.1"), clientCommunicator).Clone(
+            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator).Clone(
                 preferNonSecure: NonSecure.Never);
             closure(server, prx);
         }

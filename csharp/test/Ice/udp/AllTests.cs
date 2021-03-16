@@ -74,7 +74,7 @@ namespace IceRpc.Test.UDP
             var replyI = new PingReplyI();
             IPingReplyPrx reply = server.AddWithUUID(replyI, IPingReplyPrx.Factory)
                 .Clone(oneway: true, preferNonSecure: NonSecure.Always);
-            await server.ActivateAsync();
+            server.Activate();
 
             Console.Out.Write("testing udp... ");
             Console.Out.Flush();

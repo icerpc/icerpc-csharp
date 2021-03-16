@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 
 namespace IceRpc
 {
@@ -99,9 +100,14 @@ namespace IceRpc
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
+        /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
+        /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
-        internal static IReadOnlyList<Endpoint> ParseEndpoints(string uriString, Communicator communicator) =>
-            Parse(uriString, serverEndpoints: true, communicator).Endpoints;
+        internal static IReadOnlyList<Endpoint> ParseEndpoints(
+            string uriString,
+            Communicator communicator,
+            bool serverEndpoints = true) =>
+            Parse(uriString, serverEndpoints, communicator).Endpoints;
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
@@ -402,6 +408,11 @@ namespace IceRpc
 
                 (Uri uri, string? altEndpoint, ProxyOptions proxyOptions) =
                     InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
+
+                if (serverEndpoints && !IPAddress.TryParse(uri.Host, out IPAddress? address))
+                {
+                    throw new FormatException($"cannot use a DNS name in a server endpoint `{uri}'");
+                }
 
                 Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
 

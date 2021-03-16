@@ -59,7 +59,7 @@ namespace IceRpc
 
             foreach ((TKey key, TValue value) in lhs)
             {
-                if (!rhs.TryGetValue(key, out TValue rhsValue) || !valueComparer.Equals(value, rhsValue))
+                if (!rhs.TryGetValue(key, out TValue? rhsValue) || !valueComparer.Equals(value, rhsValue))
                 {
                     return false;
                 }

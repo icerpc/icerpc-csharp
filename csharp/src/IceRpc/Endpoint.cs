@@ -83,8 +83,7 @@ namespace IceRpc
         /// <summary>Gets the default port of this endpoint.</summary>
         protected internal abstract ushort DefaultPort { get; }
 
-        /// <summary>Returns true when Host is a DNS name that needs to be resolved; otherwise, returns false.
-        /// When a derived implementation returns true, it must override <see cref="ExpandHostAsync"/>.</summary>
+        /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
 
         /// <summary>Indicates whether or not this endpoint has options with non default values that ToString would
@@ -197,12 +196,6 @@ namespace IceRpc
         /// clients.</summary>
         /// <returns>The datagram server side connection.</returns>
         public abstract Connection CreateDatagramServerConnection(Server server);
-
-        /// <summary>Expands endpoint into separate endpoints for each IP address returned by the DNS resolver.
-        /// Precondition: <see cref="HasDnsHost"/> is true.</summary>
-        /// <returns>A value task holding the expanded endpoints.</returns>
-        protected internal virtual ValueTask<IEnumerable<Endpoint>> ExpandHostAsync(CancellationToken cancel) =>
-            throw new NotImplementedException();
 
         /// <summary>Returns the published endpoint for this server endpoint.</summary>
         /// <param name="publishedHost">The host portion of the published endpoint when the endpoint's type supports

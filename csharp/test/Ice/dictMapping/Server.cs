@@ -12,7 +12,7 @@ namespace IceRpc.Test.DictMapping
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("test", new MyClass());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

@@ -10,9 +10,12 @@
     <Compile Include="../../../../TestCommon/TestHelper.cs" />
     <Compile Include="../../AllTests.cs" />
     <Compile Include="../../Client.cs" />
-    <Compile Include="generated/Test.cs">
-      <SliceCompileSource>../../../Test.ice</SliceCompileSource>
+    <Compile Include="generated\Test.cs">
+      <SliceCompileSource>../../Test.ice</SliceCompileSource>
     </Compile>
     <SliceCompile Include="../../Test.ice" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="generated\" />
   </ItemGroup>
 </Project>

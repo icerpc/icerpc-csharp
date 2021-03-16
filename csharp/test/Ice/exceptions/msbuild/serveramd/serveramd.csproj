@@ -11,6 +11,9 @@
     <Compile Include="../../ThrowerAMDI.cs" />
     <Compile Include="../../EmptyI.cs" />
     <Compile Include="../../ServerAMD.cs" />
+    <Compile Include="generated\Test.cs">
+      <SliceCompileSource>../../Test.ice</SliceCompileSource>
+    </Compile>
     <SliceCompile Include="../../Test.ice" />
   </ItemGroup>
 </Project>
