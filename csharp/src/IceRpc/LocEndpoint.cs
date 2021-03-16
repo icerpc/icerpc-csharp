@@ -69,8 +69,21 @@ namespace IceRpc
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
-        internal static LocEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol) =>
-            new(data, communicator, protocol);
+        internal static LocEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol)
+        {
+            // Drop all options we don't understand.
+
+            if (protocol == Protocol.Ice1 && data.Options.Length > 1)
+            {
+                // Well-known proxy.
+                data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
+            }
+            else if (protocol != Protocol.Ice1 && data.Options.Length > 0)
+            {
+                data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
+            }
+            return new(data, communicator, protocol);
+        }
 
         // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
 

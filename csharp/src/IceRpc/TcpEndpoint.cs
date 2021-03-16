@@ -157,9 +157,15 @@ namespace IceRpc
                                    istr.Communicator!);
         }
 
-        internal static TcpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol) =>
-            // Drop all options since we don't understand any.
-            new(new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>()), communicator, protocol);
+        internal static TcpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+        {
+            if (data.Options.Length > 0)
+            {
+                // Drop all options since we don't understand any.
+                data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
+            }
+            return new(data, communicator, protocol);
+        }
 
         internal static TcpEndpoint ParseIce1Endpoint(
             Transport transport,

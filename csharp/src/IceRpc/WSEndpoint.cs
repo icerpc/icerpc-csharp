@@ -84,16 +84,13 @@ namespace IceRpc
 
         internal static new WSEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
         {
-            string[] options = data.Options;
-            if (options.Length > 1)
+            if (data.Options.Length > 1)
             {
-                // Drop extra options since we don't understand them.
-                options = new string[] { options[0] };
+                // Drop options we don't understand
+                data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
             }
 
-            return new WSEndpoint(new EndpointData(data.Transport, data.Host, data.Port, options),
-                                  communicator,
-                                  protocol);
+            return new(data, communicator, protocol);
         }
 
         internal static new WSEndpoint ParseIce1Endpoint(

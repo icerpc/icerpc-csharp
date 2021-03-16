@@ -89,7 +89,7 @@ namespace IceRpc
             Debug.Assert(false); // WriteOptions is only for ice1.
 
         internal static UniversalEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol) =>
-            new UniversalEndpoint(data, communicator, protocol);
+            new(data, communicator, protocol);
 
         internal static UniversalEndpoint Parse(
             Transport transport,
