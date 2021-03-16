@@ -15,9 +15,4 @@
   <ItemGroup>
     <ProjectReference Include="../base/base.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="generated\User.cs">
-      <SliceCompileSource>../../User.ice</SliceCompileSource>
-    </Compile>
-  </ItemGroup>
 </Project>

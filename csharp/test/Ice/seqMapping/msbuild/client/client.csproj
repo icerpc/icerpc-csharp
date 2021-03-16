@@ -13,9 +13,6 @@
     <Compile Include="../../Twoways.cs" />
     <Compile Include="../../TwowaysAMI.cs" />
     <Compile Include="..\..\Custom.cs" Link="Custom.cs" />
-    <Compile Include="generated\Test.cs">
-      <SliceCompileSource>..\..\Test.ice</SliceCompileSource>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <SliceCompile Include="..\..\Test.ice" Link="Test.ice" />
