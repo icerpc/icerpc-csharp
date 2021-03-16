@@ -131,7 +131,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            UdpSocket socket = new(Communicator, endpoint, MulticastInterface, MulticastTtl);
+            var socket = new UdpSocket(Communicator, endpoint, MulticastInterface, MulticastTtl);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
         }
 
@@ -197,7 +197,7 @@ namespace IceRpc
 
                 if (serverEndpoint)
                 {
-                    multicastInterface = null;
+                    throw new FormatException($"invalid `--interface' option in server endpoint `{endpointString}'");
                 }
                 else if (multicastInterface == "*")
                 {

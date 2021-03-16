@@ -247,8 +247,7 @@ namespace IceRpc
                 {
                     if (!IPAddress.TryParse(host, out IPAddress? _))
                     {
-                        throw new FormatException($@"cannot use a DNS name with `-h' option in a server endpoint `{
-                                                  endpointString}'");
+                        throw new FormatException($"invalid DNS name in server endpoint `{endpointString}'");
                     }
                 }
                 else if (IPAddress.TryParse(host, out IPAddress? address) &&

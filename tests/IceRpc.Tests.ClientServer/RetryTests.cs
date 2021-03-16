@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
                     retry = retry.Clone(invocationTimeout: Timeout.InfiniteTimeSpan);
                     long elapsedMilliseconds = await retry.OpRetryAfterDelayAsync(1, 100);
                     Assert.AreEqual(2, service.Attempts);
-                    Assert.IsTrue(elapsedMilliseconds > 100);
+                    Assert.IsTrue(elapsedMilliseconds >= 100);
                 });
         }
 
