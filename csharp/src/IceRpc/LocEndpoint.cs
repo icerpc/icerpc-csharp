@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,11 +66,35 @@ namespace IceRpc
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for a loc endpoint");
 
-        protected internal override void WriteOptions(OutputStream ostr) =>
-            Debug.Assert(false); // We don't use the regular ice1 endpoint syntax for loc endpoints.
+        protected internal override void WriteOptions11(OutputStream ostr) =>
+            Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
         internal static LocEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol) =>
             new(data, communicator, protocol);
+
+        // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Microsoft.Performance",
+            "CA1801: Review unused parameters",
+            Justification = "Must match signature of Ice2EndpointParser")]
+        internal static LocEndpoint ParseIce2Endpoint(
+            Transport transport,
+            string host,
+            ushort port,
+            Dictionary<string, string> options,
+            Communicator communicator,
+            bool serverEndpoint)
+        {
+            Debug.Assert(transport == Transport.Loc);
+
+            if (serverEndpoint)
+            {
+                throw new NotSupportedException("cannot create a server-side loc endpoint");
+            }
+
+            return new(new EndpointData(transport, host, port, Array.Empty<string>()), communicator, Protocol.Ice2);
+        }
 
         // Constructor
         private LocEndpoint(EndpointData data, Communicator communicator, Protocol protocol)

@@ -134,10 +134,10 @@ namespace IceRpc
         protected internal override bool IsEquivalent(Endpoint? other) =>
             ReferenceEquals(this, other) || base.Equals(other);
 
-        protected internal override void WriteOptions(OutputStream ostr)
+        protected internal override void WriteOptions11(OutputStream ostr)
         {
-            Debug.Assert(Protocol == Protocol.Ice1);
-            base.WriteOptions(ostr);
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
+            base.WriteOptions11(ostr);
             ostr.WriteInt((int)Timeout.TotalMilliseconds);
             ostr.WriteBool(HasCompressionFlag);
         }
@@ -157,14 +157,9 @@ namespace IceRpc
                                    istr.Communicator!);
         }
 
-        internal static TcpEndpoint CreateIce2Endpoint(EndpointData data, Communicator communicator)
-        {
-            Debug.Assert(data.Transport == Transport.TCP);
-
+        internal static TcpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol) =>
             // Drop all options since we don't understand any.
-            return new TcpEndpoint(new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>()),
-                                   communicator);
-        }
+            new(new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>()), communicator, protocol);
 
         internal static TcpEndpoint ParseIce1Endpoint(
             Transport transport,
@@ -263,9 +258,9 @@ namespace IceRpc
             HasCompressionFlag = compress;
         }
 
-        // Constructor for ice2 unmarshaling.
-        private protected TcpEndpoint(EndpointData data, Communicator communicator)
-            : base(data, communicator, Protocol.Ice2)
+        // Constructor for unmarshaling with the 2.0 encoding.
+        private protected TcpEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+            : base(data, communicator, protocol)
         {
         }
 

@@ -47,7 +47,7 @@ module IceRpc
         iAPS = 9,
     }
 
-    /// The "on-the-wire" representation of an endpoint for the ice2 protocol.
+    /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
     struct EndpointData
     {

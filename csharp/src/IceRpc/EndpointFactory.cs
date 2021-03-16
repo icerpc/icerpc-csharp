@@ -4,6 +4,13 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
+    /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
+    /// <param name="data">The endpoint's data.</param>
+    /// <param name="communicator">The communicator.</param>
+    /// <param name="protocol">The endpoint's protocol.</param>
+    /// <returns>A new endpoint.</returns>
+    public delegate Endpoint EndpointFactory(EndpointData data, Communicator communicator, Protocol protocol);
+
     /// <summary>Creates an ice1 endpoint from an <see cref="InputStream"/> stream.</summary>
     /// <param name="transport">The transport of the endpoint previously read from the stream.</param>
     /// <param name="istr">The stream to read from.</param>
@@ -25,12 +32,6 @@ namespace IceRpc
         Communicator communicator,
         bool serverEndpoint,
         string endpointString);
-
-    /// <summary>Creates an ice2 endpoint from an <see cref="EndpointData"/> struct.</summary>
-    /// <param name="data">The endpoint's data.</param>
-    /// <param name="communicator">The communicator.</param>
-    /// <returns>A new endpoint for the ice2 protocol.</returns>
-    public delegate Endpoint Ice2EndpointFactory(EndpointData data, Communicator communicator);
 
     /// <summary>Creates an ice2 endpoint from a parsed URI.</summary>
     /// <param name="transport">The transport of the new endpoint.</param>

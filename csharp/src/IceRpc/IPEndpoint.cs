@@ -146,9 +146,9 @@ namespace IceRpc
             object? label,
             CancellationToken cancel);
 
-        protected internal override void WriteOptions(OutputStream ostr)
+        protected internal override void WriteOptions11(OutputStream ostr)
         {
-            Debug.Assert(Protocol == Protocol.Ice1);
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             ostr.WriteString(Host);
             ostr.WriteInt(Port);
         }
@@ -158,19 +158,16 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 Debug.Assert(Host.Length > 0);
-
+                sb.Append(" -h ");
+                bool addQuote = Host.IndexOf(':') != -1;
+                if (addQuote)
                 {
-                    sb.Append(" -h ");
-                    bool addQuote = Host.IndexOf(':') != -1;
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(Host);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
+                    sb.Append('"');
+                }
+                sb.Append(Host);
+                if (addQuote)
+                {
+                    sb.Append('"');
                 }
 
                 sb.Append(" -p ");
@@ -184,7 +181,7 @@ namespace IceRpc
                 if (SourceAddress != null)
                 {
                     string sourceAddr = SourceAddress.ToString();
-                    bool addQuote = sourceAddr.IndexOf(':') != -1;
+                    addQuote = sourceAddr.IndexOf(':') != -1;
                     sb.Append(" --sourceAddress ");
                     if (addQuote)
                     {

@@ -84,9 +84,8 @@ namespace IceRpc.Test.Proxy
                 var ice1Prx = IServicePrx.Parse(
                     "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000", communicator);
 
-                // TODO
-                // var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice1Prx);
-                // TestHelper.Assert(ice1Prx.Equals(prx));
+                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice1Prx);
+                TestHelper.Assert(ice1Prx.Equals(prx));
                 output.WriteLine("ok");
             }
 

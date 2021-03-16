@@ -293,7 +293,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint(endpoint));
+                    ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
                 }
             }
             else

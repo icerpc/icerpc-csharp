@@ -1075,86 +1075,65 @@ namespace IceRpc
             return (size, encoding);
         }
 
-        /// <summary>Reads an endpoint from the stream.</summary>
+        /// <summary>Reads an endpoint from the stream. Only called when the stream uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint read from the stream.</returns>
-        internal Endpoint ReadEndpoint(Protocol protocol)
+        internal Endpoint ReadEndpoint11(Protocol protocol)
         {
             Debug.Assert(Communicator != null);
+            Debug.Assert(OldEncoding);
+
             Endpoint endpoint;
 
-            if (protocol == Protocol.Ice1 || OldEncoding)
+            Transport transport = this.ReadTransport();
+            (int size, Encoding encoding) = ReadEncapsulationHeader(checkFullBuffer: false);
+
+            Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
+                Communicator.FindIce1EndpointFactory(transport) : null;
+
+            // Remove the two bytes of the encoding included in size. Endpoint encapsulations don't include a
+            // compression byte.
+            size -= 2;
+
+            // We need to read the encapsulation except for ice1 + null factory.
+            if (protocol == Protocol.Ice1 && ice1Factory == null)
             {
-                Transport transport = this.ReadTransport();
-                (int size, Encoding encoding) = ReadEncapsulationHeader(checkFullBuffer: false);
-
-                Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
-                    Communicator.FindIce1EndpointFactory(transport) : null;
-
-                // Remove the two bytes of the encoding included in size. Endpoint encapsulations don't include a
-                // compression byte.
-                size -= 2;
-
-                // We need to read the encapsulation except for ice1 + null factory.
-                if (protocol == Protocol.Ice1 && ice1Factory == null)
+                endpoint = OpaqueEndpoint.Create(transport,
+                                                 encoding,
+                                                 _buffer.Slice(Pos, size),
+                                                 Communicator);
+                Pos += size;
+            }
+            else if (encoding == Encoding.V11) // i.e. all in same encoding
+            {
+                int oldPos = Pos;
+                if (protocol == Protocol.Ice1)
                 {
-                    endpoint = OpaqueEndpoint.Create(transport,
-                                                     encoding,
-                                                     _buffer.Slice(Pos, size),
-                                                     Communicator);
-                    Pos += size;
-                }
-                else if (encoding.IsSupported)
-                {
-                    int oldPos = Pos;
-
-                    // The common situation is an ice1 proxy in 1.1 encapsulation, with endpoints encoded with 1.1 (no
-                    // need to create a new InputStream). A less common situation is an ice1 proxy in 2.0 encapsulation
-                    // with 1.1-encoded endpoints (we need a new InputStream in this case).
-                    InputStream istr = encoding == Encoding ?
-                        this : new InputStream(_buffer.Slice(Pos, size), encoding, Communicator);
-
-                    if (protocol == Protocol.Ice1)
-                    {
-                        Debug.Assert(ice1Factory != null); // see if block above with OpaqueEndpoint creation
-                        endpoint = ice1Factory(transport, istr);
-                    }
-                    else
-                    {
-                        var data = new EndpointData(transport,
-                                                    host: istr.ReadString(),
-                                                    port: istr.ReadUShort(),
-                                                    options: istr.ReadArray(1, IceReaderIntoString));
-
-                        endpoint = data.ToEndpoint(Communicator, protocol);
-                    }
-
-                    if (ReferenceEquals(istr, this))
-                    {
-                        // Make sure we read the full encapsulation.
-                        if (Pos != oldPos + size)
-                        {
-                            throw new InvalidDataException(
-                                $"{oldPos + size - Pos} bytes left in endpoint encapsulation");
-                        }
-                    }
-                    else
-                    {
-                        istr.CheckEndOfBuffer(skipTaggedParams: false);
-                        Pos += size;
-                    }
+                    Debug.Assert(ice1Factory != null); // see if block above with OpaqueEndpoint creation
+                    endpoint = ice1Factory(transport, this);
                 }
                 else
                 {
-                    string transportName = transport.ToString().ToLowerInvariant();
-                    throw new InvalidDataException(
-                        @$"cannot read endpoint for protocol `{protocol.GetName()}' and transport `{transportName
-                        }' with endpoint encapsulation encoded with encoding `{encoding}'");
+                    var data = new EndpointData(transport,
+                                                host: ReadString(),
+                                                port: ReadUShort(),
+                                                options: ReadArray(1, IceReaderIntoString));
+
+                    endpoint = data.ToEndpoint(Communicator, protocol);
+                }
+
+                // Make sure we read the full encapsulation.
+                if (Pos != oldPos + size)
+                {
+                    throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
                 }
             }
             else
             {
-                endpoint = new EndpointData(this).ToEndpoint(Communicator, protocol);
+                string transportName = transport.ToString().ToLowerInvariant();
+                throw new InvalidDataException(
+                    @$"cannot read endpoint for protocol `{protocol.GetName()}' and transport `{transportName
+                    }' with endpoint encapsulation encoded with encoding `{encoding}'");
             }
 
             return endpoint;

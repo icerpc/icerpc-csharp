@@ -85,7 +85,7 @@ namespace IceRpc
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for universal endpoint");
 
-        protected internal override void WriteOptions(OutputStream ostr) =>
+        protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // WriteOptions is only for ice1.
 
         internal static UniversalEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol) =>

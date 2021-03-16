@@ -137,12 +137,16 @@ namespace IceRpc
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
         }
 
-        protected internal override void WriteOptions(OutputStream ostr)
+        protected internal override void WriteOptions11(OutputStream ostr)
         {
-            Debug.Assert(Protocol == Protocol.Ice1);
-            base.WriteOptions(ostr);
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
+            base.WriteOptions11(ostr);
             ostr.WriteBool(_hasCompressionFlag);
         }
+
+        internal static UdpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol) =>
+            // Drop all options since we don't understand any.
+            new(new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>()), communicator, protocol);
 
         internal static UdpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
@@ -225,6 +229,12 @@ namespace IceRpc
         private UdpEndpoint(EndpointData data, bool compress, Communicator communicator)
             : base(data, communicator, Protocol.Ice1) =>
             _hasCompressionFlag = compress;
+
+        // Constructor for unmarshaling with the 2.0 encoding.
+        private UdpEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+            : base(data, communicator, protocol)
+        {
+        }
 
         // Constructor for ice1 parsing
         private UdpEndpoint(

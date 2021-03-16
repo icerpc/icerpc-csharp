@@ -523,13 +523,13 @@ namespace IceRpc
                     };
 
                     var ostr = new OutputStream(Ice1Definitions.Encoding, bufferList);
-                    ostr.WriteEndpoint(opaqueEndpoint);
+                    ostr.WriteEndpoint11(opaqueEndpoint);
                     ostr.Finish();
                     Debug.Assert(bufferList.Count == 1);
                     Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
                     return new InputStream(bufferList[0], Ice1Definitions.Encoding, communicator).
-                        ReadEndpoint(Protocol.Ice1);
+                        ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {
