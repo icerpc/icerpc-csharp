@@ -377,7 +377,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://tcphost:10000/test?source-address=10.10.10.10" +
                   "&alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
         [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
-                  "--sourceAddress 10.10.10.10: udp -h udphost -p 10001 --interface eth0 --ttl 5 " +
+                  "--sourceAddress 10.10.10.10: udp -h 239.255.1.1 -p 10001 --interface eth0 --ttl 5 " +
                   "--sourceAddress 10.10.10.10:opaque -e 1.8 -t 100 -v ABCD")]
         public void Proxy_EndpointInformation(string prx)
         {
@@ -402,7 +402,7 @@ namespace IceRpc.Tests.Api
             if (p1.Protocol == Protocol.Ice1)
             {
                 Endpoint udpEndpoint = endps[1];
-                Assert.AreEqual("udphost", udpEndpoint.Host);
+                Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
                 Assert.AreEqual(10001, udpEndpoint.Port);
                 Assert.AreEqual("eth0", udpEndpoint["interface"]);
                 Assert.AreEqual("5", udpEndpoint["ttl"]);

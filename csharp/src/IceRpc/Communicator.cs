@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,9 +15,6 @@ using System.Net.Security;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Interop;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc
 {

@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -57,7 +57,7 @@ namespace IceRpc
 
         internal TcpAcceptor(TcpEndpoint endpoint, Server server)
         {
-            Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
+            Debug.Assert(!endpoint.HasDnsHost); // not a DNS name
 
             _server = server;
             _addr = new IPEndPoint(endpoint.Address, endpoint.Port);

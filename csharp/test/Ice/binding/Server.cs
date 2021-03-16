@@ -19,7 +19,7 @@ namespace IceRpc.Test.Binding
                 });
 
             server.Add("communicator", new RemoteCommunicator());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

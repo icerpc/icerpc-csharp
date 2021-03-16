@@ -16,7 +16,7 @@ namespace IceRpc.Test.Objects
             server.Add("F21", new F2());
             var uoet = new UnexpectedObjectExceptionTest();
             server.Add("uoet", uoet);
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

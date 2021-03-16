@@ -22,7 +22,7 @@ namespace IceRpc.Test.Echo
             var blob = new BlobjectI();
             server.AddDefault(blob);
             server.Add("__echo", new Echo());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

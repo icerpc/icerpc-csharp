@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -174,19 +174,19 @@ namespace IceRpc
                 new EventId(SentData, nameof(SentData)),
                 "sent {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, string, string, string, IReadOnlyList<string>, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define<string, string, string, IReadOnlyList<string>>(
+        private static readonly Action<ILogger, string, string, string, Exception> _startReceivingDatagrams =
+            LoggerMessage.Define<string, string, string>(
                 LogLevel.Debug,
                 new EventId(StartReceivingDatagrams, nameof(StartReceivingDatagrams)),
                 "starting to receive {Transport} datagrams: local address = {LocalAddress}, " +
-                "peer address = {PeerAddress}, local interfaces = {LocalInterfaces}");
+                "peer address = {PeerAddress}");
 
-        private static readonly Action<ILogger, string, string, string, IReadOnlyList<string>, Exception> _startSendingDatagrams =
-            LoggerMessage.Define<string, string, string, IReadOnlyList<string>>(
+        private static readonly Action<ILogger, string, string, string, Exception> _startSendingDatagrams =
+            LoggerMessage.Define<string, string, string>(
                 LogLevel.Debug,
                 new EventId(StartSendingDatagrams, nameof(StartSendingDatagrams)),
                 "starting to send {Transport} datagrams: local address = {LocalAddress}, " +
-                "peer address = {PeerAddress}, local interfaces = {LocalInterfaces}");
+                "peer address = {PeerAddress}");
 
         private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
@@ -321,15 +321,13 @@ namespace IceRpc
             LoggerMessage.DefineScope<string, string, string>(
                 "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress})");
 
-        private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _datagramSocketScope =
-            LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
-                "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress}, " +
-                "interfaces = {Interfaces})");
+        private static readonly Func<ILogger, string, string, string, IDisposable> _datagramSocketScope =
+            LoggerMessage.DefineScope<string, string, string>(
+                "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress}");
 
-        private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _multicastSocketScope =
-            LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
-                "socket({Transport}, local address = {LocalAddress}, multicast address =  {PeerAddress}, " +
-                "interfaces = {Interfaces})");
+        private static readonly Func<ILogger, string, string, string, IDisposable> _multicastSocketScope =
+            LoggerMessage.DefineScope<string, string, string>(
+                "socket({Transport}, local address = {LocalAddress}, multicast address =  {PeerAddress}");
 
         internal static void LogAcceptingConnection(
             this ILogger logger,
@@ -416,26 +414,22 @@ namespace IceRpc
             this ILogger logger,
             Transport transport,
             string localAddress,
-            string peerAddress,
-            IReadOnlyList<string> interfaces) =>
+            string peerAddress) =>
             _startReceivingDatagrams(logger,
                                      transport.ToString().ToLowerInvariant(),
                                      localAddress,
                                      peerAddress,
-                                     interfaces,
                                      null!);
 
         internal static void LogStartSendingDatagrams(
             this ILogger logger,
             Transport transport,
             string localAddress,
-            string peerAddress,
-            IReadOnlyList<string> interfaces) =>
+            string peerAddress) =>
             _startSendingDatagrams(logger,
                                    transport.ToString().ToLowerInvariant(),
                                    localAddress,
                                    peerAddress,
-                                   interfaces,
                                    null!);
 
         internal static void LogStartAcceptingConnections(
@@ -636,24 +630,20 @@ namespace IceRpc
             this ILogger logger,
             Transport transport,
             string localAddress,
-            string remoteAddress,
-            IReadOnlyList<string> interfaces) =>
+            string remoteAddress) =>
             _datagramSocketScope(logger,
                 transport.ToString().ToLowerInvariant(),
                 localAddress,
-                remoteAddress,
-                interfaces);
+                remoteAddress);
 
         internal static IDisposable StartMulticastSocketScope(
             this ILogger logger,
             Transport transport,
             string localAddress,
-            string multicastAddress,
-            IReadOnlyList<string> interfaces) =>
+            string multicastAddress) =>
             _multicastSocketScope(logger,
                                   transport.ToString().ToLowerInvariant(),
                                   localAddress,
-                                  multicastAddress,
-                                  interfaces);
+                                  multicastAddress);
     }
 }

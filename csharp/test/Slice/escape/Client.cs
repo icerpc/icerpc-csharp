@@ -101,7 +101,7 @@ public class Client : TestHelper
         server.Add("test", new Decimal());
         server.Add("test1", new Test1I());
         server.Add("test2", new Test2I());
-        await server.ActivateAsync();
+        server.Activate();
 
         Output.Write("testing operation name... ");
         Output.Flush();

@@ -4,7 +4,6 @@ using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace IceRpc
 {

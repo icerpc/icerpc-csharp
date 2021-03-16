@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task ProtocolBridging_Forward(Protocol forwarderProtocol, Protocol targetProtocol, bool colocated)
         {
             IProtocolBridgingServicePrx forwarderService =
-                await SetupForwarderServerAsync(forwarderProtocol, targetProtocol, colocated);
+                SetupForwarderServer(forwarderProtocol, targetProtocol, colocated);
 
             var newPrx = await TestProxyAsync(forwarderService, false);
             Assert.AreEqual(newPrx.Protocol, targetProtocol);
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private async Task<IProtocolBridgingServicePrx> SetupForwarderServerAsync(
+        private IProtocolBridgingServicePrx SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,
             bool colocated)
@@ -110,13 +110,13 @@ namespace IceRpc.Tests.ClientServer
                 _forwardedContext = current.Context;
                 return await next();
             });
-            await _targetServer.ActivateAsync();
+            _targetServer.Activate();
 
             _forwarderServer = new Server(_communicator, CreateServerOptions(forwarderProtocol, port: 1, colocated));
             var forwardService = _forwarderServer.Add("Forward",
                                                       new Forwarder(targetService),
                                                       IProtocolBridgingServicePrx.Factory);
-            await _forwarderServer.ActivateAsync();
+            _forwarderServer.Activate();
             return forwardService;
 
             ServerOptions CreateServerOptions(Protocol protocol, int port, bool colocated) =>

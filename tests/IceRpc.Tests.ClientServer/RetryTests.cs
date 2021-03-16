@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
                     retry = retry.Clone(invocationTimeout: Timeout.InfiniteTimeSpan);
                     long elapsedMilliseconds = await retry.OpRetryAfterDelayAsync(1, 100);
                     Assert.AreEqual(2, service.Attempts);
-                    Assert.IsTrue(elapsedMilliseconds > 100);
+                    Assert.GreaterOrEqual(elapsedMilliseconds, 100);
                 });
         }
 
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
                 new Dictionary<string, string>
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "200ms" }
+                    {"Ice.ConnectTimeout", "1000ms" }
                 });
 
             var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 0, protocol: protocol),
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.ClientServer
                     });
 
                 server.Add("retry", new RetryService());
-                await server.ActivateAsync();
+                server.Activate();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
             }
         }
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.ClientServer
                     Protocol = Protocol.Ice2,
                     Endpoints = GetTestEndpoint()
                 });
-            await server.ActivateAsync();
+            server.Activate();
             var proxy = server.Add("bidir", new Bidir(), IRetryBidirServicePrx.Factory);
 
             Connection connection = await proxy.GetConnectionAsync();
@@ -268,8 +268,8 @@ namespace IceRpc.Tests.ClientServer
             server1.Add("replicated", new Replicated(fail: true));
             server2.Add("replicated", new Replicated(fail: false));
 
-            await server1.ActivateAsync();
-            await server2.ActivateAsync();
+            server1.Activate();
+            server2.Activate();
 
             var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
             var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
@@ -355,7 +355,7 @@ namespace IceRpc.Tests.ClientServer
                 return await next();
             });
             server.Add("retry", service);
-            await server.ActivateAsync();
+            server.Activate();
             var retry = IRetryServicePrx.Parse(GetTestProxy("retry", protocol: protocol), communicator);
             await closure(service, retry);
         }

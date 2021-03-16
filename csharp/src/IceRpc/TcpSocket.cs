@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -92,8 +91,7 @@ namespace IceRpc
             try
             {
                 // Bind the socket to the source address if one is set.
-                IPAddress? sourceAddress = (endpoint as IPEndpoint)?.SourceAddress;
-                if (sourceAddress != null)
+                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
                 {
                     Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
@@ -213,7 +211,15 @@ namespace IceRpc
         {
             _communicator = communicator;
             _addr = addr;
-            Socket = Network.CreateSocket(false, _addr.AddressFamily);
+            if (addr is IPEndPoint ipEndpoint)
+            {
+                Socket = Network.CreateSocket(false, ipEndpoint.AddressFamily);
+            }
+            else
+            {
+                Socket = Network.CreateSocket(false, null);
+            }
+
             try
             {
                 Network.SetBufSize(Socket, _communicator, Transport.TCP);

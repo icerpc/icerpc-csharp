@@ -13,7 +13,7 @@ namespace IceRpc.Test.Optional
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("test", new Test());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

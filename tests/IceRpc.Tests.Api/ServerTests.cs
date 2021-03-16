@@ -12,9 +12,9 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
 
-            // A hostname cannot be used with an ephemereal port 0
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 0" }));
+            // A hostname cannot be used with a server endpoint
+            Assert.Throws<System.FormatException>(
+                () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
 
             // IncomingFrameMaxSize cannot be less than 1KB
             Assert.Throws<System.ArgumentException>(
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Api
                                  new ServerOptions()
                                  {
                                      AcceptNonSecure = NonSecure.Never,
-                                     Endpoints = "tcp -h localhost -p 10000"
+                                     Endpoints = "tcp -h 127.0.0.1 -p 10000"
                                  }));
 
             // only one endpoint is allowed when a dynamic IP port (:0) is configured
@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Api
                                  new ServerOptions()
                                  {
                                      AcceptNonSecure = NonSecure.Never,
-                                     Endpoints = "ice+tcp://localhost:0?alt-endpoint=localhost1:10000"
+                                     Endpoints = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
                                  }));
 
             // both PublishedHost and PublishedEndpoints are empty
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Api
                                  {
                                      PublishedEndpoints = "",
                                      PublishedHost = "",
-                                     Endpoints = "ice+tcp://localhost:10000"
+                                     Endpoints = "ice+tcp://127.0.0.1:10000"
                                  }));
 
             // Accept only secure connections require tls configuration
@@ -59,14 +59,14 @@ namespace IceRpc.Tests.Api
             {
                 // Activating twice the server is incorrect
                 await using var server = new Server(communicator);
-                await server.ActivateAsync();
-                Assert.ThrowsAsync<System.InvalidOperationException>(async () => await server.ActivateAsync());
+                server.Activate();
+                Assert.Throws<System.InvalidOperationException>(() => server.Activate());
             }
 
             {
                 // cannot add an dispatchInterceptor to a server after activation"
                 await using var server = new Server(communicator);
-                await server.ActivateAsync();
+                server.Activate();
                 Assert.Throws<System.InvalidOperationException>(
                     () => server.Use(next => async (current, cancel) => await next(current, cancel)));
             }

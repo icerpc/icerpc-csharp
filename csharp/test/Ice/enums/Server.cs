@@ -14,7 +14,7 @@ namespace IceRpc.Test.Enums
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("test", new TestIntf());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

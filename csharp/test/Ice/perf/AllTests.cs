@@ -11,7 +11,7 @@ namespace IceRpc.Test.Perf
 {
     public static class AllTests
     {
-        const int ByteSeqSize = 1024000; // 1MB
+        private const int ByteSeqSize = 1024000; // 1MB
 
         public static void RunTest(System.IO.TextWriter output, int repetitions, string name, Action invocation,
             Action warmUpInvocation)

@@ -8,7 +8,7 @@ namespace IceRpc
 {
     public static class CertificateValidaton
     {
-        /// <summary>Returns a certificatve validation callback that can be used to validate server certificates.
+        /// <summary>Returns a certificate validation callback that can be used to validate server certificates.
         /// </summary>
         /// <param name="useMachineContext">When <c>true</c> the certificate chain used to validate the server
         /// certificate is built using the machine context, otherwise the certificate chain uses the current user
@@ -21,7 +21,7 @@ namespace IceRpc
             X509Certificate2Collection? certificateAuthorities = null) =>
             GetRemoteCertificateValidationCallback(true, useMachineContext, certificateAuthorities);
 
-        /// <summary>Returns a certificatve validation callback that can be used to validate client certificates.
+        /// <summary>Returns a certificate validation callback that can be used to validate client certificates.
         /// </summary>
         /// <param name="clientCertificateRequired">When <c>true</c>the validation callback will only trust clients
         /// that provide a certificate context.</param>

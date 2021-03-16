@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint(transport: transport, protocol: protocol),
                     AcceptNonSecure = NonSecure.Always
                 });
-            await server.ActivateAsync();
+            server.Activate();
 
             var prx = IConnectionTestServicePrx.Parse(
                 GetTestProxy("test", transport: transport, protocol: protocol),
@@ -101,7 +101,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
             await using var clientCommunicator = new Communicator(
                 new Dictionary<string, string>()
@@ -171,7 +171,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
@@ -219,7 +219,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
             await using var communicator = new Communicator(
                 new Dictionary<string, string>()
@@ -256,7 +256,7 @@ namespace IceRpc.Tests.ClientServer
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
             _ = Task.Factory.StartNew(async () => await semaphore.WaitAsync(),
                                       default,
                                       TaskCreationOptions.None,
@@ -290,7 +290,7 @@ namespace IceRpc.Tests.ClientServer
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
-            await server.ActivateAsync();
+            server.Activate();
 
             var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator1);
             // No close timeout
@@ -335,7 +335,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint(protocol: protocol)
                 });
             var prx = server.Add("test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
-            await server.ActivateAsync();
+            server.Activate();
             await closure(server, prx);
         }
 

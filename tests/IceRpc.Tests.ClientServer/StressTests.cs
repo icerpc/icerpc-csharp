@@ -38,10 +38,8 @@ namespace IceRpc.Tests.ClientServer
                 });
             Servant = new TestService();
             Prx = Server.AddWithUUID(Servant, IStressTestServicePrx.Factory);
+            Server.Activate();
         }
-
-        [SetUp]
-        public async Task InitializeAsync() => await Server.ActivateAsync();
 
         [TearDown]
         public async Task DisposeAsync()

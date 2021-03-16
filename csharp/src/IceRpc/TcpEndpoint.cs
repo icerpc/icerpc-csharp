@@ -200,11 +200,11 @@ namespace IceRpc
         }
 
         protected internal override Connection CreateConnection(
-            IPEndPoint address,
             object? label,
             CancellationToken cancel)
         {
-            SingleStreamSocket socket = CreateSocket(address);
+            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            SingleStreamSocket socket = CreateSocket(endpoint);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),

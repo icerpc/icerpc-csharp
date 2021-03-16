@@ -14,7 +14,7 @@ namespace IceRpc.Test.Slicing.Objects
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("Test", new AsyncTestIntf());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;
