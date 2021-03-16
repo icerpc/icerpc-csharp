@@ -55,20 +55,10 @@ namespace IceRpc.Test.UDP
             if (Host.Contains(":"))
             {
                 endpoint.Append("udp -h \"ff15::1:1\"");
-                if (OperatingSystem.IsWindows() ||
-                    OperatingSystem.IsMacOS())
-                {
-                    endpoint.Append(" --interface \"::1\"");
-                }
             }
             else
             {
                 endpoint.Append("udp -h 239.255.1.1");
-                if (OperatingSystem.IsWindows() ||
-                    OperatingSystem.IsMacOS())
-                {
-                    endpoint.Append(" --interface 127.0.0.1");
-                }
             }
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
