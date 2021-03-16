@@ -245,10 +245,10 @@ namespace IceRpc
 
                 if (serverEndpoint)
                 {
-                    if (!IPAddress.TryParse(host, out IPAddress? address))
+                    if (!IPAddress.TryParse(host, out IPAddress? _))
                     {
                         throw new FormatException($@"cannot use a DNS name with `-h' option in a server endpoint `{
-                                                     endpointString}'");
+                                                  endpointString}'");
                     }
                 }
                 else if (IPAddress.TryParse(host, out IPAddress? address) &&

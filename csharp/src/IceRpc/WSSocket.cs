@@ -398,67 +398,67 @@ namespace IceRpc
                 switch (opCode)
                 {
                     case OpCode.Text:
-                    {
-                        throw new InvalidDataException("WebSocket text frames not supported");
-                    }
+                        {
+                            throw new InvalidDataException("WebSocket text frames not supported");
+                        }
                     case OpCode.Data:
                     case OpCode.Continuation:
-                    {
-                        if (payloadLength <= 0)
                         {
-                            throw new InvalidDataException("WebSocket payload length is invalid");
+                            if (payloadLength <= 0)
+                            {
+                                throw new InvalidDataException("WebSocket payload length is invalid");
+                            }
+                            return payloadLength;
                         }
-                        return payloadLength;
-                    }
                     case OpCode.Close:
-                    {
-                        // Read the Close frame payload.
-                        ReadOnlyMemory<byte> payloadBuffer =
-                            await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                        {
+                            // Read the Close frame payload.
+                            ReadOnlyMemory<byte> payloadBuffer =
+                                await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
-                        byte[] payload = payloadBuffer.ToArray();
-                        if (_incoming)
-                        {
-                            Unmask(payload, 0, payload.Length);
-                        }
+                            byte[] payload = payloadBuffer.ToArray();
+                            if (_incoming)
+                            {
+                                Unmask(payload, 0, payload.Length);
+                            }
 
-                        // If we've received a close frame and we were waiting for it, notify the task. Otherwise,
-                        // we didn't send a close frame and we should reply back with a close frame.
-                        if (_closing)
-                        {
-                            return 0;
+                            // If we've received a close frame and we were waiting for it, notify the task. Otherwise,
+                            // we didn't send a close frame and we should reply back with a close frame.
+                            if (_closing)
+                            {
+                                return 0;
+                            }
+                            else
+                            {
+                                var sendBuffer = new List<ArraySegment<byte>> { payload };
+                                await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
+                            }
+                            break;
                         }
-                        else
-                        {
-                            var sendBuffer = new List<ArraySegment<byte>> { payload };
-                            await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
-                        }
-                        break;
-                    }
                     case OpCode.Ping:
-                    {
-                        // Read the ping payload.
-                        ReadOnlyMemory<byte> payload =
+                        {
+                            // Read the ping payload.
+                            ReadOnlyMemory<byte> payload =
+                                await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+
+                            // Send a Pong frame with the received payload.
+                            var sendBuffer = new List<ArraySegment<byte>> { payload.ToArray() };
+                            await SendImplAsync(OpCode.Pong, sendBuffer, cancel).ConfigureAwait(false);
+                            break;
+                        }
+                    case OpCode.Pong:
+                        {
+                            // Read the pong payload.
                             await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
-                        // Send a Pong frame with the received payload.
-                        var sendBuffer = new List<ArraySegment<byte>> { payload.ToArray() };
-                        await SendImplAsync(OpCode.Pong, sendBuffer, cancel).ConfigureAwait(false);
-                        break;
-                    }
-                    case OpCode.Pong:
-                    {
-                        // Read the pong payload.
-                        await _underlying.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
-
-                        // Nothing to do, this can be received even if we don't send a ping frame if the peer sends
-                        // an unidirectional heartbeat.
-                        break;
-                    }
+                            // Nothing to do, this can be received even if we don't send a ping frame if the peer sends
+                            // an unidirectional heartbeat.
+                            break;
+                        }
                     default:
-                    {
-                        throw new InvalidDataException($"unsupported WebSocket opcode: {opCode}");
-                    }
+                        {
+                            throw new InvalidDataException($"unsupported WebSocket opcode: {opCode}");
+                        }
                 }
             }
         }

@@ -266,16 +266,16 @@ namespace IceRpc
         // Only for use by UdpEndpoint.
         internal UdpSocket(
             Communicator communicator,
-            EndPoint endpoint,
+            EndPoint addr,
             string? multicastInterface,
             int multicastTtl)
         {
             _communicator = communicator;
-            _addr = endpoint;
+            _addr = addr;
             _multicastInterface = multicastInterface;
             _incoming = false;
 
-            IPEndPoint? ipEndpoint = (endpoint as IPEndPoint);
+            IPEndPoint? ipEndpoint = (addr as IPEndPoint);
             if (ipEndpoint != null)
             {
                 Socket = Network.CreateSocket(true, ipEndpoint.AddressFamily);

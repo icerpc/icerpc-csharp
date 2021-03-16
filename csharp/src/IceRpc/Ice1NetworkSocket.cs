@@ -344,66 +344,66 @@ namespace IceRpc
             switch (frameType)
             {
                 case Ice1FrameType.CloseConnection:
-                {
-                    if (Endpoint.IsDatagram && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                     {
+                        if (Endpoint.IsDatagram && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                        {
                             Endpoint.Communicator.TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                        }
+                        return (IsIncoming ? 2 : 3, frameType, default);
                     }
-                    return (IsIncoming ? 2 : 3, frameType, default);
-                }
 
                 case Ice1FrameType.Request:
-                {
-                    int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    {
+                        int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
 
-                    // Compute the stream ID out of the request ID. For one-way requests which use a null request ID,
-                    // we generate a new stream ID using the _nextPeerUnidirectionalId counter.
-                    long streamId;
-                    if (requestId == 0)
-                    {
-                        streamId = _nextPeerUnidirectionalId += 4;
+                        // Compute the stream ID out of the request ID. For one-way requests which use a null request ID,
+                        // we generate a new stream ID using the _nextPeerUnidirectionalId counter.
+                        long streamId;
+                        if (requestId == 0)
+                        {
+                            streamId = _nextPeerUnidirectionalId += 4;
+                        }
+                        else
+                        {
+                            streamId = ((requestId - 1) << 2) + (IsIncoming ? 0 : 1);
+                        }
+                        return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
                     }
-                    else
-                    {
-                        streamId = ((requestId - 1) << 2) + (IsIncoming ? 0 : 1);
-                    }
-                    return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
-                }
 
                 case Ice1FrameType.RequestBatch:
-                {
-                    int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
                     {
+                        int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                        if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                        {
                             Endpoint.Communicator.ProtocolLogger.LogReceivedIce1RequestBatchFrame(invokeNum);
-                    }
+                        }
 
-                    if (invokeNum < 0)
-                    {
-                        throw new InvalidDataException(
-                            $"received ice1 RequestBatchMessage with {invokeNum} batch requests");
+                        if (invokeNum < 0)
+                        {
+                            throw new InvalidDataException(
+                                $"received ice1 RequestBatchMessage with {invokeNum} batch requests");
+                        }
+                        return (-1, frameType, default);
                     }
-                    return (-1, frameType, default);
-                }
 
                 case Ice1FrameType.Reply:
-                {
-                    int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    long streamId = ((requestId - 1) << 2) + (IsIncoming ? 1 : 0);
-                    return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
-                }
+                    {
+                        int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                        long streamId = ((requestId - 1) << 2) + (IsIncoming ? 1 : 0);
+                        return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
+                    }
 
                 case Ice1FrameType.ValidateConnection:
-                {
-                    // Notify the control stream of the reception of a Ping frame.
-                    ReceivedPing();
-                    return (IsIncoming ? 2 : 3, frameType, default);
-                }
+                    {
+                        // Notify the control stream of the reception of a Ping frame.
+                        ReceivedPing();
+                        return (IsIncoming ? 2 : 3, frameType, default);
+                    }
 
                 default:
-                {
-                    throw new InvalidDataException($"received ice1 frame with unknown frame type `{frameType}'");
-                }
+                    {
+                        throw new InvalidDataException($"received ice1 frame with unknown frame type `{frameType}'");
+                    }
             }
         }
 

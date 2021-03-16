@@ -53,184 +53,184 @@ namespace IceRpc
                 switch (type)
                 {
                     case SlicDefinitions.FrameType.Ping:
-                    {
-                        if (size != 0)
                         {
-                            throw new InvalidDataException("unexpected data for Slic Ping fame");
+                            if (size != 0)
+                            {
+                                throw new InvalidDataException("unexpected data for Slic Ping fame");
+                            }
+                            _ = PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Pong, cancel: CancellationToken.None);
+                            ReceivedPing();
+                            break;
                         }
-                        _ = PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Pong, cancel: CancellationToken.None);
-                        ReceivedPing();
-                        break;
-                    }
                     case SlicDefinitions.FrameType.Pong:
-                    {
-                        // TODO: setup and reset timer here for the pong frame response?
-                        if (size != 0)
                         {
-                            throw new InvalidDataException("unexpected data for Slic Pong fame");
+                            // TODO: setup and reset timer here for the pong frame response?
+                            if (size != 0)
+                            {
+                                throw new InvalidDataException("unexpected data for Slic Pong fame");
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
-                    {
-                        Debug.Assert(streamId != null);
-                        bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
-                        bool isBidirectional = streamId.Value % 4 < 2;
-                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
-
-                        if (size == 0 && type == SlicDefinitions.FrameType.Stream)
                         {
-                            throw new InvalidDataException("received empty stream frame");
-                        }
+                            Debug.Assert(streamId != null);
+                            bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
+                            bool isBidirectional = streamId.Value % 4 < 2;
+                            bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
-                        {
-                            // Notify the stream that data is available for read.
-                            stream.ReceivedFrame(size, fin);
-
-                            // Wait for the stream to receive the data before reading a new Slic frame.
-                            await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
-                        }
-                        else if (isIncoming &&
-                                 streamId.Value > (isBidirectional ? _lastBidirectionalId : _lastUnidirectionalId))
-                        {
-                            // Create a new stream if it's an incoming stream and if it's larger than the last known
-                            // stream ID (the client could be sending frames for old canceled incoming streams).
-
-                            // Keep track of the last accepted stream ID.
-                            if (isBidirectional)
+                            if (size == 0 && type == SlicDefinitions.FrameType.Stream)
                             {
-                                _lastBidirectionalId = streamId.Value;
-                            }
-                            else
-                            {
-                                _lastUnidirectionalId = streamId.Value;
+                                throw new InvalidDataException("received empty stream frame");
                             }
 
-                            if (size == 0)
+                            if (TryGetStream(streamId.Value, out SlicStream? stream))
                             {
-                                throw new InvalidDataException("received empty stream frame on new stream");
-                            }
+                                // Notify the stream that data is available for read.
+                                stream.ReceivedFrame(size, fin);
 
-                            // Accept the new incoming stream and notify the stream that data is available.
-                            try
-                            {
-                                stream = new SlicStream(this, streamId.Value);
+                                // Wait for the stream to receive the data before reading a new Slic frame.
+                                await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
-                            catch
+                            else if (isIncoming &&
+                                     streamId.Value > (isBidirectional ? _lastBidirectionalId : _lastUnidirectionalId))
                             {
-                                // The socket is being closed,  we make sure to receive the frame data. If the
-                                // connection is being closed gracefully, the connection waits for the socket
-                                // to receive the RST from the peer so it's important to receive and skip all
-                                // the data until the RST is received.
-                                FinishedReceivedStreamData(size);
-                                throw;
-                            }
+                                // Create a new stream if it's an incoming stream and if it's larger than the last known
+                                // stream ID (the client could be sending frames for old canceled incoming streams).
 
-                            if (stream.IsControl)
-                            {
-                                // We don't acquire stream count for the control stream.
-                            }
-                            else if (isBidirectional)
-                            {
-                                if (_bidirectionalStreamCount == _maxBidirectionalStreams)
-                                {
-                                    throw new InvalidDataException(
-                                        $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
-                                }
-                                Interlocked.Increment(ref _bidirectionalStreamCount);
-                            }
-                            else
-                            {
-                                if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
-                                {
-                                    throw new InvalidDataException(
-                                        $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
-                                }
-                                Interlocked.Increment(ref _unidirectionalStreamCount);
-                            }
-                            stream.ReceivedFrame(size, fin);
-                            return stream;
-                        }
-                        else
-                        {
-                            if (!isIncoming && fin)
-                            {
-                                // Release the stream count for the destroyed stream.
+                                // Keep track of the last accepted stream ID.
                                 if (isBidirectional)
                                 {
-                                    _bidirectionalStreamSemaphore!.Release();
+                                    _lastBidirectionalId = streamId.Value;
                                 }
                                 else
                                 {
-                                    _unidirectionalStreamSemaphore!.Release();
+                                    _lastUnidirectionalId = streamId.Value;
                                 }
-                            }
 
-                            // The stream has been destroyed, read and ignore the data.
-                            if (size > 0)
-                            {
-                                var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(size), 0, size);
+                                if (size == 0)
+                                {
+                                    throw new InvalidDataException("received empty stream frame on new stream");
+                                }
+
+                                // Accept the new incoming stream and notify the stream that data is available.
                                 try
                                 {
-                                    await ReceiveDataAsync(receiveBuffer, cancel).ConfigureAwait(false);
+                                    stream = new SlicStream(this, streamId.Value);
                                 }
-                                finally
+                                catch
                                 {
-                                    ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
+                                    // The socket is being closed,  we make sure to receive the frame data. If the
+                                    // connection is being closed gracefully, the connection waits for the socket
+                                    // to receive the RST from the peer so it's important to receive and skip all
+                                    // the data until the RST is received.
+                                    FinishedReceivedStreamData(size);
+                                    throw;
+                                }
+
+                                if (stream.IsControl)
+                                {
+                                    // We don't acquire stream count for the control stream.
+                                }
+                                else if (isBidirectional)
+                                {
+                                    if (_bidirectionalStreamCount == _maxBidirectionalStreams)
+                                    {
+                                        throw new InvalidDataException(
+                                            $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
+                                    }
+                                    Interlocked.Increment(ref _bidirectionalStreamCount);
+                                }
+                                else
+                                {
+                                    if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
+                                    {
+                                        throw new InvalidDataException(
+                                            $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
+                                    }
+                                    Interlocked.Increment(ref _unidirectionalStreamCount);
+                                }
+                                stream.ReceivedFrame(size, fin);
+                                return stream;
+                            }
+                            else
+                            {
+                                if (!isIncoming && fin)
+                                {
+                                    // Release the stream count for the destroyed stream.
+                                    if (isBidirectional)
+                                    {
+                                        _bidirectionalStreamSemaphore!.Release();
+                                    }
+                                    else
+                                    {
+                                        _unidirectionalStreamSemaphore!.Release();
+                                    }
+                                }
+
+                                // The stream has been destroyed, read and ignore the data.
+                                if (size > 0)
+                                {
+                                    var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(size), 0, size);
+                                    try
+                                    {
+                                        await ReceiveDataAsync(receiveBuffer, cancel).ConfigureAwait(false);
+                                    }
+                                    finally
+                                    {
+                                        ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
-                    }
                     case SlicDefinitions.FrameType.StreamReset:
-                    {
-                        Debug.Assert(streamId != null);
-                        if (streamId == 2 || streamId == 3)
                         {
-                            throw new InvalidDataException("can't reset control streams");
-                        }
+                            Debug.Assert(streamId != null);
+                            if (streamId == 2 || streamId == 3)
+                            {
+                                throw new InvalidDataException("can't reset control streams");
+                            }
 
-                        ArraySegment<byte> data = new byte[size];
-                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
+                            ArraySegment<byte> data = new byte[size];
+                            await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var istr = new InputStream(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(istr);
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
-                        {
-                            stream.ReceivedReset((long)streamReset.ApplicationProtocolErrorCode);
+                            var istr = new InputStream(data, SlicDefinitions.Encoding);
+                            var streamReset = new StreamResetBody(istr);
+                            if (TryGetStream(streamId.Value, out SlicStream? stream))
+                            {
+                                stream.ReceivedReset((long)streamReset.ApplicationProtocolErrorCode);
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case SlicDefinitions.FrameType.StreamConsumed:
-                    {
-                        Debug.Assert(streamId != null);
-                        if (streamId == 2 || streamId == 3)
                         {
-                            throw new InvalidDataException("control streams don't support flow control");
-                        }
-                        if (size > 8)
-                        {
-                            throw new InvalidDataException("stream consumed frame too large");
-                        }
+                            Debug.Assert(streamId != null);
+                            if (streamId == 2 || streamId == 3)
+                            {
+                                throw new InvalidDataException("control streams don't support flow control");
+                            }
+                            if (size > 8)
+                            {
+                                throw new InvalidDataException("stream consumed frame too large");
+                            }
 
-                        _streamConsumedBuffer ??= new byte[8];
+                            _streamConsumedBuffer ??= new byte[8];
 
-                        await ReceiveDataAsync(_streamConsumedBuffer.Value[0..size], cancel).ConfigureAwait(false);
+                            await ReceiveDataAsync(_streamConsumedBuffer.Value[0..size], cancel).ConfigureAwait(false);
 
-                        var istr = new InputStream(_streamConsumedBuffer.Value[0..size], SlicDefinitions.Encoding);
-                        var streamConsumed = new StreamConsumedBody(istr);
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
-                        {
-                            stream.ReceivedConsumed((int)streamConsumed.Size);
+                            var istr = new InputStream(_streamConsumedBuffer.Value[0..size], SlicDefinitions.Encoding);
+                            var streamConsumed = new StreamConsumedBody(istr);
+                            if (TryGetStream(streamId.Value, out SlicStream? stream))
+                            {
+                                stream.ReceivedConsumed((int)streamConsumed.Size);
+                            }
+                            break;
                         }
-                        break;
-                    }
                     default:
-                    {
-                        throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
-                    }
+                        {
+                            throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
+                        }
                 }
             }
         }

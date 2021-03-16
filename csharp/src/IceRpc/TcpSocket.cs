@@ -207,11 +207,11 @@ namespace IceRpc
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
-        internal TcpSocket(Communicator communicator, EndPoint endpoint)
+        internal TcpSocket(Communicator communicator, EndPoint addr)
         {
             _communicator = communicator;
-            _addr = endpoint;
-            if (endpoint is IPEndPoint ipEndpoint)
+            _addr = addr;
+            if (addr is IPEndPoint ipEndpoint)
             {
                 Socket = Network.CreateSocket(false, ipEndpoint.AddressFamily);
             }
