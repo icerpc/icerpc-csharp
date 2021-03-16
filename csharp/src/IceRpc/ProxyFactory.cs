@@ -416,8 +416,6 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-
-                // TODO: this currently doesn't work with ice1
                 IReadOnlyList<Endpoint>? endpoints = proxyData.Endpoints?.ToEndpointList(istr.Communicator!, protocol);
                 endpoints ??= ImmutableList<Endpoint>.Empty;
 

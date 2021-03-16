@@ -153,7 +153,7 @@ namespace IceRpc
         internal ILogger Logger { get; }
 
         // TODO: should pass the factory and create a logger per locator client
-         internal ILogger LocatorClientLogger { get; }
+        internal ILogger LocatorClientLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
