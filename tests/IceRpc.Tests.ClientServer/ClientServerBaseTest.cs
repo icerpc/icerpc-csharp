@@ -23,11 +23,11 @@ namespace IceRpc.Tests.ClientServer
         public string GetTestEndpoint(
             string host = "127.0.0.1",
             int port = 0,
-            string? transport = null,
-            Protocol? protocol = null) =>
-            (protocol ?? Protocol.Ice2) == Protocol.Ice2 ?
-                $"ice+{transport ?? "tcp"}://{host}:{GetTestPort(port)}" :
-                $"{transport ?? "tcp"} -h {host} -p {GetTestPort(port)}";
+            string transport = "tcp",
+            Protocol protocol = Protocol.Ice2) =>
+            protocol == Protocol.Ice2 ?
+                $"ice+{transport}://{host}:{GetTestPort(port)}" :
+                $"{transport} -h {host} -p {GetTestPort(port)}";
 
         public int GetTestPort(int num) => _basePort + num;
 
@@ -35,10 +35,10 @@ namespace IceRpc.Tests.ClientServer
             string identity,
             string host = "127.0.0.1",
             int port = 0,
-            string? transport = null,
-            Protocol? protocol = null) =>
-            (protocol ?? Protocol.Ice2) == Protocol.Ice2 ?
-                $"ice+{transport ?? "tcp"}://{host}:{GetTestPort(port)}/{identity}" :
-                $"{identity}:{transport ?? "tcp"} -h {host} -p {GetTestPort(port)}";
+            string transport = "tcp",
+            Protocol protocol = Protocol.Ice2) =>
+            protocol == Protocol.Ice2 ?
+                $"ice+{transport}://{host}:{GetTestPort(port)}/{identity}" :
+                $"{identity}:{transport} -h {host} -p {GetTestPort(port)}";
     }
 }

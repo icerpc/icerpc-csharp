@@ -12,7 +12,7 @@ namespace IceRpc.Test.NamespaceMD
         public NoNamespace.C2 GetNoNamespaceC2AsC2(Current current, CancellationToken cancel) =>
             new NoNamespace.C2();
 
-         public NoNamespace.N1.N2.S1 GetNoNamespaceN1N2S1(Current current, CancellationToken cancel) =>
+        public NoNamespace.N1.N2.S1 GetNoNamespaceN1N2S1(Current current, CancellationToken cancel) =>
             new NoNamespace.N1.N2.S1();
 
         public WithNamespace.C1 GetWithNamespaceC2AsC1(Current current, CancellationToken cancel) =>
