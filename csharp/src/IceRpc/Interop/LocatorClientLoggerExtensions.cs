@@ -19,16 +19,12 @@ namespace IceRpc.Interop
         private const int FoundEntryForWellKnownProxyInLocatorCache = 6;
         private const int InvalidProxyResolvingAdapterId = 7;
         private const int InvalidProxyResolvingProxy = 8;
-        private const int RegisterServerEndpointsFailure = 9;
-        private const int RegisterServerEndpointsSuccess = 10;
-        private const int ResolveAdapterIdFailure = 11;
-        private const int ResolveWellKnownProxyEndpointsFailure = 12;
-        private const int ResolvedAdapterId = 13;
-        private const int ResolvedWellKnownProxy = 14;
-        private const int ResolvingAdapterId = 15;
-        private const int ResolvingWellKnownProxy = 16;
-        private const int UnregisterServerEndpointsFailure = 17;
-        private const int UnregisterServerEndpointsSuccess = 18;
+        private const int ResolveAdapterIdFailure = 9;
+        private const int ResolveWellKnownProxyEndpointsFailure = 10;
+        private const int ResolvedAdapterId = 11;
+        private const int ResolvedWellKnownProxy = 12;
+        private const int ResolvingAdapterId = 13;
+        private const int ResolvingWellKnownProxy = 14;
 
         private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _clearAdapterIdEndpoints =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
@@ -88,19 +84,6 @@ namespace IceRpc.Interop
                 new EventId(InvalidProxyResolvingProxy, nameof(InvalidProxyResolvingProxy)),
                 "locator returned an invalid proxy when resolving proxy = {Identity}, received = {Received}");
 
-        private static readonly Action<ILogger, string, Exception> _registerServerEndpointsFailure =
-            LoggerMessage.Define<string>(
-                LogLevel.Error,
-                new EventId(RegisterServerEndpointsFailure, nameof(RegisterServerEndpointsFailure)),
-                "failed to register the endpoints of server {Server} with the locator registry");
-
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _registerServerEndpointsSuccess =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
-                LogLevel.Debug,
-                new EventId(RegisterServerEndpointsSuccess, nameof(RegisterServerEndpointsSuccess)),
-                "registered the endpoints of server {Server} with the locator registry " +
-                "endpoints = {Endpoints}");
-
         private static readonly Action<ILogger, string, Exception> _resolveAdapterIdFailure =
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
@@ -136,18 +119,6 @@ namespace IceRpc.Interop
                 LogLevel.Debug,
                 new EventId(ResolvingWellKnownProxy, nameof(ResolvingWellKnownProxy)),
                 "resolving well-known object {Identity}");
-
-        private static readonly Action<ILogger, string, Exception> _unregisterServerEndpointsFailure =
-            LoggerMessage.Define<string>(
-                LogLevel.Error,
-                new EventId(UnregisterServerEndpointsFailure, nameof(UnregisterServerEndpointsFailure)),
-                "failed to unregister the endpoints of server {Server} from the locator registry");
-
-        private static readonly Action<ILogger, string, Exception> _unregisterServerEndpointsSuccess =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                new EventId(UnregisterServerEndpointsSuccess, nameof(UnregisterServerEndpointsSuccess)),
-                "unregistered the endpoints of server {Server} from the locator registry");
 
         internal static void LogClearAdapterIdEndpoints(
             this ILogger logger,
@@ -193,18 +164,6 @@ namespace IceRpc.Interop
         internal static void LogInvalidProxyResolvingProxy(this ILogger logger, Identity identity, ServicePrx received) =>
             _invalidProxyResolvingProxy(logger, identity, received, null!);
 
-        internal static void LogRegisterServerEndpointsFailure(
-            this ILogger logger,
-            Server server,
-            Exception ex) =>
-            _registerServerEndpointsFailure(logger, server.Name, ex);
-
-        internal static void LogRegisterServerEndpointsSuccess(
-            this ILogger logger,
-            Server server,
-            IReadOnlyList<Endpoint> endpoints) =>
-            _registerServerEndpointsSuccess(logger, server.Name, endpoints, null!);
-
         internal static void LogResolveAdapterIdFailure(
             this ILogger logger,
             string location,
@@ -234,14 +193,5 @@ namespace IceRpc.Interop
 
         internal static void LogResolvingWellKnownProxy(this ILogger logger, Identity identity) =>
             _resolvingWellKnownProxy(logger, identity, null!);
-
-        internal static void LogUnregisterServerEndpointsFailure(
-            this ILogger logger,
-            Server server,
-            Exception ex) =>
-            _unregisterServerEndpointsFailure(logger, server.Name, ex);
-
-        internal static void LogUnregisterServerEndpointsSuccess(this ILogger logger, Server server) =>
-            _unregisterServerEndpointsSuccess(logger, server.Name, null!);
     }
 }

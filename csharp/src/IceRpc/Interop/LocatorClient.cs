@@ -72,6 +72,12 @@ namespace IceRpc.Interop
                 throw new ArgumentException($"{nameof(endpoint)}'s transport is not loc", nameof(endpoint));
             }
 
+            if (endpoint.Protocol != Protocol.Ice1)
+            {
+                // LocatorClient works only for ice1 endpoints.
+                return new((ImmutableList<Endpoint>.Empty, TimeSpan.Zero));
+            }
+
             if (endpoint["category"] is string category)
             {
                 return ResolveIdentityAsync(new Identity(endpoint.Host, category), endpointsMaxAge, cancel);
