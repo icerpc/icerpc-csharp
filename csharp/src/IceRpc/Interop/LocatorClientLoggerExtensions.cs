@@ -1,11 +1,10 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
-namespace IceRpc
+namespace IceRpc.Interop
 {
     /// <summary>This class contains ILogger extensions methods for logging messages in the
     /// "IceRpc.Interop.LocatorClient" category.</summary>

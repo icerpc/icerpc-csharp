@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Describes a special endpoint that needs to be resolved with an <see cref="ILocationResolver"/>.
-    /// </summary>
+    /// <summary>Describes a special endpoint that needs to be resolved with a location resolver. See
+    /// <see cref="ILocationResolver"/>.</summary>
     internal sealed class LocEndpoint : Endpoint
     {
         public override string? this[string option] =>
