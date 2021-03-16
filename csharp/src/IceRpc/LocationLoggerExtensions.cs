@@ -234,7 +234,7 @@ namespace IceRpc
             _resolvingLocation(logger, location, null!);
 
         internal static void LogResolvingWellKnownProxy(this ILogger logger, Identity identity) =>
-            _resolvingWellKnownProxy(logger, identity,  null!);
+            _resolvingWellKnownProxy(logger, identity, null!);
 
         internal static void LogUnregisterServerEndpointsFailure(
             this ILogger logger,

@@ -90,7 +90,7 @@ namespace IceRpc
 
         private Lazy<Task>? _shutdownTask;
 
-         /// <summary>Constructs a server.</summary>
+        /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator)
             : this(communicator, new())
         {

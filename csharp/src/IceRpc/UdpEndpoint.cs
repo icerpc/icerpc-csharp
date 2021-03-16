@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +7,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -205,7 +203,7 @@ namespace IceRpc
                 {
                     throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
                 }
-                else if(!IPAddress.TryParse(host, out IPAddress? address) || !Network.IsMulticast(address))
+                else if (!IPAddress.TryParse(host, out IPAddress? address) || !Network.IsMulticast(address))
                 {
                     throw new FormatException(
                         $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
