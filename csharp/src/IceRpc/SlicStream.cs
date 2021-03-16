@@ -388,8 +388,8 @@ namespace IceRpc
         internal void ReceivedFrame(int size, bool fin)
         {
             // If an outgoing stream and this is the last stream frame, we release the stream count to
-            // eventually allow a new outgoing stream to be opened. If the flow control credit is
-            // already released, there's an issue with the peer sending twice a last stream frame.
+            // eventually allow a new outgoing stream to be opened. If the stream count is already released,
+            // there's an issue with the peer sending twice a last stream frame.
             if (!IsIncoming && fin && !ReleaseStreamCount())
             {
                 throw new InvalidDataException("already received last stream frame");
@@ -480,7 +480,7 @@ namespace IceRpc
             // been sent).
             if (ReleaseStreamCount())
             {
-                Abort(new IOException($"the peer aborted the stream with the error code {errorCode}"));
+                Abort(new TransportException($"the peer aborted the stream with the error code {errorCode}"));
                 base.ReceivedReset(errorCode);
             }
         }

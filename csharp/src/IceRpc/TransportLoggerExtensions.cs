@@ -315,20 +315,22 @@ namespace IceRpc
             "sending Slic stream consumed frame: size = {Size}");
 
         private static readonly Func<ILogger, long, string, IDisposable> _colocatedSocketScope =
-            LoggerMessage.DefineScope<long, string>("socket(colocatedm ID = {ID}, server = {ServerName}");
+            LoggerMessage.DefineScope<long, string>("socket(colocated ID = {ID}, server = {ServerName}");
 
         private static readonly Func<ILogger, string, string, string, IDisposable> _socketScope =
             LoggerMessage.DefineScope<string, string, string>(
-                "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress})");
+                "socket({Transport}, local address = {LocalAddress}, peer address = {PeerAddress})");
+        private static readonly Func<ILogger, long, string, IDisposable> _streamScope =
+            LoggerMessage.DefineScope<long, string>("stream(ID = {ID}, {Kind})");
 
         private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _datagramSocketScope =
             LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
-                "socket({Transport}, local address = {LocalAddress}, peer address =  {PeerAddress}, " +
+                "socket({Transport}, local address = {LocalAddress}, peer address = {PeerAddress}, " +
                 "interfaces = {Interfaces})");
 
         private static readonly Func<ILogger, string, string, string, IReadOnlyList<string>, IDisposable> _multicastSocketScope =
             LoggerMessage.DefineScope<string, string, string, IReadOnlyList<string>>(
-                "socket({Transport}, local address = {LocalAddress}, multicast address =  {PeerAddress}, " +
+                "socket({Transport}, local address = {LocalAddress}, multicast address = {PeerAddress}, " +
                 "interfaces = {Interfaces})");
 
         internal static void LogAcceptingConnection(
@@ -616,16 +618,6 @@ namespace IceRpc
             }
         }
 
-        internal static IDisposable? StartSocketScope(Connection connection) =>
-            connection.Socket.StartSocketScope();
-
-        internal static IDisposable StartSocketScope(
-            this ILogger logger,
-            Transport transport,
-            string localAddress,
-            string remoteAddress) =>
-            _socketScope(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress);
-
         internal static IDisposable StartColocatedSocketScope(
             this ILogger logger,
             long id,
@@ -655,5 +647,33 @@ namespace IceRpc
                                   localAddress,
                                   multicastAddress,
                                   interfaces);
+
+        internal static IDisposable StartSocketScope(
+            this ILogger logger,
+            Transport transport,
+            string localAddress,
+            string remoteAddress) =>
+            _socketScope(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress);
+
+        internal static IDisposable? StartStreamScope(this ILogger logger, Protocol protocol, long streamID)
+        {
+            if (protocol == Protocol.Ice1)
+            {
+                int requestID = streamID % 4 < 2 ? (int)(streamID >> 2) + 1 : 0;
+                return _streamScope(logger, requestID, requestID == 0 ? "oneway" : "twoway");
+            }
+            else
+            {
+                string streamType = (streamID % 4) switch
+                {
+                    0 => "[client-initiated, bidirectional]",
+                    1 => "[server-initiated, bidirectional]",
+                    2 => "[client-initiated, unidirectional]",
+                    3 => "[server-initiated, unidirectional]",
+                    _ => throw new InvalidArgumentException(nameof(streamID))
+                };
+                return _streamScope(logger, streamID, streamType);
+            }
+        }
     }
 }

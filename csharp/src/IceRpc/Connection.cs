@@ -250,7 +250,7 @@ namespace IceRpc
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            using var connectionScope = StartScope();
+            using var socketScope = Socket.StartScope();
             try
             {
                 Task goAwayTask;
@@ -333,7 +333,8 @@ namespace IceRpc
             try
             {
                 {
-                    using var connectionScope = StartScope();
+                    using var socketScope = Socket.StartScope();
+
                     // Initialize the transport.
                     await Socket.InitializeAsync(cancel).ConfigureAwait(false);
 
@@ -347,11 +348,10 @@ namespace IceRpc
                             await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
 
                         // Setup a task to wait for the close frame on the peer's control stream.
-                        _ = Task.Run(async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                                        default);
+                        _ = Task.Run(
+                            async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
+                            default);
                     }
-
-                    Socket.Initialized();
                 }
 
                 lock (_mutex)
@@ -421,8 +421,6 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => Socket.StartSocketScope();
-
         private async Task AbortAsync(Exception exception)
         {
             lock (_mutex)
@@ -467,10 +465,11 @@ namespace IceRpc
 
         private async ValueTask AcceptStreamAsync()
         {
+
             SocketStream? stream = null;
             while (stream == null)
             {
-                using var scope = StartScope();
+                using var scope = Socket.StartScope();
                 try
                 {
                     // Accept a new stream.
@@ -490,8 +489,8 @@ namespace IceRpc
             // Start a new accept stream task to accept another stream.
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
-            using var connectionScope = StartScope();
-            using var streamScope = Communicator.Logger.StartStreamScope(Endpoint.Protocol, stream.Id);
+            using var socketScope = Socket.StartScope();
+            using var streamScope = stream.StartScope();
 
             Debug.Assert(stream != null);
             try
@@ -511,7 +510,8 @@ namespace IceRpc
                 // Receives the request frame from the stream
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
-                using var requestScope = Communicator.Logger.StartRequestScope(request);
+
+                using var requestScope = Communicator.ProtocolLogger.StartRequestScope(request);
                 if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
                 {
                     Communicator.ProtocolLogger.LogReceivedRequest(request);

@@ -288,22 +288,6 @@ namespace IceRpc
             }
         }
 
-        internal void CheckStreamsEmpty()
-        {
-            if (IncomingStreamCount == 0 && OutgoingStreamCount == 0)
-            {
-                _streamsEmptySource?.TrySetResult();
-            }
-        }
-
-        internal void Initialized()
-        {
-            lock (_mutex)
-            {
-                LastActivity = Time.Elapsed;
-            }
-        }
-
         internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
             SocketStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
@@ -337,7 +321,7 @@ namespace IceRpc
             return stream;
         }
 
-        internal abstract IDisposable? StartSocketScope();
+        internal abstract IDisposable? StartScope();
 
         internal virtual async ValueTask WaitForEmptyStreamsAsync()
         {
@@ -347,6 +331,14 @@ namespace IceRpc
                 _streamsEmptySource ??= new TaskCompletionSource();
                 CheckStreamsEmpty();
                 await _streamsEmptySource.Task.ConfigureAwait(false);
+            }
+        }
+
+        private void CheckStreamsEmpty()
+        {
+            if (IncomingStreamCount == 0 && OutgoingStreamCount == 0)
+            {
+                _streamsEmptySource?.TrySetResult();
             }
         }
     }

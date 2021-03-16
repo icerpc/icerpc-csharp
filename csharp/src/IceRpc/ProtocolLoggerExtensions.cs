@@ -54,11 +54,11 @@ namespace IceRpc
                 new EventId(ReceivedIce1RequestFrame, nameof(ReceivedIce1RequestFrame)),
                 "received ice1 request frame");
 
-        private static readonly Action<ILogger, ResultType, int, Exception> _receivedIce1ResponseFrame =
-            LoggerMessage.Define<ResultType, int>(
+        private static readonly Action<ILogger, ResultType, Exception> _receivedIce1ResponseFrame =
+            LoggerMessage.Define<ResultType>(
                 LogLevel.Information,
                 new EventId(ReceivedIce1ResponseFrame, nameof(ReceivedIce1ResponseFrame)),
-                "received ice1 response frame: result = {Result}, request ID = {RequestID}");
+                "received ice1 response frame: result = {Result}");
 
         private static readonly Action<ILogger, Encoding, Exception> _receivedIce1ValidateConnectionFrame =
             LoggerMessage.Define<Encoding>(
@@ -84,11 +84,11 @@ namespace IceRpc
                 new EventId(ReceivedIce2RequestFrame, nameof(ReceivedIce2RequestFrame)),
                 "received ice2 request frame");
 
-        private static readonly Action<ILogger, ResultType, long, Exception> _receivedIce2ResponseFrame =
-            LoggerMessage.Define<ResultType, long>(
+        private static readonly Action<ILogger, ResultType, Exception> _receivedIce2ResponseFrame =
+            LoggerMessage.Define<ResultType>(
                 LogLevel.Information,
                 new EventId(ReceivedIce2ResponseFrame, nameof(ReceivedIce2ResponseFrame)),
-                "received ice2 response frame: result = {Result}, stream ID = {StreamID}");
+                "received ice2 response frame: result = {Result}");
 
         private static readonly Action<ILogger, Exception> _requestDispatchException = LoggerMessage.Define(
             LogLevel.Error,
@@ -137,11 +137,11 @@ namespace IceRpc
                 new EventId(SendingIce1RequestFrame, nameof(SendingIce1RequestFrame)),
                 "sending ice1 request frame");
 
-        private static readonly Action<ILogger, ResultType, int, Exception> _sendingIce1ResponseFrame =
-            LoggerMessage.Define<ResultType, int>(
+        private static readonly Action<ILogger, ResultType, Exception> _sendingIce1ResponseFrame =
+            LoggerMessage.Define<ResultType>(
                 LogLevel.Information,
                 new EventId(SendingIce1ResponseFrame, nameof(SendingIce1ResponseFrame)),
-                "sending ice1 response frame: result = {Result}, request ID = {RequestID}");
+                "sending ice1 response frame: result = {Result}");
 
         private static readonly Action<ILogger, Encoding, Exception> _sendingIce2GoAwayFrame =
             LoggerMessage.Define<Encoding>(
@@ -161,14 +161,11 @@ namespace IceRpc
                 new EventId(SendingIce2RequestFrame, nameof(SendingIce2RequestFrame)),
                 "sending ice2 request frame");
 
-        private static readonly Action<ILogger, ResultType, long, Exception> _sendingIce2ResponseFrame =
-            LoggerMessage.Define<ResultType, long>(
+        private static readonly Action<ILogger, ResultType, Exception> _sendingIce2ResponseFrame =
+            LoggerMessage.Define<ResultType>(
                 LogLevel.Information,
                 new EventId(SendingIce2ResponseFrame, nameof(SendingIce2ResponseFrame)),
-                "sending ice2 response frame: result = {Result}, stream ID = {StreamID}");
-
-        private static readonly Func<ILogger, long, string, IDisposable> _streamScope =
-            LoggerMessage.DefineScope<long, string>("stream(ID = {ID}, {Kind})");
+                "sending ice2 response frame: result = {Result}");
 
         internal static void LogReceivedIce1CloseConnectionFrame(this ILogger logger) =>
             _receivedIce1CloseConnectionFrame(logger, Ice1Definitions.Encoding, null!);
@@ -197,15 +194,15 @@ namespace IceRpc
             }
         }
 
-        internal static void LogReceivedResponse(this ILogger logger, long streamId, IncomingResponseFrame response)
+        internal static void LogReceivedResponse(this ILogger logger, IncomingResponseFrame response)
         {
             if (response.Protocol == Protocol.Ice1)
             {
-                _receivedIce1ResponseFrame(logger, response.ResultType, GetIce1RequestID(streamId), null!);
+                _receivedIce1ResponseFrame(logger, response.ResultType, null!);
             }
             else
             {
-                _receivedIce2ResponseFrame(logger, response.ResultType, streamId, null!);
+                _receivedIce2ResponseFrame(logger, response.ResultType, null!);
             }
         }
 
@@ -256,71 +253,36 @@ namespace IceRpc
             }
         }
 
-        internal static void LogSendingResponse(this ILogger logger, OutgoingResponseFrame response, long streamId)
+        internal static void LogSendingResponse(this ILogger logger, OutgoingResponseFrame response)
         {
             if (response.Protocol == Protocol.Ice1)
             {
-                _sendingIce1ResponseFrame(logger, response.ResultType, GetIce1RequestID(streamId), null!);
+                _sendingIce1ResponseFrame(logger, response.ResultType, null!);
             }
             else
             {
-                _sendingIce2ResponseFrame(logger, response.ResultType, streamId, null!);
-            }
-        }
-
-        internal static void LogSendingResponse(this ILogger logger, long streamId, IncomingResponseFrame response)
-        {
-            if (response.Protocol == Protocol.Ice1)
-            {
-                _receivedIce1ResponseFrame(logger, response.ResultType, GetIce1RequestID(streamId), null!);
-            }
-            else
-            {
-                _receivedIce2ResponseFrame(logger, response.ResultType, streamId, null!);
+                _sendingIce2ResponseFrame(logger, response.ResultType, null!);
             }
         }
 
         internal static IDisposable? StartRequestScope(this ILogger logger, OutgoingRequestFrame request) =>
-            _requestScope(logger,
-                          request.Path,
-                          request.Operation,
-                          request.Protocol,
-                          request.PayloadSize,
-                          request.PayloadEncoding,
-                          request.Context);
+            logger.IsEnabled(LogLevel.Information) ?
+                _requestScope(logger,
+                              request.Path,
+                              request.Operation,
+                              request.Protocol,
+                              request.PayloadSize,
+                              request.PayloadEncoding,
+                              request.Context) : null;
 
         internal static IDisposable? StartRequestScope(this ILogger logger, IncomingRequestFrame request) =>
-            _requestScope(logger,
-                          request.Path,
-                          request.Operation,
-                          request.Protocol,
-                          request.PayloadSize,
-                          request.PayloadEncoding,
-                          request.Context);
-
-        internal static IDisposable? StartStreamScope(this ILogger logger, Protocol protocol, long streamID)
-        {
-            if (protocol == Protocol.Ice1)
-            {
-                int requestID = GetIce1RequestID(streamID);
-                return _streamScope(logger, requestID, requestID == 0 ? "oneway" : "twoway");
-            }
-            else
-            {
-                return _streamScope(logger, streamID, GetIce2StreamKind(streamID));
-            }
-        }
-
-        private static int GetIce1RequestID(long streamID) => streamID % 4 < 2 ? (int)(streamID >> 2) + 1 : 0;
-
-        private static string GetIce2StreamKind(long streamID) =>
-            (streamID % 4) switch
-            {
-                0 => "[client-initiated, bidirectional]",
-                1 => "[server-initiated, bidirectional]",
-                2 => "[client-initiated, unidirectional]",
-                3 => "[server-initiated, unidirectional]",
-                _ => throw new InvalidArgumentException(nameof(streamID))
-            };
+            logger.IsEnabled(LogLevel.Information) ?
+                _requestScope(logger,
+                              request.Path,
+                              request.Operation,
+                              request.Protocol,
+                              request.PayloadSize,
+                              request.PayloadEncoding,
+                              request.Context) : null;
     }
 }

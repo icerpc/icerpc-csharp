@@ -315,8 +315,6 @@ namespace IceRpc
             }
         }
 
-        internal override IDisposable? StartSocketScope() => Underlying.StartScope(Endpoint);
-
         private long AllocateId(bool bidirectional)
         {
             // Allocate a new ID according to the Quic numbering scheme.
@@ -350,7 +348,7 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
                     {
-                            Endpoint.Communicator.TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                        Endpoint.Communicator.TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }

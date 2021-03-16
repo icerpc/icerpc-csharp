@@ -131,7 +131,8 @@ namespace IceRpc
                             }
                             catch
                             {
-                                await ResetAsync((long)StreamResetErrorCode.StopStreamingData).ConfigureAwait(false);
+                                // Don't await the sending of the reset since it might block if send blocked.
+                                _ = ResetAsync((long)StreamResetErrorCode.StopStreamingData).AsTask();
                                 break;
                             }
                         }
@@ -238,16 +239,15 @@ namespace IceRpc
                 throw new InvalidDataException($"expected end of stream after GoAway frame");
             }
 
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Debug))
+            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_socket.Endpoint.Protocol == Protocol.Ice2)
                 {
-                    protocolLogger.LogReceivedIce2GoAwayFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce2GoAwayFrame();
                 }
                 else
                 {
-                    protocolLogger.LogReceivedIce1CloseConnectionFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce1CloseConnectionFrame();
                 }
             }
 
@@ -280,16 +280,15 @@ namespace IceRpc
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
             }
 
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (protocolLogger.IsEnabled(LogLevel.Debug))
+            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_socket.Endpoint.Protocol == Protocol.Ice1)
                 {
-                    protocolLogger.LogReceivedIce1ValidateConnectionFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce1ValidateConnectionFrame();
                 }
                 else
                 {
-                    protocolLogger.LogReceivedIce2InitializeFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce2InitializeFrame();
                 }
             }
 
@@ -353,6 +352,7 @@ namespace IceRpc
                 EnableReceiveFlowControl();
                 request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
+
             return request;
         }
 
@@ -371,7 +371,8 @@ namespace IceRpc
             {
                 if (_socket.Endpoint.Protocol != Protocol.Ice1)
                 {
-                    await ResetAsync((long)StreamResetErrorCode.RequestCanceled).ConfigureAwait(false);
+                    // Don't await the sending of the reset since it might block if sending is blocking.
+                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
                 }
                 throw;
             }
@@ -395,14 +396,13 @@ namespace IceRpc
             string reason,
             CancellationToken cancel = default)
         {
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
 
-                if (protocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    protocolLogger.LogSendingIce1CloseConnectionFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce1CloseConnectionFrame();
                 }
             }
             else
@@ -426,23 +426,22 @@ namespace IceRpc
 
                 await SendAsync(data, true, cancel).ConfigureAwait(false);
 
-                if (protocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    protocolLogger.LogSendingIce2GoAwayFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce2GoAwayFrame();
                 }
             }
         }
 
         internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
         {
-            var protocolLogger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
 
-                if (protocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    protocolLogger.LogSendIce1ValidateConnectionFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendIce1ValidateConnectionFrame();
                 }
             }
             else
@@ -471,9 +470,9 @@ namespace IceRpc
 
                 await SendAsync(data, false, cancel).ConfigureAwait(false);
 
-                if (protocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    protocolLogger.LogSendingIce2InitializeFrame();
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce2InitializeFrame();
                 }
             }
         }
@@ -494,7 +493,8 @@ namespace IceRpc
                 // allocated and the peer doesn't know about this stream.
                 if (IsStarted && _socket.Endpoint.Protocol != Protocol.Ice1)
                 {
-                    await ResetAsync((long)StreamResetErrorCode.RequestCanceled).ConfigureAwait(false);
+                    // Don't await the sending of the reset since it might block if send frame blocked.
+                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
                 }
                 throw;
             }
@@ -509,6 +509,15 @@ namespace IceRpc
 
             // If there's a stream data writer, we can start streaming the data.
             response.StreamDataWriter?.Invoke(this);
+        }
+
+        internal IDisposable? StartScope()
+        {
+            if (_socket.Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical))
+            {
+                return _socket.Endpoint.Communicator.TransportLogger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+            }
+            return null;
         }
 
         internal void Release()
@@ -557,7 +566,7 @@ namespace IceRpc
             return buffer;
         }
 
-        private protected virtual async ValueTask SendFrameAsync(
+        private protected virtual ValueTask SendFrameAsync(
             OutgoingFrame frame,
             CancellationToken cancel = default)
         {
@@ -595,22 +604,20 @@ namespace IceRpc
                 }
             }
 
-            await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
-
-            var logger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (logger.IsEnabled(LogLevel.Information))
+            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using var scoppe = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
-                    logger.LogSendingRequest(request);
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    logger.LogSendingResponse((OutgoingResponseFrame)frame, Id);
+                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
+
+            return SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel);
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)

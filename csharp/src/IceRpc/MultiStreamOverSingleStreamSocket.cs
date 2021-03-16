@@ -36,5 +36,7 @@ namespace IceRpc
             Server? server,
             SingleStreamSocket socket)
             : base(endpoint, server) => Underlying = socket;
+
+        internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }
 }

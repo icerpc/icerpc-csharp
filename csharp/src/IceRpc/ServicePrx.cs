@@ -1056,14 +1056,18 @@ namespace IceRpc
 
                     cancel.ThrowIfCancellationRequested();
 
-                    using var connectionScope = connection.StartScope();
-                    using var requestScope = protocolLogger.StartRequestScope(request);
+                    using var socketScope = connection.Socket.StartScope();
 
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
 
+                    using var requestScope = protocolLogger.StartRequestScope(request);
+
                     // Send the request and wait for the sending to complete.
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var streamScope = stream.StartScope();
 
                     // The request is sent, notify the progress callback.
                     // TODO: Get rid of the sentSynchronously parameter which is always false now?
@@ -1086,13 +1090,12 @@ namespace IceRpc
                                                                             request.PayloadEncoding);
                     }
 
-                    using var streamScope = protocolLogger.StartStreamScope(request.Protocol, stream.Id);
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
 
                     if (protocolLogger.IsEnabled(LogLevel.Information))
                     {
-                        protocolLogger.LogReceivedResponse(stream.Id, response);
+                        protocolLogger.LogReceivedResponse(response);
                     }
 
                     // If success, just return the response!
@@ -1179,21 +1182,21 @@ namespace IceRpc
                     tryAgain = true;
                     if (protocolLogger.IsEnabled(LogLevel.Debug))
                     {
-                        using var connectionScope = connection?.StartScope();
+                        using var socketScope = connection?.Socket.StartScope();
                         using var requestScope = protocolLogger.StartRequestScope(request);
                         if (connection != null)
                         {
                             protocolLogger.LogRetryRequestInvocation(retryPolicy,
-                                                                        attempt,
-                                                                        Communicator.InvocationMaxAttempts,
-                                                                        exception);
+                                                                     attempt,
+                                                                     Communicator.InvocationMaxAttempts,
+                                                                     exception);
                         }
                         else if (triedAllEndpoints)
                         {
                             protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
-                                                                            attempt,
-                                                                            Communicator.InvocationMaxAttempts,
-                                                                            exception);
+                                                                           attempt,
+                                                                           Communicator.InvocationMaxAttempts,
+                                                                           exception);
                         }
                         else
                         {

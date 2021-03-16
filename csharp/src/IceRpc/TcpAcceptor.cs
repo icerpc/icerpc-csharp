@@ -19,15 +19,8 @@ namespace IceRpc
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            ILogger transportLogger = _server.Communicator.TransportLogger;
-
             try
             {
-                if (transportLogger.IsEnabled(LogLevel.Debug))
-                {
-                    transportLogger.LogAcceptingConnection(Endpoint.Transport, Network.LocalAddrToString(_addr));
-                }
-
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
                 var socket = ((TcpEndpoint)Endpoint).CreateSocket(_server, fd);
@@ -40,9 +33,9 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                if (transportLogger.IsEnabled(LogLevel.Error))
+                if (_server.Communicator.TransportLogger.IsEnabled(LogLevel.Error))
                 {
-                    transportLogger.LogAcceptingConnectionFailed(
+                    _server.Communicator.TransportLogger.LogAcceptingConnectionFailed(
                         Endpoint.Transport,
                         Network.LocalAddrToString(_addr),
                         ex);
@@ -76,6 +69,13 @@ namespace IceRpc
             }
 
             Endpoint = endpoint.Clone((ushort)_addr.Port);
+
+            if (_server.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            {
+                _server.Communicator.TransportLogger.LogAcceptingConnection(
+                    Endpoint.Transport,
+                    Network.LocalAddrToString(_addr));
+            }
         }
     }
 }

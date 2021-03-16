@@ -52,7 +52,15 @@ namespace IceRpc.Tests.Internal
                 builder =>
                 {
                     builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
-                    builder.SetMinimumLevel(LogLevel.Information);
+                    // builder.AddJsonConsole(configure =>
+                    // {
+                    //     configure.IncludeScopes = true;
+                    //     configure.JsonWriterOptions = new System.Text.Json.JsonWriterOptions()
+                    //     {
+                    //         Indented = true
+                    //     };
+                    // });
+                    builder.SetMinimumLevel(LogLevel.Trace);
                 });
 
             _serverCommunicator = new Communicator(loggerFactory : loggerFactory);

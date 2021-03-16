@@ -113,18 +113,32 @@ namespace IceRpc
         {
             // Send our unidirectional semaphore to the peer. The peer will decrease the semaphore when the stream is
             // disposed.
-            await _writer.WriteAsync((-1, _unidirectionalStreamSemaphore, false), cancel).ConfigureAwait(false);
-            (_, object? semaphore, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                await _writer.WriteAsync((-1, _unidirectionalStreamSemaphore, false), cancel).ConfigureAwait(false);
+                (_, object? semaphore, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
 
-            // Get the peer's unidirectional semaphore and keep track of it to be able to release it once an
-            // unidirectional stream is disposed.
-            _peerUnidirectionalStreamSemaphore = (AsyncSemaphore?)semaphore;
+                // Get the peer's unidirectional semaphore and keep track of it to be able to release it once an
+                // unidirectional stream is disposed.
+                _peerUnidirectionalStreamSemaphore = (AsyncSemaphore?)semaphore;
+            }
+            catch (Exception exception)
+            {
+                throw new TransportException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            }
         }
 
         public override async Task PingAsync(CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();
-            await _writer.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
+            try
+            {
+                await _writer.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                throw new TransportException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            }
         }
 
         public override string ToString() =>
@@ -206,6 +220,10 @@ namespace IceRpc
                 {
                     await _writer.WriteAsync((stream.Id, frame, fin), cancel).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -258,7 +276,7 @@ namespace IceRpc
             }
         }
 
-        internal override IDisposable? StartSocketScope()
+        internal override IDisposable? StartScope()
         {
             // If any of the loggers is enabled we create the scope
             if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
