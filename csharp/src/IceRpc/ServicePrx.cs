@@ -720,6 +720,7 @@ namespace IceRpc
                     InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
                     InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
                     IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
+                    LocationResolver = locationResolver ?? LocationResolver,
                     Path = path ?? (Protocol == Protocol.Ice1 ? "" : Path),
                     Protocol = Protocol
                 };
@@ -889,7 +890,7 @@ namespace IceRpc
             IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
             TimeSpan endpointsAge = TimeSpan.Zero;
 
-            // Get the proxy's endpoint or query the location service to get endpoints.
+            // Get the proxy's endpoint or query the location resolver to get endpoints.
 
             if (IsIndirect)
             {
@@ -899,6 +900,7 @@ namespace IceRpc
                         await locationService.ResolveAsync(Endpoints[0], endpointsMaxAge, cancel).ConfigureAwait(false);
 
                 }
+                // else endpoints remains empty.
             }
             else if (Endpoints.Count > 0)
             {

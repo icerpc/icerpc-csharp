@@ -56,7 +56,6 @@ namespace IceRpc.Tests.Api
             if (prx.Protocol == Protocol.Ice1)
             {
                 Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").Facet);
-                Assert.AreEqual("id", prx.Clone(location: "id").Location);
             }
 
             var server = new Server(communicator,
@@ -114,22 +113,10 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
             // Cannot set both label and clearLabel
             Assert.Throws<ArgumentException>(() => prxIce2.Clone(label: "foo", clearLabel: true));
-            // Cannot set both locationService and clearLocationService
-            Assert.Throws<ArgumentException>(() => prxIce1.Clone(locationService: new DummyLocationService(),
-                                                                 clearLocationService: true));
-            // locationService applies only to Ice1 proxies
-            Assert.Throws<ArgumentException>(() => prxIce2.Clone(locationService: new DummyLocationService()));
-            // clearLocationService applies only to Ice1 proxies
-            Assert.Throws<ArgumentException>(() => prxIce2.Clone(clearLocationService: true));
 
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => prxIce1.Clone(endpoints: prxIce2.Endpoints));
             Assert.Throws<ArgumentException>(() => prxIce2.Clone(endpoints: prxIce1.Endpoints));
-
-            // cannot set both Endpoints and locationService
-            Assert.Throws<ArgumentException>(() => IServicePrx.Parse("hello -t", Communicator).Clone(
-                endpoints: prxIce1.Endpoints,
-                locationService: new DummyLocationService()));
 
             // Zero is not a valid invocation timeout
             Assert.Throws<ArgumentException>(() => prxIce2.Clone(invocationTimeout: TimeSpan.Zero));
@@ -164,10 +151,6 @@ namespace IceRpc.Tests.Api
             // Cannot change the label of a fixed proxy
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(label: new object()));
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(clearLabel: true));
-
-            // Cannot change the location service of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce1.Clone(locationService: new DummyLocationService()));
-            Assert.Throws<ArgumentException>(() => fixedPrxIce1.Clone(clearLocationService: true));
 
             // Cannot change the prefer existing connection setting of a fixed proxy
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferExistingConnection: true));
@@ -505,14 +488,14 @@ namespace IceRpc.Tests.Api
                 preferExistingConnection: false,
                 preferNonSecure: NonSecure.Always);
 
-            // TODO: LocationService should reject indirect locators.
-            ILocationService locationService = new LocationService(locator);
-            prx = prx.Clone(locationService: locationService);
+            // TODO: LocatorClient should reject indirect locators.
+            ILocationResolver locationResolver = new LocatorClient(locator);
+            prx = prx.Clone(locationResolver: locationResolver);
 
             proxyProps = prx.ToProperty("Test");
 
             Assert.AreEqual(4, proxyProps.Count);
-            Assert.AreEqual("test -t -e 1.1", proxyProps["Test"]);
+            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
             Assert.AreEqual("Never", proxyProps["Test.PreferNonSecure"]);
             Assert.AreEqual("true", proxyProps["Test.PreferExistingConnection"]);
@@ -562,19 +545,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.Context.Count, 2);
             Assert.AreEqual(prx.Context["c 1"], "some value");
             Assert.AreEqual(prx.Context["c5"], "v5");
-        }
-
-        internal class DummyLocationService : ILocationService
-        {
-            public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
-                string location,
-                TimeSpan endpointsMaxAge,
-                CancellationToken cancel) => throw new NotImplementedException();
-
-            public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
-                Identity identity,
-                TimeSpan endpointsMaxAge,
-                CancellationToken cancel) => throw new NotImplementedException();
         }
 
         public class GreeterService : IAsyncGreeterService
