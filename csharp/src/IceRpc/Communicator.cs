@@ -96,11 +96,11 @@ namespace IceRpc
             set => _defaultInvocationInterceptors = value;
         }
 
-        /// <summary>The default location service for this communicator.</summary>
-        public ILocationService? DefaultLocationService
+        /// <summary>The default location resolver for this communicator.</summary>
+        public ILocationResolver? DefaultLocationResolver
         {
-            get => _defaultLocationService;
-            set => _defaultLocationService = value;
+            get => _defaultLocationResolver;
+            set => _defaultLocationResolver = value;
         }
 
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
@@ -144,8 +144,6 @@ namespace IceRpc
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
 
-        internal ILogger DiscoveryLogger { get; }
-
         internal TimeSpan IdleTimeout { get; }
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
@@ -153,7 +151,9 @@ namespace IceRpc
 
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }
-        internal ILogger LocationLogger { get; }
+
+        // TODO: should pass the factory and create a logger per locator client
+         internal ILogger LocatorClientLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
         internal int MaxBidirectionalStreams { get; }
         internal int MaxUnidirectionalStreams { get; }
@@ -191,7 +191,7 @@ namespace IceRpc
             ImmutableSortedDictionary<string, string>.Empty;
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
-        private volatile ILocationService? _defaultLocationService;
+        private volatile ILocationResolver? _defaultLocationResolver;
         private Task? _shutdownTask;
 
         private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =
@@ -294,8 +294,7 @@ namespace IceRpc
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
-            DiscoveryLogger = LoggerFactory.CreateLogger("IceRpc.Discovery");
-            LocationLogger = LoggerFactory.CreateLogger("IceRpc.Location");
+            LocatorClientLogger = LoggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
             TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
             ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
             SecurityLogger = LoggerFactory.CreateLogger("IceRpc.Security");

@@ -10,7 +10,7 @@ namespace IceRpc.Test.SeqMapping
     {
         private const int Length = 100;
 
-        internal static void Run(Communicator communicator, IMyClassPrx p)
+        internal static void Run(Communicator communicator, IMyClassPrx p, bool ice1)
         {
             {
                 byte[]? i = Enumerable.Range(0, Length).Select(x => (byte)x).ToArray();
@@ -372,7 +372,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray();
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray();
                 var (r, o) = p.OpAObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -380,7 +380,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToList<IServicePrx?>();
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToList<IServicePrx?>();
                 var (r, o) = p.OpLObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -388,7 +388,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new LinkedList<IServicePrx?>(Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray());
                 var (r, o) = p.OpKObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -396,7 +396,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Queue<IServicePrx?>(Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray());
                 var (r, o) = p.OpQObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -404,7 +404,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Stack<IServicePrx?>(Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray());
                 var (r, o) = p.OpSObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -412,7 +412,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Custom<IServicePrx?>(Enumerable.Range(0, Length).Select(
-                    x => IServicePrx.Parse(x.ToString(), communicator)).ToArray());
+                    x => IServicePrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray());
                 var (r, o) = p.OpCObjectPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -518,7 +518,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToArray();
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray();
                 var (r, o) = p.OpAIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -526,7 +526,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToList<IIPrx?>();
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToList<IIPrx?>();
                 var (r, o) = p.OpLIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -534,7 +534,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new LinkedList<IIPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToList());
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToList());
                 var (r, o) = p.OpKIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -542,7 +542,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Queue<IIPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToList());
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToList());
                 var (r, o) = p.OpQIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -550,7 +550,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Stack<IIPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToList());
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToList());
                 var (r, o) = p.OpSIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));
@@ -558,7 +558,7 @@ namespace IceRpc.Test.SeqMapping
 
             {
                 var i = new Custom<IIPrx?>(Enumerable.Range(0, Length).Select(
-                    x => IIPrx.Parse(x.ToString(), communicator)).ToArray());
+                    x => IIPrx.Parse(ice1 ? $"{x}" : $"ice+tcp://localhost/{x}", communicator)).ToArray());
                 var (r, o) = p.OpCIPrxS(i);
                 TestHelper.Assert(r.SequenceEqual(i));
                 TestHelper.Assert(o.SequenceEqual(i));

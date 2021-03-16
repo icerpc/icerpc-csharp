@@ -444,7 +444,8 @@ namespace IceRpc
                 }
                 else
                 {
-                    this.Write(ProxyKind20.Null);
+                    ProxyData20 nullValue = default;
+                    nullValue.IceWrite(this);
                 }
             }
         }

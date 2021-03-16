@@ -9,6 +9,7 @@
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Encoding.ice>
+#include <IceRpc/Endpoint.ice>
 #include <IceRpc/Protocol.ice>
 
 module IceRpc
@@ -54,48 +55,12 @@ module IceRpc
         Encoding encoding;
     }
 
-    /// The kind of proxy being marshaled/unmarshaled (2.0 encoding only).
-    enum ProxyKind20 : byte
-    {
-        /// This optional proxy is null.
-        Null,
-
-        /// An ice2 (or greater) ice+transport proxy, where transport corresponds to the transport of the first
-        /// endpoint.
-        Direct,
-
-        /// An ice2 (or greater) proxy with no endpoint. Its URI scheme is ice.
-        Relative,
-
-        /// An ice1 direct proxy
-        Ice1Direct,
-
-        /// An Ice1 indirect proxy
-        Ice1Indirect
-    }
-
-    /// With the 2.0 encoding, a proxy is encoded as a discrimated union with:
-    /// - ProxyKind20 (the discriminant)
-    /// - if ProxyKind20 is Null: nothing
-    /// - if ProxyKind20 is Direct: ProxyData20 followed by a sequence of one or more endpoints
-    /// - if ProxyKind20 is Relative: ProxyData20
-    /// - if ProxyKind20 is Ice1Direct: Ice1ProxyData20 followed by a sequence of one or more endpoints
-    /// - if ProxyKind20 is Ice1Indirect: Ice1ProxyData20 followed by a string (the location), which can be empty
-
     [cs:readonly]
     struct ProxyData20
     {
-        string path;                         // Percent-escaped URI path.
+        string? path;                        // Percent-escaped URI path. Null means null proxy.
         Protocol? protocol;                  // null is equivalent to Protocol::Ice2
         Encoding? encoding;                  // null is equivalent to Encoding 2.0
-    }
-
-    [cs:readonly]
-    struct Ice1ProxyData20
-    {
-        Ice::Identity identity;
-        string? facet;                       // null equivalent to ""
-        Encoding? encoding;                  // null is equivalent to Encoding 1.1
-        InvocationMode? invocationMode;      // null is equivalent to Twoway
+        EndpointDataSeq? endpoints;
     }
 }

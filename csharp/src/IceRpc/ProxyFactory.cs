@@ -43,8 +43,6 @@ namespace IceRpc
         /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
-        /// <param name="clearLocationService">When set to true, the clone does not have an associated location service
-        /// (optional).</param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -55,8 +53,7 @@ namespace IceRpc
         /// executed with each invocation</param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
-        /// <param name="location">The location of the clone (optional).</param>
-        /// <param name="locationService">The location service of the clone (optional).</param>
+        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="path">The path of the clone (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
@@ -69,7 +66,6 @@ namespace IceRpc
             IServicePrx proxy,
             bool? cacheConnection = null,
             bool clearLabel = false,
-            bool clearLocationService = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -78,8 +74,7 @@ namespace IceRpc
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            string? location = null,
-            ILocationService? locationService = null,
+            ILocationResolver? locationResolver = null,
             bool? oneway = null,
             string? path = null,
             bool? preferExistingConnection = null,
@@ -87,7 +82,6 @@ namespace IceRpc
         {
             T clone = factory.Create(proxy.Impl.CreateCloneOptions(cacheConnection,
                                                                    clearLabel,
-                                                                   clearLocationService,
                                                                    context,
                                                                    encoding,
                                                                    endpoints,
@@ -96,8 +90,7 @@ namespace IceRpc
                                                                    invocationInterceptors,
                                                                    invocationTimeout,
                                                                    label,
-                                                                   location,
-                                                                   locationService,
+                                                                   locationResolver,
                                                                    oneway,
                                                                    path,
                                                                    preferExistingConnection,
@@ -105,10 +98,7 @@ namespace IceRpc
             return proxy is T t && t.Equals(clone) ? t : clone;
         }
 
-        /// <summary>Creates a proxy for a service hosted by <c>server</c>. If <c>server</c> is configured with an
-        /// adapter ID, the proxy is an indirect proxy with a location set to this adapter ID or the server's replica
-        /// group ID (if defined). Otherwise, the proxy is a direct proxy with the server's published endpoints.
-        /// </summary>
+        /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
@@ -127,16 +117,43 @@ namespace IceRpc
                 throw new ArgumentException("facet must be empty when the protocol is not ice1", nameof(facet));
             }
 
-            var options = new ServicePrxOptions()
+            IReadOnlyList<Endpoint> endpoints = server.PublishedEndpoints;
+
+            if (protocol == Protocol.Ice1 && endpoints.Count == 0)
             {
-                Communicator = server.Communicator,
-                Endpoints = server.PublishedEndpoints,
-                Facet = facet,
-                IsOneway = server.IsDatagramOnly,
-                Path = UriParser.NormalizePath(path),
-                Protocol = protocol
-            };
-            return factory.Create(options);
+                // Well-known proxy.
+                var identity = Identity.FromPath(path);
+                var locEndpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
+                                                                      host: identity.Name,
+                                                                      port: 0,
+                                                                      options: new string[] { identity.Category}),
+                                                     server.Communicator,
+                                                     protocol);
+
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = server.Communicator,
+                    Endpoints = ImmutableList.Create(locEndpoint),
+                    Facet = facet,
+                    Identity = identity,
+                    IsOneway = server.IsDatagramOnly,
+                    Protocol = Protocol.Ice1
+                };
+                return factory.Create(options);
+            }
+            else
+            {
+                var options = new ServicePrxOptions()
+                {
+                    Communicator = server.Communicator,
+                    Endpoints = endpoints,
+                    Facet = facet,
+                    IsOneway = server.IsDatagramOnly,
+                    Path = UriParser.NormalizePath(path),
+                    Protocol = protocol
+                };
+                return factory.Create(options);
+            }
         }
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
@@ -207,7 +224,6 @@ namespace IceRpc
             Identity identity = default;
             TimeSpan? invocationTimeout = null;
             object? label = null;
-            string location = "";
             bool oneway = false;
             string path = "";
             bool? preferExistingConnection = null;
@@ -235,8 +251,8 @@ namespace IceRpc
             {
                 protocol = Protocol.Ice1;
 
-                (identity, facet, encoding, location, endpoints, oneway) =
-                    Ice1Parser.ParseProxy(proxyString, communicator);
+                (identity, facet, encoding, endpoints, oneway) = Ice1Parser.ParseProxy(proxyString, communicator);
+                Debug.Assert(endpoints.Count > 0);
 
                 // Override the defaults with the proxy properties if a property prefix is defined.
                 if (propertyPrefix != null && propertyPrefix.Length > 0)
@@ -271,9 +287,7 @@ namespace IceRpc
                 Identity = identity,
                 InvocationTimeoutOverride = invocationTimeout,
                 IsOneway = oneway,
-                Location = location,
-                LocationService = protocol == Protocol.Ice1 && endpoints.Count == 0 ?
-                    communicator.DefaultLocationService : null,
+                LocationResolver = communicator.DefaultLocationResolver,
                 Path = path,
                 PreferExistingConnectionOverride = preferExistingConnection,
                 PreferNonSecureOverride = preferNonSecure,
@@ -332,10 +346,37 @@ namespace IceRpc
                 Endpoint[] endpoints =
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint(proxyData.Protocol));
 
-                string location = endpoints.Length == 0 ? istr.ReadString() : "";
+                if (endpoints.Length == 0)
+                {
+                    string adapterId = istr.ReadString();
+
+                    // Well-known proxies are ice1-only.
+                    if (proxyData.Protocol == Protocol.Ice1 || adapterId.Length > 0)
+                    {
+                        var locEndpoint = LocEndpoint.Create(
+                            new EndpointData(Transport.Loc,
+                                             host: adapterId.Length > 0 ? adapterId : identity.Name,
+                                             port: 0,
+                                             options: adapterId.Length > 0 ?
+                                                Array.Empty<string>() : new string[] { identity.Category }),
+                            istr.Communicator!,
+                            proxyData.Protocol);
+
+                        endpoints = new Endpoint[] { locEndpoint };
+                    }
+                }
+                else if (endpoints.Length > 1)
+                {
+                    if (endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
+                    {
+                        throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
+                    }
+                }
 
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
+                    Debug.Assert(endpoints.Length > 0);
+
                     if (proxyData.FacetPath.Length > 1)
                     {
                         throw new InvalidDataException(
@@ -346,8 +387,7 @@ namespace IceRpc
                                            endpoints,
                                            proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                                            identity,
-                                           proxyData.InvocationMode,
-                                           location);
+                                           proxyData.InvocationMode);
                 }
                 else
                 {
@@ -368,63 +408,61 @@ namespace IceRpc
             {
                 Debug.Assert(istr.Encoding == Encoding.V20);
 
-                ProxyKind20 proxyKind = istr.ReadProxyKind20();
-                if (proxyKind == ProxyKind20.Null)
+                var proxyData = new ProxyData20(istr);
+
+                if (proxyData.Path == null)
                 {
                     return null;
                 }
 
-                if (proxyKind == ProxyKind20.Direct || proxyKind == ProxyKind20.Relative) // an ice2+ proxy
+                Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
+
+                // TODO: this currently doesn't work with ice1
+                IReadOnlyList<Endpoint>? endpoints = proxyData.Endpoints?.ToEndpointList(istr.Communicator!, protocol);
+                endpoints ??= ImmutableList<Endpoint>.Empty;
+
+                if (endpoints.Count > 1)
                 {
-                    var proxyData = new ProxyData20(istr);
-                    Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
-
-                    if (proxyKind == ProxyKind20.Direct)
+                    if (endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
                     {
-                        // The min size for an Endpoint with the 2.0 encoding is: transport (short = 2 bytes) + hostname
-                        // (min 2 bytes as it cannot be empty) + port number (ushort, 2 bytes) + options (1 byte for
-                        // empty sequence), for a total of 7 bytes.
-                        endpoints = istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(protocol));
-
-                        if (endpoints.Count == 0)
-                        {
-                            throw new InvalidDataException("received a direct proxy with no endpoint");
-                        }
+                        throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
                     }
-                    return CreateIce2Proxy(proxyData.Encoding ?? Encoding.V20, endpoints, proxyData.Path, protocol);
                 }
-                else // an ice1 proxy
+
+                if (protocol == Protocol.Ice1)
                 {
-                    var proxyData = new Ice1ProxyData20(istr);
-                    if (proxyData.Identity.Name.Length == 0)
+                    InvocationMode invocationMode = endpoints.Count > 0 && endpoints.All(e => e.IsDatagram) ?
+                        InvocationMode.Oneway : InvocationMode.Twoway;
+
+                    string facet;
+                    Identity identity;
+
+                    int hashIndex = proxyData.Path.IndexOf('#');
+                    if (hashIndex == -1)
                     {
-                        throw new InvalidDataException("received a non-null ice1 proxy with an empty name");
+                        identity = Identity.FromPath(proxyData.Path);
+                        facet = "";
+                    }
+                    else
+                    {
+                        identity = Identity.FromPath(proxyData.Path[0..hashIndex]);
+                        facet = proxyData.Path[(hashIndex + 1)..];
                     }
 
-                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
-                    string location = "";
-
-                    if (proxyKind == ProxyKind20.Ice1Direct)
+                    if (identity.Name.Length == 0)
                     {
-                        endpoints = istr.ReadArray(minElementSize: 7, istr => istr.ReadEndpoint(Protocol.Ice1));
-
-                        if (endpoints.Count == 0)
-                        {
-                            throw new InvalidDataException("received a direct proxy with no endpoint");
-                        }
-                    }
-                    else // ice1 indirect proxy
-                    {
-                        location = istr.ReadString();
+                        throw new InvalidDataException($"received invalid ice1 identity `{proxyData.Path}'");
                     }
 
-                    return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V11,
+                    return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V20,
                                            endpoints,
-                                           proxyData.Facet ?? "",
-                                           proxyData.Identity,
-                                           proxyData.InvocationMode ?? InvocationMode.Twoway,
-                                           location);
+                                           facet,
+                                           identity,
+                                           invocationMode);
+                }
+                else
+                {
+                    return CreateIce2Proxy(proxyData.Encoding ?? Encoding.V20, endpoints, proxyData.Path, protocol);
                 }
             }
 
@@ -434,8 +472,7 @@ namespace IceRpc
                 IReadOnlyList<Endpoint> endpoints,
                 string facet,
                 Identity identity,
-                InvocationMode invocationMode,
-                string location)
+                InvocationMode invocationMode)
             {
                 Communicator communicator = istr.Communicator!;
 
@@ -447,8 +484,7 @@ namespace IceRpc
                     Facet = facet,
                     Identity = identity,
                     IsOneway = invocationMode != InvocationMode.Twoway,
-                    Location = location,
-                    LocationService = location.Length > 0 ? communicator.DefaultLocationService : null,
+                    LocationResolver = communicator.DefaultLocationResolver,
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);

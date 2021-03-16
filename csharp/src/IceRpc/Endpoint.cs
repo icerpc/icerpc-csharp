@@ -245,11 +245,11 @@ namespace IceRpc
             return factory?.Invoke(data, communicator) ?? UniversalEndpoint.Create(data, communicator, protocol);
         }
 
-        /// <summary>Creates an endpoint data list from a sequence of endpoints.</summary>
+        /// <summary>Creates an endpoint data array from a sequence of endpoints.</summary>
         /// <param name="endpoints">The sequence of endpoints.</param>
-        /// <returns>A new list of endpoint data.</returns>
-        public static List<EndpointData> ToEndpointDataList(this IEnumerable<Endpoint> endpoints) =>
-            endpoints.Select(e => e.Data).ToList();
+        /// <returns>A new endpoint data array.</returns>
+        public static EndpointData[] ToEndpointDataArray(this IEnumerable<Endpoint> endpoints) =>
+            endpoints.Select(e => e.Data).ToArray();
 
         /// <summary>Creates an endpoint list from a sequence of <see cref="EndpointData"/> structs.</summary>
         /// <param name="dataSequence">The sequence of endpoint data.</param>

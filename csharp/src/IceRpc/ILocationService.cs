@@ -7,29 +7,18 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace IceRpc
 {
-    /// <summary>A location service retrieves the endpoints of ice1 indirect proxies and optionally maintains a cache
-    /// for faster resolutions.</summary>
-    public interface ILocationService
+    /// <summary>A location resolver resolves endpoints with the loc transport into other endpoints and optionally
+    /// maintains a cache for faster resolutions.</summary>
+    public interface ILocationResolver
     {
-        /// <summary>Retrieves the endpoint(s) for a location.</summary>
-        /// <param name="location">The location.</param>
+        /// <summary>Resolves an endpoint with the loc transport.</summary>
+        /// <param name="endpoint">The input endpoint.</param>
         /// <param name="endpointsMaxAge">The maximum age of the cache entry.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task holding the resolved endpoint(s) and the age of the cache entry. When the location
+        /// <returns>A value task holding the resolved endpoint(s) and the age of the cache entry. When a loc endpoint
         /// cannot be resolved, the endpoint list is empty.</returns>
-        ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveLocationAsync(
-            string location,
-            TimeSpan endpointsMaxAge,
-            CancellationToken cancel);
-
-        /// <summary>Retrieves the endpoint(s) for a well-known proxy.</summary>
-        /// <param name="identity">The well-known proxy's identity.</param>
-        /// <param name="endpointsMaxAge">The maximum age of the cache entry.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task holding the resolved endpoint(s) and the age of the cache entry. When the identity
-        /// and facet cannot be resolved, the endpoint list is empty.</returns>
-        ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveWellKnownProxyAsync(
-            Identity identity,
+        ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveAsync(
+            Endpoint endpoint,
             TimeSpan endpointsMaxAge,
             CancellationToken cancel);
     }

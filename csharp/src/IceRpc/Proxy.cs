@@ -17,8 +17,6 @@ namespace IceRpc
         /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
         /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
-        /// <param name="clearLocationService">When set to true, the clone does not have an associated location service
-        /// (optional).</param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -28,8 +26,7 @@ namespace IceRpc
         /// executed with each invocation</param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
-        /// <param name="location">The location of the clone (optional).</param>
-        /// <param name="locationService">The location service of the clone (optional).</param>
+        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
@@ -40,7 +37,6 @@ namespace IceRpc
             this T proxy,
             bool? cacheConnection = null,
             bool clearLabel = false,
-            bool clearLocationService = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
@@ -48,30 +44,27 @@ namespace IceRpc
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
             TimeSpan? invocationTimeout = null,
             object? label = null,
-            string? location = null,
-            ILocationService? locationService = null,
+            ILocationResolver? locationResolver = null,
             bool? oneway = null,
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null) where T : class, IServicePrx
         {
             ServicePrx impl = proxy.Impl;
             ServicePrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
-                                                                 clearLabel,
-                                                                 clearLocationService,
-                                                                 context,
-                                                                 encoding,
-                                                                 endpoints,
-                                                                 facet: null,
-                                                                 fixedConnection,
-                                                                 invocationInterceptors,
-                                                                 invocationTimeout,
-                                                                 label,
-                                                                 location,
-                                                                 locationService,
-                                                                 oneway,
-                                                                 path: null,
-                                                                 preferExistingConnection,
-                                                                 preferNonSecure));
+                                                                  clearLabel,
+                                                                  context,
+                                                                  encoding,
+                                                                  endpoints,
+                                                                  facet: null,
+                                                                  fixedConnection,
+                                                                  invocationInterceptors,
+                                                                  invocationTimeout,
+                                                                  label,
+                                                                  locationResolver,
+                                                                  oneway,
+                                                                  path: null,
+                                                                  preferExistingConnection,
+                                                                  preferNonSecure));
             return clone == impl ? proxy : (clone as T)!;
         }
 

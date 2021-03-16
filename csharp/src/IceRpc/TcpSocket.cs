@@ -247,7 +247,7 @@ namespace IceRpc
             if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
+                _communicator.LocatorClientLogger.IsEnabled(LogLevel.Critical) ||
                 _communicator.Logger.IsEnabled(LogLevel.Critical))
             {
                 return _communicator.Logger.StartSocketScope(endpoint.Transport,
