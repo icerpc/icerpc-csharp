@@ -13,7 +13,7 @@ namespace IceRpc.Test.Invoke
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.AddDefault(new BlobjectI());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

@@ -220,7 +220,7 @@ namespace IceRpc.Interop
                 }
                 else
                 {
-                   logger.LogCouldNotFindEndpointsForWellKnownProxy(identity);
+                    logger.LogCouldNotFindEndpointsForWellKnownProxy(identity);
                 }
             }
 

@@ -217,28 +217,6 @@ namespace IceRpc
             : base(message, retryPolicy) => IsClosedByPeer = isClosedByPeer;
     }
 
-    /// <summary>This exception reports a DNS error.</summary>
-    public class DNSException : TransportException
-    {
-        /// <summary>Constructs a new instance of the <see cref="DNSException"/> class.</summary>
-        /// <param name="host">The hostname that was the cause of the current exception.</param>
-        /// <param name="retryPolicy">The exception retry policy.</param>
-        public DNSException(string host, RetryPolicy retryPolicy = default)
-            : base($"failed to resolve hostname `{host}'", retryPolicy)
-        {
-        }
-
-        /// <summary>Constructs a new instance of <see cref="DNSException"/> with a reference to the inner
-        /// exception that is the cause of this exception.</summary>
-        /// <param name="host">The hostname that was the cause of the current exception.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        /// <param name="retryPolicy">The exception retry policy.</param>
-        public DNSException(string host, Exception innerException, RetryPolicy retryPolicy = default)
-            : base($"failed to resolve hostname `{host}'", innerException, retryPolicy)
-        {
-        }
-    }
-
     /// <summary>This exception reports that data (bytes) received by Ice are not in an expected format.</summary>
     public class InvalidDataException : Exception
     {

@@ -10,7 +10,7 @@ namespace IceRpc.Test.Binding
     {
         private int _nextPort = 10;
 
-        public async ValueTask<IRemoteServerPrx> CreateServerAsync(
+        public ValueTask<IRemoteServerPrx> CreateServerAsync(
             string name,
             string transport,
             Current current,
@@ -35,10 +35,9 @@ namespace IceRpc.Test.Binding
                             Name = name,
                             PublishedHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
-                    await server.ActivateAsync(cancel);
+                    server.Activate();
 
-                    return current.Server.AddWithUUID(new RemoteServer(server),
-                                                       IRemoteServerPrx.Factory);
+                    return new(current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory));
                 }
                 catch (TransportException)
                 {
@@ -50,7 +49,7 @@ namespace IceRpc.Test.Binding
             }
         }
 
-        public async ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
+        public ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
             string name,
             string endpoints,
             Current current,
@@ -59,9 +58,9 @@ namespace IceRpc.Test.Binding
             var server = new Server(
                 current.Communicator,
                 new ServerOptions { Endpoints = endpoints, Name = name });
-            await server.ActivateAsync(cancel);
+            server.Activate();
 
-            return current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory);
+            return new(current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory));
         }
 
         // Colocated call.

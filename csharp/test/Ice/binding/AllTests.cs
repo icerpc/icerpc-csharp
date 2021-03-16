@@ -446,12 +446,6 @@ namespace IceRpc.Test.Binding
                     PublishedHost = "::1"
                 };
 
-                var localhost = new ServerOptions
-                {
-                    Endpoints = getEndpoint("localhost"),
-                    PublishedHost = "localhost"
-                };
-
                 var serverOptions = new ServerOptions[]
                 {
                     anyipv4,
@@ -459,15 +453,14 @@ namespace IceRpc.Test.Binding
                     anyipv46,
                     anylocalhost,
                     localipv4,
-                    localipv6,
-                    localhost
+                    localipv6
                 };
 
                 foreach (ServerOptions p in serverOptions)
                 {
                     await using var serverCommunicator = new Communicator();
                     await using var oa = new Server(serverCommunicator, p);
-                    await oa.ActivateAsync();
+                    oa.Activate();
 
                     IServicePrx prx = IServicePrx.Factory.Create(oa, "dummy");
                     try
@@ -490,14 +483,16 @@ namespace IceRpc.Test.Binding
                     await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
-                    await oa.ActivateAsync();
+                    oa.Activate();
+
+                    Console.Out.Flush();
 
                     try
                     {
                         await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = getEndpoint("0.0.0.0") });
-                        await ipv4Server.ActivateAsync();
+                        ipv4Server.Activate();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -524,7 +519,7 @@ namespace IceRpc.Test.Binding
                     await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
-                    await oa.ActivateAsync();
+                    oa.Activate();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
@@ -532,7 +527,7 @@ namespace IceRpc.Test.Binding
                         await using var ipv4Server = new Server(
                                 serverCommunicator,
                                 new() { Endpoints = ipv4Endpoint });
-                        await ipv4Server.ActivateAsync();
+                        ipv4Server.Activate();
                     }
 
                     try
@@ -555,7 +550,7 @@ namespace IceRpc.Test.Binding
                     await using var oa = new Server(
                         serverCommunicator,
                         new() { Endpoints = endpoint });
-                    await oa.ActivateAsync();
+                    oa.Activate();
 
                     try
                     {
@@ -563,7 +558,7 @@ namespace IceRpc.Test.Binding
                         await using var ipv4Server = new Server(
                             serverCommunicator,
                             new() { Endpoints = ipv4Endpoint });
-                        await ipv4Server.ActivateAsync();
+                        ipv4Server.Activate();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

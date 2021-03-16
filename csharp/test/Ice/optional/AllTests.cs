@@ -196,7 +196,7 @@ namespace IceRpc.Test.Optional
             derivedResult = test.OpOptDerived(derived)!;
             TestHelper.Assert(derivedResult.Proxy!.Equals(derived.Proxy) &&
                 derivedResult.X == derived.X &&
-                derivedResult.StringSeq!.SequenceEqual(derived.StringSeq) &&
+                derivedResult.StringSeq!.SequenceEqual(derived.StringSeq!) &&
                 derivedResult.SomeClass == null &&
                 derivedResult.S == derived.S);
 

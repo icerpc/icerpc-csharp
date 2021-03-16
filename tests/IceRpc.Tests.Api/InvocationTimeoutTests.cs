@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Api
                         return await next(target, request, cancel);
                     }));
 
-            await Server.ActivateAsync();
+            Server.Activate();
 
             // Establish a connection
             var connection = await prx.GetConnectionAsync();

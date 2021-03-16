@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,9 +9,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -32,10 +30,10 @@ namespace IceRpc
                                            SocketOptionName.IPv6Only,
                                            endpoint.IsIPv6Only);
                 }
-                catch (SocketException ex)
+                catch
                 {
                     socket.CloseNoThrow();
-                    throw new TransportException(ex);
+                    throw;
                 }
             }
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
@@ -58,119 +56,49 @@ namespace IceRpc
             }
         }
 
-        internal static Socket CreateSocket(bool udp, AddressFamily family)
+        internal static Socket CreateSocket(bool udp, AddressFamily? addressFamily)
         {
-            Socket socket;
-
             try
             {
                 if (udp)
                 {
-                    socket = new Socket(family, SocketType.Dgram, ProtocolType.Udp);
+                    if (addressFamily is AddressFamily value)
+                    {
+                        return new Socket(value, SocketType.Dgram, ProtocolType.Udp);
+                    }
+                    else
+                    {
+                        return new Socket(SocketType.Dgram, ProtocolType.Udp);
+                    }
                 }
                 else
                 {
-                    socket = new Socket(family, SocketType.Stream, ProtocolType.Tcp);
+                    Socket socket;
+                    if (addressFamily is AddressFamily value)
+                    {
+                        socket = new Socket(value, SocketType.Stream, ProtocolType.Tcp);
+                    }
+                    else
+                    {
+                        socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                    }
+
+                    try
+                    {
+                        socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
+                    }
+                    catch
+                    {
+                        socket.CloseNoThrow();
+                        throw;
+                    }
+                    return socket;
                 }
             }
             catch (SocketException ex)
             {
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
-
-            if (!udp)
-            {
-                try
-                {
-                    socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
-                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1);
-                }
-                catch (SocketException ex)
-                {
-                    socket.CloseNoThrow();
-                    throw new TransportException(ex, RetryPolicy.OtherReplica);
-                }
-            }
-            return socket;
-        }
-
-        internal static async ValueTask<IReadOnlyList<IPEndPoint>> GetAddressesAsync(
-            string host,
-            int port,
-            CancellationToken cancel = default)
-        {
-            Debug.Assert(host.Length > 0);
-
-            var addresses = new List<IPEndPoint>();
-            try
-            {
-                // Trying to parse the IP address is necessary to handle wildcard addresses such as 0.0.0.0 or ::0
-                // since GetHostAddressesAsync fails to resolve them.
-                var a = IPAddress.Parse(host);
-                addresses.Add(new IPEndPoint(a, port));
-                return addresses;
-            }
-            catch (FormatException)
-            {
-            }
-
-            try
-            {
-                foreach (IPAddress a in await Dns.GetHostAddressesAsync(host).WaitAsync(cancel).ConfigureAwait(false))
-                {
-                    addresses.Add(new IPEndPoint(a, port));
-                }
-
-                // No InterNetwork/InterNetworkV6 available.
-                if (addresses.Count == 0)
-                {
-                    throw new DNSException(host);
-                }
-
-                return addresses;
-            }
-            catch (DNSException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new DNSException(host, ex);
-            }
-        }
-
-        internal static async ValueTask<IReadOnlyList<IPEndPoint>> GetAddressesForClientEndpointAsync(
-            string host,
-            int port,
-            CancellationToken cancel)
-        {
-            Debug.Assert(host.Length > 0);
-
-            return await GetAddressesAsync(host, port, cancel).ConfigureAwait(false);
-        }
-
-        internal static List<string> GetHostsForEndpointExpand(string host, int ipVersion, bool includeLoopback)
-        {
-            var hosts = new List<string>();
-            if (IsWildcard(host, ipVersion))
-            {
-                foreach (IPAddress a in GetLocalAddresses(ipVersion, includeLoopback, false))
-                {
-                    if (!IsLinklocal(a))
-                    {
-                        hosts.Add(a.ToString());
-                    }
-                }
-                if (hosts.Count == 0)
-                {
-                    // Return loopback if only loopback is available no other local addresses are available.
-                    foreach (IPAddress a in GetLoopbackAddresses(ipVersion))
-                    {
-                        hosts.Add(a.ToString());
-                    }
-                }
-            }
-            return hosts;
         }
 
         internal static List<string> GetInterfacesForMulticast(string? intf, int ipVersion)
@@ -179,7 +107,7 @@ namespace IceRpc
 
             if (intf == null || IsWildcard(intf, ipVersion))
             {
-                interfaces.AddRange(GetLocalAddresses(ipVersion, true, true).Select(i => i.ToString()));
+                interfaces.AddRange(GetLocalAddresses(ipVersion, true, true, true).Select(i => i.ToString()));
             }
 
             if (intf != null && interfaces.Count == 0)
@@ -204,7 +132,11 @@ namespace IceRpc
             return null;
         }
 
-        internal static IPAddress[] GetLocalAddresses(int ipVersion, bool includeLoopback, bool singleAddressPerInterface)
+        internal static IPAddress[] GetLocalAddresses(
+            int ipVersion,
+            bool includeLoopback,
+            bool singleAddressPerInterface,
+            bool supportMulticast)
         {
             var addresses = new HashSet<IPAddress>();
             try
@@ -212,6 +144,16 @@ namespace IceRpc
                 NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
                 foreach (NetworkInterface ni in nics)
                 {
+                    if (supportMulticast && !ni.SupportsMulticast)
+                    {
+                        continue;
+                    }
+
+                    if (ni.OperationalStatus != OperationalStatus.Up)
+                    {
+                        continue;
+                    }
+
                     IPInterfaceProperties ipProps = ni.GetIPProperties();
                     UnicastIPAddressInformationCollection uniColl = ipProps.UnicastAddresses;
                     foreach (UnicastIPAddressInformation uni in uniColl)
@@ -254,37 +196,9 @@ namespace IceRpc
             return null;
         }
 
-        internal static List<IPAddress> GetLoopbackAddresses(int ipVersion)
-        {
-            var addresses = new List<IPAddress>();
-            if (ipVersion != EnableIPv4)
-            {
-                addresses.Add(IPAddress.IPv6Loopback);
-            }
-            if (ipVersion != EnableIPv6)
-            {
-                addresses.Add(IPAddress.Loopback);
-            }
-            return addresses;
-        }
-
-        internal static bool IsLinklocal(IPAddress addr)
-        {
-            if (addr.IsIPv6LinkLocal)
-            {
-                return true;
-            }
-            else if (addr.AddressFamily == AddressFamily.InterNetwork)
-            {
-                byte[] bytes = addr.GetAddressBytes();
-                return bytes[0] == 169 && bytes[1] == 254;
-            }
-            return false;
-        }
-
-        internal static bool IsMulticast(IPEndPoint addr) =>
+        internal static bool IsMulticast(IPAddress addr) =>
             addr.AddressFamily == AddressFamily.InterNetwork ?
-                (addr.Address.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.Address.IsIPv6Multicast;
+                (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
 
         /// <summary>Check if an IPEndPoint is on the same host, we consider a peer endpoint is on the same host
         /// if its address matches any of the host local addresses.</summary>
@@ -294,7 +208,7 @@ namespace IceRpc
         {
             try
             {
-                return GetLocalAddresses(EnableBoth, true, false).Any(address => address.Equals(peer.Address));
+                return GetLocalAddresses(EnableBoth, true, false, false).Any(address => address.Equals(peer.Address));
             }
             catch
             {
@@ -390,39 +304,6 @@ namespace IceRpc
                         s.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.AddMembership, option);
                     }
                 }
-            }
-        }
-
-        internal static string SocketToString(Socket socket, EndPoint? target)
-        {
-            try
-            {
-                EndPoint? remote = GetRemoteAddress(socket);
-
-                var s = new System.Text.StringBuilder();
-                s.Append("local address = " + LocalAddrToString(GetLocalAddress(socket)));
-                if (remote == null)
-                {
-                    remote = target;
-                }
-                s.Append("\nremote address = " + RemoteAddrToString(remote));
-                return s.ToString();
-            }
-            catch (ObjectDisposedException)
-            {
-                return "<closed>";
-            }
-        }
-
-        internal static void SetMulticastTtl(Socket socket, int ttl, AddressFamily family)
-        {
-            if (family == AddressFamily.InterNetwork)
-            {
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, ttl);
-            }
-            else
-            {
-                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastTimeToLive, ttl);
             }
         }
 

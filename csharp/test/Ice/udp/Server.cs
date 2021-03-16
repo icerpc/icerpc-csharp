@@ -33,7 +33,7 @@ namespace IceRpc.Test.UDP
                 });
 
             server.Add("control", new TestIntf());
-            await server.ActivateAsync();
+            server.Activate();
             ServerReady();
             if (num == 0)
             {
@@ -46,7 +46,7 @@ namespace IceRpc.Test.UDP
                         PublishedHost = publishedHost
                     });
                 server2.Add("test", new TestIntf());
-                await server2.ActivateAsync();
+                server2.Activate();
             }
 
             var endpoint = new StringBuilder();
@@ -55,24 +55,13 @@ namespace IceRpc.Test.UDP
             if (Host.Contains(":"))
             {
                 endpoint.Append("udp -h \"ff15::1:1\"");
-                if (OperatingSystem.IsWindows() ||
-                    OperatingSystem.IsMacOS())
-                {
-                    endpoint.Append(" --interface \"::1\"");
-                }
             }
             else
             {
                 endpoint.Append("udp -h 239.255.1.1");
-                if (OperatingSystem.IsWindows() ||
-                    OperatingSystem.IsMacOS())
-                {
-                    endpoint.Append(" --interface 127.0.0.1");
-                }
             }
             endpoint.Append(" -p ");
             endpoint.Append(GetTestBasePort(properties) + 10);
-
             Server mcastAdapter = new Server(
                 Communicator,
                 new()
@@ -83,7 +72,7 @@ namespace IceRpc.Test.UDP
                     PublishedHost = publishedHost
                 });
             mcastAdapter.Add("test", new TestIntf());
-            await mcastAdapter.ActivateAsync();
+            mcastAdapter.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

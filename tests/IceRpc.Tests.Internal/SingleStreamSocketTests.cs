@@ -276,26 +276,26 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamSocket_Acceptor_AcceptAsync()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
+            using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
-            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
             using SingleStreamSocket serverSocket = await acceptTask;
         }
 
         [Test]
-        public async Task AcceptSingleStreamSocket_Acceptor_Constructor_TransportException()
+        public void AcceptSingleStreamSocket_Acceptor_Constructor_TransportException()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
-            Assert.ThrowsAsync<TransportException>(async () => await CreateAcceptorAsync());
+            using IAcceptor acceptor = CreateAcceptor();
+            Assert.Throws<TransportException>(() => CreateAcceptor());
         }
 
         public async Task AcceptSingleStreamSocket_AcceptAsync()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
+            using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
-            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
 
             using SingleStreamSocket serverSocket = await acceptTask;
@@ -312,10 +312,10 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostException()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
+            using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
-            SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            SingleStreamSocket clientSocket = CreateClientSocket();
 
             // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
@@ -344,9 +344,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamSocket_AcceptAsync_OperationCanceledException()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
+            using IAcceptor acceptor = CreateAcceptor();
 
-            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
 
             using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
@@ -366,12 +366,10 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
+        private SingleStreamSocket CreateClientSocket()
         {
-            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
             Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(
-                    new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
+                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
@@ -397,17 +395,17 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
+        public void ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+            using SingleStreamSocket clientSocket = CreateClientSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
                 async () => await clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default));
         }
 
         [Test]
-        public async Task ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
+        public void ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
         {
-            using IAcceptor acceptor = await CreateAcceptorAsync();
+            using IAcceptor acceptor = CreateAcceptor();
 
             using var source = new CancellationTokenSource();
             if (!IsSecure && TransportName == "tcp")
@@ -416,7 +414,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
+                using SingleStreamSocket clientSocket = CreateClientSocket();
                 ValueTask<SingleStreamSocket> connectTask =
                     clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
                 source.Cancel();
@@ -425,17 +423,15 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamSocket clientSocket2 = await CreateClientSocketAsync();
+            using SingleStreamSocket clientSocket2 = CreateClientSocket();
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source2.Token));
         }
 
-        private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
+        private SingleStreamSocket CreateClientSocket()
         {
-            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
             Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(
-                    new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
+                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }

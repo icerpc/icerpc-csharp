@@ -14,7 +14,7 @@ namespace IceRpc.Test.Inheritance
 
             var initial = new InitialI(server);
             server.Add("initial", initial);
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

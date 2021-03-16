@@ -19,7 +19,7 @@ namespace IceRpc.Test.Facets
             server.Add("d", "facetEF", f);
             var h = new H();
             server.Add("d", "facetGH", h);
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;
