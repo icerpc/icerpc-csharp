@@ -513,9 +513,9 @@ namespace IceRpc
 
         internal IDisposable? StartScope()
         {
-            if (_socket.Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical))
+            if (_socket.Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
             {
-                return _socket.Endpoint.Communicator.TransportLogger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                return _socket.Endpoint.Communicator.Logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
             }
             return null;
         }
@@ -566,7 +566,7 @@ namespace IceRpc
             return buffer;
         }
 
-        private protected virtual ValueTask SendFrameAsync(
+        private protected virtual async ValueTask SendFrameAsync(
             OutgoingFrame frame,
             CancellationToken cancel = default)
         {
@@ -604,10 +604,14 @@ namespace IceRpc
                 }
             }
 
+            await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
+
             if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var scope = StartScope();
                     _socket.Endpoint.Communicator.ProtocolLogger.LogSendingRequest(request);
                 }
                 else
@@ -616,8 +620,6 @@ namespace IceRpc
                     _socket.Endpoint.Communicator.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
-
-            return SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel);
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)

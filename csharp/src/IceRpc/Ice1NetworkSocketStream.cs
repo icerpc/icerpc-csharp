@@ -72,7 +72,7 @@ namespace IceRpc
             return frame;
         }
 
-        private protected override ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
+        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
         {
             if (frame.StreamDataWriter != null)
             {
@@ -97,11 +97,15 @@ namespace IceRpc
             int frameSize = buffer.GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
+            await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+
             ILogger logger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var scope = StartScope();
                     logger.LogSendingRequest(request);
                 }
                 else
@@ -110,8 +114,6 @@ namespace IceRpc
                     logger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
-
-            return _socket.SendFrameAsync(this, buffer, cancel);
         }
     }
 }

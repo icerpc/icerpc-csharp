@@ -511,7 +511,7 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                using var requestScope = Communicator.ProtocolLogger.StartRequestScope(request);
+                using var requestScope = Communicator.Logger.StartRequestScope(request);
                 if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
                 {
                     Communicator.ProtocolLogger.LogReceivedRequest(request);

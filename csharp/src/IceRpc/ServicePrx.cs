@@ -1057,17 +1057,13 @@ namespace IceRpc
                     cancel.ThrowIfCancellationRequested();
 
                     using var socketScope = connection.Socket.StartScope();
+                    using var requestScope = protocolLogger.StartRequestScope(request);
 
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
 
-                    using var requestScope = protocolLogger.StartRequestScope(request);
-
                     // Send the request and wait for the sending to complete.
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
-
-                    // TODO: create the scope when the stream is started rather than after the request creation.
-                    using var streamScope = stream.StartScope();
 
                     // The request is sent, notify the progress callback.
                     // TODO: Get rid of the sentSynchronously parameter which is always false now?
@@ -1086,9 +1082,11 @@ namespace IceRpc
 
                     if (oneway)
                     {
-                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol,
-                                                                            request.PayloadEncoding);
+                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
                     }
+
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var streamScope = stream.StartScope();
 
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
