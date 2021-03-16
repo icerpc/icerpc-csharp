@@ -131,7 +131,7 @@ namespace IceRpc
                             }
                             catch
                             {
-                                // Don't await the sending of the reset since it might block if send blocked.
+                                // Don't await the sending of the reset since it might block if sending is blocking.
                                 _ = ResetAsync((long)StreamResetErrorCode.StopStreamingData).AsTask();
                                 break;
                             }
@@ -493,7 +493,7 @@ namespace IceRpc
                 // allocated and the peer doesn't know about this stream.
                 if (IsStarted && _socket.Endpoint.Protocol != Protocol.Ice1)
                 {
-                    // Don't await the sending of the reset since it might block if send frame blocked.
+                    // Don't await the sending of the reset since it might block if sending is blocking.
                     _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
                 }
                 throw;

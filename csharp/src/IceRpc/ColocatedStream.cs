@@ -181,6 +181,7 @@ namespace IceRpc
             {
                 if (_socket.Endpoint.Protocol != Protocol.Ice1)
                 {
+                    // Don't await the sending of the reset since it might block if sending is blocking.
                     _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
                 }
                 throw;

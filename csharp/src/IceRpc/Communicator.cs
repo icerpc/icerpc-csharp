@@ -155,6 +155,7 @@ namespace IceRpc
         internal ILogger Logger { get; }
         internal ILogger LocationLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
+        // TODO: Allow configuring stream max count through options
         internal int BidirectionalStreamMaxCount { get; } = 100;
         internal int UnidirectionalStreamMaxCount { get; } = 100;
         internal int SlicPacketMaxSize { get; }
