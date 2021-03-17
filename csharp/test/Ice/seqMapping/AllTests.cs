@@ -16,14 +16,14 @@ namespace IceRpc.Test.SeqMapping
             var cl = IMyClassPrx.Parse(helper.GetTestProxy("test", 0), communicator);
             output.Write("testing twoway operations... ");
             output.Flush();
-            Twoways.Run(communicator, cl);
+            Twoways.Run(communicator, cl, helper.Protocol == Protocol.Ice1);
             output.WriteLine("ok");
 
             if (!collocated)
             {
                 output.Write("testing twoway operations with AMI... ");
                 output.Flush();
-                TwowaysAMI.Run(communicator, cl);
+                TwowaysAMI.Run(communicator, cl, helper.Protocol == Protocol.Ice1);
                 output.WriteLine("ok");
             }
 

@@ -444,7 +444,8 @@ namespace IceRpc
                 }
                 else
                 {
-                    this.Write(ProxyKind20.Null);
+                    ProxyData20 nullValue = default;
+                    nullValue.IceWrite(this);
                 }
             }
         }
@@ -1208,46 +1209,35 @@ namespace IceRpc
             return _tail;
         }
 
-        internal void WriteEndpoint(Endpoint endpoint)
+        internal void WriteEndpoint11(Endpoint endpoint)
         {
-            if (endpoint.Protocol == Protocol.Ice1 || OldEncoding)
+            Debug.Assert(OldEncoding);
+
+            this.Write(endpoint.Transport);
+
+            Position startPos = _tail;
+            int sizeLength = 4;
+
+            if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                this.Write(endpoint.Transport);
-
-                Position startPos = _tail;
-                int sizeLength = OldEncoding ? 4 : 2;
-                if (endpoint is OpaqueEndpoint opaqueEndpoint)
-                {
-                    WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding, sizeLength); // with placeholder for size
-                    WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
-                }
-                else
-                {
-                    // For ice1 and ice2, this corresponds to the protocol's encoding.
-                    Encoding payloadEncoding = endpoint.Protocol == Protocol.Ice1 ?
-                        Ice1Definitions.Encoding : Encoding.V20;
-
-                    WriteEncapsulationHeader(payloadEncoding, sizeLength); // with placeholder for size
-                    Encoding previousEncoding = Encoding;
-                    Encoding = payloadEncoding;
-                    if (endpoint.Protocol == Protocol.Ice1)
-                    {
-                        endpoint.WriteOptions(this);
-                    }
-                    else
-                    {
-                        WriteString(endpoint.Data.Host);
-                        WriteUShort(endpoint.Data.Port);
-                        WriteSequence(endpoint.Data.Options, IceWriterFromString);
-                    }
-                    Encoding = previousEncoding;
-                }
-                RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos, sizeLength);
+                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding, sizeLength); // with placeholder for size
+                WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                endpoint.Data.IceWrite(this);
+                WriteEncapsulationHeader(Encoding, sizeLength); // with placeholder for size
+                if (endpoint.Protocol == Protocol.Ice1)
+                {
+                    endpoint.WriteOptions11(this);
+                }
+                else
+                {
+                    WriteString(endpoint.Data.Host);
+                    WriteUShort(endpoint.Data.Port);
+                    WriteSequence(endpoint.Data.Options, IceWriterFromString);
+                }
             }
+            RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos, sizeLength);
         }
 
         internal void WriteBinaryContextEntry(int key, ReadOnlySpan<byte> value)

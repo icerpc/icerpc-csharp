@@ -280,7 +280,7 @@ namespace IceRpc.Test.AMI
             {
                 if (ice1)
                 {
-                    ITestIntfPrx indirect = p.Clone(location: "dummy");
+                    var indirect = ITestIntfPrx.Parse("unknown", communicator);
 
                     try
                     {
@@ -313,7 +313,7 @@ namespace IceRpc.Test.AMI
             {
                 if (ice1)
                 {
-                    ITestIntfPrx i = p.Clone(location: "dummy");
+                    var i = ITestIntfPrx.Parse("unknown", communicator);
 
                     try
                     {
