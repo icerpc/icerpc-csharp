@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamSocket_Abort()
         {
-            ValueTask<SocketStream> acceptStreamTask = ServerSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptStreamTask = ServerSocket.AcceptStreamAsync(default);
             ClientSocket.Abort();
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
@@ -148,7 +148,7 @@ namespace IceRpc.Tests.Internal
             // Abort stream because AcceptStreamAsync triggers CloseConnectionException when receiving the
             // request frame and creating the new stream.
             (var serverBidirectional, var serverUnidirectional) = ServerSocket.AbortStreams(ex);
-            Assert.ThrowsAsync<ConnectionClosedException>(async () => await ServerSocket.AcceptStreamAsync());
+            Assert.ThrowsAsync<ConnectionClosedException>(async () => await ServerSocket.AcceptStreamAsync(default));
 
             clientStream.Release();
 
@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Internal
             var clientStream = ClientSocket.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            var serverStream = await ServerSocket.AcceptStreamAsync();
+            var serverStream = await ServerSocket.AcceptStreamAsync(default);
             var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Internal
             });
 
             // Stream is not aborted
-            var acceptTask = ClientSocket.AcceptStreamAsync();
+            var acceptTask = ClientSocket.AcceptStreamAsync(default);
             await clientStream.ReceiveResponseFrameAsync(default);
 
             (var serverBidirectional, var serverUnidirectional) = ServerSocket.AbortStreams(ex, stream =>
@@ -208,14 +208,14 @@ namespace IceRpc.Tests.Internal
             var clientStream = ClientSocket.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            var serverStream = await ServerSocket.AcceptStreamAsync();
+            var serverStream = await ServerSocket.AcceptStreamAsync(default);
             var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(
                 new OutgoingResponseFrame(incomingRequest, new UnhandledException(ex)),
                 default);
 
-            var acceptTask = ClientSocket.AcceptStreamAsync();
+            var acceptTask = ClientSocket.AcceptStreamAsync(default);
             await clientStream.ReceiveResponseFrameAsync(default);
 
             clientStream.Release();
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.Internal
             clientStream = ClientSocket.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            serverStream = await ServerSocket.AcceptStreamAsync();
+            serverStream = await ServerSocket.AcceptStreamAsync(default);
             await serverStream.ReceiveRequestFrameAsync();
 
             (var clientBidirectional, var clientUnidirectional) = ClientSocket.AbortStreams(ex, stream =>
@@ -253,7 +253,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamSocket_AcceptStream()
         {
             SocketStream clientStream = ClientSocket.CreateStream(bidirectional: true);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             // The server-side won't accept the stream until the first frame is sent.
             await clientStream.SendRequestFrameAsync(DummyRequest);
@@ -282,7 +282,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamSocket_AcceptStream_Failure()
         {
             ClientSocket.Abort();
-            Assert.CatchAsync<TransportException>(async () => await ServerSocket.AcceptStreamAsync());
+            Assert.CatchAsync<TransportException>(async () => await ServerSocket.AcceptStreamAsync(default));
         }
 
         [Test]
@@ -341,17 +341,17 @@ namespace IceRpc.Tests.Internal
 
                 await stream.SendRequestFrameAsync(DummyRequest);
 
-                serverStreams.Add(await ServerSocket.AcceptStreamAsync());
+                serverStreams.Add(await ServerSocket.AcceptStreamAsync(default));
                 var request = await serverStreams.Last().ReceiveRequestFrameAsync();
                 incomingRequest ??= request;
             }
 
             // Ensure the client side accepts streams to receive responses.
-            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
 
             var clientStream = ClientSocket.CreateStream(true);
             ValueTask sendTask = clientStream.SendRequestFrameAsync(DummyRequest);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -394,7 +394,7 @@ namespace IceRpc.Tests.Internal
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
-            _ = ClientSocket.AcceptStreamAsync().AsTask();
+            _ = ClientSocket.AcceptStreamAsync(default).AsTask();
 
             // Send many requests and receive the responses.
             for (int i = 0; i < 10 * maxCount; ++i)
@@ -405,7 +405,7 @@ namespace IceRpc.Tests.Internal
             // Receive all the requests and send the responses.
             for (int i = 0; i < 10 * maxCount; ++i)
             {
-                _ = ReceiveRequestAndSendResponse(await ServerSocket.AcceptStreamAsync());
+                _ = ReceiveRequestAndSendResponse(await ServerSocket.AcceptStreamAsync(default));
             }
 
             async Task SendRequestAndReceiveResponse(SocketStream stream)
@@ -472,16 +472,16 @@ namespace IceRpc.Tests.Internal
                 await stream.SendRequestFrameAsync(DummyRequest);
                 stream.Release();
 
-                serverStreams.Add(await ServerSocket.AcceptStreamAsync());
+                serverStreams.Add(await ServerSocket.AcceptStreamAsync(default));
                 await serverStreams.Last().ReceiveRequestFrameAsync();
             }
 
             // Ensure the client side accepts streams to receive responses.
-            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
 
             var clientStream = ClientSocket.CreateStream(false);
             ValueTask sendTask = clientStream.SendRequestFrameAsync(DummyRequest);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync();
+            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -570,7 +570,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamSocket_Ping_Failure()
         {
             ClientSocket.Abort();
-            Assert.CatchAsync<TransportException>(async () => await ClientSocket.PingAsync());
+            Assert.CatchAsync<TransportException>(async () => await ClientSocket.PingAsync(default));
         }
 
         [Test]
@@ -620,7 +620,7 @@ namespace IceRpc.Tests.Internal
             var stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
 
-            var serverStream = await ServerSocket.AcceptStreamAsync();
+            var serverStream = await ServerSocket.AcceptStreamAsync(default);
             var request = await serverStream.ReceiveRequestFrameAsync();
             ServerSocket.Abort();
             Assert.CatchAsync<TransportException>(
@@ -655,7 +655,7 @@ namespace IceRpc.Tests.Internal
                 Assert.AreEqual(expectedCount, socket.OutgoingStreamCount);
 
                 Assert.AreEqual(expectedCount - 1, peerSocket.IncomingStreamCount);
-                var serverStream = await peerSocket.AcceptStreamAsync();
+                var serverStream = await peerSocket.AcceptStreamAsync(default);
                 Assert.AreEqual(expectedCount, peerSocket.IncomingStreamCount);
 
                 await task;
@@ -906,7 +906,7 @@ namespace IceRpc.Tests.Internal
 
             async ValueTask PerformReceiveAsync()
             {
-                var serverStream = await ServerSocket.AcceptStreamAsync();
+                var serverStream = await ServerSocket.AcceptStreamAsync(default);
                 await serverStream.ReceiveRequestFrameAsync();
                 serverStream.Release();
             }
@@ -965,7 +965,7 @@ namespace IceRpc.Tests.Internal
                 // With Slic the stream is started and reset so we ensure the receiver gets the reset.
                 if (SocketType == MultiStreamSocketType.Slic)
                 {
-                    var serverStream = await ServerSocket.AcceptStreamAsync();
+                    var serverStream = await ServerSocket.AcceptStreamAsync(default);
                     Assert.CatchAsync<TransportException>(async () => await serverStream.ReceiveRequestFrameAsync());
                 }
             }
@@ -981,7 +981,7 @@ namespace IceRpc.Tests.Internal
                 {
                     return;
                 }
-                var serverStream = await ServerSocket.AcceptStreamAsync();
+                var serverStream = await ServerSocket.AcceptStreamAsync(default);
                 Task receiveNextRequestTask;
                 receiveNextRequestTask = ReceiveRequests(--requestCount);
                 _ = await serverStream.ReceiveRequestFrameAsync();
@@ -996,7 +996,7 @@ namespace IceRpc.Tests.Internal
             var stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
 
-            var serverStream = await ServerSocket.AcceptStreamAsync();
+            var serverStream = await ServerSocket.AcceptStreamAsync(default);
             var request = await serverStream.ReceiveRequestFrameAsync();
 
             using var source = new CancellationTokenSource();

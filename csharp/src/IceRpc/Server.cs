@@ -36,12 +36,12 @@ namespace IceRpc
         /// <summary>Return the maximum number of bidirectional streams that the peer can open for each
         /// connection.</summary>
         /// <value>The maximum number of bidirectional streams</value>
-        public int BidirectionalStreamMaxCount { get; set; }
+        public int BidirectionalStreamMaxCount { get; }
 
         /// <summary>Return the maximum number of unidirectional streams that the peer can open for each
         /// connection.</summary>
         /// <value>The maximum number of unidirectional streams</value>
-        public int UnidirectionalStreamMaxCount { get; set; }
+        public int UnidirectionalStreamMaxCount { get; }
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
@@ -140,14 +140,14 @@ namespace IceRpc
             if (BidirectionalStreamMaxCount < 1)
             {
                 throw new ArgumentException(
-                    $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));
+                    $"options.BidirectionalStreamMaxCount can't be less than 1", nameof(options));
             }
 
             UnidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
             if (UnidirectionalStreamMaxCount < 1)
             {
                 throw new ArgumentException(
-                    $"options.MaxBidirectionalStreamCount can't be less than 1", nameof(options));
+                    $"options.UnidirectionalStreamMaxCount can't be less than 1", nameof(options));
             }
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;

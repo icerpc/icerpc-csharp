@@ -20,16 +20,16 @@ namespace IceRpc
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+
+        public int BidirectionalStreamMaxCount { get; set; } = 100;
+
         public ColocationScope ColocationScope { get; set; }
 
         // TODO: should it be Endpoint?
         public string Endpoints { get; set; } = "";
 
         public int? IncomingFrameMaxSize { get; set; } // 0 means "infinite", null means use Communicator's value
-
-        public int BidirectionalStreamMaxCount { get; set; } = 100;
-
-        public int UnidirectionalStreamMaxCount { get; set; } = 100;
 
         public string Name { get; set; } = "";
 
@@ -41,7 +41,6 @@ namespace IceRpc
         public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
 
         public TaskScheduler? TaskScheduler { get; set; }
-
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+        public int UnidirectionalStreamMaxCount { get; set; } = 100;
     }
 }

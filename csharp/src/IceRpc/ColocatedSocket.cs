@@ -156,15 +156,15 @@ namespace IceRpc
             _writer = writer;
             _reader = reader;
 
-            if (!isIncoming)
-            {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.BidirectionalStreamMaxCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.UnidirectionalStreamMaxCount);
-            }
-            else
+            if (isIncoming)
             {
                 _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Communicator.BidirectionalStreamMaxCount);
                 _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Communicator.UnidirectionalStreamMaxCount);
+            }
+            else
+            {
+                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.BidirectionalStreamMaxCount);
+                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.UnidirectionalStreamMaxCount);
             }
 
             // We use the same stream ID numbering scheme as Quic
