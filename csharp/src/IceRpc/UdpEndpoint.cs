@@ -52,7 +52,11 @@ namespace IceRpc
                 }
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
 
-                Network.SetBufSize(socket, Communicator, Transport.UDP);
+                // TODO: Where will set UDP buffer size options when we get rid of the communicator?
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
+                              Communicator.Logger);
 
                 var addr = new IPEndPoint(Address, Port);
                 IPEndPoint? multicastAddress = null;
@@ -208,7 +212,12 @@ namespace IceRpc
                         socket.Ttl = (short)MulticastTtl;
                     }
                 }
-                Network.SetBufSize(socket, Communicator, Transport.UDP);
+
+                // TODO: Where will set UDP buffer size options when we get rid of the communicator?
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
+                              Communicator.Logger);
             }
             catch (SocketException ex)
             {

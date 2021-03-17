@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.Security;
 using System.Text;
 using System.Threading;
@@ -418,5 +420,40 @@ namespace IceRpc
 
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);
+
+        private protected void SetBufferSize(Socket socket, int receiveSize, int sendSize, ILogger logger)
+        {
+            try
+            {
+                if (receiveSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    socket.ReceiveBufferSize = receiveSize;
+                    int adjustedSize = socket.ReceiveBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize, adjustedSize);
+                    }
+                }
+
+                if (sendSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    socket.SendBufferSize = sendSize;
+                    int adjustedSize = socket.SendBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogSendBufferSizeAdjusted(Transport, sendSize, adjustedSize);
+                    }
+                }
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+        }
     }
 }

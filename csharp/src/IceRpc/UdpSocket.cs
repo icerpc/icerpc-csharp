@@ -206,7 +206,7 @@ namespace IceRpc
         {
             Socket = socket;
             _incoming = false;
-            _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+            _rcvSize = Socket.ReceiveBufferSize;
             _addr = addr;
         }
 
@@ -216,7 +216,7 @@ namespace IceRpc
         {
             Socket = socket;
             _incoming = true;
-            _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+            _rcvSize = Socket.ReceiveBufferSize;
             MulticastAddress = multicastAddress;
         }
 

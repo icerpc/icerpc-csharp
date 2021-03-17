@@ -349,7 +349,10 @@ namespace IceRpc
             try
             {
                 // TODO: Where will set TCP buffer size options when we get rid of the communicator?
-                Network.SetBufSize(socket, Communicator, Transport.TCP);
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                              Communicator.Logger);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
             }
             catch (SocketException ex)
@@ -366,7 +369,10 @@ namespace IceRpc
             try
             {
                 // TODO: Where will set TCP buffer size options when we get rid of the communicator?
-                Network.SetBufSize(socket, Communicator, Transport.TCP);
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                              Communicator.Logger);
             }
             catch (SocketException ex)
             {
