@@ -141,63 +141,36 @@ namespace IceRpc
                 throw new FormatException("empty string is invalid");
             }
 
-            bool? cacheConnection = null;
-            IReadOnlyDictionary<string, string>? context = null;
-            Encoding encoding;
-            IReadOnlyList<Endpoint> endpoints;
-            TimeSpan? invocationTimeout = null;
-            object? label = null;
-            bool oneway = false;
-            bool? preferExistingConnection = null;
-            NonSecure? preferNonSecure = null;
-
             if (UriParser.IsProxyUri(proxyString))
             {
                 return factory.Create(UriParser.ParseProxy(proxyString, communicator));
             }
             else
             {
-                string facet;
-                Identity identity;
-
-                (identity, facet, encoding, endpoints, oneway) = Ice1Parser.ParseProxy(proxyString, communicator);
-                Debug.Assert(endpoints.Count > 0);
+                InteropServicePrxOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
+                Debug.Assert(options.Endpoints.Count > 0);
 
                 // Override the defaults with the proxy properties if a property prefix is defined.
                 if (propertyPrefix != null && propertyPrefix.Length > 0)
                 {
-                    cacheConnection = communicator.GetPropertyAsBool($"{propertyPrefix}.CacheConnection");
+                    options.CacheConnection =
+                        communicator.GetPropertyAsBool($"{propertyPrefix}.CacheConnection") ?? true;
 
                     string property = $"{propertyPrefix}.Context.";
-                    context = communicator.GetProperties(forPrefix: property).
+                    options.Context = communicator.GetProperties(forPrefix: property).
                         ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
 
-                    property = $"{propertyPrefix}.InvocationTimeout";
-                    invocationTimeout = communicator.GetPropertyAsTimeSpan(property);
-                    if (invocationTimeout == TimeSpan.Zero)
+                    if (options.Context.Count == 0)
                     {
-                        throw new InvalidConfigurationException($"{property}: 0 is not a valid value");
+                        options.Context = null;
                     }
 
-                    label = communicator.GetProperty($"{propertyPrefix}.Label");
-                    preferNonSecure = communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
+                    options.InvocationTimeoutOverride =
+                        communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout");
+                    options.Label = communicator.GetProperty($"{propertyPrefix}.Label");
+                    options.PreferNonSecureOverride =
+                        communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
                 }
-
-                var options = new InteropServicePrxOptions()
-                {
-                    CacheConnection = cacheConnection ?? true,
-                    Communicator = communicator,
-                    Context = context,
-                    Encoding = encoding,
-                    Endpoints = endpoints,
-                    Facet = facet,
-                    Identity = identity,
-                    InvocationTimeoutOverride = invocationTimeout,
-                    IsOneway = oneway,
-                    LocationResolver = communicator.DefaultLocationResolver,
-                    PreferExistingConnectionOverride = preferExistingConnection,
-                    PreferNonSecureOverride = preferNonSecure
-                };
 
                 return factory.Create(options);
             }

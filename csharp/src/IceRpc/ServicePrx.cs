@@ -569,7 +569,7 @@ namespace IceRpc
             if (options.InvocationTimeoutOverride is TimeSpan invocationTimeoutOverride &&
                 invocationTimeoutOverride == TimeSpan.Zero)
             {
-                throw new ArgumentException("0 is not a valid value for invocationTimeout", nameof(options));
+                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(options));
             }
 
             CacheConnection = options.CacheConnection;
