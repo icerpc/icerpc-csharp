@@ -12,7 +12,7 @@ namespace IceRpc
     /// <typeparam name="T">The type of the request parameters to read.</typeparam>
     /// <param name="connection">The connection used to received the request frame.</param>
     /// <param name="request">The request frame to read the parameters from.</param>
-    /// <returns>The request parmeters.</returns>
+    /// <returns>The request parameters.</returns>
     public delegate T RequestReader<T>(Connection connection, IncomingRequestFrame request);
 
     /// <summary>The base interface for all services.</summary>

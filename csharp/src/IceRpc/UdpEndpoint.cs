@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +7,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -129,11 +127,11 @@ namespace IceRpc
         }
 
         protected internal override Connection CreateConnection(
-            IPEndPoint address,
             object? label,
             CancellationToken cancel)
         {
-            UdpSocket socket = new(Communicator, address, MulticastInterface, MulticastTtl);
+            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            var socket = new UdpSocket(Communicator, endpoint, MulticastInterface, MulticastTtl);
             return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
         }
 
@@ -197,16 +195,19 @@ namespace IceRpc
                 multicastInterface = argument ?? throw new FormatException(
                     $"no argument provided for --interface option in endpoint `{endpointString}'");
 
-                if (multicastInterface == "*")
+                if (serverEndpoint)
                 {
-                    if (serverEndpoint)
-                    {
-                        multicastInterface = null;
-                    }
-                    else
-                    {
-                        throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
-                    }
+                    throw new FormatException($"invalid `--interface' option in server endpoint `{endpointString}'");
+                }
+                else if (multicastInterface == "*")
+                {
+                    throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
+                }
+                else if (!IPAddress.TryParse(host, out IPAddress? address) || !Network.IsMulticast(address))
+                {
+                    throw new FormatException(
+                        $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
+                        endpointString}'");
                 }
                 options.Remove("--interface");
             }

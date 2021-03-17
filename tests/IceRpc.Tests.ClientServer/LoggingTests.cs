@@ -95,7 +95,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
             await using var adapter = CreateServer(communicator, colocated, portNumber: 1);
-            await adapter.ActivateAsync();
+            adapter.Activate();
 
             var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
 
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.ClientServer
                 });
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using var adapter = CreateServer(communicator, colocated, portNumber: 2);
-            await adapter.ActivateAsync();
+            adapter.Activate();
 
             var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
 

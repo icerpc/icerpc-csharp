@@ -12,7 +12,7 @@ namespace IceRpc.Test.Threading
         {
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
             server.Add("test", new TestIntf(TaskScheduler.Default));
-            await server.ActivateAsync();
+            server.Activate();
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
@@ -20,13 +20,13 @@ namespace IceRpc.Test.Threading
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(1), TaskScheduler = schedulerPair.ExclusiveScheduler });
             server2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
-            await server2.ActivateAsync();
+            server2.Activate();
 
             await using var server3 = new Server(
                 Communicator,
                 new() { Endpoints = GetTestEndpoint(2), TaskScheduler = schedulerPair.ConcurrentScheduler });
             server3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
-            await server3.ActivateAsync();
+            server3.Activate();
 
             // Setup 20 worker threads for the .NET thread pool (we setup the minimum to avoid delays from the
             // thread pool thread creation).

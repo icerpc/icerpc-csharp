@@ -33,7 +33,7 @@ namespace IceRpc.Test.Exceptions
 
                     TestHelper.Assert(false);
                 }
-                catch (ArgumentException)
+                catch (FormatException)
                 {
                     // Expected
                 }

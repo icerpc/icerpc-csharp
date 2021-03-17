@@ -20,8 +20,8 @@ namespace IceRpc
     {
         internal bool IsSignaled
         {
-           get
-           {
+            get
+            {
                 bool lockTaken = false;
                 try
                 {
@@ -34,7 +34,7 @@ namespace IceRpc
                     {
                         _lock.Exit();
                     }
-               }
+                }
             }
         }
 

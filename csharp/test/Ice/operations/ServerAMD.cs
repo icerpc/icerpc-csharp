@@ -13,7 +13,7 @@ namespace IceRpc.Test.Operations
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             server.Add("test", new AsyncMyDerivedClass());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

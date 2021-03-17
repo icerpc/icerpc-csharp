@@ -770,7 +770,7 @@ namespace IceRpc.Test.Slicing.Exceptions
 
                 await using var server = new Server(communicator, new() { Protocol = helper.Protocol });
                 IRelayPrx relay = server.AddWithUUID(new Relay(), IRelayPrx.Factory);
-                await server.ActivateAsync();
+                server.Activate();
                 (await testPrx.GetConnectionAsync()).Server = server;
 
                 try

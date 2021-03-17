@@ -117,7 +117,7 @@ namespace IceRpc.Test.Scope
             server.Add("i2", new I2());
             server.Add("i3", new I3());
             server.Add("i4", new I4());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

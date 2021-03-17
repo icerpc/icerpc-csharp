@@ -95,7 +95,7 @@ namespace IceRpc
 
         private Lazy<Task>? _shutdownTask;
 
-         /// <summary>Constructs a server.</summary>
+        /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator)
             : this(communicator, new())
         {
@@ -198,29 +198,16 @@ namespace IceRpc
                             }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
                             nameof(options));
                     }
-
-                    if (Endpoints[0].HasDnsHost)
-                    {
-                        throw new ArgumentException(
-                            @$"server `{Name
-                            }': you can only use an IP address to configure an endpoint with a dynamic port (:0)",
-                            nameof(options));
-                    }
                 }
 
-                if (!Endpoints.Any(endpoint => endpoint.HasDnsHost))
-                {
-                    // Create the incoming factories immediately. This is needed to resolve dynamic ports.
-                    _incomingConnectionFactories.AddRange(Endpoints.Select<Endpoint, IncomingConnectionFactory>(
-                        endpoint =>
-                        endpoint.IsDatagram ?
-                            new DatagramIncomingConnectionFactory(this, endpoint) :
-                            new AcceptorIncomingConnectionFactory(this, endpoint)));
+                // Create the incoming factories immediately. This is needed to resolve dynamic ports.
+                _incomingConnectionFactories.AddRange(Endpoints.Select<Endpoint, IncomingConnectionFactory>(
+                    endpoint => endpoint.IsDatagram ?
+                        new DatagramIncomingConnectionFactory(this, endpoint) :
+                        new AcceptorIncomingConnectionFactory(this, endpoint)));
 
-                    // Replace Endpoints using the factories.
-                    Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableArray();
-                }
-                // else keep Endpoints as-is. They do not contain port 0 since DNS name with port 0 is disallowed.
+                // Replace Endpoints using the factories.
+                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableArray();
             }
             else
             {
@@ -230,7 +217,7 @@ namespace IceRpc
             if (options.PublishedEndpoints.Length > 0)
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
-                    UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator) :
+                    UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false) :
                     Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false);
             }
 
@@ -275,28 +262,9 @@ namespace IceRpc
         }
 
         /// <summary>Activates this server. After activation, the server can dispatch requests received
-        /// through its endpoints. Also registers this server with the locator (if set).</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A task that completes when the activation completes.</returns>
-        public async Task ActivateAsync(CancellationToken cancel = default)
+        /// through its endpoints.</summary>
+        public void Activate()
         {
-            List<Endpoint>? expandedEndpoints = null;
-            if (Endpoints.Any(endpoint => endpoint.HasDnsHost))
-            {
-                expandedEndpoints = new();
-                foreach (Endpoint endpoint in Endpoints)
-                {
-                    if (endpoint.HasDnsHost)
-                    {
-                        expandedEndpoints.AddRange(await endpoint.ExpandHostAsync(cancel).ConfigureAwait(false));
-                    }
-                    else
-                    {
-                        expandedEndpoints.Add(endpoint);
-                    }
-                }
-            }
-
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -313,18 +281,6 @@ namespace IceRpc
                 foreach (Func<Dispatcher, Dispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
                 {
                     _dispatchPipeline = dispatchInterceptor(_dispatchPipeline);
-                }
-
-                if (expandedEndpoints != null)
-                {
-                    Debug.Assert(_incomingConnectionFactories.Count == 0);
-
-                    _incomingConnectionFactories.AddRange(
-                        expandedEndpoints.Select<Endpoint, IncomingConnectionFactory>(
-                            endpoint =>
-                            endpoint.IsDatagram ?
-                                new DatagramIncomingConnectionFactory(this, endpoint) :
-                                new AcceptorIncomingConnectionFactory(this, endpoint)));
                 }
 
                 // Activate the incoming connection factories to start accepting connections

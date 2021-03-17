@@ -88,8 +88,8 @@ namespace IceRpc
 
             if (endpoints.Count == 0 || (!_background && expired) || endpointsAge >= endpointsMaxAge)
             {
-               endpoints = await ResolveLocationAsync(location, cancel).ConfigureAwait(false);
-               endpointsAge = TimeSpan.Zero; // Not cached
+                endpoints = await ResolveLocationAsync(location, cancel).ConfigureAwait(false);
+                endpointsAge = TimeSpan.Zero; // Not cached
             }
             else if (expired && _background)
             {
@@ -199,7 +199,7 @@ namespace IceRpc
                 }
                 else
                 {
-                   logger.LogCouldNotFindEndpointsForWellKnownProxy(identity);
+                    logger.LogCouldNotFindEndpointsForWellKnownProxy(identity);
                 }
             }
 

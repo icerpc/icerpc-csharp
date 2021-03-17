@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -107,44 +106,20 @@ namespace IceRpc
             object? label,
             CancellationToken cancel)
         {
-            IReadOnlyList<IPEndPoint> addresses =
-                await Network.GetAddressesForClientEndpointAsync(Host, Port, cancel).ConfigureAwait(false);
-
-            IPEndPoint lastAddress = addresses[^1];
-            Connection? connection = null;
-            foreach (IPEndPoint address in addresses)
+            bool secureOnly = preferNonSecure switch
             {
-                try
-                {
-                    bool secureOnly = preferNonSecure switch
-                    {
-                        NonSecure.SameHost => !address.IsSameHost(),
-                        NonSecure.TrustedHost => true, // TODO check if address is a trusted host
-                        NonSecure.Always => false,
-                        _ => true
-                    };
-                    connection = CreateConnection(address, label, cancel);
-                    await connection.Socket.ConnectAsync(secureOnly, cancel).ConfigureAwait(false);
-                    Debug.Assert(connection.CanTrust(preferNonSecure));
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    // Ignore the exception unless this is the last address
-                    if (ex is OperationCanceledException || ReferenceEquals(lastAddress, address))
-                    {
-                        throw;
-                    }
-                }
-            }
-            Debug.Assert(connection != null);
+                NonSecure.SameHost => true,    // TODO check if Host is the same host
+                NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
+                NonSecure.Always => false,
+                _ => true
+            };
+            Connection connection = CreateConnection(label, cancel);
+            await connection.Socket.ConnectAsync(secureOnly, cancel).ConfigureAwait(false);
+            Debug.Assert(connection.CanTrust(preferNonSecure));
             return connection;
         }
 
-        protected internal abstract Connection CreateConnection(
-            IPEndPoint address,
-            object? label,
-            CancellationToken cancel);
+        protected internal abstract Connection CreateConnection(object? label, CancellationToken cancel);
 
         protected internal override void WriteOptions(OutputStream ostr)
         {
@@ -212,27 +187,6 @@ namespace IceRpc
             }
         }
 
-        protected internal override async ValueTask<IEnumerable<Endpoint>> ExpandHostAsync(CancellationToken cancel)
-        {
-            Debug.Assert(HasDnsHost);
-
-            try
-            {
-                // TODO: use cancel once GetHostAddressesAsync supports it.
-                return (await Dns.GetHostAddressesAsync(Host).ConfigureAwait(false)).Select(
-                    address =>
-                    {
-                        IPEndpoint expanded = Clone(address.ToString(), Port);
-                        expanded._address = address;
-                        return expanded;
-                    });
-            }
-            catch (Exception ex)
-            {
-                throw new DNSException(Host, ex);
-            }
-        }
-
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             publishedHost == Host ? this : Clone(publishedHost, Port);
 
@@ -289,8 +243,15 @@ namespace IceRpc
                         throw new FormatException($"`-h *' not valid for proxy endpoint `{endpointString}'");
                 }
 
-                if (!serverEndpoint && IPAddress.TryParse(host, out IPAddress? address) &&
-                    (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
+                if (serverEndpoint)
+                {
+                    if (!IPAddress.TryParse(host, out IPAddress? _))
+                    {
+                        throw new FormatException($"invalid IP address `{host}' in server endpoint `{endpointString}'");
+                    }
+                }
+                else if (IPAddress.TryParse(host, out IPAddress? address) &&
+                        (address!.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
                 {
                     throw new FormatException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint");
                 }

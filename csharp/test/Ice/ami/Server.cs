@@ -14,7 +14,7 @@ namespace IceRpc.Test.AMI
 
             server.Add("test", new TestIntf());
             server.Add("test2", new TestIntf2());
-            await server.ActivateAsync();
+            server.Activate();
 
             ServerReady();
             await server.ShutdownComplete;

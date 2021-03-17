@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slic;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using IceRpc.Slic;
 
 namespace IceRpc
 {
