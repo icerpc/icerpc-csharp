@@ -98,7 +98,7 @@ namespace IceRpc
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
-        /// <returns>A service options instance.</returns>
+        /// <returns>A service proxy options instance.</returns>
         internal static ServicePrxOptions ParseProxy(string uriString, Communicator communicator)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
