@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
+using IceRpc.Test;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Facets
 {
@@ -66,29 +67,29 @@ namespace IceRpc.Test.Facets
             output.Flush();
             d = IDPrx.Factory.Clone(prx);
             TestHelper.Assert(d != null);
-            TestHelper.Assert(d.Facet.Length == 0);
+            TestHelper.Assert(d.GetFacet().Length == 0);
             IDPrx df = IDPrx.Factory.Clone(prx, facet: "facetABCD");
-            TestHelper.Assert(df.Facet == "facetABCD");
+            TestHelper.Assert(df.GetFacet() == "facetABCD");
             df2 = IDPrx.Factory.Clone(df);
             TestHelper.Assert(df2 != null);
-            TestHelper.Assert(df2.Facet == "facetABCD");
+            TestHelper.Assert(df2.GetFacet() == "facetABCD");
             df3 = IDPrx.Factory.Clone(df, facet: "");
             TestHelper.Assert(df3 != null);
-            TestHelper.Assert(df3.Facet.Length == 0);
+            TestHelper.Assert(df3.GetFacet().Length == 0);
             output.WriteLine("ok");
 
             output.Write("testing checked cast... ");
             output.Flush();
             d = await IDPrx.Factory.CheckedCastAsync(prx);
             TestHelper.Assert(d != null);
-            TestHelper.Assert(d.Facet.Length == 0);
+            TestHelper.Assert(d.GetFacet().Length == 0);
             df = IDPrx.Factory.Clone(prx, facet: "facetABCD");
-            TestHelper.Assert(df.Facet == "facetABCD");
+            TestHelper.Assert(df.GetFacet() == "facetABCD");
             df2 = IDPrx.Factory.Clone(df);
             TestHelper.Assert(df2 != null);
-            TestHelper.Assert(df2.Facet == "facetABCD");
+            TestHelper.Assert(df2.GetFacet() == "facetABCD");
             df3 = IDPrx.Factory.Clone(df, facet: "");
-            TestHelper.Assert(df3.Facet.Length == 0);
+            TestHelper.Assert(df3.GetFacet().Length == 0);
             output.WriteLine("ok");
 
             output.Write("testing non-facets A, B, C, and D... ");

@@ -129,7 +129,7 @@ namespace IceRpc.Test.Proxy
                         TestHelper.Assert(IServicePrx.Factory.Clone(
                             cl,
                             facet: "facet",
-                            fixedConnection: connection2).Facet == "facet");
+                            fixedConnection: connection2).GetFacet() == "facet");
                     }
                     TestHelper.Assert(cl.Clone(oneway: true, fixedConnection: connection2).IsOneway);
                     var ctx = new Dictionary<string, string>

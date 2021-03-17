@@ -354,8 +354,8 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                Facet = proxy.Facet;
-                Identity = proxy.Identity;
+                Facet = proxy.Impl.Facet;
+                Identity = proxy.Impl.Identity;
             }
 
             IsIdempotent = idempotent;

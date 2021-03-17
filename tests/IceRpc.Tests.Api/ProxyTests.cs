@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").Facet);
+                Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").GetFacet());
             }
 
             var server = new Server(communicator,
@@ -85,19 +85,19 @@ namespace IceRpc.Tests.Api
             if (prx.Protocol == Protocol.Ice1)
             {
                 IServicePrx other = IServicePrx.Factory.Clone(prx, path: "test", facet: "facet");
-                Assert.AreEqual("facet", other.Facet);
-                Assert.AreEqual("test", other.Identity.Name);
-                Assert.AreEqual("", other.Identity.Category);
+                Assert.AreEqual("facet", other.GetFacet());
+                Assert.AreEqual("test", other.GetIdentity().Name);
+                Assert.AreEqual("", other.GetIdentity().Category);
 
                 other = IServicePrx.Factory.Clone(other, path: "category/test");
-                Assert.AreEqual("", other.Facet);
-                Assert.AreEqual("test", other.Identity.Name);
-                Assert.AreEqual("category", other.Identity.Category);
+                Assert.AreEqual("", other.GetFacet());
+                Assert.AreEqual("test", other.GetIdentity().Name);
+                Assert.AreEqual("category", other.GetIdentity().Category);
 
                 other = IServicePrx.Factory.Clone(prx, path: "foo", facet: "facet1");
-                Assert.AreEqual("facet1", other.Facet);
-                Assert.AreEqual("foo", other.Identity.Name);
-                Assert.AreEqual("", other.Identity.Category);
+                Assert.AreEqual("facet1", other.GetFacet());
+                Assert.AreEqual("foo", other.GetIdentity().Name);
+                Assert.AreEqual("", other.GetIdentity().Category);
             }
 
             Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure, NonSecure.Always);
@@ -289,9 +289,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
         {
             var prx = IServicePrx.Parse(str, Communicator);
-            Assert.AreEqual(name, prx.Identity.Name);
-            Assert.AreEqual(category, prx.Identity.Category);
-            Assert.AreEqual("", prx.Facet);
+            Assert.AreEqual(name, prx.GetIdentity().Name);
+            Assert.AreEqual(category, prx.GetIdentity().Category);
+            Assert.AreEqual("", prx.GetFacet());
         }
 
         /// <summary>Test that the communicator default invocation interceptors are used when the

@@ -23,9 +23,6 @@ namespace IceRpc
         public IReadOnlyDictionary<string, string> Context { get; } = ImmutableDictionary<string, string>.Empty;
         public Encoding Encoding { get; }
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
-        public string Facet { get; } = "";
-        public Identity Identity { get; } = Identity.Empty;
-
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; } =
             ImmutableList<InvocationInterceptor>.Empty;
 
@@ -44,6 +41,9 @@ namespace IceRpc
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
+
+        internal string Facet { get; } = "";
+        internal Identity Identity { get; } = Identity.Empty;
 
         internal bool IsIndirect => !IsFixed && Endpoints.Count == 1 && Endpoints[0].Transport == Transport.Loc;
 
