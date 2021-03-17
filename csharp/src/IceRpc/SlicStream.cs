@@ -79,9 +79,11 @@ namespace IceRpc
             // from the socket when the StreamLast or StreamReset frame is received (which can be received after
             // the stream is destroyed, for example, with oneway requests, the stream is disposed as soon as the
             // request is sent and before receiving the StreamLast frame).
-            if (IsIncoming)
+            if (IsIncoming && ReleaseStreamCount())
             {
-                Release(notifyPeer: true);
+                // It's important to decrement the stream count before sending the StreamLast frame to prevent
+                // a race where the peer could start a new stream before the counter is decremented.
+                _ = _socket.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, streamId: Id);
             }
         }
 
@@ -384,10 +386,10 @@ namespace IceRpc
 
         internal void ReceivedFrame(int size, bool fin)
         {
-            // If an outgoing stream and this is the last stream frame, we release the flow control
-            // credit to eventually allow a new outgoing stream to be opened. If the flow control credit
-            // is already released, there's an issue with the peer sending twice a last stream frame.
-            if (!IsIncoming && fin && !Release())
+            // If an outgoing stream and this is the last stream frame, we release the stream count to
+            // eventually allow a new outgoing stream to be opened. If the stream count is already released,
+            // there's an issue with the peer sending twice a last stream frame.
+            if (!IsIncoming && fin && !ReleaseStreamCount())
             {
                 throw new InvalidDataException("already received last stream frame");
             }
@@ -475,14 +477,14 @@ namespace IceRpc
         {
             // We ignore the stream reset if the stream is already released (the last stream frame has already
             // been sent).
-            if (Release())
+            if (ReleaseStreamCount())
             {
-                Abort(new IOException($"the peer aborted the stream with the error code {errorCode}"));
+                Abort(new TransportException($"the peer aborted the stream with the error code {errorCode}"));
                 base.ReceivedReset(errorCode);
             }
         }
 
-        internal bool Release(bool notifyPeer = false)
+        internal bool ReleaseStreamCount()
         {
             // Release the stream from the socket if not already done. This will decrease the socket stream
             // count to allow more streams to be opened.
@@ -492,13 +494,6 @@ namespace IceRpc
                 {
                     // If the stream is not already released, releases it now.
                     _socket.ReleaseStream(this);
-
-                    if (notifyPeer)
-                    {
-                        // It's important to decrement the stream count before sending the StreamLast frame to prevent
-                        // a race where the peer could start a new stream before the counter is decremented.
-                        _ = _socket.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, streamId: Id);
-                    }
                 }
                 return true;
             }

@@ -31,9 +31,8 @@ namespace IceRpc.Tests.ClientServer
                     // specify in the AfterDelay retry policy.
                     service.Attempts = 0;
                     retry = retry.Clone(invocationTimeout: Timeout.InfiniteTimeSpan);
-                    long elapsedMilliseconds = await retry.OpRetryAfterDelayAsync(1, 100);
+                    await retry.OpRetryAfterDelayAsync(1, 100);
                     Assert.AreEqual(2, service.Attempts);
-                    Assert.GreaterOrEqual(elapsedMilliseconds, 100);
                 });
         }
 
@@ -371,7 +370,6 @@ namespace IceRpc.Tests.ClientServer
         internal class RetryService : IAsyncRetryService
         {
             internal int Attempts;
-            private readonly Stopwatch _stopwatch = new Stopwatch();
 
             public ValueTask OpIdempotentAsync(
                 int failedAttempts,
@@ -427,7 +425,7 @@ namespace IceRpc.Tests.ClientServer
                 }
             }
 
-            public ValueTask<long> OpRetryAfterDelayAsync(
+            public ValueTask OpRetryAfterDelayAsync(
                 int failedAttempts,
                 int delay,
                 Current current,
@@ -435,10 +433,9 @@ namespace IceRpc.Tests.ClientServer
             {
                 if (failedAttempts >= Attempts)
                 {
-                    _stopwatch.Restart();
                     throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(delay)));
                 }
-                return new(_stopwatch.ElapsedMilliseconds);
+                return default;
             }
 
             public ValueTask OpRetryNoAsync(Current current, CancellationToken cancel) =>

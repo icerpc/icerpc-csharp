@@ -373,7 +373,13 @@ namespace IceRpc.Tests.ClientServer
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure)
         {
-            string serverHost = (hostname == null || hostname == "localhost") ? "127.0.0.1" : hostname;
+            string serverHost = hostname switch
+            {
+                null => "::1",
+                "localhost" => System.OperatingSystem.IsWindows() ? "::1" : "127.0.0.1",
+                _ => hostname
+            };
+
             await using var serverCommunicator = new Communicator(); ;
             await using var server = new Server(serverCommunicator,
                 new ServerOptions()
@@ -387,7 +393,7 @@ namespace IceRpc.Tests.ClientServer
             server.Add("hello", new GreeterTestService());
             server.Activate();
 
-            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "127.0.0.1"), clientCommunicator).Clone(
+            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator).Clone(
                 preferNonSecure: NonSecure.Never);
             closure(server, prx);
         }

@@ -21,7 +21,7 @@ module IceRpc::Tests::ClientServer
         idempotent void opIdempotent(int failedAttempts, bool killConnection);
         void opNotIdempotent(int failedAttempts, bool killConnection);
         void opWithData(int failedAttempts, int delay, RetryByteSeq data);
-        long opRetryAfterDelay(int failedAttempts, int delay);
+        void opRetryAfterDelay(int failedAttempts, int delay);
         void opRetryNo();
     }
 

@@ -32,6 +32,28 @@ namespace IceRpc
         /// <summary>Waits for the task to complete and allows the wait to be canceled.</summary>
         /// <param name="task">The task to wait for.</param>
         /// <param name="cancel">The cancellation token.</param>
+        internal static async ValueTask WaitAsync(this ValueTask task, CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
+
+            // Optimization: if the given task is already completed or the cancellation token is not cancelable,
+            // not need to wait for these two.
+            if (cancel.CanBeCanceled && !task.IsCompleted)
+            {
+                Task asTask = task.AsTask();
+                await Task.WhenAny(asTask, Task.Delay(-1, cancel)).ConfigureAwait(false);
+                cancel.ThrowIfCancellationRequested();
+                await asTask.ConfigureAwait(false);
+            }
+            else
+            {
+                await task.ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>Waits for the task to complete and allows the wait to be canceled.</summary>
+        /// <param name="task">The task to wait for.</param>
+        /// <param name="cancel">The cancellation token.</param>
         internal static async ValueTask<T> WaitAsync<T>(this ValueTask<T> task, CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();

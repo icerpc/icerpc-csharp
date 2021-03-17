@@ -173,7 +173,7 @@ namespace IceRpc
             {
                 if (IsIPv6Only)
                 {
-                    sb.Append($"ipv6-only=true");
+                    sb.Append("ipv6-only=true");
                 }
 
                 if (SourceAddress != null)

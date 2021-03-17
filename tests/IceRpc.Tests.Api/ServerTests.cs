@@ -16,6 +16,14 @@ namespace IceRpc.Tests.Api
             Assert.Throws<System.FormatException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
 
+            // Can't be less than 1
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(new Communicator(), new ServerOptions() { BidirectionalStreamMaxCount = 0 }));
+
+            // Can't be less than 1
+            Assert.Throws<System.ArgumentException>(
+                () => new Server(new Communicator(), new ServerOptions() { UnidirectionalStreamMaxCount = 0 }));
+
             // IncomingFrameMaxSize cannot be less than 1KB
             Assert.Throws<System.ArgumentException>(
                 () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));

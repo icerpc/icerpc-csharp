@@ -105,7 +105,6 @@ namespace IceRpc.Test.AMI
             bool ice1 = helper.Protocol == Protocol.Ice1;
 
             var p = ITestIntfPrx.Parse(helper.GetTestProxy("test", 0), communicator);
-            var serialized = ITestIntfPrx.Parse(helper.GetTestProxy("serialized", 1), communicator);
 
             TextWriter output = helper.Output;
 
@@ -495,122 +494,6 @@ namespace IceRpc.Test.AMI
             task().Wait();
             output.WriteLine("ok");
 
-            Task.Run(async () =>
-            {
-                output.Write("testing async serialization... ");
-                output.Flush();
-                try
-                {
-                    {
-                        int previous = 0;
-                        int expected = 0;
-                        var tasks = new Task<int>[20];
-                        var context = new Dictionary<string, string>();
-                        for (int i = 0; i < 50; ++i)
-                        {
-                            // Async serialization only works once the connection is established and if there's no retries
-                            await serialized.IcePingAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                context["value"] = j.ToString(); // This is for debugging
-                                tasks[j] = serialized.SetAsync(j, context);
-                            }
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                previous = tasks[j].Result;
-                                TestHelper.Assert(previous == expected);
-                                expected = j;
-                            }
-                            await (await serialized.GetConnectionAsync()).GoAwayAsync();
-                        }
-                    }
-
-                    {
-                        // Ensure requests don't fail if the connection is closed gracefully while being sent. The
-                        // ping calls will get retried.
-                        var tasks = new Task[20];
-                        for (int i = 0; i < 10; ++i)
-                        {
-                            await serialized.IcePingAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                tasks[j] = serialized.IcePingAsync();
-                            }
-                            _ = (await serialized.GetConnectionAsync()).GoAwayAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                tasks[j].Wait();
-                            }
-                        }
-                    }
-                }
-                catch (ServiceNotFoundException)
-                {
-                    output.WriteLine("not supported");
-                }
-                catch (Exception ex)
-                {
-                    output.WriteLine($"unexpected exception {ex}");
-                    TestHelper.Assert(false);
-                }
-
-                try
-                {
-                    {
-                        var tasks = new Task[20];
-                        serialized.Set(-1);
-                        var context = new Dictionary<string, string>();
-                        for (int i = 0; i < 50; ++i)
-                        {
-                            // Async serialization only works once the connection is established and if there's no retries
-                            await serialized.IcePingAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                context["value"] = (i * tasks.Length + j).ToString(); // This is for debugging
-                                tasks[j] = serialized.SetOnewayAsync(i * tasks.Length + j - 1,
-                                                                    i * tasks.Length + j,
-                                                                    context);
-                            }
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                await tasks[j].ConfigureAwait(false);
-                            }
-                            await (await serialized.GetConnectionAsync()).GoAwayAsync();
-                        }
-                    }
-
-                    {
-                        // Ensure requests don't fail if the connection is closed gracefully while being sent. The
-                        // ping calls will get retried.
-                        var tasks = new Task[20];
-                        var serializedOneway = serialized.Clone(oneway: true);
-                        for (int i = 0; i < 10; ++i)
-                        {
-                            await serializedOneway.IcePingAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                tasks[j] = serializedOneway.IcePingAsync();
-                            }
-                            _ = (await serializedOneway.GetConnectionAsync()).GoAwayAsync();
-                            for (int j = 0; j < tasks.Length; ++j)
-                            {
-                                await tasks[j].ConfigureAwait(false);
-                            }
-                        }
-                    }
-                }
-                catch (ServiceNotFoundException)
-                {
-                    output.WriteLine("not supported");
-                }
-                catch (Exception ex)
-                {
-                    output.WriteLine($"unexpected exception {ex}");
-                    TestHelper.Assert(false);
-                }
-                output.WriteLine("ok");
-            }).Wait();
-
             output.Write("testing async Task cancellation... ");
             output.Flush();
             {
@@ -696,50 +579,6 @@ namespace IceRpc.Test.AMI
                         ae.Handle(ex => ex is OperationCanceledException);
                     }
                 }
-
-                // Set the value on the servant to 20 and sleep for 500ms. We send a large payload to fill up the
-                // send buffer and ensure other requests won't be sent.
-                serialized.Set(20);
-                _ = serialized.SleepAsync(400);
-                var payload = new byte[5 * 1024 * 1024];
-                _ = serialized.OpWithPayloadAsync(payload);
-                _ = serialized.OpWithPayloadAsync(payload);
-                _ = serialized.OpWithPayloadAsync(payload);
-                _ = serialized.OpWithPayloadAsync(payload);
-                _ = serialized.OpWithPayloadAsync(payload);
-                _ = serialized.OpWithPayloadAsync(payload);
-
-                // The send queue is blocked, we send 4 set requests and cancel 2 of them. We make sure that the
-                // requests are canceled and not sent by checking the response of set which sends the previous set
-                // value.
-                var source0 = new CancellationTokenSource();
-                Task<int> t0 = serialized.SetAsync(0, cancel: source0.Token);
-                Task<int> t1 = serialized.SetAsync(1);
-                var source2 = new CancellationTokenSource();
-                Task<int> t2 = serialized.SetAsync(2, cancel: source2.Token);
-                Task<int> t3 = serialized.SetAsync(3);
-                source0.Cancel();
-                source2.Cancel();
-                try
-                {
-                    t0.Wait();
-                    TestHelper.Assert(false);
-                }
-                catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
-                {
-                }
-                try
-                {
-                    t2.Wait();
-                }
-                catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
-                {
-                }
-                TestHelper.Assert(t0.Status == TaskStatus.Canceled);
-                TestHelper.Assert(t2.Status == TaskStatus.Canceled);
-                TestHelper.Assert(t1.Result == 20);
-                TestHelper.Assert(t3.Result == 1);
-                TestHelper.Assert(serialized.Set(0) == 3);
             }
             output.WriteLine("ok");
 

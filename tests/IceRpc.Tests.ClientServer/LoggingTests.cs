@@ -164,13 +164,13 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("received ice2 response frame: result = Success, stream ID = 0",
+                        Assert.AreEqual("received ice2 response frame: result = Success",
                                         GetMessage(entry));
                         JsonElement[] scopes = GetScopes(entry);
                         CheckSocketScope(scopes[0], colocated);
                         CheckRequestScope(scopes[1]);
                         CheckStreamScope(scopes[2]);
-                        // The seding of the request always comes before the receiving of the response
+                        // The sending of the request always comes before the receiving of the response
                         CollectionAssert.Contains(events, 18);
                         break;
                     }
@@ -178,13 +178,13 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("sending ice2 response frame: result = Success, stream ID = 0",
+                        Assert.AreEqual("sending ice2 response frame: result = Success",
                                         GetMessage(entry));
                         JsonElement[] scopes = GetScopes(entry);
                         CheckSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
                         CheckRequestScope(scopes[2]);
-                        // The seding of the response always comes before the receiving of the request
+                        // The sending of the response always comes before the receiving of the request
                         CollectionAssert.Contains(events, 7);
                         break;
                     }

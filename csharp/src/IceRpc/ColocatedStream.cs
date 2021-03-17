@@ -162,6 +162,12 @@ namespace IceRpc
             return frame;
         }
 
+        internal override void ReceivedReset(long errorCode)
+        {
+            Abort(new TransportException($"the peer aborted the stream with the error code {errorCode}"));
+            base.ReceivedReset(errorCode);
+        }
+
         internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
             object frameObject;
@@ -175,7 +181,8 @@ namespace IceRpc
             {
                 if (_socket.Endpoint.Protocol != Protocol.Ice1)
                 {
-                    await ResetAsync((long)StreamResetErrorCode.RequestCanceled).ConfigureAwait(false);
+                    // Don't await the sending of the reset since it might block if sending is blocking.
+                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
                 }
                 throw;
             }
@@ -229,23 +236,28 @@ namespace IceRpc
 
         private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
         {
-            await _socket.SendFrameAsync(this, frame.ToIncoming(), fin: frame.StreamDataWriter == null, cancel).
-                ConfigureAwait(false);
+            await _socket.SendFrameAsync(
+                this,
+                frame.ToIncoming(),
+                fin: frame.StreamDataWriter == null,
+                cancel).ConfigureAwait(false);
 
             ILogger logger = _socket.Endpoint.Communicator.ProtocolLogger;
             if (logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using var scope = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var scope = StartScope();
                     logger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    logger.LogSendingResponse((OutgoingResponseFrame)frame, Id);
+                    logger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
+
         }
     }
 }

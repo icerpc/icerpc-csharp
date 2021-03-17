@@ -16,13 +16,6 @@ namespace IceRpc.Test.AMI
             server.Add("test2", new TestIntf2());
             // Don't activate Server to ensure collocation is used.
 
-            Server server2 = new Server(
-                Communicator,
-                new() { Endpoints = GetTestEndpoint(1), SerializeDispatch = true });
-
-            server2.Add("serialized", new TestIntf());
-            // Don't activate Server to ensure collocation is used.
-
             await AllTests.RunAsync(this);
         }
 
