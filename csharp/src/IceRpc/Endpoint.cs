@@ -238,23 +238,6 @@ namespace IceRpc
                     $"cannot create endpoint for ice1 protocol and transport `{data.Transport}'");
         }
 
-        /// <summary>Creates an endpoint data array from a sequence of endpoints.</summary>
-        /// <param name="endpoints">The sequence of endpoints.</param>
-        /// <returns>A new endpoint data array.</returns>
-        public static EndpointData[] ToEndpointDataArray(this IEnumerable<Endpoint> endpoints) =>
-            endpoints.Select(e => e.Data).ToArray();
-
-        /// <summary>Creates an endpoint list from a sequence of <see cref="EndpointData"/> structs.</summary>
-        /// <param name="dataSequence">The sequence of endpoint data.</param>
-        /// <param name="communicator">The communicator.</param>
-        /// <param name="protocol">The endpoint's protocol. Must be ice2 or greater.</param>
-        /// <returns>A new list of endpoints.</returns>
-        public static List<Endpoint> ToEndpointList(
-            this IEnumerable<EndpointData> dataSequence,
-            Communicator communicator,
-            Protocol protocol = Protocol.Ice2) =>
-            dataSequence.Select(data => data.ToEndpoint(communicator, protocol)).ToList();
-
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
         /// format.</summary>
         /// <param name="sb">The string builder.</param>

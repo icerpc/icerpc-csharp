@@ -78,7 +78,7 @@ namespace IceRpc.Interop
                 return new((ImmutableList<Endpoint>.Empty, TimeSpan.Zero));
             }
 
-            if (endpoint["category"] is string category)
+            if (endpoint["category"] is string category) // category can be empty
             {
                 return ResolveIdentityAsync(new Identity(endpoint.Host, category), endpointsMaxAge, cancel);
             }
@@ -95,7 +95,7 @@ namespace IceRpc.Interop
         {
             if (adapterId.Length == 0)
             {
-                throw new ArgumentException("invalid empty adapter ID", nameof(adapterId));
+                throw new ArgumentException("adapter ID cannot be empty", nameof(adapterId));
             }
 
             IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;

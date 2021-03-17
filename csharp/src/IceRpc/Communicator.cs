@@ -569,11 +569,11 @@ namespace IceRpc
         /// <param name="transport">The transport.</param>
         /// <param name="transportName">The name of the transport in lower case, for example "tcp".</param>
         /// <param name="factory">A delegate that creates an endpoint from an <see cref="EndpointData"/>.</param>
-        /// <param name="ice1Factory">A delegate creates an ice1 endpoint by reading an <see cref="InputStream"/>
+        /// <param name="ice1Factory">A delegate that creates an ice1 endpoint by reading an <see cref="InputStream"/>
         /// (optional).</param>
         /// <param name="ice1Parser">A delegate that creates an ice1 endpoint from a pre-parsed string.</param>
         /// <param name="ice2Parser">A delegate that creates an ice2 endpoint from a pre-parsed URI.</param>
-        /// <param name="defaultUriPort">The default port for URI endpoints that don't specificy a port explicitly.
+        /// <param name="defaultUriPort">The default port for URI endpoints that don't specify a port explicitly.
         /// </param>
         public void RegisterTransport(
             Transport transport,
@@ -627,10 +627,6 @@ namespace IceRpc
 
         internal EndpointFactory? FindEndpointFactory(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Factory : null;
-
-        internal (Ice1EndpointParser?, Ice2EndpointParser?, Transport)? FindEndpointParser(
-            string transportName) =>
-            _transportNameRegistry.TryGetValue(transportName, out var value) ? value : null;
 
         internal Ice1EndpointFactory? FindIce1EndpointFactory(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Ice1Factory : null;

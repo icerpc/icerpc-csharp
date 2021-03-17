@@ -309,7 +309,7 @@ namespace IceRpc
                 var proxyData = new ProxyData20(Path,
                                                 protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                                                 encoding: Encoding != Encoding.V20 ? Encoding : null,
-                                                Endpoints.Count == 0 ? null : Endpoints.ToEndpointDataArray());
+                                                Endpoints.Count == 0 ? null : Endpoints.Select(e => e.Data).ToArray());
                 proxyData.IceWrite(ostr);
             }
         }

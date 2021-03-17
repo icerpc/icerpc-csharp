@@ -365,12 +365,9 @@ namespace IceRpc
                         endpoints = new Endpoint[] { locEndpoint };
                     }
                 }
-                else if (endpoints.Length > 1)
+                else if (endpoints.Length > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
                 {
-                    if (endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
-                    {
-                        throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
-                    }
+                    throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
                 }
 
                 if (proxyData.Protocol == Protocol.Ice1)
@@ -416,15 +413,14 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                IReadOnlyList<Endpoint>? endpoints = proxyData.Endpoints?.ToEndpointList(istr.Communicator!, protocol);
-                endpoints ??= ImmutableList<Endpoint>.Empty;
+                IReadOnlyList<Endpoint> endpoints =
+                    proxyData.Endpoints?.Select(
+                        data => data.ToEndpoint(istr.Communicator!, protocol))?.ToImmutableList() ??
+                    ImmutableList<Endpoint>.Empty;
 
-                if (endpoints.Count > 1)
+                if (endpoints.Count > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
                 {
-                    if (endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
-                    {
-                        throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
-                    }
+                    throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
                 }
 
                 if (protocol == Protocol.Ice1)
