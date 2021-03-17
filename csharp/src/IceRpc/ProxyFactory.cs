@@ -153,39 +153,7 @@ namespace IceRpc
 
             if (UriParser.IsProxyUri(proxyString))
             {
-                string path = "";
-                UriParser.ProxyOptions proxyOptions;
-                (endpoints, path, proxyOptions) = UriParser.ParseProxy(proxyString, communicator);
-
-                Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
-                Debug.Assert(protocol != Protocol.Ice1); // the URI parsing rejects ice1
-
-                encoding = proxyOptions.Encoding ?? Encoding.V20;
-
-                (cacheConnection,
-                 context,
-                 invocationTimeout,
-                 label,
-                 preferExistingConnection,
-                 preferNonSecure) = proxyOptions;
-
-                var options = new ServicePrxOptions()
-                {
-                    CacheConnection = cacheConnection ?? true,
-                    Communicator = communicator,
-                    Context = context,
-                    Encoding = encoding,
-                    Endpoints = endpoints,
-                    InvocationTimeoutOverride = invocationTimeout,
-                    IsOneway = oneway,
-                    LocationResolver = communicator.DefaultLocationResolver,
-                    Path = path,
-                    PreferExistingConnectionOverride = preferExistingConnection,
-                    PreferNonSecureOverride = preferNonSecure,
-                    Protocol = protocol
-                };
-
-                return factory.Create(options);
+                return factory.Create(UriParser.ParseProxy(proxyString, communicator));
             }
             else
             {

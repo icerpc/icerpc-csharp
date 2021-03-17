@@ -525,7 +525,8 @@ namespace IceRpc.Tests.Api
             Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
 
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
-                    "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";
+                "&label=myLabel&oneway=true" +
+                "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
             Assert.AreEqual(prx.Endpoints.Count, 2);
@@ -535,6 +536,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.Context.Count, 2);
             Assert.AreEqual(prx.Context["c 1"], "some value");
             Assert.AreEqual(prx.Context["c5"], "v5");
+            Assert.IsTrue(prx.IsOneway);
+            Assert.AreEqual(prx.Label, "myLabel");
         }
 
         public class GreeterService : IAsyncGreeterService

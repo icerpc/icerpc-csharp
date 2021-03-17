@@ -477,6 +477,12 @@ namespace IceRpc
                     sb.Append(Uri.EscapeDataString(label));
                 }
 
+                if (IsOneway)
+                {
+                    StartQueryOption(sb, ref firstOption);
+                    sb.Append("oneway=true");
+                }
+
                 if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
