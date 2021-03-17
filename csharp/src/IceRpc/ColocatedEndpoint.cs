@@ -28,7 +28,7 @@ namespace IceRpc
         public override bool IsLocal(Endpoint endpoint) =>
             endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Server == Server;
 
-        protected internal override void WriteOptions(OutputStream ostr) =>
+        protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         public override Connection CreateDatagramServerConnection(Server server) =>

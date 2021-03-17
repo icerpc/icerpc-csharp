@@ -77,7 +77,7 @@ namespace IceRpc
 
         public override bool IsLocal(Endpoint endpoint) => false;
 
-        protected internal override void WriteOptions(OutputStream ostr)
+        protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(false);
             throw new NotImplementedException("cannot write the options of an opaque endpoint");

@@ -168,11 +168,8 @@ namespace IceRpc
         /// </summary>
         public object? Label { get; }
 
-        /// <summary>Gets the location of this proxy. ice1 only.</summary>
-        public string Location { get; }
-
-        /// <summary>The location service associated with this proxy. ice1 only.</summary>
-        public ILocationService? LocationService { get; }
+        /// <summary>The location resolver associated with this proxy.</summary>
+        public ILocationResolver? LocationResolver { get; }
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         public string Path { get; }

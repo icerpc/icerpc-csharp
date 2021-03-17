@@ -31,9 +31,7 @@ namespace IceRpc
 
         public object? Label { get; set; }
 
-        public string Location { get; set; } = ""; // ice1 only
-
-        public ILocationService? LocationService { get; set; } // ice1 only
+        public ILocationResolver? LocationResolver { get; set; }
 
         public string Path { get; set; } = ""; // Path and Identity can't be set at the same time
 

@@ -26,10 +26,10 @@ namespace IceRpc
         // TODO: can we remove this override?
         public override bool IsLocal(Endpoint endpoint) => endpoint is WSEndpoint && base.IsLocal(endpoint);
 
-        protected internal override void WriteOptions(OutputStream ostr)
+        protected internal override void WriteOptions11(OutputStream ostr)
         {
-            Debug.Assert(Protocol == Protocol.Ice1);
-            base.WriteOptions(ostr);
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
+            base.WriteOptions11(ostr);
             ostr.WriteString(Resource);
         }
 
@@ -82,18 +82,15 @@ namespace IceRpc
                                   istr.Communicator!);
         }
 
-        internal static new WSEndpoint CreateIce2Endpoint(EndpointData data, Communicator communicator)
+        internal static new WSEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
         {
-            Debug.Assert(data.Transport == Transport.WS || data.Transport == Transport.WSS); // TODO: remove WSS
-
-            string[] options = data.Options;
-            if (options.Length > 1)
+            if (data.Options.Length > 1)
             {
-                // Drop extra options since we don't understand them.
-                options = new string[] { options[0] };
+                // Drop options we don't understand
+                data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
             }
 
-            return new WSEndpoint(new EndpointData(data.Transport, data.Host, data.Port, options), communicator);
+            return new(data, communicator, protocol);
         }
 
         internal static new WSEndpoint ParseIce1Endpoint(
@@ -206,9 +203,9 @@ namespace IceRpc
         {
         }
 
-        // Constructor for ice2 unmarshaling.
-        private WSEndpoint(EndpointData data, Communicator communicator)
-            : base(data, communicator)
+        // Constructor for unmarshaling with the 2.0 encoding
+        private WSEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+            : base(data, communicator, protocol)
         {
         }
 

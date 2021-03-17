@@ -96,11 +96,11 @@ namespace IceRpc
             set => _defaultInvocationInterceptors = value;
         }
 
-        /// <summary>The default location service for this communicator.</summary>
-        public ILocationService? DefaultLocationService
+        /// <summary>The default location resolver for this communicator.</summary>
+        public ILocationResolver? DefaultLocationResolver
         {
-            get => _defaultLocationService;
-            set => _defaultLocationService = value;
+            get => _defaultLocationResolver;
+            set => _defaultLocationResolver = value;
         }
 
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
@@ -144,8 +144,6 @@ namespace IceRpc
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
 
-        internal ILogger DiscoveryLogger { get; }
-
         internal TimeSpan IdleTimeout { get; }
         internal int IncomingFrameMaxSize { get; }
         internal bool IsDisposed => _shutdownTask != null;
@@ -153,7 +151,9 @@ namespace IceRpc
 
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }
-        internal ILogger LocationLogger { get; }
+
+        // TODO: should pass the factory and create a logger per locator client
+        internal ILogger LocatorClientLogger { get; }
         internal ILoggerFactory LoggerFactory { get; }
         // TODO: Allow configuring stream max count through options
         internal int BidirectionalStreamMaxCount { get; } = 100;
@@ -192,20 +192,8 @@ namespace IceRpc
             ImmutableSortedDictionary<string, string>.Empty;
         private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
             ImmutableList<InvocationInterceptor>.Empty;
-        private volatile ILocationService? _defaultLocationService;
+        private volatile ILocationResolver? _defaultLocationResolver;
         private Task? _shutdownTask;
-
-        private readonly IDictionary<Transport, Ice1EndpointFactory> _ice1TransportRegistry =
-            new ConcurrentDictionary<Transport, Ice1EndpointFactory>();
-
-        private readonly IDictionary<string, (Ice1EndpointParser, Transport)> _ice1TransportNameRegistry =
-            new ConcurrentDictionary<string, (Ice1EndpointParser, Transport)>();
-
-        private readonly IDictionary<Transport, (Ice2EndpointFactory, Ice2EndpointParser)> _ice2TransportRegistry =
-            new ConcurrentDictionary<Transport, (Ice2EndpointFactory, Ice2EndpointParser)>();
-
-        private readonly IDictionary<string, (Ice2EndpointParser, Transport)> _ice2TransportNameRegistry =
-            new ConcurrentDictionary<string, (Ice2EndpointParser, Transport)>();
 
         private readonly object _mutex = new object();
 
@@ -214,6 +202,12 @@ namespace IceRpc
         private int _retryBufferSize;
 
         private readonly Dictionary<Transport, BufWarnSizeInfo> _setBufWarnSize = new();
+
+        private readonly IDictionary<Transport, (EndpointFactory Factory, Ice1EndpointFactory? Ice1Factory, Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser)> _transportRegistry =
+            new ConcurrentDictionary<Transport, (EndpointFactory, Ice1EndpointFactory?, Ice1EndpointParser?, Ice2EndpointParser?)>();
+
+        private readonly IDictionary<string, (Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser, Transport Transport)> _transportNameRegistry =
+            new ConcurrentDictionary<string, (Ice1EndpointParser?, Ice2EndpointParser?, Transport)>();
 
         /// <summary>Constructs a new communicator.</summary>
         /// <param name="properties">The properties of the new communicator.</param>
@@ -295,8 +289,7 @@ namespace IceRpc
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
-            DiscoveryLogger = LoggerFactory.CreateLogger("IceRpc.Discovery");
-            LocationLogger = LoggerFactory.CreateLogger("IceRpc.Location");
+            LocatorClientLogger = LoggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
             TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
             ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
             SecurityLogger = LoggerFactory.CreateLogger("IceRpc.Security");
@@ -452,42 +445,45 @@ namespace IceRpc
                 };
             }
 
-            RegisterIce1Transport(Transport.TCP,
-                                  "tcp",
-                                  TcpEndpoint.CreateIce1Endpoint,
-                                  TcpEndpoint.ParseIce1Endpoint);
+            RegisterTransport(Transport.Loc,
+                              "loc",
+                              LocEndpoint.Create,
+                              ice2Parser: LocEndpoint.ParseIce2Endpoint,
+                              defaultUriPort: LocEndpoint.DefaultLocPort);
 
-            RegisterIce1Transport(Transport.SSL,
-                                  "ssl",
-                                  TcpEndpoint.CreateIce1Endpoint,
-                                  TcpEndpoint.ParseIce1Endpoint);
+            RegisterTransport(Transport.TCP,
+                              "tcp",
+                              TcpEndpoint.CreateEndpoint,
+                              TcpEndpoint.CreateIce1Endpoint,
+                              TcpEndpoint.ParseIce1Endpoint,
+                              TcpEndpoint.ParseIce2Endpoint,
+                              IPEndpoint.DefaultIPPort);
 
-            RegisterIce1Transport(Transport.UDP,
-                                  "udp",
-                                  UdpEndpoint.CreateIce1Endpoint,
-                                  UdpEndpoint.ParseIce1Endpoint);
+            RegisterTransport(Transport.SSL,
+                              "ssl",
+                              TcpEndpoint.CreateEndpoint,
+                              TcpEndpoint.CreateIce1Endpoint,
+                              TcpEndpoint.ParseIce1Endpoint);
 
-            RegisterIce1Transport(Transport.WS,
-                                  "ws",
-                                  WSEndpoint.CreateIce1Endpoint,
-                                  WSEndpoint.ParseIce1Endpoint);
+            RegisterTransport(Transport.UDP,
+                              "udp",
+                              UdpEndpoint.CreateEndpoint,
+                              UdpEndpoint.CreateIce1Endpoint,
+                              UdpEndpoint.ParseIce1Endpoint);
 
-            RegisterIce1Transport(Transport.WSS,
-                                  "wss",
-                                  WSEndpoint.CreateIce1Endpoint,
-                                  WSEndpoint.ParseIce1Endpoint);
+            RegisterTransport(Transport.WS,
+                              "ws",
+                              WSEndpoint.CreateEndpoint,
+                              WSEndpoint.CreateIce1Endpoint,
+                              WSEndpoint.ParseIce1Endpoint,
+                              WSEndpoint.ParseIce2Endpoint,
+                              IPEndpoint.DefaultIPPort);
 
-            RegisterIce2Transport(Transport.TCP,
-                                  "tcp",
-                                  TcpEndpoint.CreateIce2Endpoint,
-                                  TcpEndpoint.ParseIce2Endpoint,
-                                  IPEndpoint.DefaultIPPort);
-
-            RegisterIce2Transport(Transport.WS,
-                                  "ws",
-                                  WSEndpoint.CreateIce2Endpoint,
-                                  WSEndpoint.ParseIce2Endpoint,
-                                  IPEndpoint.DefaultIPPort);
+            RegisterTransport(Transport.WSS,
+                              "wss",
+                              WSEndpoint.CreateEndpoint,
+                              WSEndpoint.CreateIce1Endpoint,
+                              WSEndpoint.ParseIce1Endpoint);
 
             if (this.GetPropertyAsBool("Ice.PreloadAssemblies") ?? false)
             {
@@ -556,55 +552,54 @@ namespace IceRpc
         /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
         public ValueTask DisposeAsync() => new(ShutdownAsync());
 
-        /// <summary>Registers a new transport for the ice1 protocol.</summary>
+        /// <summary>Registers a new transport.</summary>
         /// <param name="transport">The transport.</param>
         /// <param name="transportName">The name of the transport in lower case, for example "tcp".</param>
-        /// <param name="factory">A delegate that Ice will use to unmarshal endpoints for this transport.</param>
-        /// <param name="parser">A delegate that Ice will use to parse endpoints for this transport.</param>
-        public void RegisterIce1Transport(
+        /// <param name="factory">A delegate that creates an endpoint from an <see cref="EndpointData"/>.</param>
+        /// <param name="ice1Factory">A delegate that creates an ice1 endpoint by reading an <see cref="InputStream"/>
+        /// (optional).</param>
+        /// <param name="ice1Parser">A delegate that creates an ice1 endpoint from a pre-parsed string.</param>
+        /// <param name="ice2Parser">A delegate that creates an ice2 endpoint from a pre-parsed URI.</param>
+        /// <param name="defaultUriPort">The default port for URI endpoints that don't specify a port explicitly.
+        /// </param>
+        public void RegisterTransport(
             Transport transport,
             string transportName,
-            Ice1EndpointFactory factory,
-            Ice1EndpointParser parser)
+            EndpointFactory factory,
+            Ice1EndpointFactory? ice1Factory = null,
+            Ice1EndpointParser? ice1Parser = null,
+            Ice2EndpointParser? ice2Parser = null,
+            ushort defaultUriPort = 0)
         {
             if (transportName.Length == 0)
             {
                 throw new ArgumentException($"{nameof(transportName)} cannot be empty", nameof(transportName));
             }
 
-            _ice1TransportRegistry.Add(transport, factory);
-            _ice1TransportNameRegistry.Add(transportName, (parser, transport));
-        }
-
-        /// <summary>Registers a new transport for the ice2 protocol.</summary>
-        /// <param name="transport">The transport.</param>
-        /// <param name="transportName">The name of the transport in lower case, for example "tcp".</param>
-        /// <param name="factory">A delegate that Ice will use to unmarshal endpoints for this transport.</param>
-        /// <param name="parser">A delegate that Ice will use to parse endpoints for this transport.</param>
-        /// <param name="defaultPort">The default port for URI endpoints that don't specificy a port explicitly.</param>
-        public void RegisterIce2Transport(
-            Transport transport,
-            string transportName,
-            Ice2EndpointFactory factory,
-            Ice2EndpointParser parser,
-            ushort defaultPort)
-        {
-            if (transportName.Length == 0)
+            if (ice1Factory != null && ice1Parser == null)
             {
-                throw new ArgumentException($"{nameof(transportName)} cannot be empty", nameof(transportName));
+                throw new ArgumentNullException($"{nameof(ice1Parser)} cannot be null", nameof(ice1Parser));
             }
 
-            _ice2TransportRegistry.Add(transport, (factory, parser));
-            _ice2TransportNameRegistry.Add(transportName, (parser, transport));
-
-            // Also register URI parser if not registered yet.
-            try
+            if (ice1Factory == null && ice2Parser == null)
             {
-                UriParser.RegisterTransport(transportName, defaultPort);
+                throw new ArgumentNullException($"{nameof(ice2Parser)} cannot be null", nameof(ice2Parser));
             }
-            catch (InvalidOperationException)
+
+            _transportRegistry.Add(transport, (factory, ice1Factory, ice1Parser, ice2Parser));
+            _transportNameRegistry.Add(transportName, (ice1Parser, ice2Parser, transport));
+
+            if (ice2Parser != null)
             {
-                // Ignored, already registered
+                // Also register URI parser if not registered yet.
+                try
+                {
+                    UriParser.RegisterTransport(transportName, defaultUriPort);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignored, already registered
+                }
             }
         }
 
@@ -617,28 +612,22 @@ namespace IceRpc
             }
         }
 
+        internal EndpointFactory? FindEndpointFactory(Transport transport) =>
+            _transportRegistry.TryGetValue(transport, out var value) ? value.Factory : null;
+
         internal Ice1EndpointFactory? FindIce1EndpointFactory(Transport transport) =>
-            _ice1TransportRegistry.TryGetValue(transport, out Ice1EndpointFactory? factory) ? factory : null;
+            _transportRegistry.TryGetValue(transport, out var value) ? value.Ice1Factory : null;
 
-        internal (Ice1EndpointParser Parser, Transport Transport)? FindIce1EndpointParser(string transportName) =>
-            _ice1TransportNameRegistry.TryGetValue(
-                transportName,
-                out (Ice1EndpointParser, Transport) value) ? value : null;
+        internal (Ice1EndpointParser, Transport)? FindIce1EndpointParser(string transportName) =>
+            _transportNameRegistry.TryGetValue(transportName, out var value) && value.Ice1Parser != null ?
+                (value.Ice1Parser, value.Transport) : null;
 
-        internal Ice2EndpointFactory? FindIce2EndpointFactory(Transport transport) =>
-            _ice2TransportRegistry.TryGetValue(
-                transport,
-                out (Ice2EndpointFactory Factory, Ice2EndpointParser _) value) ? value.Factory : null;
+        internal (Ice2EndpointParser, Transport)? FindIce2EndpointParser(string transportName) =>
+            _transportNameRegistry.TryGetValue(transportName, out var value) && value.Ice2Parser != null ?
+                (value.Ice2Parser, value.Transport) : null;
 
         internal Ice2EndpointParser? FindIce2EndpointParser(Transport transport) =>
-            _ice2TransportRegistry.TryGetValue(
-                transport,
-                out (Ice2EndpointFactory _, Ice2EndpointParser Parser) value) ? value.Parser : null;
-
-        internal (Ice2EndpointParser Parser, Transport Transport)? FindIce2EndpointParser(string transportName) =>
-            _ice2TransportNameRegistry.TryGetValue(
-                transportName,
-                out (Ice2EndpointParser, Transport) value) ? value : null;
+            _transportRegistry.TryGetValue(transport, out var value) ? value.Ice2Parser : null;
 
         internal BufWarnSizeInfo GetBufWarnSize(Transport transport)
         {

@@ -282,7 +282,7 @@ namespace IceRpc
             if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
-                Endpoint.Communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
+                Endpoint.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
             {
                 return Endpoint.Communicator.Logger.StartColocatedSocketScope(

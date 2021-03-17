@@ -102,7 +102,7 @@ namespace IceRpc
         /// <param name="s">The string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The components of the proxy.</returns>
-        internal static (Identity Identity, string Facet, Encoding Encoding, string Location0, IReadOnlyList<Endpoint> Endpoints, bool Oneway) ParseProxy(
+        internal static (Identity Identity, string Facet, Encoding Encoding, IReadOnlyList<Endpoint> Endpoints, bool Oneway) ParseProxy(
             string s,
             Communicator communicator)
         {
@@ -305,7 +305,15 @@ namespace IceRpc
 
             if (beg == -1)
             {
-                return (identity, facet, encoding, Location0: "", ImmutableArray<Endpoint>.Empty, oneway);
+                // Well-known proxy
+                var endpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
+                                                                   host: identity.Name,
+                                                                   port: 0,
+                                                                   options: new string[] { identity.Category }),
+                                                  communicator,
+                                                  Protocol.Ice1);
+
+                return (identity, facet, encoding, ImmutableList.Create(endpoint), oneway);
             }
 
             var endpoints = new List<Endpoint>();
@@ -366,7 +374,7 @@ namespace IceRpc
                 }
 
                 Debug.Assert(endpoints.Count > 0);
-                return (identity, facet, encoding, Location0: "", endpoints, oneway);
+                return (identity, facet, encoding, endpoints, oneway);
             }
             else if (s[beg] == '@')
             {
@@ -376,7 +384,7 @@ namespace IceRpc
                     throw new FormatException($"missing adapter ID in `{s}'");
                 }
 
-                string locationStr;
+                string adapterIdStr;
                 end = StringUtil.CheckQuote(s, beg);
                 if (end == -1)
                 {
@@ -389,12 +397,12 @@ namespace IceRpc
                     {
                         end = s.Length;
                     }
-                    locationStr = s[beg..end];
+                    adapterIdStr = s[beg..end];
                 }
                 else
                 {
                     beg++; // Skip leading quote
-                    locationStr = s[beg..end];
+                    adapterIdStr = s[beg..end];
                     end++; // Skip trailing quote
                 }
 
@@ -404,14 +412,21 @@ namespace IceRpc
                         $"invalid trailing characters after `{s.Substring(0, end + 1)}' in `{s}'");
                 }
 
-                string location0 = StringUtil.UnescapeString(locationStr, 0, locationStr.Length, "");
+                string adapterId = StringUtil.UnescapeString(adapterIdStr, 0, adapterIdStr.Length, "");
 
-                if (location0.Length == 0)
+                if (adapterId.Length == 0)
                 {
-                    throw new FormatException($"empty location in proxy `{s}'");
+                    throw new FormatException($"empty adapter ID in proxy `{s}'");
                 }
 
-                return (identity, facet, encoding, location0, ImmutableArray<Endpoint>.Empty, oneway);
+                var endpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
+                                                                   host: adapterId,
+                                                                   port: 0,
+                                                                   options: Array.Empty<string>()),
+                                                  communicator,
+                                                  Protocol.Ice1);
+
+                return (identity, facet, encoding, ImmutableList.Create<Endpoint>(endpoint), oneway);
             }
 
             throw new FormatException($"malformed proxy `{s}'");
@@ -508,13 +523,13 @@ namespace IceRpc
                     };
 
                     var ostr = new OutputStream(Ice1Definitions.Encoding, bufferList);
-                    ostr.WriteEndpoint(opaqueEndpoint);
+                    ostr.WriteEndpoint11(opaqueEndpoint);
                     ostr.Finish();
                     Debug.Assert(bufferList.Count == 1);
                     Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
                     return new InputStream(bufferList[0], Ice1Definitions.Encoding, communicator).
-                        ReadEndpoint(Protocol.Ice1);
+                        ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {

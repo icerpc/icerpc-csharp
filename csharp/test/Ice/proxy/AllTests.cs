@@ -75,11 +75,6 @@ namespace IceRpc.Test.Proxy
                     "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000", communicator);
                 var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Equals(prx));
-
-                // With a location dropped by the 1.1 encoding:
-                ice2Prx = IServicePrx.Parse("ice+tcp://localhost:10000/location/foo", communicator);
-                prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
-                TestHelper.Assert(ice2Prx.Clone(location: "").Equals(prx));
                 output.WriteLine("ok");
             }
             else
@@ -88,6 +83,7 @@ namespace IceRpc.Test.Proxy
                 output.Flush();
                 var ice1Prx = IServicePrx.Parse(
                     "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000", communicator);
+
                 var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice1Prx);
                 TestHelper.Assert(ice1Prx.Equals(prx));
                 output.WriteLine("ok");

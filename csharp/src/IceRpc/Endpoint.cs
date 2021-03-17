@@ -178,9 +178,10 @@ namespace IceRpc
         /// identical except for their ice1 HashCompressedFlag property are equivalent but are not equal.</summary>
         protected internal virtual bool IsEquivalent(Endpoint other) => Equals(other);
 
-        /// <summary>Writes the options of this endpoint to the output stream. ice1-only.</summary>
+        /// <summary>Writes the options of this endpoint to the output stream. Used only when marshaling ice1 proxies
+        /// with the 1.1 encoding.</summary>
         /// <param name="ostr">The output stream.</param>
-        protected internal abstract void WriteOptions(OutputStream ostr);
+        protected internal abstract void WriteOptions11(OutputStream ostr);
 
         /// <summary>Returns an acceptor for this endpoint. An acceptor listens for connection establishment requests
         /// from clients and creates a new connection for each client. This is typically used to implement a
@@ -220,40 +221,22 @@ namespace IceRpc
         /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
         /// <param name="data">The endpoint's data.</param>
         /// <param name="communicator">The communicator.</param>
-        /// <param name="protocol">The endpoint's protocol. Must be ice2 or greater.</param>
+        /// <param name="protocol">The endpoint's protocol.</param>
         /// <returns>A new endpoint.</returns>
-        public static Endpoint ToEndpoint(
-            this EndpointData data,
-            Communicator communicator,
-            Protocol protocol = Protocol.Ice2)
+        /// <remarks>If the transport is not registered, this method returns a <see cref="UniversalEndpoint"/> when
+        /// <c>protocol</c> is ice2 or greater, and throws <see cref="NotSupportedException"/> when <c>protocol</c> is
+        /// ice1.</remarks>
+        public static Endpoint ToEndpoint(this EndpointData data, Communicator communicator, Protocol protocol)
         {
-            if ((byte)protocol < (byte)Protocol.Ice2)
+            if (communicator.FindEndpointFactory(data.Transport) is EndpointFactory factory)
             {
-                throw new ArgumentException("protocol must be ice2 or greater", nameof(protocol));
+                return factory(data, communicator, protocol);
             }
 
-            Ice2EndpointFactory? factory =
-                    protocol == Protocol.Ice2 ? communicator.FindIce2EndpointFactory(data.Transport) : null;
-
-            return factory?.Invoke(data, communicator) ?? UniversalEndpoint.Create(data, communicator, protocol);
+            return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, communicator, protocol) :
+                throw new NotSupportedException(
+                    $"cannot create endpoint for ice1 protocol and transport `{data.Transport}'");
         }
-
-        /// <summary>Creates an endpoint data list from a sequence of endpoints.</summary>
-        /// <param name="endpoints">The sequence of endpoints.</param>
-        /// <returns>A new list of endpoint data.</returns>
-        public static List<EndpointData> ToEndpointDataList(this IEnumerable<Endpoint> endpoints) =>
-            endpoints.Select(e => e.Data).ToList();
-
-        /// <summary>Creates an endpoint list from a sequence of <see cref="EndpointData"/> structs.</summary>
-        /// <param name="dataSequence">The sequence of endpoint data.</param>
-        /// <param name="communicator">The communicator.</param>
-        /// <param name="protocol">The endpoint's protocol. Must be ice2 or greater.</param>
-        /// <returns>A new list of endpoints.</returns>
-        public static List<Endpoint> ToEndpointList(
-            this IEnumerable<EndpointData> dataSequence,
-            Communicator communicator,
-            Protocol protocol = Protocol.Ice2) =>
-            dataSequence.Select(data => data.ToEndpoint(communicator, protocol)).ToList();
 
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
         /// format.</summary>
