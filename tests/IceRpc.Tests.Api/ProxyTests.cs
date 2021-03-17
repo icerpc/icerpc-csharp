@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").GetFacet());
+                Assert.AreEqual("facet", prx.WithFacet("facet", IServicePrx.Factory).GetFacet());
             }
 
             var server = new Server(communicator,
@@ -84,17 +84,18 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                IServicePrx other = IServicePrx.Factory.Clone(prx, path: "test", facet: "facet");
+                IServicePrx other = prx.WithPath("test", IServicePrx.Factory).WithFacet("facet", IServicePrx.Factory);
+
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
 
-                other = IServicePrx.Factory.Clone(other, path: "category/test");
-                Assert.AreEqual("", other.GetFacet());
+                other = other.WithPath("category/test", IServicePrx.Factory);
+                Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("category", other.GetIdentity().Category);
 
-                other = IServicePrx.Factory.Clone(prx, path: "foo", facet: "facet1");
+                other = prx.WithPath("foo", IServicePrx.Factory).WithFacet("facet1", IServicePrx.Factory);
                 Assert.AreEqual("facet1", other.GetFacet());
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);

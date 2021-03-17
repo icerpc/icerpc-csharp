@@ -139,5 +139,28 @@ namespace IceRpc
         /// <returns>The property set.</returns>
         public static Dictionary<string, string> ToProperty(this IServicePrx proxy, string property) =>
             proxy.Impl.ToProperty(property);
+
+        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <param name="path">The new path.</param>
+        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
+        /// proxy type.</param>
+        /// <returns>A proxy with the specified path and type.</returns>
+        public static T WithPath<T>(this IServicePrx proxy, string path, IProxyFactory<T> factory)
+            where T : class, IServicePrx
+        {
+            if (path == proxy.Path && proxy is T t)
+            {
+                return t;
+            }
+            else
+            {
+                ServicePrxOptions options = proxy.Impl.CloneOptions();
+                options.Identity = Interop.Identity.Empty;
+                options.Path = path;
+                return factory.Create(options);
+            }
+        }
     }
 }

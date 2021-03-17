@@ -378,7 +378,7 @@ namespace IceRpc.Test.Exceptions
                 var path = "does%20not%20exist";
                 try
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
+                    IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
@@ -387,8 +387,9 @@ namespace IceRpc.Test.Exceptions
                     TestHelper.Assert(ex.Origin.Path == "/does%20not%20exist");
                     TestHelper.Assert(ex.Message.Contains("service")); // verify we don't get system message
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex.ToString());
                     TestHelper.Assert(false);
                 }
             }
@@ -402,7 +403,7 @@ namespace IceRpc.Test.Exceptions
 
                 try
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
+                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
                     try
                     {
                         await thrower2.IcePingAsync();
@@ -427,7 +428,7 @@ namespace IceRpc.Test.Exceptions
 
             try
             {
-                var thrower2 = IWrongOperationPrx.Factory.Clone(thrower);
+                var thrower2 = IWrongOperationPrx.Factory.Copy(thrower);
                 thrower2.NoSuchOperation();
                 TestHelper.Assert(false);
             }
@@ -752,7 +753,7 @@ namespace IceRpc.Test.Exceptions
 
             {
                 var path = "does%20not%20exist";
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
+                IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -784,7 +785,7 @@ namespace IceRpc.Test.Exceptions
                 output.Flush();
 
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
+                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
                     try
                     {
                         thrower2.ThrowAasAAsync(1).Wait();
@@ -817,7 +818,7 @@ namespace IceRpc.Test.Exceptions
             {
                 try
                 {
-                    var thrower4 = IWrongOperationPrx.Factory.Clone(thrower);
+                    var thrower4 = IWrongOperationPrx.Factory.Copy(thrower);
                     thrower4.NoSuchOperationAsync().Wait();
                     TestHelper.Assert(false);
                 }
@@ -922,7 +923,7 @@ namespace IceRpc.Test.Exceptions
 
             {
                 var path = "does%20not%20exist";
-                IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, path: path);
+                IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -954,7 +955,7 @@ namespace IceRpc.Test.Exceptions
                 output.Flush();
 
                 {
-                    IThrowerPrx thrower2 = IThrowerPrx.Factory.Clone(thrower, facet: "no such facet");
+                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
                     try
                     {
                         thrower2.ThrowAasAAsync(1).Wait();
@@ -985,7 +986,7 @@ namespace IceRpc.Test.Exceptions
             output.Flush();
 
             {
-                var thrower4 = IWrongOperationPrx.Factory.Clone(thrower);
+                var thrower4 = IWrongOperationPrx.Factory.Copy(thrower);
                 try
                 {
                     thrower4.NoSuchOperationAsync().Wait();

@@ -12,8 +12,14 @@ namespace IceRpc.Test.Echo
         public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Connection != null);
-            IServicePrx proxy =
-                IServicePrx.Factory.Create(current.Connection, current.Path, current.IncomingRequestFrame.GetFacet());
+            IServicePrx proxy = IServicePrx.Factory.Create(current.Connection, current.Path);
+
+            string facet = current.IncomingRequestFrame.GetFacet();
+            if (facet.Length > 0)
+            {
+                proxy = proxy.WithFacet(facet, IServicePrx.Factory);
+            }
+
             return proxy.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
         }
     }

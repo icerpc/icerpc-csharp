@@ -1326,7 +1326,7 @@ namespace IceRpc.Test.Operations
             p.OpOnewayMetadataAsync().Wait();
 
             {
-                var derived = IMyDerivedClassPrx.Factory.Clone(p);
+                var derived = IMyDerivedClassPrx.Factory.Copy(p);
                 TestHelper.Assert(derived != null);
                 derived.OpDerivedAsync().Wait();
             }

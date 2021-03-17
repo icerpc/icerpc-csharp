@@ -31,72 +31,17 @@ namespace IceRpc
             IProgress<bool>? progress = null,
             CancellationToken cancel = default) where T : class, IServicePrx =>
             await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
-                (proxy is T t ? t : factory.Clone(proxy)) : null;
+                (proxy is T t ? t : factory.Copy(proxy)) : null;
 
-        /// <summary>Creates a clone of a proxy with a new proxy type specified using this proxy factory. The clone is
-        /// identical to the source proxy except for options set through parameters. This method returns the source
-        /// proxy instead of a new proxy in the event none of the options specified through the parameters change
-        /// anything and the source proxy is a T.</summary>
+        /// <summary>Creates a copy of a proxy with a new proxy type specified using this proxy factory. The copy is
+        /// identical to the source proxy except for the type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
-        /// <param name="proxy">The source proxy.</param>
-        /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
-        /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
-        /// <param name="context">The context of the clone (optional).</param>
-        /// <param name="encoding">The encoding of the clone (optional).</param>
-        /// <param name="endpoints">The endpoints of the clone (optional).</param>
-        /// <param name="facet">The facet of the clone (optional).</param>
-        /// <param name="fixedConnection">The connection of the clone (optional). When specified, the clone is a fixed
-        /// proxy. You can clone a non-fixed proxy into a fixed proxy but not vice-versa.</param>
-        /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
-        /// executed with each invocation</param>
-        /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
-        /// <param name="label">The label of the clone (optional).</param>
-        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
-        /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
-        /// <param name="path">The path of the clone (optional).</param>
-        /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
-        /// connection.</param>
-        /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
-        /// connections (optional).</param>
-        /// <returns>A new proxy manufactured by the proxy factory (see factory parameter).</returns>
-        public static T Clone<T>(
-            this IProxyFactory<T> factory,
-            IServicePrx proxy,
-            bool? cacheConnection = null,
-            bool clearLabel = false,
-            IReadOnlyDictionary<string, string>? context = null,
-            Encoding? encoding = null,
-            IEnumerable<Endpoint>? endpoints = null,
-            string? facet = null,
-            Connection? fixedConnection = null,
-            IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
-            TimeSpan? invocationTimeout = null,
-            object? label = null,
-            ILocationResolver? locationResolver = null,
-            bool? oneway = null,
-            string? path = null,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null) where T : class, IServicePrx
-        {
-            T clone = factory.Create(proxy.Impl.CreateCloneOptions(cacheConnection,
-                                                                   clearLabel,
-                                                                   context,
-                                                                   encoding,
-                                                                   endpoints,
-                                                                   facet,
-                                                                   fixedConnection,
-                                                                   invocationInterceptors,
-                                                                   invocationTimeout,
-                                                                   label,
-                                                                   locationResolver,
-                                                                   oneway,
-                                                                   path,
-                                                                   preferExistingConnection,
-                                                                   preferNonSecure));
-            return proxy is T t && t.Equals(clone) ? t : clone;
-        }
+        /// <param name="proxy">The source proxy being copied.</param>
+        /// <returns>A proxy with the desired type.</returns>
+        public static T Copy<T>(this IProxyFactory<T> factory, IServicePrx proxy) where T : class, IServicePrx =>
+            factory.Create(proxy.Impl.CloneOptions());
 
         /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -104,21 +49,14 @@ namespace IceRpc
         /// proxy type.</param>
         /// <param name="server">The server hosting this service.</param>
         /// <param name="path">The path of the service.</param>
-        /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A new service proxy.</returns>
-        public static T Create<T>(this IProxyFactory<T> factory, Server server, string path, string facet = "")
+        public static T Create<T>(this IProxyFactory<T> factory, Server server, string path)
             where T : class, IServicePrx
         {
             Protocol protocol =
                 server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
 
-            if (facet.Length > 0 && protocol != Protocol.Ice1)
-            {
-                throw new ArgumentException("facet must be empty when the protocol is not ice1", nameof(facet));
-            }
-
             IReadOnlyList<Endpoint> endpoints = server.PublishedEndpoints;
-
             if (protocol == Protocol.Ice1 && endpoints.Count == 0)
             {
                 // Well-known proxy.
@@ -126,7 +64,7 @@ namespace IceRpc
                 var locEndpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
                                                                       host: identity.Name,
                                                                       port: 0,
-                                                                      options: new string[] { identity.Category}),
+                                                                      options: new string[] { identity.Category }),
                                                      server.Communicator,
                                                      protocol);
 
@@ -134,7 +72,6 @@ namespace IceRpc
                 {
                     Communicator = server.Communicator,
                     Endpoints = ImmutableList.Create(locEndpoint),
-                    Facet = facet,
                     Identity = identity,
                     IsOneway = server.IsDatagramOnly,
                     Protocol = Protocol.Ice1
@@ -147,9 +84,8 @@ namespace IceRpc
                 {
                     Communicator = server.Communicator,
                     Endpoints = endpoints,
-                    Facet = facet,
                     IsOneway = server.IsDatagramOnly,
-                    Path = UriParser.NormalizePath(path),
+                    Path = path,
                     Protocol = protocol
                 };
                 return factory.Create(options);
@@ -162,13 +98,9 @@ namespace IceRpc
         /// proxy type.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="path">The path of the service.</param>
-        /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A fixed proxy.</returns>
-        public static T Create<T>(
-            this IProxyFactory<T> factory,
-            Connection connection,
-            string path,
-            string facet = "") where T : class, IServicePrx
+        public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
+            where T : class, IServicePrx
         {
             Protocol protocol = connection.Protocol;
 
@@ -178,25 +110,19 @@ namespace IceRpc
                 {
                     Communicator = connection.Communicator,
                     Connection = connection,
-                    Facet = facet,
                     IsOneway = connection.Endpoint.IsDatagram,
-                    Path = UriParser.NormalizePath(path),
+                    Path = path,
                     Protocol = Protocol.Ice1
                 };
                 return factory.Create(options);
             }
             else
             {
-                if (facet.Length > 0)
-                {
-                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies", nameof(facet));
-                }
-
                 var options = new ServicePrxOptions()
                 {
                     Communicator = connection.Communicator,
                     Connection = connection,
-                    Path = UriParser.NormalizePath(path),
+                    Path = path,
                     Protocol = protocol
                 };
                 return factory.Create(options);
@@ -536,9 +462,10 @@ namespace IceRpc
                                 $"received a relative proxy with invalid protocol {protocol.GetName()}");
                         }
 
-                        return factory.Clone(source,
-                                             encoding: encoding,
-                                             path: path);
+                        var options = source.CloneOptions();
+                        options.Encoding = encoding;
+                        options.Path = path;
+                        return factory.Create(options);
                     }
                 }
             }

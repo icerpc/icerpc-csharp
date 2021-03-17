@@ -556,15 +556,14 @@ namespace IceRpc
                 if (options.Path.Length > 0)
                 {
                     Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
-                    Identity = Identity.FromPath(options.Path);
+                    Path = UriParser.NormalizePath(options.Path);
+                    Identity = Identity.FromPath(Path);
 
                     if (Identity.Name.Length == 0)
                     {
                         throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
                                                     nameof(options.Path));
                     }
-
-                    Path = options.Path;
                 }
                 else
                 {
@@ -580,7 +579,7 @@ namespace IceRpc
             }
             else
             {
-                Path = options.Path;
+                Path = UriParser.NormalizePath(options.Path);
             }
         }
 
@@ -669,6 +668,29 @@ namespace IceRpc
 
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
         internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
+
+        /// <summary>Returns a fresh copy of the underlying options.</summary>
+        internal ServicePrxOptions CloneOptions() =>
+            new()
+            {
+                CacheConnection = CacheConnection,
+                Communicator = Communicator,
+                Connection = IsFixed ? _connection : null,
+                Context = Context,
+                Encoding = Encoding,
+                Endpoints = Endpoints,
+                Facet = Facet,
+                Identity = Identity,
+                InvocationInterceptors = InvocationInterceptors,
+                InvocationTimeoutOverride = _invocationTimeoutOverride,
+                IsOneway = IsOneway,
+                Label = Label,
+                LocationResolver = LocationResolver,
+                Path = Protocol == Protocol.Ice1 ? "" : Path, // for ice1, the identity prevails
+                PreferExistingConnectionOverride = _preferExistingConnectionOverride,
+                PreferNonSecureOverride = _preferNonSecureOverride,
+                Protocol = Protocol
+            };
 
         /// <summary>Computes the options used by the implementation of Proxy.Clone.</summary>
         internal ServicePrxOptions CreateCloneOptions(
