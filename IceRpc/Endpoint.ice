@@ -8,12 +8,14 @@
 
 module IceRpc
 {
-    /// Identifies a transport protocol that Ice can use to send requests and receive responses. The enumerators of
-    /// Transport correspond to the transports that the Ice runtime knows and implements in some programming languages
-    /// and for some version of the Ice protocol. Other transports, with short values not represented by these
-    /// enumerators, can be implemented and registered using transport plug-ins.
+    /// Identifies a transport protocol that IceRPC can use to send requests and receive responses. The enumerators of
+    /// Transport correspond to the transports that the IceRPC runtime knows and implements in some programming
+    /// languages and for some version of the Ice protocol.
     unchecked enum Transport : short
     {
+        /// Loc transport, resolved by a location resolver.
+        Loc = -1,
+
         /// Colocated transport.
         Colocated = 0,
 
@@ -42,10 +44,10 @@ module IceRpc
         iAP = 8,
 
         /// Secure Apple iAP transport.
-        iAPS = 9
+        iAPS = 9,
     }
 
-    /// The "on-the-wire" representation of an endpoint for the ice2 protocol.
+    /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
     struct EndpointData
     {
