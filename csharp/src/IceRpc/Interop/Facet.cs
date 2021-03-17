@@ -10,7 +10,15 @@ namespace IceRpc.Interop
         /// <param name="proxy">The proxy.</param>
         /// <returns>The facet.</returns>
         public static string GetFacet(this IServicePrx proxy) => proxy.Impl.Facet;
+
+        /// <summary>Returns the facet carried by this incoming request frame.</summary>
+        /// <param name="request">The incoming request frame.</param>
+        /// <returns>The facet.</returns>
         public static string GetFacet(this IncomingRequestFrame request) => request.Facet;
+
+        /// <summary>Returns the facet carried by this outgoing request frame.</summary>
+        /// <param name="request">The outgoing request frame.</param>
+        /// <returns>The facet.</returns>
         public static string GetFacet(this OutgoingRequestFrame request) => request.Facet;
 
         /// <summary>Returns the facet of this exception.</summary>

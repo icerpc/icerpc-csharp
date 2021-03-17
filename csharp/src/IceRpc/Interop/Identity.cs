@@ -180,7 +180,7 @@ namespace IceRpc.Interop
         }
     }
 
-    /// <summary>Extension methods that give access to facets.</summary>
+    /// <summary>Extension methods that give access to identity.</summary>
     public static class IdentityExtensions
     {
         /// <summary>Returns the identity of this service proxy.</summary>
@@ -188,7 +188,14 @@ namespace IceRpc.Interop
         /// <returns>The identity.</returns>
         public static Identity GetIdentity(this IServicePrx proxy) => proxy.Impl.Identity;
 
+        /// <summary>Returns the identity carried by this incoming request frame.</summary>
+        /// <param name="request">The incoming request frame.</param>
+        /// <returns>The identity.</returns>
         public static Identity GetIdentity(this IncomingRequestFrame request) => request.Identity;
+
+        /// <summary>Returns the identity carried by this outgoing request frame.</summary>
+        /// <param name="request">The outgoing request frame.</param>
+        /// <returns>The identity.</returns>
         public static Identity GetIdentity(this OutgoingRequestFrame request) => request.Identity;
     }
 
