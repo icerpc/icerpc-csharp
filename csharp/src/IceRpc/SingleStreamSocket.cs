@@ -75,8 +75,8 @@ namespace IceRpc
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
 
-        /// <summary>Creates an scope that attachs info about the socket being used, the scope last until the
-        /// returned object is dispose of.</summary>
+        /// <summary>Creates a scope that attaches info about the socket being used, the scope last until the
+        /// returned object is disposed.</summary>
         /// <param name="endpoint">The endpoint that was used to create the socket.</param>
         /// <returns>A disposable that can be used to cleanup the scope.</returns>
         internal abstract IDisposable? StartScope(Endpoint endpoint);

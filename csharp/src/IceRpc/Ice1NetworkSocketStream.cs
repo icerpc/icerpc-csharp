@@ -104,13 +104,14 @@ namespace IceRpc
             {
                 if (frame is OutgoingRequestFrame request)
                 {
-                    using var scope = logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var scope = StartScope();
                     logger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    logger.LogSendingResponse((OutgoingResponseFrame)frame, Id);
+                    logger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
         }

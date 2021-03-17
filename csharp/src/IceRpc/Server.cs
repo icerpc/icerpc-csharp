@@ -33,6 +33,16 @@ namespace IceRpc
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
+        /// <summary>Return the maximum number of bidirectional streams that the peer can open for each
+        /// connection.</summary>
+        /// <value>The maximum number of bidirectional streams</value>
+        public int BidirectionalStreamMaxCount { get; }
+
+        /// <summary>Return the maximum number of unidirectional streams that the peer can open for each
+        /// connection.</summary>
+        /// <value>The maximum number of unidirectional streams</value>
+        public int UnidirectionalStreamMaxCount { get; }
+
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
         public string Name { get; }
@@ -43,11 +53,6 @@ namespace IceRpc
 
         /// <summary>Returns the endpoints listed in a direct proxy created by this server.</summary>
         public IReadOnlyList<Endpoint> PublishedEndpoints { get; private set; } = ImmutableList<Endpoint>.Empty;
-
-        /// <summary>Indicates whether or not this server serializes the dispatching of requests received
-        /// over the same connection.</summary>
-        /// <value>The serialize dispatch value.</value>
-        public bool SerializeDispatch { get; }
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
@@ -111,7 +116,6 @@ namespace IceRpc
             AcceptNonSecure = options.AcceptNonSecure;
             ColocationScope = options.ColocationScope;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
-            SerializeDispatch = options.SerializeDispatch;
             TaskScheduler = options.TaskScheduler;
 
             if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
@@ -130,6 +134,20 @@ namespace IceRpc
                     ServerCertificateContext = tlsOptions.ServerCertificateContext,
                     ServerCertificateSelectionCallback = tlsOptions.ServerCertificateSelectionCallback
                 };
+            }
+
+            BidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
+            if (BidirectionalStreamMaxCount < 1)
+            {
+                throw new ArgumentException(
+                    $"options.BidirectionalStreamMaxCount can't be less than 1", nameof(options));
+            }
+
+            UnidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
+            if (UnidirectionalStreamMaxCount < 1)
+            {
+                throw new ArgumentException(
+                    $"options.UnidirectionalStreamMaxCount can't be less than 1", nameof(options));
             }
 
             int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;

@@ -19,6 +19,10 @@ namespace IceRpc
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+
+        public int BidirectionalStreamMaxCount { get; set; } = 100;
+
         public ColocationScope ColocationScope { get; set; }
 
         // TODO: should it be Endpoint?
@@ -35,10 +39,7 @@ namespace IceRpc
         // TODO: fix default
         public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
 
-        public bool SerializeDispatch { get; set; }
-
         public TaskScheduler? TaskScheduler { get; set; }
-
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; set; }
+        public int UnidirectionalStreamMaxCount { get; set; } = 100;
     }
 }

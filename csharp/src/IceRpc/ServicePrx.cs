@@ -1055,7 +1055,7 @@ namespace IceRpc
 
                     cancel.ThrowIfCancellationRequested();
 
-                    using var connectionScope = connection.StartScope();
+                    using var socketScope = connection.Socket.StartScope();
                     using var requestScope = protocolLogger.StartRequestScope(request);
 
                     // Create the outgoing stream.
@@ -1081,17 +1081,18 @@ namespace IceRpc
 
                     if (oneway)
                     {
-                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol,
-                                                                            request.PayloadEncoding);
+                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
                     }
 
-                    using var streamScope = protocolLogger.StartStreamScope(request.Protocol, stream.Id);
+                    // TODO: create the scope when the stream is started rather than after the request creation.
+                    using var streamScope = stream.StartScope();
+
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
 
                     if (protocolLogger.IsEnabled(LogLevel.Information))
                     {
-                        protocolLogger.LogReceivedResponse(stream.Id, response);
+                        protocolLogger.LogReceivedResponse(response);
                     }
 
                     // If success, just return the response!
@@ -1178,21 +1179,21 @@ namespace IceRpc
                     tryAgain = true;
                     if (protocolLogger.IsEnabled(LogLevel.Debug))
                     {
-                        using var connectionScope = connection?.StartScope();
+                        using var socketScope = connection?.Socket.StartScope();
                         using var requestScope = protocolLogger.StartRequestScope(request);
                         if (connection != null)
                         {
                             protocolLogger.LogRetryRequestInvocation(retryPolicy,
-                                                                        attempt,
-                                                                        Communicator.InvocationMaxAttempts,
-                                                                        exception);
+                                                                     attempt,
+                                                                     Communicator.InvocationMaxAttempts,
+                                                                     exception);
                         }
                         else if (triedAllEndpoints)
                         {
                             protocolLogger.LogRetryConnectionEstablishment(retryPolicy,
-                                                                            attempt,
-                                                                            Communicator.InvocationMaxAttempts,
-                                                                            exception);
+                                                                           attempt,
+                                                                           Communicator.InvocationMaxAttempts,
+                                                                           exception);
                         }
                         else
                         {

@@ -238,8 +238,12 @@ namespace IceRpc
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
             (_socket ?? Underlying).CloseAsync(exception, cancel);
 
-        public override SocketStream CreateStream(bool bidirectional, bool control) =>
-            new SlicStream(this, bidirectional, control);
+        public override SocketStream CreateStream(bool bidirectional) =>
+            // The first unidirectional stream is always the control stream
+            new SlicStream(
+                this,
+                bidirectional,
+                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
 
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
@@ -250,6 +254,7 @@ namespace IceRpc
             {
                 (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
+
                 if (type != SlicDefinitions.FrameType.Initialize)
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
@@ -347,9 +352,13 @@ namespace IceRpc
             }
         }
 
-        public override Task PingAsync(CancellationToken cancel) =>
-            // TODO: shall we set a timer for expecting the Pong frame?
-            PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
+        public override Task PingAsync(CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
+            // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
+            // the pong from is received? which timeout to use for expecting the pong frame?
+            return PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
+        }
 
         internal SlicSocket(
             SingleStreamSocket socket,
@@ -366,11 +375,17 @@ namespace IceRpc
             PeerPacketMaxSize = endpoint.Communicator.SlicPacketMaxSize;
             PeerStreamBufferMaxSize = endpoint.Communicator.SlicStreamBufferMaxSize;
 
-            // If serialization is enabled on the server, we configure the maximum stream counts to 1 to ensure
-            // the peer won't open more than one stream.
-            bool serializeDispatch = server?.SerializeDispatch ?? false;
-            _maxBidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxBidirectionalStreams;
-            _maxUnidirectionalStreams = serializeDispatch ? 1 : endpoint.Communicator.MaxUnidirectionalStreams;
+            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
+            if (server != null)
+            {
+                _maxBidirectionalStreams = server.BidirectionalStreamMaxCount;
+                _maxUnidirectionalStreams = server.UnidirectionalStreamMaxCount;
+            }
+            else
+            {
+                _maxBidirectionalStreams = endpoint.Communicator.BidirectionalStreamMaxCount;
+                _maxUnidirectionalStreams = endpoint.Communicator.UnidirectionalStreamMaxCount;
+            }
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)
@@ -392,8 +407,9 @@ namespace IceRpc
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
+            var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            _bidirectionalStreamSemaphore?.Complete(ex);
+            _unidirectionalStreamSemaphore?.Complete(ex);
 
             return streamIds;
         }
@@ -523,18 +539,14 @@ namespace IceRpc
                 {
                     // The stream isn't started so we're responsible for releasing it. No stream reset will be
                     // sent to the peer for streams which are not started.
-                    stream.Release();
+                    stream.ReleaseStreamCount();
                     throw;
                 }
             }
 
-            // Once we acquired the send semaphore, the sending is no longer cancellable. We can't interrupt a
-            // send on the underlying socket and we want to make sure that once a stream is started, the peer
-            // will always receive at least one stream frame.
-
-            try
+            if (!stream.IsStarted)
             {
-                if (!stream.IsStarted)
+                try
                 {
                     // Allocate a new ID according to the Quic numbering scheme.
                     if (stream.IsBidirectional)
@@ -548,59 +560,73 @@ namespace IceRpc
                         _nextUnidirectionalId += 4;
                     }
                 }
-
-                // The incoming bidirectional stream is considered completed once no more data will be written on
-                // the stream. It's important to release the stream here before the peer receives the last stream
-                // frame to prevent a race where the peer could start a new stream before the stream count is
-                // decreased by release. If the stream is already released, this indicates that the stream got
-                // reset. In this case, we return since an empty stream last frame has been sent already.
-                if (stream.IsIncoming && fin && !stream.Release())
+                catch
                 {
-                    return;
+                    _sendSemaphore.Release();
+                    throw;
                 }
+            }
 
-                // Compute how much space the size and stream ID require to figure out the start of the Slic header.
-                int streamIdLength = OutputStream.GetSizeLength20(stream.Id);
-                packetSize += streamIdLength;
-                int sizeLength = OutputStream.GetSizeLength20(packetSize);
+            // The incoming bidirectional stream is considered completed once no more data will be written on
+            // the stream. It's important to release the stream here before the peer receives the last stream
+            // frame to prevent a race where the peer could start a new stream before the stream count is
+            // decreased by release. If the stream is already released, this indicates that the stream got
+            // reset. In this case, we return since an empty stream last frame has been sent already.
+            if (stream.IsIncoming && fin && !stream.ReleaseStreamCount())
+            {
+                return;
+            }
 
-                SlicDefinitions.FrameType frameType =
-                    fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
+            // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't
+            // interrupt a send on the underlying socket and we want to make sure that once a stream is started,
+            // the peer will always receive at least one stream frame.
+            await PerformSendPacket().WaitAsync(cancel).ConfigureAwait(false);
 
-                // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong). Since
-                // we might not need the full space reserved for the header, we modify the send buffer to ensure
-                // the first element points at the start of the Slic header. We'll restore the send buffer once
-                // the send is complete (it's important for the tracing code which might rely on the encoded
-                // data).
-                ArraySegment<byte> previous = buffer[0];
-                ArraySegment<byte> headerData =
-                    buffer[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1);
-                headerData[0] = (byte)frameType;
-                headerData.AsSpan(1, sizeLength).WriteFixedLengthSize20(packetSize);
-                headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
-                buffer[0] = headerData;
-
-                if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
-                {
-                    Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
-                }
-
+            async ValueTask PerformSendPacket()
+            {
                 try
                 {
-                    await SendPacketAsync(buffer).ConfigureAwait(false);
+                    // Compute how much space the size and stream ID require to figure out the start of the Slic header.
+                    int streamIdLength = OutputStream.GetSizeLength20(stream.Id);
+                    packetSize += streamIdLength;
+                    int sizeLength = OutputStream.GetSizeLength20(packetSize);
+
+                    SlicDefinitions.FrameType frameType =
+                        fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
+
+                    // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong). Since
+                    // we might not need the full space reserved for the header, we modify the send buffer to ensure
+                    // the first element points at the start of the Slic header. We'll restore the send buffer once
+                    // the send is complete (it's important for the tracing code which might rely on the encoded
+                    // data).
+                    ArraySegment<byte> previous = buffer[0];
+                    ArraySegment<byte> headerData =
+                        buffer[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1);
+                    headerData[0] = (byte)frameType;
+                    headerData.AsSpan(1, sizeLength).WriteFixedLengthSize20(packetSize);
+                    headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
+                    buffer[0] = headerData;
+
+                    if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                    {
+                        Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                    }
+
+                    try
+                    {
+                        await SendPacketAsync(buffer).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        buffer[0] = previous; // Restore the original value of the send buffer.
+                    }
                 }
                 finally
                 {
-                    buffer[0] = previous; // Restore the original value of the send buffer.
+                    _sendSemaphore.Release();
                 }
             }
-            finally
-            {
-                _sendSemaphore.Release();
-            }
         }
-
-        internal override IDisposable? StartSocketScope() => (_socket ?? Underlying).StartScope(Endpoint);
 
         private void ReadParameters(InputStream istr)
         {

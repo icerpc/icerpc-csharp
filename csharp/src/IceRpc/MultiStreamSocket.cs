@@ -73,6 +73,13 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(Exception exception, CancellationToken cancel);
 
+        /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
+        /// be immediately available after the stream creation. It will be available after the first successful send
+        /// call on the stream.</summary>
+        /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
+        /// <return>The outgoing stream.</return>
+        public abstract SocketStream CreateStream(bool bidirectional);
+
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
         {
@@ -80,21 +87,13 @@ namespace IceRpc
             GC.SuppressFinalize(this);
         }
 
-        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract Task PingAsync(CancellationToken cancel);
-
         /// <summary>Initializes the transport.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask InitializeAsync(CancellationToken cancel);
 
-        /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
-        /// be immediately available after the stream creation. It will be available after the first successful send
-        /// call on the stream.</summary>
-        /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
-        /// <param name="control"><c>True</c> to create a control stream, <c>false</c> otherwise.</param>
-        /// <return>The outgoing stream.</return>
-        public abstract SocketStream CreateStream(bool bidirectional, bool control);
+        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract Task PingAsync(CancellationToken cancel);
 
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
@@ -234,7 +233,9 @@ namespace IceRpc
             }
         }
 
-        internal virtual (long, long) AbortStreams(Exception exception, Func<SocketStream, bool>? predicate = null)
+        internal virtual (long Bidirectional, long Unidirectional) AbortStreams(
+            Exception exception,
+            Func<SocketStream, bool>? predicate = null)
         {
             lock (_mutex)
             {
@@ -287,25 +288,10 @@ namespace IceRpc
             }
         }
 
-        internal void CheckStreamsEmpty()
-        {
-            if (IncomingStreamCount == 0 && OutgoingStreamCount == 0)
-            {
-                _streamsEmptySource?.TrySetResult();
-            }
-        }
-
-        internal void Initialized()
-        {
-            lock (_mutex)
-            {
-                LastActivity = Time.Elapsed;
-            }
-        }
-
-        internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
+        internal virtual async ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
             SocketStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
+            Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
@@ -327,14 +313,15 @@ namespace IceRpc
             }
         }
 
-        internal virtual async ValueTask<SocketStream> SendInitializeFrameAsync(CancellationToken cancel)
+        internal virtual async ValueTask<SocketStream> SendInitializeFrameAsync(CancellationToken cancel = default)
         {
-            SocketStream stream = CreateStream(bidirectional: false, control: true);
+            SocketStream stream = CreateStream(bidirectional: false);
+            Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
         }
 
-        internal abstract IDisposable? StartSocketScope();
+        internal abstract IDisposable? StartScope();
 
         internal virtual async ValueTask WaitForEmptyStreamsAsync()
         {
@@ -344,6 +331,14 @@ namespace IceRpc
                 _streamsEmptySource ??= new TaskCompletionSource();
                 CheckStreamsEmpty();
                 await _streamsEmptySource.Task.ConfigureAwait(false);
+            }
+        }
+
+        private void CheckStreamsEmpty()
+        {
+            if (IncomingStreamCount == 0 && OutgoingStreamCount == 0)
+            {
+                _streamsEmptySource?.TrySetResult();
             }
         }
     }

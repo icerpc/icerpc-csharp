@@ -34,7 +34,7 @@ namespace IceRpc
         private static readonly Action<ILogger, Exception> _tlsCertificateValidationFailed = LoggerMessage.Define(
             LogLevel.Error,
             new EventId(TlsCertificateValidationFailed, nameof(TlsCertificateValidationFailed)),
-            "Tls certificate validation failed {Status}");
+            "Tls certificate validation failed");
 
         private static readonly Action<ILogger, string, Dictionary<string, string>, Exception> _tlsConnectionCreated =
             LoggerMessage.Define<string, Dictionary<string, string>>(

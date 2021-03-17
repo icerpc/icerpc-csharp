@@ -23,7 +23,7 @@ namespace IceRpc
 
         // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
         // and the first segment has always at least 2 bytes.
-        private static readonly OutputStream.Position _encapsulationStart = new OutputStream.Position(0, 1);
+        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
 
         /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation that returns void.</summary>
         /// <param name="current">The Current object for the corresponding incoming request.</param>
