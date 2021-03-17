@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Security;
 using System.Threading;
@@ -38,9 +39,11 @@ namespace IceRpc
 
         protected MultiStreamOverSingleStreamSocket(
             Endpoint endpoint,
-            Server? server,
+            ILogger logger,
+            int incomingFrameMaxSize,
+            bool isIncoming,
             SingleStreamSocket socket)
-            : base(endpoint, server) => Underlying = socket;
+            : base(endpoint, logger, incomingFrameMaxSize, isIncoming) => Underlying = socket;
 
         internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }

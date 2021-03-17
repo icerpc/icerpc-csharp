@@ -151,11 +151,13 @@ namespace IceRpc
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
+            ILogger logger,
+            int incomingFrameMaxSize,
+            bool isIncoming,
             long id,
             ChannelWriter<(long, object?, bool)> writer,
-            ChannelReader<(long, object?, bool)> reader,
-            bool isIncoming)
-            : base(endpoint, isIncoming ? endpoint.Server : null)
+            ChannelReader<(long, object?, bool)> reader)
+            : base(endpoint, logger, incomingFrameMaxSize, isIncoming)
         {
             _id = id;
             _writer = writer;
@@ -284,7 +286,7 @@ namespace IceRpc
         internal override IDisposable? StartScope()
         {
             // If any of the loggers is enabled we create the scope
-            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
+            if (Logger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
                 Endpoint.Communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||

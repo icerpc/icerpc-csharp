@@ -28,8 +28,8 @@ namespace IceRpc
         private TimeSpan _idleTimeout;
         private long _lastBidirectionalId;
         private long _lastUnidirectionalId;
-        private readonly int _maxBidirectionalStreams;
-        private readonly int _maxUnidirectionalStreams;
+        private readonly int _bidirectionalMaxStreams;
+        private readonly int _unidirectionalMaxStreams;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
@@ -134,19 +134,19 @@ namespace IceRpc
                             }
                             else if (isBidirectional)
                             {
-                                if (_bidirectionalStreamCount == _maxBidirectionalStreams)
+                                if (_bidirectionalStreamCount == _bidirectionalMaxStreams)
                                 {
                                     throw new InvalidDataException(
-                                        $"maximum bidirectional stream count {_maxBidirectionalStreams} reached");
+                                        $"maximum bidirectional stream count {_bidirectionalMaxStreams} reached");
                                 }
                                 Interlocked.Increment(ref _bidirectionalStreamCount);
                             }
                             else
                             {
-                                if (_unidirectionalStreamCount == _maxUnidirectionalStreams)
+                                if (_unidirectionalStreamCount == _unidirectionalMaxStreams)
                                 {
                                     throw new InvalidDataException(
-                                        $"maximum unidirectional stream count {_maxUnidirectionalStreams} reached");
+                                        $"maximum unidirectional stream count {_unidirectionalMaxStreams} reached");
                                 }
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
@@ -361,10 +361,14 @@ namespace IceRpc
         }
 
         internal SlicSocket(
-            SingleStreamSocket socket,
             Endpoint endpoint,
-            Server? server)
-            : base(endpoint, server, socket)
+            ILogger logger,
+            int incomingFrameMaxSize,
+            bool isIncoming,
+            SingleStreamSocket socket,
+            int bidirectionalStreamMaxCount,
+            int unidirectionalStreamMaxCount)
+            : base(endpoint, logger, incomingFrameMaxSize, isIncoming, socket)
         {
             _idleTimeout = endpoint.Communicator.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
@@ -376,16 +380,8 @@ namespace IceRpc
             PeerStreamBufferMaxSize = endpoint.Communicator.SlicStreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            if (server != null)
-            {
-                _maxBidirectionalStreams = server.BidirectionalStreamMaxCount;
-                _maxUnidirectionalStreams = server.UnidirectionalStreamMaxCount;
-            }
-            else
-            {
-                _maxBidirectionalStreams = endpoint.Communicator.BidirectionalStreamMaxCount;
-                _maxUnidirectionalStreams = endpoint.Communicator.UnidirectionalStreamMaxCount;
-            }
+            _bidirectionalMaxStreams = bidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = unidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)
@@ -436,9 +432,9 @@ namespace IceRpc
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(type, frameSize, streamId);
+                Logger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -607,9 +603,9 @@ namespace IceRpc
                     headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                     buffer[0] = headerData;
 
-                    if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                    if (Logger.IsEnabled(LogLevel.Debug))
                     {
-                        Endpoint.Communicator.TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                     }
 
                     try
@@ -740,9 +736,9 @@ namespace IceRpc
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Endpoint.Communicator.TransportLogger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length
@@ -781,10 +777,10 @@ namespace IceRpc
 
             ostr.WriteSize(writeIdleTimeout ? 5 : 4);
             ostr.WriteBinaryContextEntry((int)ParameterKey.MaxBidirectionalStreams,
-                                         (ulong)_maxBidirectionalStreams,
+                                         (ulong)_bidirectionalMaxStreams,
                                          OutputStream.IceWriterFromVarULong);
             ostr.WriteBinaryContextEntry((int)ParameterKey.MaxUnidirectionalStreams,
-                                         (ulong)_maxUnidirectionalStreams,
+                                         (ulong)_unidirectionalMaxStreams,
                                          OutputStream.IceWriterFromVarULong);
             if (writeIdleTimeout)
             {

@@ -25,7 +25,7 @@ namespace IceRpc
         private const int MaxPacketSize = 65535 - UdpOverhead;
         private const int UdpOverhead = 20 + 8;
 
-        private EndPoint? _addr;
+        private readonly EndPoint? _addr;
         private readonly bool _incoming;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
@@ -35,14 +35,8 @@ namespace IceRpc
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
-            {
-                endpoint.Communicator.TransportLogger.LogStartReceivingDatagrams(
-                    endpoint.Transport,
-                    Network.LocalAddrToString(Socket),
-                    Network.RemoteAddrToString(Socket));
-            }
-            return new(this);
+            Debug.Assert(false);
+            return new((SingleStreamSocket)null!);
         }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;

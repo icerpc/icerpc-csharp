@@ -27,8 +27,22 @@ namespace IceRpc
                 var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
-                    Protocol.Ice1 => new Ice1NetworkSocket(socket, Endpoint, _server),
-                    _ => new SlicSocket(socket, Endpoint, _server)
+                    Protocol.Ice1 => new Ice1NetworkSocket(
+                        Endpoint,
+                        _server.Communicator.TransportLogger,
+                        _server.IncomingFrameMaxSize,
+                        isIncoming: true,
+                        socket,
+                        _server.BidirectionalStreamMaxCount,
+                        _server.UnidirectionalStreamMaxCount),
+                    _ => new SlicSocket(
+                        Endpoint,
+                        Endpoint.Communicator.TransportLogger,
+                        _server.IncomingFrameMaxSize,
+                        isIncoming: true,
+                        socket,
+                        _server.BidirectionalStreamMaxCount,
+                        _server.UnidirectionalStreamMaxCount)
                 };
                 return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _server);
             }

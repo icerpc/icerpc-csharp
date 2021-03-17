@@ -22,10 +22,18 @@ namespace IceRpc
             (long id, ColocatedChannelWriter writer, ColocatedChannelReader reader) =
                 await _reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocatedConnection(_endpoint,
-                                           new ColocatedSocket(_endpoint, id, writer, reader, true),
-                                           label: null,
-                                           _server);
+            return new ColocatedConnection(
+                _endpoint,
+                new ColocatedSocket(
+                    _endpoint,
+                    _server.Communicator.TransportLogger,
+                    _server.IncomingFrameMaxSize,
+                    isIncoming: true,
+                    id,
+                    writer,
+                    reader),
+                label: null,
+                _server);
         }
 
         public void Dispose() => _writer.Complete();

@@ -79,11 +79,6 @@ namespace IceRpc
                     }
                 }
 
-                if (Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
-                {
-                    Communicator.TransportLogger.LogBindingSocketAttempt(Transport, Network.LocalAddrToString(addr));
-                }
-
                 socket.Bind(addr);
 
                 ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
@@ -95,7 +90,14 @@ namespace IceRpc
 
                 var endpoint = Clone(port);
                 var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, multicastAddress);
-                var multiStreamSocket = new Ice1NetworkSocket(udpSocket, endpoint, server);
+                var multiStreamSocket = new Ice1NetworkSocket(
+                    endpoint,
+                    Communicator.TransportLogger,
+                    server.IncomingFrameMaxSize,
+                    isIncoming: true,
+                    udpSocket,
+                    server.BidirectionalStreamMaxCount,
+                    server.UnidirectionalStreamMaxCount);
                 return new UdpConnection(endpoint, multiStreamSocket, label: null, server);
             }
             catch (SocketException ex)
@@ -215,7 +217,13 @@ namespace IceRpc
             }
 
             var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, endpoint);
-            return new UdpConnection(this, new Ice1NetworkSocket(udpSocket, this, server: null), label, server: null);
+            var multiStreamSocket = new Ice1NetworkSocket(
+                this,
+                Communicator.TransportLogger,
+                Communicator.IncomingFrameMaxSize,
+                isIncoming: false,
+                udpSocket);
+            return new UdpConnection(this, multiStreamSocket, label, server: null);
         }
 
         protected internal override void WriteOptions(OutputStream ostr)

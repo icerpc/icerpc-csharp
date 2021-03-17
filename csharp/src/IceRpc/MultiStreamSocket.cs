@@ -31,12 +31,13 @@ namespace IceRpc
         public bool IsIncoming { get; }
 
         internal int IncomingFrameMaxSize { get; }
-        internal int? PeerIncomingFrameMaxSize { get; set; }
         internal TimeSpan LastActivity { get; private set; }
         // The stream ID of the last received response with the Ice1 protocol. Keeping track of this stream ID is
         // necessary to avoid a race condition with the GoAway frame which could be received and processed before
         // the response is delivered to the stream.
         internal long LastResponseStreamId { get; set; }
+        internal ILogger Logger { get; }
+        internal int? PeerIncomingFrameMaxSize { get; set; }
         internal event EventHandler? Ping;
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
@@ -104,14 +105,16 @@ namespace IceRpc
 
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
-        /// <param name="server">The server from which the socket was created or null if the socket
-        /// is an outgoing socket created from the communicator.</param>
-        protected MultiStreamSocket(Endpoint endpoint, Server? server)
+        /// <param name="logger">The transport logger.</param>
+        /// <param name="incomingFrameMaxSize">The incoming frame max size.</param>
+        /// <param name="isIncoming">True if the socket is a server-side socket.</param>
+        protected MultiStreamSocket(Endpoint endpoint, ILogger logger, int incomingFrameMaxSize, bool isIncoming)
         {
             Endpoint = endpoint;
-            IsIncoming = server != null;
-            IncomingFrameMaxSize = server?.IncomingFrameMaxSize ?? Endpoint.Communicator.IncomingFrameMaxSize;
+            IsIncoming = isIncoming;
+            IncomingFrameMaxSize = incomingFrameMaxSize;
             LastActivity = Time.Elapsed;
+            Logger = logger;
         }
 
         /// <summary>Releases the resources used by the socket.</summary>
@@ -144,9 +147,9 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                Endpoint.Communicator.TransportLogger.LogReceivedData(size, Endpoint.Transport);
+                Logger.LogReceivedData(size, Endpoint.Transport);
             }
         }
 
@@ -166,9 +169,9 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Error))
+                        if (Logger.IsEnabled(LogLevel.Error))
                         {
-                            Endpoint.Communicator.TransportLogger.LogPingEventHandlerException(ex);
+                            Logger.LogPingEventHandlerException(ex);
                         }
                     }
                 });
@@ -186,9 +189,9 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0 && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
             {
-                Endpoint.Communicator.TransportLogger.LogSentData(size, Endpoint.Transport);
+                Logger.LogSentData(size, Endpoint.Transport);
             }
         }
 
@@ -226,16 +229,16 @@ namespace IceRpc
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
 
-            if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
                 // Trace the cause of unexpected connection closures
                 if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
                 {
-                    Endpoint.Communicator.TransportLogger.LogConnectionClosed(Endpoint.Transport, exception);
+                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
                 }
                 else
                 {
-                    Endpoint.Communicator.TransportLogger.LogConnectionClosed(Endpoint.Transport);
+                    Logger.LogConnectionClosed(Endpoint.Transport);
                 }
             }
         }
