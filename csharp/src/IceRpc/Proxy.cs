@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,22 +49,37 @@ namespace IceRpc
             bool? preferExistingConnection = null,
             NonSecure? preferNonSecure = null) where T : class, IServicePrx
         {
+            if (label != null && clearLabel)
+            {
+                throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}", nameof(label));
+            }
+
             ServicePrx impl = proxy.Impl;
-            ServicePrx clone = impl.Clone(impl.CreateCloneOptions(cacheConnection,
-                                                                  clearLabel,
-                                                                  context,
-                                                                  encoding,
-                                                                  endpoints,
-                                                                  facet: null,
-                                                                  fixedConnection,
-                                                                  invocationInterceptors,
-                                                                  invocationTimeout,
-                                                                  label,
-                                                                  locationResolver,
-                                                                  oneway,
-                                                                  path: null,
-                                                                  preferExistingConnection,
-                                                                  preferNonSecure));
+            var options = impl.CloneOptions();
+
+            options.CacheConnection = cacheConnection ?? options.CacheConnection;
+
+            // TODO: there is currently no clean way to preserve the cached connection for a non-fixed proxy.
+            options.Connection = fixedConnection ?? (proxy.IsFixed ? proxy.GetCachedConnection() : null);
+
+            options.Context = context?.ToImmutableDictionary() ?? options.Context;
+            options.Encoding = encoding ?? options.Encoding;
+
+            bool fixedClone = fixedConnection != null || proxy.IsFixed;
+            options.Endpoints = endpoints?.ToImmutableList() ??
+                (fixedClone ? ImmutableList<Endpoint>.Empty : options.Endpoints);
+
+            options.InvocationInterceptors =
+                invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
+            options.InvocationTimeoutOverride = invocationTimeout ?? options.InvocationTimeoutOverride;
+            options.IsOneway = oneway ?? options.IsOneway;
+            options.Label = clearLabel ? null : (label ?? options.Label);
+            options.LocationResolver = locationResolver ?? options.LocationResolver;
+            options.PreferExistingConnectionOverride =
+                preferExistingConnection ?? options.PreferExistingConnectionOverride;
+            options.PreferNonSecureOverride = preferNonSecure ?? options.PreferNonSecureOverride;
+
+            ServicePrx clone = impl.Clone(options);
             return clone == impl ? proxy : (clone as T)!;
         }
 

@@ -145,19 +145,6 @@ namespace IceRpc.Tests.Api
 
             // Cannot change the endpoints of a fixed proxy
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(endpoints: prxIce2.Endpoints));
-
-            // Cannot change the cache connection setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(cacheConnection: true));
-
-            // Cannot change the label of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(label: new object()));
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(clearLabel: true));
-
-            // Cannot change the prefer existing connection setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferExistingConnection: true));
-
-            // Cannot change the prefer non secure setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferNonSecure: NonSecure.Always));
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
