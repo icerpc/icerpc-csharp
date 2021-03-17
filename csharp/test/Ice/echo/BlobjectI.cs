@@ -2,6 +2,7 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using IceRpc.Interop;
 using IceRpc.Test;
 
 namespace IceRpc.Test.Echo
@@ -11,7 +12,8 @@ namespace IceRpc.Test.Echo
         public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
         {
             TestHelper.Assert(current.Connection != null);
-            IServicePrx proxy = IServicePrx.Factory.Create(current.Connection, current.Path, current.Facet);
+            IServicePrx proxy =
+                IServicePrx.Factory.Create(current.Connection, current.Path, current.IncomingRequestFrame.GetFacet());
             return proxy.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
         }
     }

@@ -251,7 +251,7 @@ namespace IceRpc
             _dispatchPipeline = async (current, cancel) =>
             {
                 Debug.Assert(current.Server == this);
-                IService? service = Find(current.Path, current.Facet);
+                IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
                 if (service == null)
                 {
                     throw new ServiceNotFoundException(RetryPolicy.OtherReplica);

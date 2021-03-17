@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using IceRpc.Interop;
 using IceRpc.Test;
 
 namespace IceRpc.Test.Exceptions
@@ -409,7 +410,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ServiceNotFoundException ex)
                     {
-                        TestHelper.Assert(ex.Facet == "no such facet");
+                        TestHelper.Assert(ex.GetFacet() == "no such facet");
                         TestHelper.Assert(ex.Message.Contains("with facet")); // verify we don't get system message
                     }
                 }
@@ -798,7 +799,7 @@ namespace IceRpc.Test.Exceptions
                         }
                         catch (ServiceNotFoundException ex)
                         {
-                            TestHelper.Assert(ex.Facet == "no such facet");
+                            TestHelper.Assert(ex.GetFacet() == "no such facet");
                         }
                         catch
                         {
@@ -968,7 +969,7 @@ namespace IceRpc.Test.Exceptions
                         }
                         catch (ServiceNotFoundException ex)
                         {
-                            TestHelper.Assert(ex.Facet == "no such facet");
+                            TestHelper.Assert(ex.GetFacet() == "no such facet");
                         }
                         catch
                         {
