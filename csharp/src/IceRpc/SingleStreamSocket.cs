@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
@@ -80,5 +82,41 @@ namespace IceRpc
         /// <param name="endpoint">The endpoint that was used to create the socket.</param>
         /// <returns>A disposable that can be used to cleanup the scope.</returns>
         internal abstract IDisposable? StartScope(Endpoint endpoint);
+
+        protected internal void SetBufferSize(Transport transport, int receiveSize, int sendSize, ILogger logger)
+        {
+            Debug.Assert(Socket != null);
+            try
+            {
+                if (receiveSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    Socket.ReceiveBufferSize = receiveSize;
+                    int adjustedSize = Socket.ReceiveBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogReceiveBufferSizeAdjusted(transport, receiveSize, adjustedSize);
+                    }
+                }
+
+                if (sendSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    Socket.SendBufferSize = sendSize;
+                    int adjustedSize = Socket.SendBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogSendBufferSizeAdjusted(transport, sendSize, adjustedSize);
+                    }
+                }
+            }
+            catch
+            {
+                Socket.CloseNoThrow();
+                throw;
+            }
+        }
     }
 }

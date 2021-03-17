@@ -275,7 +275,7 @@ namespace IceRpc
             _multicastInterface = multicastInterface;
             _incoming = false;
 
-            IPEndPoint? ipEndpoint = (addr as IPEndPoint);
+            IPEndPoint? ipEndpoint = addr as IPEndPoint;
             if (ipEndpoint != null)
             {
                 Socket = Network.CreateSocket(true, ipEndpoint.AddressFamily);
@@ -287,8 +287,11 @@ namespace IceRpc
 
             try
             {
-                Network.SetBufSize(Socket, _communicator, Transport.UDP);
-                _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+                SetBufferSize(Transport.UDP,
+                              _communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
+                              _communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
+                              _communicator.Logger);
+                _rcvSize = Socket.ReceiveBufferSize;
                 if (ipEndpoint != null && Network.IsMulticast(ipEndpoint.Address))
                 {
                     if (_multicastInterface != null)
@@ -322,8 +325,11 @@ namespace IceRpc
             Socket = Network.CreateServerSocket(endpoint, _addr.AddressFamily);
             try
             {
-                Network.SetBufSize(Socket, _communicator, Transport.UDP);
-                _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+                SetBufferSize(Transport.UDP,
+                              _communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
+                              _communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
+                              _communicator.Logger);
+                _rcvSize = Socket.ReceiveBufferSize;
                 Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer);
             }
             catch (SocketException ex)

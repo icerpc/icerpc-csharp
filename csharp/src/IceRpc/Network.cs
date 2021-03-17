@@ -224,49 +224,6 @@ namespace IceRpc
 
         internal static string RemoteAddrToString(EndPoint? endpoint) => endpoint?.ToString() ?? "<not connected>";
 
-        internal static void SetBufSize(Socket socket, Communicator communicator, Transport transport)
-        {
-            int rcvSize = communicator.GetPropertyAsByteSize($"Ice.{transport}.RcvSize") ?? 0;
-            if (rcvSize > 0)
-            {
-                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                // read the size back to get the size that was actually set.
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, rcvSize);
-                int size = (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                if (size < rcvSize)
-                {
-                    // Warn if the size that was set is less than the requested size and we have not already warned.
-                    BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if ((!warningInfo.RcvWarn || rcvSize != warningInfo.RcvSize) &&
-                        communicator.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, rcvSize, size);
-                        communicator.SetRcvBufWarnSize(Transport.TCP, rcvSize);
-                    }
-                }
-            }
-
-            int sndSize = communicator.GetPropertyAsByteSize($"Ice.{transport}.SndSize") ?? 0;
-            if (sndSize > 0)
-            {
-                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                // read the size back to get the size that was actually set.
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, sndSize);
-                int size = (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer)!;
-                if (size < sndSize) // Warn if the size that was set is less than the requested size.
-                {
-                    // Warn if the size that was set is less than the requested size and we have not already warned.
-                    BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if ((!warningInfo.SndWarn || sndSize != warningInfo.SndSize) &&
-                        communicator.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, sndSize, size);
-                        communicator.SetSndBufWarnSize(Transport.TCP, sndSize);
-                    }
-                }
-            }
-        }
-
         internal static void SetMulticastGroup(Socket s, IPAddress group, string? iface)
         {
             var indexes = new HashSet<int>();

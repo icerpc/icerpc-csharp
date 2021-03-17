@@ -219,16 +219,10 @@ namespace IceRpc
             {
                 Socket = Network.CreateSocket(false, null);
             }
-
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.TCP);
-            }
-            catch
-            {
-                Socket.CloseNoThrow();
-                throw;
-            }
+            SetBufferSize(Transport.TCP,
+                          _communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                          _communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                          _communicator.Logger);
         }
 
         internal TcpSocket(Server server, Socket fd)
@@ -236,15 +230,10 @@ namespace IceRpc
             _communicator = server.Communicator;
             _server = server;
             Socket = fd;
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.TCP);
-            }
-            catch
-            {
-                Socket.CloseNoThrow();
-                throw;
-            }
+            SetBufferSize(Transport.TCP,
+                          _communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                          _communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                          _communicator.Logger);
         }
 
         internal override IDisposable? StartScope(Endpoint endpoint)

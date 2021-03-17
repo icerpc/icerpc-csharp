@@ -18,21 +18,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    internal sealed class BufWarnSizeInfo
-    {
-        // Whether send size warning has been emitted
-        public bool SndWarn;
-
-        // The send size for which the warning was emitted
-        public int SndSize;
-
-        // Whether receive size warning has been emitted
-        public bool RcvWarn;
-
-        // The receive size for which the warning was emitted
-        public int RcvSize;
-    }
-
     /// <summary>The central object in Ice. One or more communicators can be instantiated for an Ice application.
     /// </summary>
     public sealed partial class Communicator : IAsyncDisposable
@@ -212,8 +197,6 @@ namespace IceRpc
         private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
         private int _retryBufferSize;
-
-        private readonly Dictionary<Transport, BufWarnSizeInfo> _setBufWarnSize = new();
 
         /// <summary>Constructs a new communicator.</summary>
         /// <param name="properties">The properties of the new communicator.</param>
@@ -640,28 +623,6 @@ namespace IceRpc
                 transportName,
                 out (Ice2EndpointParser, Transport) value) ? value : null;
 
-        internal BufWarnSizeInfo GetBufWarnSize(Transport transport)
-        {
-            lock (_mutex)
-            {
-                BufWarnSizeInfo info;
-                if (!_setBufWarnSize.ContainsKey(transport))
-                {
-                    info = new BufWarnSizeInfo();
-                    info.SndWarn = false;
-                    info.SndSize = -1;
-                    info.RcvWarn = false;
-                    info.RcvSize = -1;
-                    _setBufWarnSize.Add(transport, info);
-                }
-                else
-                {
-                    info = _setBufWarnSize[transport];
-                }
-                return info;
-            }
-        }
-
         // Returns the IClassFactory associated with this Slice type ID, not null if not found.
         internal Func<AnyClass>? FindClassFactory(string typeId) =>
             _classFactoryCache.GetOrAdd(typeId, typeId =>
@@ -722,27 +683,6 @@ namespace IceRpc
                 }
             }
             return false;
-        }
-        internal void SetRcvBufWarnSize(Transport transport, int size)
-        {
-            lock (_mutex)
-            {
-                BufWarnSizeInfo info = GetBufWarnSize(transport);
-                info.RcvWarn = true;
-                info.RcvSize = size;
-                _setBufWarnSize[transport] = info;
-            }
-        }
-
-        internal void SetSndBufWarnSize(Transport transport, int size)
-        {
-            lock (_mutex)
-            {
-                BufWarnSizeInfo info = GetBufWarnSize(transport);
-                info.SndWarn = true;
-                info.SndSize = size;
-                _setBufWarnSize[transport] = info;
-            }
         }
 
         private static Type? FindType(string csharpId)
