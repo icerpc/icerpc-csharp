@@ -116,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
                 builder =>
                 {
                     builder.AddFilter("IceRpc.Protocol", LogLevel.Information);
-                    builder.AddFilter("IceRpc.Transport", LogLevel.None);
+                    builder.AddFilter("IceRpc.Transport", LogLevel.Critical);
                 });
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using var adapter = CreateServer(communicator, colocated, portNumber: 2);

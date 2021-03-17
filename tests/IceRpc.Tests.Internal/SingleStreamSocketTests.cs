@@ -260,11 +260,11 @@ namespace IceRpc.Tests.Internal
     }
 
     [TestFixture(Protocol.Ice2, "tcp", false)]
-    // [TestFixture(Protocol.Ice2, "tcp", true)]
-    // [TestFixture(Protocol.Ice2, "ws", false)]
-    // [TestFixture(Protocol.Ice2, "ws", true)]
-    // [TestFixture(Protocol.Ice1, "tcp", false)]
-    // [TestFixture(Protocol.Ice1, "ssl", true)]
+    [TestFixture(Protocol.Ice2, "tcp", true)]
+    [TestFixture(Protocol.Ice2, "ws", false)]
+    [TestFixture(Protocol.Ice2, "ws", true)]
+    [TestFixture(Protocol.Ice1, "tcp", false)]
+    [TestFixture(Protocol.Ice1, "ssl", true)]
     public class AcceptSingleStreamSocketTests : SocketBaseTest
     {
         public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)

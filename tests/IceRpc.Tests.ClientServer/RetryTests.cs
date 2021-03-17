@@ -40,12 +40,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Retry_ConnectionEstablishment(Protocol protocol)
         {
-            await using var communicator = new Communicator(
-                new Dictionary<string, string>
-                {
-                    // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "1000ms" }
-                });
+            await using var communicator = new Communicator();
 
             var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("retry", port: 0, protocol: protocol),
                                                         communicator);

@@ -216,7 +216,7 @@ namespace IceRpc
 
         internal override IDisposable? StartScope(Endpoint endpoint)
         {
-            if (Logger.IsEnabled(LogLevel.Information))
+            if (Logger.IsEnabled(LogLevel.Critical))
             {
                 return Logger.StartSocketScope(endpoint.Transport,
                                                Network.LocalAddrToString(Socket),

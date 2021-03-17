@@ -186,13 +186,16 @@ namespace IceRpc
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            Socket? socket = null;
+
+            var socket = HasDnsHost ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+
             try
             {
                 if (endpoint is IPEndPoint ipEndpoint && Network.IsMulticast(ipEndpoint.Address))
                 {
                     // IP multicast socket options require a socket created with the correct address family.
-                    socket = new Socket(ipEndpoint.Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
                     if (MulticastInterface != null)
                     {
                         Debug.Assert(MulticastInterface.Length > 0);
@@ -203,15 +206,11 @@ namespace IceRpc
                         socket.Ttl = (short)MulticastTtl;
                     }
                 }
-                else
-                {
-                    socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-                }
                 Network.SetBufSize(socket, Communicator, Transport.UDP);
             }
             catch (SocketException ex)
             {
-                socket?.Dispose();
+                socket.Dispose();
                 throw new TransportException(ex, RetryPolicy.NoRetry);
             }
 

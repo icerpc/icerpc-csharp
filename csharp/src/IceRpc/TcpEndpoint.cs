@@ -327,7 +327,12 @@ namespace IceRpc
 
         internal virtual SingleStreamSocket CreateSocket(EndPoint addr)
         {
-            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
+            // created if the address is an IPv4 address.
+            var socket = HasDnsHost ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
             try
             {
                 // TODO: Where will set TCP buffer size options when we get rid of the communicator?
