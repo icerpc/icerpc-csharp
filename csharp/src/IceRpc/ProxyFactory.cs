@@ -68,13 +68,12 @@ namespace IceRpc
                                                      server.Communicator,
                                                      protocol);
 
-                var options = new ServicePrxOptions()
+                var options = new InteropServicePrxOptions()
                 {
                     Communicator = server.Communicator,
                     Endpoints = ImmutableList.Create(locEndpoint),
                     Identity = identity,
-                    IsOneway = server.IsDatagramOnly,
-                    Protocol = Protocol.Ice1
+                    IsOneway = server.IsDatagramOnly
                 };
                 return factory.Create(options);
             }
@@ -146,22 +145,19 @@ namespace IceRpc
             IReadOnlyDictionary<string, string>? context = null;
             Encoding encoding;
             IReadOnlyList<Endpoint> endpoints;
-            string facet = "";
-            Identity identity = default;
             TimeSpan? invocationTimeout = null;
             object? label = null;
             bool oneway = false;
-            string path = "";
             bool? preferExistingConnection = null;
             NonSecure? preferNonSecure = null;
-            Protocol protocol;
 
             if (UriParser.IsProxyUri(proxyString))
             {
+                string path = "";
                 UriParser.ProxyOptions proxyOptions;
                 (endpoints, path, proxyOptions) = UriParser.ParseProxy(proxyString, communicator);
 
-                protocol = proxyOptions.Protocol ?? Protocol.Ice2;
+                Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
                 Debug.Assert(protocol != Protocol.Ice1); // the URI parsing rejects ice1
 
                 encoding = proxyOptions.Encoding ?? Encoding.V20;
@@ -172,10 +168,29 @@ namespace IceRpc
                  label,
                  preferExistingConnection,
                  preferNonSecure) = proxyOptions;
+
+                var options = new ServicePrxOptions()
+                {
+                    CacheConnection = cacheConnection ?? true,
+                    Communicator = communicator,
+                    Context = context,
+                    Encoding = encoding,
+                    Endpoints = endpoints,
+                    InvocationTimeoutOverride = invocationTimeout,
+                    IsOneway = oneway,
+                    LocationResolver = communicator.DefaultLocationResolver,
+                    Path = path,
+                    PreferExistingConnectionOverride = preferExistingConnection,
+                    PreferNonSecureOverride = preferNonSecure,
+                    Protocol = protocol
+                };
+
+                return factory.Create(options);
             }
             else
             {
-                protocol = Protocol.Ice1;
+                string facet;
+                Identity identity;
 
                 (identity, facet, encoding, endpoints, oneway) = Ice1Parser.ParseProxy(proxyString, communicator);
                 Debug.Assert(endpoints.Count > 0);
@@ -197,30 +212,27 @@ namespace IceRpc
                     }
 
                     label = communicator.GetProperty($"{propertyPrefix}.Label");
-
                     preferNonSecure = communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
                 }
+
+                var options = new InteropServicePrxOptions()
+                {
+                    CacheConnection = cacheConnection ?? true,
+                    Communicator = communicator,
+                    Context = context,
+                    Encoding = encoding,
+                    Endpoints = endpoints,
+                    Facet = facet,
+                    Identity = identity,
+                    InvocationTimeoutOverride = invocationTimeout,
+                    IsOneway = oneway,
+                    LocationResolver = communicator.DefaultLocationResolver,
+                    PreferExistingConnectionOverride = preferExistingConnection,
+                    PreferNonSecureOverride = preferNonSecure
+                };
+
+                return factory.Create(options);
             }
-
-            var options = new ServicePrxOptions()
-            {
-                CacheConnection = cacheConnection ?? true,
-                Communicator = communicator,
-                Context = context,
-                Encoding = encoding,
-                Endpoints = endpoints,
-                Facet = facet,
-                Identity = identity,
-                InvocationTimeoutOverride = invocationTimeout,
-                IsOneway = oneway,
-                LocationResolver = communicator.DefaultLocationResolver,
-                Path = path,
-                PreferExistingConnectionOverride = preferExistingConnection,
-                PreferNonSecureOverride = preferNonSecure,
-                Protocol = protocol
-            };
-
-            return factory.Create(options);
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>
@@ -396,7 +408,7 @@ namespace IceRpc
             {
                 Communicator communicator = istr.Communicator!;
 
-                var options = new ServicePrxOptions()
+                var options = new InteropServicePrxOptions()
                 {
                     Communicator = communicator,
                     Encoding = encoding,
@@ -404,8 +416,7 @@ namespace IceRpc
                     Facet = facet,
                     Identity = identity,
                     IsOneway = invocationMode != InvocationMode.Twoway,
-                    LocationResolver = communicator.DefaultLocationResolver,
-                    Protocol = Protocol.Ice1
+                    LocationResolver = communicator.DefaultLocationResolver
                 };
                 return factory.Create(options);
             }

@@ -45,11 +45,16 @@ namespace IceRpc.Interop
             {
                 return t;
             }
-            else
+            else if (proxy.Protocol == Protocol.Ice1)
             {
-                ServicePrxOptions options = proxy.Impl.CloneOptions();
+                var options = (InteropServicePrxOptions)proxy.Impl.CloneOptions();
                 options.Facet = facet;
                 return factory.Create(options);
+            }
+            else
+            {
+                throw new ArgumentException($"cannot change the facet of an {proxy.Protocol.GetName()} proxy",
+                                            nameof(proxy));
             }
         }
     }

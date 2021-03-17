@@ -584,28 +584,35 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                Facet = options.Facet;
+                if (options is InteropServicePrxOptions interopOptions)
+                {
+                    Facet = interopOptions.Facet;
+                    Identity = interopOptions.Identity;
+                }
+
                 if (options.Path.Length > 0)
                 {
-                    Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
+                    if (Identity != Identity.Empty)
+                    {
+                        throw new ArgumentException("cannot specify both path and identity", nameof(options));
+                    }
+
                     Path = UriParser.NormalizePath(options.Path);
                     Identity = Identity.FromPath(Path);
 
                     if (Identity.Name.Length == 0)
                     {
                         throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options.Path));
+                                                    nameof(options));
                     }
                 }
                 else
                 {
-                    if (options.Identity.Name.Length == 0)
+                    if (Identity.Name.Length == 0)
                     {
                         throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options.Identity));
+                                                    nameof(options));
                     }
-
-                    Identity = options.Identity;
                     Path = Identity.ToPath();
                 }
             }
@@ -702,27 +709,53 @@ namespace IceRpc
         internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
 
         /// <summary>Returns a fresh copy of the underlying options.</summary>
-        internal ServicePrxOptions CloneOptions() =>
-            new()
+        internal ServicePrxOptions CloneOptions()
+        {
+            if (Protocol == Protocol.Ice1)
             {
-                CacheConnection = CacheConnection,
-                Communicator = Communicator,
-                Connection = IsFixed ? _connection : null,
-                Context = Context,
-                Encoding = Encoding,
-                Endpoints = Endpoints,
-                Facet = Facet,
-                Identity = Identity,
-                InvocationInterceptors = InvocationInterceptors,
-                InvocationTimeoutOverride = _invocationTimeoutOverride,
-                IsOneway = IsOneway,
-                Label = Label,
-                LocationResolver = LocationResolver,
-                Path = Protocol == Protocol.Ice1 ? "" : Path, // for ice1, the identity prevails
-                PreferExistingConnectionOverride = _preferExistingConnectionOverride,
-                PreferNonSecureOverride = _preferNonSecureOverride,
-                Protocol = Protocol
-            };
+                return new InteropServicePrxOptions()
+                {
+                    CacheConnection = CacheConnection,
+                    Communicator = Communicator,
+                    Connection = IsFixed ? _connection : null,
+                    Context = Context,
+                    Encoding = Encoding,
+                    Endpoints = Endpoints,
+                    Facet = Facet,
+                    Identity = Identity,
+                    InvocationInterceptors = InvocationInterceptors,
+                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsOneway = IsOneway,
+                    Label = Label,
+                    LocationResolver = LocationResolver,
+                    Path = "",
+                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = _preferNonSecureOverride,
+                    Protocol = Protocol.Ice1
+                };
+            }
+            else
+            {
+                return new()
+                {
+                    CacheConnection = CacheConnection,
+                    Communicator = Communicator,
+                    Connection = IsFixed ? _connection : null,
+                    Context = Context,
+                    Encoding = Encoding,
+                    Endpoints = Endpoints,
+                    InvocationInterceptors = InvocationInterceptors,
+                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsOneway = IsOneway,
+                    Label = Label,
+                    LocationResolver = LocationResolver,
+                    Path = Path,
+                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = _preferNonSecureOverride,
+                    Protocol = Protocol
+                };
+            }
+        }
 
         /// <summary>Provides the implementation of <see cref="Proxy.GetCachedConnection"/>.</summary>
         internal Connection? GetCachedConnection() => _connection;

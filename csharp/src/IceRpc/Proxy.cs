@@ -173,7 +173,11 @@ namespace IceRpc
             else
             {
                 ServicePrxOptions options = proxy.Impl.CloneOptions();
-                options.Identity = Interop.Identity.Empty;
+                if (options is Interop.InteropServicePrxOptions interopOptions)
+                {
+                    interopOptions.Identity = Interop.Identity.Empty;
+                }
+
                 options.Path = path;
                 return factory.Create(options);
             }
