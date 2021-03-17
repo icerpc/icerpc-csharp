@@ -19,27 +19,6 @@ namespace IceRpc
         internal const int EnableIPv6 = 1;
         internal const int EnableBoth = 2;
 
-        internal static Socket CreateServerSocket(IPEndpoint endpoint, AddressFamily family)
-        {
-            Socket socket = CreateSocket(endpoint.IsDatagram, family);
-            if (family == AddressFamily.InterNetworkV6)
-            {
-                try
-                {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6,
-                                           SocketOptionName.IPv6Only,
-                                           endpoint.IsIPv6Only);
-                }
-                catch
-                {
-                    socket.CloseNoThrow();
-                    throw;
-                }
-            }
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
-            return socket;
-        }
-
         internal static void SetMulticastInterface(Socket socket, string iface, AddressFamily family)
         {
             if (family == AddressFamily.InterNetwork)
@@ -53,51 +32,6 @@ namespace IceRpc
                 socket.SetSocketOption(SocketOptionLevel.IPv6,
                                        SocketOptionName.MulticastInterface,
                                        GetInterfaceIndex(iface, family));
-            }
-        }
-
-        internal static Socket CreateSocket(bool udp, AddressFamily? addressFamily)
-        {
-            try
-            {
-                if (udp)
-                {
-                    if (addressFamily is AddressFamily value)
-                    {
-                        return new Socket(value, SocketType.Dgram, ProtocolType.Udp);
-                    }
-                    else
-                    {
-                        return new Socket(SocketType.Dgram, ProtocolType.Udp);
-                    }
-                }
-                else
-                {
-                    Socket socket;
-                    if (addressFamily is AddressFamily value)
-                    {
-                        socket = new Socket(value, SocketType.Stream, ProtocolType.Tcp);
-                    }
-                    else
-                    {
-                        socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                    }
-
-                    try
-                    {
-                        socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
-                    }
-                    catch
-                    {
-                        socket.CloseNoThrow();
-                        throw;
-                    }
-                    return socket;
-                }
-            }
-            catch (SocketException ex)
-            {
-                throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
         }
 

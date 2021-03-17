@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -106,15 +107,23 @@ namespace IceRpc
             object? label,
             CancellationToken cancel)
         {
-            bool secureOnly = preferNonSecure switch
+            SslClientAuthenticationOptions? authenticationOptions = null;
+            if(preferNonSecure switch
             {
                 NonSecure.SameHost => true,    // TODO check if Host is the same host
                 NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
                 NonSecure.Always => false,
                 _ => true
-            };
+            })
+            {
+                authenticationOptions = Communicator.AuthenticationOptions ?? new SslClientAuthenticationOptions()
+                {
+                    TargetHost = Host
+                };
+            }
+
             Connection connection = CreateConnection(label, cancel);
-            await connection.Socket.ConnectAsync(secureOnly, cancel).ConfigureAwait(false);
+            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
             Debug.Assert(connection.CanTrust(preferNonSecure));
             return connection;
         }

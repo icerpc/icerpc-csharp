@@ -25,72 +25,15 @@ namespace IceRpc
         private const int MaxPacketSize = 65535 - UdpOverhead;
         private const int UdpOverhead = 20 + 8;
 
-        private EndPoint _addr;
-        private readonly Communicator _communicator;
+        private EndPoint? _addr;
         private readonly bool _incoming;
-        private readonly string? _multicastInterface;
         private EndPoint? _peerAddr;
         private readonly int _rcvSize;
 
-        public Endpoint Bind(UdpEndpoint endpoint)
-        {
-            Debug.Assert(_incoming);
-            try
-            {
-                Debug.Assert(_addr is IPEndPoint);
-                IPEndPoint addr = (IPEndPoint)_addr;
-                ILogger transportLogger = endpoint.Communicator.TransportLogger;
-                if (Network.IsMulticast(addr.Address))
-                {
-                    Socket.ExclusiveAddressUse = false;
-                    Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-                    MulticastAddress = addr;
-                    if (OperatingSystem.IsWindows())
-                    {
-                        // Windows does not allow binding to the multicast address itself so we bind to INADDR_ANY
-                        // instead. As a result, bidirectional connection won't work because the source address won't
-                        // be the multicast address and the client will therefore reject the datagram.
-                        if (_addr.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            _addr = new IPEndPoint(IPAddress.Any, addr.Port);
-                        }
-                        else
-                        {
-                            _addr = new IPEndPoint(IPAddress.IPv6Any, addr.Port);
-                        }
-                    }
-
-                    if (transportLogger.IsEnabled(LogLevel.Debug))
-                    {
-                        transportLogger.LogBindingSocketAttempt(endpoint.Transport, Network.LocalAddrToString(_addr));
-                    }
-
-                    Socket.Bind(_addr);
-                    _addr = (IPEndPoint)Socket.LocalEndPoint!;
-
-                    if (endpoint.Port == 0)
-                    {
-                        MulticastAddress.Port = ((IPEndPoint)_addr).Port;
-                    }
-                    Network.SetMulticastGroup(Socket, MulticastAddress.Address, _multicastInterface);
-                }
-                else
-                {
-                    Socket.Bind(_addr);
-                    _addr = (IPEndPoint)Socket.LocalEndPoint!;
-                }
-            }
-            catch (SocketException ex)
-            {
-                throw new TransportException(ex);
-            }
-
-            Debug.Assert(endpoint != null);
-            return endpoint.Clone((ushort)((IPEndPoint)_addr).Port);
-        }
-
-        public override ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        public override ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel)
         {
             if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
             {
@@ -106,10 +49,10 @@ namespace IceRpc
 
         public override async ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Debug.Assert(!secure);
+            Debug.Assert(_addr != null);
             try
             {
                 if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
@@ -117,9 +60,9 @@ namespace IceRpc
                     Socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    endpoint.Communicator.TransportLogger.LogStartSendingDatagrams(
+                    Logger.LogStartSendingDatagrams(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
                         Network.RemoteAddrToString(Socket));
@@ -152,13 +95,13 @@ namespace IceRpc
                     EndPoint? peerAddr = _peerAddr;
                     if (peerAddr == null)
                     {
-                        if (_addr.AddressFamily == AddressFamily.InterNetwork)
+                        if (Socket.AddressFamily == AddressFamily.InterNetwork)
                         {
                             peerAddr = new IPEndPoint(IPAddress.Any, 0);
                         }
                         else
                         {
-                            Debug.Assert(_addr.AddressFamily == AddressFamily.InterNetworkV6);
+                            Debug.Assert(Socket.AddressFamily == AddressFamily.InterNetworkV6);
                             peerAddr = new IPEndPoint(IPAddress.IPv6Any, 0);
                         }
                     }
@@ -264,96 +207,43 @@ namespace IceRpc
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(
-            Communicator communicator,
-            EndPoint addr,
-            string? multicastInterface,
-            int multicastTtl)
+        internal UdpSocket(ILogger logger, Socket socket, EndPoint addr)
+            : base(logger)
         {
-            _communicator = communicator;
-            _addr = addr;
-            _multicastInterface = multicastInterface;
+            Socket = socket;
             _incoming = false;
-
-            IPEndPoint? ipEndpoint = (addr as IPEndPoint);
-            if (ipEndpoint != null)
-            {
-                Socket = Network.CreateSocket(true, ipEndpoint.AddressFamily);
-            }
-            else
-            {
-                Socket = Network.CreateSocket(true, null);
-            }
-
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.UDP);
-                _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                if (ipEndpoint != null && Network.IsMulticast(ipEndpoint.Address))
-                {
-                    if (_multicastInterface != null)
-                    {
-                        Debug.Assert(_multicastInterface.Length > 0);
-                        Network.SetMulticastInterface(Socket, _multicastInterface, ipEndpoint.AddressFamily);
-                    }
-                    if (multicastTtl != -1)
-                    {
-                        Socket.Ttl = (short)multicastTtl;
-                    }
-                }
-            }
-            catch (SocketException ex)
-            {
-                Socket.CloseNoThrow();
-                throw new TransportException(ex, RetryPolicy.NoRetry);
-            }
+            _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+            _addr = addr;
         }
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(UdpEndpoint endpoint, Communicator communicator)
+        internal UdpSocket(ILogger logger, Socket socket, IPEndPoint? multicastAddress)
+            : base(logger)
         {
-            Debug.Assert(endpoint.Address != IPAddress.None); // not a DNS name
-
-            _communicator = communicator;
-            _addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            _multicastInterface = endpoint.MulticastInterface;
+            Socket = socket;
             _incoming = true;
-
-            Socket = Network.CreateServerSocket(endpoint, _addr.AddressFamily);
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.UDP);
-                _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer);
-            }
-            catch (SocketException ex)
-            {
-                Socket.CloseNoThrow();
-                throw new TransportException(ex, RetryPolicy.NoRetry);
-            }
+            _rcvSize = (int)Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
+            MulticastAddress = multicastAddress;
         }
 
         internal override IDisposable? StartScope(Endpoint endpoint)
         {
             // If any of the loggers is enabled we create the scope
-            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.Logger.IsEnabled(LogLevel.Critical))
+            if (Logger.IsEnabled(LogLevel.Critical))
             {
                 if (MulticastAddress != null)
                 {
-                    return _communicator.Logger.StartMulticastSocketScope(endpoint.Transport,
-                                                                          Network.LocalAddrToString(Socket),
-                                                                          MulticastAddress.ToString());
+                    return Logger.StartMulticastSocketScope(
+                        endpoint.Transport,
+                        Network.LocalAddrToString(Socket),
+                        MulticastAddress.ToString());
                 }
                 else
                 {
-                    return _communicator.Logger.StartDatagramSocketScope(
+                    return Logger.StartDatagramSocketScope(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
-                        _peerAddr?.ToString() ?? Network.RemoteAddrToString(Socket));
+                        Network.RemoteAddrToString(Socket));
                 }
             }
             return null;

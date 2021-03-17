@@ -18,13 +18,14 @@ namespace IceRpc
         public override SslStream? SslStream => null;
 
         private readonly EndPoint? _addr;
-        private readonly Communicator _communicator;
-        private readonly Server? _server;
         private string _desc = "";
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel)
         {
             try
             {
@@ -51,16 +52,15 @@ namespace IceRpc
                 SingleStreamSocket socket = this;
                 if (endpoint.IsAlwaysSecure || secure)
                 {
-                    Debug.Assert(_server != null);
-                    socket = new SslSocket(_server, this);
-                    await socket.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+                    socket = new SslSocket(this);
+                    await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
                 }
 
-                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    endpoint.Communicator.TransportLogger.LogConnectionAccepted(endpoint.Transport,
-                                                                                Network.LocalAddrToString(Socket),
-                                                                                Network.RemoteAddrToString(Socket));
+                    Logger.LogConnectionAccepted(endpoint.Transport,
+                                                 Network.LocalAddrToString(Socket),
+                                                 Network.RemoteAddrToString(Socket));
                 }
 
                 return socket;
@@ -83,7 +83,7 @@ namespace IceRpc
 
         public override async ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
             Debug.Assert(_addr != null);
@@ -105,15 +105,15 @@ namespace IceRpc
                 // using this TcpSocket.
 
                 SingleStreamSocket socket = this;
-                if (endpoint.IsAlwaysSecure || secure)
+                if (endpoint.IsAlwaysSecure || authenticationOptions != null)
                 {
-                    socket = new SslSocket(endpoint.Communicator, this);
-                    await socket.ConnectAsync(endpoint, true, cancel).ConfigureAwait(false);
+                    socket = new SslSocket(this);
+                    await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
                 }
 
-                if (endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    endpoint.Communicator.TransportLogger.LogConnectionEstablished(
+                    Logger.LogConnectionEstablished(
                         endpoint.Transport,
                         Network.LocalAddrToString(Socket),
                         Network.RemoteAddrToString(Socket));
@@ -207,58 +207,20 @@ namespace IceRpc
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
-        internal TcpSocket(Communicator communicator, EndPoint addr)
+        internal TcpSocket(ILogger logger, Socket fd, EndPoint? addr = null)
+            : base(logger)
         {
-            _communicator = communicator;
             _addr = addr;
-            if (addr is IPEndPoint ipEndpoint)
-            {
-                Socket = Network.CreateSocket(false, ipEndpoint.AddressFamily);
-            }
-            else
-            {
-                Socket = Network.CreateSocket(false, null);
-            }
-
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.TCP);
-            }
-            catch
-            {
-                Socket.CloseNoThrow();
-                throw;
-            }
-        }
-
-        internal TcpSocket(Server server, Socket fd)
-        {
-            _communicator = server.Communicator;
-            _server = server;
             Socket = fd;
-            try
-            {
-                Network.SetBufSize(Socket, _communicator, Transport.TCP);
-            }
-            catch
-            {
-                Socket.CloseNoThrow();
-                throw;
-            }
         }
 
         internal override IDisposable? StartScope(Endpoint endpoint)
         {
-            // If any of the loggers is enabled we create the scope
-            if (_communicator.TransportLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.LocationLogger.IsEnabled(LogLevel.Critical) ||
-                _communicator.Logger.IsEnabled(LogLevel.Critical))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                return _communicator.Logger.StartSocketScope(endpoint.Transport,
-                                                             Network.LocalAddrToString(Socket),
-                                                             Network.RemoteAddrToString(Socket));
+                return Logger.StartSocketScope(endpoint.Transport,
+                                               Network.LocalAddrToString(Socket),
+                                               Network.RemoteAddrToString(Socket));
             }
             return null;
         }

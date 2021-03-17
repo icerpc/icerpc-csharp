@@ -1,10 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
@@ -41,12 +43,65 @@ namespace IceRpc
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
 
-            var socket = new UdpSocket(this, Communicator);
+            var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
-                Endpoint endpoint = socket.Bind(this);
-                var multiStreamSocket = new Ice1NetworkSocket(socket, endpoint, server);
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IsIPv6Only);
+                }
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
+
+                Network.SetBufSize(socket, Communicator, Transport.UDP);
+
+                var addr = new IPEndPoint(Address, Port);
+                IPEndPoint? multicastAddress = null;
+                if (Network.IsMulticast(Address))
+                {
+                    multicastAddress = addr;
+
+                    socket.ExclusiveAddressUse = false;
+                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        // Windows does not allow binding to the multicast address itself so we bind to INADDR_ANY
+                        // instead. As a result, bidirectional connection won't work because the source address won't
+                        // be the multicast address and the client will therefore reject the datagram.
+                        if (addr.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            addr = new IPEndPoint(IPAddress.Any, addr.Port);
+                        }
+                        else
+                        {
+                            addr = new IPEndPoint(IPAddress.IPv6Any, addr.Port);
+                        }
+                    }
+                }
+
+                if (Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                {
+                    Communicator.TransportLogger.LogBindingSocketAttempt(Transport, Network.LocalAddrToString(addr));
+                }
+
+                socket.Bind(addr);
+
+                ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
+                if (multicastAddress != null)
+                {
+                    multicastAddress.Port = port;
+                    Network.SetMulticastGroup(socket, multicastAddress.Address, MulticastInterface);
+                }
+
+                var endpoint = Clone(port);
+                var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, multicastAddress);
+                var multiStreamSocket = new Ice1NetworkSocket(udpSocket, endpoint, server);
                 return new UdpConnection(endpoint, multiStreamSocket, label: null, server);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex, RetryPolicy.NoRetry);
             }
             catch
             {
@@ -131,8 +186,37 @@ namespace IceRpc
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            var socket = new UdpSocket(Communicator, endpoint, MulticastInterface, MulticastTtl);
-            return new UdpConnection(this, new Ice1NetworkSocket(socket, this, server: null), label, server: null);
+            Socket? socket = null;
+            try
+            {
+                if (endpoint is IPEndPoint ipEndpoint && Network.IsMulticast(ipEndpoint.Address))
+                {
+                    // IP multicast socket options require a socket created with the correct address family.
+                    socket = new Socket(ipEndpoint.Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+                    if (MulticastInterface != null)
+                    {
+                        Debug.Assert(MulticastInterface.Length > 0);
+                        Network.SetMulticastInterface(socket, MulticastInterface, ipEndpoint.AddressFamily);
+                    }
+                    if (MulticastTtl != -1)
+                    {
+                        socket.Ttl = (short)MulticastTtl;
+                    }
+                }
+                else
+                {
+                    socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+                }
+                Network.SetBufSize(socket, Communicator, Transport.UDP);
+            }
+            catch (SocketException ex)
+            {
+                socket?.Dispose();
+                throw new TransportException(ex, RetryPolicy.NoRetry);
+            }
+
+            var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, endpoint);
+            return new UdpConnection(this, new Ice1NetworkSocket(udpSocket, this, server: null), label, server: null);
         }
 
         protected internal override void WriteOptions(OutputStream ostr)

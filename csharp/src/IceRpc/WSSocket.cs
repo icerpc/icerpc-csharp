@@ -45,7 +45,6 @@ namespace IceRpc
         private static readonly UTF8Encoding _utf8 = new(false, true);
 
         private bool _closing;
-        private readonly Communicator _communicator;
         private bool _incoming;
         private string _key;
         private readonly HttpParser _parser;
@@ -61,9 +60,12 @@ namespace IceRpc
         private Task _sendTask = Task.CompletedTask;
         private readonly Transport _transport;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel)
         {
-            await _underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+            await _underlying.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
@@ -84,10 +86,10 @@ namespace IceRpc
 
         public override async ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            await _underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
+            await _underlying.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
@@ -138,9 +140,9 @@ namespace IceRpc
             _rand.Dispose();
         }
 
-        internal WSSocket(Communicator communicator, SingleStreamSocket underlying)
+        internal WSSocket(SingleStreamSocket underlying)
+            : base(underlying.Logger)
         {
-            _communicator = communicator;
             _underlying = new BufferedReceiveOverSingleStreamSocket(underlying);
             _parser = new HttpParser();
             _receiveLastFrame = true;
@@ -189,10 +191,9 @@ namespace IceRpc
                 while (true)
                 {
                     ReadOnlyMemory<byte> buffer = await _underlying.ReceiveAsync(0, cancel).ConfigureAwait(false);
-                    if (httpBuffer.Count + buffer.Length > _communicator.IncomingFrameMaxSize)
+                    if (httpBuffer.Count + buffer.Length > 16 * 1024)
                     {
-                        throw new InvalidDataException(
-                            "WebSocket frame size is greater than the configured IncomingFrameMaxSize value");
+                        throw new InvalidDataException("WebSocket HTTP upgrade request too large");
                     }
 
                     ArraySegment<byte> tmpBuffer = new byte[httpBuffer.Count + buffer.Length];
@@ -270,22 +271,22 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                if (_communicator.Logger.IsEnabled(LogLevel.Error))
+                if (Logger.IsEnabled(LogLevel.Error))
                 {
-                    _communicator.Logger.LogHttpUpgradeRequestFailed(_transport, ex);
+                    Logger.LogHttpUpgradeRequestFailed(_transport, ex);
                 }
                 throw;
             }
 
-            if (_communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
                 if (_incoming)
                 {
-                    _communicator.Logger.LogHttpUpgradeRequestAccepted(_transport);
+                    Logger.LogHttpUpgradeRequestAccepted(_transport);
                 }
                 else
                 {
-                    _communicator.Logger.LogHttpUpgradeRequestSucceed(_transport);
+                    Logger.LogHttpUpgradeRequestSucceed(_transport);
                 }
             }
         }
@@ -390,9 +391,9 @@ namespace IceRpc
                     (await _underlying.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
-                if (_communicator.Logger.IsEnabled(LogLevel.Debug))
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
+                    Logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
                 }
 
                 switch (opCode)
@@ -658,9 +659,9 @@ namespace IceRpc
                 Debug.Assert(_sendBuffer.Count == 0);
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
-                if (_communicator.Logger.IsEnabled(LogLevel.Debug))
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _communicator.Logger.LogReceivedWebSocketFrame(_transport, opCode, size);
+                    Logger.LogReceivedWebSocketFrame(_transport, opCode, size);
                 }
 
                 if (_incoming || opCode == OpCode.Pong)

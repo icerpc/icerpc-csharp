@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -31,7 +32,9 @@ namespace IceRpc
 
         public override void Abort() => _writer.TryComplete();
 
-        public override ValueTask AcceptAsync(CancellationToken cancel) => default;
+        public override ValueTask AcceptAsync(
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel) => default;
 
         public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
         {
@@ -94,7 +97,9 @@ namespace IceRpc
             }
         }
 
-        public override ValueTask ConnectAsync(bool secure, CancellationToken cancel) => default;
+        public override ValueTask ConnectAsync(
+            SslClientAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel) => default;
 
         public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
         {

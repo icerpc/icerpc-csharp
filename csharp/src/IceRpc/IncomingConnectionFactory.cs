@@ -156,7 +156,7 @@ namespace IceRpc
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
+                    await connection.Socket.AcceptAsync(_server.AuthenticationOptions, cancel).ConfigureAwait(false);
 
                     // Check if the established connection can be trusted according to the server non-secure
                     // setting.

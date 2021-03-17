@@ -165,11 +165,9 @@ namespace IceRpc
             return new WSEndpoint(data, options, communicator, serverEndpoint);
         }
 
-        internal override SingleStreamSocket CreateSocket(EndPoint addr) =>
-            new WSSocket(Communicator, base.CreateSocket(addr));
+        internal override SingleStreamSocket CreateSocket(EndPoint addr) => new WSSocket(base.CreateSocket(addr));
 
-        internal override SingleStreamSocket CreateSocket(Server server, Socket socket) =>
-            new WSSocket(Communicator, base.CreateSocket(server, socket));
+        internal override SingleStreamSocket CreateSocket(Socket socket) => new WSSocket(base.CreateSocket(socket));
 
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
