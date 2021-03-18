@@ -282,23 +282,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("", prx.GetFacet());
         }
 
-        /// <summary>Test that the communicator default invocation interceptors are used when the
-        /// proxy doesn't specify its own interceptors.</summary>
-        [Test]
-        public void Proxy_DefaultInvocationInterceptors()
-        {
-            var communicator = new Communicator
-            {
-                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    (target, request, next, cancel) => throw new NotImplementedException(),
-                    (target, request, next, cancel) => throw new NotImplementedException())
-            };
-
-            var prx = IServicePrx.Parse("test", communicator);
-
-            CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
-        }
-
         [Test]
         public void Proxy_Equals()
         {
@@ -448,12 +431,6 @@ namespace IceRpc.Tests.Api
             prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
-
-            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
-            communicator.SetProperty($"{propertyPrefix}.PreferNonSecure", "SameHost");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.RemoveProperty($"{propertyPrefix}.PreferNonSecure");
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
         }
 
         [Test]
@@ -519,10 +496,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
             prx = IServicePrx.Parse($"{proxyString}?invocation-timeout=1s", communicator);
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
-
-            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
-            prx = IServicePrx.Parse($"{proxyString}?prefer-non-secure=SameHost", communicator);
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
 
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
                 "&label=myLabel&oneway=true" +

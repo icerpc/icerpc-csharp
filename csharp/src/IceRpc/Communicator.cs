@@ -64,42 +64,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The default context for proxies created using this communicator. Changing the value of
-        /// DefaultContext does not change the context of previously created proxies.</summary>
-        public IReadOnlyDictionary<string, string> DefaultContext
-        {
-            get => _defaultContext;
-            set => _defaultContext = value.ToImmutableSortedDictionary();
-        }
-
-        /// <summary>The default invocation interceptors for proxies created using this communicator. Changing the value
-        /// of DefaultInvocationInterceptors does not change the invocation interceptors of previously created proxies.
-        /// </summary>
-        public ImmutableList<InvocationInterceptor> DefaultInvocationInterceptors
-        {
-            get => _defaultInvocationInterceptors;
-            set => _defaultInvocationInterceptors = value;
-        }
-
-        /// <summary>The default location resolver for this communicator.</summary>
-        public ILocationResolver? DefaultLocationResolver
-        {
-            get => _defaultLocationResolver;
-            set => _defaultLocationResolver = value;
-        }
-
-        /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
-        public bool DefaultPreferExistingConnection { get; }
-
-        /// <summary>Gets the communicator's preference for establishing non-secure connections.</summary>
-        public NonSecure DefaultPreferNonSecure { get; }
-
         /// <summary>Gets the default source address value used by proxies created with this communicator.</summary>
         public IPAddress? DefaultSourceAddress { get; }
-
-        /// <summary>Gets the default invocation timeout value used by proxies created with this communicator.
-        /// </summary>
-        public TimeSpan DefaultInvocationTimeout { get; }
 
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
@@ -173,11 +139,6 @@ namespace IceRpc
         private readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
         private readonly ConcurrentDictionary<int, Func<AnyClass>?> _compactIdCache = new();
         private readonly ThreadLocal<SortedDictionary<string, string>> _currentContext = new();
-        private volatile ImmutableSortedDictionary<string, string> _defaultContext =
-            ImmutableSortedDictionary<string, string>.Empty;
-        private volatile ImmutableList<InvocationInterceptor> _defaultInvocationInterceptors =
-            ImmutableList<InvocationInterceptor>.Empty;
-        private volatile ILocationResolver? _defaultLocationResolver;
         private Task? _shutdownTask;
 
         private readonly object _mutex = new object();
@@ -321,20 +282,6 @@ namespace IceRpc
                     _oneOffDone = true;
                 }
             }
-
-            DefaultInvocationTimeout =
-                this.GetPropertyAsTimeSpan("Ice.Default.InvocationTimeout") ?? TimeSpan.FromSeconds(60);
-            if (DefaultInvocationTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.Default.InvocationTimeout");
-            }
-
-            DefaultPreferExistingConnection =
-                this.GetPropertyAsBool("Ice.Default.PreferExistingConnection") ?? true;
-
-            // TODO: switch to NonSecure.Never default
-            DefaultPreferNonSecure =
-                this.GetPropertyAsEnum<NonSecure>("Ice.Default.PreferNonSecure") ?? NonSecure.Always;
 
             if (GetProperty("Ice.Default.SourceAddress") is string address)
             {
