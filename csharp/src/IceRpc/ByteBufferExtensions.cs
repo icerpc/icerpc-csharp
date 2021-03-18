@@ -24,7 +24,7 @@ namespace IceRpc
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
-        /// <remarks>When reading proxies, communicator.</remarks>
+        /// <remarks>When reading proxies, communicator must be non-null.</remarks>
         public static T Read<T>(
             this ReadOnlyMemory<byte> buffer,
             Encoding encoding,
