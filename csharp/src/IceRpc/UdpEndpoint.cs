@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -52,11 +52,12 @@ namespace IceRpc
                 }
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
 
-                // TODO: Where will set UDP buffer size options when we get rid of the communicator?
+                var options = server.ConnectionOptions;
+
                 SetBufferSize(socket,
-                              Communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
-                              Communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
-                              Communicator.Logger);
+                              options.Socket.UdpReceiveBufferSize,
+                              options.Socket.UdpSendBufferSize,
+                              server.TransportLogger);
 
                 var addr = new IPEndPoint(Address, Port);
                 IPEndPoint? multicastAddress = null;
@@ -93,16 +94,9 @@ namespace IceRpc
                 }
 
                 var endpoint = Clone(port);
-                var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, multicastAddress);
-                var multiStreamSocket = new Ice1NetworkSocket(
-                    endpoint,
-                    Communicator.TransportLogger,
-                    server.IncomingFrameMaxSize,
-                    isIncoming: true,
-                    udpSocket,
-                    server.BidirectionalStreamMaxCount,
-                    server.UnidirectionalStreamMaxCount);
-                return new UdpConnection(endpoint, multiStreamSocket, label: null, server);
+                var udpSocket = new UdpSocket(server.TransportLogger, socket, multicastAddress);
+                var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options);
+                return new UdpConnection(endpoint, multiStreamSocket, options, server);
             }
             catch (SocketException ex)
             {
@@ -187,8 +181,8 @@ namespace IceRpc
             }
         }
 
-        protected internal override Connection CreateConnection(
-            object? label,
+        protected internal override async Task<Connection> ConnectAsync(
+            ClientConnectionOptions options,
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
@@ -213,11 +207,10 @@ namespace IceRpc
                     }
                 }
 
-                // TODO: Where will set UDP buffer size options when we get rid of the communicator?
                 SetBufferSize(socket,
-                              Communicator.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? 0,
-                              Communicator.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? 0,
-                              Communicator.Logger);
+                              options.Socket.UdpReceiveBufferSize,
+                              options.Socket.UdpSendBufferSize,
+                              options.TransportLogger!);
             }
             catch (SocketException ex)
             {
@@ -225,14 +218,11 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.NoRetry);
             }
 
-            var udpSocket = new UdpSocket(Communicator.TransportLogger, socket, endpoint);
-            var multiStreamSocket = new Ice1NetworkSocket(
-                this,
-                Communicator.TransportLogger,
-                Communicator.IncomingFrameMaxSize,
-                isIncoming: false,
-                udpSocket);
-            return new UdpConnection(this, multiStreamSocket, label, server: null);
+            var udpSocket = new UdpSocket(options.TransportLogger!, socket, endpoint);
+            var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options);
+            var connection = new UdpConnection(this, multiStreamSocket, options, server: null);
+            await connection.Socket.ConnectAsync(null, cancel).ConfigureAwait(false);
+            return connection;
         }
 
         protected internal override void WriteOptions11(OutputStream ostr)
@@ -242,14 +232,14 @@ namespace IceRpc
             ostr.WriteBool(_hasCompressionFlag);
         }
 
-        internal static UdpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+        internal static UdpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Length > 0)
             {
                 // Drop all options since we don't understand any.
                 data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
             }
-            return new(data, communicator, protocol);
+            return new(data, protocol);
         }
 
         internal static UdpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
@@ -259,14 +249,12 @@ namespace IceRpc
                                                     host: istr.ReadString(),
                                                     port: ReadPort(istr),
                                                     Array.Empty<string>()),
-                                   compress: istr.ReadBool(),
-                                   istr.Communicator!);
+                                   compress: istr.ReadBool());
         }
 
         internal static UdpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
         {
@@ -327,19 +315,18 @@ namespace IceRpc
                                    ttl,
                                    multicastInterface,
                                    options,
-                                   communicator,
                                    serverEndpoint,
                                    endpointString);
         }
 
         // Constructor for ice1 unmarshaling
-        private UdpEndpoint(EndpointData data, bool compress, Communicator communicator)
-            : base(data, communicator, Protocol.Ice1) =>
+        private UdpEndpoint(EndpointData data, bool compress)
+            : base(data, Protocol.Ice1) =>
             _hasCompressionFlag = compress;
 
         // Constructor for unmarshaling with the 2.0 encoding.
-        private UdpEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private UdpEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
         }
 
@@ -350,10 +337,9 @@ namespace IceRpc
             int ttl,
             string? multicastInterface,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, serverEndpoint, endpointString)
+            : base(data, options, serverEndpoint, endpointString)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

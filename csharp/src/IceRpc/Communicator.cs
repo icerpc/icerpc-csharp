@@ -22,10 +22,8 @@ namespace IceRpc
     /// </summary>
     public sealed partial class Communicator : IAsyncDisposable
     {
-        /// <summary>The connection close timeout.</summary>
-        public TimeSpan CloseTimeout { get; }
-        /// <summary>The connection establishment timeout.</summary>
-        public TimeSpan ConnectTimeout { get; }
+        /// <summary>The connection options.</summary>
+        public ClientConnectionOptions ConnectionOptions;
 
         /// <summary>Each time you send a request without an explicit context parameter, Ice sends automatically the
         /// per-thread CurrentContext combined with the proxy's context.</summary>
@@ -109,7 +107,6 @@ namespace IceRpc
         /// <see cref="IceRpc.Interop.ToStringMode"/>.</summary>
         public ToStringMode ToStringMode { get; }
 
-        // The communicator's cancellation token is notified of cancellation when the communicator is destroyed.
         internal CancellationToken CancellationToken
         {
             get
@@ -124,40 +121,20 @@ namespace IceRpc
                 }
             }
         }
-
         internal int ClassGraphMaxDepth { get; }
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
-
-        internal TimeSpan IdleTimeout { get; }
-        internal int IncomingFrameMaxSize { get; }
-        internal bool IsDisposed => _shutdownTask != null;
-        internal bool KeepAlive { get; }
-
-        /// <summary>The default logger for this communicator.</summary>
-        internal ILogger Logger { get; }
-
-        // TODO: should pass the factory and create a logger per locator client
-        internal ILogger LocatorClientLogger { get; }
-        internal ILoggerFactory LoggerFactory { get; }
-        // TODO: Allow configuring stream max count through options
-        internal int BidirectionalStreamMaxCount { get; } = 100;
-        internal int UnidirectionalStreamMaxCount { get; } = 100;
-        internal int SlicPacketMaxSize { get; }
-        internal int SlicStreamBufferMaxSize { get; }
-
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
-        internal ILogger ProtocolLogger { get; }
+        internal bool IsDisposed => _shutdownTask != null;
+        // TODO: should pass the factory and create a logger per locator client
+        internal ILogger LocatorClientLogger { get; }
+        /// <summary>The default logger for this communicator.</summary>
+        internal ILogger Logger { get; }
+        internal ILoggerFactory LoggerFactory { get; }
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
-        internal ILogger SecurityLogger { get; }
-        internal SslClientAuthenticationOptions? AuthenticationOptions { get; }
-        internal ILogger TransportLogger { get; }
-        internal bool WarnConnections { get; }
-        internal bool WarnDatagrams { get; }
-        internal bool WarnUnknownProperties { get; }
 
         private static string[] _emptyArgs = Array.Empty<string>();
 
@@ -167,7 +144,7 @@ namespace IceRpc
 
         private static bool _printProcessIdDone;
 
-        private static readonly object _staticMutex = new object();
+        private static readonly object _staticMutex = new();
         private readonly bool _backgroundLocatorCacheUpdates;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
@@ -180,7 +157,7 @@ namespace IceRpc
         private volatile ILocationResolver? _defaultLocationResolver;
         private Task? _shutdownTask;
 
-        private readonly object _mutex = new object();
+        private readonly object _mutex = new();
 
         private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
@@ -273,9 +250,11 @@ namespace IceRpc
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
             LocatorClientLogger = LoggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
-            TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
-            ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
-            SecurityLogger = LoggerFactory.CreateLogger("IceRpc.Security");
+
+            ConnectionOptions = new();
+            ConnectionOptions.TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
+            ConnectionOptions.ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
+
             Observer = observer;
 
             // clone properties as we don't want to modify the properties given to this constructor
@@ -349,43 +328,48 @@ namespace IceRpc
                 }
             }
 
-            CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
-            if (CloseTimeout == TimeSpan.Zero)
+            ConnectionOptions.CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
+            if (ConnectionOptions.CloseTimeout == TimeSpan.Zero)
             {
                 throw new InvalidConfigurationException("0 is not a valid value for Ice.CloseTimeout");
             }
 
-            ConnectTimeout = this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? TimeSpan.FromSeconds(10);
-            if (ConnectTimeout == TimeSpan.Zero)
+            ConnectionOptions.ConnectTimeout = this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? TimeSpan.FromSeconds(10);
+            if (ConnectionOptions.ConnectTimeout == TimeSpan.Zero)
             {
                 throw new InvalidConfigurationException("0 is not a valid value for Ice.ConnectTimeout");
             }
 
-            IdleTimeout = this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? TimeSpan.FromSeconds(60);
-            if (IdleTimeout == TimeSpan.Zero)
+            ConnectionOptions.IdleTimeout = this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? TimeSpan.FromSeconds(60);
+            if (ConnectionOptions.IdleTimeout == TimeSpan.Zero)
             {
                 throw new InvalidConfigurationException("0 is not a valid value for Ice.IdleTimeout");
             }
 
-            KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
+            ConnectionOptions.KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
 
-            SlicPacketMaxSize = this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? 32 * 1024;
-            if (SlicPacketMaxSize < 1024)
+            ConnectionOptions.Socket.UdpReceiveBufferSize = this.GetPropertyAsByteSize($"Ice.Udp.RcvSize");
+            ConnectionOptions.Socket.UdpSendBufferSize = this.GetPropertyAsByteSize($"Ice.Udp.SndSize");
+            ConnectionOptions.Socket.TcpReceiveBufferSize = this.GetPropertyAsByteSize($"Ice.Tcp.RcvSize");
+            ConnectionOptions.Socket.TcpSendBufferSize = this.GetPropertyAsByteSize($"Ice.Tcp.SndSize");
+
+            ConnectionOptions.Slic.PacketMaxSize = this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? 32 * 1024;
+            if (ConnectionOptions.Slic.PacketMaxSize < 1024)
             {
                 throw new InvalidConfigurationException("Ice.Slic.PacketMaxSize can't be inferior to 1KB");
             }
 
-            SlicStreamBufferMaxSize =
-                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * SlicPacketMaxSize;
-            if (SlicStreamBufferMaxSize < SlicPacketMaxSize)
+            ConnectionOptions.Slic.StreamBufferMaxSize =
+                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * ConnectionOptions.Slic.PacketMaxSize;
+            if (ConnectionOptions.Slic.StreamBufferMaxSize < ConnectionOptions.Slic.PacketMaxSize)
             {
                 throw new InvalidConfigurationException(
                     "Ice.Slic.StreamBufferMaxSize can't be inferior to Ice.Slic.PacketMaxSize");
             }
 
             int frameMaxSize = this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? 1024 * 1024;
-            IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
-            if (IncomingFrameMaxSize < 1024)
+            ConnectionOptions.IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
+            if (ConnectionOptions.IncomingFrameMaxSize < 1024)
             {
                 throw new InvalidConfigurationException("Ice.IncomingFrameMaxSize can't be inferior to 1KB");
             }
@@ -413,7 +397,7 @@ namespace IceRpc
 
             if (authenticationOptions != null)
             {
-                AuthenticationOptions = new SslClientAuthenticationOptions()
+                ConnectionOptions.Authentication = new SslClientAuthenticationOptions()
                 {
                     AllowRenegotiation = authenticationOptions.AllowRenegotiation,
                     ApplicationProtocols = authenticationOptions.ApplicationProtocols,

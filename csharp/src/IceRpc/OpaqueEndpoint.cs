@@ -101,8 +101,7 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            ClientConnectionOptions options,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an opaque endpoint");
 
@@ -112,17 +111,10 @@ namespace IceRpc
         internal static OpaqueEndpoint Create(
             Transport transport,
             Encoding valueEncoding,
-            ReadOnlyMemory<byte> value,
-            Communicator communicator) =>
-            new OpaqueEndpoint(new EndpointData(transport, host: "", port: 0, Array.Empty<string>()),
-                               valueEncoding,
-                               value,
-                               communicator);
+            ReadOnlyMemory<byte> value) =>
+            new(new EndpointData(transport, host: "", port: 0, Array.Empty<string>()), valueEncoding, value);
 
-        internal static OpaqueEndpoint Parse(
-            Dictionary<string, string?> options,
-            Communicator communicator,
-            string endpointString)
+        internal static OpaqueEndpoint Parse(Dictionary<string, string?> options, string endpointString)
         {
             Transport transport;
 
@@ -205,15 +197,14 @@ namespace IceRpc
                 throw new FormatException($"no -v option in endpoint `{endpointString}'");
             }
 
-            return Create(transport, valueEncoding, value, communicator);
+            return Create(transport, valueEncoding, value);
         }
 
         private OpaqueEndpoint(
             EndpointData data,
             Encoding valueEncoding,
-            ReadOnlyMemory<byte> value,
-            Communicator communicator)
-            : base(data, communicator, Protocol.Ice1)
+            ReadOnlyMemory<byte> value)
+            : base(data, Protocol.Ice1)
         {
             ValueEncoding = valueEncoding;
             Value = value;

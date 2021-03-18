@@ -10,6 +10,18 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    internal sealed class ColocatedInitializeOptions
+    {
+        internal int BidirectionalStreamMaxCount { get; }
+        internal int UnidirectionalStreamMaxCount { get; }
+
+        internal ColocatedInitializeOptions(int bidirectionalStreamMaxCount, int unidirectionalStreamMaxCount)
+        {
+            BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+        }
+    }
+
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
     internal class ColocatedSocket : MultiStreamSocket
     {
@@ -20,14 +32,16 @@ namespace IceRpc
         }
 
         static private readonly object _pingFrame = new();
-        private readonly AsyncSemaphore _bidirectionalStreamSemaphore;
+        private readonly int _bidirectionalStreamMaxCount;
+        private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly long _id;
         private readonly object _mutex = new();
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
         private readonly ChannelReader<(long, object?, bool)> _reader;
-        private readonly AsyncSemaphore _unidirectionalStreamSemaphore;
+        private readonly int _unidirectionalStreamMaxCount;
+        private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ChannelWriter<(long, object?, bool)> _writer;
 
         public override void Abort() => _writer.TryComplete();
@@ -120,12 +134,15 @@ namespace IceRpc
             // disposed.
             try
             {
-                await _writer.WriteAsync((-1, _unidirectionalStreamSemaphore, false), cancel).ConfigureAwait(false);
-                (_, object? semaphore, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                await _writer.WriteAsync((-1, this, false), cancel).ConfigureAwait(false);
+                (_, object? peer, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                // Get the peer's unidirectional semaphore and keep track of it to be able to release it once an
-                // unidirectional stream is disposed.
-                _peerUnidirectionalStreamSemaphore = (AsyncSemaphore?)semaphore;
+                var peerSocket = (ColocatedSocket)peer!;
+
+                // We're responsible for creating the peer's semaphores with our configured stream max count.
+                peerSocket._bidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount);
+                peerSocket._unidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount);
+                _peerUnidirectionalStreamSemaphore = peerSocket._unidirectionalStreamSemaphore;
             }
             catch (Exception exception)
             {
@@ -151,28 +168,19 @@ namespace IceRpc
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
-            ILogger logger,
-            int incomingFrameMaxSize,
-            bool isIncoming,
             long id,
             ChannelWriter<(long, object?, bool)> writer,
-            ChannelReader<(long, object?, bool)> reader)
-            : base(endpoint, logger, incomingFrameMaxSize, isIncoming)
+            ChannelReader<(long, object?, bool)> reader,
+            ConnectionOptions options)
+            : base(endpoint, options)
         {
+
             _id = id;
             _writer = writer;
             _reader = reader;
 
-            if (isIncoming)
-            {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Communicator.BidirectionalStreamMaxCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Communicator.UnidirectionalStreamMaxCount);
-            }
-            else
-            {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.BidirectionalStreamMaxCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(endpoint.Server.UnidirectionalStreamMaxCount);
-            }
+            _bidirectionalStreamMaxCount = options.Socket.BidirectionalStreamMaxCount;
+            _unidirectionalStreamMaxCount = options.Socket.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)
@@ -193,8 +201,8 @@ namespace IceRpc
 
             // Unblock requests waiting on the semaphores.
             var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
-            _bidirectionalStreamSemaphore.Complete(ex);
-            _unidirectionalStreamSemaphore.Complete(ex);
+            _bidirectionalStreamSemaphore!.Complete(ex);
+            _unidirectionalStreamSemaphore!.Complete(ex);
 
             return streamIds;
         }
@@ -246,7 +254,7 @@ namespace IceRpc
                     // allows. The wait is done on the client side to ensure the sent callback for the request
                     // isn't called until the server is ready to dispatch a new request.
                     AsyncSemaphore semaphore = stream.IsBidirectional ?
-                        _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
+                        _bidirectionalStreamSemaphore! : _unidirectionalStreamSemaphore!;
                     await semaphore.EnterAsync(cancel).ConfigureAwait(false);
                 }
 
@@ -286,15 +294,9 @@ namespace IceRpc
         internal override IDisposable? StartScope()
         {
             // If any of the loggers is enabled we create the scope
-            if (Logger.IsEnabled(LogLevel.Critical) ||
-                Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Critical) ||
-                Endpoint.Communicator.SecurityLogger.IsEnabled(LogLevel.Critical) ||
-                Endpoint.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Critical) ||
-                Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
+            if (TransportLogger.IsEnabled(LogLevel.Critical))
             {
-                return Endpoint.Communicator.Logger.StartColocatedSocketScope(
-                    _id,
-                    ((ColocatedEndpoint)Endpoint).Server.Name);
+                return TransportLogger.StartColocatedSocketScope(_id, ((ColocatedEndpoint)Endpoint).Server.Name);
             }
             return null;
         }

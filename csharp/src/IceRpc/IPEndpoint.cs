@@ -104,34 +104,6 @@ namespace IceRpc
             }
         }
 
-        protected internal override async Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
-            CancellationToken cancel)
-        {
-            SslClientAuthenticationOptions? authenticationOptions = null;
-            if(preferNonSecure switch
-            {
-                NonSecure.SameHost => true,    // TODO check if Host is the same host
-                NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
-                NonSecure.Always => false,
-                _ => true
-            })
-            {
-                authenticationOptions = Communicator.AuthenticationOptions ?? new SslClientAuthenticationOptions()
-                {
-                    TargetHost = Host
-                };
-            }
-
-            Connection connection = CreateConnection(label, cancel);
-            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            Debug.Assert(connection.CanTrust(preferNonSecure));
-            return connection;
-        }
-
-        protected internal abstract Connection CreateConnection(object? label, CancellationToken cancel);
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
@@ -305,25 +277,25 @@ namespace IceRpc
         }
 
         // Constructor for ice1/ice2 unmarshaling.
-        private protected IPEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private protected IPEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
             if (data.Host.Length == 0)
             {
                 throw new InvalidDataException("endpoint host is empty");
             }
 
-            SourceAddress = communicator.DefaultSourceAddress;
+            // TODO: Add back support for default source address?
+            //SourceAddress = communicator.DefaultSourceAddress;
         }
 
         // Constructor for ice1 endpoint parsing.
         private protected IPEndpoint(
             EndpointData data,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
-            : base(data, communicator, Protocol.Ice1)
+            : base(data, Protocol.Ice1)
         {
             if (options.TryGetValue("--sourceAddress", out string? argument))
             {
@@ -350,7 +322,8 @@ namespace IceRpc
             }
             else if (!serverEndpoint)
             {
-                SourceAddress = Communicator.DefaultSourceAddress;
+                // TODO: Add back support for default source address?
+                //SourceAddress = Communicator.DefaultSourceAddress;
             }
             // else SourceAddress remains null
 
@@ -375,9 +348,8 @@ namespace IceRpc
         private protected IPEndpoint(
             EndpointData data,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
-            : base(data, communicator, Protocol.Ice2)
+            : base(data, Protocol.Ice2)
         {
             if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
                 (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
@@ -403,16 +375,15 @@ namespace IceRpc
                 }
                 else
                 {
-                    SourceAddress = Communicator.DefaultSourceAddress;
+                    // TODO: Add back support for default source address?
+                    //SourceAddress = Communicator.DefaultSourceAddress;
                 }
             }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
-                   endpoint.Communicator,
-                   endpoint.Protocol)
+            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
         {
             SourceAddress = endpoint.SourceAddress;
             IsIPv6Only = endpoint.IsIPv6Only;
@@ -421,31 +392,31 @@ namespace IceRpc
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);
 
-        private protected void SetBufferSize(Socket socket, int receiveSize, int sendSize, ILogger logger)
+        private protected void SetBufferSize(Socket socket, int? receiveSize, int? sendSize, ILogger logger)
         {
             try
             {
-                if (receiveSize > 0)
+                if (receiveSize != null)
                 {
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
-                    socket.ReceiveBufferSize = receiveSize;
+                    socket.ReceiveBufferSize = receiveSize.Value;
                     int adjustedSize = socket.ReceiveBufferSize;
                     if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize, adjustedSize);
+                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, adjustedSize);
                     }
                 }
 
-                if (sendSize > 0)
+                if (sendSize != null)
                 {
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
-                    socket.SendBufferSize = sendSize;
+                    socket.SendBufferSize = sendSize.Value;
                     int adjustedSize = socket.SendBufferSize;
                     if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogSendBufferSizeAdjusted(Transport, sendSize, adjustedSize);
+                        logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, adjustedSize);
                     }
                 }
             }

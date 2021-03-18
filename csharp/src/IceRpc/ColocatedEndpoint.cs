@@ -41,8 +41,7 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            ClientConnectionOptions options,
             CancellationToken cancel)
         {
             var readerOptions = new UnboundedChannelOptions
@@ -70,15 +69,8 @@ namespace IceRpc
 
             return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
-                new ColocatedSocket(
-                    this,
-                    Communicator.TransportLogger,
-                    Communicator.IncomingFrameMaxSize,
-                    isIncoming: false,
-                    id,
-                    reader.Writer,
-                    writer.Reader),
-                label,
+                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options),
+                options,
                 server: null));
         }
 
@@ -87,7 +79,6 @@ namespace IceRpc
 
         internal ColocatedEndpoint(Server server)
             : base(new EndpointData(Transport.Colocated, host: server.Name, port: 0, Array.Empty<string>()),
-                   server.Communicator,
                    server.Protocol)
         {
             Server = server;

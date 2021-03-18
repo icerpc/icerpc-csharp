@@ -202,9 +202,8 @@ namespace IceRpc
                                                uri.DnsSafeHost,
                                                port,
                                                options,
-                                               communicator,
                                                serverEndpoint) ??
-                UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, communicator, protocol);
+                UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, protocol);
 
             if (options.Count > 0)
             {

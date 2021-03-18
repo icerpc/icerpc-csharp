@@ -239,15 +239,15 @@ namespace IceRpc
                 throw new InvalidDataException($"expected end of stream after GoAway frame");
             }
 
-            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+            if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_socket.Endpoint.Protocol == Protocol.Ice2)
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce2GoAwayFrame();
+                    _socket.ProtocolLogger.LogReceivedIce2GoAwayFrame();
                 }
                 else
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce1CloseConnectionFrame();
+                    _socket.ProtocolLogger.LogReceivedIce1CloseConnectionFrame();
                 }
             }
 
@@ -280,15 +280,15 @@ namespace IceRpc
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
             }
 
-            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+            if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_socket.Endpoint.Protocol == Protocol.Ice1)
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce1ValidateConnectionFrame();
+                    _socket.ProtocolLogger.LogReceivedIce1ValidateConnectionFrame();
                 }
                 else
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogReceivedIce2InitializeFrame();
+                    _socket.ProtocolLogger.LogReceivedIce2InitializeFrame();
                 }
             }
 
@@ -400,9 +400,9 @@ namespace IceRpc
             {
                 await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce1CloseConnectionFrame();
+                    _socket.ProtocolLogger.LogSendingIce1CloseConnectionFrame();
                 }
             }
             else
@@ -426,9 +426,9 @@ namespace IceRpc
 
                 await SendAsync(data, true, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce2GoAwayFrame();
+                    _socket.ProtocolLogger.LogSendingIce2GoAwayFrame();
                 }
             }
         }
@@ -439,9 +439,9 @@ namespace IceRpc
             {
                 await SendAsync(Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendIce1ValidateConnectionFrame();
+                    _socket.ProtocolLogger.LogSendIce1ValidateConnectionFrame();
                 }
             }
             else
@@ -470,9 +470,9 @@ namespace IceRpc
 
                 await SendAsync(data, false, cancel).ConfigureAwait(false);
 
-                if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                if (_socket.ProtocolLogger.IsEnabled(LogLevel.Debug))
                 {
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingIce2InitializeFrame();
+                    _socket.ProtocolLogger.LogSendingIce2InitializeFrame();
                 }
             }
         }
@@ -513,9 +513,9 @@ namespace IceRpc
 
         internal IDisposable? StartScope()
         {
-            if (_socket.Endpoint.Communicator.Logger.IsEnabled(LogLevel.Critical))
+            if (_socket.TransportLogger.IsEnabled(LogLevel.Critical))
             {
-                return _socket.Endpoint.Communicator.Logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                return _socket.TransportLogger.StartStreamScope(_socket.Endpoint.Protocol, Id);
             }
             return null;
         }
@@ -606,18 +606,18 @@ namespace IceRpc
 
             await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
 
-            if (_socket.Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
+            if (_socket.ProtocolLogger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
                     // TODO: create the scope when the stream is started rather than after the request creation.
                     using var scope = StartScope();
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingRequest(request);
+                    _socket.ProtocolLogger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    _socket.Endpoint.Communicator.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
+                    _socket.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
         }

@@ -62,7 +62,11 @@ namespace IceRpc
 
             if (ResultType == ResultType.Success)
             {
-                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, proxy: proxy);
+                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(
+                    Protocol.GetEncoding(),
+                    reader,
+                    communicator: proxy.Communicator,
+                    proxy: proxy);
             }
             else
             {
@@ -94,6 +98,7 @@ namespace IceRpc
 
                 var istr = new InputStream(Payload.AsReadOnlyMemory(1),
                                            Protocol.GetEncoding(),
+                                           proxy.Communicator,
                                            sourceProxy: proxy.Impl,
                                            startEncapsulation: true);
                 T value = reader(istr, SocketStream);
@@ -294,6 +299,7 @@ namespace IceRpc
             {
                 istr = new InputStream(Payload.Slice(1),
                                        Protocol.GetEncoding(),
+                                       communicator: proxy.Communicator,
                                        sourceProxy: proxy.Impl,
                                        startEncapsulation: true);
 

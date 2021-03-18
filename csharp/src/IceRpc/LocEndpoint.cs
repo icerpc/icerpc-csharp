@@ -58,8 +58,7 @@ namespace IceRpc
             Debug.Assert(false);
 
         protected internal override Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            ClientConnectionOptions options,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to a loc endpoint");
 
@@ -69,7 +68,7 @@ namespace IceRpc
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
-        internal static LocEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol)
+        internal static LocEndpoint Create(EndpointData data, Protocol protocol)
         {
             // Drop all options we don't understand.
 
@@ -82,7 +81,7 @@ namespace IceRpc
             {
                 data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
             }
-            return new(data, communicator, protocol);
+            return new(data, protocol);
         }
 
         // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
@@ -96,7 +95,6 @@ namespace IceRpc
             string host,
             ushort port,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.Loc);
@@ -106,12 +104,12 @@ namespace IceRpc
                 throw new NotSupportedException("cannot create a server-side loc endpoint");
             }
 
-            return new(new EndpointData(transport, host, port, Array.Empty<string>()), communicator, Protocol.Ice2);
+            return new(new EndpointData(transport, host, port, Array.Empty<string>()), Protocol.Ice2);
         }
 
         // Constructor
-        private LocEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private LocEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
         }
     }

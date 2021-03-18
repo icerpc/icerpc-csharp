@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -31,7 +31,10 @@ namespace IceRpc
     public abstract class Connection
     {
         /// <summary>Gets the communicator.</summary>
-        public Communicator Communicator { get; }
+        // TODO: Remove this once we add Runtime and once we removed the InputStream dependency on Communicator
+        // to the endpoint, class, exception factories. It's only use for this purpose.
+        // HACK ALERT: the communicator is set after connection construction for now and until it's removed.
+        public Communicator? Communicator { get; set; }
 
         /// <summary>Gets the endpoint from which the connection was created.</summary>
         /// <value>The endpoint from which the connection was created.</value>
@@ -139,6 +142,7 @@ namespace IceRpc
         // reaches the Active state.
         private SocketStream? _controlStream;
         private EventHandler? _closed;
+        private readonly TimeSpan _closeTimeout;
         // The close task is assigned when GoAwayAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
@@ -216,22 +220,20 @@ namespace IceRpc
         internal Connection(
             Endpoint endpoint,
             MultiStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
         {
-            Communicator = endpoint.Communicator;
             Socket = socket;
-            Label = label;
+            Label = (options as ClientConnectionOptions)?.Label;
             Endpoint = endpoint;
-            KeepAlive = Communicator.KeepAlive;
+            KeepAlive = options.KeepAlive;
             IsIncoming = server != null;
+            _closeTimeout = options.CloseTimeout;
             _server = server;
             _state = ConnectionState.Initializing;
         }
 
         internal abstract bool CanTrust(NonSecure preferNonSecure);
-
-        internal void ClearServer(Server server) => Interlocked.CompareExchange(ref _server, null, server);
 
         internal SocketStream CreateStream(bool bidirectional)
         {
@@ -291,8 +293,8 @@ namespace IceRpc
 
                 try
                 {
-                    Debug.Assert(Communicator.CloseTimeout != TimeSpan.Zero);
-                    using var source = new CancellationTokenSource(Communicator.CloseTimeout);
+                    Debug.Assert(_closeTimeout != TimeSpan.Zero);
+                    using var source = new CancellationTokenSource(_closeTimeout);
                     CancellationToken cancel = source.Token;
 
                     // Write the close frame
@@ -453,7 +455,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Communicator.TransportLogger.LogConnectionCallbackException(ex);
+                    Socket.TransportLogger.LogConnectionCallbackException(ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -511,10 +513,10 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                using var requestScope = Communicator.Logger.StartRequestScope(request);
-                if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Information))
+                using var requestScope = Socket.ProtocolLogger.StartRequestScope(request);
+                if (Socket.ProtocolLogger.IsEnabled(LogLevel.Information))
                 {
-                    Communicator.ProtocolLogger.LogReceivedRequest(request);
+                    Socket.ProtocolLogger.LogReceivedRequest(request);
                 }
 
                 // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
@@ -534,8 +536,8 @@ namespace IceRpc
                     if (server.TaskScheduler != null)
                     {
                         response = await TaskRun(() => server.DispatchAsync(current, cancel),
-                                                cancel,
-                                                server.TaskScheduler).ConfigureAwait(false);
+                                                 cancel,
+                                                 server.TaskScheduler).ConfigureAwait(false);
                     }
                     else
                     {
@@ -604,10 +606,10 @@ namespace IceRpc
                 state == ConnectionState.Closed &&
                 !Endpoint.IsDatagram &&
                 ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Communicator.Logger.IsEnabled(LogLevel.Warning))
+                Socket.TransportLogger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Communicator.Logger.LogConnectionException(exception);
+                Socket.TransportLogger.LogConnectionException(exception);
             }
 
             if (state == ConnectionState.Active)
@@ -698,9 +700,9 @@ namespace IceRpc
         internal ColocatedConnection(
             Endpoint endpoint,
             ColocatedSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
-            : base(endpoint, socket, label, server)
+            : base(endpoint, socket, options, server)
         {
         }
 
@@ -747,9 +749,9 @@ namespace IceRpc
         internal IPConnection(
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
-            : base(endpoint, socket, label, server) => _socket = socket;
+            : base(endpoint, socket, options, server) => _socket = socket;
 
         internal override bool CanTrust(NonSecure preferNonSecure)
         {
@@ -802,9 +804,9 @@ namespace IceRpc
         internal TcpConnection(
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
-            : base(endpoint, socket, label, server)
+            : base(endpoint, socket, options, server)
         {
         }
     }
@@ -820,9 +822,9 @@ namespace IceRpc
         internal UdpConnection(
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
-            : base(endpoint, socket, label, server) =>
+            : base(endpoint, socket, options, server) =>
             _udpSocket = (UdpSocket)_socket.Underlying;
     }
 
@@ -837,9 +839,9 @@ namespace IceRpc
         internal WSConnection(
             Endpoint endpoint,
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server)
-            : base(endpoint, socket, label, server) =>
+            : base(endpoint, socket, options, server) =>
             _wsSocket = (WSSocket)_socket.Underlying;
     }
 }

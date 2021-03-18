@@ -973,7 +973,7 @@ namespace IceRpc
             // Connection and sourceProxy are mutually exclusive - it's either one or the other.
             Debug.Assert(connection == null || sourceProxy == null);
 
-            Communicator = communicator ?? connection?.Communicator ?? sourceProxy?.Communicator;
+            Communicator = communicator;
             Connection = connection;
             SourceProxy = sourceProxy;
 
@@ -1100,8 +1100,7 @@ namespace IceRpc
             {
                 endpoint = OpaqueEndpoint.Create(transport,
                                                  encoding,
-                                                 _buffer.Slice(Pos, size),
-                                                 Communicator);
+                                                 _buffer.Slice(Pos, size));
                 Pos += size;
             }
             else if (encoding == Encoding.V11) // i.e. all in same encoding

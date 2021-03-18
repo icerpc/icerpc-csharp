@@ -127,7 +127,6 @@ namespace IceRpc
                                                                       host: identity.Name,
                                                                       port: 0,
                                                                       options: new string[] { identity.Category}),
-                                                     server.Communicator,
                                                      protocol);
 
                 var options = new ServicePrxOptions()
@@ -160,12 +159,14 @@ namespace IceRpc
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
+        /// <param name="communicator">The communicator.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="path">The path of the service.</param>
         /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A fixed proxy.</returns>
         public static T Create<T>(
             this IProxyFactory<T> factory,
+            Communicator communicator,
             Connection connection,
             string path,
             string facet = "") where T : class, IServicePrx
@@ -176,7 +177,7 @@ namespace IceRpc
             {
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = connection.Communicator,
+                    Communicator = communicator,
                     Connection = connection,
                     Facet = facet,
                     IsOneway = connection.Endpoint.IsDatagram,
@@ -194,7 +195,7 @@ namespace IceRpc
 
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = connection.Communicator,
+                    Communicator = communicator,
                     Connection = connection,
                     Path = UriParser.NormalizePath(path),
                     Protocol = protocol
@@ -359,7 +360,6 @@ namespace IceRpc
                                              port: 0,
                                              options: adapterId.Length > 0 ?
                                                 Array.Empty<string>() : new string[] { identity.Category }),
-                            istr.Communicator!,
                             proxyData.Protocol);
 
                         endpoints = new Endpoint[] { locEndpoint };
@@ -511,7 +511,7 @@ namespace IceRpc
 
                         var options = new ServicePrxOptions()
                         {
-                            Communicator = connection.Communicator,
+                            Communicator = istr.Communicator!,
                             Connection = connection,
                             Encoding = encoding,
                             Path = path,
@@ -520,16 +520,8 @@ namespace IceRpc
 
                         return factory.Create(options);
                     }
-                    else
+                    else if(istr.SourceProxy is ServicePrx source)
                     {
-                        ServicePrx? source = istr.SourceProxy;
-
-                        if (source == null)
-                        {
-                            throw new InvalidOperationException(
-                                "cannot read a relative proxy from an InputStream created without a connection or proxy");
-                        }
-
                         if (source.Protocol != protocol)
                         {
                             throw new InvalidDataException(
@@ -539,6 +531,11 @@ namespace IceRpc
                         return factory.Clone(source,
                                              encoding: encoding,
                                              path: path);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "cannot read a relative proxy from an InputStream created without a connection or proxy");
                     }
                 }
             }

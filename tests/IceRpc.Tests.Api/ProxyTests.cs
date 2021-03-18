@@ -420,7 +420,7 @@ namespace IceRpc.Tests.Api
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
             Connection connection = await prx.GetConnectionAsync();
-            Assert.AreEqual(expected, IServicePrx.Factory.Create(connection, "fixed").ToString());
+            Assert.AreEqual(expected, IServicePrx.Factory.Create(communicator, connection, "fixed").ToString());
         }
 
         [Test]

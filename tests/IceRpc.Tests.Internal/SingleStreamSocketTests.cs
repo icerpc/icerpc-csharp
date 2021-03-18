@@ -277,6 +277,7 @@ namespace IceRpc.Tests.Internal
         {
             using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+
             using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
@@ -388,8 +389,16 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamSocket CreateClientSocket()
         {
-            Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
+            TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
+            ClientConnectionOptions options = ClientConnectionOptions;
+            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.Socket, options.TransportLogger);
+            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
+            {
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
+                _ => new SlicSocket(ClientEndpoint, socket, options)
+            };
+            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
@@ -459,8 +468,16 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamSocket CreateClientSocket()
         {
-            Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
+            TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
+            ClientConnectionOptions options = ClientConnectionOptions;
+            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.Socket, options.TransportLogger);
+            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
+            {
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
+                _ => new SlicSocket(ClientEndpoint, socket, options)
+            };
+            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }

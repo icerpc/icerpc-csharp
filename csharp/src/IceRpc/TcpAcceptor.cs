@@ -13,7 +13,6 @@ namespace IceRpc
     {
         public Endpoint Endpoint { get; }
 
-        private readonly ILogger _logger;
         private readonly Server _server;
         private readonly Socket _socket;
         private readonly IPEndPoint _addr;
@@ -24,33 +23,24 @@ namespace IceRpc
             {
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd);
+                var options = _server.ConnectionOptions;
+
+                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, options.Socket, _server.TransportLogger);
+
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
-                    Protocol.Ice1 => new Ice1NetworkSocket(
-                        Endpoint,
-                        _server.Communicator.TransportLogger,
-                        _server.IncomingFrameMaxSize,
-                        isIncoming: true,
-                        socket,
-                        _server.BidirectionalStreamMaxCount,
-                        _server.UnidirectionalStreamMaxCount),
-                    _ => new SlicSocket(
-                        Endpoint,
-                        Endpoint.Communicator.TransportLogger,
-                        _server.IncomingFrameMaxSize,
-                        isIncoming: true,
-                        socket,
-                        _server.BidirectionalStreamMaxCount,
-                        _server.UnidirectionalStreamMaxCount)
+                    Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
+                    _ => new SlicSocket(Endpoint, socket, options)
                 };
-                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, label: null, _server);
+                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Error))
+                if (_server.TransportLogger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogAcceptingConnectionFailed(Endpoint.Transport, Network.LocalAddrToString(_addr), ex);
+                    _server.TransportLogger.LogAcceptingConnectionFailed(
+                        Endpoint.Transport,
+                        Network.LocalAddrToString(_addr), ex);
                 }
                 throw;
             }
@@ -64,16 +54,15 @@ namespace IceRpc
         {
             Debug.Assert(!endpoint.HasDnsHost); // not a DNS name
 
-            _logger = server.Communicator.TransportLogger;
+            Endpoint = endpoint;
+
             _server = server;
             _addr = (IPEndPoint)socket.LocalEndPoint!;
             _socket = socket;
 
-            Endpoint = endpoint;
-
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (server.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogAcceptingConnection(Endpoint.Transport, Network.LocalAddrToString(_addr));
+                server.TransportLogger.LogAcceptingConnection(Endpoint.Transport, Network.LocalAddrToString(_addr));
             }
         }
     }

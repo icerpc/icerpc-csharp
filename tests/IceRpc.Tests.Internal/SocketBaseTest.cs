@@ -17,23 +17,24 @@ namespace IceRpc.Tests.Internal
     public class SocketBaseTest
     {
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? _clientCommunicator.AuthenticationOptions : null;
+            IsSecure ? _clientCommunicator.ConnectionOptions.Authentication : null;
+        protected ClientConnectionOptions ClientConnectionOptions => _clientCommunicator.ConnectionOptions;
         private protected Endpoint ClientEndpoint { get; }
         private protected bool IsSecure { get; }
         private protected Server Server { get; }
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? Server.AuthenticationOptions : null;
+            IsSecure ? Server.ConnectionOptions.Authentication : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        private readonly Communicator _clientCommunicator;
+        protected readonly Communicator _clientCommunicator;
 
         // Protects the _acceptor data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
-        private readonly Communicator _serverCommunicator;
+        protected readonly Communicator _serverCommunicator;
 
         public SocketBaseTest(
             Protocol protocol,
@@ -70,13 +71,16 @@ namespace IceRpc.Tests.Internal
 
             var serverOptions = new ServerOptions()
             {
-                AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
-                ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
-                AuthenticationOptions = new SslServerAuthenticationOptions()
+                Connection = new ServerConnectionOptions()
                 {
-                    ClientCertificateRequired = false,
-                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                }
+                    AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
+                    Authentication = new SslServerAuthenticationOptions()
+                    {
+                        ClientCertificateRequired = false,
+                        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                    }
+                },
+                ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
             };
             serverOptionsBuilder?.Invoke(serverOptions);
             Server = new(_serverCommunicator, serverOptions);
@@ -136,8 +140,7 @@ namespace IceRpc.Tests.Internal
                 _acceptor ??= CreateAcceptor();
             }
 
-            NonSecure nonSecure = IsSecure ? NonSecure.Never : NonSecure.Always;
-            Connection connection = await ClientEndpoint.ConnectAsync(nonSecure, null, default);
+            Connection connection = await ClientEndpoint.ConnectAsync(ClientConnectionOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks

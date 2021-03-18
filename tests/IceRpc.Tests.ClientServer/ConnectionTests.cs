@@ -85,19 +85,16 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_InvocationHeartbeat(Protocol protocol)
         {
             await using var communicator = new Communicator();
-            await using var serverCommunicator = new Communicator(
-                new Dictionary<string, string>()
-                {
-                    { "Ice.IdleTimeout", "2s" },
-                    { "Ice.KeepAlive", "0" }
-                });
+            await using var serverCommunicator = new Communicator();
 
             await using var server = new Server(
                 serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol)
+                    Endpoints = GetTestEndpoint(protocol: protocol),
+                    IdleTimeout = TimeSpan.FromSeconds(2),
+                    KeepAlive = false,
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -155,19 +152,16 @@ namespace IceRpc.Tests.ClientServer
         public async Task Connection_HeartbeatOnIdle(Protocol protocol)
         {
             await using var communicator = new Communicator();
-            await using var serverCommunicator = new Communicator(
-                new Dictionary<string, string>()
-                {
-                    { "Ice.IdleTimeout", "1s" },
-                    { "Ice.KeepAlive", "1" }
-                });
+            await using var serverCommunicator = new Communicator();
 
             await using var server = new Server(
                 serverCommunicator,
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol)
+                    Endpoints = GetTestEndpoint(protocol: protocol),
+                    IdleTimeout = TimeSpan.FromSeconds(1),
+                    KeepAlive = true
                 });
 
             server.Add("test", new ConnectionTestService());

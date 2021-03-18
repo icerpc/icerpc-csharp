@@ -778,6 +778,10 @@ namespace IceRpc
                 }
             }
 
+            var options = Communicator.ConnectionOptions.Copy();
+            options.Label = Label;
+            options.PreferNonSecure = PreferNonSecure;
+
             while (connection == null)
             {
                 if (endpoints == null)
@@ -792,10 +796,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        connection = await Communicator.ConnectAsync(endpoint,
-                                                                     PreferNonSecure,
-                                                                     Label,
-                                                                     cancel).ConfigureAwait(false);
+                        connection = await Communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
                         if (CacheConnection)
                         {
                             _connection = connection;
@@ -973,7 +974,11 @@ namespace IceRpc
                 }
             }
 
-            ILogger protocolLogger = Communicator.ProtocolLogger;
+            var connectionOptions = Communicator.ConnectionOptions.Copy();
+            connectionOptions.Label = Label;
+            connectionOptions.PreferNonSecure = PreferNonSecure;
+
+            ILogger protocolLogger = connectionOptions.ProtocolLogger!;
             int nextEndpoint = 0;
             int attempt = 1;
             bool triedAllEndpoints = false;
@@ -1009,8 +1014,7 @@ namespace IceRpc
                         }
 
                         connection = await Communicator.ConnectAsync(endpoints[nextEndpoint],
-                                                                     PreferNonSecure,
-                                                                     Label,
+                                                                     connectionOptions,
                                                                      cancel).ConfigureAwait(false);
 
                         if (CacheConnection)

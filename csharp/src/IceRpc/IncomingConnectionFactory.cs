@@ -45,9 +45,9 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_communicator.TransportLogger.IsEnabled(LogLevel.Information))
+            if (_server.TransportLogger.IsEnabled(LogLevel.Information))
             {
-                _communicator.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
+                _server.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
@@ -114,6 +114,8 @@ namespace IceRpc
                 try
                 {
                     connection = await _acceptor.AcceptAsync();
+                    // TODO: Hack, remove once we get rid of the communicator
+                    connection.Communicator = _server.Communicator;
                 }
                 catch (Exception)
                 {
@@ -151,26 +153,27 @@ namespace IceRpc
 
             async Task AcceptConnectionAsync(Connection connection)
             {
-                using var source = new CancellationTokenSource(_communicator.ConnectTimeout);
+                using var source = new CancellationTokenSource(_server.ConnectionOptions.AcceptTimeout);
                 CancellationToken cancel = source.Token;
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.Socket.AcceptAsync(_server.AuthenticationOptions, cancel).ConfigureAwait(false);
+                    await connection.Socket.AcceptAsync(
+                        _server.ConnectionOptions.Authentication,
+                        cancel).ConfigureAwait(false);
 
                     // Check if the established connection can be trusted according to the server non-secure
                     // setting.
-                    if (connection.CanTrust(_server.AcceptNonSecure))
+                    if (connection.CanTrust(_server.ConnectionOptions.AcceptNonSecure))
                     {
                         // Perform protocol level initialization
                         await connection.InitializeAsync(cancel).ConfigureAwait(false);
                     }
                     else
                     {
-                        if (connection.Communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
+                        if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
                         {
-                            connection.Communicator.SecurityLogger.LogConnectionNotTrusted(
-                                connection.Endpoint.Transport);
+                            _server.TransportLogger.LogConnectionNotTrusted(connection.Endpoint.Transport);
                         }
                         // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
@@ -191,22 +194,26 @@ namespace IceRpc
         internal override Endpoint Endpoint { get; }
 
         private readonly Connection _connection;
+        private readonly Server _server;
 
         public override string ToString() => _connection.ToString()!;
 
         internal DatagramIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
+            _server = server;
             _connection = endpoint.CreateDatagramServerConnection(server);
+            // TODO: Hack, remove once we get rid of the communicator
+            _connection.Communicator = _server.Communicator;
             Endpoint = _connection.Endpoint;
         }
 
         internal override void Activate()
         {
-            if (_connection.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_connection is IPConnection connection)
                 {
-                    _connection.Communicator.TransportLogger.LogStartReceivingDatagrams(
+                    _server.TransportLogger.LogStartReceivingDatagrams(
                         Endpoint.Transport,
                         connection.LocalEndpoint?.ToString() ?? "undefined",
                         connection.RemoteEndpoint?.ToString() ?? "undefined");
@@ -216,7 +223,6 @@ namespace IceRpc
         }
 
         internal override Task ShutdownAsync() =>
-            _connection.GoAwayAsync(
-                new ObjectDisposedException($"{typeof(Server).FullName}:{_connection.Server!.Name}"));
+            _connection.GoAwayAsync(new ObjectDisposedException($"{typeof(Server).FullName}:{_server!.Name}"));
     }
 }

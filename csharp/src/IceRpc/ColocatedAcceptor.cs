@@ -22,24 +22,20 @@ namespace IceRpc
             (long id, ColocatedChannelWriter writer, ColocatedChannelReader reader) =
                 await _reader.ReadAsync().ConfigureAwait(false);
 
+            // For the server-side connection we pass the stream max count from the client since unlike Slic there's
+            // no transport initialization to negotiate this configuration and the server-side must limit the number
+            // of streams based on the stream max count from the client-side.
             return new ColocatedConnection(
                 _endpoint,
-                new ColocatedSocket(
-                    _endpoint,
-                    _server.Communicator.TransportLogger,
-                    _server.IncomingFrameMaxSize,
-                    isIncoming: true,
-                    id,
-                    writer,
-                    reader),
-                label: null,
+                new ColocatedSocket(_endpoint, id, writer, reader, _server.ConnectionOptions),
+                _server.ConnectionOptions,
                 _server);
         }
 
         public void Dispose() => _writer.Complete();
 
         public override string ToString() =>
-            _endpoint.Server.Name.Length == 0 ? "unnamed server" : _endpoint.Server.Name;
+            _server.Name.Length == 0 ? "unnamed server" : _server.Name;
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,
