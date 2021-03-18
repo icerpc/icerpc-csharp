@@ -167,7 +167,7 @@ namespace IceRpc
 
     public partial class ServiceNotFoundException
     {
-        internal string Facet { get; init; } = "";
+        protected internal string Facet { get; init; } = "";
 
         /// <inheritdoc/>
         protected override string? DefaultMessage
@@ -200,7 +200,7 @@ namespace IceRpc
 
     public partial class OperationNotFoundException
     {
-        internal string Facet { get; init; } = "";
+        protected internal string Facet { get; init; } = "";
 
         /// <inheritdoc/>
         protected override string? DefaultMessage
