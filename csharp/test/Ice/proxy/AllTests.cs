@@ -42,7 +42,7 @@ namespace IceRpc.Test.Proxy
             {
                 try
                 {
-                    await IMyDerivedClassPrx.Factory.Clone(cl, facet: "facet").IcePingAsync();
+                    await cl.WithFacet("facet", IMyDerivedClassPrx.Factory).IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ServiceNotFoundException)
@@ -73,7 +73,7 @@ namespace IceRpc.Test.Proxy
                 output.Flush();
                 var ice2Prx = IServicePrx.Parse(
                     "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000", communicator);
-                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice2Prx);
+                var prx = IMyDerivedClassPrx.Factory.Copy(baseProxy).Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Equals(prx));
                 output.WriteLine("ok");
             }
@@ -84,7 +84,7 @@ namespace IceRpc.Test.Proxy
                 var ice1Prx = IServicePrx.Parse(
                     "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000", communicator);
 
-                var prx = IMyDerivedClassPrx.Factory.Clone(baseProxy).Echo(ice1Prx);
+                var prx = IMyDerivedClassPrx.Factory.Copy(baseProxy).Echo(ice1Prx);
                 TestHelper.Assert(ice1Prx.Equals(prx));
                 output.WriteLine("ok");
             }
@@ -126,10 +126,9 @@ namespace IceRpc.Test.Proxy
 
                     if (ice1)
                     {
-                        TestHelper.Assert(IServicePrx.Factory.Clone(
-                            cl,
-                            facet: "facet",
-                            fixedConnection: connection2).Facet == "facet");
+                        TestHelper.Assert(
+                            cl.WithFacet("facet", IServicePrx.Factory).Clone(fixedConnection: connection2).GetFacet() ==
+                            "facet");
                     }
                     TestHelper.Assert(cl.Clone(oneway: true, fixedConnection: connection2).IsOneway);
                     var ctx = new Dictionary<string, string>

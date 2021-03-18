@@ -251,7 +251,7 @@ namespace IceRpc
             _dispatchPipeline = async (current, cancel) =>
             {
                 Debug.Assert(current.Server == this);
-                IService? service = Find(current.Path, current.Facet);
+                IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
                 if (service == null)
                 {
                     throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
@@ -320,7 +320,15 @@ namespace IceRpc
                 }
                 _serviceMap.Add((path, facet), service);
             }
-            return proxyFactory.Create(this, path, facet);
+
+            if (facet.Length > 0)
+            {
+                return proxyFactory.Create(this, path).WithFacet(facet, proxyFactory);
+            }
+            else
+            {
+                return proxyFactory.Create(this, path);
+            }
         }
 
         public T Add<T>(

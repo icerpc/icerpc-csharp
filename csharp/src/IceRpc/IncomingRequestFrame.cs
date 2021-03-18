@@ -25,12 +25,6 @@ namespace IceRpc
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        public string Facet { get; } = "";
-
-        /// <summary>The identity of the target service. ice1 only.</summary>
-        public Identity Identity { get; } = Identity.Empty;
-
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
 
@@ -45,6 +39,12 @@ namespace IceRpc
 
         /// <summary>The priority of this request.</summary>
         public Priority Priority { get; }
+
+        /// <summary>The facet of the target service. ice1 only.</summary>
+        internal string Facet { get; } = "";
+
+        /// <summary>The identity of the target service. ice1 only.</summary>
+        internal Identity Identity { get; } = Identity.Empty;
 
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.

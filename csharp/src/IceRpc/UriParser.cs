@@ -13,7 +13,7 @@ namespace IceRpc
     internal static class UriParser
     {
         /// <summary>The proxy options parsed by the UriParser.</summary>
-        internal struct ProxyOptions
+        private struct ParsedOptions
         {
             internal bool? CacheConnection;
 
@@ -21,26 +21,12 @@ namespace IceRpc
 
             internal Encoding? Encoding;
             internal TimeSpan? InvocationTimeout;
+
+            internal bool? IsOneway;
             internal object? Label;
             internal bool? PreferExistingConnection;
             internal NonSecure? PreferNonSecure;
             internal Protocol? Protocol;
-
-            internal void Deconstruct(
-                out bool? cacheConnection,
-                out IReadOnlyDictionary<string, string>? context,
-                out TimeSpan? invocationTimeout,
-                out object? label,
-                out bool? preferExistingConnection,
-                out NonSecure? preferNonSecure)
-            {
-                cacheConnection = CacheConnection;
-                context = Context?.ToImmutableSortedDictionary();
-                invocationTimeout = InvocationTimeout;
-                label = Label;
-                preferExistingConnection = PreferExistingConnection;
-                preferNonSecure = PreferNonSecure;
-            }
         }
 
         // Common options for the generic URI parsers registered for the ice and ice+transport schemes.
@@ -112,16 +98,30 @@ namespace IceRpc
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
-        /// <returns>The components of the proxy.</returns>
-        internal static (IReadOnlyList<Endpoint> Endpoints, string Path, ProxyOptions ProxyOptions) ParseProxy(
-            string uriString,
-            Communicator communicator)
+        /// <returns>A service proxy options instance.</returns>
+        internal static ServicePrxOptions ParseProxy(string uriString, Communicator communicator)
         {
-            (Uri uri, IReadOnlyList<Endpoint> endpoints, ProxyOptions proxyOptions) =
+            (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
-            return (endpoints, uri.AbsolutePath, proxyOptions);
+
+            return new()
+            {
+                CacheConnection = parsedOptions.CacheConnection ?? true,
+                Communicator = communicator,
+                Context = parsedOptions.Context?.ToImmutableSortedDictionary(),
+                Encoding = parsedOptions.Encoding ?? Encoding.V20,
+                Endpoints = endpoints,
+                InvocationTimeoutOverride = parsedOptions.InvocationTimeout,
+                IsOneway = parsedOptions.IsOneway ?? false,
+                Label = parsedOptions.Label,
+                LocationResolver = communicator.DefaultLocationResolver,
+                Path = uri.AbsolutePath,
+                PreferExistingConnectionOverride = parsedOptions.PreferExistingConnection,
+                PreferNonSecureOverride = parsedOptions.PreferNonSecure,
+                Protocol = parsedOptions.Protocol ?? Protocol.Ice2
+            };
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
@@ -220,7 +220,7 @@ namespace IceRpc
         /// <param name="endpointOptions">A dictionary that accepts the parsed endpoint options. Set to null when
         /// parsing an ice URI (and in this case pureEndpoints must be false).</param>
         /// <returns>The parsed URI, the alt-endpoint option (if set) and the ProxyOptions struct.</returns>
-        private static (Uri Uri, string? AltEndpoint, ProxyOptions ProxyOptions) InitialParse(
+        private static (Uri Uri, string? AltEndpoint, ParsedOptions ProxyOptions) InitialParse(
             string uriString,
             bool pureEndpoints,
             Dictionary<string, string>? endpointOptions)
@@ -260,7 +260,7 @@ namespace IceRpc
             string[] nvPairs = uri.Query.Length >= 2 ? uri.Query.TrimStart('?').Split('&') : Array.Empty<string>();
 
             string? altEndpoint = null;
-            ProxyOptions proxyOptions = default;
+            ParsedOptions proxyOptions = default;
 
             foreach (string p in nvPairs)
             {
@@ -318,6 +318,11 @@ namespace IceRpc
                 {
                     CheckProxyOption(name, proxyOptions.Label != null);
                     proxyOptions.Label = value;
+                }
+                else if (name == "oneway")
+                {
+                    CheckProxyOption(name, proxyOptions.IsOneway != null);
+                    proxyOptions.IsOneway = bool.Parse(value);
                 }
                 else if (name == "prefer-existing-connection")
                 {
@@ -389,7 +394,7 @@ namespace IceRpc
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
-        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ProxyOptions ProxyOptions) Parse(
+        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ProxyOptions) Parse(
             string uriString,
             bool serverEndpoints,
             Communicator communicator)
@@ -406,7 +411,7 @@ namespace IceRpc
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
-                (Uri uri, string? altEndpoint, ProxyOptions proxyOptions) =
+                (Uri uri, string? altEndpoint, ParsedOptions proxyOptions) =
                     InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
 
                 if (serverEndpoints && !IPAddress.TryParse(uri.Host, out IPAddress? address))

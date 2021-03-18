@@ -27,12 +27,6 @@ namespace IceRpc
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        public string Facet { get; } = "";
-
-        /// <summary>The identity of the target service. ice1 only.</summary>
-        public Identity Identity { get; }
-
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -59,6 +53,12 @@ namespace IceRpc
                 return _writableContext;
             }
         }
+
+        /// <summary>The facet of the target service. ice1 only.</summary>
+        internal string Facet { get; } = "";
+
+        /// <summary>The identity of the target service. ice1 only.</summary>
+        internal Identity Identity { get; }
 
         private SortedDictionary<string, string>? _writableContext;
         private readonly IReadOnlyDictionary<string, string> _initialContext;
@@ -354,8 +354,8 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                Facet = proxy.Facet;
-                Identity = proxy.Identity;
+                Facet = proxy.Impl.Facet;
+                Identity = proxy.Impl.Identity;
             }
 
             IsIdempotent = idempotent;
