@@ -1,10 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
+using System.Net.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -106,15 +109,23 @@ namespace IceRpc
             object? label,
             CancellationToken cancel)
         {
-            bool secureOnly = preferNonSecure switch
+            SslClientAuthenticationOptions? authenticationOptions = null;
+            if(preferNonSecure switch
             {
                 NonSecure.SameHost => true,    // TODO check if Host is the same host
                 NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
                 NonSecure.Always => false,
                 _ => true
-            };
+            })
+            {
+                authenticationOptions = Communicator.AuthenticationOptions ?? new SslClientAuthenticationOptions()
+                {
+                    TargetHost = Host
+                };
+            }
+
             Connection connection = CreateConnection(label, cancel);
-            await connection.Socket.ConnectAsync(secureOnly, cancel).ConfigureAwait(false);
+            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
             Debug.Assert(connection.CanTrust(preferNonSecure));
             return connection;
         }
@@ -409,5 +420,40 @@ namespace IceRpc
 
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);
+
+        private protected void SetBufferSize(Socket socket, int receiveSize, int sendSize, ILogger logger)
+        {
+            try
+            {
+                if (receiveSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    socket.ReceiveBufferSize = receiveSize;
+                    int adjustedSize = socket.ReceiveBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize, adjustedSize);
+                    }
+                }
+
+                if (sendSize > 0)
+                {
+                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                    // read the size back to get the size that was actually set.
+                    socket.SendBufferSize = sendSize;
+                    int adjustedSize = socket.SendBufferSize;
+                    if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogSendBufferSizeAdjusted(Transport, sendSize, adjustedSize);
+                    }
+                }
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+        }
     }
 }

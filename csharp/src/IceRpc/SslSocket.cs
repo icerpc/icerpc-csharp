@@ -18,27 +18,59 @@ namespace IceRpc
         public override Socket? Socket => _underlying.Socket;
         public override SslStream? SslStream => _sslStream;
 
-        private readonly Communicator _communicator;
-        private readonly Server? _server;
         private SslStream? _sslStream;
         private BufferedStream? _writeStream;
         private readonly SingleStreamSocket _underlying;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel)
         {
-            // The endpoint host is only use for client-side authentication.
-            Debug.Assert(_server != null);
-            await AuthenticateAsync(host: null, cancel).ConfigureAwait(false);
+            if (authenticationOptions == null)
+            {
+                throw new InvalidOperationException("cannot accept TLS connection: no TLS authentication configured");
+            }
+            await AuthenticateAsync(async (SslStream sslStream) =>
+            {
+                await sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel).ConfigureAwait(false);
+            }).ConfigureAwait(false);
             return this;
         }
 
         public override async ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Debug.Assert(secure);
-            await AuthenticateAsync(endpoint.Host, cancel).ConfigureAwait(false);
+            Debug.Assert(authenticationOptions != null);
+            await AuthenticateAsync(async (SslStream sslStream) =>
+            {
+                SslClientAuthenticationOptions options;
+                if (authenticationOptions.TargetHost == null)
+                {
+                    options = new SslClientAuthenticationOptions
+                    {
+                        AllowRenegotiation = authenticationOptions.AllowRenegotiation,
+                        ApplicationProtocols = authenticationOptions.ApplicationProtocols,
+                        CertificateRevocationCheckMode = authenticationOptions.CertificateRevocationCheckMode,
+                        CipherSuitesPolicy = authenticationOptions.CipherSuitesPolicy,
+                        ClientCertificates = authenticationOptions.ClientCertificates,
+                        EnabledSslProtocols = authenticationOptions.EnabledSslProtocols,
+                        EncryptionPolicy = authenticationOptions.EncryptionPolicy,
+                        LocalCertificateSelectionCallback =
+                            authenticationOptions.LocalCertificateSelectionCallback,
+                        RemoteCertificateValidationCallback =
+                            authenticationOptions.RemoteCertificateValidationCallback,
+                        TargetHost = endpoint.Host
+                    };
+                }
+                else
+                {
+                    options = authenticationOptions;
+                }
+                await sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
+            }).ConfigureAwait(false);
             return this;
         }
 
@@ -126,73 +158,19 @@ namespace IceRpc
             }
         }
 
-        // Only for use by TcpEndpoint.
-        internal SslSocket(Communicator communicator, SingleStreamSocket underlying)
-        {
-            _communicator = communicator;
-            _underlying = underlying;
-        }
-
-        // Only for use by TcpEndpoint.
-        internal SslSocket(Server server, SingleStreamSocket underlying)
-        {
-            _communicator = server.Communicator;
-            _server = server;
-            _underlying = underlying;
-        }
+        internal SslSocket(SingleStreamSocket underlying)
+            : base(underlying.Logger) => _underlying = underlying;
 
         internal override IDisposable? StartScope(Endpoint endpoint) =>
             _underlying.StartScope(endpoint);
 
-        private async ValueTask AuthenticateAsync(string? host, CancellationToken cancel)
+        private async ValueTask AuthenticateAsync(Func<SslStream, ValueTask> authenticate)
         {
             // This can only be created with a connected socket.
             _sslStream = new SslStream(new NetworkStream(_underlying.Socket!, false), false);
-
             try
             {
-                if (host == null)
-                {
-                    // Server-side connection
-                    Debug.Assert(_server != null);
-                    if (_server.AuthenticationOptions == null)
-                    {
-                        throw new InvalidOperationException(
-                            "cannot accept a tls connection no tls configuration was provided");
-                    }
-                    await _sslStream.AuthenticateAsServerAsync(_server.AuthenticationOptions!, cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    // Client-side connection
-                    var options = _communicator.AuthenticationOptions;
-                    if (options == null)
-                    {
-                        options = new SslClientAuthenticationOptions()
-                        {
-                            TargetHost = host
-                        };
-                    }
-                    else if (options.TargetHost == null)
-                    {
-                        options = new SslClientAuthenticationOptions
-                        {
-                            AllowRenegotiation = _communicator.AuthenticationOptions!.AllowRenegotiation,
-                            ApplicationProtocols = _communicator.AuthenticationOptions!.ApplicationProtocols,
-                            CertificateRevocationCheckMode = _communicator.AuthenticationOptions!.CertificateRevocationCheckMode,
-                            CipherSuitesPolicy = _communicator.AuthenticationOptions!.CipherSuitesPolicy,
-                            ClientCertificates = _communicator.AuthenticationOptions!.ClientCertificates,
-                            EnabledSslProtocols = _communicator.AuthenticationOptions!.EnabledSslProtocols,
-                            EncryptionPolicy = _communicator.AuthenticationOptions!.EncryptionPolicy,
-                            LocalCertificateSelectionCallback =
-                                _communicator.AuthenticationOptions!.LocalCertificateSelectionCallback,
-                            RemoteCertificateValidationCallback =
-                                _communicator.AuthenticationOptions!.RemoteCertificateValidationCallback,
-                            TargetHost = host, // Host cannot be null
-                        };
-                    }
-                    await _sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
-                }
+                await authenticate(_sslStream).ConfigureAwait(false);
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
@@ -207,9 +185,9 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            if (_communicator.SecurityLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                _communicator.SecurityLogger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
+                Logger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
                     {
                         { "authenticated", $"{_sslStream.IsAuthenticated}" },
                         { "encrypted", $"{_sslStream.IsEncrypted}" },

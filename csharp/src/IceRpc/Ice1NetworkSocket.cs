@@ -39,9 +39,9 @@ namespace IceRpc
                     buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
-                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            Endpoint.Communicator.TransportLogger.LogReceivedInvalidDatagram(buffer.Count);
+                            Logger.LogReceivedInvalidDatagram(buffer.Count);
                         }
                         continue;
                     }
@@ -60,9 +60,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            Endpoint.Communicator.TransportLogger.LogReceivedInvalidDatagram(size);
+                            Logger.LogReceivedInvalidDatagram(size);
                         }
                     }
                     else
@@ -75,9 +75,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            Endpoint.Communicator.TransportLogger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                            Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
                         }
                         continue;
                     }
@@ -93,9 +93,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                        if (Logger.IsEnabled(LogLevel.Debug))
                         {
-                            Endpoint.Communicator.TransportLogger.LogMaximumDatagramSizeExceeded(buffer.Count);
+                            Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
                         }
                         continue;
                     }
@@ -212,16 +212,26 @@ namespace IceRpc
             }
         }
 
-        internal Ice1NetworkSocket(SingleStreamSocket socket, Endpoint endpoint, Server? server)
-            : base(endpoint, server, socket)
+        internal Ice1NetworkSocket(
+            Endpoint endpoint,
+            ILogger logger,
+            int incomingFrameMaxSize,
+            bool isIncoming,
+            SingleStreamSocket socket,
+            int? bidirectionalStreamMaxCount = null,
+            int? unidirectionalStreamMaxCount = null)
+            : base(endpoint, logger, incomingFrameMaxSize, isIncoming, socket)
         {
             IdleTimeout = endpoint.Communicator.IdleTimeout;
 
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
-            if (server != null)
+            if (bidirectionalStreamMaxCount != null)
             {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(server.BidirectionalStreamMaxCount);
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(server.UnidirectionalStreamMaxCount);
+                _bidirectionalStreamSemaphore = new AsyncSemaphore(bidirectionalStreamMaxCount.Value);
+            }
+            if (unidirectionalStreamMaxCount != null)
+            {
+                _unidirectionalStreamSemaphore = new AsyncSemaphore(unidirectionalStreamMaxCount.Value);
             }
 
             // We use the same stream ID numbering scheme as Quic.
@@ -346,9 +356,9 @@ namespace IceRpc
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram && Endpoint.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+                    if (Endpoint.IsDatagram && Logger.IsEnabled(LogLevel.Debug))
                     {
-                        Endpoint.Communicator.TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                        Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }

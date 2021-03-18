@@ -39,7 +39,27 @@ namespace IceRpc
         public override IAcceptor Acceptor(Server server)
         {
             Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
-            return new TcpAcceptor(this, server);
+
+            var address = new IPEndPoint(Address, Port);
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                if (address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IsIPv6Only);
+                }
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
+
+                socket.Bind(address);
+                address = (IPEndPoint)socket.LocalEndPoint!;
+                socket.Listen(Communicator.GetPropertyAsInt("Ice.TCP.Backlog") ?? 511);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), server);
         }
 
         public override Connection CreateDatagramServerConnection(Server server) =>
@@ -208,8 +228,20 @@ namespace IceRpc
             SingleStreamSocket socket = CreateSocket(endpoint);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(socket, this, null),
-                _ => new SlicSocket(socket, this, null)
+                Protocol.Ice1 => new Ice1NetworkSocket(
+                    this,
+                    Communicator.TransportLogger,
+                    Communicator.IncomingFrameMaxSize,
+                    isIncoming: false,
+                    socket),
+                _ => new SlicSocket(
+                    this,
+                    Communicator.TransportLogger,
+                    Communicator.IncomingFrameMaxSize,
+                    isIncoming: false,
+                    socket,
+                    Communicator.BidirectionalStreamMaxCount,
+                    Communicator.UnidirectionalStreamMaxCount)
             };
             return CreateConnection(multiStreamSocket, label, server: null);
         }
@@ -306,10 +338,48 @@ namespace IceRpc
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamSocket CreateSocket(EndPoint addr) =>
-            new TcpSocket(Communicator, addr);
+        internal virtual SingleStreamSocket CreateSocket(EndPoint addr)
+        {
+            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
+            // created if the address is an IPv4 address.
+            var socket = HasDnsHost ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-        internal virtual SingleStreamSocket CreateSocket(Server server, Socket socket) =>
-            new TcpSocket(server, socket);
+            try
+            {
+                // TODO: Where will set TCP buffer size options when we get rid of the communicator?
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                              Communicator.Logger);
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex, RetryPolicy.OtherReplica);
+            }
+
+            return new TcpSocket(Communicator.TransportLogger, socket, addr);
+        }
+
+        internal virtual SingleStreamSocket CreateSocket(Socket socket)
+        {
+            try
+            {
+                // TODO: Where will set TCP buffer size options when we get rid of the communicator?
+                SetBufferSize(socket,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
+                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
+                              Communicator.Logger);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex, RetryPolicy.OtherReplica);
+            }
+            return new TcpSocket(Communicator.TransportLogger, socket);
+        }
     }
 }

@@ -13,49 +13,48 @@ namespace IceRpc
     {
         private const int AcceptingConnection = 0;
         private const int AcceptingConnectionFailed = 1;
-        private const int BindingSocketAttempt = 2;
-        private const int ConnectionAccepted = 3;
-        private const int ConnectionCallbackException = 4;
-        private const int ConnectionClosed = 5;
-        private const int ConnectionEstablished = 6;
-        private const int ConnectionException = 7;
-        private const int DatagramConnectionReceiveCloseConnectionFrame = 8;
-        private const int DatagramSizeExceededIncomingFrameMaxSize = 9;
-        private const int HttpUpgradeRequestAccepted = 10;
-        private const int HttpUpgradeRequestFailed = 11;
-        private const int HttpUpgradeRequestSucceed = 12;
-        private const int MaximumDatagramSizeExceeded = 13;
-        private const int ServerPublishedEndpoints = 14;
-        private const int PingEventHandlerException = 15;
-        private const int ReceiveBufferSizeAdjusted = 16;
-        private const int ReceivedData = 17;
-        private const int ReceivedInvalidDatagram = 18;
-        private const int ReceivedSlicInitializeAckFrame = 19;
-        private const int ReceivedSlicInitializeFrame = 20;
-        private const int ReceivedSlicPingFrame = 21;
-        private const int ReceivedSlicPongFrame = 22;
-        private const int ReceivedSlicStreamConsumedFrame = 23;
-        private const int ReceivedSlicStreamFrame = 24;
-        private const int ReceivedSlicStreamLastFrame = 25;
-        private const int ReceivedSlicStreamResetFrame = 26;
-        private const int ReceivedSlicVersionFrame = 27;
-        private const int ReceivedWebSocketFrame = 28;
-        private const int SendBufferSizeAdjusted = 29;
-        private const int SendingSlicInitializeAckFrame = 30;
-        private const int SendingSlicInitializeFrame = 31;
-        private const int SendingSlicPingFrame = 32;
-        private const int SendingSlicPongFrame = 33;
-        private const int SendingSlicStreamConsumedFrame = 34;
-        private const int SendingSlicStreamFrame = 35;
-        private const int SendingSlicStreamLastFrame = 36;
-        private const int SendingSlicStreamResetFrame = 37;
-        private const int SendingSlicVersionFrame = 38;
-        private const int SendingWebSocketFrame = 39;
-        private const int SentData = 40;
-        private const int StartAcceptingConnections = 41;
-        private const int StartReceivingDatagrams = 42;
-        private const int StartSendingDatagrams = 43;
-        private const int StopAcceptingConnections = 44;
+        private const int ConnectionAccepted = 2;
+        private const int ConnectionCallbackException = 3;
+        private const int ConnectionClosed = 4;
+        private const int ConnectionEstablished = 5;
+        private const int ConnectionException = 6;
+        private const int DatagramConnectionReceiveCloseConnectionFrame = 7;
+        private const int DatagramSizeExceededIncomingFrameMaxSize = 8;
+        private const int HttpUpgradeRequestAccepted = 9;
+        private const int HttpUpgradeRequestFailed = 10;
+        private const int HttpUpgradeRequestSucceed = 11;
+        private const int MaximumDatagramSizeExceeded = 12;
+        private const int ServerPublishedEndpoints = 13;
+        private const int PingEventHandlerException = 14;
+        private const int ReceiveBufferSizeAdjusted = 15;
+        private const int ReceivedData = 16;
+        private const int ReceivedInvalidDatagram = 17;
+        private const int ReceivedSlicInitializeAckFrame = 18;
+        private const int ReceivedSlicInitializeFrame = 21;
+        private const int ReceivedSlicPingFrame = 22;
+        private const int ReceivedSlicPongFrame = 23;
+        private const int ReceivedSlicStreamConsumedFrame = 24;
+        private const int ReceivedSlicStreamFrame = 25;
+        private const int ReceivedSlicStreamLastFrame = 26;
+        private const int ReceivedSlicStreamResetFrame = 27;
+        private const int ReceivedSlicVersionFrame = 28;
+        private const int ReceivedWebSocketFrame = 29;
+        private const int SendBufferSizeAdjusted = 30;
+        private const int SendingSlicInitializeAckFrame = 31;
+        private const int SendingSlicInitializeFrame = 32;
+        private const int SendingSlicPingFrame = 33;
+        private const int SendingSlicPongFrame = 34;
+        private const int SendingSlicStreamConsumedFrame = 35;
+        private const int SendingSlicStreamFrame = 36;
+        private const int SendingSlicStreamLastFrame = 37;
+        private const int SendingSlicStreamResetFrame = 38;
+        private const int SendingSlicVersionFrame = 39;
+        private const int SendingWebSocketFrame = 40;
+        private const int SentData = 41;
+        private const int StartAcceptingConnections = 42;
+        private const int StartReceivingDatagrams = 43;
+        private const int StartSendingDatagrams = 44;
+        private const int StopAcceptingConnections = 45;
 
         private static readonly Action<ILogger, string, string, Exception> _acceptingConnection =
             LoggerMessage.Define<string, string>(
@@ -68,12 +67,6 @@ namespace IceRpc
                 LogLevel.Error,
                 new EventId(AcceptingConnectionFailed, nameof(AcceptingConnectionFailed)),
                 "failed to accept {Transport} connection at {LocalAddress}");
-
-        private static readonly Action<ILogger, string, string, Exception> _bindingSocketAttempt =
-            LoggerMessage.Define<string, string>(
-                LogLevel.Debug,
-                new EventId(BindingSocketAttempt, nameof(BindingSocketAttempt)),
-                "attempting to bind to {Transport} socket: local address = {LocalAddress}");
 
         private static readonly Action<ILogger, string, string, string, Exception> _connectionAccepted =
             LoggerMessage.Define<string, string, string>(
@@ -454,9 +447,6 @@ namespace IceRpc
 
         internal static void LogSentData(this ILogger logger, int size, Transport transport) =>
             _sentData(logger, size, transport.ToString().ToLowerInvariant(), null!);
-
-        internal static void LogBindingSocketAttempt(this ILogger logger, Transport transport, string localAddress) =>
-            _bindingSocketAttempt(logger, transport.ToString().ToLowerInvariant(), localAddress, null!);
 
         internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
             _receivedDatagramExceededIncomingFrameMaxSize(logger, size, null!);

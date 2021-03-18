@@ -45,7 +45,7 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_communicator.Logger.IsEnabled(LogLevel.Information))
+            if (_communicator.TransportLogger.IsEnabled(LogLevel.Information))
             {
                 _communicator.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
@@ -156,7 +156,7 @@ namespace IceRpc
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.Socket.AcceptAsync(cancel).ConfigureAwait(false);
+                    await connection.Socket.AcceptAsync(_server.AuthenticationOptions, cancel).ConfigureAwait(false);
 
                     // Check if the established connection can be trusted according to the server non-secure
                     // setting.
@@ -198,11 +198,21 @@ namespace IceRpc
         {
             _connection = endpoint.CreateDatagramServerConnection(server);
             Endpoint = _connection.Endpoint;
-            _ = _connection.InitializeAsync(default);
         }
 
         internal override void Activate()
         {
+            if (_connection.Communicator.TransportLogger.IsEnabled(LogLevel.Debug))
+            {
+                if (_connection is IPConnection connection)
+                {
+                    _connection.Communicator.TransportLogger.LogStartReceivingDatagrams(
+                        Endpoint.Transport,
+                        connection.LocalEndpoint?.ToString() ?? "undefined",
+                        connection.RemoteEndpoint?.ToString() ?? "undefined");
+                }
+            }
+            _ = _connection.InitializeAsync(default);
         }
 
         internal override Task ShutdownAsync() =>

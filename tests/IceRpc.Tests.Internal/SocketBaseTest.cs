@@ -10,18 +10,19 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-// TODO enable transport tests once the transport is decoupled from Server/Communicator objects
-[assembly: Ignore("")]
-
 namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
     // Server and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
+        private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
+            IsSecure ? _clientCommunicator.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected bool IsSecure { get; }
         private protected Server Server { get; }
+        private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
+            IsSecure ? Server.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
@@ -67,16 +68,10 @@ namespace IceRpc.Tests.Internal
 
             _serverCommunicator = new Communicator(loggerFactory : loggerFactory);
 
-            string endpointTransport = transport == "colocated" ? "tcp" : transport;
-
-            string endpoint = protocol == Protocol.Ice2 ?
-                $"ice+{endpointTransport}://127.0.0.1:{port}" : $"{endpointTransport} -h 127.0.0.1 -p {port}";
-
             var serverOptions = new ServerOptions()
             {
                 AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
                 ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
-                Endpoints = endpoint,
                 AuthenticationOptions = new SslServerAuthenticationOptions()
                 {
                     ClientCertificateRequired = false,
@@ -105,9 +100,19 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                var proxy = IServicePrx.Factory.Create(Server, "dummy");
-                ClientEndpoint = IServicePrx.Parse(proxy.ToString()!, _clientCommunicator).Endpoints[0];
-                ServerEndpoint = Server.Endpoints[0];
+                if (protocol == Protocol.Ice2)
+                {
+                    ServerEndpoint =
+                        UriParser.ParseEndpoints($"ice+{transport}://127.0.0.1:{port}", _serverCommunicator)[0];
+                    ClientEndpoint = IServicePrx.Parse($"{ServerEndpoint}/dummy", _clientCommunicator).Endpoints[0];
+                }
+                else
+                {
+                    ServerEndpoint =
+                        Ice1Parser.ParseEndpoints($"{transport} -h 127.0.0.1 -p {port}", _serverCommunicator)[0];
+                    ClientEndpoint = IServicePrx.Parse($"dummy:{ServerEndpoint}", _clientCommunicator).Endpoints[0];
+                }
+
             }
         }
 
@@ -172,7 +177,7 @@ namespace IceRpc.Tests.Internal
             {
                 Connection connection = await _acceptor.AcceptAsync();
                 Debug.Assert(connection.Endpoint.TransportName == TransportName);
-                await connection.Socket.AcceptAsync(default);
+                await connection.Socket.AcceptAsync(ServerAuthenticationOptions, default);
                 if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the socket.

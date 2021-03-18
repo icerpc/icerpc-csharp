@@ -70,7 +70,14 @@ namespace IceRpc
 
             return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
-                new ColocatedSocket(this, id, reader.Writer, writer.Reader, false),
+                new ColocatedSocket(
+                    this,
+                    Communicator.TransportLogger,
+                    Communicator.IncomingFrameMaxSize,
+                    isIncoming: false,
+                    id,
+                    reader.Writer,
+                    writer.Reader),
                 label,
                 server: null));
         }

@@ -19,27 +19,6 @@ namespace IceRpc
         internal const int EnableIPv6 = 1;
         internal const int EnableBoth = 2;
 
-        internal static Socket CreateServerSocket(IPEndpoint endpoint, AddressFamily family)
-        {
-            Socket socket = CreateSocket(endpoint.IsDatagram, family);
-            if (family == AddressFamily.InterNetworkV6)
-            {
-                try
-                {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6,
-                                           SocketOptionName.IPv6Only,
-                                           endpoint.IsIPv6Only);
-                }
-                catch
-                {
-                    socket.CloseNoThrow();
-                    throw;
-                }
-            }
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
-            return socket;
-        }
-
         internal static void SetMulticastInterface(Socket socket, string iface, AddressFamily family)
         {
             if (family == AddressFamily.InterNetwork)
@@ -53,51 +32,6 @@ namespace IceRpc
                 socket.SetSocketOption(SocketOptionLevel.IPv6,
                                        SocketOptionName.MulticastInterface,
                                        GetInterfaceIndex(iface, family));
-            }
-        }
-
-        internal static Socket CreateSocket(bool udp, AddressFamily? addressFamily)
-        {
-            try
-            {
-                if (udp)
-                {
-                    if (addressFamily is AddressFamily value)
-                    {
-                        return new Socket(value, SocketType.Dgram, ProtocolType.Udp);
-                    }
-                    else
-                    {
-                        return new Socket(SocketType.Dgram, ProtocolType.Udp);
-                    }
-                }
-                else
-                {
-                    Socket socket;
-                    if (addressFamily is AddressFamily value)
-                    {
-                        socket = new Socket(value, SocketType.Stream, ProtocolType.Tcp);
-                    }
-                    else
-                    {
-                        socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                    }
-
-                    try
-                    {
-                        socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
-                    }
-                    catch
-                    {
-                        socket.CloseNoThrow();
-                        throw;
-                    }
-                    return socket;
-                }
-            }
-            catch (SocketException ex)
-            {
-                throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
         }
 
@@ -223,49 +157,6 @@ namespace IceRpc
         internal static string RemoteAddrToString(Socket socket) => RemoteAddrToString(GetRemoteAddress(socket));
 
         internal static string RemoteAddrToString(EndPoint? endpoint) => endpoint?.ToString() ?? "<not connected>";
-
-        internal static void SetBufSize(Socket socket, Communicator communicator, Transport transport)
-        {
-            int rcvSize = communicator.GetPropertyAsByteSize($"Ice.{transport}.RcvSize") ?? 0;
-            if (rcvSize > 0)
-            {
-                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                // read the size back to get the size that was actually set.
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, rcvSize);
-                int size = (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer)!;
-                if (size < rcvSize)
-                {
-                    // Warn if the size that was set is less than the requested size and we have not already warned.
-                    BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if ((!warningInfo.RcvWarn || rcvSize != warningInfo.RcvSize) &&
-                        communicator.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, rcvSize, size);
-                        communicator.SetRcvBufWarnSize(Transport.TCP, rcvSize);
-                    }
-                }
-            }
-
-            int sndSize = communicator.GetPropertyAsByteSize($"Ice.{transport}.SndSize") ?? 0;
-            if (sndSize > 0)
-            {
-                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                // read the size back to get the size that was actually set.
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, sndSize);
-                int size = (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer)!;
-                if (size < sndSize) // Warn if the size that was set is less than the requested size.
-                {
-                    // Warn if the size that was set is less than the requested size and we have not already warned.
-                    BufWarnSizeInfo warningInfo = communicator.GetBufWarnSize(Transport.TCP);
-                    if ((!warningInfo.SndWarn || sndSize != warningInfo.SndSize) &&
-                        communicator.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        communicator.Logger.LogReceiveBufferSizeAdjusted(transport, sndSize, size);
-                        communicator.SetSndBufWarnSize(Transport.TCP, sndSize);
-                    }
-                }
-            }
-        }
 
         internal static void SetMulticastGroup(Socket s, IPAddress group, string? iface)
         {

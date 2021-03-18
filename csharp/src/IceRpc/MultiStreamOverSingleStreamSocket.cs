@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,11 +18,15 @@ namespace IceRpc
 
         public override void Abort() => Underlying.Dispose();
 
-        public override async ValueTask AcceptAsync(CancellationToken cancel) =>
-            Underlying = await Underlying.AcceptAsync(Endpoint, cancel).ConfigureAwait(false);
+        public override async ValueTask AcceptAsync(
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel) =>
+            Underlying = await Underlying.AcceptAsync(Endpoint, authenticationOptions, cancel).ConfigureAwait(false);
 
-        public override async ValueTask ConnectAsync(bool secure, CancellationToken cancel) =>
-            Underlying = await Underlying.ConnectAsync(Endpoint, secure, cancel).ConfigureAwait(false);
+        public override async ValueTask ConnectAsync(
+            SslClientAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel) =>
+            Underlying = await Underlying.ConnectAsync(Endpoint, authenticationOptions, cancel).ConfigureAwait(false);
 
         protected override void Dispose(bool disposing)
         {
@@ -33,9 +39,11 @@ namespace IceRpc
 
         protected MultiStreamOverSingleStreamSocket(
             Endpoint endpoint,
-            Server? server,
+            ILogger logger,
+            int incomingFrameMaxSize,
+            bool isIncoming,
             SingleStreamSocket socket)
-            : base(endpoint, server) => Underlying = socket;
+            : base(endpoint, logger, incomingFrameMaxSize, isIncoming) => Underlying = socket;
 
         internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }

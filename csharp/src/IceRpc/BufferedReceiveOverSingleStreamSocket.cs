@@ -26,9 +26,12 @@ namespace IceRpc
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel)
+        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel)
         {
-            Underlying = await Underlying.AcceptAsync(endpoint, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -37,10 +40,10 @@ namespace IceRpc
 
         public override async ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Underlying = await Underlying.ConnectAsync(endpoint, secure, cancel).ConfigureAwait(false);
+            Underlying = await Underlying.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             return this;
         }
 
@@ -76,6 +79,7 @@ namespace IceRpc
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
         internal BufferedReceiveOverSingleStreamSocket(SingleStreamSocket underlying, int bufferSize = 256)
+            : base(underlying.Logger)
         {
             Underlying = underlying;
 
@@ -131,8 +135,7 @@ namespace IceRpc
             _buffer = new ArraySegment<byte>(_buffer.Array!, _buffer.Offset - bytes, _buffer.Count + bytes);
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) =>
-            Underlying.StartScope(endpoint);
+        internal override IDisposable? StartScope(Endpoint endpoint) => Underlying.StartScope(endpoint);
 
         private async ValueTask ReceiveInBufferAsync(int byteCount, CancellationToken cancel = default)
         {

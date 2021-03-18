@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
@@ -13,6 +15,8 @@ namespace IceRpc
     /// raw binary data over a transport such as TCP, UDP or WebSocket.</summary>
     public abstract class SingleStreamSocket : IDisposable
     {
+        internal ILogger Logger { get; }
+
         /// <summary>Gets the optional .NET socket associated with this single-stream socket.</summary>
         public abstract Socket? Socket { get; }
 
@@ -35,22 +39,26 @@ namespace IceRpc
         /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
         /// to perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the socket.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
         /// implementation might return a different socket based on information read on the socket.</returns>
-        public abstract ValueTask<SingleStreamSocket> AcceptAsync(Endpoint endpoint, CancellationToken cancel);
+        public abstract ValueTask<SingleStreamSocket> AcceptAsync(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            CancellationToken cancel);
 
         /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
         /// to establish the connection and perform socket level initialization (TLS handshake, etc).
         /// </summary>
         /// <param name="endpoint">The endpoint used to create the socket.</param>
-        /// <param name="secure">Establish a secure connection.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
         /// implementation might return a different socket based on information read on the socket.</returns>
         public abstract ValueTask<SingleStreamSocket> ConnectAsync(
             Endpoint endpoint,
-            bool secure,
+            SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
         /// <summary>Receives a new datagram from the connection, only supported for datagram connections.</summary>
@@ -74,6 +82,8 @@ namespace IceRpc
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
+
+        internal SingleStreamSocket(ILogger logger) => Logger = logger;
 
         /// <summary>Creates a scope that attaches info about the socket being used, the scope last until the
         /// returned object is disposed.</summary>

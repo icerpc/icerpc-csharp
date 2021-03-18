@@ -278,7 +278,10 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+                ClientEndpoint,
+                ClientAuthenticationOptions,
+                default);
             using SingleStreamSocket serverSocket = await acceptTask;
         }
 
@@ -295,11 +298,17 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+                ClientEndpoint,
+                ClientAuthenticationOptions,
+                default);
 
             using SingleStreamSocket serverSocket = await acceptTask;
 
-            SingleStreamSocket socket = await serverSocket.AcceptAsync(ServerEndpoint, default);
+            SingleStreamSocket socket = await serverSocket.AcceptAsync(
+                ServerEndpoint,
+                ServerAuthenticationOptions,
+                default);
             await connectTask;
 
             // The SslSocket is returned if a secure connection is requested.
@@ -330,12 +339,18 @@ namespace IceRpc.Tests.Internal
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
                 // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-                await serverSocket.AcceptAsync(ServerEndpoint, default);
+                await serverSocket.AcceptAsync(
+                    ServerEndpoint,
+                    ServerAuthenticationOptions,
+                    default);
                 testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
             }
             else
             {
-                testDelegate = async () => await serverSocket.AcceptAsync(ServerEndpoint, default);
+                testDelegate = async () => await serverSocket.AcceptAsync(
+                    ServerEndpoint,
+                    ServerAuthenticationOptions,
+                    default);
             }
             Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
         }
@@ -346,13 +361,19 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = CreateAcceptor();
 
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
+            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+                ClientEndpoint,
+                ClientAuthenticationOptions,
+                default);
 
             using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<SingleStreamSocket> acceptTask = serverSocket.AcceptAsync(ServerEndpoint, source.Token);
+            ValueTask<SingleStreamSocket> acceptTask = serverSocket.AcceptAsync(
+                    ServerEndpoint,
+                    ServerAuthenticationOptions,
+                    source.Token);
 
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
@@ -398,7 +419,10 @@ namespace IceRpc.Tests.Internal
         {
             using SingleStreamSocket clientSocket = CreateClientSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default));
+                async () => await clientSocket.ConnectAsync(
+                    ClientEndpoint,
+                    ClientAuthenticationOptions,
+                    default));
         }
 
         [Test]
@@ -415,7 +439,10 @@ namespace IceRpc.Tests.Internal
             {
                 using SingleStreamSocket clientSocket = CreateClientSocket();
                 ValueTask<SingleStreamSocket> connectTask =
-                    clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
+                    clientSocket.ConnectAsync(
+                        ClientEndpoint,
+                        ClientAuthenticationOptions,
+                        source.Token);
                 source.Cancel();
                 Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
             }
@@ -424,7 +451,10 @@ namespace IceRpc.Tests.Internal
             source2.Cancel();
             using SingleStreamSocket clientSocket2 = CreateClientSocket();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source2.Token));
+                async () => await clientSocket2.ConnectAsync(
+                    ClientEndpoint,
+                    ClientAuthenticationOptions,
+                    source2.Token));
         }
 
         private SingleStreamSocket CreateClientSocket()
