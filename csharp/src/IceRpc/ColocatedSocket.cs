@@ -10,18 +10,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    internal sealed class ColocatedInitializeOptions
-    {
-        internal int BidirectionalStreamMaxCount { get; }
-        internal int UnidirectionalStreamMaxCount { get; }
-
-        internal ColocatedInitializeOptions(int bidirectionalStreamMaxCount, int unidirectionalStreamMaxCount)
-        {
-            BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
-            UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
-        }
-    }
-
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
     internal class ColocatedSocket : MultiStreamSocket
     {
