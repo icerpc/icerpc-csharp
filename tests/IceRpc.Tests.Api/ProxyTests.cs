@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_Clone(string s)
         {
             await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse(s, communicator);
+            var prx = IGreeterServicePrx.Parse(s, communicator);
 
             Assert.IsFalse(prx.Clone(cacheConnection: false).CacheConnection);
             Assert.IsTrue(prx.Clone(cacheConnection: true).CacheConnection);
@@ -44,18 +44,18 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                var prx2 = IServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
+                var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
                 Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
             }
             else
             {
-                var prx2 = IServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
+                var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
                 Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
             }
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("facet", prx.WithFacet("facet", IServicePrx.Factory).GetFacet());
+                Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
             var server = new Server(communicator,
@@ -67,11 +67,11 @@ namespace IceRpc.Tests.Api
             var connection = await prx.GetConnectionAsync();
             Assert.AreEqual(prx.Clone(fixedConnection: connection).GetCachedConnection(), connection);
 
-            prx = IServicePrx.Parse(s, communicator);
+            prx = IGreeterServicePrx.Parse(s, communicator);
 
-            var intercetors = ImmutableList.Create<InvocationInterceptor>(
+            var interceptors = ImmutableList.Create<InvocationInterceptor>(
                 (target, request, next, cancel) => throw new ArgumentException());
-            Assert.AreEqual(intercetors, prx.Clone(invocationInterceptors: intercetors).InvocationInterceptors);
+            Assert.AreEqual(interceptors, prx.Clone(invocationInterceptors: interceptors).InvocationInterceptors);
 
             Assert.AreEqual(prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10)).InvocationTimeout,
                             TimeSpan.FromMilliseconds(10));
@@ -84,18 +84,19 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                IServicePrx other = prx.WithPath("test", IServicePrx.Factory).WithFacet("facet", IServicePrx.Factory);
+                IGreeterServicePrx other =
+                    prx.WithPath<IGreeterServicePrx>("test").WithFacet<IGreeterServicePrx>("facet");
 
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
 
-                other = other.WithPath("category/test", IServicePrx.Factory);
+                other = other.WithPath<IGreeterServicePrx>("category/test");
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("category", other.GetIdentity().Category);
 
-                other = prx.WithPath("foo", IServicePrx.Factory).WithFacet("facet1", IServicePrx.Factory);
+                other = prx.WithPath<IGreeterServicePrx>("foo").WithFacet<IGreeterServicePrx>("facet1");
                 Assert.AreEqual("facet1", other.GetFacet());
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);

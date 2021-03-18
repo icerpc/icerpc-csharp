@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -134,6 +135,21 @@ namespace IceRpc
             CancellationToken cancel = default) =>
             proxy.Impl.GetConnectionAsync(cancel);
 
+        /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
+        /// <returns>The proxy factory.</returns>
+        public static IProxyFactory<T> GetFactory<T>() where T : class, IServicePrx
+        {
+            if (typeof(T).GetField("Factory") is FieldInfo factoryField)
+            {
+                return factoryField.GetValue(null) is IProxyFactory<T> factory ? factory :
+                    throw new InvalidOperationException($"{typeof(T).FullName}.Factory is not a proxy factory");
+            }
+            else
+            {
+                throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named Factory");
+            }
+        }
+
         /// <summary>Invokes a request on a proxy.</summary>
         /// <remarks>request.CancellationToken holds the cancellation token.</remarks>
         /// <param name="proxy">The proxy for the target Ice object.</param>
@@ -160,11 +176,8 @@ namespace IceRpc
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>
         /// <param name="path">The new path.</param>
-        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// proxy type.</param>
         /// <returns>A proxy with the specified path and type.</returns>
-        public static T WithPath<T>(this IServicePrx proxy, string path, IProxyFactory<T> factory)
-            where T : class, IServicePrx
+        public static T WithPath<T>(this IServicePrx proxy, string path) where T : class, IServicePrx
         {
             if (path == proxy.Path && proxy is T t)
             {
@@ -179,7 +192,7 @@ namespace IceRpc
                 }
 
                 options.Path = path;
-                return factory.Create(options);
+                return GetFactory<T>().Create(options);
             }
         }
     }

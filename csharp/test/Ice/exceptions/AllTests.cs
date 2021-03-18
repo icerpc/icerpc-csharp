@@ -378,7 +378,7 @@ namespace IceRpc.Test.Exceptions
                 var path = "does%20not%20exist";
                 try
                 {
-                    IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
+                    IThrowerPrx thrower2 = thrower.WithPath<IThrowerPrx>(path);
                     await thrower2.IcePingAsync();
                     TestHelper.Assert(false);
                 }
@@ -403,7 +403,7 @@ namespace IceRpc.Test.Exceptions
 
                 try
                 {
-                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
+                    IThrowerPrx thrower2 = thrower.WithFacet<IThrowerPrx>("no such facet");
                     try
                     {
                         await thrower2.IcePingAsync();
@@ -753,7 +753,7 @@ namespace IceRpc.Test.Exceptions
 
             {
                 var path = "does%20not%20exist";
-                IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
+                IThrowerPrx thrower2 = thrower.WithPath<IThrowerPrx>(path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -785,7 +785,7 @@ namespace IceRpc.Test.Exceptions
                 output.Flush();
 
                 {
-                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
+                    IThrowerPrx thrower2 = thrower.WithFacet<IThrowerPrx>("no such facet");
                     try
                     {
                         thrower2.ThrowAasAAsync(1).Wait();
@@ -923,7 +923,7 @@ namespace IceRpc.Test.Exceptions
 
             {
                 var path = "does%20not%20exist";
-                IThrowerPrx thrower2 = thrower.WithPath(path, IThrowerPrx.Factory);
+                IThrowerPrx thrower2 = thrower.WithPath<IThrowerPrx>(path);
                 try
                 {
                     thrower2.ThrowAasAAsync(1).Wait();
@@ -955,7 +955,7 @@ namespace IceRpc.Test.Exceptions
                 output.Flush();
 
                 {
-                    IThrowerPrx thrower2 = thrower.WithFacet("no such facet", IThrowerPrx.Factory);
+                    IThrowerPrx thrower2 = thrower.WithFacet<IThrowerPrx>("no such facet");
                     try
                     {
                         thrower2.ThrowAasAAsync(1).Wait();

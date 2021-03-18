@@ -42,7 +42,7 @@ namespace IceRpc.Test.Proxy
             {
                 try
                 {
-                    await cl.WithFacet("facet", IMyDerivedClassPrx.Factory).IcePingAsync();
+                    await cl.WithFacet<IMyDerivedClassPrx>("facet").IcePingAsync();
                     TestHelper.Assert(false);
                 }
                 catch (ServiceNotFoundException)
@@ -127,7 +127,7 @@ namespace IceRpc.Test.Proxy
                     if (ice1)
                     {
                         TestHelper.Assert(
-                            cl.WithFacet("facet", IServicePrx.Factory).Clone(fixedConnection: connection2).GetFacet() ==
+                            cl.WithFacet<IServicePrx>("facet").Clone(fixedConnection: connection2).GetFacet() ==
                             "facet");
                     }
                     TestHelper.Assert(cl.Clone(oneway: true, fixedConnection: connection2).IsOneway);

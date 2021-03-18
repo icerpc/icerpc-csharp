@@ -17,7 +17,7 @@ namespace IceRpc.Test.Echo
             string facet = current.IncomingRequestFrame.GetFacet();
             if (facet.Length > 0)
             {
-                proxy = proxy.WithFacet(facet, IServicePrx.Factory);
+                proxy = proxy.WithFacet<IServicePrx>(facet);
             }
 
             return proxy.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
