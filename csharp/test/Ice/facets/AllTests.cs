@@ -68,12 +68,12 @@ namespace IceRpc.Test.Facets
             d = IDPrx.Factory.Copy(prx);
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.GetFacet().Length == 0);
-            IDPrx df = prx.WithFacet("facetABCD", IDPrx.Factory);
+            IDPrx df = prx.WithFacet<IDPrx>("facetABCD");
             TestHelper.Assert(df.GetFacet() == "facetABCD");
             df2 = IDPrx.Factory.Copy(df);
             TestHelper.Assert(df2 != null);
             TestHelper.Assert(df2.GetFacet() == "facetABCD");
-            df3 = df.WithFacet("", IDPrx.Factory);
+            df3 = df.WithFacet<IDPrx>("");
             TestHelper.Assert(df3 != null);
             TestHelper.Assert(df3.GetFacet().Length == 0);
             output.WriteLine("ok");
@@ -83,12 +83,12 @@ namespace IceRpc.Test.Facets
             d = await IDPrx.Factory.CheckedCastAsync(prx);
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.GetFacet().Length == 0);
-            df = prx.WithFacet("facetABCD", IDPrx.Factory);
+            df = prx.WithFacet<IDPrx>("facetABCD");
             TestHelper.Assert(df.GetFacet() == "facetABCD");
             df2 = IDPrx.Factory.Copy(df);
             TestHelper.Assert(df2 != null);
             TestHelper.Assert(df2.GetFacet() == "facetABCD");
-            df3 = df.WithFacet("", IDPrx.Factory);
+            df3 = df.WithFacet<IDPrx>("");
             TestHelper.Assert(df3.GetFacet().Length == 0);
             output.WriteLine("ok");
 
@@ -105,7 +105,7 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing facets A, B, C, and D... ");
             output.Flush();
-            df = d.WithFacet("facetABCD", IDPrx.Factory);
+            df = d.WithFacet<IDPrx>("facetABCD");
             TestHelper.Assert(df != null);
             TestHelper.Assert(df.CallA().Equals("A"));
             TestHelper.Assert(df.CallB().Equals("B"));
@@ -115,14 +115,14 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing facets E and F... ");
             output.Flush();
-            IFPrx ff = d.WithFacet("facetEF", IFPrx.Factory);
+            IFPrx ff = d.WithFacet<IFPrx>("facetEF");
             TestHelper.Assert(ff.CallE().Equals("E"));
             TestHelper.Assert(ff.CallF().Equals("F"));
             output.WriteLine("ok");
 
             output.Write("testing facet G... ");
             output.Flush();
-            IGPrx gf = ff.WithFacet("facetGH", IGPrx.Factory);
+            IGPrx gf = ff.WithFacet<IGPrx>("facetGH");
             TestHelper.Assert(gf.CallG().Equals("G"));
             output.WriteLine("ok");
 

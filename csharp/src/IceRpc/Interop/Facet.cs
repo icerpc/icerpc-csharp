@@ -35,11 +35,8 @@ namespace IceRpc.Interop
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>
         /// <param name="facet">The new facet.</param>
-        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// proxy type.</param>
         /// <returns>A proxy with the specified facet and type.</returns>
-        public static T WithFacet<T>(this IServicePrx proxy, string facet, IProxyFactory<T> factory)
-            where T : class, IServicePrx
+        public static T WithFacet<T>(this IServicePrx proxy, string facet) where T : class, IServicePrx
         {
             if (facet == proxy.GetFacet() && proxy is T t)
             {
@@ -49,7 +46,7 @@ namespace IceRpc.Interop
             {
                 var options = (InteropServicePrxOptions)proxy.Impl.CloneOptions();
                 options.Facet = facet;
-                return factory.Create(options);
+                return Proxy.GetFactory<T>().Create(options);
             }
             else
             {

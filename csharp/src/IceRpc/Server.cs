@@ -323,7 +323,7 @@ namespace IceRpc
 
             if (facet.Length > 0)
             {
-                return proxyFactory.Create(this, path).WithFacet(facet, proxyFactory);
+                return proxyFactory.Create(this, path).WithFacet<T>(facet);
             }
             else
             {
