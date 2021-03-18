@@ -9,7 +9,9 @@ namespace IceRpc
     public sealed class SlicOptions
     {
         private int? _streamBufferMaxSize;
+
         internal int PacketMaxSize { get; set; } = 32 * 1024;
+
         internal int StreamBufferMaxSize
         {
              get => _streamBufferMaxSize ?? 2 * PacketMaxSize;
@@ -22,11 +24,17 @@ namespace IceRpc
     public sealed class SocketOptions
     {
         public int BidirectionalStreamMaxCount { get; set; } = 100;
+
         public int TcpBackLog { get; set; } = 511;
+
         public int? TcpReceiveBufferSize { get; set; }
+
         public int? TcpSendBufferSize { get; set; }
+
         public int? UdpReceiveBufferSize { get; set; }
+
         public int? UdpSendBufferSize { get; set; }
+
         public int UnidirectionalStreamMaxCount { get; set; } = 100;
 
         public SocketOptions Copy() => (SocketOptions)MemberwiseClone();
