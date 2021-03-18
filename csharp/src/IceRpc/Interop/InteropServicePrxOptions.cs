@@ -1,4 +1,3 @@
-
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 namespace IceRpc.Interop
