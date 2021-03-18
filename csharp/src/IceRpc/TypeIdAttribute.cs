@@ -28,14 +28,7 @@ namespace IceRpc
         public static string? GetIceTypeId(this Type type)
         {
             object[] attributes = type.GetCustomAttributes(typeof(TypeIdAttribute), false);
-            if (attributes.Length == 1 && attributes[0] is TypeIdAttribute typeId)
-            {
-                return typeId.Value;
-            }
-            else
-            {
-                return null; // unexpected when called by the generated code
-            }
+            return attributes.Length == 1 && attributes[0] is TypeIdAttribute typeId ? typeId.Value : null;
         }
 
         /// <summary>Retrieves the Ice type ID from a type and from all its base types.
