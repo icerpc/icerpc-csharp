@@ -72,7 +72,6 @@ module IceRpc::Tests::ClientServer
     interface InvocationService
     {
         // Builtin types
-
         (byte r1, byte r2) opByte(byte p1, byte p2);
         (bool r1, bool r2) opBool(bool p1, bool p2);
         (short r1, short r2) opShort(short p1, short p2);
@@ -90,7 +89,6 @@ module IceRpc::Tests::ClientServer
         (string r1, string r2) opString(string p1, string p2);
 
         // Builtin type sequences
-
         (ByteSeq r1, ByteSeq r2) opByteSeq(ByteSeq p1, ByteSeq p2);
         (BoolSeq r1, BoolSeq r2) opBoolSeq(BoolSeq p1, BoolSeq p2);
         (ShortSeq r1, ShortSeq r2) opShortSeq(ShortSeq p1, ShortSeq p2);
@@ -108,7 +106,6 @@ module IceRpc::Tests::ClientServer
         (StringSeq r1, StringSeq r2) opStringSeq(StringSeq p1, StringSeq p2);
 
         // Builtin type dictionaries
-
         (ByteDict r1, ByteDict r2) opByteDict(ByteDict p1, ByteDict p2);
         (BoolDict r1, BoolDict r2) opBoolDict(BoolDict p1, BoolDict p2);
         (ShortDict r1, ShortDict r2) opShortDict(ShortDict p1, ShortDict p2);
