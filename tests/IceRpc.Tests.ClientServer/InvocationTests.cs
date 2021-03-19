@@ -63,13 +63,12 @@ namespace IceRpc.Tests.ClientServer
 
             async Task TestAsync<T>(Func<IInvocationServicePrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
-                (T r1, T r2) = await invoker(_prx, p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx})
+                {
+                    (T r1, T r2) = await invoker(prx, p1, p2);
+                    Assert.AreEqual(p1, r1);
+                    Assert.AreEqual(p2, r2);
+                }
             }
         }
 
@@ -128,9 +127,12 @@ namespace IceRpc.Tests.ClientServer
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
-                CollectionAssert.AreEqual(r1, p1);
-                CollectionAssert.AreEqual(r2, p2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (T[] r1, T[] r2) = await invoker(prx, p1, p2);
+                    CollectionAssert.AreEqual(r1, p1);
+                    CollectionAssert.AreEqual(r2, p2);
+                }
             }
 
             async Task TestVarSeqAsync<T>(
@@ -138,9 +140,12 @@ namespace IceRpc.Tests.ClientServer
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
-                CollectionAssert.AreEqual(r1, p1);
-                CollectionAssert.AreEqual(r2, p2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (T[] r1, T[] r2) = await invoker(prx, p1, p2);
+                    CollectionAssert.AreEqual(r1, p1);
+                    CollectionAssert.AreEqual(r2, p2);
+                }
             }
         }
 
@@ -193,13 +198,12 @@ namespace IceRpc.Tests.ClientServer
                 Dictionary<T, T> p1,
                 Dictionary<T, T> p2) where T : notnull
             {
-                (Dictionary<T, T> r1, Dictionary<T, T> r2) = await invoker(_prx, p1, p2);
-                CollectionAssert.AreEqual(r1, p1);
-                CollectionAssert.AreEqual(r2, p2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1, p2);
-                CollectionAssert.AreEqual(r1, p1);
-                CollectionAssert.AreEqual(r2, p2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (Dictionary<T, T> r1, Dictionary<T, T> r2) = await invoker(prx, p1, p2);
+                    CollectionAssert.AreEqual(r1, p1);
+                    CollectionAssert.AreEqual(r2, p2);
+                }
             }
         }
 
@@ -220,13 +224,12 @@ namespace IceRpc.Tests.ClientServer
 
             async Task TestAsync<T>(Func<IInvocationServicePrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
-                (T r1, T r2) = await invoker(_prx, p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (T r1, T r2) = await invoker(_prx, p1, p2);
+                    Assert.AreEqual(p1, r1);
+                    Assert.AreEqual(p2, r2);
+                }
             }
         }
 
@@ -263,13 +266,12 @@ namespace IceRpc.Tests.ClientServer
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p2, r2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1, p2);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p2, r2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                    CollectionAssert.AreEqual(p1, r1);
+                    CollectionAssert.AreEqual(p2, r2);
+                }
             }
         }
 
@@ -310,13 +312,12 @@ namespace IceRpc.Tests.ClientServer
                 Dictionary<string, T> p1,
                 Dictionary<string, T> p2)
             {
-                (Dictionary<string, T> r1, Dictionary<string, T> r2) = await invoker(_prx, p1, p2);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p2, r2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1, p2);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p2, r2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (Dictionary<string, T> r1, Dictionary<string, T> r2) = await invoker(prx, p1, p2);
+                    CollectionAssert.AreEqual(p1, r1);
+                    CollectionAssert.AreEqual(p2, r2);
+                }
             }
         }
 
@@ -352,22 +353,21 @@ namespace IceRpc.Tests.ClientServer
 
             async Task Test1Async<T>(Func<IInvocationServicePrx, T, Task<T>> invoker, T p1)
             {
-                T r1 = await invoker(_prx, p1);
-                Assert.AreEqual(p1, r1);
-
-                r1 = await invoker(_derivedPrx, p1);
-                Assert.AreEqual(p1, r1);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    T r1 = await invoker(prx, p1);
+                    Assert.AreEqual(p1, r1);
+                }
             }
 
             async Task Test2Async<T>(Func<IInvocationServicePrx, T, Task<(T, T)>> invoker, T p1)
             {
-                (T r1, T r2) = await invoker(_prx, p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
-
-                (r1, r2) = await invoker(_derivedPrx, p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
+                foreach (IInvocationServicePrx prx in new IInvocationServicePrx[] { _prx, _derivedPrx })
+                {
+                    (T r1, T r2) = await invoker(prx, p1);
+                    Assert.AreEqual(p1, r1);
+                    Assert.AreEqual(p1, r2);
+                }
             }
         }
 
