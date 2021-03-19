@@ -20,13 +20,12 @@ namespace IceRpc
     {
         public bool CacheConnection { get; } = true;
         public Communicator Communicator { get; }
-        public IReadOnlyDictionary<string, string> Context { get; } = ImmutableDictionary<string, string>.Empty;
+        public IReadOnlyDictionary<string, string> Context { get; }
         public Encoding Encoding { get; }
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
-        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; } =
-            ImmutableList<InvocationInterceptor>.Empty;
+        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
 
-        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? Communicator.DefaultInvocationTimeout;
+        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? TimeSpan.FromSeconds(60);
         public bool IsFixed { get; }
 
         public bool IsOneway { get; }
@@ -35,9 +34,8 @@ namespace IceRpc
 
         public string Path { get; } = "";
 
-        public bool PreferExistingConnection =>
-            _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
-        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.DefaultPreferNonSecure;
+        public bool PreferExistingConnection => _preferExistingConnectionOverride ?? true;
+        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? NonSecure.Always; // TODO: fix default
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
@@ -574,10 +572,10 @@ namespace IceRpc
 
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
-            Context = options.Context ?? Communicator.DefaultContext;
+            Context = options.Context ?? ImmutableDictionary<string, string>.Empty;
             Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
-            InvocationInterceptors = options.InvocationInterceptors ?? Communicator.DefaultInvocationInterceptors;
+            InvocationInterceptors = options.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty;
             IsFixed = options.Connection != null; // auto-computed for now
             IsOneway = options.IsOneway;
             Label = options.Label;

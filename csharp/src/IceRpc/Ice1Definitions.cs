@@ -123,7 +123,6 @@ namespace IceRpc
                 {
                     istr = new InputStream(response.Payload.Slice(1),
                                            Ice2Definitions.Encoding,
-                                           sourceProxy: proxy,
                                            startEncapsulation: true);
 
                     replyStatus = istr.ReadReplyStatus();
