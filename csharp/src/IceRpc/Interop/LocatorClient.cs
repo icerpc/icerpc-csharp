@@ -113,8 +113,10 @@ namespace IceRpc.Interop
             }
 
             // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc endpoint.
-            if (category != null && endpoints.Count == 1 && endpoints[0].Transport == Transport.Loc)
+            if (endpoints.Count == 1 && endpoints[0].Transport == Transport.Loc)
             {
+                Debug.Assert(category != null);
+
                 if (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsMaxAge > endpointsAge)
                 {
                     // We always want endpoints that are fresher than the well-known cache entry.

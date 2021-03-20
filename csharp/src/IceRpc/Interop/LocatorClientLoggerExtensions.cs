@@ -27,7 +27,7 @@ namespace IceRpc.Interop
             LoggerMessage.Define<Identity, IReadOnlyList<Endpoint>>(
                 LogLevel.Trace,
                 new EventId(ClearCacheEntry, nameof(ClearCacheEntry)),
-                "removed endpoints for identity {Identity}, endpoints = {Endpoints}");
+                "removed endpoints for well-known proxy {Identity}, endpoints = {Endpoints}");
 
         private static readonly Action<ILogger, string, Exception> _couldNotResolveAdapterEndpoint =
             LoggerMessage.Define<string>(
