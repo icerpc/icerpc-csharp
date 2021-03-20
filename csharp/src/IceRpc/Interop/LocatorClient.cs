@@ -102,11 +102,11 @@ namespace IceRpc.Interop
                 (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsAge >= endpointsMaxAge))
             {
                endpoints = await ResolveAsync(location, category, cancel).ConfigureAwait(false);
-               endpointsAge = TimeSpan.Zero; // Not cached
+               endpointsAge = TimeSpan.Zero; // Fresh endpoints that are not coming from the cache.
             }
             else if (expired && _background)
             {
-                // Endpoints are returned from the cache but endpoints MaxAge was reached, if backgrounds updates
+                // Endpoints are returned from the cache but endpointsMaxAge was reached, if backgrounds updates
                 // are configured, we obtain new endpoints but continue using the stale endpoints to not block the
                 // caller.
                 _ = ResolveAsync(location, category, cancel: default);
@@ -130,7 +130,8 @@ namespace IceRpc.Interop
                 }
                 finally
                 {
-                    if (endpoints.Count == 0)
+                    // endpoints holds a loc endpoint only when an exception is thrown.
+                    if (endpoints.Count == 0 || (endpoints.Count == 1 && endpoints[0].Transport == Transport.Loc))
                     {
                         ClearCache(location, category);
                     }
