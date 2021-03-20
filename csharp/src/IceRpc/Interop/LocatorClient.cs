@@ -108,7 +108,10 @@ namespace IceRpc.Interop
                 expired = CheckExpired(endpointsAge, _ttl);
             }
 
-            if (endpoints.Count == 0 || (!_background && expired) || endpointsAge >= endpointsMaxAge)
+            // Timeout.InfiniteTimeSpan == -1 so does not work well in comparisons.
+            if (endpoints.Count == 0 ||
+                (!_background && expired) ||
+                (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsAge >= endpointsMaxAge))
             {
                endpoints = await ResolveAdapterIdAsync(adapterId, cancel).ConfigureAwait(false);
                endpointsAge = TimeSpan.Zero; // Not cached
@@ -163,7 +166,9 @@ namespace IceRpc.Interop
             // If no endpoints are returned from the cache, or if the cache returned an expired endpoint and
             // background updates are disabled, or if the caller is requesting a more recent endpoint than the
             // one returned from the cache, we try to resolve the endpoint again.
-            if (endpoints.Count == 0 || (!_background && expired) || wellKnownAge >= endpointsMaxAge)
+            if (endpoints.Count == 0 ||
+                (!_background && expired) ||
+                (endpointsMaxAge != Timeout.InfiniteTimeSpan && wellKnownAge >= endpointsMaxAge))
             {
                 endpoints = await ResolveIdentityAsync(identity, cancel).ConfigureAwait(false);
                 wellKnownAge = TimeSpan.Zero; // Not cached
@@ -187,7 +192,7 @@ namespace IceRpc.Interop
                 else
                 {
                     // We got back a loc endpoint with an adapter ID.
-                    if (endpointsMaxAge > wellKnownAge)
+                    if (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsMaxAge > wellKnownAge)
                     {
                         // We always want endpoints that are fresher than the well-known cache entry.
                         endpointsMaxAge = wellKnownAge;
