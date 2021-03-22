@@ -54,6 +54,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice2, "ws", true)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
+    [Timeout(5000)]
     public class SingleStreamSocketTests : SingleStreamSocketBaseTest
     {
         public SingleStreamSocketTests(Protocol protocol, string transport, bool secure)
@@ -265,6 +266,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice2, "ws", true)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
+    [Timeout(5000)]
     public class AcceptSingleStreamSocketTests : SocketBaseTest
     {
         public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
@@ -390,9 +392,9 @@ namespace IceRpc.Tests.Internal
         private SingleStreamSocket CreateClientSocket()
         {
             TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
-            ClientConnectionOptions options = ClientConnectionOptions;
+            OutgoingConnectionOptions options = OutgoingConnectionOptions;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.Socket, options.TransportLogger);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions, options.TransportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
@@ -469,9 +471,9 @@ namespace IceRpc.Tests.Internal
         private SingleStreamSocket CreateClientSocket()
         {
             TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
-            ClientConnectionOptions options = ClientConnectionOptions;
+            OutgoingConnectionOptions options = OutgoingConnectionOptions;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.Socket, options.TransportLogger);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions, options.TransportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),

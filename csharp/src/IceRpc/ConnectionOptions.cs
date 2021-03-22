@@ -8,125 +8,236 @@ namespace IceRpc
 {
     public sealed class SlicOptions
     {
+        private int _packetMaxSize = 32 * 1024;
         private int? _streamBufferMaxSize;
 
-        internal int PacketMaxSize { get; set; } = 32 * 1024;
-
-        internal int StreamBufferMaxSize
+        public int PacketMaxSize
         {
-             get => _streamBufferMaxSize ?? 2 * PacketMaxSize;
-             set => _streamBufferMaxSize = value;
+            get => _packetMaxSize;
+            set => _packetMaxSize = value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(PacketMaxSize)} cannot be less than 1KB", nameof(value));
         }
 
-        public SlicOptions Copy() => (SlicOptions)MemberwiseClone();
-    };
+        public int StreamBufferMaxSize
+        {
+             get => _streamBufferMaxSize ?? 2 * PacketMaxSize;
+             set => _streamBufferMaxSize = value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(StreamBufferMaxSize)} cannot be less than 1KB", nameof(value));
+    }
+
+        public SlicOptions Clone() => (SlicOptions)MemberwiseClone();
+    }
 
     public sealed class SocketOptions
     {
-        public int BidirectionalStreamMaxCount { get; set; } = 100;
+        private int _tcpBackLog = 511;
+        private int? _tcpReceiveBufferSize;
+        private int? _tcpSendBufferSize;
+        private int? _udpReceiveBufferSize;
+        private int? _udpSendBufferSize;
 
-        public int TcpBackLog { get; set; } = 511;
+        public int TcpBackLog
+        {
+            get => _tcpBackLog;
+            set => _tcpBackLog = value > 0 ? value :
+                throw new ArgumentException($"{nameof(TcpBackLog)} can't be less than 1", nameof(value));
+        }
 
-        public int? TcpReceiveBufferSize { get; set; }
+        public int? TcpReceiveBufferSize
+        {
+            get => _tcpReceiveBufferSize;
+            set => _tcpReceiveBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(TcpReceiveBufferSize)} can't be less than 1KB", nameof(value));
+        }
 
-        public int? TcpSendBufferSize { get; set; }
+        public int? TcpSendBufferSize
+        {
+            get => _tcpSendBufferSize;
+            set => _tcpSendBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(TcpSendBufferSize)} can't be less than 1KB", nameof(value));
+        }
 
-        public int? UdpReceiveBufferSize { get; set; }
+        public int? UdpReceiveBufferSize
+        {
+            get => _udpReceiveBufferSize;
+            set => _udpReceiveBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(UdpReceiveBufferSize)} can't be less than 1KB", nameof(value));
+        }
 
-        public int? UdpSendBufferSize { get; set; }
+        public int? UdpSendBufferSize
+        {
+            get => _udpSendBufferSize;
+            set => _udpSendBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(UdpSendBufferSize)} can't be less than 1KB", nameof(value));
+        }
 
-        public int UnidirectionalStreamMaxCount { get; set; } = 100;
-
-        public SocketOptions Copy() => (SocketOptions)MemberwiseClone();
+        public SocketOptions Clone() => (SocketOptions)MemberwiseClone();
     }
 
     public abstract class ConnectionOptions
     {
-        public SlicOptions Slic { get; set; } = new SlicOptions();
+        private int _bidirectionalStreamMaxCount = 100;
+        private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+        private int _incomingFrameMaxSize = 1024 * 1024;
+        private int _unidirectionalStreamMaxCount = 100;
 
-        public SocketOptions Socket { get; set; } = new SocketOptions();
+        public int BidirectionalStreamMaxCount
+        {
+            get => _bidirectionalStreamMaxCount;
+            set => _bidirectionalStreamMaxCount = value > 0 ? value :
+                throw new InvalidArgumentException(
+                    $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
+                    nameof(value));
+        }
 
-        public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public SlicOptions SlicOptions { get; set; } = new SlicOptions();
 
-        public TimeSpan IdleTimeout { get; set; } = TimeSpan.FromSeconds(60);
+        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
 
-        public int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
+        public TimeSpan CloseTimeout
+        {
+            get => _closeTimeout;
+            set => _closeTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
+        }
+
+        public TimeSpan IdleTimeout
+        {
+            get => _idleTimeout;
+            set => _idleTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        }
+
+        public int IncomingFrameMaxSize
+        {
+            get => _incomingFrameMaxSize;
+            set => _incomingFrameMaxSize = value >= 1024 ? value :
+                value == 0 ? int.MaxValue : // TODO: remove this?
+                throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
+        }
 
         public bool KeepAlive { get; set; }
 
-        public ILogger? ProtocolLogger { get; set; }
+        public int UnidirectionalStreamMaxCount
+        {
+            get => _unidirectionalStreamMaxCount;
+            set => _unidirectionalStreamMaxCount = value > 0 ? value :
+                throw new InvalidArgumentException(
+                    $"{nameof(UnidirectionalStreamMaxCount)} can't be less than 1",
+                    nameof(value));
+        }
 
-        public ILogger? TransportLogger { get; set; }
+        // The logger factory is internal for now. It's set either with the ServerOptions or Communicator logger
+        // factory by the Server/Communicator classes.
+        internal ILoggerFactory? LoggerFactory { get; set; }
 
-        protected ConnectionOptions Copy()
+        internal ILogger ProtocolLogger => LoggerFactory!.CreateLogger("IceRpc.Protocol");
+
+        internal ILogger TransportLogger => LoggerFactory!.CreateLogger("IceRpc.Protocol");
+
+        protected ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
-            options.Slic = Slic.Copy();
-            options.Socket = Socket.Copy();
+            options.SlicOptions = SlicOptions.Clone();
+            options.SocketOptions = SocketOptions.Clone();
             return options;
         }
-    };
+    }
 
-    public sealed class ClientConnectionOptions : ConnectionOptions
+    public static class SslAuthenticationOptionsExtensions
     {
-        public SslClientAuthenticationOptions? Authentication { get; set; }
+        public static SslClientAuthenticationOptions Clone(this SslClientAuthenticationOptions value) =>
+            new()
+            {
+                AllowRenegotiation = value.AllowRenegotiation,
+                ApplicationProtocols = value.ApplicationProtocols,
+                CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
+                CipherSuitesPolicy = value.CipherSuitesPolicy,
+                ClientCertificates = value.ClientCertificates,
+                EnabledSslProtocols = value.EnabledSslProtocols,
+                EncryptionPolicy = value.EncryptionPolicy,
+                LocalCertificateSelectionCallback = value.LocalCertificateSelectionCallback,
+                RemoteCertificateValidationCallback = value.RemoteCertificateValidationCallback,
+                TargetHost = value.TargetHost
+            };
 
-        public TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public static SslServerAuthenticationOptions Clone(this SslServerAuthenticationOptions value) =>
+            new()
+            {
+                AllowRenegotiation = value.AllowRenegotiation,
+                ApplicationProtocols = value.ApplicationProtocols,
+                CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
+                CipherSuitesPolicy = value.CipherSuitesPolicy,
+                ClientCertificateRequired = value.ClientCertificateRequired,
+                EnabledSslProtocols = value.EnabledSslProtocols,
+                EncryptionPolicy = value.EncryptionPolicy,
+                RemoteCertificateValidationCallback = value.RemoteCertificateValidationCallback,
+                ServerCertificate = value.ServerCertificate,
+                ServerCertificateContext = value.ServerCertificateContext,
+                ServerCertificateSelectionCallback = value.ServerCertificateSelectionCallback
+            };
+    }
+
+    public sealed class OutgoingConnectionOptions : ConnectionOptions
+    {
+        private SslClientAuthenticationOptions? _authenticationOptions;
+        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+
+        public SslClientAuthenticationOptions? AuthenticationOptions
+        {
+            get => _authenticationOptions;
+            set => _authenticationOptions = value?.Clone();
+        }
+
+        public TimeSpan ConnectTimeout
+        {
+            get => _connectTimeout;
+            set => _connectTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
+        }
 
         public object? Label { get; set; }
 
         /// <summary>Indicates under what conditions this server accepts non-secure connections.</summary>
-        // TODO: fix default
+        // TODO: switch to NonSecure.Never default
         public NonSecure PreferNonSecure { get; set; } = NonSecure.Always;
 
-        public new ClientConnectionOptions Copy()
+        public new OutgoingConnectionOptions Clone()
         {
-            ClientConnectionOptions options = (ClientConnectionOptions)base.Copy();
-            options.Authentication = Authentication == null ? null : new SslClientAuthenticationOptions()
-            {
-                AllowRenegotiation = Authentication.AllowRenegotiation,
-                ApplicationProtocols = Authentication.ApplicationProtocols,
-                CertificateRevocationCheckMode = Authentication.CertificateRevocationCheckMode,
-                CipherSuitesPolicy = Authentication.CipherSuitesPolicy,
-                ClientCertificates = Authentication.ClientCertificates,
-                EnabledSslProtocols = Authentication.EnabledSslProtocols,
-                EncryptionPolicy = Authentication.EncryptionPolicy,
-                LocalCertificateSelectionCallback = Authentication.LocalCertificateSelectionCallback,
-                RemoteCertificateValidationCallback = Authentication.RemoteCertificateValidationCallback,
-                TargetHost = Authentication.TargetHost
-            };
+            OutgoingConnectionOptions options = (OutgoingConnectionOptions)base.Clone();
+            options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
-    };
+    }
 
-    public sealed class ServerConnectionOptions : ConnectionOptions
+    public sealed class IncomingConnectionOptions : ConnectionOptions
     {
-        public SslServerAuthenticationOptions? Authentication { get; set; }
+        private SslServerAuthenticationOptions? _authenticationOptions;
+        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
+
+        public SslServerAuthenticationOptions? AuthenticationOptions
+        {
+            get => _authenticationOptions;
+            set => _authenticationOptions = value?.Clone();
+        }
 
         /// <summary>Indicates under what circumstances this server accepts non-secure incoming connections.
         /// </summary>
         // TODO: fix default
         public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
 
-        public TimeSpan AcceptTimeout { get; set; } = TimeSpan.FromSeconds(10);
-
-        public new ServerConnectionOptions Copy()
+        public TimeSpan AcceptTimeout
         {
-            ServerConnectionOptions options = (ServerConnectionOptions)base.Copy();
-            options.Authentication = Authentication == null ? null : new SslServerAuthenticationOptions()
-            {
-                AllowRenegotiation = Authentication.AllowRenegotiation,
-                ApplicationProtocols = Authentication.ApplicationProtocols,
-                CertificateRevocationCheckMode = Authentication.CertificateRevocationCheckMode,
-                CipherSuitesPolicy = Authentication.CipherSuitesPolicy,
-                ClientCertificateRequired = Authentication.ClientCertificateRequired,
-                EnabledSslProtocols = Authentication.EnabledSslProtocols,
-                EncryptionPolicy = Authentication.EncryptionPolicy,
-                RemoteCertificateValidationCallback = Authentication.RemoteCertificateValidationCallback,
-                ServerCertificate = Authentication.ServerCertificate,
-                ServerCertificateContext = Authentication.ServerCertificateContext,
-                ServerCertificateSelectionCallback = Authentication.ServerCertificateSelectionCallback
-            };
+            get => _acceptTimeout;
+            set => _acceptTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
+        }
+
+        public new IncomingConnectionOptions Clone()
+        {
+            IncomingConnectionOptions options = (IncomingConnectionOptions)base.Clone();
+            options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
     }

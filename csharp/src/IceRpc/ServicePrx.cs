@@ -40,7 +40,7 @@ namespace IceRpc
 
         public bool PreferExistingConnection =>
             _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
-        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.DefaultPreferNonSecure;
+        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.ConnectionOptions.PreferNonSecure;
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
@@ -778,7 +778,7 @@ namespace IceRpc
                 }
             }
 
-            var options = Communicator.ConnectionOptions.Copy();
+            var options = Communicator.ConnectionOptions.Clone();
             options.Label = Label;
             options.PreferNonSecure = PreferNonSecure;
 
@@ -974,7 +974,7 @@ namespace IceRpc
                 }
             }
 
-            var connectionOptions = Communicator.ConnectionOptions.Copy();
+            var connectionOptions = Communicator.ConnectionOptions.Clone();
             connectionOptions.Label = Label;
             connectionOptions.PreferNonSecure = PreferNonSecure;
 

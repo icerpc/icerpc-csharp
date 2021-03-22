@@ -55,7 +55,7 @@ namespace IceRpc
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(server.ConnectionOptions.Socket.TcpBackLog);
+                socket.Listen(server.ConnectionOptions.SocketOptions.TcpBackLog);
             }
             catch (SocketException ex)
             {
@@ -219,11 +219,13 @@ namespace IceRpc
         }
 
         protected internal override async Task<Connection> ConnectAsync(
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel)
         {
+            // If the endpoint is always secure or a secure connection is required, connect with the SSL client
+            // authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (options.PreferNonSecure switch
+            if (IsAlwaysSecure || options.PreferNonSecure switch
             {
                 NonSecure.SameHost => true,    // TODO check if Host is the same host
                 NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
@@ -231,14 +233,14 @@ namespace IceRpc
                 _ => true
             })
             {
-                authenticationOptions = options.Authentication ?? new SslClientAuthenticationOptions()
+                authenticationOptions = options.AuthenticationOptions ?? new SslClientAuthenticationOptions()
                 {
                     TargetHost = Host
                 };
             }
 
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint, options.Socket, options.TransportLogger!);
+            SingleStreamSocket socket = CreateSocket(endpoint, options.SocketOptions, options.TransportLogger!);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
                 Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),

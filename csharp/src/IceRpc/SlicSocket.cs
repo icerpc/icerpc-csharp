@@ -369,17 +369,17 @@ namespace IceRpc
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = options.Slic.PacketMaxSize;
-            StreamBufferMaxSize = options.Slic.StreamBufferMaxSize;
+            PacketMaxSize = options.SlicOptions.PacketMaxSize;
+            StreamBufferMaxSize = options.SlicOptions.StreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
-            PeerPacketMaxSize = options.Slic.PacketMaxSize;
-            PeerStreamBufferMaxSize = options.Slic.StreamBufferMaxSize;
+            PeerPacketMaxSize = options.SlicOptions.PacketMaxSize;
+            PeerStreamBufferMaxSize = options.SlicOptions.StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = options.Socket.BidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = options.Socket.UnidirectionalStreamMaxCount;
+            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)

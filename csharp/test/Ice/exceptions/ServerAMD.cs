@@ -13,11 +13,19 @@ namespace IceRpc.Test.Exceptions
 
             Server server2 = new Server(
                 Communicator,
-                new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
+                new()
+                {
+                    ConnectionOptions = new () { IncomingFrameMaxSize = int.MaxValue },
+                    Endpoints = GetTestEndpoint(1),
+                });
 
             Server server3 = new Server(
                 Communicator,
-                new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
+                new()
+                {
+                    ConnectionOptions = new () { IncomingFrameMaxSize = 1024 },
+                    Endpoints = GetTestEndpoint(2),
+                });
 
             var obj = new AsyncThrower();
             IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
@@ -31,7 +39,11 @@ namespace IceRpc.Test.Exceptions
 
             await using var forwarderAdapter = new Server(
                 communicator2,
-                new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
+                new()
+                {
+                    ConnectionOptions = new () { IncomingFrameMaxSize = int.MaxValue },
+                    Endpoints = GetTestEndpoint(3),
+                });
 
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
             forwarderAdapter.Activate();

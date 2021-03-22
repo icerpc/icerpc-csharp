@@ -55,9 +55,9 @@ namespace IceRpc
                 var options = server.ConnectionOptions;
 
                 SetBufferSize(socket,
-                              options.Socket.UdpReceiveBufferSize,
-                              options.Socket.UdpSendBufferSize,
-                              server.TransportLogger);
+                              options.SocketOptions.UdpReceiveBufferSize,
+                              options.SocketOptions.UdpSendBufferSize,
+                              options.TransportLogger);
 
                 var addr = new IPEndPoint(Address, Port);
                 IPEndPoint? multicastAddress = null;
@@ -94,7 +94,7 @@ namespace IceRpc
                 }
 
                 var endpoint = Clone(port);
-                var udpSocket = new UdpSocket(server.TransportLogger, socket, multicastAddress);
+                var udpSocket = new UdpSocket(options.TransportLogger, socket, multicastAddress);
                 var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options);
                 return new UdpConnection(endpoint, multiStreamSocket, options, server);
             }
@@ -182,7 +182,7 @@ namespace IceRpc
         }
 
         protected internal override async Task<Connection> ConnectAsync(
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
@@ -208,8 +208,8 @@ namespace IceRpc
                 }
 
                 SetBufferSize(socket,
-                              options.Socket.UdpReceiveBufferSize,
-                              options.Socket.UdpSendBufferSize,
+                              options.SocketOptions.UdpReceiveBufferSize,
+                              options.SocketOptions.UdpSendBufferSize,
                               options.TransportLogger!);
             }
             catch (SocketException ex)

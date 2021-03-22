@@ -17,20 +17,20 @@ namespace IceRpc.Tests.Internal
     public class SocketBaseTest
     {
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? _clientCommunicator.ConnectionOptions.Authentication : null;
-        protected ClientConnectionOptions ClientConnectionOptions => _clientCommunicator.ConnectionOptions;
+            IsSecure ? _clientCommunicator.ConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected bool IsSecure { get; }
+        protected OutgoingConnectionOptions OutgoingConnectionOptions => _clientCommunicator.ConnectionOptions;
         private protected Server Server { get; }
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? Server.ConnectionOptions.Authentication : null;
+            IsSecure ? Server.ConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
         protected readonly Communicator _clientCommunicator;
-
+        private readonly ILoggerFactory _loggerFactory;
         // Protects the _acceptor data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.Internal
             TransportName = transport;
             IsSecure = secure;
 
-            using var loggerFactory = LoggerFactory.Create(
+            _loggerFactory = LoggerFactory.Create(
                 builder =>
                 {
                     builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
@@ -67,14 +67,14 @@ namespace IceRpc.Tests.Internal
                     builder.SetMinimumLevel(LogLevel.Trace);
                 });
 
-            _serverCommunicator = new Communicator(loggerFactory : loggerFactory);
+            _serverCommunicator = new Communicator(loggerFactory : _loggerFactory);
 
             var serverOptions = new ServerOptions()
             {
-                Connection = new ServerConnectionOptions()
+                ConnectionOptions = new IncomingConnectionOptions()
                 {
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
-                    Authentication = new SslServerAuthenticationOptions()
+                    AuthenticationOptions = new SslServerAuthenticationOptions()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
@@ -87,16 +87,21 @@ namespace IceRpc.Tests.Internal
 
             // TODO: support something like communicator/connection option builder
             _clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+                connectionOptions: new OutgoingConnectionOptions()
                 {
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection()
-                        {
-                            new X509Certificate2("../../../certs/cacert.pem")
-                        })
+                    AuthenticationOptions = new SslClientAuthenticationOptions()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection()
+                                {
+                                    new X509Certificate2("../../../certs/cacert.pem")
+                                })
+                    },
+                    PreferNonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
                 },
-                loggerFactory: loggerFactory);
-
+                loggerFactory: _loggerFactory);
+            Debug.Assert(_clientCommunicator.ConnectionOptions.AuthenticationOptions != null);
             if (transport == "colocated")
             {
                 ClientEndpoint = new ColocatedEndpoint(Server);
@@ -127,6 +132,7 @@ namespace IceRpc.Tests.Internal
             await _clientCommunicator.DisposeAsync();
             await Server.DisposeAsync();
             await _serverCommunicator.DisposeAsync();
+            _loggerFactory.Dispose();
         }
 
         protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
@@ -140,7 +146,7 @@ namespace IceRpc.Tests.Internal
                 _acceptor ??= CreateAcceptor();
             }
 
-            Connection connection = await ClientEndpoint.ConnectAsync(ClientConnectionOptions, default);
+            Connection connection = await ClientEndpoint.ConnectAsync(OutgoingConnectionOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
@@ -153,6 +159,7 @@ namespace IceRpc.Tests.Internal
                     await socket.Underlying.SendAsync(buffer, default);
                 }
             }
+
             if (connection.Endpoint.TransportName != TransportName)
             {
                 Debug.Assert(TransportName == "colocated");

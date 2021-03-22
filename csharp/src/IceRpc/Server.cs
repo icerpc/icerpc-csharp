@@ -49,10 +49,8 @@ namespace IceRpc
         /// <summary>Returns the TaskScheduler used to dispatch requests.</summary>
         public TaskScheduler? TaskScheduler { get; }
 
-        internal ServerConnectionOptions ConnectionOptions { get; }
+        internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
-        internal ILogger ProtocolLogger => ConnectionOptions.ProtocolLogger!;
-        internal ILogger TransportLogger => ConnectionOptions.TransportLogger!;
 
         private static ulong _counter; // used to generate names for nameless servers.
 
@@ -89,76 +87,23 @@ namespace IceRpc
         /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator, ServerOptions options)
         {
-            options.Connection ??= new ServerConnectionOptions();
-
-            if (options.Connection.AcceptNonSecure == NonSecure.Never &&
-                options.Connection.Authentication == null)
-            {
-                throw new ArgumentException(
-                    "server is configured to only accept secure connections but options.TlsOptions is not set",
-                    nameof(options));
-            }
-
             Communicator = communicator;
 
             ColocationScope = options.ColocationScope;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
             TaskScheduler = options.TaskScheduler;
 
-            ConnectionOptions = options.Connection.Copy();
-            ConnectionOptions.ProtocolLogger ??= options.LoggerFactory.CreateLogger("IceRpc.Protocol");
-            ConnectionOptions.TransportLogger ??= options.LoggerFactory.CreateLogger("IceRpc.Transport");
+            options.ConnectionOptions ??= new IncomingConnectionOptions();
 
-            if (ConnectionOptions.CloseTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.CloseTimeout");
-            }
+            ConnectionOptions = options.ConnectionOptions.Clone();
+            ConnectionOptions.LoggerFactory ??= options.LoggerFactory;
 
-            if (ConnectionOptions.IdleTimeout == TimeSpan.Zero)
-            {
-                throw new ArgumentException("0 is not a valid value for options.IdleTimeout", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.BidirectionalStreamMaxCount < 1)
+            if (options.ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
+                options.ConnectionOptions.AuthenticationOptions == null)
             {
                 throw new ArgumentException(
-                    $"options.Socket.BidirectionalStreamMaxCount can't be less than 1", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.UnidirectionalStreamMaxCount < 1)
-            {
-                throw new ArgumentException(
-                    $"options.Socket.UnidirectionalStreamMaxCount can't be less than 1", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.TcpReceiveBufferSize < 1024)
-            {
-                throw new ArgumentException(
-                    $"options.Socket.TcpReceiveBufferSize can't be less than 1024", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.TcpSendBufferSize < 1024)
-            {
-                throw new ArgumentException(
-                    $"options.Socket.TcpSendBufferSize can't be less than 1024", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.UdpReceiveBufferSize < 1024)
-            {
-                throw new ArgumentException(
-                    $"options.Socket.UdpReceiveBufferSize can't be less than 1024", nameof(options));
-            }
-
-            if (ConnectionOptions.Socket.UdpSendBufferSize < 1024)
-            {
-                throw new ArgumentException(
-                    $"options.Socket.UdpSendBufferSize can't be less than 1024", nameof(options));
-            }
-
-            if (ConnectionOptions.IncomingFrameMaxSize < 1024)
-            {
-                throw new ArgumentException(
-                    "options.Socket.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
+                    "server is configured to only accept secure connections but authentication options are not set",
+                    nameof(options));
             }
 
             if (options.Endpoints.Length > 0)
@@ -181,7 +126,7 @@ namespace IceRpc
 
                     // When the server is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
-                    if (options.Connection.AcceptNonSecure == NonSecure.Never &&
+                    if (options.ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
                         throw new ArgumentException(
@@ -592,9 +537,9 @@ namespace IceRpc
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (ProtocolLogger.IsEnabled(LogLevel.Warning))
+                        if (ConnectionOptions.ProtocolLogger.IsEnabled(LogLevel.Warning))
                         {
-                            ProtocolLogger.LogRequestDispatchException(ex);
+                            ConnectionOptions.ProtocolLogger.LogRequestDispatchException(ex);
                         }
                     }
 
@@ -602,9 +547,9 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (ProtocolLogger.IsEnabled(LogLevel.Warning))
+                    if (ConnectionOptions.ProtocolLogger.IsEnabled(LogLevel.Warning))
                     {
-                        ProtocolLogger.LogRequestDispatchException(ex);
+                        ConnectionOptions.ProtocolLogger.LogRequestDispatchException(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }

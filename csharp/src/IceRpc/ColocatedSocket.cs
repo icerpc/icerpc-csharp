@@ -167,8 +167,8 @@ namespace IceRpc
             _writer = writer;
             _reader = reader;
 
-            _bidirectionalStreamMaxCount = options.Socket.BidirectionalStreamMaxCount;
-            _unidirectionalStreamMaxCount = options.Socket.UnidirectionalStreamMaxCount;
+            _bidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
+            _unidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)

@@ -92,7 +92,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The new established connection.</returns>
         protected internal abstract Task<Connection> ConnectAsync(
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel);
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>

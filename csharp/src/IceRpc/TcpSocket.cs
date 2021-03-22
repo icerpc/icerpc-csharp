@@ -100,12 +100,10 @@ namespace IceRpc
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 _desc = Network.SocketToString(Socket);
 
-                // If the endpoint is always secured or if a secure is requested, create an SslSocket and return
-                // it from this method. The caller is responsible for using the returned SslSocket instead of
-                // using this TcpSocket.
-
+                // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
+                // responsible for using the returned SslSocket instead of using this TcpSocket.
                 SingleStreamSocket socket = this;
-                if (endpoint.IsAlwaysSecure || authenticationOptions != null)
+                if (authenticationOptions != null)
                 {
                     socket = new SslSocket(this);
                     await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);

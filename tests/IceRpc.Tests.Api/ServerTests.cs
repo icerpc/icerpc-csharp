@@ -17,28 +17,15 @@ namespace IceRpc.Tests.Api
             Assert.Throws<FormatException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
 
-            // Can't be less than 1
-            Assert.Throws<ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { IdleTimeout = TimeSpan.Zero }));
-
-            // Can't be less than 1
-            Assert.Throws<ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { BidirectionalStreamMaxCount = 0 }));
-
-            // Can't be less than 1
-            Assert.Throws<ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { UnidirectionalStreamMaxCount = 0 }));
-
-            // IncomingFrameMaxSize cannot be less than 1KB
-            Assert.Throws<ArgumentException>(
-                () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));
-
             // Server can only accept secure connections
             Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never,
+                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                      Endpoints = "tcp -h 127.0.0.1 -p 10000"
                                  }));
 
@@ -47,7 +34,10 @@ namespace IceRpc.Tests.Api
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never,
+                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                      Endpoints = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
                                  }));
 
@@ -66,7 +56,10 @@ namespace IceRpc.Tests.Api
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never
+                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                  }));
 
             {
@@ -126,7 +119,10 @@ namespace IceRpc.Tests.Api
                 communicator,
                 new()
                 {
-                    AcceptNonSecure = NonSecure.Always,
+                    ConnectionOptions = new IncomingConnectionOptions()
+                    {
+                        AcceptNonSecure = NonSecure.Always
+                    },
                     Endpoints = $"tcp -h 127.0.0.1 -p 0 -t 15000",
                     PublishedHost = "localhost"
                 });

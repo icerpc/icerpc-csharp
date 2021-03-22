@@ -110,7 +110,7 @@ namespace IceRpc
         protected MultiStreamSocket(Endpoint endpoint, ConnectionOptions options)
         {
             Endpoint = endpoint;
-            IsIncoming = !(options is ClientConnectionOptions);
+            IsIncoming = !(options is OutgoingConnectionOptions);
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             ProtocolLogger = options.ProtocolLogger!;

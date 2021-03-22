@@ -884,7 +884,7 @@ namespace IceRpc
         /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
-        public SortedDictionary<TKey, TValue?>? ReadTaggeSorteddDictionary<TKey, TValue>(
+        public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             bool withBitSequence,

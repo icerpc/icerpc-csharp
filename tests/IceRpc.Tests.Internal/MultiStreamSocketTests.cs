@@ -85,13 +85,10 @@ namespace IceRpc.Tests.Internal
             : base(type, serverOptions =>
                    {
                        // Setup specific server options for testing purpose
-                       serverOptions.Connection = new ServerConnectionOptions()
+                       serverOptions.ConnectionOptions = new IncomingConnectionOptions()
                        {
-                            Socket = new SocketOptions()
-                            {
-                                BidirectionalStreamMaxCount = 15,
-                                UnidirectionalStreamMaxCount = 10
-                            },
+                            BidirectionalStreamMaxCount = 15,
+                            UnidirectionalStreamMaxCount = 10,
                             IncomingFrameMaxSize = 512 * 1024
                        };
                    })
@@ -340,7 +337,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
             IncomingRequestFrame? incomingRequest = null;
-            for (int i = 0; i < Server.ConnectionOptions.Socket.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < Server.ConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(true);
                 clientStreams.Add(stream);
@@ -397,8 +394,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamSocket_StreamMaxCount_StressTest(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                Server.ConnectionOptions.Socket.BidirectionalStreamMaxCount :
-                Server.ConnectionOptions.Socket.UnidirectionalStreamMaxCount;
+                Server.ConnectionOptions.BidirectionalStreamMaxCount :
+                Server.ConnectionOptions.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -473,7 +470,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
-            for (int i = 0; i < Server.ConnectionOptions.Socket.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < Server.ConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(false);
                 clientStreams.Add(stream);

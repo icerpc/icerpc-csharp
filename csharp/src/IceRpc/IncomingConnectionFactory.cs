@@ -45,9 +45,9 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.TransportLogger.IsEnabled(LogLevel.Information))
+            if (_server.ConnectionOptions.TransportLogger.IsEnabled(LogLevel.Information))
             {
-                _server.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
+                _server.ConnectionOptions.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
@@ -159,7 +159,7 @@ namespace IceRpc
                 {
                     // Perform socket level initialization (handshake, etc)
                     await connection.Socket.AcceptAsync(
-                        _server.ConnectionOptions.Authentication,
+                        _server.ConnectionOptions.AuthenticationOptions,
                         cancel).ConfigureAwait(false);
 
                     // Check if the established connection can be trusted according to the server non-secure
@@ -171,9 +171,10 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
+                        if (_server.ConnectionOptions.TransportLogger.IsEnabled(LogLevel.Debug))
                         {
-                            _server.TransportLogger.LogConnectionNotTrusted(connection.Endpoint.Transport);
+                            _server.ConnectionOptions.TransportLogger.LogConnectionNotTrusted(
+                                connection.Endpoint.Transport);
                         }
                         // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
@@ -209,11 +210,11 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (_server.ConnectionOptions.TransportLogger.IsEnabled(LogLevel.Debug))
             {
                 if (_connection is IPConnection connection)
                 {
-                    _server.TransportLogger.LogStartReceivingDatagrams(
+                    _server.ConnectionOptions.TransportLogger.LogStartReceivingDatagrams(
                         Endpoint.Transport,
                         connection.LocalEndpoint?.ToString() ?? "undefined",
                         connection.RemoteEndpoint?.ToString() ?? "undefined");

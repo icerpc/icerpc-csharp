@@ -461,11 +461,11 @@ namespace IceRpc.Tests.Api
             communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
 
-            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            Assert.AreEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
             communicator.SetProperty($"{propertyPrefix}.PreferNonSecure", "SameHost");
             prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             communicator.RemoveProperty($"{propertyPrefix}.PreferNonSecure");
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            Assert.AreNotEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
         }
 
         [Test]
@@ -532,9 +532,9 @@ namespace IceRpc.Tests.Api
             prx = IServicePrx.Parse($"{proxyString}?invocation-timeout=1s", communicator);
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
 
-            Assert.AreEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            Assert.AreEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
             prx = IServicePrx.Parse($"{proxyString}?prefer-non-secure=SameHost", communicator);
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.DefaultPreferNonSecure);
+            Assert.AreNotEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
 
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
                     "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";

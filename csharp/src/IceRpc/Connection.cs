@@ -224,7 +224,7 @@ namespace IceRpc
             Server? server)
         {
             Socket = socket;
-            Label = (options as ClientConnectionOptions)?.Label;
+            Label = (options as OutgoingConnectionOptions)?.Label;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
             IsIncoming = server != null;

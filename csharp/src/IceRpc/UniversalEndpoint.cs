@@ -77,7 +77,7 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an universal endpoint");
 

@@ -332,7 +332,7 @@ namespace IceRpc
                 if (!serverEndpoint)
                 {
                     throw new FormatException(
-                        $"`--ipv6Only' not valid for a server endpoint `{endpointString}'");
+                        $"`--ipv6Only' is not valid for a proxy endpoint `{endpointString}'");
                 }
                 if (argument != null)
                 {

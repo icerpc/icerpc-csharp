@@ -23,7 +23,7 @@ namespace IceRpc
     public sealed partial class Communicator : IAsyncDisposable
     {
         /// <summary>The connection options.</summary>
-        public ClientConnectionOptions ConnectionOptions;
+        public OutgoingConnectionOptions ConnectionOptions;
 
         /// <summary>Each time you send a request without an explicit context parameter, Ice sends automatically the
         /// per-thread CurrentContext combined with the proxy's context.</summary>
@@ -88,9 +88,6 @@ namespace IceRpc
 
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
         public bool DefaultPreferExistingConnection { get; }
-
-        /// <summary>Gets the communicator's preference for establishing non-secure connections.</summary>
-        public NonSecure DefaultPreferNonSecure { get; }
 
         /// <summary>Gets the default source address value used by proxies created with this communicator.</summary>
         public IPAddress? DefaultSourceAddress { get; }
@@ -173,18 +170,18 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -193,19 +190,19 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref args,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -215,19 +212,19 @@ namespace IceRpc
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the Ice run-time.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -238,22 +235,18 @@ namespace IceRpc
         /// <param name="loggerFactory">The loggerFactory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
         {
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger("IceRpc");
             LocatorClientLogger = LoggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
-
-            ConnectionOptions = new();
-            ConnectionOptions.TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
-            ConnectionOptions.ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
 
             Observer = observer;
 
@@ -311,10 +304,6 @@ namespace IceRpc
             DefaultPreferExistingConnection =
                 this.GetPropertyAsBool("Ice.Default.PreferExistingConnection") ?? true;
 
-            // TODO: switch to NonSecure.Never default
-            DefaultPreferNonSecure =
-                this.GetPropertyAsEnum<NonSecure>("Ice.Default.PreferNonSecure") ?? NonSecure.Always;
-
             if (GetProperty("Ice.Default.SourceAddress") is string address)
             {
                 try
@@ -328,51 +317,31 @@ namespace IceRpc
                 }
             }
 
-            ConnectionOptions.CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
-            if (ConnectionOptions.CloseTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.CloseTimeout");
-            }
-
-            ConnectionOptions.ConnectTimeout = this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? TimeSpan.FromSeconds(10);
-            if (ConnectionOptions.ConnectTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.ConnectTimeout");
-            }
-
-            ConnectionOptions.IdleTimeout = this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? TimeSpan.FromSeconds(60);
-            if (ConnectionOptions.IdleTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.IdleTimeout");
-            }
-
-            ConnectionOptions.KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
-
-            ConnectionOptions.Socket.UdpReceiveBufferSize = this.GetPropertyAsByteSize($"Ice.Udp.RcvSize");
-            ConnectionOptions.Socket.UdpSendBufferSize = this.GetPropertyAsByteSize($"Ice.Udp.SndSize");
-            ConnectionOptions.Socket.TcpReceiveBufferSize = this.GetPropertyAsByteSize($"Ice.Tcp.RcvSize");
-            ConnectionOptions.Socket.TcpSendBufferSize = this.GetPropertyAsByteSize($"Ice.Tcp.SndSize");
-
-            ConnectionOptions.Slic.PacketMaxSize = this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? 32 * 1024;
-            if (ConnectionOptions.Slic.PacketMaxSize < 1024)
-            {
-                throw new InvalidConfigurationException("Ice.Slic.PacketMaxSize can't be inferior to 1KB");
-            }
-
-            ConnectionOptions.Slic.StreamBufferMaxSize =
-                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * ConnectionOptions.Slic.PacketMaxSize;
-            if (ConnectionOptions.Slic.StreamBufferMaxSize < ConnectionOptions.Slic.PacketMaxSize)
-            {
-                throw new InvalidConfigurationException(
-                    "Ice.Slic.StreamBufferMaxSize can't be inferior to Ice.Slic.PacketMaxSize");
-            }
-
-            int frameMaxSize = this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? 1024 * 1024;
-            ConnectionOptions.IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
-            if (ConnectionOptions.IncomingFrameMaxSize < 1024)
-            {
-                throw new InvalidConfigurationException("Ice.IncomingFrameMaxSize can't be inferior to 1KB");
-            }
+            ConnectionOptions = connectionOptions ?? new OutgoingConnectionOptions();
+            ConnectionOptions.LoggerFactory = LoggerFactory;
+            ConnectionOptions.CloseTimeout =
+                this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? ConnectionOptions.CloseTimeout;
+            ConnectionOptions.ConnectTimeout =
+                this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? ConnectionOptions.ConnectTimeout;
+            ConnectionOptions.IdleTimeout =
+                this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? ConnectionOptions.IdleTimeout;
+            ConnectionOptions.KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? ConnectionOptions.KeepAlive;
+            ConnectionOptions.PreferNonSecure =
+                this.GetPropertyAsEnum<NonSecure>("Ice.Default.PreferNonSecure") ?? ConnectionOptions.PreferNonSecure;
+            ConnectionOptions.SocketOptions.UdpReceiveBufferSize =
+                this.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? ConnectionOptions.SocketOptions.UdpReceiveBufferSize;
+            ConnectionOptions.SocketOptions.UdpSendBufferSize =
+                this.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? ConnectionOptions.SocketOptions.UdpSendBufferSize;
+            ConnectionOptions.SocketOptions.TcpReceiveBufferSize =
+                this.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? ConnectionOptions.SocketOptions.TcpReceiveBufferSize;
+            ConnectionOptions.SocketOptions.TcpSendBufferSize =
+                this.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? ConnectionOptions.SocketOptions.TcpSendBufferSize;
+            ConnectionOptions.SlicOptions.PacketMaxSize =
+                this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? ConnectionOptions.SlicOptions.PacketMaxSize;
+            ConnectionOptions.SlicOptions.StreamBufferMaxSize =
+                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? ConnectionOptions.SlicOptions.StreamBufferMaxSize;
+            ConnectionOptions.IncomingFrameMaxSize =
+                this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
 
             InvocationMaxAttempts = this.GetPropertyAsInt("Ice.InvocationMaxAttempts") ?? 5;
 
@@ -394,23 +363,6 @@ namespace IceRpc
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
 
             _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
-
-            if (authenticationOptions != null)
-            {
-                ConnectionOptions.Authentication = new SslClientAuthenticationOptions()
-                {
-                    AllowRenegotiation = authenticationOptions.AllowRenegotiation,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                    CertificateRevocationCheckMode = authenticationOptions.CertificateRevocationCheckMode,
-                    CipherSuitesPolicy = authenticationOptions.CipherSuitesPolicy,
-                    ClientCertificates = authenticationOptions.ClientCertificates,
-                    EnabledSslProtocols = authenticationOptions.EnabledSslProtocols,
-                    EncryptionPolicy = authenticationOptions.EncryptionPolicy,
-                    LocalCertificateSelectionCallback = authenticationOptions.LocalCertificateSelectionCallback,
-                    RemoteCertificateValidationCallback = authenticationOptions.RemoteCertificateValidationCallback,
-                    TargetHost = authenticationOptions.TargetHost
-                };
-            }
 
             RegisterTransport(Transport.Loc,
                               "loc",

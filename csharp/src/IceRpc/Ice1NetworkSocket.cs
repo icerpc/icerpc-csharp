@@ -218,8 +218,8 @@ namespace IceRpc
             IdleTimeout = options.IdleTimeout;
 
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
-            _bidirectionalStreamSemaphore = new AsyncSemaphore(options.Socket.BidirectionalStreamMaxCount);
-            _unidirectionalStreamSemaphore = new AsyncSemaphore(options.Socket.UnidirectionalStreamMaxCount);
+            _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
+            _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
 
             // We use the same stream ID numbering scheme as Quic.
             if (IsIncoming)

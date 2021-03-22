@@ -41,7 +41,7 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel)
         {
             var readerOptions = new UnboundedChannelOptions

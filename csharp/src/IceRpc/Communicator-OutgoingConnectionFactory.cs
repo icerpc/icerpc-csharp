@@ -24,7 +24,7 @@ namespace IceRpc
 
         internal async ValueTask<Connection> ConnectAsync(
             Endpoint endpoint,
-            ClientConnectionOptions options,
+            OutgoingConnectionOptions options,
             CancellationToken cancel)
         {
             Task<Connection>? connectTask;
@@ -87,7 +87,7 @@ namespace IceRpc
                          connection.IsSecure);
             return connection;
 
-            async Task<Connection> PerformConnectAsync(Endpoint endpoint, ClientConnectionOptions options)
+            async Task<Connection> PerformConnectAsync(Endpoint endpoint, OutgoingConnectionOptions options)
             {
                 Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
                 // Use the connect timeout and communicator cancellation token for the cancellation.
