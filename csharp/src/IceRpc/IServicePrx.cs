@@ -139,12 +139,6 @@ namespace IceRpc
         /// <summary>The endpoints of this proxy. A proxy with a non-empty endpoint list is a direct proxy.</summary>
         public IReadOnlyList<Endpoint> Endpoints { get; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        public string Facet { get; }
-
-        /// <summary>The identity of the target service. ice1 only.</summary>
-        public Identity Identity { get; }
-
         /// <summary>The invocation interceptors of this proxy.</summary>
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
 

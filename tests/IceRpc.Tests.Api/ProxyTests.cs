@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_Clone(string s)
         {
             await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse(s, communicator);
+            var prx = IGreeterServicePrx.Parse(s, communicator);
 
             Assert.IsFalse(prx.Clone(cacheConnection: false).CacheConnection);
             Assert.IsTrue(prx.Clone(cacheConnection: true).CacheConnection);
@@ -44,18 +44,18 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                var prx2 = IServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
+                var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
                 Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
             }
             else
             {
-                var prx2 = IServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
+                var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
                 Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
             }
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("facet", IServicePrx.Factory.Clone(prx, facet: "facet").Facet);
+                Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
             var server = new Server(communicator,
@@ -67,11 +67,11 @@ namespace IceRpc.Tests.Api
             var connection = await prx.GetConnectionAsync();
             Assert.AreEqual(prx.Clone(fixedConnection: connection).GetCachedConnection(), connection);
 
-            prx = IServicePrx.Parse(s, communicator);
+            prx = IGreeterServicePrx.Parse(s, communicator);
 
-            var intercetors = ImmutableList.Create<InvocationInterceptor>(
+            var interceptors = ImmutableList.Create<InvocationInterceptor>(
                 (target, request, next, cancel) => throw new ArgumentException());
-            Assert.AreEqual(intercetors, prx.Clone(invocationInterceptors: intercetors).InvocationInterceptors);
+            Assert.AreEqual(interceptors, prx.Clone(invocationInterceptors: interceptors).InvocationInterceptors);
 
             Assert.AreEqual(prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10)).InvocationTimeout,
                             TimeSpan.FromMilliseconds(10));
@@ -84,20 +84,22 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                IServicePrx other = IServicePrx.Factory.Clone(prx, path: "test", facet: "facet");
-                Assert.AreEqual("facet", other.Facet);
-                Assert.AreEqual("test", other.Identity.Name);
-                Assert.AreEqual("", other.Identity.Category);
+                IGreeterServicePrx other =
+                    prx.WithPath<IGreeterServicePrx>("test").WithFacet<IGreeterServicePrx>("facet");
 
-                other = IServicePrx.Factory.Clone(other, path: "category/test");
-                Assert.AreEqual("", other.Facet);
-                Assert.AreEqual("test", other.Identity.Name);
-                Assert.AreEqual("category", other.Identity.Category);
+                Assert.AreEqual("facet", other.GetFacet());
+                Assert.AreEqual("test", other.GetIdentity().Name);
+                Assert.AreEqual("", other.GetIdentity().Category);
 
-                other = IServicePrx.Factory.Clone(prx, path: "foo", facet: "facet1");
-                Assert.AreEqual("facet1", other.Facet);
-                Assert.AreEqual("foo", other.Identity.Name);
-                Assert.AreEqual("", other.Identity.Category);
+                other = other.WithPath<IGreeterServicePrx>("category/test");
+                Assert.AreEqual("facet", other.GetFacet());
+                Assert.AreEqual("test", other.GetIdentity().Name);
+                Assert.AreEqual("category", other.GetIdentity().Category);
+
+                other = prx.WithPath<IGreeterServicePrx>("foo").WithFacet<IGreeterServicePrx>("facet1");
+                Assert.AreEqual("facet1", other.GetFacet());
+                Assert.AreEqual("foo", other.GetIdentity().Name);
+                Assert.AreEqual("", other.GetIdentity().Category);
             }
 
             Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure, NonSecure.Always);
@@ -144,19 +146,6 @@ namespace IceRpc.Tests.Api
 
             // Cannot change the endpoints of a fixed proxy
             Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(endpoints: prxIce2.Endpoints));
-
-            // Cannot change the cache connection setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(cacheConnection: true));
-
-            // Cannot change the label of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(label: new object()));
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(clearLabel: true));
-
-            // Cannot change the prefer existing connection setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferExistingConnection: true));
-
-            // Cannot change the prefer non secure setting of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(preferNonSecure: NonSecure.Always));
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
@@ -287,26 +276,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
         {
             var prx = IServicePrx.Parse(str, Communicator);
-            Assert.AreEqual(name, prx.Identity.Name);
-            Assert.AreEqual(category, prx.Identity.Category);
-            Assert.AreEqual("", prx.Facet);
-        }
-
-        /// <summary>Test that the communicator default invocation interceptors are used when the
-        /// proxy doesn't specify its own interceptors.</summary>
-        [Test]
-        public void Proxy_DefaultInvocationInterceptors()
-        {
-            var communicator = new Communicator
-            {
-                DefaultInvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    (target, request, next, cancel) => throw new NotImplementedException(),
-                    (target, request, next, cancel) => throw new NotImplementedException())
-            };
-
-            var prx = IServicePrx.Parse("test", communicator);
-
-            CollectionAssert.AreEqual(communicator.DefaultInvocationInterceptors, prx.InvocationInterceptors);
+            Assert.AreEqual(name, prx.GetIdentity().Name);
+            Assert.AreEqual(category, prx.GetIdentity().Category);
+            Assert.AreEqual("", prx.GetFacet());
         }
 
         [Test]
@@ -456,12 +428,6 @@ namespace IceRpc.Tests.Api
             prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
-
-            Assert.AreEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
-            communicator.SetProperty($"{propertyPrefix}.PreferNonSecure", "SameHost");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.RemoveProperty($"{propertyPrefix}.PreferNonSecure");
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
         }
 
         [Test]
@@ -528,12 +494,9 @@ namespace IceRpc.Tests.Api
             prx = IServicePrx.Parse($"{proxyString}?invocation-timeout=1s", communicator);
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
 
-            Assert.AreEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
-            prx = IServicePrx.Parse($"{proxyString}?prefer-non-secure=SameHost", communicator);
-            Assert.AreNotEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
-
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
-                    "&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
+                "&label=myLabel&oneway=true" +
+                "&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
             Assert.AreEqual(prx.Endpoints.Count, 2);
@@ -542,6 +505,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.Context.Count, 2);
             Assert.AreEqual(prx.Context["c 1"], "some value");
             Assert.AreEqual(prx.Context["c5"], "v5");
+            Assert.IsTrue(prx.IsOneway);
+            Assert.AreEqual(prx.Label, "myLabel");
         }
 
         public class GreeterService : IAsyncGreeterService

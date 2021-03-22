@@ -1705,23 +1705,8 @@ namespace IceRpc.Test.Operations
                 }
                 TestHelper.Assert(combined["one"].Equals("UN"));
 
-                TestHelper.Assert(communicator.DefaultContext.Count == 0);
-                communicator.DefaultContext = prxContext;
-                TestHelper.Assert(communicator.DefaultContext != prxContext); // it's a copy
-                TestHelper.Assert(communicator.DefaultContext.DictionaryEqual(prxContext));
-
-                p3 = IMyClassPrx.Parse(helper.GetTestProxy("test", 0), communicator);
-                var ctx = new SortedDictionary<string, string>(communicator.CurrentContext);
-
-                communicator.CurrentContext.Clear();
-                TestHelper.Assert(p3.OpContext().DictionaryEqual(prxContext));
-
-                communicator.CurrentContext = ctx;
-                TestHelper.Assert(p3.OpContext().DictionaryEqual(combined));
-
                 // Cleanup
                 communicator.CurrentContext.Clear();
-                communicator.DefaultContext = new SortedDictionary<string, string>();
             }
 
             p.OpIdempotent();
@@ -1755,7 +1740,7 @@ namespace IceRpc.Test.Operations
                 TestHelper.Assert(p.OpStringS2(Array.Empty<string>()).Length == 0);
                 TestHelper.Assert(p.OpByteBoolD2(new Dictionary<byte, bool>()).Count == 0);
 
-                var d = IMyDerivedClassPrx.Factory.Clone(p);
+                var d = IMyDerivedClassPrx.Factory.Copy(p);
                 var s = new MyStruct1();
                 s.TesT = "MyStruct1.s";
                 s.MyClass = null;

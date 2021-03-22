@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
+using IceRpc.Test;
 using System;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.UDP
 {
@@ -217,9 +218,9 @@ namespace IceRpc.Test.UDP
                 while (nRetry-- > 0)
                 {
                     replyI.Reset();
-                    obj.PingBiDir(reply.Identity);
-                    obj.PingBiDir(reply.Identity);
-                    obj.PingBiDir(reply.Identity);
+                    obj.PingBiDir(reply.GetIdentity());
+                    obj.PingBiDir(reply.GetIdentity());
+                    obj.PingBiDir(reply.GetIdentity());
                     ret = replyI.WaitReply(3, TimeSpan.FromSeconds(2));
                     if (ret)
                     {

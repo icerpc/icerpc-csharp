@@ -20,16 +20,12 @@ namespace IceRpc
     {
         public bool CacheConnection { get; } = true;
         public Communicator Communicator { get; }
-        public IReadOnlyDictionary<string, string> Context { get; } = ImmutableDictionary<string, string>.Empty;
+        public IReadOnlyDictionary<string, string> Context { get; }
         public Encoding Encoding { get; }
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
-        public string Facet { get; } = "";
-        public Identity Identity { get; } = Identity.Empty;
+        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
 
-        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; } =
-            ImmutableList<InvocationInterceptor>.Empty;
-
-        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? Communicator.DefaultInvocationTimeout;
+        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? TimeSpan.FromSeconds(60);
         public bool IsFixed { get; }
 
         public bool IsOneway { get; }
@@ -38,12 +34,14 @@ namespace IceRpc
 
         public string Path { get; } = "";
 
-        public bool PreferExistingConnection =>
-            _preferExistingConnectionOverride ?? Communicator.DefaultPreferExistingConnection;
-        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? Communicator.ConnectionOptions.PreferNonSecure;
+        public bool PreferExistingConnection => _preferExistingConnectionOverride ?? true;
+        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? NonSecure.Always; // TODO: fix default
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
+
+        internal string Facet { get; } = "";
+        internal Identity Identity { get; } = Identity.Empty;
 
         internal bool IsIndirect => !IsFixed && Endpoints.Count == 1 && Endpoints[0].Transport == Transport.Loc;
 
@@ -477,6 +475,12 @@ namespace IceRpc
                     sb.Append(Uri.EscapeDataString(label));
                 }
 
+                if (IsOneway)
+                {
+                    StartQueryOption(sb, ref firstOption);
+                    sb.Append("oneway=true");
+                }
+
                 if (_preferExistingConnectionOverride is bool preferExistingConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -530,16 +534,48 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs a new proxy class instance with the specified options. The options must be validated
-        /// by the caller and all dictionaries / lists must be safe to reference as-is.</summary>
+        /// <summary>Constructs a new proxy class instance with the specified options. All dictionaries / lists must be
+        /// safe to reference as-is since they are not copied by this constructor.</summary>
         protected internal ServicePrx(ServicePrxOptions options)
         {
+            int endpointCount = options.Endpoints.Count;
+
+            if (options.Connection != null && endpointCount > 0)
+            {
+                throw new ArgumentException("a fixed proxy cannot specify endpoints", nameof(options));
+            }
+
+            if (endpointCount > 0)
+            {
+                if (endpointCount > 1 && options.Endpoints.Any(e => e.Transport == Transport.Loc))
+                {
+                    throw new ArgumentException("a loc endpoint must be the only endpoint", nameof(options));
+                }
+
+                if (options.Endpoints.Any(e => e.Protocol != options.Protocol))
+                {
+                    throw new ArgumentException($"the protocol of all endpoints must be {options.Protocol.GetName()}",
+                                                nameof(options));
+                }
+            }
+            else if (options.Connection == null && options.Protocol == Protocol.Ice1)
+            {
+                throw new ArgumentException("a non-fixed ice1 proxy requires at least one endpoint",
+                                            nameof(options));
+            }
+
+            if (options.InvocationTimeoutOverride is TimeSpan invocationTimeoutOverride &&
+                invocationTimeoutOverride == TimeSpan.Zero)
+            {
+                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(options));
+            }
+
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
-            Context = options.Context ?? Communicator.DefaultContext;
+            Context = options.Context ?? ImmutableDictionary<string, string>.Empty;
             Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
-            InvocationInterceptors = options.InvocationInterceptors ?? Communicator.DefaultInvocationInterceptors;
+            InvocationInterceptors = options.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty;
             IsFixed = options.Connection != null; // auto-computed for now
             IsOneway = options.IsOneway;
             Label = options.Label;
@@ -552,35 +588,41 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                Facet = options.Facet;
+                if (options is InteropServicePrxOptions interopOptions)
+                {
+                    Facet = interopOptions.Facet;
+                    Identity = interopOptions.Identity;
+                }
+
                 if (options.Path.Length > 0)
                 {
-                    Debug.Assert(options.Identity == Identity.Empty); // i.e. default value
-                    Identity = Identity.FromPath(options.Path);
+                    if (Identity != Identity.Empty)
+                    {
+                        throw new ArgumentException("cannot specify both path and identity", nameof(options));
+                    }
+
+                    Path = UriParser.NormalizePath(options.Path);
+                    Identity = Identity.FromPath(Path);
 
                     if (Identity.Name.Length == 0)
                     {
                         throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options.Path));
+                                                    nameof(options));
                     }
-
-                    Path = options.Path;
                 }
                 else
                 {
-                    if (options.Identity.Name.Length == 0)
+                    if (Identity.Name.Length == 0)
                     {
                         throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options.Identity));
+                                                    nameof(options));
                     }
-
-                    Identity = options.Identity;
                     Path = Identity.ToPath();
                 }
             }
             else
             {
-                Path = options.Path;
+                Path = UriParser.NormalizePath(options.Path);
             }
         }
 
@@ -670,79 +712,50 @@ namespace IceRpc
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
         internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
 
-        /// <summary>Computes the options used by the implementation of Proxy.Clone.</summary>
-        internal ServicePrxOptions CreateCloneOptions(
-            bool? cacheConnection = null,
-            bool clearLabel = false,
-            IReadOnlyDictionary<string, string>? context = null, // can be provided by app, needs to be copied
-            Encoding? encoding = null,
-            IEnumerable<Endpoint>? endpoints = null, // from app, needs to be copied
-            string? facet = null,
-            Connection? fixedConnection = null,
-            IEnumerable<InvocationInterceptor>? invocationInterceptors = null, // from app, needs to be copied
-            TimeSpan? invocationTimeout = null,
-            object? label = null,
-            ILocationResolver? locationResolver = null,
-            bool? oneway = null,
-            string? path = null,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null)
+        /// <summary>Returns a fresh copy of the underlying options.</summary>
+        internal ServicePrxOptions CloneOptions()
         {
-            ValidateCloneArgs(cacheConnection,
-                              clearLabel,
-                              endpoints,
-                              facet,
-                              fixedConnection,
-                              invocationTimeout,
-                              label,
-                              preferExistingConnection,
-                              preferNonSecure);
-
-            if (path != null)
+            if (Protocol == Protocol.Ice1)
             {
-                path = UriParser.NormalizePath(path);
-            }
-
-            if (IsFixed || fixedConnection != null)
-            {
-                fixedConnection ??= _connection;
-                Debug.Assert(fixedConnection != null);
-
-                return new ServicePrxOptions()
+                return new InteropServicePrxOptions()
                 {
+                    CacheConnection = CacheConnection,
                     Communicator = Communicator,
-                    Connection = fixedConnection,
-                    Context = context?.ToImmutableSortedDictionary() ?? Context,
-                    Encoding = encoding ?? Encoding,
-                    Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = path == null ? Identity : Identity.Empty,
-                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
-                    IsOneway = fixedConnection.Endpoint.IsDatagram || (oneway ?? IsOneway),
-                    LocationResolver = locationResolver ?? LocationResolver,
-                    Path = path ?? (Protocol == Protocol.Ice1 ? "" : Path),
-                    Protocol = Protocol
+                    Connection = IsFixed ? _connection : null,
+                    Context = Context,
+                    Encoding = Encoding,
+                    Endpoints = Endpoints,
+                    Facet = Facet,
+                    Identity = Identity,
+                    InvocationInterceptors = InvocationInterceptors,
+                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsOneway = IsOneway,
+                    Label = Label,
+                    LocationResolver = LocationResolver,
+                    Path = "",
+                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = _preferNonSecureOverride,
+                    Protocol = Protocol.Ice1
                 };
             }
             else
             {
-                return new ServicePrxOptions()
+                return new()
                 {
-                    CacheConnection = cacheConnection ?? CacheConnection,
+                    CacheConnection = CacheConnection,
                     Communicator = Communicator,
-                    Context = context?.ToImmutableSortedDictionary() ?? Context,
-                    Encoding = encoding ?? Encoding,
-                    Endpoints = endpoints?.ToImmutableList() ?? Endpoints,
-                    Facet = facet ?? (path != null ? "" : Facet),
-                    Identity = path == null ? Identity : Identity.Empty,
-                    InvocationInterceptors = invocationInterceptors?.ToImmutableList() ?? InvocationInterceptors,
-                    InvocationTimeoutOverride = invocationTimeout ?? _invocationTimeoutOverride,
-                    IsOneway = oneway ?? IsOneway,
-                    Label = clearLabel ? null : label ?? Label,
-                    LocationResolver = locationResolver ?? LocationResolver,
-                    Path = path ?? (Protocol == Protocol.Ice1 ? "" : Path),
-                    PreferExistingConnectionOverride = preferExistingConnection ?? _preferExistingConnectionOverride,
-                    PreferNonSecureOverride = preferNonSecure ?? _preferNonSecureOverride,
+                    Connection = IsFixed ? _connection : null,
+                    Context = Context,
+                    Encoding = Encoding,
+                    Endpoints = Endpoints,
+                    InvocationInterceptors = InvocationInterceptors,
+                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsOneway = IsOneway,
+                    Label = Label,
+                    LocationResolver = LocationResolver,
+                    Path = Path,
+                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
+                    PreferNonSecureOverride = _preferNonSecureOverride,
                     Protocol = Protocol
                 };
             }
@@ -1210,100 +1223,6 @@ namespace IceRpc
             Debug.Assert(response != null || exception != null);
             Debug.Assert(response == null || response.ResultType == ResultType.Failure);
             return response ?? throw ExceptionUtil.Throw(exception!);
-        }
-
-        private void ValidateCloneArgs(
-            bool? cacheConnection,
-            bool clearLabel,
-            IEnumerable<Endpoint>? endpoints,
-            string? facet,
-            Connection? fixedConnection,
-            TimeSpan? invocationTimeout,
-            object? label,
-            bool? preferExistingConnection,
-            NonSecure? preferNonSecure)
-        {
-            // Check for incompatible arguments
-
-            if (Protocol != Protocol.Ice1)
-            {
-                if (facet != null)
-                {
-                    throw new ArgumentException($"{nameof(facet)} applies only to ice1 proxies", nameof(facet));
-                }
-            }
-
-            if (invocationTimeout != null && invocationTimeout.Value == TimeSpan.Zero)
-            {
-                throw new ArgumentException("0 is not a valid value for invocationTimeout", nameof(invocationTimeout));
-            }
-
-            if (IsFixed || fixedConnection != null)
-            {
-                // Make sure that all arguments incompatible with fixed references are null
-                // TODO: we should also check non-inheritable properties such as endpoints.
-                if (cacheConnection != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the connection caching configuration of a fixed proxy",
-                        nameof(cacheConnection));
-                }
-                if (endpoints != null)
-                {
-                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(endpoints));
-                }
-                if (clearLabel)
-                {
-                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(clearLabel));
-                }
-                else if (label != null)
-                {
-                    throw new ArgumentException("cannot change the label of a fixed proxy", nameof(label));
-                }
-                if (preferExistingConnection != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the prefer-existing-connection configuration of a fixed proxy",
-                        nameof(preferExistingConnection));
-                }
-                if (preferNonSecure != null)
-                {
-                    throw new ArgumentException(
-                        "cannot change the prefer non-secure configuration of a fixed proxy",
-                        nameof(preferNonSecure));
-                }
-            }
-            else
-            {
-                // Non-fixed reference
-                if (endpoints != null)
-                {
-                    int count = endpoints.Count();
-                    if (count > 0)
-                    {
-                        if (count > 1 && endpoints.Any(e => e.Transport == Transport.Loc))
-                        {
-                            throw new ArgumentException("a loc endpoint must be the only endpoint", nameof(endpoints));
-                        }
-
-                        if (endpoints.Any(e => e.Protocol != Protocol))
-                        {
-                            throw new ArgumentException($"the protocol of endpoints `{endpoints}' is not {Protocol}",
-                                                        nameof(endpoints));
-                        }
-                    }
-                    else if (Protocol == Protocol.Ice1)
-                    {
-                        throw new ArgumentException($"a non-fixed ice1 proxy requires at least one endpoint",
-                                                    nameof(endpoints));
-                    }
-                }
-
-                if (label != null && clearLabel)
-                {
-                    throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}");
-                }
-            }
         }
     }
 }

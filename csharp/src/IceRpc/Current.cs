@@ -32,9 +32,6 @@ namespace IceRpc
         /// <summary>The encoding used by the request.</summary>
         public Encoding Encoding => IncomingRequestFrame.PayloadEncoding;
 
-        /// <summary>The target facet. ice1 only.</summary>
-        public string Facet => IncomingRequestFrame.Facet;
-
         /// <summary>The incoming request frame.</summary>
         public IncomingRequestFrame IncomingRequestFrame { get; }
 

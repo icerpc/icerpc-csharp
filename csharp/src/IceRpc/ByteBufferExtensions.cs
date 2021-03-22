@@ -33,7 +33,7 @@ namespace IceRpc
             Connection? connection = null,
             IServicePrx? proxy = null)
         {
-            var istr = new InputStream(buffer, encoding, communicator, connection, proxy?.Impl);
+            var istr = new InputStream(buffer, encoding, communicator, ComputeOptions(connection, proxy));
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -102,8 +102,7 @@ namespace IceRpc
             var istr = new InputStream(buffer,
                                        encoding,
                                        communicator,
-                                       connection,
-                                       proxy?.Impl,
+                                       ComputeOptions(connection, proxy),
                                        startEncapsulation: true);
             T result = payloadReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
@@ -239,5 +238,26 @@ namespace IceRpc
         }
 
         internal static void WriteInt(this Span<byte> buffer, int v) => MemoryMarshal.Write(buffer, ref v);
+
+        private static ServicePrxOptions? ComputeOptions(Connection? connection, IServicePrx? proxy)
+        {
+            ServicePrxOptions? options = proxy?.Impl?.CloneOptions();
+            if (connection != null)
+            {
+                if (options != null)
+                {
+                    options.Connection = connection;
+                }
+                else
+                {
+                    options = new ServicePrxOptions()
+                    {
+                        Communicator = connection.Communicator,
+                        Connection = connection
+                    };
+                }
+            }
+            return options;
+        }
     }
 }
