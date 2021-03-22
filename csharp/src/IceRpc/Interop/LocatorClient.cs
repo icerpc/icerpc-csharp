@@ -130,7 +130,7 @@ namespace IceRpc.Interop
                 }
                 finally
                 {
-                    // endpoints holds a loc endpoint only when an exception is thrown.
+                    // endpoints can hold a loc endpoint only when an exception is thrown.
                     if (endpoints.Count == 0 || (endpoints.Count == 1 && endpoints[0].Transport == Transport.Loc))
                     {
                         ClearCache(location, category);
