@@ -89,9 +89,6 @@ namespace IceRpc
         /// <summary>Gets the communicator's preference for reusing existing connections.</summary>
         public bool DefaultPreferExistingConnection { get; }
 
-        /// <summary>Gets the default source address value used by proxies created with this communicator.</summary>
-        public IPAddress? DefaultSourceAddress { get; }
-
         /// <summary>Gets the default invocation timeout value used by proxies created with this communicator.
         /// </summary>
         public TimeSpan DefaultInvocationTimeout { get; }
@@ -304,42 +301,18 @@ namespace IceRpc
             DefaultPreferExistingConnection =
                 this.GetPropertyAsBool("Ice.Default.PreferExistingConnection") ?? true;
 
-            if (GetProperty("Ice.Default.SourceAddress") is string address)
-            {
-                try
-                {
-                    DefaultSourceAddress = IPAddress.Parse(address);
-                }
-                catch (FormatException ex)
-                {
-                    throw new InvalidConfigurationException(
-                        $"invalid IP address set for Ice.Default.SourceAddress: `{address}'", ex);
-                }
-            }
-
-            ConnectionOptions = connectionOptions ?? new OutgoingConnectionOptions();
+            ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
             ConnectionOptions.LoggerFactory = LoggerFactory;
-            ConnectionOptions.CloseTimeout =
-                this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? ConnectionOptions.CloseTimeout;
-            ConnectionOptions.ConnectTimeout =
-                this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? ConnectionOptions.ConnectTimeout;
-            ConnectionOptions.IdleTimeout =
-                this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? ConnectionOptions.IdleTimeout;
-            ConnectionOptions.KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? ConnectionOptions.KeepAlive;
-            ConnectionOptions.PreferNonSecure =
-                this.GetPropertyAsEnum<NonSecure>("Ice.Default.PreferNonSecure") ?? ConnectionOptions.PreferNonSecure;
+
+            // TODO: remove once old tests which rely on properties are removed
             ConnectionOptions.SocketOptions.UdpReceiveBufferSize =
-                this.GetPropertyAsByteSize($"Ice.Udp.RcvSize") ?? ConnectionOptions.SocketOptions.UdpReceiveBufferSize;
+                this.GetPropertyAsByteSize($"Ice.UDP.RcvSize") ?? ConnectionOptions.SocketOptions.UdpReceiveBufferSize;
             ConnectionOptions.SocketOptions.UdpSendBufferSize =
-                this.GetPropertyAsByteSize($"Ice.Udp.SndSize") ?? ConnectionOptions.SocketOptions.UdpSendBufferSize;
+                this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? ConnectionOptions.SocketOptions.UdpSendBufferSize;
             ConnectionOptions.SocketOptions.TcpReceiveBufferSize =
-                this.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? ConnectionOptions.SocketOptions.TcpReceiveBufferSize;
+                this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? ConnectionOptions.SocketOptions.TcpReceiveBufferSize;
             ConnectionOptions.SocketOptions.TcpSendBufferSize =
-                this.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? ConnectionOptions.SocketOptions.TcpSendBufferSize;
-            ConnectionOptions.SlicOptions.PacketMaxSize =
-                this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? ConnectionOptions.SlicOptions.PacketMaxSize;
-            ConnectionOptions.SlicOptions.StreamBufferMaxSize =
-                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? ConnectionOptions.SlicOptions.StreamBufferMaxSize;
+                this.GetPropertyAsByteSize($"Ice.TCP.SndSize") ?? ConnectionOptions.SocketOptions.TcpSendBufferSize;
             ConnectionOptions.IncomingFrameMaxSize =
                 this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
 

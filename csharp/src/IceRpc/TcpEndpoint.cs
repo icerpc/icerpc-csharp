@@ -352,6 +352,10 @@ namespace IceRpc
 
             try
             {
+                if (options.SourceAddress is IPAddress sourceAddress)
+                {
+                    socket.Bind(new IPEndPoint(sourceAddress, 0));
+                }
                 SetBufferSize(socket, options.TcpReceiveBufferSize, options.TcpSendBufferSize, logger);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
             }

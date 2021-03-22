@@ -90,12 +90,6 @@ namespace IceRpc
 
             try
             {
-                // Bind the socket to the source address if one is set.
-                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
-                {
-                    Socket.Bind(new IPEndPoint(sourceAddress, 0));
-                }
-
                 // Connect to the peer and cache the description of the socket.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 _desc = Network.SocketToString(Socket);

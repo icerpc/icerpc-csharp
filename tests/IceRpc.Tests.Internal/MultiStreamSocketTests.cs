@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
             : base(type, serverOptions =>
                    {
                        // Setup specific server options for testing purpose
-                       serverOptions.ConnectionOptions = new IncomingConnectionOptions()
+                       serverOptions.ConnectionOptions = new()
                        {
                             BidirectionalStreamMaxCount = 15,
                             UnidirectionalStreamMaxCount = 10,

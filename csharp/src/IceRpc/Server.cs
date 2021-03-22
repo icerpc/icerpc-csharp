@@ -93,13 +93,10 @@ namespace IceRpc
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
             TaskScheduler = options.TaskScheduler;
 
-            options.ConnectionOptions ??= new IncomingConnectionOptions();
-
-            ConnectionOptions = options.ConnectionOptions.Clone();
+            ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
             ConnectionOptions.LoggerFactory ??= options.LoggerFactory;
 
-            if (options.ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
-                options.ConnectionOptions.AuthenticationOptions == null)
+            if (ConnectionOptions.AcceptNonSecure == NonSecure.Never && ConnectionOptions.AuthenticationOptions == null)
             {
                 throw new ArgumentException(
                     "server is configured to only accept secure connections but authentication options are not set",
@@ -126,7 +123,7 @@ namespace IceRpc
 
                     // When the server is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
-                    if (options.ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
+                    if (ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
                         throw new ArgumentException(

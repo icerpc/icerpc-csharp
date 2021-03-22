@@ -84,7 +84,7 @@ namespace IceRpc
                     else
                     {
                         throw new InvalidDataException(
-                            $"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
+                            $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
                     }
                 }
 

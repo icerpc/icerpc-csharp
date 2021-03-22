@@ -128,14 +128,10 @@ namespace IceRpc
 
         /// <summary>Reads the arguments from a request. The arguments include a stream argument.</summary>
         /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="connection">The current connection.</param>
         /// <param name="reader">The delegate used to read the arguments.</param>
         /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(
-            Communicator communicator,
-            Connection connection,
-            InputStreamReaderWithStreamable<T> reader)
+        public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -149,7 +145,7 @@ namespace IceRpc
 
             var istr = new InputStream(Payload.AsReadOnlyMemory(),
                                        Protocol.GetEncoding(),
-                                       communicator: communicator,
+                                       communicator: connection.Communicator!,
                                        connection: connection,
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);

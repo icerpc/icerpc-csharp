@@ -49,10 +49,6 @@ namespace IceRpc
             Debug.Assert(_addr != null);
             try
             {
-                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
-                {
-                    Socket.Bind(new IPEndPoint(sourceAddress, 0));
-                }
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {

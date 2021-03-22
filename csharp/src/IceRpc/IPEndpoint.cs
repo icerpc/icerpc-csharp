@@ -20,12 +20,11 @@ namespace IceRpc
         public override string? this[string option] =>
             option switch
             {
-                "source-address" => SourceAddress?.ToString(),
                 "ipv6-only" => IsIPv6Only ? "true" : "false",
                 _ => base[option],
             };
 
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1 || SourceAddress != null;
+        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.
         protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultIPPort;
@@ -55,18 +54,14 @@ namespace IceRpc
         /// <summary>Whether IPv6 sockets created from this endpoint are dual-mode or IPv6 only.</summary>
         internal bool IsIPv6Only { get; }
 
-        /// <summary>The source address of this IP endpoint.</summary>
-        internal IPAddress? SourceAddress { get; }
-
         private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) =>
             other is IPEndpoint ipEndpoint &&
-                Equals(SourceAddress, ipEndpoint.SourceAddress) &&
                 IsIPv6Only == ipEndpoint.IsIPv6Only &&
                 base.Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), SourceAddress, IsIPv6Only);
+        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), IsIPv6Only);
 
         public override bool IsLocal(Endpoint endpoint)
         {
@@ -85,10 +80,6 @@ namespace IceRpc
                     return false;
                 }
                 if (Port != ipEndpoint.Port)
-                {
-                    return false;
-                }
-                if (!Equals(SourceAddress, ipEndpoint.SourceAddress))
                 {
                     return false;
                 }
@@ -135,34 +126,12 @@ namespace IceRpc
                 {
                     sb.Append(" --ipv6Only");
                 }
-
-                if (SourceAddress != null)
-                {
-                    string sourceAddr = SourceAddress.ToString();
-                    addQuote = sourceAddr.IndexOf(':') != -1;
-                    sb.Append(" --sourceAddress ");
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(sourceAddr);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                }
             }
             else
             {
                 if (IsIPv6Only)
                 {
                     sb.Append("ipv6-only=true");
-                }
-
-                if (SourceAddress != null)
-                {
-                    sb.Append("source-address=");
-                    sb.Append(SourceAddress);
                 }
             }
         }
@@ -284,9 +253,6 @@ namespace IceRpc
             {
                 throw new InvalidDataException("endpoint host is empty");
             }
-
-            // TODO: Add back support for default source address?
-            //SourceAddress = communicator.DefaultSourceAddress;
         }
 
         // Constructor for ice1 endpoint parsing.
@@ -297,37 +263,7 @@ namespace IceRpc
             string endpointString)
             : base(data, Protocol.Ice1)
         {
-            if (options.TryGetValue("--sourceAddress", out string? argument))
-            {
-                if (serverEndpoint)
-                {
-                    throw new FormatException(
-                        $"`--sourceAddress' not valid for a server endpoint `{endpointString}'");
-                }
-                if (argument == null)
-                {
-                    throw new FormatException(
-                        $"no argument provided for --sourceAddress option in endpoint `{endpointString}'");
-                }
-                try
-                {
-                    SourceAddress = IPAddress.Parse(argument);
-                }
-                catch (Exception ex)
-                {
-                    throw new FormatException(
-                        $"invalid IP address provided for --sourceAddress option in endpoint `{endpointString}'", ex);
-                }
-                options.Remove("--sourceAddress");
-            }
-            else if (!serverEndpoint)
-            {
-                // TODO: Add back support for default source address?
-                //SourceAddress = Communicator.DefaultSourceAddress;
-            }
-            // else SourceAddress remains null
-
-            if (options.TryGetValue("--ipv6Only", out argument))
+            if (options.TryGetValue("--ipv6Only", out string? argument))
             {
                 if (!serverEndpoint)
                 {
@@ -365,29 +301,12 @@ namespace IceRpc
                     options.Remove("ipv6-only");
                 }
             }
-            else // parsing a URI that represents a proxy
-            {
-                if (options.TryGetValue("source-address", out string? value))
-                {
-                    // IPAddress.Parse apparently accepts IPv6 addresses in square brackets
-                    SourceAddress = IPAddress.Parse(value);
-                    options.Remove("source-address");
-                }
-                else
-                {
-                    // TODO: Add back support for default source address?
-                    //SourceAddress = Communicator.DefaultSourceAddress;
-                }
-            }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
-        {
-            SourceAddress = endpoint.SourceAddress;
+            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol) =>
             IsIPv6Only = endpoint.IsIPv6Only;
-        }
 
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);

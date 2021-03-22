@@ -207,6 +207,10 @@ namespace IceRpc
                     }
                 }
 
+                if (options.SocketOptions.SourceAddress is IPAddress sourceAddress)
+                {
+                    socket.Bind(new IPEndPoint(sourceAddress, 0));
+                }
                 SetBufferSize(socket,
                               options.SocketOptions.UdpReceiveBufferSize,
                               options.SocketOptions.UdpSendBufferSize,

@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Api
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     ConnectionOptions = new()
                                      {
                                          AcceptNonSecure = NonSecure.Never
                                      },
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Api
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     ConnectionOptions = new()
                                      {
                                          AcceptNonSecure = NonSecure.Never
                                      },
@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Api
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     ConnectionOptions = new IncomingConnectionOptions()
+                                     ConnectionOptions = new()
                                      {
                                          AcceptNonSecure = NonSecure.Never
                                      },
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Api
                 communicator,
                 new()
                 {
-                    ConnectionOptions = new IncomingConnectionOptions()
+                    ConnectionOptions = new()
                     {
                         AcceptNonSecure = NonSecure.Always
                     },

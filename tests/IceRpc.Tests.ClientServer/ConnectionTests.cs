@@ -39,7 +39,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(transport: transport, protocol: protocol),
-                    ConnectionOptions = new IncomingConnectionOptions
+                    ConnectionOptions = new()
                     {
                         AcceptNonSecure = NonSecure.Always
                     }
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(protocol: protocol),
-                    ConnectionOptions = new IncomingConnectionOptions
+                    ConnectionOptions = new()
                     {
                         IdleTimeout = TimeSpan.FromSeconds(2),
                         KeepAlive = false
@@ -139,10 +139,10 @@ namespace IceRpc.Tests.ClientServer
             server.Activate();
 
             await using var clientCommunicator = new Communicator(
-                new Dictionary<string, string>()
+                connectionOptions: new()
                 {
-                    { "Ice.IdleTimeout", "1s" },
-                    { "Ice.KeepAlive", "0" }
+                    IdleTimeout = TimeSpan.FromSeconds(1),
+                    KeepAlive = false
                 });
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), clientCommunicator);
@@ -166,7 +166,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(protocol: protocol),
-                    ConnectionOptions = new IncomingConnectionOptions
+                    ConnectionOptions = new()
                     {
                         IdleTimeout = TimeSpan.FromSeconds(1),
                         KeepAlive = true
@@ -225,10 +225,10 @@ namespace IceRpc.Tests.ClientServer
             server.Activate();
 
             await using var communicator = new Communicator(
-                new Dictionary<string, string>()
+                connectionOptions: new()
                 {
-                    { "Ice.IdleTimeout", $"{idleTimeout}s" },
-                    { "Ice.KeepAlive", $"{keepAlive}" }
+                    IdleTimeout = TimeSpan.FromSeconds(idleTimeout),
+                    KeepAlive = keepAlive,
                 });
 
             var proxy = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
@@ -247,9 +247,9 @@ namespace IceRpc.Tests.ClientServer
             var semaphore = new SemaphoreSlim(0);
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var communicator = new Communicator(
-                new Dictionary<string, string>
+                connectionOptions: new()
                 {
-                    { "Ice.ConnectTimeout", "100ms" }
+                    ConnectTimeout = TimeSpan.FromMilliseconds(100)
                 });
             await using var server = new Server(communicator,
                                                 new()
@@ -276,14 +276,14 @@ namespace IceRpc.Tests.ClientServer
         {
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default);
             await using var communicator1 = new Communicator(
-                new Dictionary<string, string>
+                connectionOptions: new()
                 {
-                    { "Ice.CloseTimeout", "100ms" }
+                    CloseTimeout = TimeSpan.FromMilliseconds(100)
                 });
             await using var communicator2 = new Communicator(
-                new Dictionary<string, string>
+                connectionOptions: new()
                 {
-                    { "Ice.CloseTimeout", "60s" }
+                    CloseTimeout = TimeSpan.FromSeconds(60)
                 });
             await using var server = new Server(communicator1,
                                                 new()

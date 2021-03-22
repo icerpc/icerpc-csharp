@@ -159,14 +159,12 @@ namespace IceRpc
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="path">The path of the service.</param>
         /// <param name="facet">The facet (optional, ice1 only).</param>
         /// <returns>A fixed proxy.</returns>
         public static T Create<T>(
             this IProxyFactory<T> factory,
-            Communicator communicator,
             Connection connection,
             string path,
             string facet = "") where T : class, IServicePrx
@@ -177,7 +175,7 @@ namespace IceRpc
             {
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = communicator,
+                    Communicator = connection.Communicator!,
                     Connection = connection,
                     Facet = facet,
                     IsOneway = connection.Endpoint.IsDatagram,
@@ -195,7 +193,7 @@ namespace IceRpc
 
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = communicator,
+                    Communicator = connection.Communicator!,
                     Connection = connection,
                     Path = UriParser.NormalizePath(path),
                     Protocol = protocol

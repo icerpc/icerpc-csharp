@@ -71,10 +71,10 @@ namespace IceRpc.Tests.Internal
 
             var serverOptions = new ServerOptions()
             {
-                ConnectionOptions = new IncomingConnectionOptions()
+                ConnectionOptions = new()
                 {
                     AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
-                    AuthenticationOptions = new SslServerAuthenticationOptions()
+                    AuthenticationOptions = new()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
@@ -87,9 +87,9 @@ namespace IceRpc.Tests.Internal
 
             // TODO: support something like communicator/connection option builder
             _clientCommunicator = new Communicator(
-                connectionOptions: new OutgoingConnectionOptions()
+                connectionOptions: new()
                 {
-                    AuthenticationOptions = new SslClientAuthenticationOptions()
+                    AuthenticationOptions = new()
                     {
                         RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(

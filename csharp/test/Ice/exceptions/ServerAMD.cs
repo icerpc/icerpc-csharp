@@ -9,13 +9,19 @@ namespace IceRpc.Test.Exceptions
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(
+                Communicator,
+                new()
+                {
+                    ConnectionOptions = new() { IncomingFrameMaxSize = 10 * 1024 },
+                    Endpoints = GetTestEndpoint(0)
+                });
 
             Server server2 = new Server(
                 Communicator,
                 new()
                 {
-                    ConnectionOptions = new () { IncomingFrameMaxSize = int.MaxValue },
+                    ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
                     Endpoints = GetTestEndpoint(1),
                 });
 
@@ -23,7 +29,7 @@ namespace IceRpc.Test.Exceptions
                 Communicator,
                 new()
                 {
-                    ConnectionOptions = new () { IncomingFrameMaxSize = 1024 },
+                    ConnectionOptions = new() { IncomingFrameMaxSize = 1024 },
                     Endpoints = GetTestEndpoint(2),
                 });
 
@@ -41,7 +47,7 @@ namespace IceRpc.Test.Exceptions
                 communicator2,
                 new()
                 {
-                    ConnectionOptions = new () { IncomingFrameMaxSize = int.MaxValue },
+                    ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
                     Endpoints = GetTestEndpoint(3),
                 });
 
@@ -57,7 +63,6 @@ namespace IceRpc.Test.Exceptions
             Dictionary<string, string> properties = CreateTestProperties(ref args);
             properties["Ice.Warn.Dispatch"] = "0";
             properties["Ice.Warn.Connections"] = "0";
-            properties["Ice.IncomingFrameMaxSize"] = "10K";
 
             await using var communicator = CreateCommunicator(properties);
             return await RunTestAsync<ServerAppAMD>(communicator, args);

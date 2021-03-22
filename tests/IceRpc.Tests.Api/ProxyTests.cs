@@ -197,8 +197,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+ws://host.zeroc.com/identity?resource=/foo%2Fbar?/xyz")]
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
-        [TestCase("ice+tcp://host:10000/test?source-address=::1", "/test")]
-        [TestCase("ice+tcp://host:10000?source-address=::1", "/")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         // a valid URI
         [TestCase("ice:tcp -p 10000")]
@@ -359,11 +357,11 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        [TestCase("ice+tcp://tcphost:10000/test?source-address=10.10.10.10" +
-                  "&alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
+        [TestCase("ice+tcp://tcphost:10000/test?" +
+                  "alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
         [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
-                  "--sourceAddress 10.10.10.10: udp -h 239.255.1.1 -p 10001 --interface eth0 --ttl 5 " +
-                  "--sourceAddress 10.10.10.10:opaque -e 1.8 -t 100 -v ABCD")]
+                  ": udp -h 239.255.1.1 -p 10001 --interface eth0 --ttl 5 " +
+                  ":opaque -e 1.8 -t 100 -v ABCD")]
         public void Proxy_EndpointInformation(string prx)
         {
             var p1 = IServicePrx.Parse(prx, Communicator);
@@ -375,7 +373,6 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(tcpEndpoint.IsAlwaysSecure);
             Assert.AreEqual(tcpEndpoint.Host, "tcphost");
             Assert.AreEqual(tcpEndpoint.Port, 10000);
-            Assert.AreEqual(tcpEndpoint["source-address"], "10.10.10.10");
 
             if (p1.Protocol == Protocol.Ice1)
             {
@@ -391,7 +388,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(10001, udpEndpoint.Port);
                 Assert.AreEqual("eth0", udpEndpoint["interface"]);
                 Assert.AreEqual("5", udpEndpoint["ttl"]);
-                Assert.AreEqual("10.10.10.10", udpEndpoint["source-address"]);
                 Assert.AreEqual(null, udpEndpoint["timeout"]);
                 Assert.AreEqual(null, udpEndpoint["compress"]);
                 Assert.IsFalse(udpEndpoint.IsAlwaysSecure);
@@ -420,7 +416,7 @@ namespace IceRpc.Tests.Api
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
             Connection connection = await prx.GetConnectionAsync();
-            Assert.AreEqual(expected, IServicePrx.Factory.Create(communicator, connection, "fixed").ToString());
+            Assert.AreEqual(expected, IServicePrx.Factory.Create(connection, "fixed").ToString());
         }
 
         [Test]
@@ -537,13 +533,12 @@ namespace IceRpc.Tests.Api
             Assert.AreNotEqual(prx.PreferNonSecure, communicator.ConnectionOptions.PreferNonSecure);
 
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
-                    "&alt-endpoint=ice+ws://localhost?resource=/x/y$source-address=[::1]&context=c5=v5";
+                    "&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
             Assert.AreEqual(prx.Endpoints.Count, 2);
             Assert.AreEqual(prx.Endpoints[1].Transport, Transport.WS);
             Assert.AreEqual(prx.Endpoints[1]["resource"], "/x/y");
-            Assert.AreEqual(prx.Endpoints[1]["source-address"], "::1");
             Assert.AreEqual(prx.Context.Count, 2);
             Assert.AreEqual(prx.Context["c 1"], "some value");
             Assert.AreEqual(prx.Context["c5"], "v5");

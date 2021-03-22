@@ -557,7 +557,8 @@ namespace IceRpc
             {
                 if (size > _socket.IncomingFrameMaxSize)
                 {
-                    throw new InvalidDataException($"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
+                    throw new InvalidDataException(
+                        $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
                 }
                 buffer = size > buffer.Array!.Length ? new ArraySegment<byte>(new byte[size]) : buffer.Slice(0, size);
                 await ReceiveFullAsync(buffer, cancel).ConfigureAwait(false);

@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Net;
 using System.Net.Security;
 
 namespace IceRpc
@@ -23,7 +24,7 @@ namespace IceRpc
              get => _streamBufferMaxSize ?? 2 * PacketMaxSize;
              set => _streamBufferMaxSize = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(StreamBufferMaxSize)} cannot be less than 1KB", nameof(value));
-    }
+        }
 
         public SlicOptions Clone() => (SlicOptions)MemberwiseClone();
     }
@@ -35,6 +36,8 @@ namespace IceRpc
         private int? _tcpSendBufferSize;
         private int? _udpReceiveBufferSize;
         private int? _udpSendBufferSize;
+
+        public IPAddress? SourceAddress { get; set; }
 
         public int TcpBackLog
         {
@@ -143,40 +146,6 @@ namespace IceRpc
             options.SocketOptions = SocketOptions.Clone();
             return options;
         }
-    }
-
-    public static class SslAuthenticationOptionsExtensions
-    {
-        public static SslClientAuthenticationOptions Clone(this SslClientAuthenticationOptions value) =>
-            new()
-            {
-                AllowRenegotiation = value.AllowRenegotiation,
-                ApplicationProtocols = value.ApplicationProtocols,
-                CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
-                CipherSuitesPolicy = value.CipherSuitesPolicy,
-                ClientCertificates = value.ClientCertificates,
-                EnabledSslProtocols = value.EnabledSslProtocols,
-                EncryptionPolicy = value.EncryptionPolicy,
-                LocalCertificateSelectionCallback = value.LocalCertificateSelectionCallback,
-                RemoteCertificateValidationCallback = value.RemoteCertificateValidationCallback,
-                TargetHost = value.TargetHost
-            };
-
-        public static SslServerAuthenticationOptions Clone(this SslServerAuthenticationOptions value) =>
-            new()
-            {
-                AllowRenegotiation = value.AllowRenegotiation,
-                ApplicationProtocols = value.ApplicationProtocols,
-                CertificateRevocationCheckMode = value.CertificateRevocationCheckMode,
-                CipherSuitesPolicy = value.CipherSuitesPolicy,
-                ClientCertificateRequired = value.ClientCertificateRequired,
-                EnabledSslProtocols = value.EnabledSslProtocols,
-                EncryptionPolicy = value.EncryptionPolicy,
-                RemoteCertificateValidationCallback = value.RemoteCertificateValidationCallback,
-                ServerCertificate = value.ServerCertificate,
-                ServerCertificateContext = value.ServerCertificateContext,
-                ServerCertificateSelectionCallback = value.ServerCertificateSelectionCallback
-            };
     }
 
     public sealed class OutgoingConnectionOptions : ConnectionOptions
