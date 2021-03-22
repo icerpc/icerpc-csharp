@@ -5,7 +5,6 @@ using NUnit.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,12 +52,12 @@ namespace IceRpc.Tests.ClientServer
 
             IServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.IsNotNull(found);
-            Assert.IsTrue(found!.Endpoints.SequenceEqual(greeter.Endpoints));
+            CollectionAssert.AreEqual(found!.Endpoints, greeter.Endpoints);
 
             (IReadOnlyList<Endpoint> endpoints, _) =
                 await locationResolver.ResolveAsync(indirectGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
 
-            Assert.IsTrue(endpoints.SequenceEqual(greeter.Endpoints));;
+            CollectionAssert.AreEqual(endpoints, greeter.Endpoints);
         }
 
         [TestCase]
@@ -79,21 +78,21 @@ namespace IceRpc.Tests.ClientServer
 
             (IReadOnlyList<Endpoint> endpoints, TimeSpan age) =
                 await locationResolver.ResolveAsync(indirectGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
-            Assert.IsTrue(age > TimeSpan.Zero);
-            Assert.IsTrue(endpoints.SequenceEqual(_greeter.Endpoints));
+            Assert.Greater(age, TimeSpan.Zero);
+            CollectionAssert.AreEqual(endpoints, _greeter.Endpoints);
             Assert.IsTrue(await locator.UnregisterAdapterAsync("adapt"));
 
             // We still find it in the cache and can still call it
             (endpoints, age) =
                 await locationResolver.ResolveAsync(indirectGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
-            Assert.IsTrue(endpoints.SequenceEqual(_greeter.Endpoints));
-            Assert.IsTrue(age > TimeSpan.Zero);
+            CollectionAssert.AreEqual(endpoints, _greeter.Endpoints);
+            Assert.Greater(age, TimeSpan.Zero);
             await indirectGreeter.SayHelloAsync();
 
             // Force re-resolution
             (endpoints, age) =
                 await locationResolver.ResolveAsync(indirectGreeter.Endpoints[0], TimeSpan.Zero, default);
-            Assert.AreEqual(endpoints.Count, 0);
+            CollectionAssert.IsEmpty(endpoints);
             Assert.AreEqual(age, TimeSpan.Zero);
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
 
@@ -108,15 +107,15 @@ namespace IceRpc.Tests.ClientServer
 
             (endpoints, age) =
                 await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
-            Assert.IsTrue(age > TimeSpan.Zero);
-            Assert.IsTrue(endpoints.SequenceEqual(_greeter.Endpoints));
+            Assert.Greater(age, TimeSpan.Zero);
+            CollectionAssert.AreEqual(endpoints, _greeter.Endpoints);
             Assert.IsTrue(await locator.UnregisterWellKnownProxyAsync(_greeter.GetIdentity()));
 
             // We still find it in the cache and can still call it.
             (endpoints, age) =
                 await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
-            Assert.IsTrue(endpoints.SequenceEqual(_greeter.Endpoints));
-            Assert.IsTrue(age > TimeSpan.Zero);
+            CollectionAssert.AreEqual(endpoints, _greeter.Endpoints);
+            Assert.Greater(age, TimeSpan.Zero);
             await wellKnownGreeter.SayHelloAsync();
 
             // Force re-resolution
@@ -150,12 +149,12 @@ namespace IceRpc.Tests.ClientServer
 
             IServicePrx? found = await locator.FindObjectByIdAsync(identity);
             Assert.IsNotNull(found);
-            Assert.IsTrue(found!.Endpoints.SequenceEqual(greeter.Endpoints));
+            CollectionAssert.AreEqual(found!.Endpoints, greeter.Endpoints);
 
             (IReadOnlyList<Endpoint> endpoints, _) =
                 await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
 
-            Assert.IsTrue(endpoints.SequenceEqual(greeter.Endpoints));
+            CollectionAssert.AreEqual(endpoints, greeter.Endpoints);
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
@@ -167,12 +166,12 @@ namespace IceRpc.Tests.ClientServer
 
             found = await locator.FindObjectByIdAsync(identity);
             Assert.IsNotNull(found);
-            Assert.IsTrue(found!.Endpoints.SequenceEqual(indirectGreeter.Endpoints)); // partial resolution
+            CollectionAssert.AreEqual(found!.Endpoints, indirectGreeter.Endpoints); // partial resolution
 
             (endpoints, _) =
                 await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0], Timeout.InfiniteTimeSpan, default);
 
-            Assert.IsTrue(endpoints.SequenceEqual(greeter.Endpoints)); // full resolution
+            CollectionAssert.AreEqual(endpoints, greeter.Endpoints); // full resolution
         }
 
         [OneTimeTearDown]
