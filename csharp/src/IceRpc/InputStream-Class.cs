@@ -93,7 +93,7 @@ namespace IceRpc
 
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    if (Communicator.FindRemoteExceptionFactory(typeId) is
+                    if (Runtime.FindRemoteExceptionFactory(typeId) is
                         Func<string?, RemoteExceptionOrigin, RemoteException> factory)
                     {
                         // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
@@ -128,7 +128,7 @@ namespace IceRpc
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
                     Func<string?, RemoteExceptionOrigin, RemoteException>? factory =
-                        Communicator.FindRemoteExceptionFactory(typeId);
+                        Runtime.FindRemoteExceptionFactory(typeId);
                     if (factory != null)
                     {
                         remoteEx = factory(errorMessage, origin);
@@ -394,11 +394,11 @@ namespace IceRpc
                     Func<AnyClass>? factory = null;
                     if (typeId != null)
                     {
-                        factory = Communicator.FindClassFactory(typeId);
+                        factory = Runtime.FindClassFactory(typeId);
                     }
                     else if (compactId is int compactIdValue)
                     {
-                        factory = Communicator.FindClassFactory(compactIdValue);
+                        factory = Runtime.FindClassFactory(compactIdValue);
                     }
 
                     if (factory != null)
@@ -454,7 +454,7 @@ namespace IceRpc
                     int skipCount = 0;
                     foreach (string typeId in allTypeIds)
                     {
-                        if (Communicator.FindClassFactory(typeId) is Func<AnyClass> factory)
+                        if (Runtime.FindClassFactory(typeId) is Func<AnyClass> factory)
                         {
                             instance = factory();
                             break; // foreach
@@ -492,7 +492,7 @@ namespace IceRpc
                 else if (formalTypeId != null)
                 {
                     // received null and formalTypeId is not null, apply formal type optimization.
-                    if (Communicator.FindClassFactory(formalTypeId) is Func<AnyClass> factory)
+                    if (Runtime.FindClassFactory(formalTypeId) is Func<AnyClass> factory)
                     {
                         instance = factory();
                         _instanceMap.Add(instance);
