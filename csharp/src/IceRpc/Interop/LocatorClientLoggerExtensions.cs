@@ -33,13 +33,13 @@ namespace IceRpc.Interop
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
                 new EventId(CouldNotResolveEndpoint, nameof(CouldNotResolveEndpoint)),
-                "could not find endpoint(s) for adapter ID = {AdapterId}");
+                "could not resolve endpoint(s) for adapter ID = {AdapterId}");
 
         private static readonly Action<ILogger, Identity, Exception> _couldNotResolveWellKnownEndpoint =
             LoggerMessage.Define<Identity>(
                 LogLevel.Debug,
                 new EventId(CouldNotResolveEndpoint, nameof(CouldNotResolveEndpoint)),
-                "could not find endpoint(s) for well-known proxy = {Identity}");
+                "could not resolve endpoint(s) for well-known proxy = {Identity}");
 
         private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _foundAdapterEntryInCache =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(

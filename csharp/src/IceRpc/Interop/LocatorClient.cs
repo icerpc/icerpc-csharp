@@ -101,7 +101,7 @@ namespace IceRpc.Interop
                 (!_background && expired) ||
                 (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsAge >= endpointsMaxAge))
             {
-               endpoints = await ResolveAsync(location, category, cancel).ConfigureAwait(false);
+               endpoints = await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
                endpointsAge = TimeSpan.Zero; // Fresh endpoints that are not coming from the cache.
             }
             else if (expired && _background)
@@ -109,7 +109,7 @@ namespace IceRpc.Interop
                 // Endpoints are returned from the cache but endpointsMaxAge was reached, if backgrounds updates
                 // are configured, we obtain new endpoints but continue using the stale endpoints to not block the
                 // caller.
-                _ = ResolveAsync(location, category, cancel: default);
+                _ = ResolveWithLocatorAsync(location, category, cancel: default);
             }
 
             // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc endpoint.
@@ -130,7 +130,9 @@ namespace IceRpc.Interop
                 }
                 finally
                 {
-                    // endpoints can hold a loc endpoint only when an exception is thrown.
+                    // When the second resolution fails, we clear the cache entry for the initial successful resolution,
+                    // since the overall resolution is a failure.
+                    // endpoints below can hold a loc endpoint only when an exception is thrown.
                     if (endpoints.Count == 0 || (endpoints.Count == 1 && endpoints[0].Transport == Transport.Loc))
                     {
                         ClearCache(location, category);
@@ -172,7 +174,7 @@ namespace IceRpc.Interop
             }
         }
 
-        private async Task<IReadOnlyList<Endpoint>> ResolveAsync(
+        private async Task<IReadOnlyList<Endpoint>> ResolveWithLocatorAsync(
             string location,
             string? category,
             CancellationToken cancel)
@@ -189,13 +191,13 @@ namespace IceRpc.Interop
                 {
                     // If there is no request in progress, we invoke one and cache the request to prevent concurrent
                     // identical requests. It's removed once the response is received.
-                    task = PerformResolveAsync();
+                    task = PerformResolveWithLocatorAsync();
                     if (!task.IsCompleted)
                     {
-                        // If PerformResolveAsync completed, don't add the task (it would leak since PerformResolveAsync
-                        // is responsible for removing it).
-                        // Since PerformResolveAsync locks _mutex in its finally block, the only way it can be completed
-                        // now is if completed synchronously.
+                        // If PerformResolveWithLocatorAsync completed, don't add the task (it would leak since
+                        // PerformResolveWithLocatorAsync is responsible for removing it).
+                        // Since PerformResolveWithLocatorAsync locks _mutex in its finally block, the only way it can
+                        // be completed now is if completed synchronously.
                         _requests.Add((location, category), task);
                     }
                 }
@@ -203,7 +205,7 @@ namespace IceRpc.Interop
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<IReadOnlyList<Endpoint>> PerformResolveAsync()
+            async Task<IReadOnlyList<Endpoint>> PerformResolveWithLocatorAsync()
             {
                 try
                 {

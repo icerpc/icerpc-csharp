@@ -12,7 +12,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class LocationResolverTests : ClientServerBaseTest
+    public class LocationResolverTests
     {
         private readonly Communicator _communicator;
         private Server _server = null!;

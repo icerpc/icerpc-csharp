@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class InteropLocatorClientTests : ClientServerBaseTest
+    public class InteropLocatorClientTests
     {
         private readonly Communicator _communicator;
         private IGreeterTestServicePrx _greeter;
