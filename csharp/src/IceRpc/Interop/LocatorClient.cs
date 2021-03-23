@@ -19,7 +19,7 @@ namespace IceRpc.Interop
         /// does not return stale values.</summary>
         public bool Background { get; set; }
 
-        /// <summary>The maximum size of the cache. Must be between 0 (no cache) and int32.MaxSize.</summary>
+        /// <summary>The maximum size of the cache. Must be 0 (meaning no cache) or greater.</summary>
         public int CacheMaxSize
         {
             get => _cacheMaxSize;
