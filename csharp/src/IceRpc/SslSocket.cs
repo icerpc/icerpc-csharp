@@ -43,32 +43,15 @@ namespace IceRpc
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Debug.Assert(authenticationOptions != null);
+            SslClientAuthenticationOptions options = authenticationOptions!;
+            if (options.TargetHost == null)
+            {
+                options = options.Clone();
+                options.TargetHost = endpoint.Host;
+            }
+
             await AuthenticateAsync(async (SslStream sslStream) =>
             {
-                SslClientAuthenticationOptions options;
-                if (authenticationOptions.TargetHost == null)
-                {
-                    options = new SslClientAuthenticationOptions
-                    {
-                        AllowRenegotiation = authenticationOptions.AllowRenegotiation,
-                        ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                        CertificateRevocationCheckMode = authenticationOptions.CertificateRevocationCheckMode,
-                        CipherSuitesPolicy = authenticationOptions.CipherSuitesPolicy,
-                        ClientCertificates = authenticationOptions.ClientCertificates,
-                        EnabledSslProtocols = authenticationOptions.EnabledSslProtocols,
-                        EncryptionPolicy = authenticationOptions.EncryptionPolicy,
-                        LocalCertificateSelectionCallback =
-                            authenticationOptions.LocalCertificateSelectionCallback,
-                        RemoteCertificateValidationCallback =
-                            authenticationOptions.RemoteCertificateValidationCallback,
-                        TargetHost = endpoint.Host
-                    };
-                }
-                else
-                {
-                    options = authenticationOptions;
-                }
                 await sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
             }).ConfigureAwait(false);
             return this;

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -76,13 +77,10 @@ namespace IceRpc
 
             string[] options = resource == "/" ? Array.Empty<string>() : new string[] { resource };
 
-            return new WSEndpoint(new EndpointData(transport, host, port, options),
-                                  timeout,
-                                  compress,
-                                  istr.Communicator!);
+            return new WSEndpoint(new EndpointData(transport, host, port, options), timeout, compress);
         }
 
-        internal static new WSEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+        internal static new WSEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Length > 1)
             {
@@ -90,13 +88,12 @@ namespace IceRpc
                 data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
             }
 
-            return new(data, communicator, protocol);
+            return new(data, protocol);
         }
 
         internal static new WSEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
         {
@@ -118,7 +115,6 @@ namespace IceRpc
                                   ParseTimeout(options, endpointString),
                                   ParseCompress(options, endpointString),
                                   options,
-                                  communicator,
                                   serverEndpoint,
                                   endpointString);
         }
@@ -128,7 +124,6 @@ namespace IceRpc
             string host,
             ushort port,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
@@ -159,26 +154,27 @@ namespace IceRpc
                                         port,
                                         resource == null ? Array.Empty<string>() : new string[] { resource });
 
-            return new WSEndpoint(data, options, communicator, serverEndpoint);
+            return new WSEndpoint(data, options, serverEndpoint);
         }
 
-        internal override SingleStreamSocket CreateSocket(EndPoint addr) => new WSSocket(base.CreateSocket(addr));
+        internal override SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger) =>
+            new WSSocket(base.CreateSocket(addr, options, logger));
 
-        internal override SingleStreamSocket CreateSocket(Socket socket) => new WSSocket(base.CreateSocket(socket));
+        internal override SingleStreamSocket CreateSocket(Socket socket, SocketOptions options, ILogger logger) =>
+            new WSSocket(base.CreateSocket(socket, options, logger));
 
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server) =>
-            new WSConnection(this, socket, label, server);
+            new WSConnection(this, socket, options, server);
 
         // Constructor used for ice2 parsing.
         private WSEndpoint(
             EndpointData data,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
-            : base(data, options, communicator, serverEndpoint)
+            : base(data, options, serverEndpoint)
         {
         }
 
@@ -188,22 +184,21 @@ namespace IceRpc
             TimeSpan timeout,
             bool compress,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
-            : base(data, timeout, compress, options, communicator, serverEndpoint, endpointString)
+            : base(data, timeout, compress, options, serverEndpoint, endpointString)
         {
         }
 
         // Constructor for ice1 unmarshaling
-        private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress, Communicator communicator)
-            : base(data, timeout, compress, communicator)
+        private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress)
+            : base(data, timeout, compress)
         {
         }
 
         // Constructor for unmarshaling with the 2.0 encoding
-        private WSEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private WSEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
         }
 

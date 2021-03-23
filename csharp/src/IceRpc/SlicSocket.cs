@@ -20,8 +20,10 @@ namespace IceRpc
             get => _idleTimeout;
             internal set => throw new NotSupportedException("setting IdleTimeout is not supported with Slic");
         }
+        internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
+        internal int StreamBufferMaxSize { get; }
 
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
@@ -362,26 +364,27 @@ namespace IceRpc
 
         internal SlicSocket(
             Endpoint endpoint,
-            ILogger logger,
-            int incomingFrameMaxSize,
-            bool isIncoming,
             SingleStreamSocket socket,
-            int bidirectionalStreamMaxCount,
-            int unidirectionalStreamMaxCount)
-            : base(endpoint, logger, incomingFrameMaxSize, isIncoming, socket)
+            ConnectionOptions options,
+            ILogger protocolLogger)
+            : base(endpoint, socket, options, protocolLogger)
         {
-            _idleTimeout = endpoint.Communicator.IdleTimeout;
+            _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
+            var slicOptions = options.SlicOptions!;
+            PacketMaxSize = slicOptions.PacketMaxSize;
+            StreamBufferMaxSize = slicOptions.StreamBufferMaxSize;
+
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
-            PeerPacketMaxSize = endpoint.Communicator.SlicPacketMaxSize;
-            PeerStreamBufferMaxSize = endpoint.Communicator.SlicStreamBufferMaxSize;
+            PeerPacketMaxSize = PacketMaxSize;
+            PeerStreamBufferMaxSize = StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = bidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = unidirectionalStreamMaxCount;
+            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsIncoming)
@@ -432,9 +435,9 @@ namespace IceRpc
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogSendingSlicFrame(type, frameSize, streamId);
+                TransportLogger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -603,9 +606,9 @@ namespace IceRpc
                     headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                     buffer[0] = headerData;
 
-                    if (Logger.IsEnabled(LogLevel.Debug))
+                    if (TransportLogger.IsEnabled(LogLevel.Debug))
                     {
-                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                        TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                     }
 
                     try
@@ -736,9 +739,9 @@ namespace IceRpc
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                TransportLogger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length
@@ -771,30 +774,24 @@ namespace IceRpc
 
         private void WriteParameters(OutputStream ostr)
         {
-            // Client connections always send the idle timeout. On the server side however, if the received client's
-            // idle timeout is smaller then the configured idle timeout, we can omit sending the server's idle timeout.
-            bool writeIdleTimeout = !IsIncoming || Endpoint.Communicator.IdleTimeout < _idleTimeout;
-
-            ostr.WriteSize(writeIdleTimeout ? 5 : 4);
+            ostr.WriteSize(5);
             ostr.WriteBinaryContextEntry((int)ParameterKey.MaxBidirectionalStreams,
                                          (ulong)_bidirectionalMaxStreams,
                                          OutputStream.IceWriterFromVarULong);
             ostr.WriteBinaryContextEntry((int)ParameterKey.MaxUnidirectionalStreams,
                                          (ulong)_unidirectionalMaxStreams,
                                          OutputStream.IceWriterFromVarULong);
-            if (writeIdleTimeout)
-            {
-                ostr.WriteBinaryContextEntry((int)ParameterKey.IdleTimeout,
-                                             (ulong)_idleTimeout.TotalMilliseconds,
-                                             OutputStream.IceWriterFromVarULong);
-            }
+
+            ostr.WriteBinaryContextEntry((int)ParameterKey.IdleTimeout,
+                                            (ulong)_idleTimeout.TotalMilliseconds,
+                                            OutputStream.IceWriterFromVarULong);
 
             ostr.WriteBinaryContextEntry((int)ParameterKey.PacketMaxSize,
-                                         (ulong)Endpoint.Communicator.SlicPacketMaxSize,
+                                         (ulong)PacketMaxSize,
                                          OutputStream.IceWriterFromVarULong);
 
             ostr.WriteBinaryContextEntry((int)ParameterKey.StreamBufferMaxSize,
-                                         (ulong)Endpoint.Communicator.SlicStreamBufferMaxSize,
+                                         (ulong)StreamBufferMaxSize,
                                          OutputStream.IceWriterFromVarULong);
         }
     }

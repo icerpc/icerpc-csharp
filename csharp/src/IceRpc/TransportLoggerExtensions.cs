@@ -185,7 +185,7 @@ namespace IceRpc
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
                 new EventId(DatagramSizeExceededIncomingFrameMaxSize, nameof(DatagramSizeExceededIncomingFrameMaxSize)),
-                "frame with {Size} bytes exceeds Ice.IncomingFrameMaxSize value");
+                "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value");
 
         private static readonly Action<ILogger, int, Exception> _maximumDatagramSizeExceeded =
             LoggerMessage.Define<int>(

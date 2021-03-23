@@ -85,9 +85,12 @@ namespace IceRpc.Tests.Internal
             : base(type, serverOptions =>
                    {
                        // Setup specific server options for testing purpose
-                       serverOptions.BidirectionalStreamMaxCount = 15;
-                       serverOptions.UnidirectionalStreamMaxCount = 10;
-                       serverOptions.IncomingFrameMaxSize = 512 * 1024;
+                       serverOptions.ConnectionOptions = new()
+                       {
+                            BidirectionalStreamMaxCount = 15,
+                            UnidirectionalStreamMaxCount = 10,
+                            IncomingFrameMaxSize = 512 * 1024
+                       };
                    })
         {
         }
@@ -334,7 +337,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
             IncomingRequestFrame? incomingRequest = null;
-            for (int i = 0; i < Server.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < Server.ConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(true);
                 clientStreams.Add(stream);
@@ -390,7 +393,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task MultiStreamSocket_StreamMaxCount_StressTest(bool bidirectional)
         {
-            int maxCount = bidirectional ? Server.BidirectionalStreamMaxCount : Server.UnidirectionalStreamMaxCount;
+            int maxCount = bidirectional ?
+                Server.ConnectionOptions.BidirectionalStreamMaxCount :
+                Server.ConnectionOptions.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -465,7 +470,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
-            for (int i = 0; i < Server.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < Server.ConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(false);
                 clientStreams.Add(stream);

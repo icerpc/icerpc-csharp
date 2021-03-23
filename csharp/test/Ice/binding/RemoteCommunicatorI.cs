@@ -28,9 +28,12 @@ namespace IceRpc.Test.Binding
                         current.Communicator,
                         new()
                         {
-                            AcceptNonSecure = transport == "udp" ? NonSecure.Always :
-                                current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
-                                    NonSecure.Always,
+                            ConnectionOptions = new()
+                            {
+                                AcceptNonSecure = transport == "udp" ? NonSecure.Always :
+                                    current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
+                                        NonSecure.Always,
+                            },
                             Endpoints = endpoints,
                             Name = name,
                             PublishedHost = TestHelper.GetTestHost(current.Communicator.GetProperties())

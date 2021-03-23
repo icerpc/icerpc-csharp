@@ -90,22 +90,14 @@ namespace IceRpc
 
             try
             {
-                // Bind the socket to the source address if one is set.
-                if ((endpoint as IPEndpoint)?.SourceAddress is IPAddress sourceAddress)
-                {
-                    Socket.Bind(new IPEndPoint(sourceAddress, 0));
-                }
-
                 // Connect to the peer and cache the description of the socket.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 _desc = Network.SocketToString(Socket);
 
-                // If the endpoint is always secured or if a secure is requested, create an SslSocket and return
-                // it from this method. The caller is responsible for using the returned SslSocket instead of
-                // using this TcpSocket.
-
+                // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
+                // responsible for using the returned SslSocket instead of using this TcpSocket.
                 SingleStreamSocket socket = this;
-                if (endpoint.IsAlwaysSecure || authenticationOptions != null)
+                if (authenticationOptions != null)
                 {
                     socket = new SslSocket(this);
                     await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
@@ -207,7 +199,7 @@ namespace IceRpc
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
-        internal TcpSocket(ILogger logger, Socket fd, EndPoint? addr = null)
+        internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;

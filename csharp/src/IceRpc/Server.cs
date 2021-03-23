@@ -18,10 +18,6 @@ namespace IceRpc
     /// services, identities, and proxies.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>Indicates under what circumstances this server accepts non-secure incoming connections.
-        /// </summary>
-        public NonSecure AcceptNonSecure { get; }
-
         public ColocationScope ColocationScope { get; }
 
         /// <summary>Returns the communicator of this server. It is used when unmarshaling proxies.</summary>
@@ -32,16 +28,6 @@ namespace IceRpc
         /// <returns>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
         /// actual port selected by the operating system.</returns>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
-
-        /// <summary>Return the maximum number of bidirectional streams that the peer can open for each
-        /// connection.</summary>
-        /// <value>The maximum number of bidirectional streams</value>
-        public int BidirectionalStreamMaxCount { get; }
-
-        /// <summary>Return the maximum number of unidirectional streams that the peer can open for each
-        /// connection.</summary>
-        /// <value>The maximum number of unidirectional streams</value>
-        public int UnidirectionalStreamMaxCount { get; }
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
@@ -63,11 +49,10 @@ namespace IceRpc
         /// <summary>Returns the TaskScheduler used to dispatch requests.</summary>
         public TaskScheduler? TaskScheduler { get; }
 
-        // TLS Server side configuration
-        internal SslServerAuthenticationOptions? AuthenticationOptions { get; }
-
-        internal int IncomingFrameMaxSize { get; }
+        internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
+        internal ILogger ProtocolLogger { get; }
+        internal ILogger TransportLogger { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.
 
@@ -104,57 +89,23 @@ namespace IceRpc
         /// <summary>Constructs a server.</summary>
         public Server(Communicator communicator, ServerOptions options)
         {
-            if (options.AcceptNonSecure == NonSecure.Never && options.AuthenticationOptions == null)
-            {
-                throw new ArgumentException(
-                    "server is configured to only accept secure connections but options.TlsOptions is not set",
-                    nameof(options));
-            }
-
             Communicator = communicator;
 
-            AcceptNonSecure = options.AcceptNonSecure;
             ColocationScope = options.ColocationScope;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
             TaskScheduler = options.TaskScheduler;
+            ProtocolLogger = options.LoggerFactory.CreateLogger("IceRpc.Protocol");
+            TransportLogger = options.LoggerFactory.CreateLogger("IceRpc.Transport");
 
-            if (options.AuthenticationOptions is SslServerAuthenticationOptions tlsOptions)
-            {
-                AuthenticationOptions = new SslServerAuthenticationOptions()
-                {
-                    AllowRenegotiation = tlsOptions.AllowRenegotiation,
-                    ApplicationProtocols = tlsOptions.ApplicationProtocols,
-                    CertificateRevocationCheckMode = tlsOptions.CertificateRevocationCheckMode,
-                    CipherSuitesPolicy = tlsOptions.CipherSuitesPolicy,
-                    ClientCertificateRequired = tlsOptions.ClientCertificateRequired,
-                    EnabledSslProtocols = tlsOptions.EnabledSslProtocols,
-                    EncryptionPolicy = tlsOptions.EncryptionPolicy,
-                    RemoteCertificateValidationCallback = tlsOptions.RemoteCertificateValidationCallback,
-                    ServerCertificate = tlsOptions.ServerCertificate,
-                    ServerCertificateContext = tlsOptions.ServerCertificateContext,
-                    ServerCertificateSelectionCallback = tlsOptions.ServerCertificateSelectionCallback
-                };
-            }
+            ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
+            ConnectionOptions.SocketOptions ??= new SocketOptions();
+            ConnectionOptions.SlicOptions ??= new SlicOptions();
 
-            BidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
-            if (BidirectionalStreamMaxCount < 1)
+            if (ConnectionOptions.AcceptNonSecure == NonSecure.Never && ConnectionOptions.AuthenticationOptions == null)
             {
                 throw new ArgumentException(
-                    $"options.BidirectionalStreamMaxCount can't be less than 1", nameof(options));
-            }
-
-            UnidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
-            if (UnidirectionalStreamMaxCount < 1)
-            {
-                throw new ArgumentException(
-                    $"options.UnidirectionalStreamMaxCount can't be less than 1", nameof(options));
-            }
-
-            int frameMaxSize = options.IncomingFrameMaxSize ?? Communicator.IncomingFrameMaxSize;
-            IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
-            if (IncomingFrameMaxSize < 1024)
-            {
-                throw new ArgumentException("options.IncomingFrameMaxSize cannot be less than 1KB", nameof(options));
+                    "server is configured to only accept secure connections but authentication options are not set",
+                    nameof(options));
             }
 
             if (options.Endpoints.Length > 0)
@@ -177,7 +128,7 @@ namespace IceRpc
 
                     // When the server is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
-                    if (AcceptNonSecure == NonSecure.Never &&
+                    if (ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
                         throw new ArgumentException(
@@ -596,9 +547,9 @@ namespace IceRpc
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
+                        if (ProtocolLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Communicator.ProtocolLogger.LogRequestDispatchException(ex);
+                            ProtocolLogger.LogRequestDispatchException(ex);
                         }
                     }
 
@@ -606,9 +557,9 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (Communicator.ProtocolLogger.IsEnabled(LogLevel.Warning))
+                    if (ProtocolLogger.IsEnabled(LogLevel.Warning))
                     {
-                        Communicator.ProtocolLogger.LogRequestDispatchException(ex);
+                        ProtocolLogger.LogRequestDispatchException(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }

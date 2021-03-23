@@ -237,32 +237,6 @@ namespace IceRpc.Test.Proxy
             }
             output.WriteLine("ok");
 
-            output.Write("testing communicator default source address... ");
-            output.Flush();
-            {
-                await using var comm1 = new Communicator(new Dictionary<string, string>()
-                    {
-                        { "Ice.Default.SourceAddress", "192.168.1.40" }
-                    });
-
-                await using var comm2 = new Communicator();
-
-                string[] proxyArray =
-                    {
-                        "ice+tcp://host.zeroc.com/identity#facet",
-                        "ice -t:tcp -h localhost -p 10000",
-                    };
-
-                foreach (string s in proxyArray)
-                {
-                    var prx = IServicePrx.Parse(s, comm1);
-                    TestHelper.Assert(prx.Endpoints[0]["source-address"] == "192.168.1.40");
-                    prx = IServicePrx.Parse(s, comm2);
-                    TestHelper.Assert(prx.Endpoints[0]["source-address"] == null);
-                }
-            }
-            output.WriteLine("ok");
-
             output.Write("testing communicator default invocation timeout... ");
             output.Flush();
             {

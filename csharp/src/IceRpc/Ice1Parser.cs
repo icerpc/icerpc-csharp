@@ -310,7 +310,6 @@ namespace IceRpc
                                                                    host: result.Identity.Name,
                                                                    port: 0,
                                                                    options: new string[] { result.Identity.Category }),
-                                                  communicator,
                                                   Protocol.Ice1);
 
                 result.Endpoints = ImmutableList.Create(endpoint);
@@ -425,7 +424,6 @@ namespace IceRpc
                                                                    host: adapterId,
                                                                    port: 0,
                                                                    options: Array.Empty<string>()),
-                                                  communicator,
                                                   Protocol.Ice1);
 
                 result.Endpoints = ImmutableList.Create<Endpoint>(endpoint);
@@ -494,7 +492,7 @@ namespace IceRpc
 
             if (communicator.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
             {
-                Endpoint endpoint = parser(transport, options, communicator, serverEndpoint, endpointString);
+                Endpoint endpoint = parser(transport, options, serverEndpoint, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(
@@ -507,7 +505,7 @@ namespace IceRpc
             // of the known endpoints.
             if (!serverEndpoint && transportName == "opaque")
             {
-                var opaqueEndpoint = OpaqueEndpoint.Parse(options, communicator, endpointString);
+                var opaqueEndpoint = OpaqueEndpoint.Parse(options, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(

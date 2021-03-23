@@ -54,6 +54,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice2, "ws", true)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
+    [Timeout(5000)]
     public class SingleStreamSocketTests : SingleStreamSocketBaseTest
     {
         public SingleStreamSocketTests(Protocol protocol, string transport, bool secure)
@@ -265,6 +266,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice2, "ws", true)]
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
+    [Timeout(5000)]
     public class AcceptSingleStreamSocketTests : SocketBaseTest
     {
         public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
@@ -277,6 +279,7 @@ namespace IceRpc.Tests.Internal
         {
             using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+
             using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
@@ -388,8 +391,16 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamSocket CreateClientSocket()
         {
-            Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
+            TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
+            OutgoingConnectionOptions options = OutgoingConnectionOptions;
+            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions!, ClientTransportLogger);
+            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
+            {
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, ClientProtocolLogger),
+                _ => new SlicSocket(ClientEndpoint, socket, options, ClientProtocolLogger)
+            };
+            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
@@ -459,8 +470,16 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamSocket CreateClientSocket()
         {
-            Connection connection =
-                (ClientEndpoint as IPEndpoint)!.CreateConnection(null, default);
+            TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
+            OutgoingConnectionOptions options = OutgoingConnectionOptions;
+            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions!, ClientTransportLogger);
+            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
+            {
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, ClientProtocolLogger),
+                _ => new SlicSocket(ClientEndpoint, socket, options, ClientProtocolLogger)
+            };
+            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }

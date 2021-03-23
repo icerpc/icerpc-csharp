@@ -39,9 +39,9 @@ namespace IceRpc
                     buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
+                        if (TransportLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Logger.LogReceivedInvalidDatagram(buffer.Count);
+                            TransportLogger.LogReceivedInvalidDatagram(buffer.Count);
                         }
                         continue;
                     }
@@ -60,9 +60,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
+                        if (TransportLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Logger.LogReceivedInvalidDatagram(size);
+                            TransportLogger.LogReceivedInvalidDatagram(size);
                         }
                     }
                     else
@@ -75,16 +75,16 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
+                        if (TransportLogger.IsEnabled(LogLevel.Warning))
                         {
-                            Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                            TransportLogger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
                         }
                         continue;
                     }
                     else
                     {
                         throw new InvalidDataException(
-                            $"frame with {size} bytes exceeds Ice.IncomingFrameMaxSize value");
+                            $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
                     }
                 }
 
@@ -93,9 +93,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Debug))
+                        if (TransportLogger.IsEnabled(LogLevel.Debug))
                         {
-                            Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
+                            TransportLogger.LogMaximumDatagramSizeExceeded(buffer.Count);
                         }
                         continue;
                     }
@@ -206,33 +206,24 @@ namespace IceRpc
 
             await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
-            if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+            if (ProtocolLogger.IsEnabled(LogLevel.Debug))
             {
-                Endpoint.Communicator.ProtocolLogger.LogSendIce1ValidateConnectionFrame();
+                ProtocolLogger.LogSendIce1ValidateConnectionFrame();
             }
         }
 
         internal Ice1NetworkSocket(
             Endpoint endpoint,
-            ILogger logger,
-            int incomingFrameMaxSize,
-            bool isIncoming,
             SingleStreamSocket socket,
-            int? bidirectionalStreamMaxCount = null,
-            int? unidirectionalStreamMaxCount = null)
-            : base(endpoint, logger, incomingFrameMaxSize, isIncoming, socket)
+            ConnectionOptions options,
+            ILogger protocolLogger)
+            : base(endpoint, socket, options, protocolLogger)
         {
-            IdleTimeout = endpoint.Communicator.IdleTimeout;
+            IdleTimeout = options.IdleTimeout;
 
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
-            if (bidirectionalStreamMaxCount != null)
-            {
-                _bidirectionalStreamSemaphore = new AsyncSemaphore(bidirectionalStreamMaxCount.Value);
-            }
-            if (unidirectionalStreamMaxCount != null)
-            {
-                _unidirectionalStreamSemaphore = new AsyncSemaphore(unidirectionalStreamMaxCount.Value);
-            }
+            _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
+            _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
 
             // We use the same stream ID numbering scheme as Quic.
             if (IsIncoming)
@@ -356,9 +347,9 @@ namespace IceRpc
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram && Logger.IsEnabled(LogLevel.Debug))
+                    if (Endpoint.IsDatagram && TransportLogger.IsEnabled(LogLevel.Debug))
                     {
-                        Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                        TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
@@ -384,9 +375,9 @@ namespace IceRpc
                 case Ice1FrameType.RequestBatch:
                 {
                     int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    if (Endpoint.Communicator.ProtocolLogger.IsEnabled(LogLevel.Debug))
+                    if (ProtocolLogger.IsEnabled(LogLevel.Debug))
                     {
-                            Endpoint.Communicator.ProtocolLogger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                        ProtocolLogger.LogReceivedIce1RequestBatchFrame(invokeNum);
                     }
 
                     if (invokeNum < 0)
