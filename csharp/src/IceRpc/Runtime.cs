@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
@@ -38,7 +39,7 @@ namespace IceRpc
         private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
 
-        /// <summary>Register assembly as an assembly containing class and exception factories. If no assemblies are
+        /// <summary>Register assembly as an assembly containing class or exception factories. If no assemblies are
         /// registered the Runtime will automatically populate the list of registered assemblies with all referenced
         /// assemblies the first time it tries to unmarshal a class or exception for which no factory can be found.
         /// </summary>
@@ -56,7 +57,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Register all referenced assemblies as assemblies containing class and exception factories. if no
+        /// <summary>Register all referenced assemblies as assemblies containing class or exception factories. if no
         /// assemblies are registered the Runtime will automatically populate the list of registered assemblies with
         /// all referenced assemblies the first time it has to unmarshal a class or exception for which no factory can
         /// be found.</summary>
@@ -125,26 +126,18 @@ namespace IceRpc
                 return null;
             });
 
-        private static Type? FindType(string csharpId)
+        private static Type? FindType(string className)
         {
-            Type? t;
-
             lock (_mutex)
             {
                 if (_loadedAssemblies.Count == 0)
                 {
+                    // Lazzy initialization
                     RegisterReferencedAssemblies();
                 }
             }
-
-            foreach (Assembly a in _loadedAssemblies)
-            {
-                if ((t = a.GetType(csharpId)) != null)
-                {
-                    return t;
-                }
-            }
-            return null;
+            return _loadedAssemblies.Select(
+                assembly => assembly.GetType(className)).FirstOrDefault(type => type != null);
         }
 
         private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
