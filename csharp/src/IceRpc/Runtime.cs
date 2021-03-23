@@ -63,11 +63,8 @@ namespace IceRpc
         /// be found.</summary>
         public static void RegisterReferencedAssemblies()
         {
-            var executingAssembly = Assembly.GetExecutingAssembly();
-            var context = AssemblyLoadContext.GetLoadContext(executingAssembly) ?? AssemblyLoadContext.Default;
-
             var loadedAssemblies = new HashSet<Assembly>();
-            foreach (var assembly in context.Assemblies)
+            foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
             {
                 LoadReferencedAssemblies(assembly, loadedAssemblies);
             }
@@ -148,12 +145,11 @@ namespace IceRpc
                 {
                     try
                     {
-                        var context = AssemblyLoadContext.GetLoadContext(entryAssembly) ?? AssemblyLoadContext.Default;
                         foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
                         {
                             try
                             {
-                                var assembly = context.LoadFromAssemblyName(name);
+                                var assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(name);
                                 LoadReferencedAssemblies(assembly, seenAssembly);
                             }
                             catch
