@@ -19,21 +19,36 @@ namespace IceRpc.Interop
         /// does not return stale values.</summary>
         public bool Background { get; set; }
 
+        /// <summary>The maximum size of the cache. Must be 0 (meaning no cache) or greater.</summary>
+        public int CacheMaxSize
+        {
+            get => _cacheMaxSize;
+            set => _cacheMaxSize = value >= 0 ? value :
+                throw new ArgumentException($"{nameof(CacheMaxSize)} must be positive", nameof(value));
+        }
+
         /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning the
         /// cache entries never become stale.</summary>
         public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
+
+        private int _cacheMaxSize = 100;
     }
 
     /// <summary>Implements <see cref="ILocationResolver"/> using a <see cref="ILocatorPrx"/>.</summary>
     public sealed class LocatorClient : ILocationResolver
     {
-        private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints)> _cache =
-            new();
-
+        private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;
         private readonly bool _background;
+        private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string Location, string? Category)> Node)> _cache;
+
+        // The keys in _cache. The first entries correspond to the most recently added cache entries.
+        private readonly LinkedList<(string Location, string? Category)> _cacheKeys = new();
+
+        private readonly int _cacheMaxSize;
+
         private readonly ILocatorPrx _locator;
 
-        // _mutex protects _requests
+        // _mutex protects _cacheKeys, _requests and updates to _cache
         private readonly object _mutex = new();
 
         private readonly Dictionary<(string Location, string? Category), Task<IReadOnlyList<Endpoint>>> _requests =
@@ -49,6 +64,8 @@ namespace IceRpc.Interop
         {
             _locator = locator;
             _background = options.Background;
+            _cacheMaxSize = options.CacheMaxSize;
+            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
             _ttl = options.Ttl;
         }
 
@@ -87,13 +104,19 @@ namespace IceRpc.Interop
             TimeSpan endpointsAge = TimeSpan.Zero;
             bool expired = false;
 
-            if (_ttl != TimeSpan.Zero &&
-                _cache.TryGetValue((location, category),
-                                    out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints) entry))
+            if (HasCache)
             {
-                endpoints = entry.Endpoints;
-                endpointsAge = Time.Elapsed - entry.InsertionTime;
-                expired = _ttl != Timeout.InfiniteTimeSpan && endpointsAge > _ttl;
+                lock (_mutex)
+                {
+                    if(_cache.TryGetValue(
+                        (location, category),
+                        out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> _) entry))
+                    {
+                        endpoints = entry.Endpoints;
+                        endpointsAge = Time.Elapsed - entry.InsertionTime;
+                        expired = _ttl != Timeout.InfiniteTimeSpan && endpointsAge > _ttl;
+                    }
+                }
             }
 
             // Timeout.InfiniteTimeSpan == -1 so does not work well in comparisons.
@@ -165,11 +188,23 @@ namespace IceRpc.Interop
 
         private void ClearCache(string location, string? category)
         {
-            if (_cache.TryRemove((location, category), out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints) entry))
+            if (HasCache)
             {
-                if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Trace))
+                lock (_mutex)
                 {
-                    _locator.Communicator.LocatorClientLogger.LogClearCacheEntry(location, category, entry.Endpoints);
+                    if (_cache.TryRemove(
+                        (location, category),
+                        out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> Node) entry))
+                    {
+                        _cacheKeys.Remove(entry.Node);
+
+                        if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Trace))
+                        {
+                            _locator.Communicator.LocatorClientLogger.LogClearCacheEntry(location,
+                                                                                         category,
+                                                                                         entry.Endpoints);
+                        }
+                    }
                 }
             }
         }
@@ -262,13 +297,29 @@ namespace IceRpc.Interop
                     if (endpoints.Count == 0)
                     {
                         ClearCache(location, category);
-                        return endpoints;
                     }
-                    else
+                    else if (HasCache)
                     {
-                        _cache[(location, category)] = (Time.Elapsed, endpoints);
-                        return endpoints;
+                        // We need to insert the cache entry before removing the request from _requests (see finally
+                        // below) to avoid a race condition.
+                        lock (_mutex)
+                        {
+                            ClearCache(location, category); // remove existing cache entry if present
+
+                            _cache[(location, category)] =
+                                (Time.Elapsed, endpoints, _cacheKeys.AddFirst((location, category)));
+
+                            if (_cacheKeys.Count == _cacheMaxSize + 1)
+                            {
+                                // drop last (oldest) entry
+                                (string lastLocation, string? lastCategory) = _cacheKeys.Last!.Value;
+                                ClearCache(lastLocation, lastCategory);
+
+                                Debug.Assert(_cacheKeys.Count == _cacheMaxSize); // removed the last entry
+                            }
+                        }
                     }
+                    return endpoints;
                 }
                 catch (Exception exception)
                 {
