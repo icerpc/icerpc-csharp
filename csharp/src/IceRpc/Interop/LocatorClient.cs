@@ -75,9 +75,9 @@ namespace IceRpc.Interop
             _justRefreshedAge = options.JustRefreshedAge;
             _ttl = options.Ttl;
 
-            if (_ttl != Timeout.InfiniteTimeSpan && _justRefreshedAge < _ttl)
+            if (_ttl != Timeout.InfiniteTimeSpan && _justRefreshedAge >= _ttl)
             {
-                throw new ArgumentException("JustRefreshedAge must be greater than Ttl", nameof(options));
+                throw new ArgumentException("JustRefreshedAge must be smaller than Ttl", nameof(options));
             }
         }
 
