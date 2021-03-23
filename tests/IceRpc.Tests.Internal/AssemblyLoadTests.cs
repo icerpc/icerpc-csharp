@@ -34,8 +34,6 @@ namespace IceRpc.Tests.Internal
             // After loading D MyClassD is found, MyClassC too because C is a direct
             // dependency of D, and MyClassB cannot be load because the previous failure laoding
             // MyClassB causes a null factory to be cached.
-
-            // B factory is still null because the runtime cache the previous failure
             Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
             Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
             Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));

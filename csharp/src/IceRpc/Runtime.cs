@@ -34,7 +34,7 @@ namespace IceRpc
 
         private static HashSet<Assembly> _loadedAssemblies = new();
 
-        // protects access to _loadedAssemblies
+        // The mutex protects _loadedAssemblies
         private static object _mutex = new();
 
         private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
