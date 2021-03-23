@@ -99,19 +99,18 @@ namespace IceRpc
 
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
-            ILogger logger = _socket.Endpoint.Communicator.ProtocolLogger;
-            if (logger.IsEnabled(LogLevel.Information))
+            if (_socket.ProtocolLogger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
                     // TODO: create the scope when the stream is started rather than after the request creation.
                     using var scope = StartScope();
-                    logger.LogSendingRequest(request);
+                    _socket.ProtocolLogger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    logger.LogSendingResponse((OutgoingResponseFrame)frame);
+                    _socket.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
         }

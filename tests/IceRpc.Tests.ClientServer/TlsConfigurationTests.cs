@@ -25,22 +25,26 @@ namespace IceRpc.Tests.ClientServer
             string caFile)
         {
             await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions
+                connectionOptions: new()
                 {
-                    ClientCertificates = new X509Certificate2Collection
+                    AuthenticationOptions = new()
                     {
-                        new X509Certificate2(GetCertificatePath(clientCertFile), "password")
-                    },
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
+                        ClientCertificates = new X509Certificate2Collection
                         {
-                            new X509Certificate2(GetCertificatePath(caFile))
-                        })
+                            new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                        },
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath(caFile))
+                                })
+                    }
                 });
 
             await WithSecureServerAsync(
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
                     RemoteCertificateValidationCallback = CertificateValidaton.GetClientCertificateValidationCallback(
@@ -66,8 +70,9 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_With_ValidationCallback(string clientCertFile, string serverCertFile)
         {
             bool clientValidationCallbackCalled = false;
-            await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+            await using var clientCommunicator = new Communicator(connectionOptions : new()
+            {
+                AuthenticationOptions = new()
                 {
                     ClientCertificates = new X509Certificate2Collection
                     {
@@ -78,12 +83,13 @@ namespace IceRpc.Tests.ClientServer
                         clientValidationCallbackCalled = true;
                         return true;
                     }
-                });
+                }
+            });
 
             bool serverValidationCallbackCalled = false;
             await WithSecureServerAsync(
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
@@ -108,31 +114,35 @@ namespace IceRpc.Tests.ClientServer
             var cert0 = new X509Certificate2(GetCertificatePath("c_rsa_ca1.p12"), "password");
             var cert1 = new X509Certificate2(GetCertificatePath("c_rsa_ca2.p12"), "password");
             await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+                connectionOptions: new()
                 {
-                    ClientCertificates = new X509Certificate2Collection
+                    AuthenticationOptions = new()
                     {
-                        cert0,
-                        cert1
-                    },
-                    LocalCertificateSelectionCallback =
-                        (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
+                        ClientCertificates = new X509Certificate2Collection
                         {
-                            Assert.AreEqual(2, certs.Count);
-                            Assert.AreEqual(cert0, certs[0]);
-                            Assert.AreEqual(cert1, certs[1]);
-                            return certs[0];
+                            cert0,
+                            cert1
                         },
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
+                        LocalCertificateSelectionCallback =
+                            (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
+                            {
+                                Assert.AreEqual(2, certs.Count);
+                                Assert.AreEqual(cert0, certs[0]);
+                                Assert.AreEqual(cert1, certs[1]);
+                                return certs[0];
+                            },
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                }),
+                    }
                 });
 
             await WithSecureServerAsync(
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
@@ -160,7 +170,7 @@ namespace IceRpc.Tests.ClientServer
             SslClientAuthenticationOptions? tlsClientOptions = null;
             if (caFile.Length != 0)
             {
-                tlsClientOptions = new SslClientAuthenticationOptions()
+                tlsClientOptions = new()
                 {
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
                         certificateAuthorities: new X509Certificate2Collection
@@ -169,11 +179,14 @@ namespace IceRpc.Tests.ClientServer
                         })
                 };
             }
-            await using var clientCommunicator = new Communicator(authenticationOptions: tlsClientOptions);
+            await using var clientCommunicator = new Communicator(connectionOptions: new()
+            {
+                AuthenticationOptions = tlsClientOptions
+            });
 
             await WithSecureServerAsync(
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
                 },
@@ -206,7 +219,10 @@ namespace IceRpc.Tests.ClientServer
                     new X509Certificate2(GetCertificatePath(clientCertFile), "password")
                 };
             }
-            await using var clientCommunicator = new Communicator(authenticationOptions: tlsClientOptions);
+            await using var clientCommunicator = new Communicator(connectionOptions: new()
+            {
+                AuthenticationOptions = tlsClientOptions
+            });
 
             var tlsServerOptions = new SslServerAuthenticationOptions()
             {
@@ -257,19 +273,23 @@ namespace IceRpc.Tests.ClientServer
             OperatingSystem mustSucceed)
         {
             await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+                connectionOptions: new()
                 {
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
+                    AuthenticationOptions = new()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                }),
+                    }
                 });
 
             await WithSecureServerAsync(
                 targetHost,
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
                 },
@@ -295,19 +315,23 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_With_CommonProtocol()
         {
             await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+                connectionOptions: new()
                 {
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
-                    EnabledSslProtocols = SslProtocols.Tls12
+                    AuthenticationOptions = new()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                }),
+                        EnabledSslProtocols = SslProtocols.Tls12
+                    }
                 });
 
             await WithSecureServerAsync(
                 clientCommunicator,
-                tlsServerOptions: new SslServerAuthenticationOptions()
+                tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
@@ -334,14 +358,18 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_Fail_NoCommonProtocol()
         {
             await using var clientCommunicator = new Communicator(
-                authenticationOptions: new SslClientAuthenticationOptions()
+                connectionOptions: new()
                 {
-                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
-                        {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        }),
-                    EnabledSslProtocols = SslProtocols.Tls12
+                    AuthenticationOptions = new()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                }),
+                        EnabledSslProtocols = SslProtocols.Tls12
+                    }
                 });
 
             // This should throw the client and the server doesn't enable a common protocol.
@@ -386,8 +414,11 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(serverHost),
-                    AcceptNonSecure = NonSecure.Never,
-                    AuthenticationOptions = tlsServerOptions
+                    ConnectionOptions = new()
+                    {
+                        AcceptNonSecure = NonSecure.Never,
+                        AuthenticationOptions = tlsServerOptions
+                    }
                 });
 
             server.Add("hello", new GreeterTestService());

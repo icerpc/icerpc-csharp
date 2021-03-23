@@ -673,11 +673,11 @@ namespace IceRpc
 
         private Type _type;
 
-        private StringBuilder _method = new StringBuilder();
-        private StringBuilder _uri = new StringBuilder();
+        private StringBuilder _method = new();
+        private StringBuilder _uri = new();
 
-        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _headerNames = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _headers = new();
+        private readonly Dictionary<string, string> _headerNames = new();
         private string _headerName = "";
 
         private int _versionMajor;

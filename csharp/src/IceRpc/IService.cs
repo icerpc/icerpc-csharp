@@ -40,7 +40,7 @@ namespace IceRpc
         {
             /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
             /// <summary>Decodes the ice_id operation parameters from an <see cref="IncomingRequestFrame"/>.</summary>
-            /// <param name="connection">The used to receive the frame.</param>
+            /// <param name="connection">The connection used to receive the frame.</param>
             /// <param name="request">The request frame.</param>
             /// <returns>The return value decoded from the frame.</returns>
             public static string IceIsA(Connection connection, IncomingRequestFrame request) =>

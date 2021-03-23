@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Text;
 using System.Threading;
@@ -41,8 +42,9 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel)
         {
             var readerOptions = new UnboundedChannelOptions
@@ -70,15 +72,8 @@ namespace IceRpc
 
             return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
-                new ColocatedSocket(
-                    this,
-                    Communicator.TransportLogger,
-                    Communicator.IncomingFrameMaxSize,
-                    isIncoming: false,
-                    id,
-                    reader.Writer,
-                    writer.Reader),
-                label,
+                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options, protocolLogger, transportLogger),
+                options,
                 server: null));
         }
 
@@ -87,7 +82,6 @@ namespace IceRpc
 
         internal ColocatedEndpoint(Server server)
             : base(new EndpointData(Transport.Colocated, host: server.Name, port: 0, Array.Empty<string>()),
-                   server.Communicator,
                    server.Protocol)
         {
             Server = server;

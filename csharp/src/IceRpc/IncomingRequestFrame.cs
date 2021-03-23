@@ -96,7 +96,11 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(), reader, connection: connection);
+            return Payload.AsReadOnlyMemory().ReadEncapsulation(
+                Protocol.GetEncoding(),
+                reader,
+                communicator: connection.Communicator!,
+                connection: connection);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -143,7 +147,7 @@ namespace IceRpc
                                        Protocol.GetEncoding(),
                                        proxyOptions: new ServicePrxOptions()
                                                      {
-                                                        Communicator = connection.Communicator,
+                                                        Communicator = connection.Communicator!,
                                                         Connection = connection
                                                      },
                                        startEncapsulation: true);

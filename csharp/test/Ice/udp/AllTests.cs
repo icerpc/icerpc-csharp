@@ -68,7 +68,10 @@ namespace IceRpc.Test.UDP
                 communicator,
                 new()
                 {
-                    AcceptNonSecure = NonSecure.Always,
+                    ConnectionOptions = new()
+                    {
+                        AcceptNonSecure = NonSecure.Always
+                    },
                     Endpoints = helper.GetTestEndpoint(0, "udp", true),
                     PublishedHost = "127.0.0.1"
                 });

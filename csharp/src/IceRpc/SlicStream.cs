@@ -99,7 +99,7 @@ namespace IceRpc
 
                 // Create a receive buffer to buffer the received stream data. The sender must ensure it doesn't
                 // send more data than this receiver allows.
-                _receiveBuffer = new CircularBuffer(_socket.Endpoint.Communicator.SlicStreamBufferMaxSize);
+                _receiveBuffer = new CircularBuffer(_socket.StreamBufferMaxSize);
 
                 // If the stream is in the signaled state, the socket is waiting for the frame to be received. In
                 // this case we get the frame information and notify again the stream that the frame was received.

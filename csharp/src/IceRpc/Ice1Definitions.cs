@@ -29,7 +29,7 @@ namespace IceRpc
         // encoding of the frame header (always set to 1.0 with the an ice1 frame, even though we use 1.1).
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
-        internal static readonly List<ArraySegment<byte>> CloseConnectionFrame = new List<ArraySegment<byte>>
+        internal static readonly List<ArraySegment<byte>> CloseConnectionFrame = new()
         {
                 new byte[]
                 {
@@ -47,7 +47,7 @@ namespace IceRpc
             ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
         };
 
-        internal static readonly List<ArraySegment<byte>> ValidateConnectionFrame = new List<ArraySegment<byte>>
+        internal static readonly List<ArraySegment<byte>> ValidateConnectionFrame = new()
         {
             new byte[]
             {
@@ -132,7 +132,7 @@ namespace IceRpc
                     }
                 }
 
-                if (istr?.ReadIce1SystemException(replyStatus) is ServiceNotFoundException one)
+                if (istr?.ReadIce1SystemException(replyStatus) is ServiceNotFoundException)
                 {
                     // 1.1 System exceptions
                     if (proxy.IsIndirect)

@@ -12,7 +12,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,10 +21,8 @@ namespace IceRpc
     /// </summary>
     public sealed partial class Communicator : IAsyncDisposable
     {
-        /// <summary>The connection close timeout.</summary>
-        public TimeSpan CloseTimeout { get; }
-        /// <summary>The connection establishment timeout.</summary>
-        public TimeSpan ConnectTimeout { get; }
+        /// <summary>The connection options.</summary>
+        public OutgoingConnectionOptions ConnectionOptions;
 
         /// <summary>Each time you send a request without an explicit context parameter, Ice sends automatically the
         /// per-thread CurrentContext combined with the proxy's context.</summary>
@@ -64,9 +61,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the default source address value used by proxies created with this communicator.</summary>
-        public IPAddress? DefaultSourceAddress { get; }
-
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
         public Instrumentation.ICommunicatorObserver? Observer { get; }
@@ -75,7 +69,6 @@ namespace IceRpc
         /// <see cref="IceRpc.Interop.ToStringMode"/>.</summary>
         public ToStringMode ToStringMode { get; }
 
-        // The communicator's cancellation token is notified of cancellation when the communicator is destroyed.
         internal CancellationToken CancellationToken
         {
             get
@@ -90,61 +83,37 @@ namespace IceRpc
                 }
             }
         }
-
         internal int ClassGraphMaxDepth { get; }
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
-
-        internal TimeSpan IdleTimeout { get; }
-        internal int IncomingFrameMaxSize { get; }
-        internal bool IsDisposed => _shutdownTask != null;
-        internal bool KeepAlive { get; }
-
-        /// <summary>The default logger for this communicator.</summary>
-        internal ILogger Logger { get; }
-
-        // TODO: should pass the factory and create a logger per locator client
-        internal ILogger LocatorClientLogger { get; }
-        internal ILoggerFactory LoggerFactory { get; }
-        // TODO: Allow configuring stream max count through options
-        internal int BidirectionalStreamMaxCount { get; } = 100;
-        internal int UnidirectionalStreamMaxCount { get; } = 100;
-        internal int SlicPacketMaxSize { get; }
-        internal int SlicStreamBufferMaxSize { get; }
-
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
+        internal bool IsDisposed => _shutdownTask != null;
+        // TODO: should pass the factory and create a logger per locator client
+        internal ILogger LocatorClientLogger { get; }
+        /// <summary>The default logger for this communicator.</summary>
+        internal ILogger Logger { get; }
         internal ILogger ProtocolLogger { get; }
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
-        internal ILogger SecurityLogger { get; }
-        internal SslClientAuthenticationOptions? AuthenticationOptions { get; }
         internal ILogger TransportLogger { get; }
-        internal bool WarnConnections { get; }
-        internal bool WarnDatagrams { get; }
-        internal bool WarnUnknownProperties { get; }
 
         private static string[] _emptyArgs = Array.Empty<string>();
-
-        private static readonly Dictionary<string, Assembly> _loadedAssemblies = new();
 
         private static bool _oneOffDone;
 
         private static bool _printProcessIdDone;
 
-        private static readonly object _staticMutex = new object();
+        private static readonly object _staticMutex = new();
         private readonly bool _backgroundLocatorCacheUpdates;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
-        private readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
-        private readonly ConcurrentDictionary<int, Func<AnyClass>?> _compactIdCache = new();
+
         private readonly ThreadLocal<SortedDictionary<string, string>> _currentContext = new();
         private Task? _shutdownTask;
 
-        private readonly object _mutex = new object();
+        private readonly object _mutex = new();
 
-        private readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
-            new();
         private int _retryBufferSize;
 
         private readonly IDictionary<Transport, (EndpointFactory Factory, Ice1EndpointFactory? Ice1Factory, Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser)> _transportRegistry =
@@ -157,18 +126,18 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -177,19 +146,19 @@ namespace IceRpc
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref args,
                    appSettings: null,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -199,19 +168,19 @@ namespace IceRpc
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the Ice run-time.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings,
                    loggerFactory,
                    observer,
                    properties,
-                   authenticationOptions)
+                   connectionOptions)
         {
         }
 
@@ -222,21 +191,19 @@ namespace IceRpc
         /// <param name="loggerFactory">The loggerFactory used by the new communicator.</param>
         /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="authenticationOptions">Client side options for authentication of SSL connections.</param>
+        /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
             Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            OutgoingConnectionOptions? connectionOptions = null)
         {
-            LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            Logger = LoggerFactory.CreateLogger("IceRpc");
-            LocatorClientLogger = LoggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
-            TransportLogger = LoggerFactory.CreateLogger("IceRpc.Transport");
-            ProtocolLogger = LoggerFactory.CreateLogger("IceRpc.Protocol");
-            SecurityLogger = LoggerFactory.CreateLogger("IceRpc.Security");
+            loggerFactory ??= NullLoggerFactory.Instance;
+            Logger = loggerFactory.CreateLogger("IceRpc");
+            LocatorClientLogger = loggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
+
             Observer = observer;
 
             // clone properties as we don't want to modify the properties given to this constructor
@@ -283,59 +250,25 @@ namespace IceRpc
                 }
             }
 
-            if (GetProperty("Ice.Default.SourceAddress") is string address)
-            {
-                try
-                {
-                    DefaultSourceAddress = IPAddress.Parse(address);
-                }
-                catch (FormatException ex)
-                {
-                    throw new InvalidConfigurationException(
-                        $"invalid IP address set for Ice.Default.SourceAddress: `{address}'", ex);
-                }
-            }
+            ProtocolLogger = loggerFactory.CreateLogger("IceRpc.Protocol");
+            TransportLogger = loggerFactory.CreateLogger("IceRpc.Transport");
 
-            CloseTimeout = this.GetPropertyAsTimeSpan("Ice.CloseTimeout") ?? TimeSpan.FromSeconds(10);
-            if (CloseTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.CloseTimeout");
-            }
+            ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
+            ConnectionOptions.SocketOptions ??= new SocketOptions();
+            ConnectionOptions.SlicOptions ??= new SlicOptions();
 
-            ConnectTimeout = this.GetPropertyAsTimeSpan("Ice.ConnectTimeout") ?? TimeSpan.FromSeconds(10);
-            if (ConnectTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.ConnectTimeout");
-            }
-
-            IdleTimeout = this.GetPropertyAsTimeSpan("Ice.IdleTimeout") ?? TimeSpan.FromSeconds(60);
-            if (IdleTimeout == TimeSpan.Zero)
-            {
-                throw new InvalidConfigurationException("0 is not a valid value for Ice.IdleTimeout");
-            }
-
-            KeepAlive = this.GetPropertyAsBool("Ice.KeepAlive") ?? false;
-
-            SlicPacketMaxSize = this.GetPropertyAsByteSize("Ice.Slic.PacketMaxSize") ?? 32 * 1024;
-            if (SlicPacketMaxSize < 1024)
-            {
-                throw new InvalidConfigurationException("Ice.Slic.PacketMaxSize can't be inferior to 1KB");
-            }
-
-            SlicStreamBufferMaxSize =
-                this.GetPropertyAsByteSize("Ice.Slic.StreamBufferMaxSize") ?? 2 * SlicPacketMaxSize;
-            if (SlicStreamBufferMaxSize < SlicPacketMaxSize)
-            {
-                throw new InvalidConfigurationException(
-                    "Ice.Slic.StreamBufferMaxSize can't be inferior to Ice.Slic.PacketMaxSize");
-            }
-
-            int frameMaxSize = this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? 1024 * 1024;
-            IncomingFrameMaxSize = frameMaxSize == 0 ? int.MaxValue : frameMaxSize;
-            if (IncomingFrameMaxSize < 1024)
-            {
-                throw new InvalidConfigurationException("Ice.IncomingFrameMaxSize can't be inferior to 1KB");
-            }
+            // TODO: remove once old tests which rely on properties are removed
+            var socketOptions = ConnectionOptions.SocketOptions!;
+            socketOptions.ReceiveBufferSize =
+                this.GetPropertyAsByteSize($"Ice.UDP.RcvSize") ?? socketOptions.ReceiveBufferSize;
+            socketOptions.SendBufferSize =
+                this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? socketOptions.SendBufferSize;
+            socketOptions.ReceiveBufferSize =
+                this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? socketOptions.ReceiveBufferSize;
+            socketOptions.SendBufferSize =
+                this.GetPropertyAsByteSize($"Ice.TCP.SndSize") ?? socketOptions.SendBufferSize;
+            ConnectionOptions.IncomingFrameMaxSize =
+                this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
 
             InvocationMaxAttempts = this.GetPropertyAsInt("Ice.InvocationMaxAttempts") ?? 5;
 
@@ -357,23 +290,6 @@ namespace IceRpc
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
 
             _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
-
-            if (authenticationOptions != null)
-            {
-                AuthenticationOptions = new SslClientAuthenticationOptions()
-                {
-                    AllowRenegotiation = authenticationOptions.AllowRenegotiation,
-                    ApplicationProtocols = authenticationOptions.ApplicationProtocols,
-                    CertificateRevocationCheckMode = authenticationOptions.CertificateRevocationCheckMode,
-                    CipherSuitesPolicy = authenticationOptions.CipherSuitesPolicy,
-                    ClientCertificates = authenticationOptions.ClientCertificates,
-                    EnabledSslProtocols = authenticationOptions.EnabledSslProtocols,
-                    EncryptionPolicy = authenticationOptions.EncryptionPolicy,
-                    LocalCertificateSelectionCallback = authenticationOptions.LocalCertificateSelectionCallback,
-                    RemoteCertificateValidationCallback = authenticationOptions.RemoteCertificateValidationCallback,
-                    TargetHost = authenticationOptions.TargetHost
-                };
-            }
 
             RegisterTransport(Transport.Loc,
                               "loc",
@@ -414,11 +330,6 @@ namespace IceRpc
                               WSEndpoint.CreateEndpoint,
                               WSEndpoint.CreateIce1Endpoint,
                               WSEndpoint.ParseIce1Endpoint);
-
-            if (this.GetPropertyAsBool("Ice.PreloadAssemblies") ?? false)
-            {
-                LoadAssemblies();
-            }
 
             // Show process id if requested (but only once).
             lock (_staticMutex)
@@ -559,55 +470,6 @@ namespace IceRpc
         internal Ice2EndpointParser? FindIce2EndpointParser(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Ice2Parser : null;
 
-        // Returns the IClassFactory associated with this Slice type ID, not null if not found.
-        internal Func<AnyClass>? FindClassFactory(string typeId) =>
-            _classFactoryCache.GetOrAdd(typeId, typeId =>
-            {
-                string className = TypeIdToClassName(typeId);
-                Type? factoryClass = FindType($"IceRpc.ClassFactory.{className}");
-                if (factoryClass != null)
-                {
-                    MethodInfo? method = factoryClass.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-                    Debug.Assert(method != null);
-                    return (Func<AnyClass>)Delegate.CreateDelegate(typeof(Func<AnyClass>), method);
-                }
-                return null;
-            });
-
-        internal Func<AnyClass>? FindClassFactory(int compactId) =>
-           _compactIdCache.GetOrAdd(compactId, compactId =>
-           {
-               Type? factoryClass = FindType($"IceRpc.ClassFactory.CompactId_{compactId}");
-               if (factoryClass != null)
-               {
-                   MethodInfo? method = factoryClass.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-                   Debug.Assert(method != null);
-                   return (Func<AnyClass>)Delegate.CreateDelegate(typeof(Func<AnyClass>), method);
-               }
-               return null;
-           });
-
-        internal Func<string?, RemoteExceptionOrigin, RemoteException>? FindRemoteExceptionFactory(string typeId) =>
-            _remoteExceptionFactoryCache.GetOrAdd(typeId, typeId =>
-            {
-                string className = TypeIdToClassName(typeId);
-                Type? factoryClass = FindType($"IceRpc.RemoteExceptionFactory.{className}");
-                if (factoryClass != null)
-                {
-                    MethodInfo? method = factoryClass.GetMethod(
-                        "Create",
-                        BindingFlags.Public | BindingFlags.Static,
-                        null,
-                        CallingConventions.Any,
-                        new Type[] { typeof(string), typeof(RemoteExceptionOrigin) },
-                        null);
-                    Debug.Assert(method != null);
-                    return (Func<string?, RemoteExceptionOrigin, RemoteException>)Delegate.CreateDelegate(
-                        typeof(Func<string?, RemoteExceptionOrigin, RemoteException>), method);
-                }
-                return null;
-            });
-
         internal bool IncRetryBufferSize(int size)
         {
             lock (_mutex)
@@ -619,86 +481,6 @@ namespace IceRpc
                 }
             }
             return false;
-        }
-
-        private static Type? FindType(string csharpId)
-        {
-            Type? t;
-            LoadAssemblies(); // Lazy initialization
-            foreach (Assembly a in _loadedAssemblies.Values)
-            {
-                if ((t = a.GetType(csharpId)) != null)
-                {
-                    return t;
-                }
-            }
-            return null;
-        }
-
-        // Make sure that all assemblies that are referenced by this process are actually loaded. This is necessary so
-        // we can use reflection on any type in any assembly because the type we are after will most likely not be in
-        // the current assembly and, worse, may be in an assembly that has not been loaded yet. (Type.GetType() is no
-        // good because it looks only in the calling object's assembly and mscorlib.dll.)
-        private static void LoadAssemblies()
-        {
-            lock (_staticMutex)
-            {
-                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                var newAssemblies = new List<Assembly>();
-                foreach (Assembly assembly in assemblies)
-                {
-                    if (!_loadedAssemblies.ContainsKey(assembly.FullName!))
-                    {
-                        newAssemblies.Add(assembly);
-                        _loadedAssemblies[assembly.FullName!] = assembly;
-                    }
-                }
-
-                foreach (Assembly a in newAssemblies)
-                {
-                    LoadReferencedAssemblies(a);
-                }
-            }
-        }
-
-        private static void LoadReferencedAssemblies(Assembly a)
-        {
-            try
-            {
-                AssemblyName[] names = a.GetReferencedAssemblies();
-                foreach (AssemblyName name in names)
-                {
-                    if (!_loadedAssemblies.ContainsKey(name.FullName))
-                    {
-                        try
-                        {
-                            var loadedAssembly = Assembly.Load(name);
-                            // The value of name.FullName may not match that of loadedAssembly.FullName, so we record
-                            // the assembly using both keys.
-                            _loadedAssemblies[name.FullName] = loadedAssembly;
-                            _loadedAssemblies[loadedAssembly.FullName!] = loadedAssembly;
-                            LoadReferencedAssemblies(loadedAssembly);
-                        }
-                        catch
-                        {
-                            // Ignore assemblies that cannot be loaded.
-                        }
-                    }
-                }
-            }
-            catch (PlatformNotSupportedException)
-            {
-                // Some platforms like UWP do not support using GetReferencedAssemblies
-            }
-        }
-
-        private static string TypeIdToClassName(string typeId)
-        {
-            if (!typeId.StartsWith("::", StringComparison.Ordinal))
-            {
-                throw new InvalidDataException($"`{typeId}' is not a valid Ice type ID");
-            }
-            return typeId[2..].Replace("::", ".");
         }
     }
 }

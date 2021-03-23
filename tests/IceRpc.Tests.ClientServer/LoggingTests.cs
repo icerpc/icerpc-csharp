@@ -28,10 +28,10 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc.Protocol", LogLevel.Debug));
             await using var communicator = new Communicator(
-                new Dictionary<string, string>
+                connectionOptions: new()
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "200ms" }
+                    ConnectTimeout = TimeSpan.FromMilliseconds(200)
                 },
                 loggerFactory: loggerFactory);
 
@@ -65,10 +65,10 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc.Protocol", LogLevel.Information));
             await using var communicator = new Communicator(
-                new Dictionary<string, string>
+                connectionOptions: new()
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    {"Ice.ConnectTimeout", "200ms" }
+                    ConnectTimeout = TimeSpan.FromMilliseconds(200)
                 },
                 loggerFactory: loggerFactory);
 
