@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -59,6 +60,8 @@ namespace IceRpc
 
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to a loc endpoint");
 

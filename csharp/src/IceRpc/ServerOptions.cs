@@ -18,7 +18,7 @@ namespace IceRpc
     /// <summary>An options class for configuring a <see cref="Server"/>.</summary>
     public sealed class ServerOptions
     {
-        public IncomingConnectionOptions? ConnectionOptions { get; set; }
+        public IncomingConnectionOptions? ConnectionOptions { get; set; } = new();
 
         public ColocationScope ColocationScope { get; set; }
 

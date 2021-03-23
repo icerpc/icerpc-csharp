@@ -25,20 +25,20 @@ namespace IceRpc
 
                 var options = _server.ConnectionOptions;
 
-                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, options.SocketOptions, options.TransportLogger);
+                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, options.SocketOptions!, _server.TransportLogger);
 
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {
-                    Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
-                    _ => new SlicSocket(Endpoint, socket, options)
+                    Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options, _server.ProtocolLogger),
+                    _ => new SlicSocket(Endpoint, socket, options, _server.ProtocolLogger)
                 };
                 return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
             }
             catch (Exception ex)
             {
-                if (_server.ConnectionOptions.TransportLogger.IsEnabled(LogLevel.Error))
+                if (_server.TransportLogger.IsEnabled(LogLevel.Error))
                 {
-                    _server.ConnectionOptions.TransportLogger.LogAcceptingConnectionFailed(
+                    _server.TransportLogger.LogAcceptingConnectionFailed(
                         Endpoint.Transport,
                         Network.LocalAddrToString(_addr), ex);
                 }
@@ -60,9 +60,9 @@ namespace IceRpc
             _addr = (IPEndPoint)socket.LocalEndPoint!;
             _socket = socket;
 
-            if (server.ConnectionOptions.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (server.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                server.ConnectionOptions.TransportLogger.LogAcceptingConnection(
+                server.TransportLogger.LogAcceptingConnection(
                     Endpoint.Transport,
                     Network.LocalAddrToString(_addr));
             }

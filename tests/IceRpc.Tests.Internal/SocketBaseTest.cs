@@ -19,6 +19,8 @@ namespace IceRpc.Tests.Internal
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? _clientCommunicator.ConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
+        private protected ILogger ClientProtocolLogger => _clientCommunicator.ProtocolLogger;
+        private protected ILogger ClientTransportLogger => _clientCommunicator.TransportLogger;
         private protected bool IsSecure { get; }
         protected OutgoingConnectionOptions OutgoingConnectionOptions => _clientCommunicator.ConnectionOptions;
         private protected Server Server { get; }
@@ -29,7 +31,7 @@ namespace IceRpc.Tests.Internal
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        protected readonly Communicator _clientCommunicator;
+        private readonly Communicator _clientCommunicator;
         private readonly ILoggerFactory _loggerFactory;
         // Protects the _acceptor data member
         private readonly object _mutex = new();
@@ -146,7 +148,11 @@ namespace IceRpc.Tests.Internal
                 _acceptor ??= CreateAcceptor();
             }
 
-            Connection connection = await ClientEndpoint.ConnectAsync(OutgoingConnectionOptions, default);
+            Connection connection = await ClientEndpoint.ConnectAsync(
+                OutgoingConnectionOptions,
+                ClientProtocolLogger,
+                ClientTransportLogger,
+                default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks

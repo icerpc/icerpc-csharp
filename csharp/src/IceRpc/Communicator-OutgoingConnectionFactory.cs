@@ -99,7 +99,11 @@ namespace IceRpc
 
                 try
                 {
-                    Connection connection = await endpoint.ConnectAsync(options, cancel).ConfigureAwait(false);
+                    Connection connection = await endpoint.ConnectAsync(
+                        options,
+                        ProtocolLogger,
+                        TransportLogger,
+                        cancel).ConfigureAwait(false);
                     // TODO: Hack, remove once we get rid of the communicator
                     connection.Communicator = this;
 

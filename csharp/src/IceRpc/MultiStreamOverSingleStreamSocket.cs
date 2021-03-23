@@ -40,8 +40,9 @@ namespace IceRpc
         protected MultiStreamOverSingleStreamSocket(
             Endpoint endpoint,
             SingleStreamSocket socket,
-            ConnectionOptions options)
-            : base(endpoint, options) => Underlying = socket;
+            ConnectionOptions options,
+            ILogger protocolLogger)
+            : base(endpoint, options, protocolLogger, socket.Logger) => Underlying = socket;
 
         internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }

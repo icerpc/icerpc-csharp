@@ -89,10 +89,14 @@ namespace IceRpc
 
         /// <summary>Creates a connection to this endpoint.</summary>
         /// <param name="options">The client connection options.</param>
+        /// <param name="protocolLogger">The protocol logger.</param>
+        /// <param name="transportLogger">The transport logger.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The new established connection.</returns>
         protected internal abstract Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel);
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>

@@ -107,14 +107,20 @@ namespace IceRpc
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
         /// <param name="options">The connection options.</param>
-        protected MultiStreamSocket(Endpoint endpoint, ConnectionOptions options)
+        /// <param name="protocolLogger">The protocol logger.</param>
+        /// <param name="transportLogger">The transport logger.</param>
+        protected MultiStreamSocket(
+            Endpoint endpoint,
+            ConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger)
         {
             Endpoint = endpoint;
-            IsIncoming = !(options is OutgoingConnectionOptions);
+            IsIncoming = options is IncomingConnectionOptions;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
-            ProtocolLogger = options.ProtocolLogger!;
-            TransportLogger = options.TransportLogger!;
+            ProtocolLogger = protocolLogger;
+            TransportLogger = transportLogger;
         }
 
         /// <summary>Releases the resources used by the socket.</summary>

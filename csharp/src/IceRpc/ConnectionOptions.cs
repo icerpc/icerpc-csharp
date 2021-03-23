@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Net.Security;
@@ -32,10 +31,8 @@ namespace IceRpc
     public sealed class SocketOptions
     {
         private int _tcpBackLog = 511;
-        private int? _tcpReceiveBufferSize;
-        private int? _tcpSendBufferSize;
-        private int? _udpReceiveBufferSize;
-        private int? _udpSendBufferSize;
+        private int? _receiveBufferSize;
+        private int? _sendBufferSize;
 
         public IPAddress? SourceAddress { get; set; }
 
@@ -46,32 +43,18 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(TcpBackLog)} can't be less than 1", nameof(value));
         }
 
-        public int? TcpReceiveBufferSize
+        public int? ReceiveBufferSize
         {
-            get => _tcpReceiveBufferSize;
-            set => _tcpReceiveBufferSize = value == null || value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(TcpReceiveBufferSize)} can't be less than 1KB", nameof(value));
+            get => _receiveBufferSize;
+            set => _receiveBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(ReceiveBufferSize)} can't be less than 1KB", nameof(value));
         }
 
-        public int? TcpSendBufferSize
+        public int? SendBufferSize
         {
-            get => _tcpSendBufferSize;
-            set => _tcpSendBufferSize = value == null || value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(TcpSendBufferSize)} can't be less than 1KB", nameof(value));
-        }
-
-        public int? UdpReceiveBufferSize
-        {
-            get => _udpReceiveBufferSize;
-            set => _udpReceiveBufferSize = value == null || value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(UdpReceiveBufferSize)} can't be less than 1KB", nameof(value));
-        }
-
-        public int? UdpSendBufferSize
-        {
-            get => _udpSendBufferSize;
-            set => _udpSendBufferSize = value == null || value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(UdpSendBufferSize)} can't be less than 1KB", nameof(value));
+            get => _sendBufferSize;
+            set => _sendBufferSize = value == null || value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
         public SocketOptions Clone() => (SocketOptions)MemberwiseClone();
@@ -94,9 +77,9 @@ namespace IceRpc
                     nameof(value));
         }
 
-        public SlicOptions SlicOptions { get; set; } = new SlicOptions();
+        public SlicOptions? SlicOptions { get; set; }
 
-        public SocketOptions SocketOptions { get; set; } = new SocketOptions();
+        public SocketOptions? SocketOptions { get; set; }
 
         public TimeSpan CloseTimeout
         {
@@ -116,7 +99,7 @@ namespace IceRpc
         {
             get => _incomingFrameMaxSize;
             set => _incomingFrameMaxSize = value >= 1024 ? value :
-                value == 0 ? int.MaxValue : // TODO: remove this?
+                value <= 0 ? int.MaxValue :
                 throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
         }
 
@@ -131,19 +114,11 @@ namespace IceRpc
                     nameof(value));
         }
 
-        // The logger factory is internal for now. It's set either with the ServerOptions or Communicator logger
-        // factory by the Server/Communicator classes.
-        internal ILoggerFactory? LoggerFactory { get; set; }
-
-        internal ILogger ProtocolLogger => LoggerFactory!.CreateLogger("IceRpc.Protocol");
-
-        internal ILogger TransportLogger => LoggerFactory!.CreateLogger("IceRpc.Protocol");
-
         protected ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
-            options.SlicOptions = SlicOptions.Clone();
-            options.SocketOptions = SocketOptions.Clone();
+            options.SlicOptions = SlicOptions?.Clone();
+            options.SocketOptions = SocketOptions?.Clone();
             return options;
         }
     }
@@ -168,7 +143,6 @@ namespace IceRpc
 
         public object? Label { get; set; }
 
-        /// <summary>Indicates under what conditions this server accepts non-secure connections.</summary>
         // TODO: switch to NonSecure.Never default
         public NonSecure PreferNonSecure { get; set; } = NonSecure.Always;
 
@@ -182,8 +156,8 @@ namespace IceRpc
 
     public sealed class IncomingConnectionOptions : ConnectionOptions
     {
-        private SslServerAuthenticationOptions? _authenticationOptions;
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
+        private SslServerAuthenticationOptions? _authenticationOptions;
 
         public SslServerAuthenticationOptions? AuthenticationOptions
         {

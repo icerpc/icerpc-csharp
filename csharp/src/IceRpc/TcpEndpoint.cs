@@ -55,7 +55,7 @@ namespace IceRpc
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(server.ConnectionOptions.SocketOptions.TcpBackLog);
+                socket.Listen(server.ConnectionOptions.SocketOptions!.TcpBackLog);
             }
             catch (SocketException ex)
             {
@@ -220,6 +220,8 @@ namespace IceRpc
 
         protected internal override async Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel)
         {
             // If the endpoint is always secure or a secure connection is required, connect with the SSL client
@@ -240,11 +242,11 @@ namespace IceRpc
             }
 
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint, options.SocketOptions, options.TransportLogger!);
+            SingleStreamSocket socket = CreateSocket(endpoint, options.SocketOptions!, transportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
-                _ => new SlicSocket(this, socket, options)
+                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options, protocolLogger),
+                _ => new SlicSocket(this, socket, options, protocolLogger)
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
@@ -356,7 +358,7 @@ namespace IceRpc
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
-                SetBufferSize(socket, options.TcpReceiveBufferSize, options.TcpSendBufferSize, logger);
+                SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
             }
             catch (SocketException ex)
@@ -365,21 +367,21 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            return new TcpSocket(logger, socket, addr);
+            return new TcpSocket(socket, logger, addr);
         }
 
         internal virtual SingleStreamSocket CreateSocket(Socket socket, SocketOptions options, ILogger logger)
         {
             try
             {
-                SetBufferSize(socket, options.TcpReceiveBufferSize, options.TcpSendBufferSize, logger);
+                SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
             }
             catch (SocketException ex)
             {
                 socket.Dispose();
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
-            return new TcpSocket(logger, socket);
+            return new TcpSocket(socket, logger);
         }
     }
 }

@@ -212,8 +212,12 @@ namespace IceRpc
             }
         }
 
-        internal Ice1NetworkSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
-            : base(endpoint, socket, options)
+        internal Ice1NetworkSocket(
+            Endpoint endpoint,
+            SingleStreamSocket socket,
+            ConnectionOptions options,
+            ILogger protocolLogger)
+            : base(endpoint, socket, options, protocolLogger)
         {
             IdleTimeout = options.IdleTimeout;
 

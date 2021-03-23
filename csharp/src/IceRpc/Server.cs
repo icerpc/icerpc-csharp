@@ -51,6 +51,8 @@ namespace IceRpc
 
         internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
+        internal ILogger ProtocolLogger { get; }
+        internal ILogger TransportLogger { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.
 
@@ -92,9 +94,12 @@ namespace IceRpc
             ColocationScope = options.ColocationScope;
             Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
             TaskScheduler = options.TaskScheduler;
+            ProtocolLogger = options.LoggerFactory.CreateLogger("IceRpc.Protocol");
+            TransportLogger = options.LoggerFactory.CreateLogger("IceRpc.Transport");
 
             ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
-            ConnectionOptions.LoggerFactory ??= options.LoggerFactory;
+            ConnectionOptions.SocketOptions ??= new SocketOptions();
+            ConnectionOptions.SlicOptions ??= new SlicOptions();
 
             if (ConnectionOptions.AcceptNonSecure == NonSecure.Never && ConnectionOptions.AuthenticationOptions == null)
             {
@@ -542,9 +547,9 @@ namespace IceRpc
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (ConnectionOptions.ProtocolLogger.IsEnabled(LogLevel.Warning))
+                        if (ProtocolLogger.IsEnabled(LogLevel.Warning))
                         {
-                            ConnectionOptions.ProtocolLogger.LogRequestDispatchException(ex);
+                            ProtocolLogger.LogRequestDispatchException(ex);
                         }
                     }
 
@@ -552,9 +557,9 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (ConnectionOptions.ProtocolLogger.IsEnabled(LogLevel.Warning))
+                    if (ProtocolLogger.IsEnabled(LogLevel.Warning))
                     {
-                        ConnectionOptions.ProtocolLogger.LogRequestDispatchException(ex);
+                        ProtocolLogger.LogRequestDispatchException(ex);
                     }
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }

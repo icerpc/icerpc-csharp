@@ -991,7 +991,7 @@ namespace IceRpc
             connectionOptions.Label = Label;
             connectionOptions.PreferNonSecure = PreferNonSecure;
 
-            ILogger protocolLogger = connectionOptions.ProtocolLogger!;
+            ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;
             int attempt = 1;
             bool triedAllEndpoints = false;

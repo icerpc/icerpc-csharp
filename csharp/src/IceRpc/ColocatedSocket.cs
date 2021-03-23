@@ -159,8 +159,10 @@ namespace IceRpc
             long id,
             ChannelWriter<(long, object?, bool)> writer,
             ChannelReader<(long, object?, bool)> reader,
-            ConnectionOptions options)
-            : base(endpoint, options)
+            ConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger)
+            : base(endpoint, options, protocolLogger, transportLogger)
         {
 
             _id = id;

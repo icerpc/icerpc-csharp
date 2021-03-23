@@ -362,20 +362,25 @@ namespace IceRpc
             return PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
         }
 
-        internal SlicSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
-            : base(endpoint, socket, options)
+        internal SlicSocket(
+            Endpoint endpoint,
+            SingleStreamSocket socket,
+            ConnectionOptions options,
+            ILogger protocolLogger)
+            : base(endpoint, socket, options, protocolLogger)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = options.SlicOptions.PacketMaxSize;
-            StreamBufferMaxSize = options.SlicOptions.StreamBufferMaxSize;
+            var slicOptions = options.SlicOptions!;
+            PacketMaxSize = slicOptions.PacketMaxSize;
+            StreamBufferMaxSize = slicOptions.StreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
-            PeerPacketMaxSize = options.SlicOptions.PacketMaxSize;
-            PeerStreamBufferMaxSize = options.SlicOptions.StreamBufferMaxSize;
+            PeerPacketMaxSize = PacketMaxSize;
+            PeerStreamBufferMaxSize = StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
             _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;

@@ -27,15 +27,21 @@ namespace IceRpc
             // of streams based on the stream max count from the client-side.
             return new ColocatedConnection(
                 _endpoint,
-                new ColocatedSocket(_endpoint, id, writer, reader, _server.ConnectionOptions),
+                new ColocatedSocket(
+                    _endpoint,
+                    id,
+                    writer,
+                    reader,
+                    _server.ConnectionOptions,
+                    _server.ProtocolLogger,
+                    _server.TransportLogger),
                 _server.ConnectionOptions,
                 _server);
         }
 
         public void Dispose() => _writer.Complete();
 
-        public override string ToString() =>
-            _server.Name.Length == 0 ? "unnamed server" : _server.Name;
+        public override string ToString() => _server.Name;
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,

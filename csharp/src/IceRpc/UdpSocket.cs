@@ -197,23 +197,20 @@ namespace IceRpc
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(ILogger logger, Socket socket, EndPoint addr)
+        internal UdpSocket(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
             : base(logger)
         {
             Socket = socket;
-            _incoming = false;
+            _incoming = isIncoming;
             _rcvSize = Socket.ReceiveBufferSize;
-            _addr = addr;
-        }
-
-        // Only for use by UdpEndpoint.
-        internal UdpSocket(ILogger logger, Socket socket, IPEndPoint? multicastAddress)
-            : base(logger)
-        {
-            Socket = socket;
-            _incoming = true;
-            _rcvSize = Socket.ReceiveBufferSize;
-            MulticastAddress = multicastAddress;
+            if (isIncoming)
+            {
+                MulticastAddress = addr as IPEndPoint;
+            }
+            else
+            {
+                _addr = addr!;
+            }
         }
 
         internal override IDisposable? StartScope(Endpoint endpoint)

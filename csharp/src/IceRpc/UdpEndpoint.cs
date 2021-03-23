@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -55,9 +56,9 @@ namespace IceRpc
                 var options = server.ConnectionOptions;
 
                 SetBufferSize(socket,
-                              options.SocketOptions.UdpReceiveBufferSize,
-                              options.SocketOptions.UdpSendBufferSize,
-                              options.TransportLogger);
+                              options.SocketOptions!.ReceiveBufferSize,
+                              options.SocketOptions!.SendBufferSize,
+                              server.TransportLogger);
 
                 var addr = new IPEndPoint(Address, Port);
                 IPEndPoint? multicastAddress = null;
@@ -94,8 +95,8 @@ namespace IceRpc
                 }
 
                 var endpoint = Clone(port);
-                var udpSocket = new UdpSocket(options.TransportLogger, socket, multicastAddress);
-                var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options);
+                var udpSocket = new UdpSocket(socket, server.TransportLogger, isIncoming: true, multicastAddress);
+                var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options, server.ProtocolLogger);
                 return new UdpConnection(endpoint, multiStreamSocket, options, server);
             }
             catch (SocketException ex)
@@ -183,6 +184,8 @@ namespace IceRpc
 
         protected internal override async Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
@@ -207,14 +210,14 @@ namespace IceRpc
                     }
                 }
 
-                if (options.SocketOptions.SourceAddress is IPAddress sourceAddress)
+                if (options.SocketOptions!.SourceAddress is IPAddress sourceAddress)
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
                 SetBufferSize(socket,
-                              options.SocketOptions.UdpReceiveBufferSize,
-                              options.SocketOptions.UdpSendBufferSize,
-                              options.TransportLogger!);
+                              options.SocketOptions!.ReceiveBufferSize,
+                              options.SocketOptions!.SendBufferSize,
+                              transportLogger);
             }
             catch (SocketException ex)
             {
@@ -222,8 +225,8 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.NoRetry);
             }
 
-            var udpSocket = new UdpSocket(options.TransportLogger!, socket, endpoint);
-            var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options);
+            var udpSocket = new UdpSocket(socket, transportLogger, isIncoming: false, endpoint);
+            var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options, protocolLogger);
             var connection = new UdpConnection(this, multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(null, cancel).ConfigureAwait(false);
             return connection;

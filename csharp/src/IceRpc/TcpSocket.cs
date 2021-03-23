@@ -199,7 +199,7 @@ namespace IceRpc
 
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
-        internal TcpSocket(ILogger logger, Socket fd, EndPoint? addr = null)
+        internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;

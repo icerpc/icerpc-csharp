@@ -394,11 +394,11 @@ namespace IceRpc.Tests.Internal
             TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
             OutgoingConnectionOptions options = OutgoingConnectionOptions;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions, options.TransportLogger);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions!, ClientTransportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
-                _ => new SlicSocket(ClientEndpoint, socket, options)
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, ClientProtocolLogger),
+                _ => new SlicSocket(ClientEndpoint, socket, options, ClientProtocolLogger)
             };
             Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
@@ -473,11 +473,11 @@ namespace IceRpc.Tests.Internal
             TcpEndpoint endpoint = (TcpEndpoint)ClientEndpoint;
             OutgoingConnectionOptions options = OutgoingConnectionOptions;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions, options.TransportLogger);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions!, ClientTransportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
-                _ => new SlicSocket(ClientEndpoint, socket, options)
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, ClientProtocolLogger),
+                _ => new SlicSocket(ClientEndpoint, socket, options, ClientProtocolLogger)
             };
             Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;

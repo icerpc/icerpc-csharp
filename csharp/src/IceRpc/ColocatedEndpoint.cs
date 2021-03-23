@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Text;
 using System.Threading;
@@ -42,6 +43,8 @@ namespace IceRpc
 
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel)
         {
             var readerOptions = new UnboundedChannelOptions
@@ -69,7 +72,7 @@ namespace IceRpc
 
             return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
-                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options),
+                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options, protocolLogger, transportLogger),
                 options,
                 server: null));
         }
