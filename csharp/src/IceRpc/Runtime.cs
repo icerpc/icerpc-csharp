@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
@@ -30,34 +31,48 @@ namespace IceRpc
         private static readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
         private static readonly ConcurrentDictionary<int, Func<AnyClass>?> _compactIdCache = new();
 
-        private static readonly Dictionary<string, Assembly> _loadedAssemblies = new();
+        private static HashSet<Assembly> _loadedAssemblies = new();
 
         private static object _mutex = new();
 
         private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
 
-        /// <summary>Load all assemblies that are referenced by this process. This is necessary so we can use
-        /// reflection on any type.</summary>
-        public static void LoadAssemblies()
+        /// <summary>Register assembly as an assembly containing class and exception factories. If no assemblies are
+        /// registered the Runtime will automatically populate the list of registered assemblies with all referenced
+        /// assemblies the first time it tries to unmarshal a class or exception for which no factory can be found.
+        /// </summary>
+        public static void RegisterApplicationAssembly(Assembly assembly)
         {
+            HashSet<Assembly> loadedAssemblies;
             lock (_mutex)
             {
-                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                var newAssemblies = new List<Assembly>();
-                foreach (Assembly assembly in assemblies)
-                {
-                    if (!_loadedAssemblies.ContainsKey(assembly.FullName!))
-                    {
-                        newAssemblies.Add(assembly);
-                        _loadedAssemblies[assembly.FullName!] = assembly;
-                    }
-                }
+                loadedAssemblies = new HashSet<Assembly>(_loadedAssemblies);
+            }
+            LoadReferencedAssemblies(assembly, loadedAssemblies);
+            lock (_mutex)
+            {
+                _loadedAssemblies = loadedAssemblies;
+            }
+        }
 
-                foreach (Assembly a in newAssemblies)
-                {
-                    LoadReferencedAssemblies(a);
-                }
+        /// <summary>Register all referenced assemblies as assemblies containing class and exception factories. if no
+        /// assemblies are registered the Runtime will automatically populate the list of registered assemblies with
+        /// all referenced assemblies the first time it has to unmarshal a class or exception for which no factory can
+        /// be found.</summary>
+        public static void RegisterReferencedAssemblies()
+        {
+            var executingAssembly = Assembly.GetExecutingAssembly();
+            var context = AssemblyLoadContext.GetLoadContext(executingAssembly) ?? AssemblyLoadContext.Default;
+
+            var loadedAssemblies = new HashSet<Assembly>();
+            foreach (var assembly in context.Assemblies)
+            {
+                LoadReferencedAssemblies(assembly, loadedAssemblies);
+            }
+            lock (_mutex)
+            {
+                _loadedAssemblies = loadedAssemblies;
             }
         }
 
@@ -113,8 +128,16 @@ namespace IceRpc
         private static Type? FindType(string csharpId)
         {
             Type? t;
-            LoadAssemblies(); // Lazy initialization
-            foreach (Assembly a in _loadedAssemblies.Values)
+
+            lock (_mutex)
+            {
+                if (_loadedAssemblies.Count == 0)
+                {
+                    RegisterReferencedAssemblies();
+                }
+            }
+
+            foreach (Assembly a in _loadedAssemblies)
             {
                 if ((t = a.GetType(csharpId)) != null)
                 {
@@ -124,34 +147,33 @@ namespace IceRpc
             return null;
         }
 
-        private static void LoadReferencedAssemblies(Assembly a)
+        private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
         {
-            try
+            lock (_mutex)
             {
-                AssemblyName[] names = a.GetReferencedAssemblies();
-                foreach (AssemblyName name in names)
+                if (seenAssembly.Add(entryAssembly))
                 {
-                    if (!_loadedAssemblies.ContainsKey(name.FullName))
+                    try
                     {
-                        try
+                        var context = AssemblyLoadContext.GetLoadContext(entryAssembly) ?? AssemblyLoadContext.Default;
+                        foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
                         {
-                            var loadedAssembly = Assembly.Load(name);
-                            // The value of name.FullName may not match that of loadedAssembly.FullName, so we record
-                            // the assembly using both keys.
-                            _loadedAssemblies[name.FullName] = loadedAssembly;
-                            _loadedAssemblies[loadedAssembly.FullName!] = loadedAssembly;
-                            LoadReferencedAssemblies(loadedAssembly);
-                        }
-                        catch
-                        {
-                            // Ignore assemblies that cannot be loaded.
+                            try
+                            {
+                                var assembly = context.LoadFromAssemblyName(name);
+                                LoadReferencedAssemblies(assembly, seenAssembly);
+                            }
+                            catch
+                            {
+                                // Ignore assemblies that cannot be loaded.
+                            }
                         }
                     }
+                    catch (PlatformNotSupportedException)
+                    {
+                        // Some platforms like UWP do not support using GetReferencedAssemblies
+                    }
                 }
-            }
-            catch (PlatformNotSupportedException)
-            {
-                // Some platforms like UWP do not support using GetReferencedAssemblies
             }
         }
 
