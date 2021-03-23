@@ -237,58 +237,16 @@ namespace IceRpc.Test.Proxy
             }
             output.WriteLine("ok");
 
-            output.Write("testing communicator default source address... ");
-            output.Flush();
-            {
-                await using var comm1 = new Communicator(new Dictionary<string, string>()
-                    {
-                        { "Ice.Default.SourceAddress", "192.168.1.40" }
-                    });
-
-                await using var comm2 = new Communicator();
-
-                string[] proxyArray =
-                    {
-                        "ice+tcp://host.zeroc.com/identity#facet",
-                        "ice -t:tcp -h localhost -p 10000",
-                    };
-
-                foreach (string s in proxyArray)
-                {
-                    var prx = IServicePrx.Parse(s, comm1);
-                    TestHelper.Assert(prx.Endpoints[0]["source-address"] == "192.168.1.40");
-                    prx = IServicePrx.Parse(s, comm2);
-                    TestHelper.Assert(prx.Endpoints[0]["source-address"] == null);
-                }
-            }
-            output.WriteLine("ok");
-
             output.Write("testing communicator default invocation timeout... ");
             output.Flush();
             {
-                await using var comm1 = new Communicator(new Dictionary<string, string>()
-                    {
-                        { "Ice.Default.InvocationTimeout", "120s" }
-                    });
-
-                await using var comm2 = new Communicator();
-
-                TestHelper.Assert(IServicePrx.Parse("ice+tcp://localhost/identity", comm1).InvocationTimeout ==
-                                  TimeSpan.FromSeconds(120));
-
-                TestHelper.Assert(IServicePrx.Parse("ice+tcp://localhost/identity", comm2).InvocationTimeout ==
+                TestHelper.Assert(IServicePrx.Parse("ice+tcp://localhost/identity", communicator).InvocationTimeout ==
                                   TimeSpan.FromSeconds(60));
 
                 TestHelper.Assert(IServicePrx.Parse("ice+tcp://localhost/identity?invocation-timeout=10s",
-                                                   comm1).InvocationTimeout == TimeSpan.FromSeconds(10));
+                                                   communicator).InvocationTimeout == TimeSpan.FromSeconds(10));
 
-                TestHelper.Assert(IServicePrx.Parse("ice+tcp://localhost/identity?invocation-timeout=10s",
-                                                   comm2).InvocationTimeout == TimeSpan.FromSeconds(10));
-
-                TestHelper.Assert(IServicePrx.Parse("identity -t:tcp -h localhost", comm1).InvocationTimeout ==
-                                 TimeSpan.FromSeconds(120));
-
-                TestHelper.Assert(IServicePrx.Parse("identity -t:tcp -h localhost", comm2).InvocationTimeout ==
+                TestHelper.Assert(IServicePrx.Parse("identity -t:tcp -h localhost", communicator).InvocationTimeout ==
                                   TimeSpan.FromSeconds(60));
             }
             output.WriteLine("ok");
@@ -296,18 +254,6 @@ namespace IceRpc.Test.Proxy
             output.Write("testing invalid invocation timeout... ");
             output.Flush();
             {
-                try
-                {
-                    await using var comm1 = new Communicator(new Dictionary<string, string>()
-                    {
-                        { "Ice.Default.InvocationTimeout", "0s" }
-                    });
-                    TestHelper.Assert(false);
-                }
-                catch (InvalidConfigurationException)
-                {
-                }
-
                 try
                 {
                     IServicePrx.Parse("ice+tcp://localhost/identity", communicator).Clone(

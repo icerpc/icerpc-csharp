@@ -24,8 +24,7 @@ namespace IceRpc
 
         internal async ValueTask<Connection> ConnectAsync(
             Endpoint endpoint,
-            NonSecure preferNonSecure,
-            object? label,
+            OutgoingConnectionOptions options,
             CancellationToken cancel)
         {
             Task<Connection>? connectTask;
@@ -40,18 +39,20 @@ namespace IceRpc
                     }
 
                     // Check if there is an active connection that we can use according to the endpoint settings.
-                    if (_outgoingConnections.TryGetValue((endpoint, label), out LinkedList<Connection>? connections))
+                    if (_outgoingConnections.TryGetValue(
+                        (endpoint, options.Label),
+                        out LinkedList<Connection>? connections))
                     {
                         // The list of connections is already sorted with non-secure connections first, this will
                         // return the first active and trusted connection according to the non-secure preference.
                         connection = connections.FirstOrDefault(
-                            connection => connection.IsActive && connection.CanTrust(preferNonSecure));
+                            connection => connection.IsActive && connection.CanTrust(options.PreferNonSecure));
 
                         if (connection != null)
                         {
                             // TODO should ColocatedConnection.IsSecure return always true?, currently IsSecure
                             // is only true for SSL connections.
-                            Debug.Assert(preferNonSecure != NonSecure.Never ||
+                            Debug.Assert(options.PreferNonSecure != NonSecure.Never ||
                                          connection is ColocatedConnection ||
                                          connection.IsSecure);
                             return connection;
@@ -60,49 +61,51 @@ namespace IceRpc
 
                     // If we didn't find an active connection check if there is a pending connect task for the same
                     // endpoint and label.
-                    if (!_pendingOutgoingConnections.TryGetValue((endpoint, label), out connectTask))
+                    if (!_pendingOutgoingConnections.TryGetValue((endpoint, options.Label), out connectTask))
                     {
-                        connectTask = PerformConnectAsync(endpoint, preferNonSecure, label);
+                        connectTask = PerformConnectAsync(endpoint, options);
                         if (!connectTask.IsCompleted)
                         {
                             // If the task didn't complete synchronously we add it to the pending map
                             // and it will be removed once PerformConnectAsync completes.
-                            _pendingOutgoingConnections[(endpoint, label)] = connectTask;
+                            _pendingOutgoingConnections[(endpoint, options.Label)] = connectTask;
                         }
                     }
                 }
 
                 connection = await connectTask.WaitAsync(cancel).ConfigureAwait(false);
                 // After the connect task completed check if the connection can be trusted.
-                if (!connection.CanTrust(preferNonSecure))
+                if (!connection.CanTrust(options.PreferNonSecure))
                 {
                     // The connection cannot be trusted clear the connection and try again.
                     connection = null;
                 }
             }
             while (connection == null);
-            Debug.Assert(preferNonSecure != NonSecure.Never ||
+            Debug.Assert(options.PreferNonSecure != NonSecure.Never ||
                          connection is ColocatedConnection ||
                          connection.IsSecure);
             return connection;
 
-            async Task<Connection> PerformConnectAsync(
-                Endpoint endpoint,
-                NonSecure preferNonSecure,
-                object? label)
+            async Task<Connection> PerformConnectAsync(Endpoint endpoint, OutgoingConnectionOptions options)
             {
-                Debug.Assert(ConnectTimeout > TimeSpan.Zero);
-                using var source = new CancellationTokenSource(ConnectTimeout);
+                Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
+                // Use the connect timeout and communicator cancellation token for the cancellation.
+                using var source = new CancellationTokenSource(options.ConnectTimeout);
                 using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
                     source.Token,
-                    endpoint.Communicator.CancellationToken);
+                    CancellationToken);
                 CancellationToken cancel = linkedSource.Token;
 
                 try
                 {
-                    Connection connection = await endpoint.ConnectAsync(preferNonSecure,
-                                                                        label,
-                                                                        cancel).ConfigureAwait(false);
+                    Connection connection = await endpoint.ConnectAsync(
+                        options,
+                        ProtocolLogger,
+                        TransportLogger,
+                        cancel).ConfigureAwait(false);
+                    // TODO: Hack, remove once we get rid of the communicator
+                    connection.Communicator = this;
 
                     // Perform protocol level initialization.
                     await connection.InitializeAsync(cancel).ConfigureAwait(false);
@@ -117,10 +120,12 @@ namespace IceRpc
                             return connection;
                         }
 
-                        if (!_outgoingConnections.TryGetValue((endpoint, label), out LinkedList<Connection>? list))
+                        if (!_outgoingConnections.TryGetValue(
+                            (endpoint, options.Label),
+                            out LinkedList<Connection>? list))
                         {
                             list = new LinkedList<Connection>();
-                            _outgoingConnections[(endpoint, label)] = list;
+                            _outgoingConnections[(endpoint, options.Label)] = list;
                         }
 
                         // Keep the list of connections sorted with non-secure connections first so that when we check
@@ -179,7 +184,7 @@ namespace IceRpc
                         // Don't modify the pending connections map after the communicator was disposed.
                         if (_shutdownTask == null)
                         {
-                            _pendingOutgoingConnections.Remove((endpoint, label));
+                            _pendingOutgoingConnections.Remove((endpoint, options.Label));
                         }
                     }
                 }

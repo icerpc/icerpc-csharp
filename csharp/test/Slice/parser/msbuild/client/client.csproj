@@ -14,11 +14,15 @@
   <ItemGroup>
     <Compile Include="../../Client.cs" />
     <SliceCompile Include="../../Circular*.ice" />
+    <SliceCompile Include="../../Scopes.ice" />
     <Compile Update="generated/CircularA.cs">
        <SliceCompileSource>../../CircularA.ice</SliceCompileSource>
     </Compile>
     <Compile Update="generated/CircularB.cs">
       <SliceCompileSource>../../CircularB.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated/Scopes.cs">
+      <SliceCompileSource>../../Scopes.ice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 </Project>

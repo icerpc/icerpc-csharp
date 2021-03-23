@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,9 +17,6 @@ namespace IceRpc
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
-        /// <summary>Gets the communicator that created this endpoint.</summary>
-        public Communicator Communicator { get; }
-
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this
         /// external representation.</summary>
@@ -91,15 +88,15 @@ namespace IceRpc
         protected internal abstract bool HasOptions { get; }
 
         /// <summary>Creates a connection to this endpoint.</summary>
-        /// <param name="preferNonSecure">Indicates under what conditions establishing a non-secure connection should
-        /// be preferred.</param>
-        /// <param name="label">The corresponding Connection property <see cref="Connection.Label"/> can be non-null
-        /// only for outgoing connections.</param>
+        /// <param name="options">The client connection options.</param>
+        /// <param name="protocolLogger">The protocol logger.</param>
+        /// <param name="transportLogger">The transport logger.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The new established connection.</returns>
         protected internal abstract Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel);
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -132,12 +129,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public virtual bool Equals(Endpoint? other) =>
             other is Endpoint endpoint &&
-                Communicator == endpoint.Communicator &&
                 Protocol == endpoint.Protocol &&
                 Data == endpoint.Data;
 
         /// <inheritdoc/>
-        public override int GetHashCode() => HashCode.Combine(Communicator, Protocol, Data);
+        public override int GetHashCode() => HashCode.Combine(Protocol, Data);
 
         /// <summary>Converts the endpoint into a string. The format of this string depends on the protocol: either
         /// ice1 format (for ice1) or URI format (for ice2 and up).</summary>
@@ -206,11 +202,9 @@ namespace IceRpc
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>
-        /// <param name="communicator">The endpoint's communicator.</param>
         /// <param name="protocol">The endpoint's protocol.</param>
-        protected Endpoint(EndpointData data, Communicator communicator, Protocol protocol)
+        protected Endpoint(EndpointData data, Protocol protocol)
         {
-            Communicator = communicator;
             Data = data;
             Protocol = protocol;
         }
@@ -230,10 +224,10 @@ namespace IceRpc
         {
             if (communicator.FindEndpointFactory(data.Transport) is EndpointFactory factory)
             {
-                return factory(data, communicator, protocol);
+                return factory(data, protocol);
             }
 
-            return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, communicator, protocol) :
+            return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
                 throw new NotSupportedException(
                     $"cannot create endpoint for ice1 protocol and transport `{data.Transport}'");
         }

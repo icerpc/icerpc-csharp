@@ -96,7 +96,11 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(), reader, connection: connection);
+            return Payload.AsReadOnlyMemory().ReadEncapsulation(
+                Protocol.GetEncoding(),
+                reader,
+                communicator: connection.Communicator!,
+                connection: connection);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -141,7 +145,11 @@ namespace IceRpc
 
             var istr = new InputStream(Payload.AsReadOnlyMemory(),
                                        Protocol.GetEncoding(),
-                                       connection: connection,
+                                       proxyOptions: new ServicePrxOptions()
+                                                     {
+                                                        Communicator = connection.Communicator!,
+                                                        Connection = connection
+                                                     },
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the

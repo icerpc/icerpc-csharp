@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <TargetFramework>net5.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <SliceCompile>
+        <IncludeDirectories>../A</IncludeDirectories>
+    </SliceCompile>
+</ItemDefinitionGroup>
+
+  <ItemGroup>
+    <Compile Update="generated\Bcs">
+      <SliceCompileSource>B.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="3.0.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\A\A.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyTestAssemblies" AfterTargets="CopyFilesToOutputDirectory">
+    <Copy SourceFiles="$(OutputPath)/$(TargetName)$(TargetExt)"
+          DestinationFolder="$(MSBuildThisFileDirectory)../../IceRpc.Tests.Internal/$(TargetFramework)"/>
+  </Target>
+
+</Project>

@@ -107,10 +107,6 @@ namespace IceRpc
         /// exception.</summary>
         public Communicator? Communicator { get; }
 
-        /// <summary>The Connection used to read relative proxies. When not null, a relative proxy is unmarshaled into
-        /// a fixed proxy bound to this connection.</summary>
-        public Connection? Connection { get; }
-
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
@@ -118,10 +114,8 @@ namespace IceRpc
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private set; }
 
-        /// <summary>The proxy used to read relative proxies. When not null, a relative proxy is unmarshaled into a
-        /// clone of this proxy (with various updates). SourceProxy and Connection are mutually exclusive: only one of
-        /// them can be non-null.</summary>
-        internal ServicePrx? SourceProxy { get; }
+        /// <summary>Proxy options used when unmarshaling proxies.</summary>
+        internal ServicePrxOptions? ProxyOptions { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -884,7 +878,7 @@ namespace IceRpc
         /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
-        public SortedDictionary<TKey, TValue?>? ReadTaggeSorteddDictionary<TKey, TValue>(
+        public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             bool withBitSequence,
@@ -958,24 +952,18 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="communicator">The communicator (optional).</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="sourceProxy">The source proxy (optional).</param>
+        /// <param name="proxyOptions">Options used when unmarshaling proxies (optional).</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             Communicator? communicator = null,
-            Connection? connection = null,
-            ServicePrx? sourceProxy = null,
+            ServicePrxOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
-            // Connection and sourceProxy are mutually exclusive - it's either one or the other.
-            Debug.Assert(connection == null || sourceProxy == null);
-
-            Communicator = communicator ?? connection?.Communicator ?? sourceProxy?.Communicator;
-            Connection = connection;
-            SourceProxy = sourceProxy;
+            Communicator = communicator ?? proxyOptions?.Communicator;
+            ProxyOptions = proxyOptions;
 
             Pos = 0;
             _buffer = buffer;
@@ -1100,8 +1088,7 @@ namespace IceRpc
             {
                 endpoint = OpaqueEndpoint.Create(transport,
                                                  encoding,
-                                                 _buffer.Slice(Pos, size),
-                                                 Communicator);
+                                                 _buffer.Slice(Pos, size));
                 Pos += size;
             }
             else if (encoding == Encoding.V11) // i.e. all in same encoding

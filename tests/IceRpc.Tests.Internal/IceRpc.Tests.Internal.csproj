@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />
   </ItemGroup>
 
   <ItemGroup>

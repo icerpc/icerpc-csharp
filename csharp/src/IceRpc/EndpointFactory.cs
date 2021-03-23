@@ -6,10 +6,9 @@ namespace IceRpc
 {
     /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
     /// <param name="data">The endpoint's data.</param>
-    /// <param name="communicator">The communicator.</param>
     /// <param name="protocol">The endpoint's protocol.</param>
     /// <returns>A new endpoint.</returns>
-    public delegate Endpoint EndpointFactory(EndpointData data, Communicator communicator, Protocol protocol);
+    public delegate Endpoint EndpointFactory(EndpointData data, Protocol protocol);
 
     /// <summary>Creates an ice1 endpoint from an <see cref="InputStream"/> stream.</summary>
     /// <param name="transport">The transport of the endpoint previously read from the stream.</param>
@@ -21,7 +20,6 @@ namespace IceRpc
     /// <param name="transport">The transport of the new endpoint.</param>
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
-    /// <param name="communicator">The communicator.</param>
     /// <param name="serverEndpoint">When true, the new endpoint corresponds to a server's endpoint configuration;
     /// when false, endpointString represents a proxy endpoint.</param>
     /// <param name="endpointString">The original endpoint string, for error messages and tracing.</param>
@@ -29,7 +27,6 @@ namespace IceRpc
     public delegate Endpoint Ice1EndpointParser(
         Transport transport,
         Dictionary<string, string?> options,
-        Communicator communicator,
         bool serverEndpoint,
         string endpointString);
 
@@ -39,7 +36,6 @@ namespace IceRpc
     /// <param name="port">The port number.</param>
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
-    /// <param name="communicator">The communicator.</param>
     /// <param name="serverEndpoint">When true, the new endpoint corresponds to a server's endpoint configuration;
     /// when false, represents a proxy endpoint.</param>
     /// <returns>A new endpoint for the ice2 protocol.</returns>
@@ -48,6 +44,5 @@ namespace IceRpc
         string host,
         ushort port,
         Dictionary<string, string> options,
-        Communicator communicator,
         bool serverEndpoint);
 }

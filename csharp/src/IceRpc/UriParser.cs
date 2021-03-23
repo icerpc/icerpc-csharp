@@ -116,7 +116,6 @@ namespace IceRpc
                 InvocationTimeoutOverride = parsedOptions.InvocationTimeout,
                 IsOneway = parsedOptions.IsOneway ?? false,
                 Label = parsedOptions.Label,
-                LocationResolver = communicator.DefaultLocationResolver,
                 Path = uri.AbsolutePath,
                 PreferExistingConnectionOverride = parsedOptions.PreferExistingConnection,
                 PreferNonSecureOverride = parsedOptions.PreferNonSecure,
@@ -202,9 +201,8 @@ namespace IceRpc
                                                uri.DnsSafeHost,
                                                port,
                                                options,
-                                               communicator,
                                                serverEndpoint) ??
-                UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, communicator, protocol);
+                UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, protocol);
 
             if (options.Count > 0)
             {

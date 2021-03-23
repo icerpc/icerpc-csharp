@@ -230,6 +230,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_OtherReplica()
         {
             await using var communicator = new Communicator();
+
             var calls = new List<string>();
             await using var server1 = new Server(
                 communicator,
