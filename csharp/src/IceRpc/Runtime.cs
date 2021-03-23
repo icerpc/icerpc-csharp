@@ -34,16 +34,16 @@ namespace IceRpc
 
         private static HashSet<Assembly> _loadedAssemblies = new();
 
+        // protects access to _loadedAssemblies
         private static object _mutex = new();
 
         private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
 
-        /// <summary>Register assembly as an assembly containing class or exception factories. If no assemblies are
-        /// registered the Runtime will automatically populate the list of registered assemblies with all referenced
-        /// assemblies the first time it tries to unmarshal a class or exception for which no factory can be found.
-        /// </summary>
-        public static void RegisterApplicationAssembly(Assembly assembly)
+        /// <summary>Register an assembly containing class or exception factories. If no assemblies are
+        /// registered explicitly with this method, all the assemblies referenced from the executing assembly
+        /// will be registered the first time IceRPC looks up a factory.</summary>
+        public static void RegisterFactoriesFromAssembly(Assembly assembly)
         {
             HashSet<Assembly> loadedAssemblies;
             lock (_mutex)
@@ -57,11 +57,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Register all referenced assemblies as assemblies containing class or exception factories. if no
-        /// assemblies are registered the Runtime will automatically populate the list of registered assemblies with
-        /// all referenced assemblies the first time it has to unmarshal a class or exception for which no factory can
-        /// be found.</summary>
-        public static void RegisterReferencedAssemblies()
+        /// <summary>Registers all the assemblies referenced by the executing assembly. If this method is not called
+        /// an no application assemblies are registered through <see cref="RegisterFactoriesFromAssembly"/>, this method
+        /// is called implicitly when IceRPC looks up a class or exception factory.</summary>
+        public static void RegisterFactoriesFromAllAssemblies()
         {
             var loadedAssemblies = new HashSet<Assembly>();
             foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
@@ -130,7 +129,7 @@ namespace IceRpc
                 if (_loadedAssemblies.Count == 0)
                 {
                     // Lazzy initialization
-                    RegisterReferencedAssemblies();
+                    RegisterFactoriesFromAllAssemblies();
                 }
             }
             return _loadedAssemblies.Select(
@@ -139,28 +138,18 @@ namespace IceRpc
 
         private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
         {
-            lock (_mutex)
+            if (seenAssembly.Add(entryAssembly))
             {
-                if (seenAssembly.Add(entryAssembly))
+                foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
                 {
                     try
                     {
-                        foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
-                        {
-                            try
-                            {
-                                var assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(name);
-                                LoadReferencedAssemblies(assembly, seenAssembly);
-                            }
-                            catch
-                            {
-                                // Ignore assemblies that cannot be loaded.
-                            }
-                        }
+                        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(name);
+                        LoadReferencedAssemblies(assembly, seenAssembly);
                     }
-                    catch (PlatformNotSupportedException)
+                    catch
                     {
-                        // Some platforms like UWP do not support using GetReferencedAssemblies
+                        // Ignore assemblies that cannot be loaded.
                     }
                 }
             }
