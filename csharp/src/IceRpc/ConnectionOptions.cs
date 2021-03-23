@@ -8,9 +8,6 @@ namespace IceRpc
 {
     public sealed class SlicOptions
     {
-        private int _packetMaxSize = 32 * 1024;
-        private int? _streamBufferMaxSize;
-
         public int PacketMaxSize
         {
             get => _packetMaxSize;
@@ -25,15 +22,14 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(StreamBufferMaxSize)} cannot be less than 1KB", nameof(value));
         }
 
+        private int _packetMaxSize = 32 * 1024;
+        private int? _streamBufferMaxSize;
+
         public SlicOptions Clone() => (SlicOptions)MemberwiseClone();
     }
 
     public sealed class SocketOptions
     {
-        private int _tcpBackLog = 511;
-        private int? _receiveBufferSize;
-        private int? _sendBufferSize;
-
         public IPAddress? SourceAddress { get; set; }
 
         public int TcpBackLog
@@ -57,17 +53,15 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
+        private int _tcpBackLog = 511;
+        private int? _receiveBufferSize;
+        private int? _sendBufferSize;
+
         public SocketOptions Clone() => (SocketOptions)MemberwiseClone();
     }
 
     public abstract class ConnectionOptions
     {
-        private int _bidirectionalStreamMaxCount = 100;
-        private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
-        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
-        private int _incomingFrameMaxSize = 1024 * 1024;
-        private int _unidirectionalStreamMaxCount = 100;
-
         public int BidirectionalStreamMaxCount
         {
             get => _bidirectionalStreamMaxCount;
@@ -114,6 +108,12 @@ namespace IceRpc
                     nameof(value));
         }
 
+        private int _bidirectionalStreamMaxCount = 100;
+        private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+        private int _incomingFrameMaxSize = 1024 * 1024;
+        private int _unidirectionalStreamMaxCount = 100;
+
         protected ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
@@ -125,9 +125,6 @@ namespace IceRpc
 
     public sealed class OutgoingConnectionOptions : ConnectionOptions
     {
-        private SslClientAuthenticationOptions? _authenticationOptions;
-        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-
         public SslClientAuthenticationOptions? AuthenticationOptions
         {
             get => _authenticationOptions;
@@ -146,6 +143,9 @@ namespace IceRpc
         // TODO: switch to NonSecure.Never default
         public NonSecure PreferNonSecure { get; set; } = NonSecure.Always;
 
+        private SslClientAuthenticationOptions? _authenticationOptions;
+        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+
         public new OutgoingConnectionOptions Clone()
         {
             OutgoingConnectionOptions options = (OutgoingConnectionOptions)base.Clone();
@@ -156,9 +156,6 @@ namespace IceRpc
 
     public sealed class IncomingConnectionOptions : ConnectionOptions
     {
-        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
-        private SslServerAuthenticationOptions? _authenticationOptions;
-
         public SslServerAuthenticationOptions? AuthenticationOptions
         {
             get => _authenticationOptions;
@@ -176,6 +173,9 @@ namespace IceRpc
             set => _acceptTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
+
+        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
+        private SslServerAuthenticationOptions? _authenticationOptions;
 
         public new IncomingConnectionOptions Clone()
         {
