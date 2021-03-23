@@ -87,6 +87,13 @@ namespace IceRpc
             return new(data, protocol);
         }
 
+        internal static LocEndpoint Create(Interop.Identity identity) =>
+            new(new EndpointData(Transport.Loc, identity.Name, port: 0, new string[] { identity.Category }),
+                Protocol.Ice1);
+
+        internal static LocEndpoint Create(string location, Protocol protocol) =>
+            new(new EndpointData(Transport.Loc, location, port: 0, Array.Empty<string>()), protocol);
+
         // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage(

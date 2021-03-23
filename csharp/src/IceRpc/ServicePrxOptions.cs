@@ -23,6 +23,8 @@ namespace IceRpc
 
         public TimeSpan? InvocationTimeoutOverride { get; set; }
 
+        public bool IsFixed { get; set; }
+
         public bool IsOneway { get; set; }
 
         public object? Label { get; set; }

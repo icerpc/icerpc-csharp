@@ -63,7 +63,7 @@ namespace IceRpc.Test.Binding
                 com.DeactivateServer(server);
 
                 var test3 = ITestIntfPrx.Factory.Copy(test1);
-                TestHelper.Assert(test3.GetCachedConnection() == null);
+                TestHelper.Assert(test3.GetCachedConnection() == test1.GetCachedConnection());
 
                 try
                 {
