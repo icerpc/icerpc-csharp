@@ -65,7 +65,7 @@ namespace IceRpc.Interop
             _locator = locator;
             _background = options.Background;
             _cacheMaxSize = options.CacheMaxSize;
-            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize);
+            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
             _ttl = options.Ttl;
         }
 
