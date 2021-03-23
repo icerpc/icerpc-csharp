@@ -27,6 +27,10 @@ namespace IceRpc.Interop
                 throw new ArgumentException($"{nameof(CacheMaxSize)} must be positive", nameof(value));
         }
 
+        /// <summary>When a cache entry's age is <c>JustRefreshedAge</c> or less, it's considered just refreshed and
+        /// won't be updated even when the caller requests a refresh.</summary>
+        public TimeSpan JustRefreshedAge { get; set; } = TimeSpan.FromSeconds(1);
+
         /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning the
         /// cache entries never become stale.</summary>
         public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
@@ -45,6 +49,8 @@ namespace IceRpc.Interop
         private readonly LinkedList<(string Location, string? Category)> _cacheKeys = new();
 
         private readonly int _cacheMaxSize;
+
+        private readonly TimeSpan _justRefreshedAge;
 
         private readonly ILocatorPrx _locator;
 
@@ -66,7 +72,13 @@ namespace IceRpc.Interop
             _background = options.Background;
             _cacheMaxSize = options.CacheMaxSize;
             _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
+            _justRefreshedAge = options.JustRefreshedAge;
             _ttl = options.Ttl;
+
+            if (_ttl != Timeout.InfiniteTimeSpan && _justRefreshedAge < _ttl)
+            {
+                throw new ArgumentException("JustRefreshedAge must be greater than Ttl", nameof(options));
+            }
         }
 
         /// <summary>Constructs a locator client using the default options.</summary>
@@ -76,9 +88,9 @@ namespace IceRpc.Interop
         {
         }
 
-        public async ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveAsync(
+        public async ValueTask<IReadOnlyList<Endpoint>> ResolveAsync(
             Endpoint endpoint,
-            TimeSpan endpointsMaxAge,
+            bool refreshCache,
             CancellationToken cancel)
         {
             if (endpoint.Transport != Transport.Loc)
@@ -89,7 +101,7 @@ namespace IceRpc.Interop
             if (endpoint.Protocol != Protocol.Ice1)
             {
                 // LocatorClient works only for ice1 endpoints.
-                return (ImmutableList<Endpoint>.Empty, TimeSpan.Zero);
+                return ImmutableList<Endpoint>.Empty;
             }
 
             string location = endpoint.Host;
@@ -101,8 +113,9 @@ namespace IceRpc.Interop
             string? category = endpoint["category"];
 
             IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
-            TimeSpan endpointsAge = TimeSpan.Zero;
             bool expired = false;
+            bool justRefreshed = false;
+            bool resolved = false;
 
             if (HasCache)
             {
@@ -113,25 +126,21 @@ namespace IceRpc.Interop
                         out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> _) entry))
                     {
                         endpoints = entry.Endpoints;
-                        endpointsAge = Time.Elapsed - entry.InsertionTime;
-                        expired = _ttl != Timeout.InfiniteTimeSpan && endpointsAge > _ttl;
+                        TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
+                        expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
+                        justRefreshed = cacheEntryAge <= _justRefreshedAge;
                     }
                 }
             }
 
-            // Timeout.InfiniteTimeSpan == -1 so does not work well in comparisons.
-            if (endpoints.Count == 0 ||
-                (!_background && expired) ||
-                (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsAge >= endpointsMaxAge))
+            if (endpoints.Count == 0 || (!_background && expired) || (refreshCache && !justRefreshed))
             {
                endpoints = await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
-               endpointsAge = TimeSpan.Zero; // Fresh endpoints that are not coming from the cache.
+               resolved = true;
             }
-            else if (expired && _background)
+            else if (_background && expired)
             {
-                // Endpoints are returned from the cache but endpointsMaxAge was reached, if backgrounds updates
-                // are configured, we obtain new endpoints but continue using the stale endpoints to not block the
-                // caller.
+                // We retrieved expired endpoints from the cache, so we launch a refresh in the background.
                 _ = ResolveWithLocatorAsync(location, category, cancel: default);
             }
 
@@ -140,16 +149,12 @@ namespace IceRpc.Interop
             {
                 Debug.Assert(category != null);
 
-                if (endpointsMaxAge != Timeout.InfiniteTimeSpan && endpointsMaxAge > endpointsAge)
-                {
-                    // We always want endpoints that are fresher than the well-known cache entry.
-                    endpointsMaxAge = endpointsAge;
-                }
-
                 try
                 {
-                    // Resolves adapter ID recursively, by checking first the cache.
-                    (endpoints, _) = await ResolveAsync(endpoints[0], endpointsMaxAge, cancel).ConfigureAwait(false);
+                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the endpoint, we
+                    // request a cache refresh for the adapter.
+                    endpoints =
+                        await ResolveAsync(endpoints[0], refreshCache || resolved, cancel).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -168,7 +173,7 @@ namespace IceRpc.Interop
             {
                 if (endpoints.Count > 0)
                 {
-                    if (endpointsAge == TimeSpan.Zero)
+                    if (resolved)
                     {
                         logger.LogResolved(location, category, endpoints);
                     }
@@ -183,7 +188,7 @@ namespace IceRpc.Interop
                 }
             }
 
-            return (endpoints, endpointsAge);
+            return endpoints;
         }
 
         private void ClearCache(string location, string? category)
