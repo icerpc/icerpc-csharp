@@ -4,6 +4,8 @@
 
 module IceRpc::Tests::ClientServer
 {
+    // TODO: eliminate Service suffix?
+
     interface GreeterTestService
     {
         void sayHello();

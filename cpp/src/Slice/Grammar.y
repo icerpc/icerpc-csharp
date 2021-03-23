@@ -487,9 +487,11 @@ module_def
     {
         StringTokPtr ident = StringTokPtr::dynamicCast($2);
         size_t startPos = 0;
-        while((startPos = ident->v.find("::", startPos + 2)) != string::npos)
+        while((startPos = ident->v.find("::", startPos)) != string::npos)
         {
             unit->popContainer();
+            // Skip the '::' we just found.
+            startPos += 2;
         }
         $$ = unit->currentContainer();
         unit->popContainer();
