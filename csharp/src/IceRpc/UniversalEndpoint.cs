@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -77,8 +78,9 @@ namespace IceRpc
         }
 
         protected internal override Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
+            OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an universal endpoint");
 
@@ -88,15 +90,13 @@ namespace IceRpc
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // WriteOptions is only for ice1.
 
-        internal static UniversalEndpoint Create(EndpointData data, Communicator communicator, Protocol protocol) =>
-            new(data, communicator, protocol);
+        internal static UniversalEndpoint Create(EndpointData data, Protocol protocol) => new(data, protocol);
 
         internal static UniversalEndpoint Parse(
             Transport transport,
             string host,
             ushort port,
             Dictionary<string, string> options,
-            Communicator communicator,
             Protocol protocol)
         {
             string[] endpointDataOptions = Array.Empty<string>();
@@ -108,14 +108,12 @@ namespace IceRpc
                 options.Remove("option");
             }
 
-            return new UniversalEndpoint(new EndpointData(transport, host, port, endpointDataOptions),
-                                         communicator,
-                                         protocol);
+            return new UniversalEndpoint(new EndpointData(transport, host, port, endpointDataOptions), protocol);
         }
 
         // Constructor
-        private UniversalEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol) =>
+        private UniversalEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol) =>
             Debug.Assert(protocol != Protocol.Ice1);
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
@@ -13,41 +14,35 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
 
             // A hostname cannot be used with a server endpoint
-            Assert.Throws<System.FormatException>(
+            Assert.Throws<FormatException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
 
-            // Can't be less than 1
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { BidirectionalStreamMaxCount = 0 }));
-
-            // Can't be less than 1
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(new Communicator(), new ServerOptions() { UnidirectionalStreamMaxCount = 0 }));
-
-            // IncomingFrameMaxSize cannot be less than 1KB
-            Assert.Throws<System.ArgumentException>(
-                () => new Server(communicator, new ServerOptions() { IncomingFrameMaxSize = 1000 }));
-
             // Server can only accept secure connections
-            Assert.Throws<System.ArgumentException>(
+            Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never,
+                                     ConnectionOptions = new()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                      Endpoints = "tcp -h 127.0.0.1 -p 10000"
                                  }));
 
             // only one endpoint is allowed when a dynamic IP port (:0) is configured
-            Assert.Throws<System.ArgumentException>(
+            Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never,
+                                     ConnectionOptions = new()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                      Endpoints = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
                                  }));
 
             // both PublishedHost and PublishedEndpoints are empty
-            Assert.Throws<System.ArgumentException>(
+            Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
@@ -57,25 +52,28 @@ namespace IceRpc.Tests.Api
                                  }));
 
             // Accept only secure connections require tls configuration
-            Assert.Throws<System.ArgumentException>(
+            Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     AcceptNonSecure = NonSecure.Never
+                                     ConnectionOptions = new()
+                                     {
+                                         AcceptNonSecure = NonSecure.Never
+                                     },
                                  }));
 
             {
                 // Activating twice the server is incorrect
                 await using var server = new Server(communicator);
                 server.Activate();
-                Assert.Throws<System.InvalidOperationException>(() => server.Activate());
+                Assert.Throws<InvalidOperationException>(() => server.Activate());
             }
 
             {
                 // cannot add an dispatchInterceptor to a server after activation"
                 await using var server = new Server(communicator);
                 server.Activate();
-                Assert.Throws<System.InvalidOperationException>(
+                Assert.Throws<InvalidOperationException>(
                     () => server.Use(next => async (current, cancel) => await next(current, cancel)));
             }
 
@@ -121,7 +119,10 @@ namespace IceRpc.Tests.Api
                 communicator,
                 new()
                 {
-                    AcceptNonSecure = NonSecure.Always,
+                    ConnectionOptions = new()
+                    {
+                        AcceptNonSecure = NonSecure.Always
+                    },
                     Endpoints = $"tcp -h 127.0.0.1 -p 0 -t 15000",
                     PublishedHost = "localhost"
                 });
@@ -189,7 +190,7 @@ namespace IceRpc.Tests.Api
         public async Task Server_InvalidEndpoints(string endpoint)
         {
             await using var communicator = new Communicator();
-            Assert.Throws<System.FormatException>(
+            Assert.Throws<FormatException>(
                 () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
         }
     }

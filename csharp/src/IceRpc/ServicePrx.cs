@@ -791,6 +791,10 @@ namespace IceRpc
                 }
             }
 
+            var options = Communicator.ConnectionOptions.Clone();
+            options.Label = Label;
+            options.PreferNonSecure = PreferNonSecure;
+
             while (connection == null)
             {
                 if (endpoints == null)
@@ -805,10 +809,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        connection = await Communicator.ConnectAsync(endpoint,
-                                                                     PreferNonSecure,
-                                                                     Label,
-                                                                     cancel).ConfigureAwait(false);
+                        connection = await Communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
                         if (CacheConnection)
                         {
                             _connection = connection;
@@ -986,6 +987,10 @@ namespace IceRpc
                 }
             }
 
+            var connectionOptions = Communicator.ConnectionOptions.Clone();
+            connectionOptions.Label = Label;
+            connectionOptions.PreferNonSecure = PreferNonSecure;
+
             ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;
             int attempt = 1;
@@ -1022,8 +1027,7 @@ namespace IceRpc
                         }
 
                         connection = await Communicator.ConnectAsync(endpoints[nextEndpoint],
-                                                                     PreferNonSecure,
-                                                                     Label,
+                                                                     connectionOptions,
                                                                      cancel).ConfigureAwait(false);
 
                         if (CacheConnection)

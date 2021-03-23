@@ -41,7 +41,10 @@ namespace IceRpc.Test.UDP
                     Communicator,
                     new()
                     {
-                        AcceptNonSecure = NonSecure.Always,
+                        ConnectionOptions = new()
+                        {
+                            AcceptNonSecure = NonSecure.Always
+                        },
                         Endpoints = GetTestEndpoint(num, "udp"),
                         PublishedHost = publishedHost
                     });
@@ -66,7 +69,10 @@ namespace IceRpc.Test.UDP
                 Communicator,
                 new()
                 {
-                    AcceptNonSecure = NonSecure.Always,
+                    ConnectionOptions = new()
+                    {
+                        AcceptNonSecure = NonSecure.Always
+                    },
                     Endpoints = endpoint.ToString(),
                     Name = "McastTestAdapter", // for test script ready check
                     PublishedHost = publishedHost

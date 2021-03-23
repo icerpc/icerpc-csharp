@@ -1,13 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -52,7 +55,7 @@ namespace IceRpc
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(Communicator.GetPropertyAsInt("Ice.TCP.Backlog") ?? 511);
+                socket.Listen(server.ConnectionOptions.SocketOptions!.TcpBackLog);
             }
             catch (SocketException ex)
             {
@@ -173,24 +176,22 @@ namespace IceRpc
                                                     port: ReadPort(istr),
                                                     Array.Empty<string>()),
                                    timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                   compress: istr.ReadBool(),
-                                   istr.Communicator!);
+                                   compress: istr.ReadBool());
         }
 
-        internal static TcpEndpoint CreateEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
+        internal static TcpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Length > 0)
             {
                 // Drop all options since we don't understand any.
                 data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
             }
-            return new(data, communicator, protocol);
+            return new(data, protocol);
         }
 
         internal static TcpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
         {
@@ -200,7 +201,6 @@ namespace IceRpc
                                    ParseTimeout(options, endpointString),
                                    ParseCompress(options, endpointString),
                                    options,
-                                   communicator,
                                    serverEndpoint,
                                    endpointString);
         }
@@ -210,47 +210,55 @@ namespace IceRpc
             string host,
             ushort port,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    options,
-                                   communicator,
                                    serverEndpoint);
         }
 
-        protected internal override Connection CreateConnection(
-            object? label,
+        protected internal override async Task<Connection> ConnectAsync(
+            OutgoingConnectionOptions options,
+            ILogger protocolLogger,
+            ILogger transportLogger,
             CancellationToken cancel)
         {
+            // If the endpoint is always secure or a secure connection is required, connect with the SSL client
+            // authentication options.
+            SslClientAuthenticationOptions? authenticationOptions = null;
+            if (IsAlwaysSecure || options.PreferNonSecure switch
+            {
+                NonSecure.SameHost => true,    // TODO check if Host is the same host
+                NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
+                NonSecure.Always => false,
+                _ => true
+            })
+            {
+                authenticationOptions = options.AuthenticationOptions ?? new SslClientAuthenticationOptions()
+                {
+                    TargetHost = Host
+                };
+            }
+
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint);
+            SingleStreamSocket socket = CreateSocket(endpoint, options.SocketOptions!, transportLogger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(
-                    this,
-                    Communicator.TransportLogger,
-                    Communicator.IncomingFrameMaxSize,
-                    isIncoming: false,
-                    socket),
-                _ => new SlicSocket(
-                    this,
-                    Communicator.TransportLogger,
-                    Communicator.IncomingFrameMaxSize,
-                    isIncoming: false,
-                    socket,
-                    Communicator.BidirectionalStreamMaxCount,
-                    Communicator.UnidirectionalStreamMaxCount)
+                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options, protocolLogger),
+                _ => new SlicSocket(this, socket, options, protocolLogger)
             };
-            return CreateConnection(multiStreamSocket, label, server: null);
+            Connection connection = CreateConnection(multiStreamSocket, options, server: null);
+            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
+            Debug.Assert(connection.CanTrust(options.PreferNonSecure));
+            return connection;
         }
 
         protected internal virtual Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
-            object? label,
+            ConnectionOptions options,
             Server? server) =>
-            new TcpConnection(this, socket, label, server);
+            new TcpConnection(this, socket, options, server);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
@@ -289,16 +297,16 @@ namespace IceRpc
         }
 
         // Constructor for ice1 unmarshaling.
-        private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress, Communicator communicator)
-            : base(data, communicator, Protocol.Ice1)
+        private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
+            : base(data, Protocol.Ice1)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
         }
 
         // Constructor for unmarshaling with the 2.0 encoding.
-        private protected TcpEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private protected TcpEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
         }
 
@@ -308,10 +316,9 @@ namespace IceRpc
             TimeSpan timeout,
             bool compress,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
-            : base(data, options, communicator, serverEndpoint, endpointString)
+            : base(data, options, serverEndpoint, endpointString)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
@@ -321,9 +328,8 @@ namespace IceRpc
         private protected TcpEndpoint(
             EndpointData data,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
-            : base(data, options, communicator, serverEndpoint)
+            : base(data, options, serverEndpoint)
         {
         }
 
@@ -338,7 +344,7 @@ namespace IceRpc
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamSocket CreateSocket(EndPoint addr)
+        internal virtual SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger)
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
             // created if the address is an IPv4 address.
@@ -348,11 +354,11 @@ namespace IceRpc
 
             try
             {
-                // TODO: Where will set TCP buffer size options when we get rid of the communicator?
-                SetBufferSize(socket,
-                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
-                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
-                              Communicator.Logger);
+                if (options.SourceAddress is IPAddress sourceAddress)
+                {
+                    socket.Bind(new IPEndPoint(sourceAddress, 0));
+                }
+                SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
             }
             catch (SocketException ex)
@@ -361,25 +367,21 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            return new TcpSocket(Communicator.TransportLogger, socket, addr);
+            return new TcpSocket(socket, logger, addr);
         }
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket)
+        internal virtual SingleStreamSocket CreateSocket(Socket socket, SocketOptions options, ILogger logger)
         {
             try
             {
-                // TODO: Where will set TCP buffer size options when we get rid of the communicator?
-                SetBufferSize(socket,
-                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.RcvSize") ?? 0,
-                              Communicator.GetPropertyAsByteSize($"Ice.Tcp.SndSize") ?? 0,
-                              Communicator.Logger);
+                SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
             }
             catch (SocketException ex)
             {
                 socket.Dispose();
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
-            return new TcpSocket(Communicator.TransportLogger, socket);
+            return new TcpSocket(socket, logger);
         }
     }
 }

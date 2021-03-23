@@ -20,12 +20,11 @@ namespace IceRpc
         public override string? this[string option] =>
             option switch
             {
-                "source-address" => SourceAddress?.ToString(),
                 "ipv6-only" => IsIPv6Only ? "true" : "false",
                 _ => base[option],
             };
 
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1 || SourceAddress != null;
+        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.
         protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultIPPort;
@@ -55,18 +54,14 @@ namespace IceRpc
         /// <summary>Whether IPv6 sockets created from this endpoint are dual-mode or IPv6 only.</summary>
         internal bool IsIPv6Only { get; }
 
-        /// <summary>The source address of this IP endpoint.</summary>
-        internal IPAddress? SourceAddress { get; }
-
         private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) =>
             other is IPEndpoint ipEndpoint &&
-                Equals(SourceAddress, ipEndpoint.SourceAddress) &&
                 IsIPv6Only == ipEndpoint.IsIPv6Only &&
                 base.Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), SourceAddress, IsIPv6Only);
+        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), IsIPv6Only);
 
         public override bool IsLocal(Endpoint endpoint)
         {
@@ -88,10 +83,6 @@ namespace IceRpc
                 {
                     return false;
                 }
-                if (!Equals(SourceAddress, ipEndpoint.SourceAddress))
-                {
-                    return false;
-                }
                 if (IsIPv6Only != ipEndpoint.IsIPv6Only)
                 {
                     return false;
@@ -103,34 +94,6 @@ namespace IceRpc
                 return false;
             }
         }
-
-        protected internal override async Task<Connection> ConnectAsync(
-            NonSecure preferNonSecure,
-            object? label,
-            CancellationToken cancel)
-        {
-            SslClientAuthenticationOptions? authenticationOptions = null;
-            if(preferNonSecure switch
-            {
-                NonSecure.SameHost => true,    // TODO check if Host is the same host
-                NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
-                NonSecure.Always => false,
-                _ => true
-            })
-            {
-                authenticationOptions = Communicator.AuthenticationOptions ?? new SslClientAuthenticationOptions()
-                {
-                    TargetHost = Host
-                };
-            }
-
-            Connection connection = CreateConnection(label, cancel);
-            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            Debug.Assert(connection.CanTrust(preferNonSecure));
-            return connection;
-        }
-
-        protected internal abstract Connection CreateConnection(object? label, CancellationToken cancel);
 
         protected internal override void WriteOptions11(OutputStream ostr)
         {
@@ -163,34 +126,12 @@ namespace IceRpc
                 {
                     sb.Append(" --ipv6Only");
                 }
-
-                if (SourceAddress != null)
-                {
-                    string sourceAddr = SourceAddress.ToString();
-                    addQuote = sourceAddr.IndexOf(':') != -1;
-                    sb.Append(" --sourceAddress ");
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(sourceAddr);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                }
             }
             else
             {
                 if (IsIPv6Only)
                 {
                     sb.Append("ipv6-only=true");
-                }
-
-                if (SourceAddress != null)
-                {
-                    sb.Append("source-address=");
-                    sb.Append(SourceAddress);
                 }
             }
         }
@@ -305,61 +246,29 @@ namespace IceRpc
         }
 
         // Constructor for ice1/ice2 unmarshaling.
-        private protected IPEndpoint(EndpointData data, Communicator communicator, Protocol protocol)
-            : base(data, communicator, protocol)
+        private protected IPEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
         {
             if (data.Host.Length == 0)
             {
                 throw new InvalidDataException("endpoint host is empty");
             }
-
-            SourceAddress = communicator.DefaultSourceAddress;
         }
 
         // Constructor for ice1 endpoint parsing.
         private protected IPEndpoint(
             EndpointData data,
             Dictionary<string, string?> options,
-            Communicator communicator,
             bool serverEndpoint,
             string endpointString)
-            : base(data, communicator, Protocol.Ice1)
+            : base(data, Protocol.Ice1)
         {
-            if (options.TryGetValue("--sourceAddress", out string? argument))
-            {
-                if (serverEndpoint)
-                {
-                    throw new FormatException(
-                        $"`--sourceAddress' not valid for a server endpoint `{endpointString}'");
-                }
-                if (argument == null)
-                {
-                    throw new FormatException(
-                        $"no argument provided for --sourceAddress option in endpoint `{endpointString}'");
-                }
-                try
-                {
-                    SourceAddress = IPAddress.Parse(argument);
-                }
-                catch (Exception ex)
-                {
-                    throw new FormatException(
-                        $"invalid IP address provided for --sourceAddress option in endpoint `{endpointString}'", ex);
-                }
-                options.Remove("--sourceAddress");
-            }
-            else if (!serverEndpoint)
-            {
-                SourceAddress = Communicator.DefaultSourceAddress;
-            }
-            // else SourceAddress remains null
-
-            if (options.TryGetValue("--ipv6Only", out argument))
+            if (options.TryGetValue("--ipv6Only", out string? argument))
             {
                 if (!serverEndpoint)
                 {
                     throw new FormatException(
-                        $"`--ipv6Only' not valid for a server endpoint `{endpointString}'");
+                        $"`--ipv6Only' is not valid for a proxy endpoint `{endpointString}'");
                 }
                 if (argument != null)
                 {
@@ -375,9 +284,8 @@ namespace IceRpc
         private protected IPEndpoint(
             EndpointData data,
             Dictionary<string, string> options,
-            Communicator communicator,
             bool serverEndpoint)
-            : base(data, communicator, Protocol.Ice2)
+            : base(data, Protocol.Ice2)
         {
             if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
                 (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
@@ -393,59 +301,41 @@ namespace IceRpc
                     options.Remove("ipv6-only");
                 }
             }
-            else // parsing a URI that represents a proxy
-            {
-                if (options.TryGetValue("source-address", out string? value))
-                {
-                    // IPAddress.Parse apparently accepts IPv6 addresses in square brackets
-                    SourceAddress = IPAddress.Parse(value);
-                    options.Remove("source-address");
-                }
-                else
-                {
-                    SourceAddress = Communicator.DefaultSourceAddress;
-                }
-            }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
-                   endpoint.Communicator,
-                   endpoint.Protocol)
-        {
-            SourceAddress = endpoint.SourceAddress;
+            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol) =>
             IsIPv6Only = endpoint.IsIPv6Only;
-        }
 
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);
 
-        private protected void SetBufferSize(Socket socket, int receiveSize, int sendSize, ILogger logger)
+        private protected void SetBufferSize(Socket socket, int? receiveSize, int? sendSize, ILogger logger)
         {
             try
             {
-                if (receiveSize > 0)
+                if (receiveSize != null)
                 {
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
-                    socket.ReceiveBufferSize = receiveSize;
+                    socket.ReceiveBufferSize = receiveSize.Value;
                     int adjustedSize = socket.ReceiveBufferSize;
                     if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize, adjustedSize);
+                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, adjustedSize);
                     }
                 }
 
-                if (sendSize > 0)
+                if (sendSize != null)
                 {
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
-                    socket.SendBufferSize = sendSize;
+                    socket.SendBufferSize = sendSize.Value;
                     int adjustedSize = socket.SendBufferSize;
                     if (adjustedSize < receiveSize && logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogSendBufferSizeAdjusted(Transport, sendSize, adjustedSize);
+                        logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, adjustedSize);
                     }
                 }
             }

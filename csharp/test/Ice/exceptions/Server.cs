@@ -10,13 +10,29 @@ namespace IceRpc.Test.Exceptions
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(
+                Communicator,
+                new()
+                {
+                    ConnectionOptions = new() { IncomingFrameMaxSize = 10 * 1024 },
+                    Endpoints = GetTestEndpoint(0)
+                });
 
-            Server server2 = new Server(Communicator,
-                new() { Endpoints = GetTestEndpoint(1), IncomingFrameMaxSize = 0 });
+            Server server2 = new Server(
+                Communicator,
+                new()
+                {
+                    ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
+                    Endpoints = GetTestEndpoint(1),
+                });
 
-            Server server3 = new Server(Communicator,
-                new() { Endpoints = GetTestEndpoint(2), IncomingFrameMaxSize = 1024 });
+            Server server3 = new Server(
+                Communicator,
+                new()
+                {
+                    ConnectionOptions = new() { IncomingFrameMaxSize = 1024 },
+                    Endpoints = GetTestEndpoint(2),
+                });
 
             var obj = new Thrower();
             IceRpc.IServicePrx prx = server.Add("thrower", obj, IceRpc.IServicePrx.Factory);
@@ -29,7 +45,11 @@ namespace IceRpc.Test.Exceptions
             await using var communicator2 = new Communicator(Communicator.GetProperties());
             await using var forwarderAdapter = new Server(
                 communicator2,
-                new() { Endpoints = GetTestEndpoint(3), IncomingFrameMaxSize = 0 });
+                new()
+                {
+                    ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
+                    Endpoints = GetTestEndpoint(3),
+                });
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
             forwarderAdapter.Activate();
 
@@ -42,7 +62,6 @@ namespace IceRpc.Test.Exceptions
             Dictionary<string, string> properties = CreateTestProperties(ref args);
             properties["Ice.Warn.Dispatch"] = "0";
             properties["Ice.Warn.Connections"] = "0";
-            properties["Ice.IncomingFrameMaxSize"] = "10K";
 
             await using var communicator = CreateCommunicator(properties);
             return await RunTestAsync<ServerApp>(communicator, args);

@@ -24,7 +24,7 @@ namespace IceRpc
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
-        /// <remarks>When reading proxies, communicator, connection or proxy must be non-null.</remarks>
+        /// <remarks>When reading proxies, communicator must be non-null.</remarks>
         public static T Read<T>(
             this ReadOnlyMemory<byte> buffer,
             Encoding encoding,
@@ -51,7 +51,7 @@ namespace IceRpc
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
-        /// <remarks>When reading proxies, communicator, connection or proxy must be non-null.</remarks>
+        /// <remarks>When reading proxies, communicator must be non-null.</remarks>
         public static T Read<T>(
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> reader,
@@ -90,8 +90,7 @@ namespace IceRpc
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
-        /// <remarks>When reading classes, proxies or exceptions, communicator, connection or proxy must be non-null.
-        /// </remarks>
+        /// <remarks>When reading classes, proxies or exceptions, communicator must be non-null.</remarks>
         public static T ReadEncapsulation<T>(
             this ReadOnlyMemory<byte> buffer,
             Encoding encoding,
@@ -122,7 +121,7 @@ namespace IceRpc
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
-        /// <remarks>When reading classes, proxies or exceptions, communicator, connection or proxy must be non-null.
+        /// <remarks>When reading classes, proxies or exceptions, communicator must be non-null.
         /// </remarks>
         public static T ReadEncapsulation<T>(
             this ReadOnlyMemory<byte> buffer,

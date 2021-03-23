@@ -62,7 +62,11 @@ namespace IceRpc
 
             if (ResultType == ResultType.Success)
             {
-                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, proxy: proxy);
+                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(
+                    Protocol.GetEncoding(),
+                    reader,
+                    communicator: proxy.Communicator,
+                    proxy: proxy);
             }
             else
             {

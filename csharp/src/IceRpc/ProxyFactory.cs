@@ -64,8 +64,7 @@ namespace IceRpc
                 var locEndpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
                                                                       host: identity.Name,
                                                                       port: 0,
-                                                                      options: new string[] { identity.Category }),
-                                                     server.Communicator,
+                                                                      options: new string[] { identity.Category}),
                                                      protocol);
 
                 var options = new InteropServicePrxOptions()
@@ -107,7 +106,7 @@ namespace IceRpc
             {
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = connection.Communicator,
+                    Communicator = connection.Communicator!,
                     Connection = connection,
                     IsOneway = connection.Endpoint.IsDatagram,
                     Path = path,
@@ -119,7 +118,7 @@ namespace IceRpc
             {
                 var options = new ServicePrxOptions()
                 {
-                    Communicator = connection.Communicator,
+                    Communicator = connection.Communicator!,
                     Connection = connection,
                     Path = path,
                     Protocol = protocol
@@ -238,7 +237,6 @@ namespace IceRpc
                                              port: 0,
                                              options: adapterId.Length > 0 ?
                                                 Array.Empty<string>() : new string[] { identity.Category }),
-                            istr.Communicator!,
                             proxyData.Protocol);
 
                         endpoints = new Endpoint[] { locEndpoint };
