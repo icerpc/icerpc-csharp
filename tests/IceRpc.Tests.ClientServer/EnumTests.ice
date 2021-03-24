@@ -2,6 +2,8 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#pragma once
+
 module IceRpc::Tests::ClientServer
 {
     enum MyEnum
@@ -52,15 +54,10 @@ module IceRpc::Tests::ClientServer
     }
     sequence<MyUncheckedEnum> MyUncheckedEnumSeq;
 
-    interface EnumService
+    interface EnumOperations
     {
         (MyEnum r1, MyEnum r2) opMyEnum(MyEnum p1, MyEnum p2);
-        (MyEnumSeq r1, MyEnumSeq r2) opMyEnum(MyEnumSeq p1, MyEnumSeq p2);
         (MyFixedLengthEnum r1, MyFixedLengthEnum r2) opMyFixedLengthEnum(MyFixedLengthEnum p1, MyFixedLengthEnum p2);
-        (MyFixedLengthEnumSeq r1, MyFixedLengthEnumSeq r2) opMyFixedLengthEnum(
-            MyFixedLengthEnumSeq p1,
-            MyFixedLengthEnumSeq p2);
         (MyUncheckedEnum r1, MyUncheckedEnum r2) opMyUncheckedEnum(MyUncheckedEnum p1, MyUncheckedEnum p2);
-        (MyUncheckedEnumSeq r1, MyUncheckedEnumSeq r2) opMyUncheckedEnum(MyUncheckedEnumSeq p1, MyUncheckedEnumSeq p2);
     }
 }
