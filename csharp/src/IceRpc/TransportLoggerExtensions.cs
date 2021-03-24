@@ -650,7 +650,7 @@ namespace IceRpc
                     1 => "[server-initiated, bidirectional]",
                     2 => "[client-initiated, unidirectional]",
                     3 => "[server-initiated, unidirectional]",
-                    _ => throw new InvalidArgumentException(nameof(streamID))
+                    _ => throw new ArgumentException(nameof(streamID))
                 };
                 return _streamScope(logger, streamID, streamType);
             }

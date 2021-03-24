@@ -17,13 +17,6 @@ namespace IceRpc
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
-        public override string? this[string option] =>
-            option switch
-            {
-                "ipv6-only" => IsIPv6Only ? "true" : "false",
-                _ => base[option],
-            };
-
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.
@@ -51,17 +44,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Whether IPv6 sockets created from this endpoint are dual-mode or IPv6 only.</summary>
-        internal bool IsIPv6Only { get; }
-
         private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) =>
-            other is IPEndpoint ipEndpoint &&
-                IsIPv6Only == ipEndpoint.IsIPv6Only &&
-                base.Equals(other);
-
-        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), IsIPv6Only);
+            other is IPEndpoint ipEndpoint && base.Equals(other);
 
         public override bool IsLocal(Endpoint endpoint)
         {
@@ -80,10 +66,6 @@ namespace IceRpc
                     return false;
                 }
                 if (Port != ipEndpoint.Port)
-                {
-                    return false;
-                }
-                if (IsIPv6Only != ipEndpoint.IsIPv6Only)
                 {
                     return false;
                 }
@@ -122,17 +104,6 @@ namespace IceRpc
                 sb.Append(" -p ");
                 sb.Append(Port.ToString(CultureInfo.InvariantCulture));
 
-                if (IsIPv6Only)
-                {
-                    sb.Append(" --ipv6Only");
-                }
-            }
-            else
-            {
-                if (IsIPv6Only)
-                {
-                    sb.Append("ipv6-only=true");
-                }
             }
         }
 
@@ -199,11 +170,6 @@ namespace IceRpc
                         throw new FormatException($"invalid IP address `{host}' in server endpoint `{endpointString}'");
                     }
                 }
-                else if (IPAddress.TryParse(host, out IPAddress? address) &&
-                        (address!.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
-                {
-                    throw new FormatException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint");
-                }
 
                 options.Remove("-h");
             }
@@ -255,58 +221,21 @@ namespace IceRpc
             }
         }
 
-        // Constructor for ice1 endpoint parsing.
-        private protected IPEndpoint(
-            EndpointData data,
-            Dictionary<string, string?> options,
-            bool serverEndpoint,
-            string endpointString)
-            : base(data, Protocol.Ice1)
-        {
-            if (options.TryGetValue("--ipv6Only", out string? argument))
-            {
-                if (!serverEndpoint)
-                {
-                    throw new FormatException(
-                        $"`--ipv6Only' is not valid for a proxy endpoint `{endpointString}'");
-                }
-                if (argument != null)
-                {
-                    throw new FormatException($"--ipv6Only does not accept an argument in endpoint `{endpointString}'");
-                }
-                IsIPv6Only = true;
-                options.Remove("--ipv6Only");
-            }
-            // else IsIPv6Only remains false (default initialized)
-        }
-
-        // Constructor for ice2 parsing.
-        private protected IPEndpoint(
-            EndpointData data,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
-            : base(data, Protocol.Ice2)
+        private protected IPEndpoint(EndpointData data, bool serverEndpoint, Protocol protocol)
+            : base(data, protocol)
         {
             if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
                 (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
             {
                 throw new ArgumentException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint", nameof(data));
             }
-
-            if (serverEndpoint)
-            {
-                if (options.TryGetValue("ipv6-only", out string? value))
-                {
-                    IsIPv6Only = bool.Parse(value);
-                    options.Remove("ipv6-only");
-                }
-            }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol) =>
-            IsIPv6Only = endpoint.IsIPv6Only;
+            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
+        {
+        }
 
         /// <summary>Creates a clone with the specified host and port.</summary>
         private protected abstract IPEndpoint Clone(string host, ushort port);
