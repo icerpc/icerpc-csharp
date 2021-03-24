@@ -24,7 +24,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" PrivateAssets="All" />
         <SliceCompile Include="../../../slice/$(AssemblyName)/*.ice" Exclude="../../../slice/$(AssemblyName)/BuiltinSequences.ice;../../../slice/$(AssemblyName)/Context.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)" />
-        <SliceCompile Include="../../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop"/>
+        <SliceCompile Include="../../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop" />
         <Compile Update="generated\IceRpc\Interop\Discovery.cs">
           <SliceCompileSource>..\..\..\slice\Ice\Discovery.ice</SliceCompileSource>
         </Compile>
