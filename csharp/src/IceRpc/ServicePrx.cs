@@ -540,9 +540,16 @@ namespace IceRpc
         {
             int endpointCount = options.Endpoints.Count;
 
-            if (options.Connection != null && endpointCount > 0)
+            if (options.IsFixed)
             {
-                throw new ArgumentException("a fixed proxy cannot specify endpoints", nameof(options));
+                if (endpointCount > 0)
+                {
+                    throw new ArgumentException("a fixed proxy cannot specify endpoints", nameof(options));
+                }
+                if (options.Connection == null)
+                {
+                    throw new ArgumentException("a fixed proxy requires a connection", nameof(options));
+                }
             }
 
             if (endpointCount > 0)
@@ -558,7 +565,7 @@ namespace IceRpc
                                                 nameof(options));
                 }
             }
-            else if (options.Connection == null && options.Protocol == Protocol.Ice1)
+            else if (!options.IsFixed && options.Protocol == Protocol.Ice1)
             {
                 throw new ArgumentException("a non-fixed ice1 proxy requires at least one endpoint",
                                             nameof(options));
@@ -576,7 +583,7 @@ namespace IceRpc
             Encoding = options.Encoding ?? options.Protocol.GetEncoding();
             Endpoints = options.Endpoints;
             InvocationInterceptors = options.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty;
-            IsFixed = options.Connection != null; // auto-computed for now
+            IsFixed = options.IsFixed;
             IsOneway = options.IsOneway;
             Label = options.Label;
             LocationResolver = options.LocationResolver;
@@ -721,7 +728,7 @@ namespace IceRpc
                 {
                     CacheConnection = CacheConnection,
                     Communicator = Communicator,
-                    Connection = IsFixed ? _connection : null,
+                    Connection = _connection,
                     Context = Context,
                     Encoding = Encoding,
                     Endpoints = Endpoints,
@@ -729,6 +736,7 @@ namespace IceRpc
                     Identity = Identity,
                     InvocationInterceptors = InvocationInterceptors,
                     InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsFixed = IsFixed,
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,
@@ -744,12 +752,13 @@ namespace IceRpc
                 {
                     CacheConnection = CacheConnection,
                     Communicator = Communicator,
-                    Connection = IsFixed ? _connection : null,
+                    Connection = _connection,
                     Context = Context,
                     Encoding = Encoding,
                     Endpoints = Endpoints,
                     InvocationInterceptors = InvocationInterceptors,
                     InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    IsFixed = IsFixed,
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,

@@ -1,5 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
-
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -60,19 +60,22 @@ namespace IceRpc
 
             options.CacheConnection = cacheConnection ?? options.CacheConnection;
 
-            // TODO: there is currently no clean way to preserve the cached connection for a non-fixed proxy.
-            options.Connection = fixedConnection ?? (proxy.IsFixed ? proxy.GetCachedConnection() : null);
+            options.IsFixed = fixedConnection != null || options.IsFixed;
+
+            // We keep the cached connection (if any) only when the endpoints or locationResolver don't change.
+            options.Connection = options.IsFixed ? (fixedConnection ?? options.Connection) :
+                (endpoints == null && locationResolver == null ? options.Connection : null);
 
             options.Context = context?.ToImmutableDictionary() ?? options.Context;
             options.Encoding = encoding ?? options.Encoding;
 
-            bool fixedClone = fixedConnection != null || proxy.IsFixed;
             options.Endpoints = endpoints?.ToImmutableList() ??
-                (fixedClone ? ImmutableList<Endpoint>.Empty : options.Endpoints);
+                (fixedConnection != null ? ImmutableList<Endpoint>.Empty : options.Endpoints);
 
             options.InvocationInterceptors =
                 invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
             options.InvocationTimeoutOverride = invocationTimeout ?? options.InvocationTimeoutOverride;
+
             options.IsOneway = oneway ?? options.IsOneway;
             options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
@@ -186,12 +189,20 @@ namespace IceRpc
             else
             {
                 ServicePrxOptions options = proxy.Impl.CloneOptions();
-                if (options is Interop.InteropServicePrxOptions interopOptions)
+                options.Path = path;
+
+                if (options is InteropServicePrxOptions interopOptions)
                 {
-                    interopOptions.Identity = Interop.Identity.Empty;
+                    interopOptions.Identity = Identity.Empty;
+
+                    if (proxy.Impl.IsWellKnown)
+                    {
+                        // Need to replace Loc endpoint since we're changing the identity.
+                        options.Endpoints = ImmutableList.Create(LocEndpoint.Create(Identity.FromPath(path)));
+                        options.Connection = null; // clear cached connection
+                    }
                 }
 
-                options.Path = path;
                 return GetFactory<T>().Create(options);
             }
         }

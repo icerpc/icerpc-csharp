@@ -306,13 +306,7 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                var endpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
-                                                                   host: result.Identity.Name,
-                                                                   port: 0,
-                                                                   options: new string[] { result.Identity.Category }),
-                                                  Protocol.Ice1);
-
-                result.Endpoints = ImmutableList.Create(endpoint);
+                result.Endpoints = ImmutableList.Create(LocEndpoint.Create(result.Identity));
                 return result;
             }
 
@@ -420,13 +414,7 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy `{s}'");
                 }
 
-                var endpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
-                                                                   host: adapterId,
-                                                                   port: 0,
-                                                                   options: Array.Empty<string>()),
-                                                  Protocol.Ice1);
-
-                result.Endpoints = ImmutableList.Create<Endpoint>(endpoint);
+                result.Endpoints = ImmutableList.Create<Endpoint>(LocEndpoint.Create(adapterId, Protocol.Ice1));
                 return result;
             }
 

@@ -247,13 +247,15 @@ namespace IceRpc
                 if (options != null)
                 {
                     options.Connection = connection;
+                    options.IsFixed = true;
                 }
                 else
                 {
                     options = new ServicePrxOptions()
                     {
                         Communicator = connection.Communicator,
-                        Connection = connection
+                        Connection = connection,
+                        IsFixed = true
                     };
                 }
             }

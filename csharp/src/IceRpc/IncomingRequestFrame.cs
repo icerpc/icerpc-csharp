@@ -148,7 +148,8 @@ namespace IceRpc
                                        proxyOptions: new ServicePrxOptions()
                                                      {
                                                         Communicator = connection.Communicator!,
-                                                        Connection = connection
+                                                        Connection = connection,
+                                                        IsFixed = true
                                                      },
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);

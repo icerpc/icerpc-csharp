@@ -61,16 +61,10 @@ namespace IceRpc
             {
                 // Well-known proxy.
                 var identity = Identity.FromPath(path);
-                var locEndpoint = LocEndpoint.Create(new EndpointData(Transport.Loc,
-                                                                      host: identity.Name,
-                                                                      port: 0,
-                                                                      options: new string[] { identity.Category}),
-                                                     protocol);
-
                 var options = new InteropServicePrxOptions()
                 {
                     Communicator = server.Communicator,
-                    Endpoints = ImmutableList.Create(locEndpoint),
+                    Endpoints = ImmutableList.Create(LocEndpoint.Create(identity)),
                     Identity = identity,
                     IsOneway = server.IsDatagramOnly
                 };
@@ -108,6 +102,7 @@ namespace IceRpc
                 {
                     Communicator = connection.Communicator!,
                     Connection = connection,
+                    IsFixed = true,
                     IsOneway = connection.Endpoint.IsDatagram,
                     Path = path,
                     Protocol = Protocol.Ice1
@@ -120,6 +115,7 @@ namespace IceRpc
                 {
                     Communicator = connection.Communicator!,
                     Connection = connection,
+                    IsFixed = true,
                     Path = path,
                     Protocol = protocol
                 };
@@ -231,13 +227,8 @@ namespace IceRpc
                     // Well-known proxies are ice1-only.
                     if (proxyData.Protocol == Protocol.Ice1 || adapterId.Length > 0)
                     {
-                        var locEndpoint = LocEndpoint.Create(
-                            new EndpointData(Transport.Loc,
-                                             host: adapterId.Length > 0 ? adapterId : identity.Name,
-                                             port: 0,
-                                             options: adapterId.Length > 0 ?
-                                                Array.Empty<string>() : new string[] { identity.Category }),
-                            proxyData.Protocol);
+                        var locEndpoint = adapterId.Length > 0 ? LocEndpoint.Create(adapterId, proxyData.Protocol) :
+                            LocEndpoint.Create(identity);
 
                         endpoints = new Endpoint[] { locEndpoint };
                     }
@@ -373,7 +364,7 @@ namespace IceRpc
                 {
                     CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
                     Communicator = istr.Communicator!,
-                    // Connection remains null, i.e. non-fixed proxy
+                    // Connection remains null
                     Context = istr.ProxyOptions?.Context,
                     Encoding = encoding,
                     Endpoints = endpoints,
@@ -403,9 +394,10 @@ namespace IceRpc
                             $"received a relative proxy with invalid protocol {protocol.GetName()}");
                     }
 
-                    // When source.Connection is not null, source.Endpoints must be empty.
                     options.Connection = source.Connection;
                     options.Endpoints = source.Endpoints;
+                    options.IsFixed = source.IsFixed;
+
                 }
                 return factory.Create(options);
             }
