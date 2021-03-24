@@ -175,6 +175,7 @@ namespace IceRpc.Tests.Internal
             {
                 Communicator = _clientCommunicator,
                 Connection = connection,
+                IsFixed = true,
                 Path = "dummy",
                 Protocol = ClientEndpoint.Protocol
             };
