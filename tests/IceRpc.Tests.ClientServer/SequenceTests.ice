@@ -5,7 +5,7 @@
 #pragma once
 
 #include <OperationsTests.ice>
-#include <EnumsTests.ice>
+#include <EnumTests.ice>
 #include <StructTests.ice>
 
 module IceRpc::Tests::ClientServer

@@ -20,7 +20,6 @@ module IceRpc::Tests::ClientServer
         enum10,
         enum11 = 226
     }
-    sequence<MyEnum> MyEnumSeq;
 
     enum MyFixedLengthEnum : short
     {
@@ -36,7 +35,6 @@ module IceRpc::Tests::ClientServer
         senum10,
         senum11 = 32766
     }
-    sequence<MyFixedLengthEnum> MyFixedLengthEnumSeq;
 
     [cs:attribute(System.Flags)] unchecked enum MyUncheckedEnum : uint
     {
@@ -52,7 +50,6 @@ module IceRpc::Tests::ClientServer
         E9 = 512,
         E10 = 1024,
     }
-    sequence<MyUncheckedEnum> MyUncheckedEnumSeq;
 
     interface EnumOperations
     {
