@@ -111,6 +111,73 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
+        [Test]
+        public async Task Sequence_DefinedTypes()
+        {
+            int size = 100;
+            Array myEnumValues = Enum.GetValues(typeof(MyEnum));
+            await Test1Async(
+                (prx, p1, p2) => prx.OpMyEnumSeqAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).ToArray(),
+                Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).Reverse().ToArray());
+
+
+            Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
+            await Test2Async(
+                (prx, p1, p2) => prx.OpMyFixedLengthEnumSeqAsync(p1, p2),
+                Enumerable.Range(0, size).Select(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).ToArray(),
+                Enumerable.Range(0, size).Select(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).Reverse().ToArray());
+
+            await Test2Async(
+                (prx, p1, p2) => prx.OpMyUncheckedEnumSeqAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).ToArray(),
+                Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).Reverse().ToArray());
+
+            await Test1Async((prx, p1, p2) => prx.OpMyStructSeqAsync(p1, p2),
+                            Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToArray(),
+                            Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).Reverse().ToArray());
+
+            await Test1Async((prx, p1, p2) => prx.OpAnotherStructSeqAsync(p1, p2),
+                            Enumerable.Range(0, size).Select(i =>
+                            {
+                                return new AnotherStruct($"hello-{i}",
+                                                         IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                         (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
+                                                         new MyStruct(i, i + 1));
+                            }).ToArray(),
+                            Enumerable.Range(0, size).Select(i =>
+                            {
+                                return new AnotherStruct($"world-{i}",
+                                                         IOperationsPrx.Parse($"bar-{i}", _communicator),
+                                                         (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
+                                                         new MyStruct(i, i + 1));
+                            }).Reverse().ToArray());
+
+            async Task Test1Async<T>(
+                Func<ISequenceOperationsPrx, IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker,
+                T[] p1,
+                T[] p2)
+            {
+                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p2, r2);
+            }
+
+            async Task Test2Async<T>(
+                Func<ISequenceOperationsPrx, ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
+                T[] p1,
+                T[] p2)
+            {
+                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p2, r2);
+            }
+
+            static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
+        }
+
         public class SequenceOperations : IAsyncSequenceOperations
         {
             // Builtin type sequences
@@ -201,6 +268,43 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringSeqAsync(
                 string[] p1,
                 string[] p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            // Defined types sequences
+            public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumSeqAsync(
+                MyEnum[] p1,
+                MyEnum[] p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(ReadOnlyMemory<MyFixedLengthEnum> R1, ReadOnlyMemory<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumSeqAsync(
+                MyFixedLengthEnum[] p1,
+                MyFixedLengthEnum[] p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(ReadOnlyMemory<MyUncheckedEnum> R1, ReadOnlyMemory<MyUncheckedEnum> R2)> OpMyUncheckedEnumSeqAsync(
+                MyUncheckedEnum[] p1,
+                MyUncheckedEnum[] p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructSeqAsync(
+                MyStruct[] p1,
+                MyStruct[] p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IOperationsPrx R1, IOperationsPrx R2)> OpOperationsSeqAsync(
+                IOperationsPrx p1,
+                IOperationsPrx p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructSeqAsync(
+                AnotherStruct[] p1,
+                AnotherStruct[] p2,
                 Current current,
                 CancellationToken cancel) => new((p1, p2));
         }

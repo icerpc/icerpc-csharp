@@ -25,6 +25,8 @@ module IceRpc::Tests::ClientServer
     dictionary<string, string> StringDict;
 
     dictionary<MyEnum, MyEnum> MyEnumDict;
+    dictionary<MyFixedLengthEnum, MyFixedLengthEnum> MyFixedLengthEnumDict;
+    dictionary<MyUncheckedEnum, MyUncheckedEnum> MyUncheckedEnumDict;
     dictionary<MyStruct, MyStruct> MyStructDict;
     dictionary<string, Operations> OperationsDict;
     dictionary<string, AnotherStruct> AnotherStructDict;
@@ -48,6 +50,12 @@ module IceRpc::Tests::ClientServer
 
         // Defined types dictionaries
         (MyEnumDict r1, MyEnumDict r2) opMyEnumDict(MyEnumDict p1, MyEnumDict p2);
+        (MyFixedLengthEnumDict r1, MyFixedLengthEnumDict r2) opMyFixedLengthEnumDict(
+            MyFixedLengthEnumDict p1,
+            MyFixedLengthEnumDict p2);
+        (MyUncheckedEnumDict r1, MyUncheckedEnumDict r2) opMyUncheckedEnumDict(
+            MyUncheckedEnumDict p1,
+            MyUncheckedEnumDict p2);
         (MyStructDict r1, MyStructDict r2) opMyStructDict(MyStructDict p1, MyStructDict p2);
         (OperationsDict r1, OperationsDict r2) opOperationsDict(OperationsDict p1, OperationsDict p2);
         (AnotherStructDict r1, AnotherStructDict r2) opAnotherStructDict(AnotherStructDict p1, AnotherStructDict p2);

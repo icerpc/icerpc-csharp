@@ -27,6 +27,9 @@ module IceRpc::Tests::ClientServer
     sequence<string> StringSeq;
 
     sequence<MyEnum> MyEnumSeq;
+    sequence<MyFixedLengthEnum> MyFixedLengthEnumSeq;
+    sequence<MyUncheckedEnum> MyUncheckedEnumSeq;
+
     sequence<MyStruct> MyStructSeq;
     sequence<Operations> OperationsSeq;
     sequence<AnotherStruct> AnotherStructSeq;
@@ -52,6 +55,12 @@ module IceRpc::Tests::ClientServer
 
         // Defined types sequences
         (MyEnumSeq r1, MyEnumSeq r2) opMyEnumSeq(MyEnumSeq p1, MyEnumSeq p2);
+        (MyFixedLengthEnumSeq r1, MyFixedLengthEnumSeq r2) opMyFixedLengthEnumSeq(
+            MyFixedLengthEnumSeq p1,
+            MyFixedLengthEnumSeq p2);
+        (MyUncheckedEnumSeq r1, MyUncheckedEnumSeq r2) opMyUncheckedEnumSeq(
+            MyUncheckedEnumSeq p1,
+            MyUncheckedEnumSeq p2);
         (MyStructSeq r1, MyStructSeq r2) opMyStructSeq(MyStructSeq p1, MyStructSeq p2);
         (Operations r1, Operations r2) opOperationsSeq(Operations p1, Operations p2);
         (AnotherStructSeq r1, AnotherStructSeq r2) opAnotherStructSeq(AnotherStructSeq p1, AnotherStructSeq p2);

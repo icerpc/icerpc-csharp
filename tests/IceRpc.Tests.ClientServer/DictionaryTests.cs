@@ -95,6 +95,71 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
+        [Test]
+        public async Task Dictionary_DefinedTypes()
+        {
+            int size = 100;
+            Array myEnumValues = Enum.GetValues(typeof(MyEnum));
+            await TestAsync((prx, p1, p2) => prx.OpMyEnumDictAsync(p1, p2),
+                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                                i => GetEnum<MyEnum>(myEnumValues, i),
+                                i => GetEnum<MyEnum>(myEnumValues, i)),
+                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                                i => GetEnum<MyEnum>(myEnumValues, i),
+                                i => GetEnum<MyEnum>(myEnumValues, i)));
+
+            Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
+            await TestAsync(
+                (prx, p1, p2) => prx.OpMyFixedLengthEnumDictAsync(p1, p2),
+                Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)),
+                Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)));
+
+            await TestAsync(
+                (prx, p1, p2) => prx.OpMyUncheckedEnumDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i),
+                Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i));
+
+            await TestAsync((prx, p1, p2) => prx.OpMyStructDictAsync(p1, p2),
+                            Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)),
+                            Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)));
+
+            await TestAsync((prx, p1, p2) => prx.OpAnotherStructDictAsync(p1, p2),
+                            Enumerable.Range(0, size).ToDictionary(
+                                i => $"key-{i}",
+                                i =>
+                                {
+                                    return new AnotherStruct($"hello-{i}",
+                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                             GetEnum<MyEnum>(myEnumValues, i),
+                                                             new MyStruct(i, i + 1));
+                                }),
+                            Enumerable.Range(0, size).ToDictionary(
+                                i => $"key-{i}",
+                                i =>
+                                {
+                                    return new AnotherStruct($"hello-{i}",
+                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                             GetEnum<MyEnum>(myEnumValues, i),
+                                                             new MyStruct(i, i + 1));
+                                }));
+
+            async Task TestAsync<Key, Value>(
+                Func<IDictionaryOperationsPrx, Dictionary<Key, Value>, Dictionary<Key, Value>, Task<(Dictionary<Key, Value>, Dictionary<Key, Value>)>> invoker,
+                Dictionary<Key, Value> p1,
+                Dictionary<Key, Value> p2) where Key : notnull
+            {
+                (Dictionary<Key, Value> r1, Dictionary<Key, Value> r2) = await invoker(_prx, p1, p2);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p2, r2);
+            }
+
+            static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
+        }
+
         public class DictionaryOperations : IAsyncDictionaryOperations
         {
             // Builtin types dictionaries
@@ -173,6 +238,42 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask<(IReadOnlyDictionary<string, string> R1, IReadOnlyDictionary<string, string> R2)> OpStringDictAsync(
                 Dictionary<string, string> p1,
                 Dictionary<string, string> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<MyEnum, MyEnum> R1, IReadOnlyDictionary<MyEnum, MyEnum> R2)> OpMyEnumDictAsync(
+                Dictionary<MyEnum, MyEnum> p1,
+                Dictionary<MyEnum, MyEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R1, IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R2)> OpMyFixedLengthEnumDictAsync(
+                Dictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
+                Dictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R1, IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R2)> OpMyUncheckedEnumDictAsync(
+                Dictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
+                Dictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<MyStruct, MyStruct> R1, IReadOnlyDictionary<MyStruct, MyStruct> R2)> OpMyStructDictAsync(
+                Dictionary<MyStruct, MyStruct> p1,
+                Dictionary<MyStruct, MyStruct> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<string, IOperationsPrx> R1, IReadOnlyDictionary<string, IOperationsPrx> R2)> OpOperationsDictAsync(
+                Dictionary<string, IOperationsPrx> p1,
+                Dictionary<string, IOperationsPrx> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IReadOnlyDictionary<string, AnotherStruct> R1, IReadOnlyDictionary<string, AnotherStruct> R2)> OpAnotherStructDictAsync(
+                Dictionary<string, AnotherStruct> p1,
+                Dictionary<string, AnotherStruct> p2,
                 Current current,
                 CancellationToken cancel) => new((p1, p2));
         }
