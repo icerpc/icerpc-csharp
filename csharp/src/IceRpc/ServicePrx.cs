@@ -776,14 +776,14 @@ namespace IceRpc
                 cancel,
                 Communicator.CancellationToken);
             cancel = linkedCancellationSource.Token;
-            TimeSpan endpointsAge = TimeSpan.Zero;
-            TimeSpan endpointsMaxAge = TimeSpan.MaxValue;
+
             List<Endpoint>? endpoints = null;
+
             if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                (endpoints, endpointsAge) =
-                    await ComputeEndpointsAsync(endpointsMaxAge, IsOneway, cancel).ConfigureAwait(false);
+                endpoints =
+                    await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
                 if (CacheConnection)
                 {
@@ -795,13 +795,13 @@ namespace IceRpc
             options.Label = Label;
             options.PreferNonSecure = PreferNonSecure;
 
+            bool refreshCache = false;
+
             while (connection == null)
             {
                 if (endpoints == null)
                 {
-                    (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge,
-                                                                            IsOneway,
-                                                                            cancel).ConfigureAwait(false);
+                    endpoints = await ComputeEndpointsAsync(refreshCache, IsOneway, cancel).ConfigureAwait(false);
                 }
 
                 Endpoint last = endpoints[^1];
@@ -821,11 +821,10 @@ namespace IceRpc
                         // Ignore the exception unless this is the last endpoint.
                         if (ReferenceEquals(endpoint, last))
                         {
-                            if (IsIndirect && endpointsAge != TimeSpan.Zero && endpointsMaxAge == TimeSpan.MaxValue)
+                            if (IsIndirect && !refreshCache)
                             {
-                                // If the first lookup for an indirect reference returns an endpoint from the cache, set
-                                // endpointsMaxAge to force a new locator lookup for a fresher endpoint.
-                                endpointsMaxAge = endpointsAge;
+                                // Try again once with freshly resolved endpoints
+                                refreshCache = true;
                                 endpoints = null;
                             }
                             else
@@ -888,8 +887,8 @@ namespace IceRpc
             Interlocked.CompareExchange(ref _connection, null, connection);
         }
 
-        private async ValueTask<(List<Endpoint> Endpoints, TimeSpan EndpointsAge)> ComputeEndpointsAsync(
-            TimeSpan endpointsMaxAge,
+        private async ValueTask<List<Endpoint>> ComputeEndpointsAsync(
+            bool refreshCache,
             bool oneway,
             CancellationToken cancel)
         {
@@ -897,27 +896,25 @@ namespace IceRpc
 
             if (LocalServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
-                return (new List<Endpoint>() { colocatedEndpoint }, TimeSpan.Zero);
+                return new List<Endpoint>() { colocatedEndpoint };
             }
 
             IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
-            TimeSpan endpointsAge = TimeSpan.Zero;
 
             // Get the proxy's endpoint or query the location resolver to get endpoints.
 
             if (IsIndirect)
             {
-                if (LocationResolver is ILocationResolver locationService)
+                if (LocationResolver is ILocationResolver locationResolver)
                 {
-                    (endpoints, endpointsAge) =
-                        await locationService.ResolveAsync(Endpoints[0], endpointsMaxAge, cancel).ConfigureAwait(false);
-
+                    endpoints =
+                        await locationResolver.ResolveAsync(Endpoints[0], refreshCache, cancel).ConfigureAwait(false);
                 }
                 // else endpoints remains empty.
             }
             else if (Endpoints.Count > 0)
             {
-                endpoints = Endpoints.ToList();
+                endpoints = Endpoints;
             }
 
             // Apply overrides and filter endpoints
@@ -953,7 +950,7 @@ namespace IceRpc
             {
                 filteredEndpoints = Communicator.OrderEndpointsByTransportFailures(filteredEndpoints);
             }
-            return (filteredEndpoints, endpointsAge);
+            return filteredEndpoints;
         }
 
         private async Task<IncomingResponseFrame> PerformInvokeAsync(
@@ -965,8 +962,6 @@ namespace IceRpc
             CancellationToken cancel)
         {
             Connection? connection = _connection;
-            TimeSpan endpointsMaxAge = TimeSpan.MaxValue;
-            TimeSpan endpointsAge = TimeSpan.Zero;
             List<Endpoint>? endpoints = null;
 
             if (connection != null && !oneway && connection.Endpoint.IsDatagram)
@@ -978,8 +973,7 @@ namespace IceRpc
             if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                (endpoints, endpointsAge) =
-                    await ComputeEndpointsAsync(endpointsMaxAge, oneway, cancel).ConfigureAwait(false);
+                endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
                 if (CacheConnection)
                 {
@@ -1000,6 +994,7 @@ namespace IceRpc
             Exception? exception = null;
 
             bool tryAgain;
+            bool refreshCache = false;
             do
             {
                 bool sent = false;
@@ -1012,9 +1007,9 @@ namespace IceRpc
                         {
                             Debug.Assert(nextEndpoint == 0);
                             // ComputeEndpointsAsync throws if it can't figure out the endpoints
-                            (endpoints, endpointsAge) = await ComputeEndpointsAsync(endpointsMaxAge,
-                                                                                    oneway,
-                                                                                    cancel).ConfigureAwait(false);
+                            endpoints = await ComputeEndpointsAsync(refreshCache,
+                                                                    oneway,
+                                                                    cancel).ConfigureAwait(false);
                             if (excludedEndpoints != null)
                             {
                                 endpoints = endpoints.Except(excludedEndpoints).ToList();
@@ -1085,9 +1080,9 @@ namespace IceRpc
                     }
                     observer?.RemoteException();
                 }
-                catch (NoEndpointException ex) when (endpointsAge == TimeSpan.Zero)
+                catch (NoEndpointException ex) when (refreshCache)
                 {
-                    // If we get NoEndpointException while using non cached endpoints, either all endpoints
+                    // If we get NoEndpointException while using fresh endpoints, either all endpoints
                     // have been excluded or the proxy has no endpoints. we cannot retry, return here to
                     // preserve any previous exceptions that might have been throw.
                     observer?.Failed(ex.GetType().FullName ?? "System.Exception"); // TODO cleanup observer logic
@@ -1123,13 +1118,13 @@ namespace IceRpc
                     nextEndpoint = ++nextEndpoint % endpoints.Count;
                     if (nextEndpoint == 0)
                     {
-                        // nextendpoint == 0 indicates that we already tried all the endpoints.
-                        if (endpointsAge != TimeSpan.Zero)
+                        // nextEndpoint == 0 indicates that we already tried all the endpoints.
+                        if (IsIndirect && !refreshCache)
                         {
-                            // If we were using cached endpoints, we clear the endpoints, and set endpointsMaxAge to
-                            // request a fresher endpoint.
+                            // If we were potentially using cached endpoints, we clear the endpoints, and set
+                            // refreshCache to true to request fresher endpoints.
                             endpoints = null;
-                            endpointsMaxAge = endpointsAge;
+                            refreshCache = true;
                         }
                         else
                         {
@@ -1201,11 +1196,10 @@ namespace IceRpc
 
                     observer?.Retried();
 
-                    // If an indirect proxy is using an endpoint from the cache, set endpointsMaxAge to force a new
-                    // locator lookup.
-                    if (IsIndirect && endpointsAge != TimeSpan.Zero)
+                    // Try again with fresh endpoints.
+                    if (IsIndirect && !refreshCache)
                     {
-                        endpointsMaxAge = endpointsAge;
+                        refreshCache = true;
                         endpoints = null;
                     }
 

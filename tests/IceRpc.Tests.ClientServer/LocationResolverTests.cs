@@ -93,20 +93,20 @@ namespace IceRpc.Tests.ClientServer
             private Protocol _protocol;
             private IReadOnlyList<Endpoint> _resolvedAddress;
 
-            public ValueTask<(IReadOnlyList<Endpoint> Endpoints, TimeSpan EndpointsAge)> ResolveAsync(
+            public ValueTask<IReadOnlyList<Endpoint>> ResolveAsync(
                 Endpoint endpoint,
-                TimeSpan endpointsMaxAge,
+                bool refreshCache,
                 CancellationToken cancel)
             {
                 Assert.AreEqual(endpoint.Transport, Transport.Loc);
 
                 if (endpoint.Protocol == _protocol && endpoint.Host == _location && endpoint["category"] == _category)
                 {
-                    return new((_resolvedAddress, TimeSpan.Zero));
+                    return new(_resolvedAddress);
                 }
                 else
                 {
-                    return new((ImmutableList<Endpoint>.Empty, TimeSpan.Zero));
+                    return new(ImmutableList<Endpoint>.Empty);
                 }
             }
 
