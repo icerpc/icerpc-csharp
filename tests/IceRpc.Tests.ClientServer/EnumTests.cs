@@ -57,5 +57,103 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(512, (uint)MyUncheckedEnum.E9);
             Assert.AreEqual(1024, (uint)MyUncheckedEnum.E10);
         }
+
+        [Test]
+        public void Enum_AsEnum()
+        {
+            Array myEnumValues = Enum.GetValues(typeof(MyEnum));
+            foreach (object value in myEnumValues)
+            {
+                Assert.AreEqual((MyEnum)value, MyEnumHelper.AsMyEnum((int)value));
+            }
+
+            Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
+
+            foreach (object value in myFixedLengthEnumValues)
+            {
+                Assert.AreEqual((MyFixedLengthEnum)value, MyFixedLengthEnumHelper.AsMyFixedLengthEnum((short)value));
+            }
+
+            for (uint i = 0; i < 1024; ++i)
+            {
+                Assert.AreEqual((MyUncheckedEnum)i, MyUncheckedEnumHelper.AsMyUncheckedEnum(i));
+            }
+
+            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(2));
+            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(12));
+            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(22));
+
+            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(0));
+            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(12));
+            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(22));
+        }
+
+        [TestCase(Protocol.Ice1)]
+        [TestCase(Protocol.Ice2)]
+        public async Task Enum_Operations(Protocol protocol)
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server(communicator,
+                new ServerOptions()
+                {
+                    Protocol = protocol,
+                    ColocationScope = ColocationScope.Communicator
+                });
+            var prx = server.Add("test", new EnumOperations(), IEnumOperationsPrx.Factory);
+            Assert.AreEqual(protocol, prx.Protocol);
+
+            await TestAsync((prx, p1, p2) => prx.OpMyEnumAsync(p1, p2), MyEnum.enum1, MyEnum.enum10);
+            await TestAsync((prx, p1, p2) => prx.OpMyFixedLengthEnumAsync(p1, p2),
+                            MyFixedLengthEnum.senum1,
+                            MyFixedLengthEnum.senum10);
+            await TestAsync((prx, p1, p2) => prx.OpMyUncheckedEnumAsync(p1, p2),
+                            MyUncheckedEnum.E0 | MyUncheckedEnum.E1,
+                            MyUncheckedEnum.E10 | MyUncheckedEnum.E3);
+
+            // For checked enums receiving an invalid enumerator throws InvalidDataException
+            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
+            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
+
+            // Sending and invalid value for a checked enum results in an UnhandledException
+            Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
+            Assert.ThrowsAsync<UnhandledException>(
+                async () => await prx.OpMyFixedLengthEnumAsync((MyFixedLengthEnum)0, MyFixedLengthEnum.senum1));
+
+            async Task TestAsync<T>(Func<IEnumOperationsPrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
+            {
+                (T r1, T r2) = await invoker(prx, p1, p2);
+                Assert.AreEqual(p1, r1);
+                Assert.AreEqual(p2, r2);
+            }
+        }
+
+        public class EnumOperations : IAsyncEnumOperations
+        {
+            public ValueTask<(MyEnum R1, MyEnum R2)> OpMyEnumAsync(
+                MyEnum p1,
+                MyEnum p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(MyFixedLengthEnum R1, MyFixedLengthEnum R2)> OpMyFixedLengthEnumAsync(
+                MyFixedLengthEnum p1,
+                MyFixedLengthEnum p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(MyUncheckedEnum R1, MyUncheckedEnum R2)> OpMyUncheckedEnumAsync(
+                MyUncheckedEnum p1,
+                MyUncheckedEnum p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<MyEnum> OpInvalidMyEnumAsync(Current current, CancellationToken cancel) =>
+                new((MyEnum)3);
+
+            public ValueTask<MyFixedLengthEnum> OpInvalidMyFixedLengthEnumAsync(
+                Current current,
+                CancellationToken cancel) =>
+                new((MyFixedLengthEnum)0);
+        }
     }
 }

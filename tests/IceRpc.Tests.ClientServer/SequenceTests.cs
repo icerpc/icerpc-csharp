@@ -121,7 +121,6 @@ namespace IceRpc.Tests.ClientServer
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).ToArray(),
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).Reverse().ToArray());
 
-
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             await Test2Async(
                 (prx, p1, p2) => prx.OpMyFixedLengthEnumSeqAsync(p1, p2),

@@ -56,5 +56,8 @@ module IceRpc::Tests::ClientServer
         (MyEnum r1, MyEnum r2) opMyEnum(MyEnum p1, MyEnum p2);
         (MyFixedLengthEnum r1, MyFixedLengthEnum r2) opMyFixedLengthEnum(MyFixedLengthEnum p1, MyFixedLengthEnum p2);
         (MyUncheckedEnum r1, MyUncheckedEnum r2) opMyUncheckedEnum(MyUncheckedEnum p1, MyUncheckedEnum p2);
+
+        MyEnum opInvalidMyEnum();
+        MyFixedLengthEnum opInvalidMyFixedLengthEnum();
     }
 }
