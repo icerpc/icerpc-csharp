@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                     ColocationScope = ColocationScope.Communicator
                 });
             _prx = _server.Add("test", new SequenceOperations(), ISequenceOperationsPrx.Factory);
-            Assert.AreEqual(protocol, __prx.Protocol);
+            Assert.AreEqual(protocol, _prx.Protocol);
         }
 
         [TearDown]

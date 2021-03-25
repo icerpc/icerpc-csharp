@@ -120,7 +120,9 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private  async Task WithEnumOperationsServerAsync(Protocol protocol, Func<IEnumOperationsPrx, Task> closure)
+        private static async Task WithEnumOperationsServerAsync(
+            Protocol protocol,
+            Func<IEnumOperationsPrx, Task> closure)
         {
             await using var communicator = new Communicator();
             await using var server = new Server(communicator,
