@@ -25,7 +25,7 @@ namespace IceRpc
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
 
-        public TimeSpan InvocationTimeout => _invocationTimeoutOverride ?? TimeSpan.FromSeconds(60);
+        public TimeSpan InvocationTimeout { get; }
         public bool IsFixed { get; }
 
         public bool IsOneway { get; }
@@ -34,8 +34,8 @@ namespace IceRpc
 
         public string Path { get; } = "";
 
-        public bool PreferExistingConnection => _preferExistingConnectionOverride ?? true;
-        public NonSecure PreferNonSecure => _preferNonSecureOverride ?? NonSecure.Always; // TODO: fix default
+        public bool PreferExistingConnection { get; }
+        public NonSecure PreferNonSecure { get; }
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
@@ -50,14 +50,6 @@ namespace IceRpc
 
         private volatile Connection? _connection;
         private int _hashCode; // cached hash code value
-
-        // The various Override fields override the value from the communicator. When null, they are not included in
-        // the ToString()/ToProperty() representation.
-
-        private readonly TimeSpan? _invocationTimeoutOverride;
-
-        private readonly bool? _preferExistingConnectionOverride;
-        private readonly NonSecure? _preferNonSecureOverride;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -109,7 +101,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (_invocationTimeoutOverride != other._invocationTimeoutOverride)
+            if (InvocationTimeout != other.InvocationTimeout)
             {
                 return false;
             }
@@ -167,11 +159,11 @@ namespace IceRpc
                 {
                     return false;
                 }
-                if (_preferExistingConnectionOverride != other._preferExistingConnectionOverride)
+                if (PreferExistingConnection != other.PreferExistingConnection)
                 {
                     return false;
                 }
-                if (_preferNonSecureOverride != other._preferNonSecureOverride)
+                if (PreferNonSecure != other.PreferNonSecure)
                 {
                     return false;
                 }
@@ -203,7 +195,7 @@ namespace IceRpc
                 hash.Add(Context.GetDictionaryHashCode());
                 hash.Add(Encoding);
                 hash.Add(InvocationInterceptors.GetSequenceHashCode());
-                hash.Add(_invocationTimeoutOverride);
+                hash.Add(InvocationTimeout);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
                 hash.Add(Path);
@@ -224,8 +216,8 @@ namespace IceRpc
                     hash.Add(Endpoints.GetSequenceHashCode());
                     hash.Add(Label);
                     hash.Add(LocationResolver);
-                    hash.Add(_preferExistingConnectionOverride);
-                    hash.Add(_preferNonSecureOverride);
+                    hash.Add(PreferExistingConnection);
+                    hash.Add(PreferNonSecure);
                 }
 
                 int hashCode = hash.ToHashCode();
@@ -461,11 +453,11 @@ namespace IceRpc
                     sb.Append("fixed=true");
                 }
 
-                if (_invocationTimeoutOverride is TimeSpan invocationTimeout)
+                if (InvocationTimeout != ServicePrxOptions.DefaultInvocationTimeout)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("invocation-timeout=");
-                    sb.Append(TimeSpanExtensions.ToPropertyValue(invocationTimeout));
+                    sb.Append(TimeSpanExtensions.ToPropertyValue(InvocationTimeout));
                 }
 
                 if (Label?.ToString() is string label && label.Length > 0)
@@ -481,18 +473,17 @@ namespace IceRpc
                     sb.Append("oneway=true");
                 }
 
-                if (_preferExistingConnectionOverride is bool preferExistingConnection)
+                if (!PreferExistingConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
-                    sb.Append("prefer-existing-connection=");
-                    sb.Append(preferExistingConnection ? "true" : "false");
+                    sb.Append("prefer-existing-connection=false");
                 }
 
-                if (_preferNonSecureOverride is NonSecure preferNonSecure)
+                if (PreferNonSecure != NonSecure.Always)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("prefer-non-secure=");
-                    sb.Append(preferNonSecure.ToString().ToLowerInvariant());
+                    sb.Append(PreferNonSecure.ToString().ToLowerInvariant());
                 }
 
                 if (Protocol != Protocol.Ice2) // i.e. > ice2
@@ -571,8 +562,7 @@ namespace IceRpc
                                             nameof(options));
             }
 
-            if (options.InvocationTimeoutOverride is TimeSpan invocationTimeoutOverride &&
-                invocationTimeoutOverride == TimeSpan.Zero)
+            if (options.InvocationTimeout == TimeSpan.Zero)
             {
                 throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(options));
             }
@@ -580,18 +570,19 @@ namespace IceRpc
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
             Context = options.Context ?? ImmutableDictionary<string, string>.Empty;
-            Encoding = options.Encoding ?? options.Protocol.GetEncoding();
+            Encoding = options.Encoding;
             Endpoints = options.Endpoints;
             InvocationInterceptors = options.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty;
+            InvocationTimeout = options.InvocationTimeout;
             IsFixed = options.IsFixed;
             IsOneway = options.IsOneway;
             Label = options.Label;
             LocationResolver = options.LocationResolver;
+            PreferExistingConnection = options.PreferExistingConnection;
+            PreferNonSecure = options.PreferNonSecure;
             Protocol = options.Protocol;
+
             _connection = options.Connection;
-            _invocationTimeoutOverride = options.InvocationTimeoutOverride;
-            _preferExistingConnectionOverride = options.PreferExistingConnectionOverride;
-            _preferNonSecureOverride = options.PreferNonSecureOverride;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -735,14 +726,14 @@ namespace IceRpc
                     Facet = Facet,
                     Identity = Identity,
                     InvocationInterceptors = InvocationInterceptors,
-                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    InvocationTimeout = InvocationTimeout,
                     IsFixed = IsFixed,
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,
                     Path = "",
-                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
-                    PreferNonSecureOverride = _preferNonSecureOverride,
+                    PreferExistingConnection = PreferExistingConnection,
+                    PreferNonSecure = PreferNonSecure,
                     Protocol = Protocol.Ice1
                 };
             }
@@ -757,14 +748,14 @@ namespace IceRpc
                     Encoding = Encoding,
                     Endpoints = Endpoints,
                     InvocationInterceptors = InvocationInterceptors,
-                    InvocationTimeoutOverride = _invocationTimeoutOverride,
+                    InvocationTimeout = InvocationTimeout,
                     IsFixed = IsFixed,
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,
                     Path = Path,
-                    PreferExistingConnectionOverride = _preferExistingConnectionOverride,
-                    PreferNonSecureOverride = _preferNonSecureOverride,
+                    PreferExistingConnection = PreferExistingConnection,
+                    PreferNonSecure = PreferNonSecure,
                     Protocol = Protocol
                 };
             }
@@ -867,7 +858,7 @@ namespace IceRpc
 
                 // We don't output context as this would require hard-to-generate escapes.
 
-                if (_invocationTimeoutOverride is TimeSpan invocationTimeout)
+                if (InvocationTimeout is TimeSpan invocationTimeout)
                 {
                     // For ice2 the invocation timeout is included in the URI
                     properties[$"{prefix}.InvocationTimeout"] = invocationTimeout.ToPropertyValue();
@@ -876,11 +867,11 @@ namespace IceRpc
                 {
                     properties[$"{prefix}.Label"] = label;
                 }
-                if (_preferExistingConnectionOverride is bool preferExistingConnection)
+                if (PreferExistingConnection is bool preferExistingConnection)
                 {
                     properties[$"{prefix}.PreferExistingConnection"] = preferExistingConnection ? "true" : "false";
                 }
-                if (_preferNonSecureOverride is NonSecure preferNonSecure)
+                if (PreferNonSecure is NonSecure preferNonSecure)
                 {
                     properties[$"{prefix}.PreferNonSecure"] = preferNonSecure.ToString();
                 }

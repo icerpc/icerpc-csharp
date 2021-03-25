@@ -160,11 +160,14 @@ namespace IceRpc
                         options.Context = null;
                     }
 
-                    options.InvocationTimeoutOverride =
-                        communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout");
+                    options.InvocationTimeout =
+                        communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout") ??
+                            ServicePrxOptions.DefaultInvocationTimeout;
+
                     options.Label = communicator.GetProperty($"{propertyPrefix}.Label");
-                    options.PreferNonSecureOverride =
-                        communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
+                    options.PreferNonSecure =
+                        communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure") ??
+                            NonSecure.Always;
                 }
 
                 return factory.Create(options);
@@ -347,12 +350,13 @@ namespace IceRpc
                     Facet = facet,
                     Identity = identity,
                     InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
-                    InvocationTimeoutOverride = istr.ProxyOptions?.InvocationTimeoutOverride,
+                    InvocationTimeout = istr.ProxyOptions?.InvocationTimeout ??
+                        ServicePrxOptions.DefaultInvocationTimeout,
                     IsOneway = invocationMode != InvocationMode.Twoway,
                     Label = istr.ProxyOptions?.Label,
                     LocationResolver = istr.ProxyOptions?.LocationResolver,
-                    PreferExistingConnectionOverride = istr.ProxyOptions?.PreferExistingConnectionOverride,
-                    PreferNonSecureOverride = istr.ProxyOptions?.PreferNonSecureOverride
+                    PreferExistingConnection = istr.ProxyOptions?.PreferExistingConnection ?? true,
+                    PreferNonSecure = istr.ProxyOptions?.PreferNonSecure ?? NonSecure.Always
                 };
                 return factory.Create(options);
             }
@@ -369,13 +373,14 @@ namespace IceRpc
                     Encoding = encoding,
                     Endpoints = endpoints,
                     InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
-                    InvocationTimeoutOverride = istr.ProxyOptions?.InvocationTimeoutOverride,
+                    InvocationTimeout = istr.ProxyOptions?.InvocationTimeout ??
+                        ServicePrxOptions.DefaultInvocationTimeout,
                     IsOneway = istr.ProxyOptions?.IsOneway ?? false,
                     Label = istr.ProxyOptions?.Label,
                     LocationResolver = istr.ProxyOptions?.LocationResolver,
                     Path = path,
-                    PreferExistingConnectionOverride = istr.ProxyOptions?.PreferExistingConnectionOverride,
-                    PreferNonSecureOverride = istr.ProxyOptions?.PreferNonSecureOverride,
+                    PreferExistingConnection = istr.ProxyOptions?.PreferExistingConnection ?? true,
+                    PreferNonSecure = istr.ProxyOptions?.PreferNonSecure ?? NonSecure.Always,
                     Protocol = protocol
                 };
 

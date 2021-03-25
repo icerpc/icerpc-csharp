@@ -113,12 +113,12 @@ namespace IceRpc
                 Context = parsedOptions.Context?.ToImmutableSortedDictionary(),
                 Encoding = parsedOptions.Encoding ?? Encoding.V20,
                 Endpoints = endpoints,
-                InvocationTimeoutOverride = parsedOptions.InvocationTimeout,
+                InvocationTimeout = parsedOptions.InvocationTimeout ?? ServicePrxOptions.DefaultInvocationTimeout,
                 IsOneway = parsedOptions.IsOneway ?? false,
                 Label = parsedOptions.Label,
                 Path = uri.AbsolutePath,
-                PreferExistingConnectionOverride = parsedOptions.PreferExistingConnection,
-                PreferNonSecureOverride = parsedOptions.PreferNonSecure,
+                PreferExistingConnection = parsedOptions.PreferExistingConnection ?? true,
+                PreferNonSecure = parsedOptions.PreferNonSecure ?? NonSecure.Always,
                 Protocol = parsedOptions.Protocol ?? Protocol.Ice2
             };
         }

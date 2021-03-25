@@ -74,14 +74,14 @@ namespace IceRpc
 
             options.InvocationInterceptors =
                 invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
-            options.InvocationTimeoutOverride = invocationTimeout ?? options.InvocationTimeoutOverride;
+            options.InvocationTimeout = invocationTimeout ?? options.InvocationTimeout;
 
             options.IsOneway = oneway ?? options.IsOneway;
             options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
-            options.PreferExistingConnectionOverride =
-                preferExistingConnection ?? options.PreferExistingConnectionOverride;
-            options.PreferNonSecureOverride = preferNonSecure ?? options.PreferNonSecureOverride;
+            options.PreferExistingConnection =
+                preferExistingConnection ?? options.PreferExistingConnection;
+            options.PreferNonSecure = preferNonSecure ?? options.PreferNonSecure;
 
             ServicePrx clone = impl.Clone(options);
             return clone == impl ? proxy : (clone as T)!;
