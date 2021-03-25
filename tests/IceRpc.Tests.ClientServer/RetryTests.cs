@@ -306,9 +306,10 @@ namespace IceRpc.Tests.ClientServer
                     Assert.AreEqual(2, calls.Count);
 
                     // The first replica fails with ServiceNotFoundException exception the second replica fails with
-                    // ConnectionLostException the last failure should be reported.
+                    // ConnectionLostException the last failure should be reported. The 3rd replica cannot be used
+                    // because ConnectionLostException cannot be retry for a non idempotent request.
                     calls.Clear();
-                    prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx3.Endpoints));
+                    prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx3.Endpoints).Concat(prx2.Endpoints));
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].Name, calls[0]);
                     Assert.AreEqual(servers[2].Name, calls[1]);
