@@ -52,6 +52,7 @@ namespace IceRpc
         internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
         internal ILogger ProtocolLogger { get; }
+        internal ServicePrxOptions ProxyOptions { get; }
         internal ILogger TransportLogger { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.
@@ -96,6 +97,13 @@ namespace IceRpc
             TaskScheduler = options.TaskScheduler;
             ProtocolLogger = options.LoggerFactory.CreateLogger("IceRpc.Protocol");
             TransportLogger = options.LoggerFactory.CreateLogger("IceRpc.Transport");
+
+            ProxyOptions = options.ProxyOptions.Clone();
+
+            // When unmarshaling a relative proxy, we create a fixed proxy with no endpoints bound to the "receiving"
+            // connection. Otherwise, IsFixed (Endpoints etc.) are ignored.
+            ProxyOptions.IsFixed = true;
+            ProxyOptions.Endpoints = ImmutableList<Endpoint>.Empty;
 
             ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
             ConnectionOptions.SocketOptions ??= new SocketOptions();

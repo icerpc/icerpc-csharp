@@ -19,8 +19,7 @@ namespace IceRpc
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
         /// <param name="communicator">The communicator (optional).</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxy">The proxy (optional).</param>
+        /// <param name="proxyOptions">The proxy options (optional). This method does not modify these options.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
@@ -30,10 +29,9 @@ namespace IceRpc
             Encoding encoding,
             InputStreamReader<T> reader,
             Communicator? communicator = null,
-            Connection? connection = null,
-            IServicePrx? proxy = null)
+            ServicePrxOptions? proxyOptions = null)
         {
-            var istr = new InputStream(buffer, encoding, communicator, ComputeOptions(connection, proxy));
+            var istr = new InputStream(buffer, encoding, communicator, proxyOptions);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -46,8 +44,7 @@ namespace IceRpc
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
         /// <param name="communicator">The communicator (optional).</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxy">The proxy (optional).</param>
+        /// <param name="proxyOptions">The proxy options (optional). This method does not modify these options.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
@@ -56,9 +53,8 @@ namespace IceRpc
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> reader,
             Communicator? communicator = null,
-            Connection? connection = null,
-            IServicePrx? proxy = null) =>
-            buffer.Read(Encoding.V20, reader, communicator, connection, proxy);
+            ServicePrxOptions? proxyOptions = null) =>
+            buffer.Read(Encoding.V20, reader, communicator, proxyOptions);
 
         /// <summary>Reads an empty encapsulation from the buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
@@ -85,8 +81,7 @@ namespace IceRpc
         /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
         /// encapsulation using an <see cref="InputStream"/>.</param>
         /// <param name="communicator">The communicator (optional).</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxy">The proxy (optional).</param>
+        /// <param name="proxyOptions">The proxy options (optional). This method does not modify these options.</param>
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
@@ -96,13 +91,12 @@ namespace IceRpc
             Encoding encoding,
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
-            Connection? connection = null,
-            IServicePrx? proxy = null)
+            ServicePrxOptions? proxyOptions = null)
         {
             var istr = new InputStream(buffer,
                                        encoding,
                                        communicator,
-                                       ComputeOptions(connection, proxy),
+                                       proxyOptions,
                                        startEncapsulation: true);
             T result = payloadReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
@@ -116,8 +110,7 @@ namespace IceRpc
         /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
         /// encapsulation using an <see cref="InputStream"/>.</param>
         /// <param name="communicator">The communicator (optional).</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxy">The proxy (optional).</param>
+        /// <param name="proxyOptions">The proxy options (optional). This method does not modify these options.</param>
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
@@ -127,9 +120,8 @@ namespace IceRpc
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
-            Connection? connection = null,
-            IServicePrx? proxy = null) =>
-            buffer.ReadEncapsulation(Encoding.V20, payloadReader, communicator, connection, proxy);
+            ServicePrxOptions? proxyOptions = null) =>
+            buffer.ReadEncapsulation(Encoding.V20, payloadReader, communicator, proxyOptions);
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
 
@@ -241,7 +233,7 @@ namespace IceRpc
 
         private static ServicePrxOptions? ComputeOptions(Connection? connection, IServicePrx? proxy)
         {
-            ServicePrxOptions? options = proxy?.Impl?.CloneOptions();
+            ServicePrxOptions? options = proxy?.Impl?.GetOptions();
             if (connection != null)
             {
                 if (options != null)

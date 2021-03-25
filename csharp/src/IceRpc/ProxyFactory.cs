@@ -41,7 +41,7 @@ namespace IceRpc
         /// <param name="proxy">The source proxy being copied.</param>
         /// <returns>A proxy with the desired type.</returns>
         public static T Copy<T>(this IProxyFactory<T> factory, IServicePrx proxy) where T : class, IServicePrx =>
-            factory.Create(proxy.Impl.CloneOptions());
+            factory.Create(proxy.Impl.GetOptions());
 
         /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -338,7 +338,7 @@ namespace IceRpc
                 {
                     CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
                     Communicator = istr.Communicator!,
-                    // Connection remains null, i.e. non fixed proxy
+                    // Connection remains null
                     Context = istr.ProxyOptions?.Context ?? ImmutableDictionary<string, string>.Empty,
                     Encoding = encoding,
                     Endpoints = endpoints,
@@ -348,6 +348,7 @@ namespace IceRpc
                         istr.ProxyOptions?.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty,
                     InvocationTimeout =
                         istr.ProxyOptions?.InvocationTimeout ?? ServicePrxOptions.DefaultInvocationTimeout,
+                    // IsFixed remains false
                     IsOneway = invocationMode != InvocationMode.Twoway,
                     Label = istr.ProxyOptions?.Label,
                     LocationResolver = istr.ProxyOptions?.LocationResolver,
@@ -372,6 +373,7 @@ namespace IceRpc
                         istr.ProxyOptions?.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty,
                     InvocationTimeout = istr.ProxyOptions?.InvocationTimeout ??
                         ServicePrxOptions.DefaultInvocationTimeout,
+                    // IsFixed remains false
                     IsOneway = istr.ProxyOptions?.IsOneway ?? false,
                     Label = istr.ProxyOptions?.Label,
                     LocationResolver = istr.ProxyOptions?.LocationResolver,

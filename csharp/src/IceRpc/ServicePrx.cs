@@ -702,8 +702,8 @@ namespace IceRpc
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
         internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
 
-        /// <summary>Returns a fresh copy of the underlying options.</summary>
-        internal ServicePrxOptions CloneOptions()
+        /// <summary>Returns a new copy of the underlying options.</summary>
+        internal ServicePrxOptions GetOptions()
         {
             if (Protocol == Protocol.Ice1)
             {

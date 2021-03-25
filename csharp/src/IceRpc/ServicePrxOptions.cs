@@ -75,5 +75,7 @@ namespace IceRpc
         public Protocol Protocol { get; set; } = Protocol.Ice2;
 
         private Encoding? _encoding;
+
+        public ServicePrxOptions Clone() => (ServicePrxOptions)MemberwiseClone();
     }
 }
