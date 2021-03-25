@@ -163,14 +163,6 @@ namespace IceRpc
                         throw new FormatException($"`-h *' not valid for proxy endpoint `{endpointString}'");
                 }
 
-                if (serverEndpoint)
-                {
-                    if (!IPAddress.TryParse(host, out IPAddress? _))
-                    {
-                        throw new FormatException($"invalid IP address `{host}' in server endpoint `{endpointString}'");
-                    }
-                }
-
                 options.Remove("-h");
             }
             else
@@ -224,6 +216,14 @@ namespace IceRpc
         private protected IPEndpoint(EndpointData data, bool serverEndpoint, Protocol protocol)
             : base(data, protocol)
         {
+            if (serverEndpoint)
+            {
+                if (!IPAddress.TryParse(data.Host, out IPAddress? _))
+                {
+                    throw new ArgumentException($"invalid IP address `{data.Host}'", nameof(data));
+                }
+            }
+
             if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
                 (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
             {

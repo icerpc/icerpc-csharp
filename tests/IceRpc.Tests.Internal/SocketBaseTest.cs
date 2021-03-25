@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Internal
                                     new X509Certificate2("../../../certs/cacert.pem")
                                 })
                 },
-                PreferNonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
+                NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
             });
 
             _server = new Server(_communicator, new ServerOptions

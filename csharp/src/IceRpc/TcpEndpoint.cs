@@ -224,7 +224,7 @@ namespace IceRpc
             // If the endpoint is always secure or a secure connection is required, connect with the SSL client
             // authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsAlwaysSecure || options.PreferNonSecure switch
+            if (IsAlwaysSecure || options.NonSecure switch
             {
                 NonSecure.SameHost => true,    // TODO check if Host is the same host
                 NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
@@ -247,7 +247,7 @@ namespace IceRpc
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            Debug.Assert(connection.CanTrust(options.PreferNonSecure));
+            Debug.Assert(connection.CanTrust(options.NonSecure));
             return connection;
         }
 
