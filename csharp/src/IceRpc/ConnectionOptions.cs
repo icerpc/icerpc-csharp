@@ -106,7 +106,7 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>The connection close timeout. This timeout if used when gracefully closing a connection to
+        /// <summary>The connection close timeout. This timeout is used when gracefully closing a connection to
         /// wait for the peer connection closure. If the peer doesn't close its side of the connection within the
         /// timeout timeframe, the connection is forcefully closed. It can't be 0 and the default value is 10s.
         /// </summary>
@@ -118,7 +118,7 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>The connection idle timeout. This timeout if used to monitor the connection. If the connection
+        /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
         /// value is 60s.</summary>
         /// <value>The connection idle timeout value.</value>
