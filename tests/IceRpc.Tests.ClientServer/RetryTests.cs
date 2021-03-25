@@ -252,8 +252,8 @@ namespace IceRpc.Tests.ClientServer
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
 
-                    // The service proxy has 2 endpoints, the request fails using the first endpoint with a exception that
-                    // has OtherReplica retry policy, it then retries the second endpoint and succeed.
+                    // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
+                    //  exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
                     calls.Clear();
                     prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
                     Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
@@ -296,7 +296,7 @@ namespace IceRpc.Tests.ClientServer
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
                     var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 2), communicator);
 
-                    // The first replica fails with ServiceNotFound exception the second replica fails with
+                    // The first replica fails with ServiceNotFoundException exception the second replica fails with
                     // RetrySystemFailure the last failure should be reported.
                     calls.Clear();
                     var prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
@@ -305,14 +305,20 @@ namespace IceRpc.Tests.ClientServer
                     Assert.AreEqual(servers[1].Name, calls[1]);
                     Assert.AreEqual(2, calls.Count);
 
-                    // Try again this the second server forcefully close the connection, the client should get
-                    // the ConnectionLostException from the second server.
+                    // The first replica fails with ServiceNotFoundException exception the second replica fails with
+                    // ConnectionLostException the last failure should be reported.
                     calls.Clear();
                     prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx3.Endpoints));
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].Name, calls[0]);
                     Assert.AreEqual(servers[2].Name, calls[1]);
                     Assert.AreEqual(2, calls.Count);
+
+                    // The first replica fails with ServiceNotFoundException exception and there is no additional
+                    // replicas.
+                    calls.Clear();
+                    Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx1.OtherReplicaAsync());
+                    Assert.AreEqual(servers[0].Name, calls[0]);
                 });
         }
 
