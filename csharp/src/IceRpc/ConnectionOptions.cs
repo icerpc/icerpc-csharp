@@ -91,11 +91,11 @@ namespace IceRpc
     /// <summary>An options base class for configuring IceRPC connections.</summary>
     public abstract class ConnectionOptions
     {
-        /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent streams
-        /// opened on a connection. When this limit is reached, trying to open a new stream will be delayed until
-        /// a stream is closed. Since a bidirectional stream is opened for each two-way proxy invocation, the
-        /// sending of the invocation will be delayed until another two-way request on the connection completes.
-        /// It can't be less than 1 and the default value is 100.</summary>
+        /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
+        /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
+        /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
+        /// each two-way proxy invocation, the sending of the two-way invocation will be delayed until another two-way
+        /// invocation on the connection completes. It can't be less than 1 and the default value is 100.</summary>
         /// <value>The bidirectional stream maximum count.</value>
         public int BidirectionalStreamMaxCount
         {
@@ -105,14 +105,6 @@ namespace IceRpc
                     $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
         }
-
-        /// <summary>The options for Slic based transports (TCP based transports).</summary>
-        /// <value>The Slic options.</value>
-        public SlicOptions? SlicOptions { get; set; }
-
-        /// <summary>The options for Berkeley socket based transports (TCP and UDP based transports).</summary>
-        /// <value>The socket options.</value>
-        public SocketOptions? SocketOptions { get; set; }
 
         /// <summary>The connection close timeout. This timeout if used when gracefully closing a connection to
         /// wait for the peer connection closure. If the peer doesn't close its side of the connection within the
@@ -126,7 +118,7 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>The connection idle timeout. This timeout if used for monitor the connection. If the connection
+        /// <summary>The connection idle timeout. This timeout if used to monitor the connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
         /// value is 60s.</summary>
         /// <value>The connection idle timeout value.</value>
@@ -150,16 +142,25 @@ namespace IceRpc
         }
 
         /// <summary>Configures whether or not connections are kept alive. If a connection is kept alive, the
-        /// connection monitoring won't close the connection after the idle timeout period. The default value
-        /// is false.</summary>
+        /// connection monitoring will send keep alive frames to ensure the peer doesn't close the connection
+        /// in the period defined by its idle timeout. How often keep alive frames are sent depends on the
+        /// peer's IdleTimeout configuration. The default value is false.</summary>
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
 
-        /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent streams
-        /// opened on a connection. When this limit is reached, trying to open a new stream will be delayed until
-        /// a stream is closed. Since a unidirectional stream is opened for each one-way proxy invocation, the
-        /// sending of the invocation will be delayed until another one-way request on the connection completes.
-        /// It can't be less than 1 and the default value is 100.</summary>
+        /// <summary>The options for Slic based transports.</summary>
+        /// <value>The Slic options.</value>
+        public SlicOptions? SlicOptions { get; set; }
+
+        /// <summary>The options for Berkeley socket based transports (TCP and UDP based transports).</summary>
+        /// <value>The socket options.</value>
+        public SocketOptions? SocketOptions { get; set; }
+
+        /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
+        /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream
+        /// will be delayed until an unidirectional stream is closed. Since an unidirectional stream is opened for
+        /// each one-way proxy invocation, the sending of the one-way invocation will be delayed until another one-way
+        /// invocation on the connection completes. It can't be less than 1 and the default value is 100.</summary>
         /// <value>The unidirectional stream maximum count.</value>
         public int UnidirectionalStreamMaxCount
         {
@@ -185,7 +186,7 @@ namespace IceRpc
         }
     }
 
-    /// <summary>An options class for configuring client-side IceRPC connections.</summary>
+    /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
     public sealed class OutgoingConnectionOptions : ConnectionOptions
     {
         /// <summary>The SSL authentication options to configure TLS client connections.</summary>
@@ -225,7 +226,7 @@ namespace IceRpc
         }
     }
 
-    /// <summary>An options class for configuring server-side IceRPC connections.</summary>
+    /// <summary>An options class for configuring incoming IceRPC connections.</summary>
     public sealed class IncomingConnectionOptions : ConnectionOptions
     {
         /// <summary>The SSL authentication options to configure TLS server connections.</summary>
