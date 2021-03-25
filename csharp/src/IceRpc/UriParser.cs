@@ -110,7 +110,8 @@ namespace IceRpc
             {
                 CacheConnection = parsedOptions.CacheConnection ?? true,
                 Communicator = communicator,
-                Context = parsedOptions.Context?.ToImmutableSortedDictionary(),
+                Context = parsedOptions.Context?.ToImmutableSortedDictionary() ??
+                    ImmutableSortedDictionary<string, string>.Empty,
                 Encoding = parsedOptions.Encoding ?? Encoding.V20,
                 Endpoints = endpoints,
                 InvocationTimeout = parsedOptions.InvocationTimeout ?? ServicePrxOptions.DefaultInvocationTimeout,

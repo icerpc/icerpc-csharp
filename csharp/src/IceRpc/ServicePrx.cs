@@ -92,8 +92,15 @@ namespace IceRpc
                 return false;
             }
 
-            // Compare common properties
+            if (CacheConnection != other.CacheConnection)
+            {
+                return false;
+            }
             if (Encoding != other.Encoding)
+            {
+                return false;
+            }
+            if (Facet != other.Facet)
             {
                 return false;
             }
@@ -113,7 +120,23 @@ namespace IceRpc
             {
                 return false;
             }
+            if (Label != other.Label)
+            {
+                return false;
+            }
+            if (LocationResolver != other.LocationResolver)
+            {
+                return false;
+            }
             if (Path != other.Path)
+            {
+                return false;
+            }
+            if (PreferExistingConnection != other.PreferExistingConnection)
+            {
+                return false;
+            }
+            if (PreferNonSecure != other.PreferNonSecure)
             {
                 return false;
             }
@@ -123,11 +146,6 @@ namespace IceRpc
             }
 
             if (!Context.DictionaryEqual(other.Context)) // done last since it's more expensive
-            {
-                return false;
-            }
-
-            if (Protocol == Protocol.Ice1 && Facet != other.Facet)
             {
                 return false;
             }
@@ -142,28 +160,7 @@ namespace IceRpc
             }
             else
             {
-                // Compare properties specific to non-fixed proxies
-                if (CacheConnection != other.CacheConnection)
-                {
-                    return false;
-                }
                 if (!Endpoints.SequenceEqual(other.Endpoints))
-                {
-                    return false;
-                }
-                if (Label != other.Label)
-                {
-                    return false;
-                }
-                if (LocationResolver != other.LocationResolver)
-                {
-                    return false;
-                }
-                if (PreferExistingConnection != other.PreferExistingConnection)
-                {
-                    return false;
-                }
-                if (PreferNonSecure != other.PreferNonSecure)
                 {
                     return false;
                 }
@@ -191,20 +188,20 @@ namespace IceRpc
                 // Lazy initialization of _hashCode to a value other than 0. Reading/writing _hashCode is atomic.
                 var hash = new HashCode();
 
-                // common properties
+                hash.Add(CacheConnection);
                 hash.Add(Context.GetDictionaryHashCode());
                 hash.Add(Encoding);
+                hash.Add(Facet);
                 hash.Add(InvocationInterceptors.GetSequenceHashCode());
                 hash.Add(InvocationTimeout);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
+                hash.Add(Label);
+                hash.Add(LocationResolver);
                 hash.Add(Path);
+                hash.Add(PreferExistingConnection);
+                hash.Add(PreferNonSecure);
                 hash.Add(Protocol);
-
-                if (Protocol == Protocol.Ice1)
-                {
-                    hash.Add(Facet);
-                }
 
                 if (IsFixed)
                 {
@@ -212,12 +209,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    hash.Add(CacheConnection);
                     hash.Add(Endpoints.GetSequenceHashCode());
-                    hash.Add(Label);
-                    hash.Add(LocationResolver);
-                    hash.Add(PreferExistingConnection);
-                    hash.Add(PreferNonSecure);
                 }
 
                 int hashCode = hash.ToHashCode();
@@ -569,10 +561,10 @@ namespace IceRpc
 
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
-            Context = options.Context ?? ImmutableDictionary<string, string>.Empty;
+            Context = options.Context;
             Encoding = options.Encoding;
             Endpoints = options.Endpoints;
-            InvocationInterceptors = options.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty;
+            InvocationInterceptors = options.InvocationInterceptors;
             InvocationTimeout = options.InvocationTimeout;
             IsFixed = options.IsFixed;
             IsOneway = options.IsOneway;

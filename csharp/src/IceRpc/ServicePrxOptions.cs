@@ -23,7 +23,7 @@ namespace IceRpc
         public Connection? Connection { get; set; }
 
         /// <summary>The context of the proxy. This property is inherited when unmarshaling a proxy.</summary>
-        public IReadOnlyDictionary<string, string>? Context { get; set; }
+        public IReadOnlyDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
         /// <summary>The encoding of the proxy. Its default value is the encoding of <see cref="Protocol"/>. This
         /// property is not inherited when unmarshaling a proxy because a marshaled proxy always specifies its
@@ -39,7 +39,8 @@ namespace IceRpc
 
         /// <summary>The invocation interceptors of the proxy. This property is inherited when unmarshaling a proxy.
         /// </summary>
-        public IReadOnlyList<InvocationInterceptor>? InvocationInterceptors { get; set; }
+        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; set; } =
+            ImmutableList<InvocationInterceptor>.Empty;
 
         /// <summary>The invocation timeout of the proxy. This property is inherited when unmarshaling a proxy.
         /// </summary>

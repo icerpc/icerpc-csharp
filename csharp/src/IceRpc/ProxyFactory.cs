@@ -155,11 +155,6 @@ namespace IceRpc
                     options.Context = communicator.GetProperties(forPrefix: property).
                         ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
 
-                    if (options.Context.Count == 0)
-                    {
-                        options.Context = null;
-                    }
-
                     options.InvocationTimeout =
                         communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout") ??
                             ServicePrxOptions.DefaultInvocationTimeout;
@@ -344,14 +339,15 @@ namespace IceRpc
                     CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
                     Communicator = istr.Communicator!,
                     // Connection remains null, i.e. non fixed proxy
-                    Context = istr.ProxyOptions?.Context,
+                    Context = istr.ProxyOptions?.Context ?? ImmutableDictionary<string, string>.Empty,
                     Encoding = encoding,
                     Endpoints = endpoints,
                     Facet = facet,
                     Identity = identity,
-                    InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
-                    InvocationTimeout = istr.ProxyOptions?.InvocationTimeout ??
-                        ServicePrxOptions.DefaultInvocationTimeout,
+                    InvocationInterceptors =
+                        istr.ProxyOptions?.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty,
+                    InvocationTimeout =
+                        istr.ProxyOptions?.InvocationTimeout ?? ServicePrxOptions.DefaultInvocationTimeout,
                     IsOneway = invocationMode != InvocationMode.Twoway,
                     Label = istr.ProxyOptions?.Label,
                     LocationResolver = istr.ProxyOptions?.LocationResolver,
@@ -369,10 +365,11 @@ namespace IceRpc
                     CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
                     Communicator = istr.Communicator!,
                     // Connection remains null
-                    Context = istr.ProxyOptions?.Context,
+                    Context = istr.ProxyOptions?.Context ?? ImmutableDictionary<string, string>.Empty,
                     Encoding = encoding,
                     Endpoints = endpoints,
-                    InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
+                    InvocationInterceptors =
+                        istr.ProxyOptions?.InvocationInterceptors ?? ImmutableList<InvocationInterceptor>.Empty,
                     InvocationTimeout = istr.ProxyOptions?.InvocationTimeout ??
                         ServicePrxOptions.DefaultInvocationTimeout,
                     IsOneway = istr.ProxyOptions?.IsOneway ?? false,

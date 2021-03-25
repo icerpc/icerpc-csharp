@@ -69,8 +69,13 @@ namespace IceRpc
             options.Context = context?.ToImmutableDictionary() ?? options.Context;
             options.Encoding = encoding ?? options.Encoding;
 
-            options.Endpoints = endpoints?.ToImmutableList() ??
-                (fixedConnection != null ? ImmutableList<Endpoint>.Empty : options.Endpoints);
+            if (options.IsFixed && endpoints != null)
+            {
+                throw new ArgumentException($"cannot set endpoints on a fixed proxy", nameof(options));
+            }
+
+            options.Endpoints = options.IsFixed ?
+                ImmutableList<Endpoint>.Empty : (endpoints?.ToImmutableList() ?? options.Endpoints);
 
             options.InvocationInterceptors =
                 invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
