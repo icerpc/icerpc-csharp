@@ -1091,11 +1091,11 @@ namespace IceRpc
                     }
                     observer?.RemoteException();
                 }
-                catch (NoEndpointException ex) when (!IsIndirect || tryAgain)
+                catch (NoEndpointException ex) when (tryAgain)
                 {
-                    // If we get NoEndpointException with direct proxy or while retrying with an indirect proxy, either
-                    // all endpoints have been excluded or the proxy has no endpoints. So we cannot retry, and we return
-                    // here to preserve any previous exception that might have been thrown.
+                    // If we get NoEndpointException while retrying, either all endpoints have been excluded or the
+                    // proxy has no endpoints. So we cannot retry, and we return here to preserve any previous
+                    // exception that might have been thrown.
                     observer?.Failed(ex.GetType().FullName ?? "System.Exception"); // TODO cleanup observer logic
                     return response ?? throw exception ?? ex;
                 }
