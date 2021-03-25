@@ -2,8 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -68,7 +66,6 @@ namespace IceRpc.Tests.ClientServer
             }
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
-
             foreach (object value in myFixedLengthEnumValues)
             {
                 Assert.AreEqual((MyFixedLengthEnum)value, MyFixedLengthEnumHelper.AsMyFixedLengthEnum((short)value));
@@ -92,6 +89,39 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Enum_Operations(Protocol protocol)
         {
+            await WithEnumOperationsServerAsync(
+                protocol,
+                async (prx) =>
+                {
+                    await TestAsync((p1, p2) => prx.OpMyEnumAsync(p1, p2), MyEnum.enum1, MyEnum.enum10);
+                    await TestAsync((p1, p2) => prx.OpMyFixedLengthEnumAsync(p1, p2),
+                                    MyFixedLengthEnum.senum1,
+                                    MyFixedLengthEnum.senum10);
+                    await TestAsync((p1, p2) => prx.OpMyUncheckedEnumAsync(p1, p2),
+                                    MyUncheckedEnum.E0 | MyUncheckedEnum.E1,
+                                    MyUncheckedEnum.E10 | MyUncheckedEnum.E3);
+
+                    // For checked enums receiving an invalid enumerator throws InvalidDataException
+                    Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
+                    Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
+
+                    // Sending and invalid value for a checked enum results in an UnhandledException
+                    Assert.ThrowsAsync<UnhandledException>(
+                        async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
+                    Assert.ThrowsAsync<UnhandledException>(
+                    async () => await prx.OpMyFixedLengthEnumAsync((MyFixedLengthEnum)0, MyFixedLengthEnum.senum1));
+                });
+
+            async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
+            {
+                (T r1, T r2) = await invoker(p1, p2);
+                Assert.AreEqual(p1, r1);
+                Assert.AreEqual(p2, r2);
+            }
+        }
+
+        private  async Task WithEnumOperationsServerAsync(Protocol protocol, Func<IEnumOperationsPrx, Task> closure)
+        {
             await using var communicator = new Communicator();
             await using var server = new Server(communicator,
                 new ServerOptions()
@@ -101,30 +131,7 @@ namespace IceRpc.Tests.ClientServer
                 });
             var prx = server.Add("test", new EnumOperations(), IEnumOperationsPrx.Factory);
             Assert.AreEqual(protocol, prx.Protocol);
-
-            await TestAsync((prx, p1, p2) => prx.OpMyEnumAsync(p1, p2), MyEnum.enum1, MyEnum.enum10);
-            await TestAsync((prx, p1, p2) => prx.OpMyFixedLengthEnumAsync(p1, p2),
-                            MyFixedLengthEnum.senum1,
-                            MyFixedLengthEnum.senum10);
-            await TestAsync((prx, p1, p2) => prx.OpMyUncheckedEnumAsync(p1, p2),
-                            MyUncheckedEnum.E0 | MyUncheckedEnum.E1,
-                            MyUncheckedEnum.E10 | MyUncheckedEnum.E3);
-
-            // For checked enums receiving an invalid enumerator throws InvalidDataException
-            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
-            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
-
-            // Sending and invalid value for a checked enum results in an UnhandledException
-            Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
-            Assert.ThrowsAsync<UnhandledException>(
-                async () => await prx.OpMyFixedLengthEnumAsync((MyFixedLengthEnum)0, MyFixedLengthEnum.senum1));
-
-            async Task TestAsync<T>(Func<IEnumOperationsPrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
-            {
-                (T r1, T r2) = await invoker(prx, p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
-            }
+            await closure(prx);
         }
 
         public class EnumOperations : IAsyncEnumOperations

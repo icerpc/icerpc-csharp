@@ -43,41 +43,41 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Invocation_MarshalledResult()
         {
-            await Test1Async((prx, p1) => prx.OpAnotherStruct1Async(p1),
+            await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
                                               IOperationsPrx.Parse("foo", _communicator),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
-            await Test1Async((prx, p1) => prx.OpStringSeq1Async(p1),
+            await Test1Async(p1 => _prx.OpStringSeq1Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToArray());
 
-            await Test1Async((prx, p1) => prx.OpStringDict1Async(p1),
+            await Test1Async(p1 => _prx.OpStringDict1Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToDictionary(key => key,
                                                                                             value => value));
 
-            await Test2Async((prx, p1) => prx.OpAnotherStruct2Async(p1),
+            await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
                                               IOperationsPrx.Parse("foo", _communicator),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
-            await Test2Async((prx, p1) => prx.OpStringSeq2Async(p1),
+            await Test2Async(p1 => _prx.OpStringSeq2Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToArray());
 
-            await Test2Async((prx, p1) => prx.OpStringDict2Async(p1),
+            await Test2Async(p1 => _prx.OpStringDict2Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToDictionary(key => key,
                                                                                             value => value));
 
-            async Task Test1Async<T>(Func<IMarshaledResultOperationsPrx, T, Task<T>> invoker, T p1)
+            async Task Test1Async<T>(Func<T, Task<T>> invoker, T p1)
             {
-                T r1 = await invoker(_prx, p1);
+                T r1 = await invoker(p1);
                 Assert.AreEqual(p1, r1);
             }
 
-            async Task Test2Async<T>(Func<IMarshaledResultOperationsPrx, T, Task<(T, T)>> invoker, T p1)
+            async Task Test2Async<T>(Func<T, Task<(T, T)>> invoker, T p1)
             {
-                (T r1, T r2) = await invoker(_prx, p1);
+                (T r1, T r2) = await invoker(p1);
                 Assert.AreEqual(p1, r1);
                 Assert.AreEqual(p1, r2);
             }

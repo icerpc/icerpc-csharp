@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                     ColocationScope = ColocationScope.Communicator
                 });
             _prx = _server.Add("test", new SequenceOperations(), ISequenceOperationsPrx.Factory);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            Assert.AreEqual(protocol, __prx.Protocol);
         }
 
         [TearDown]
@@ -44,68 +44,68 @@ namespace IceRpc.Tests.ClientServer
         public async Task Sequence_BuiltinTypes()
         {
             int size = 100;
-            await TestSeqAsync((prx, p1, p2) => prx.OpByteSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpByteSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (byte)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (byte)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpBoolSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpBoolSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => i % 2 == 0).ToArray(),
                                Enumerable.Range(0, size).Select(i => i % 2 == 0).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpShortSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpShortSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (short)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (short)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpUShortSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpUShortSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (ushort)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (ushort)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpIntSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpIntSeqAsync(p1, p2),
                                Enumerable.Range(0, size).ToArray(),
                                Enumerable.Range(0, size).Reverse().ToArray());
-            await TestVarSeqAsync((prx, p1, p2) => prx.OpVarIntSeqAsync(p1, p2),
+            await TestVarSeqAsync((p1, p2) => _prx.OpVarIntSeqAsync(p1, p2),
                                   Enumerable.Range(0, size).ToArray(),
                                   Enumerable.Range(0, size).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpUIntSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpUIntSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (uint)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (uint)i).Reverse().ToArray());
-            await TestVarSeqAsync((prx, p1, p2) => prx.OpVarUIntSeqAsync(p1, p2),
+            await TestVarSeqAsync((p1, p2) => _prx.OpVarUIntSeqAsync(p1, p2),
                                   Enumerable.Range(0, size).Select(i => (uint)i).ToArray(),
                                   Enumerable.Range(0, size).Select(i => (uint)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpLongSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpLongSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (long)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (long)i).Reverse().ToArray());
-            await TestVarSeqAsync((prx, p1, p2) => prx.OpVarLongSeqAsync(p1, p2),
+            await TestVarSeqAsync((p1, p2) => _prx.OpVarLongSeqAsync(p1, p2),
                                   Enumerable.Range(0, size).Select(i => (long)i).ToArray(),
                                   Enumerable.Range(0, size).Select(i => (long)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpULongSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpULongSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (ulong)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (ulong)i).Reverse().ToArray());
-            await TestVarSeqAsync((prx, p1, p2) => prx.OpVarULongSeqAsync(p1, p2),
+            await TestVarSeqAsync((p1, p2) => _prx.OpVarULongSeqAsync(p1, p2),
                                   Enumerable.Range(0, size).Select(i => (ulong)i).ToArray(),
                                   Enumerable.Range(0, size).Select(i => (ulong)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpFloatSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpFloatSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (float)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (float)i).Reverse().ToArray());
-            await TestSeqAsync((prx, p1, p2) => prx.OpDoubleSeqAsync(p1, p2),
+            await TestSeqAsync((p1, p2) => _prx.OpDoubleSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (double)i).ToArray(),
                                Enumerable.Range(0, size).Select(i => (double)i).Reverse().ToArray());
-            await TestVarSeqAsync((prx, p1, p2) => prx.OpStringSeqAsync(p1, p2),
+            await TestVarSeqAsync((p1, p2) => _prx.OpStringSeqAsync(p1, p2),
                                   Enumerable.Range(0, size).Select(i => $"hello-{i}").ToArray(),
                                   Enumerable.Range(0, size).Select(i => $"hello-{i}").Reverse().ToArray());
 
             async Task TestSeqAsync<T>(
-                Func<ISequenceOperationsPrx, ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
+                Func<ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                (T[] r1, T[] r2) = await invoker(p1, p2);
                 CollectionAssert.AreEqual(r1, p1);
                 CollectionAssert.AreEqual(r2, p2);
             }
 
             async Task TestVarSeqAsync<T>(
-                Func<ISequenceOperationsPrx, IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker,
+                Func<IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker,
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                (T[] r1, T[] r2) = await invoker(p1, p2);
                 CollectionAssert.AreEqual(r1, p1);
                 CollectionAssert.AreEqual(r2, p2);
             }
@@ -117,28 +117,28 @@ namespace IceRpc.Tests.ClientServer
             int size = 100;
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
             await Test1Async(
-                (prx, p1, p2) => prx.OpMyEnumSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpMyEnumSeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).ToArray(),
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).Reverse().ToArray());
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             await Test2Async(
-                (prx, p1, p2) => prx.OpMyFixedLengthEnumSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpMyFixedLengthEnumSeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(
                     i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).ToArray(),
                 Enumerable.Range(0, size).Select(
                     i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).Reverse().ToArray());
 
             await Test2Async(
-                (prx, p1, p2) => prx.OpMyUncheckedEnumSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpMyUncheckedEnumSeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).ToArray(),
                 Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).Reverse().ToArray());
 
-            await Test1Async((prx, p1, p2) => prx.OpMyStructSeqAsync(p1, p2),
+            await Test1Async((p1, p2) => _prx.OpMyStructSeqAsync(p1, p2),
                             Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToArray(),
                             Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).Reverse().ToArray());
 
-            await Test1Async((prx, p1, p2) => prx.OpAnotherStructSeqAsync(p1, p2),
+            await Test1Async((p1, p2) => _prx.OpAnotherStructSeqAsync(p1, p2),
                             Enumerable.Range(0, size).Select(i =>
                             {
                                 return new AnotherStruct($"hello-{i}",
@@ -154,22 +154,19 @@ namespace IceRpc.Tests.ClientServer
                                                          new MyStruct(i, i + 1));
                             }).Reverse().ToArray());
 
-            async Task Test1Async<T>(
-                Func<ISequenceOperationsPrx, IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker,
-                T[] p1,
-                T[] p2)
+            async Task Test1Async<T>(Func<IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker, T[] p1, T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                (T[] r1, T[] r2) = await invoker(p1, p2);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p2, r2);
             }
 
             async Task Test2Async<T>(
-                Func<ISequenceOperationsPrx, ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
+                Func<ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
                 T[] p1,
                 T[] p2)
             {
-                (T[] r1, T[] r2) = await invoker(_prx, p1, p2);
+                (T[] r1, T[] r2) = await invoker(p1, p2);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p2, r2);
             }

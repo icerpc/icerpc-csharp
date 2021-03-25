@@ -43,8 +43,8 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Struct_Operations()
         {
-            await TestAsync((prx, p1, p2) => prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
-            await TestAsync((prx, p1, p2) => prx.OpAnotherStructAsync(p1, p2),
+            await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
+            await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
                                               IOperationsPrx.Parse("foo", _communicator),
                                               MyEnum.enum1,
@@ -54,9 +54,9 @@ namespace IceRpc.Tests.ClientServer
                                               MyEnum.enum2,
                                               new MyStruct(3, 4)));
 
-            async Task TestAsync<T>(Func<IStructOperationsPrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
+            async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
-                (T r1, T r2) = await invoker(_prx, p1, p2);
+                (T r1, T r2) = await invoker(p1, p2);
                 Assert.AreEqual(p1, r1);
                 Assert.AreEqual(p2, r2);
             }
