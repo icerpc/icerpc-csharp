@@ -32,13 +32,10 @@ namespace IceRpc.Tests.Internal
         private IServicePrx? _proxy;
         private MultiStreamSocket? _serverSocket;
 
-        public MultiStreamSocketBaseTest(
-            MultiStreamSocketType socketType,
-            Action<ServerOptions>? serverOptionsBuilder = null)
+        public MultiStreamSocketBaseTest(MultiStreamSocketType socketType)
             : base(socketType == MultiStreamSocketType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
                    socketType == MultiStreamSocketType.Colocated ? "colocated" : "tcp",
-                   false,
-                   serverOptionsBuilder) =>
+                   false) =>
             SocketType = socketType;
 
         public async Task SetUpSockets()
@@ -82,17 +79,11 @@ namespace IceRpc.Tests.Internal
     public class MultiStreamSocketTests : MultiStreamSocketBaseTest
     {
         public MultiStreamSocketTests(MultiStreamSocketType type)
-            : base(type, serverOptions =>
-                   {
-                       // Setup specific server options for testing purpose
-                       serverOptions.ConnectionOptions = new()
-                       {
-                            BidirectionalStreamMaxCount = 15,
-                            UnidirectionalStreamMaxCount = 10,
-                            IncomingFrameMaxSize = 512 * 1024
-                       };
-                   })
+            : base(type)
         {
+            ServerConnectionOptions.BidirectionalStreamMaxCount = 15;
+            ServerConnectionOptions.UnidirectionalStreamMaxCount = 10;
+            ServerConnectionOptions.IncomingFrameMaxSize = 512 * 1024;
         }
 
         [Test]
@@ -337,7 +328,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
             IncomingRequestFrame? incomingRequest = null;
-            for (int i = 0; i < Server.ConnectionOptions.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(true);
                 clientStreams.Add(stream);
@@ -394,8 +385,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamSocket_StreamMaxCount_StressTest(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                Server.ConnectionOptions.BidirectionalStreamMaxCount :
-                Server.ConnectionOptions.UnidirectionalStreamMaxCount;
+                ServerConnectionOptions.BidirectionalStreamMaxCount :
+                ServerConnectionOptions.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -470,7 +461,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
-            for (int i = 0; i < Server.ConnectionOptions.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(false);
                 clientStreams.Add(stream);
@@ -681,193 +672,11 @@ namespace IceRpc.Tests.Internal
         public void TearDown() => TearDownSockets();
     }
 
-    // [Parallelizable(scope: ParallelScope.Fixtures)]
-    // [TestFixture(Protocol.Ice2, "tcp", false)]
-    // [TestFixture(Protocol.Ice2, "tcp", true)]
-    // [TestFixture(Protocol.Ice2, "ws", false)]
-    // [TestFixture(Protocol.Ice2, "ws", true)]
-    // [TestFixture(Protocol.Ice1, "tcp", false)]
-    // [TestFixture(Protocol.Ice1, "ssl", true)]
-    // public class AcceptSingleStreamSocketTests : SocketBaseTest
-    // {
-    //     public AcceptSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
-    //         : base(protocol, transport, secure)
-    //     {
-    //     }
-
-    //     [Test]
-    //     public async Task AcceptMultiStreamSocket_Acceptor_AcceptAsync()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-    //         ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
-    //         using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-    //         ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
-    //         using SingleStreamSocket serverSocket = await acceptTask;
-    //     }
-
-    //     [Test]
-    //     public async Task AcceptMultiStreamSocket_Acceptor_Constructor_TransportException()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-    //         Assert.ThrowsAsync<TransportException>(async () => await CreateAcceptorAsync());
-    //     }
-
-    //     public async Task AcceptMultiStreamSocket_AcceptAsync()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-    //         ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
-
-    //         using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-    //         ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
-
-    //         using SingleStreamSocket serverSocket = await acceptTask;
-
-    //         SingleStreamSocket socket = await serverSocket.AcceptAsync(ServerEndpoint, default);
-    //         await connectTask;
-
-    //         // The SslSocket is returned if a secure connection is requested.
-    //         Assert.IsTrue(IsSecure ? socket != serverSocket : socket == serverSocket);
-    //     }
-
-    //     // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
-    //     // example the server SSL handshake completes before the RST is received.
-    //     [Test]
-    //     public async Task AcceptMultiStreamSocket_AcceptAsync_ConnectionLostException()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-    //         ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
-
-    //         SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-
-    //         // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
-    //         // connections and AcceptAsync would sometime succeed.
-    //         IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
-    //         var endpoint = new IPEndPoint(addresses[0], ClientEndpoint.Port);
-    //         await clientSocket.Socket!.ConnectAsync(endpoint).ConfigureAwait(false);
-
-    //         using SingleStreamSocket serverSocket = await acceptTask;
-
-    //         clientSocket.Dispose();
-
-    //         AsyncTestDelegate testDelegate;
-    //         if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
-    //         {
-    //             // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-    //             await serverSocket.AcceptAsync(ServerEndpoint, default);
-    //             testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
-    //         }
-    //         else
-    //         {
-    //             testDelegate = async () => await serverSocket.AcceptAsync(ServerEndpoint, default);
-    //         }
-    //         Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
-    //     }
-
-    //     [Test]
-    //     public async Task AcceptMultiStreamSocket_AcceptAsync_OperationCanceledException()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-
-    //         using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-    //         ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default);
-
-    //         using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
-
-    //         using var source = new CancellationTokenSource();
-    //         source.Cancel();
-    //         ValueTask<SingleStreamSocket> acceptTask = serverSocket.AcceptAsync(ServerEndpoint, source.Token);
-
-    //         if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
-    //         {
-    //             // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-    //             await acceptTask;
-    //         }
-    //         else
-    //         {
-    //             Assert.CatchAsync<OperationCanceledException>(async () => await acceptTask);
-    //         }
-    //     }
-
-    //     private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
-    //     {
-    //         IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
-    //         Connection connection =
-    //             (ClientEndpoint as IPEndpoint)!.CreateConnection(
-    //                 new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
-    //         return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
-    //     }
-
-    //     private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
-    //     {
-    //         MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
-    //         return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-    //     }
-    // }
-
-    // [Parallelizable(scope: ParallelScope.Fixtures)]
-    // [TestFixture(Protocol.Ice1, "tcp", false)]
-    // [TestFixture(Protocol.Ice1, "ssl", true)]
-    // [TestFixture(Protocol.Ice2, "tcp", false)]
-    // [TestFixture(Protocol.Ice2, "tcp", true)]
-    // [TestFixture(Protocol.Ice2, "ws", false)]
-    // [TestFixture(Protocol.Ice2, "ws", true)]
-    // [Timeout(5000)]
-    // public class ConnectSingleStreamSocketTests : SocketBaseTest
-    // {
-    //     public ConnectSingleStreamSocketTests(Protocol protocol, string transport, bool secure)
-    //         : base(protocol, transport, secure)
-    //     {
-    //     }
-
-    //     [Test]
-    //     public async Task ConnectMultiStreamSocket_ConnectAsync_ConnectionRefusedException()
-    //     {
-    //         using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-    //         Assert.ThrowsAsync<ConnectionRefusedException>(
-    //             async () => await clientSocket.ConnectAsync(ClientEndpoint, IsSecure, default));
-    //     }
-
-    //     [Test]
-    //     public async Task ConnectMultiStreamSocket_ConnectAsync_OperationCanceledException()
-    //     {
-    //         using IAcceptor acceptor = await CreateAcceptorAsync();
-
-    //         using var source = new CancellationTokenSource();
-    //         if (!IsSecure && TransportName == "tcp")
-    //         {
-    //             // ConnectAsync might complete synchronously with TCP
-    //         }
-    //         else
-    //         {
-    //             using SingleStreamSocket clientSocket = await CreateClientSocketAsync();
-    //             ValueTask<SingleStreamSocket> connectTask =
-    //                 clientSocket.ConnectAsync(ClientEndpoint, IsSecure, source.Token);
-    //             source.Cancel();
-    //             Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
-    //         }
-
-    //         using var source2 = new CancellationTokenSource();
-    //         source2.Cancel();
-    //         using SingleStreamSocket clientSocket2 = await CreateClientSocketAsync();
-    //         Assert.CatchAsync<OperationCanceledException>(
-    //             async () => await clientSocket2.ConnectAsync(ClientEndpoint, IsSecure, source2.Token));
-    //     }
-
-    //     private async ValueTask<SingleStreamSocket> CreateClientSocketAsync()
-    //     {
-    //         IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
-    //         Connection connection =
-    //             (ClientEndpoint as IPEndpoint)!.CreateConnection(
-    //                 new IPEndPoint(addresses[0], ClientEndpoint.Port), null, default);
-    //         return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
-    //     }
-    // }
-
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
-    // [TestFixture(MultiStreamSocketType.Slic)]
+    [TestFixture(MultiStreamSocketType.Slic)]
     [TestFixture(MultiStreamSocketType.Colocated)]
-    // [TestFixture(MultiStreamSocketType.Ice1)]
+    [TestFixture(MultiStreamSocketType.Ice1)]
     public class MultiStreamSocketStreamTests : MultiStreamSocketBaseTest
     {
         public MultiStreamSocketStreamTests(MultiStreamSocketType socketType)
@@ -920,14 +729,14 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamSocketStream_SendRequest_Cancellation()
         {
-            var stream = ClientSocket.CreateStream(false);
+            var stream = ClientSocket.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await stream.SendRequestFrameAsync(DummyRequest, source.Token));
             stream.Release();
 
-            if (ClientSocket.Endpoint.Protocol == Protocol.Ice2)
+            if (SocketType == MultiStreamSocketType.Slic)
             {
                 // With Slic, large frames are sent with multiple packets. Here we ensure that cancelling the sending
                 // while the packets are being sent works.
@@ -948,35 +757,34 @@ namespace IceRpc.Tests.Internal
                 int requestCount = 0;
                 while (true)
                 {
-                    stream = ClientSocket.CreateStream(false);
-                    using var source2 = new CancellationTokenSource();
-                    source2.CancelAfter(200);
-                    ValueTask sendTask = stream.SendRequestFrameAsync(request, source2.Token);
-                    if (sendTask.IsCompleted)
+                    stream = ClientSocket.CreateStream(true);
+                    try
                     {
-                        requestCount++;
-                        await sendTask;
+                        using var source2 = new CancellationTokenSource();
+                        source2.CancelAfter(200);
+                        ValueTask sendTask = stream.SendRequestFrameAsync(request, source2.Token);
+                        if (sendTask.IsCompleted)
+                        {
+                            requestCount++;
+                            await sendTask;
+                        }
+                        else
+                        {
+                            Assert.CatchAsync<OperationCanceledException>(async () => await sendTask);
+                            break;
+                        }
                     }
-                    else
+                    finally
                     {
-                        Assert.CatchAsync<OperationCanceledException>(async () => await sendTask);
-                        break;
+                        stream.Release();
                     }
-                    stream.Release();
                 }
 
                 await ReceiveRequests(requestCount);
-
-                // With Slic the stream is started and reset so we ensure the receiver gets the reset.
-                if (SocketType == MultiStreamSocketType.Slic)
-                {
-                    var serverStream = await ServerSocket.AcceptStreamAsync(default);
-                    Assert.CatchAsync<TransportException>(async () => await serverStream.ReceiveRequestFrameAsync());
-                }
             }
 
             // Ensure we can still send a request after the cancellation
-            stream = ClientSocket.CreateStream(false);
+            stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
             stream.Release();
 
@@ -984,14 +792,25 @@ namespace IceRpc.Tests.Internal
             {
                 if (requestCount == 0)
                 {
-                    return;
+                    try
+                    {
+                        using var source = new CancellationTokenSource(500);
+                        var serverStream = await ServerSocket.AcceptStreamAsync(source.Token);
+                        _ = ServerSocket.AcceptStreamAsync(default).AsTask();
+                        Assert.CatchAsync<TransportException>(async () => await serverStream.ReceiveRequestFrameAsync());
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
                 }
-                var serverStream = await ServerSocket.AcceptStreamAsync(default);
-                Task receiveNextRequestTask;
-                receiveNextRequestTask = ReceiveRequests(--requestCount);
-                _ = await serverStream.ReceiveRequestFrameAsync();
-                serverStream.Release();
-                await receiveNextRequestTask;
+                else
+                {
+                    var serverStream = await ServerSocket.AcceptStreamAsync(default);
+                    Task receiveNextRequestTask = ReceiveRequests(--requestCount);
+                    _ = await serverStream.ReceiveRequestFrameAsync();
+                    serverStream.Release();
+                    await receiveNextRequestTask;
+                }
             }
         }
 

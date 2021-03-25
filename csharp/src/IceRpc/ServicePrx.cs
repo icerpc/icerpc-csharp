@@ -802,7 +802,7 @@ namespace IceRpc
 
             var options = Communicator.ConnectionOptions.Clone();
             options.Label = Label;
-            options.PreferNonSecure = PreferNonSecure;
+            options.NonSecure = PreferNonSecure;
 
             bool refreshCache = false;
 
@@ -992,7 +992,7 @@ namespace IceRpc
 
             var connectionOptions = Communicator.ConnectionOptions.Clone();
             connectionOptions.Label = Label;
-            connectionOptions.PreferNonSecure = PreferNonSecure;
+            connectionOptions.NonSecure = PreferNonSecure;
 
             ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;

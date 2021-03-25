@@ -48,8 +48,8 @@ try
     };
 
     server.Add("hello", new Hello());
+    server.Activate();
 
-    await server.ActivateAsync();
     await server.ShutdownComplete;
 }
 catch (Exception ex)

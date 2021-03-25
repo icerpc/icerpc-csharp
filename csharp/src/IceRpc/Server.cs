@@ -25,8 +25,8 @@ namespace IceRpc
         public Communicator Communicator { get; }
 
         /// <summary>Returns the endpoints this server is listening on.</summary>
-        /// <returns>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
-        /// actual port selected by the operating system.</returns>
+        /// <value>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
+        /// actual port selected by the operating system.</value>
         public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>

@@ -46,13 +46,13 @@ namespace IceRpc
                         // The list of connections is already sorted with non-secure connections first, this will
                         // return the first active and trusted connection according to the non-secure preference.
                         connection = connections.FirstOrDefault(
-                            connection => connection.IsActive && connection.CanTrust(options.PreferNonSecure));
+                            connection => connection.IsActive && connection.CanTrust(options.NonSecure));
 
                         if (connection != null)
                         {
                             // TODO should ColocatedConnection.IsSecure return always true?, currently IsSecure
                             // is only true for SSL connections.
-                            Debug.Assert(options.PreferNonSecure != NonSecure.Never ||
+                            Debug.Assert(options.NonSecure != NonSecure.Never ||
                                          connection is ColocatedConnection ||
                                          connection.IsSecure);
                             return connection;
@@ -75,14 +75,14 @@ namespace IceRpc
 
                 connection = await connectTask.WaitAsync(cancel).ConfigureAwait(false);
                 // After the connect task completed check if the connection can be trusted.
-                if (!connection.CanTrust(options.PreferNonSecure))
+                if (!connection.CanTrust(options.NonSecure))
                 {
                     // The connection cannot be trusted clear the connection and try again.
                     connection = null;
                 }
             }
             while (connection == null);
-            Debug.Assert(options.PreferNonSecure != NonSecure.Never ||
+            Debug.Assert(options.NonSecure != NonSecure.Never ||
                          connection is ColocatedConnection ||
                          connection.IsSecure);
             return connection;

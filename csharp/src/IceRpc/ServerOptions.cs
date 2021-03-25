@@ -27,7 +27,7 @@ namespace IceRpc
 
         public string Name { get; set; } = "";
 
-        public ILoggerFactory LoggerFactory { get; } = NullLoggerFactory.Instance;
+        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
         public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
 

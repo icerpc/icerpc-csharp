@@ -47,17 +47,18 @@ namespace IceRpc
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
+                var options = server.ConnectionOptions;
+                var socketOptions = options.SocketOptions!;
+
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IsIPv6Only);
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
                 }
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
 
-                var options = server.ConnectionOptions;
-
                 SetBufferSize(socket,
-                              options.SocketOptions!.ReceiveBufferSize,
-                              options.SocketOptions!.SendBufferSize,
+                              socketOptions.ReceiveBufferSize,
+                              socketOptions.SendBufferSize,
                               server.TransportLogger);
 
                 var addr = new IPEndPoint(Address, Port);
@@ -196,6 +197,12 @@ namespace IceRpc
 
             try
             {
+                var socketOptions = options.SocketOptions!;
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
+                }
+
                 if (endpoint is IPEndPoint ipEndpoint && Network.IsMulticast(ipEndpoint.Address))
                 {
                     // IP multicast socket options require a socket created with the correct address family.
@@ -214,10 +221,7 @@ namespace IceRpc
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
-                SetBufferSize(socket,
-                              options.SocketOptions!.ReceiveBufferSize,
-                              options.SocketOptions!.SendBufferSize,
-                              transportLogger);
+                SetBufferSize(socket, socketOptions.ReceiveBufferSize, socketOptions.SendBufferSize, transportLogger);
             }
             catch (SocketException ex)
             {
@@ -321,9 +325,7 @@ namespace IceRpc
                                    ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface,
-                                   options,
-                                   serverEndpoint,
-                                   endpointString);
+                                   serverEndpoint);
         }
 
         // Constructor for ice1 unmarshaling
@@ -338,15 +340,8 @@ namespace IceRpc
         }
 
         // Constructor for ice1 parsing
-        private UdpEndpoint(
-            EndpointData data,
-            bool compress,
-            int ttl,
-            string? multicastInterface,
-            Dictionary<string, string?> options,
-            bool serverEndpoint,
-            string endpointString)
-            : base(data, options, serverEndpoint, endpointString)
+        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface, bool serverEndpoint)
+            : base(data, serverEndpoint, Protocol.Ice1)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

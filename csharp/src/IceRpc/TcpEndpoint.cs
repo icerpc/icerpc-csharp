@@ -47,15 +47,16 @@ namespace IceRpc
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
+                var socketOptions = server.ConnectionOptions.SocketOptions!;
                 if (address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, IsIPv6Only);
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
                 }
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(server.ConnectionOptions.SocketOptions!.TcpBackLog);
+                socket.Listen(socketOptions.ListenerBackLog);
             }
             catch (SocketException ex)
             {
@@ -200,22 +201,18 @@ namespace IceRpc
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseTimeout(options, endpointString),
                                    ParseCompress(options, endpointString),
-                                   options,
-                                   serverEndpoint,
-                                   endpointString);
+                                   serverEndpoint);
         }
 
         internal static TcpEndpoint ParseIce2Endpoint(
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> options,
+            Dictionary<string, string> _,
             bool serverEndpoint)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
-                                   options,
-                                   serverEndpoint);
+            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()), serverEndpoint);
         }
 
         protected internal override async Task<Connection> ConnectAsync(
@@ -227,7 +224,7 @@ namespace IceRpc
             // If the endpoint is always secure or a secure connection is required, connect with the SSL client
             // authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsAlwaysSecure || options.PreferNonSecure switch
+            if (IsAlwaysSecure || options.NonSecure switch
             {
                 NonSecure.SameHost => true,    // TODO check if Host is the same host
                 NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
@@ -250,7 +247,7 @@ namespace IceRpc
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            Debug.Assert(connection.CanTrust(options.PreferNonSecure));
+            Debug.Assert(connection.CanTrust(options.NonSecure));
             return connection;
         }
 
@@ -311,25 +308,16 @@ namespace IceRpc
         }
 
         // Constructor for ice1 parsing.
-        private protected TcpEndpoint(
-            EndpointData data,
-            TimeSpan timeout,
-            bool compress,
-            Dictionary<string, string?> options,
-            bool serverEndpoint,
-            string endpointString)
-            : base(data, options, serverEndpoint, endpointString)
+        private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress, bool serverEndpoint)
+            : base(data, serverEndpoint, Protocol.Ice1)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
         }
 
         // Constructor for ice2 parsing.
-        private protected TcpEndpoint(
-            EndpointData data,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
-            : base(data, options, serverEndpoint)
+        private protected TcpEndpoint(EndpointData data, bool serverEndpoint)
+            : base(data, serverEndpoint, Protocol.Ice2)
         {
         }
 
@@ -354,6 +342,11 @@ namespace IceRpc
 
             try
             {
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, options.IsIPv6Only);
+                }
+
                 if (options.SourceAddress is IPAddress sourceAddress)
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
