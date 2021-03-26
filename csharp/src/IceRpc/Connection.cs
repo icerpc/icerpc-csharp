@@ -503,7 +503,7 @@ namespace IceRpc
                 {
                     // Be notified if the peer resets the stream to cancel the dispatch.
                     //
-                    // The error code is ignored here since we can't provide it to the CancelationTokenSource. We
+                    // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
                     // could consider setting the error code into Ice.Current to allow the user to figure out the
                     // reason of the stream reset.
                     stream.Reset += (long errorCode) => cancelSource.Cancel();

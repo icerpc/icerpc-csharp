@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [SetUp]
-        public async Task SetUp()
+        public async Task SetupAsync()
         {
             if (ClientEndpoint.IsDatagram)
             {
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task SingleStreamSocket_CloseAsync_Exception()
+        public async Task SingleStreamSocket_CloseAsync_ExceptionAsync()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveAsync_Cancelation()
+        public void NonDatagramSocket_ReceiveAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<int> receiveTask = ClientSocket.ReceiveAsync(new byte[1], canceled.Token);
@@ -175,7 +175,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NonDatagramSocket_SendAsync_Cancelation()
+        public async Task NonDatagramSocket_SendAsync_CancellationAsync()
         {
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
             ClientSocket.Socket!.SendBufferSize = 4096;
@@ -344,7 +344,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void DatagramSocket_ReceiveDatagramAsync_Cancelation()
+        public void DatagramSocket_ReceiveDatagramAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<(ArraySegment<byte>, EndPoint?)> receiveTask = ClientSocket.ReceiveDatagramAsync(canceled.Token);
@@ -375,7 +375,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void DatagramSocket_SendDatagramAsync_Cancelation()
+        public void DatagramSocket_SendDatagramAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -492,7 +492,7 @@ namespace IceRpc.Tests.Internal
                 => _incomingConnectionCount = incomingConnectionCount;
 
         [SetUp]
-        public async Task SetUp()
+        public async Task SetupAsync()
         {
             _serverSockets.Clear();
             for(int i = 0; i < _incomingConnectionCount; ++i)
