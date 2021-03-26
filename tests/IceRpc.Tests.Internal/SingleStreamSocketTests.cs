@@ -468,10 +468,10 @@ namespace IceRpc.Tests.Internal
         }
     }
 
-    [TestFixture(1, "239.255.1.1")]
-    [TestFixture(1, "\"ff02::1\"")]
-    [TestFixture(5, "239.255.1.1")]
-    [TestFixture(5, "\"ff02::1\"")]
+    [TestFixture(1, false)]
+    [TestFixture(1, true)]
+    [TestFixture(5, false)]
+    [TestFixture(5, true)]
     [Timeout(5000)]
     public class DatagramMulticastTests : SocketBaseTest
     {
@@ -481,15 +481,14 @@ namespace IceRpc.Tests.Internal
         private readonly int _incomingConnectionCount;
         private readonly List<SingleStreamSocket> _serverSockets = new();
 
-        public DatagramMulticastTests(int incomingConnectionCount, string multicastAddress)
+        public DatagramMulticastTests(int incomingConnectionCount, bool ipv6)
             : base(
                 Protocol.Ice1,
                 "udp",
                 secure: false,
-                ipv6: multicastAddress.Contains(":"),
-                clientEndpoint: (host, port) => $"udp -h {multicastAddress} -p {port}" +
-                    (OperatingSystem.IsLinux() ? "" : $" --interface {host}"),
-                serverEndpoint: (host, port) => $"udp -h {multicastAddress} -p {port}")
+                ipv6: ipv6,
+                clientEndpoint: (host, port) => GetEndpoint(host, port, ipv6, outgoing: true),
+                serverEndpoint: (host, port) => GetEndpoint(host, port, ipv6, outgoing: false))
                 => _incomingConnectionCount = incomingConnectionCount;
 
         [SetUp]
@@ -578,6 +577,16 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
+        }
+        private static string GetEndpoint(string host, int port, bool ipv6, bool outgoing)
+        {
+            string address = ipv6 ? (OperatingSystem.IsLinux() ? "\"ff15::1\"" : "\"ff02::1\"") : "239.255.1.1";
+            string endpoint = $"udp -h {address} -p {port}";
+            if (outgoing && !OperatingSystem.IsLinux())
+            {
+                endpoint += $" --interface {host}";
+            }
+            return endpoint;
         }
     }
 
