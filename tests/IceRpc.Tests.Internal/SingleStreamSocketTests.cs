@@ -20,19 +20,40 @@ namespace IceRpc.Tests.Internal
         private SingleStreamSocket? _clientSocket;
         private SingleStreamSocket? _serverSocket;
 
-        public SingleStreamSocketBaseTest(Protocol protocol, string transport, bool secure)
-            : base(protocol, transport, secure)
+        public SingleStreamSocketBaseTest(
+            Protocol protocol,
+            string transport,
+            bool secure,
+            bool ipv6,
+            Action<ConnectionOptions>? clientConnectionOptionsBuilder = null,
+            Action<ConnectionOptions>? serverConnectionOptionsBuilder = null)
+            : base(
+                protocol,
+                transport,
+                secure,
+                ipv6,
+                clientConnectionOptionsBuilder: clientConnectionOptionsBuilder,
+                serverConnectionOptionsBuilder: serverConnectionOptionsBuilder)
         {
         }
 
         [SetUp]
         public async Task SetUp()
         {
-            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
-            ValueTask<SingleStreamSocket> acceptTask = SingleStreamSocket(AcceptAsync());
+            if (ClientEndpoint.IsDatagram)
+            {
+                _serverSocket = ((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying;
+                ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
+                _clientSocket = await connectTask;
+            }
+            else
+            {
+                ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
+                ValueTask<SingleStreamSocket> acceptTask = SingleStreamSocket(AcceptAsync());
 
-            _clientSocket = await connectTask;
-            _serverSocket = await acceptTask;
+                _clientSocket = await connectTask;
+                _serverSocket = await acceptTask;
+            }
 
             static async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
                 (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
@@ -48,17 +69,16 @@ namespace IceRpc.Tests.Internal
 
     // Test the varions single socket implementations. We don't test Ice1 + WS here as it doesn't really
     // provide additional test coverage given that the WS socket has no protocol specific code.
-    [TestFixture(Protocol.Ice2, "tcp", false)]
-    [TestFixture(Protocol.Ice2, "ws", false)]
-    [TestFixture(Protocol.Ice2, "tcp", true)]
-    [TestFixture(Protocol.Ice2, "ws", true)]
-    [TestFixture(Protocol.Ice1, "tcp", false)]
-    [TestFixture(Protocol.Ice1, "ssl", true)]
+    [TestFixture("tcp", false)]
+    [TestFixture("ws", false)]
+    [TestFixture("tcp", true)] // secure
+    [TestFixture("ws", true)] // secure
+    [TestFixture("udp", false)]
     [Timeout(5000)]
     public class SingleStreamSocketTests : SingleStreamSocketBaseTest
     {
-        public SingleStreamSocketTests(Protocol protocol, string transport, bool secure)
-            : base(protocol, transport, secure)
+        public SingleStreamSocketTests(string transport, bool secure)
+            : base(transport == "udp" ? Protocol.Ice1 : Protocol.Ice2, transport, secure, ipv6: false)
         {
         }
 
@@ -101,7 +121,37 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_ReceiveAsync_Cancelation()
+        public void SingleStreamSocket_SendAsync_Dispose()
+        {
+            ClientSocket.Dispose();
+            Assert.CatchAsync<TransportException>(async () => await ClientSocket.SendAsync(OneBSendBuffer, default));
+        }
+
+        [Test]
+        public void SingleStreamSocket_SendAsync_Exception()
+        {
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(
+                async () => await ClientSocket.SendAsync(OneBSendBuffer, canceled.Token));
+        }
+    }
+
+    [TestFixture("tcp", false, false)]
+    [TestFixture("ws", false, false)]
+    [TestFixture("tcp", true, false)] // secure
+    [TestFixture("ws", true, false)] // secure
+    [TestFixture("tcp", false, true)] // ipv6
+    [Timeout(5000)]
+    public class NonDatagramTests : SingleStreamSocketBaseTest
+    {
+        public NonDatagramTests(string transport, bool secure, bool ipv6)
+            : base(Protocol.Ice2, transport, secure, ipv6)
+        {
+        }
+
+        [Test]
+        public void NonDatagramSocket_ReceiveAsync_Cancelation()
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<int> receiveTask = ClientSocket.ReceiveAsync(new byte[1], canceled.Token);
@@ -111,7 +161,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_ReceiveAsync_ConnectionLostException()
+        public void NonDatagramSocket_ReceiveAsync_ConnectionLostException()
         {
             ServerSocket.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
@@ -119,14 +169,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_ReceiveAsync_Dispose()
+        public void NonDatagramSocket_ReceiveAsync_Dispose()
         {
             ClientSocket.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientSocket.ReceiveAsync(new byte[1], default));
         }
 
         [Test]
-        public void SingleStreamSocket_ReceiveAsync_Exception()
+        public void NonDatagramSocket_ReceiveAsync_Exception()
         {
             Assert.ThrowsAsync<ArgumentException>(
                 async () => await ClientSocket.ReceiveAsync(Array.Empty<byte>(), default));
@@ -138,13 +188,13 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_ReceiveDatagramAsync_Exception()
+        public void NonDatagramSocket_ReceiveDatagramAsync_Exception()
         {
             Assert.ThrowsAsync<InvalidOperationException>(async () => await ClientSocket.ReceiveDatagramAsync(default));
         }
 
         [Test]
-        public async Task SingleStreamSocket_SendAsync_Cancelation()
+        public async Task NonDatagramSocket_SendAsync_Cancelation()
         {
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
             ClientSocket.Socket!.SendBufferSize = 4096;
@@ -174,7 +224,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_SendAsync_ConnectionLostException()
+        public void NonDatagramSocket_SendAsync_ConnectionLostException()
         {
             ServerSocket.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
@@ -187,27 +237,11 @@ namespace IceRpc.Tests.Internal
                 });
         }
 
-        [Test]
-        public void SingleStreamSocket_SendAsync_Dispose()
-        {
-            ClientSocket.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ClientSocket.SendAsync(OneBSendBuffer, default));
-        }
-
-        [Test]
-        public void SingleStreamSocket_SendAsync_Exception()
-        {
-            using var canceled = new CancellationTokenSource();
-            canceled.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientSocket.SendAsync(OneBSendBuffer, canceled.Token));
-        }
-
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(16 * 1024)]
         [TestCase(512 * 1024)]
-        public async Task SingleStreamSocket_SendReceiveAsync(int size)
+        public async Task NonDatagramSocket_SendReceiveAsync(int size)
         {
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
 
@@ -231,14 +265,204 @@ namespace IceRpc.Tests.Internal
         }
     }
 
+    // [TestFixture(false)]
+    [TestFixture(true)]
+    [Timeout(5000)]
+    public class DatagramTests : SingleStreamSocketBaseTest
+    {
+        public DatagramTests(bool ipv6)
+            : base(
+                Protocol.Ice1,
+                "udp",
+                secure: false,
+                ipv6,
+                serverConnectionOptionsBuilder: options => (options.SocketOptions ??= new()).IsIPv6Only = true)
+        {
+        }
+
+        [Test]
+        public void DatagramSocket_ReceiveDatagramAsync_Cancelation()
+        {
+            using var canceled = new CancellationTokenSource();
+            ValueTask<ArraySegment<byte>> receiveTask = ClientSocket.ReceiveDatagramAsync(canceled.Token);
+            Assert.IsFalse(receiveTask.IsCompleted);
+            canceled.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
+        }
+
+        [Test]
+        public void DatagramSocket_ReceiveDatagramAsync_Dispose()
+        {
+            ClientSocket.Dispose();
+            Assert.CatchAsync<TransportException>(async () => await ClientSocket.ReceiveDatagramAsync(default));
+        }
+
+        [Test]
+        public void DatagramSocket_ReceiveAsync_Exception()
+        {
+            Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await ClientSocket.ReceiveAsync(new byte[1], default));
+        }
+
+        [Test]
+        public void DatagramSocket_SendAsync_Cancelation()
+        {
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+            var buffer = new List<ArraySegment<byte>>() { new byte[1] };
+            Assert.CatchAsync<OperationCanceledException>(
+                async () => await ClientSocket.SendAsync(buffer, canceled.Token));
+        }
+
+        [TestCase(1)]
+        [TestCase(1024)]
+        [TestCase(4096)]
+        public async Task DatagramSocket_SendReceiveAsync(int size)
+        {
+            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
+            new Random().NextBytes(sendBuffer[0]);
+
+            // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
+            int count = 5;
+            while(count-- > 0)
+            {
+                try
+                {
+                    using var source = new CancellationTokenSource(1000);
+                    ValueTask<int> sendTask = ClientSocket.SendAsync(sendBuffer, default);
+                    ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);
+                    Assert.AreEqual(await sendTask, receiveBuffer.Count);
+                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
+
+        [TestCase(1)]
+        [TestCase(1024)]
+        [TestCase(4096)]
+        public async Task DatagramSocket_SendReceiveBidirAsync(int size)
+        {
+            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
+            new Random().NextBytes(sendBuffer[0]);
+
+            // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
+            int count = 5;
+            while (count-- > 0)
+            {
+                try
+                {
+                    // Send a datagram client to server socket.
+                    using var source = new CancellationTokenSource(1000);
+                    ValueTask<int> sendTask = ClientSocket.SendAsync(sendBuffer, default);
+                    ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);
+                    Assert.AreEqual(await sendTask, receiveBuffer.Count);
+                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
+
+                    // Send back a datagram from server socket to client.
+                    ValueTask<int> sendTask2 = ServerSocket.SendAsync(sendBuffer, default);
+                    receiveBuffer = await ClientSocket.ReceiveDatagramAsync(source.Token);
+                    Assert.AreEqual(await sendTask2, receiveBuffer.Count);
+                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
+    }
+
+    [TestFixture(1, "239.255.1.1")]
+    [TestFixture(1, "\"ff15::1:1\"")]
+    [TestFixture(5, "239.255.1.1")]
+    [TestFixture(5, "\"ff15::1:1\"")]
+    [Timeout(5000)]
+    public class DatagramMulticastTests : SocketBaseTest
+    {
+        protected SingleStreamSocket ClientSocket => _clientSocket!;
+        protected IList<SingleStreamSocket> ServerSockets => _serverSockets;
+        private SingleStreamSocket? _clientSocket;
+        private readonly int _incomingConnectionCount;
+        private readonly List<SingleStreamSocket> _serverSockets = new();
+
+        public DatagramMulticastTests(int incomingConnectionCount, string multicastAddress)
+            : base(
+                Protocol.Ice1,
+                "udp",
+                secure: false,
+                ipv6: multicastAddress.Contains(":"),
+                clientEndpoint: (host, port) => $"udp -h {multicastAddress} -p {port}" +
+                    (OperatingSystem.IsLinux() ? "" : $" --interface {host}"),
+                serverEndpoint: (host, port) => $"udp -h {multicastAddress} -p {port}")
+                => _incomingConnectionCount = incomingConnectionCount;
+
+        [SetUp]
+        public async Task SetUp()
+        {
+            _serverSockets.Clear();
+            for(int i = 0; i < _incomingConnectionCount; ++i)
+            {
+                _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying);
+
+            }
+
+            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
+            _clientSocket = await connectTask;
+
+            static async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
+                (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _clientSocket?.Dispose();
+            _serverSockets.ForEach(socket => socket.Dispose());
+        }
+
+        [TestCase(1)]
+        [TestCase(1024)]
+        [TestCase(4096)]
+        public async Task DatagramMulticastSocket_SendReceiveAsync(int size)
+        {
+            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
+            new Random().NextBytes(sendBuffer[0]);
+
+            // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
+            int count = 5;
+            while (count-- > 0)
+            {
+                try
+                {
+                    using var source = new CancellationTokenSource(1000);
+                    ValueTask<int> sendTask = ClientSocket.SendAsync(sendBuffer, default);
+                    foreach (SingleStreamSocket socket in ServerSockets)
+                    {
+                        ArraySegment<byte> receiveBuffer = await socket.ReceiveDatagramAsync(source.Token);
+                        Assert.AreEqual(await sendTask, receiveBuffer.Count);
+                        Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                    }
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+        }
+    }
+
     // Test graceful close WS implementation. CloseAsync methods are no-ops for TCP/SSL and complete immediately
     // rather than waiting for the peer close notification so we can't test them like we do for WS.
     [TestFixture("ws", false)]
-    [TestFixture("ws", true)]
+    [TestFixture("ws", true)] // secure
     public class WSSocketTests : SingleStreamSocketBaseTest
     {
         public WSSocketTests(string transport, bool secure)
-            : base(Protocol.Ice2, transport, secure)
+            : base(Protocol.Ice2, transport, secure, ipv6: false)
         {
         }
 
@@ -260,6 +484,9 @@ namespace IceRpc.Tests.Internal
         }
     }
 
+    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
+    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the socket to
+    // figure out if the outgoing connection is a secure or non-secure connection).
     [TestFixture(Protocol.Ice2, "tcp", false)]
     [TestFixture(Protocol.Ice2, "tcp", true)]
     [TestFixture(Protocol.Ice2, "ws", false)]
@@ -411,6 +638,9 @@ namespace IceRpc.Tests.Internal
         }
     }
 
+    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
+    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the socket to
+    // figure out if the outgoing connection is a secure or non-secure connection).
     [TestFixture(Protocol.Ice1, "tcp", false)]
     [TestFixture(Protocol.Ice1, "ssl", true)]
     [TestFixture(Protocol.Ice2, "tcp", false)]

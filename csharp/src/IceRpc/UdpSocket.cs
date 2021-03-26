@@ -73,10 +73,7 @@ namespace IceRpc
             int received = 0;
             try
             {
-                // TODO: Workaround for https://github.com/dotnet/corefx/issues/31182
-                if (!_incoming ||
-                    (OperatingSystem.IsMacOS() &&
-                     Socket.AddressFamily == AddressFamily.InterNetworkV6 && Socket.DualMode))
+                if (!_incoming)
                 {
                     received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
@@ -109,7 +106,11 @@ namespace IceRpc
             {
                 // Ignore and return an empty buffer if the datagram is too large.
             }
-            catch (SocketException e)
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
+            }
+            catch (Exception e)
             {
                 if (e.IsConnectionLost())
                 {
@@ -153,6 +154,10 @@ namespace IceRpc
             {
                 // Don't retry if the datagram can't be sent because its too large.
                 throw new TransportException(ex, RetryPolicy.NoRetry);
+            }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
             }
             catch (Exception ex)
             {

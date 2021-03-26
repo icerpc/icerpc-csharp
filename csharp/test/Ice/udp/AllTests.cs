@@ -73,7 +73,7 @@ namespace IceRpc.Test.UDP
                         AcceptNonSecure = NonSecure.Always
                     },
                     Endpoints = helper.GetTestEndpoint(0, "udp", true),
-                    PublishedHost = "127.0.0.1"
+                    PublishedHost = helper.Host
                 });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = server.AddWithUUID(replyI, IPingReplyPrx.Factory)
