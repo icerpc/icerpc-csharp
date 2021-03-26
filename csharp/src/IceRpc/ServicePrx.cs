@@ -31,11 +31,11 @@ namespace IceRpc
         public bool IsOneway { get; }
         public object? Label { get; }
         public ILocationResolver? LocationResolver { get; }
+        public NonSecure NonSecure { get; }
 
         public string Path { get; } = "";
 
         public bool PreferExistingConnection { get; }
-        public NonSecure PreferNonSecure { get; }
         public Protocol Protocol { get; }
 
         ServicePrx IServicePrx.Impl => this;
@@ -128,15 +128,15 @@ namespace IceRpc
             {
                 return false;
             }
+            if (NonSecure != other.NonSecure)
+            {
+                return false;
+            }
             if (Path != other.Path)
             {
                 return false;
             }
             if (PreferExistingConnection != other.PreferExistingConnection)
-            {
-                return false;
-            }
-            if (PreferNonSecure != other.PreferNonSecure)
             {
                 return false;
             }
@@ -198,9 +198,9 @@ namespace IceRpc
                 hash.Add(IsOneway);
                 hash.Add(Label);
                 hash.Add(LocationResolver);
+                hash.Add(NonSecure);
                 hash.Add(Path);
                 hash.Add(PreferExistingConnection);
-                hash.Add(PreferNonSecure);
                 hash.Add(Protocol);
 
                 if (IsFixed)
@@ -459,6 +459,13 @@ namespace IceRpc
                     sb.Append(Uri.EscapeDataString(label));
                 }
 
+                if (NonSecure != NonSecure.Always)
+                {
+                    StartQueryOption(sb, ref firstOption);
+                    sb.Append("non-secure=");
+                    sb.Append(NonSecure.ToString().ToLowerInvariant());
+                }
+
                 if (IsOneway)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -469,13 +476,6 @@ namespace IceRpc
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("prefer-existing-connection=false");
-                }
-
-                if (PreferNonSecure != NonSecure.Always)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("prefer-non-secure=");
-                    sb.Append(PreferNonSecure.ToString().ToLowerInvariant());
                 }
 
                 if (Protocol != Protocol.Ice2) // i.e. > ice2
@@ -554,11 +554,6 @@ namespace IceRpc
                                             nameof(options));
             }
 
-            if (options.InvocationTimeout == TimeSpan.Zero)
-            {
-                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(options));
-            }
-
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
             Context = options.Context.ToImmutableSortedDictionary();
@@ -570,8 +565,8 @@ namespace IceRpc
             IsOneway = options.IsOneway;
             Label = options.Label;
             LocationResolver = options.LocationResolver;
+            NonSecure = options.NonSecure;
             PreferExistingConnection = options.PreferExistingConnection;
-            PreferNonSecure = options.PreferNonSecure;
             Protocol = options.Protocol;
 
             _connection = options.Connection;
@@ -723,9 +718,9 @@ namespace IceRpc
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,
+                    NonSecure = NonSecure,
                     Path = "",
                     PreferExistingConnection = PreferExistingConnection,
-                    PreferNonSecure = PreferNonSecure,
                     Protocol = Protocol.Ice1
                 };
             }
@@ -745,9 +740,9 @@ namespace IceRpc
                     IsOneway = IsOneway,
                     Label = Label,
                     LocationResolver = LocationResolver,
+                    NonSecure = NonSecure,
                     Path = Path,
                     PreferExistingConnection = PreferExistingConnection,
-                    PreferNonSecure = PreferNonSecure,
                     Protocol = Protocol
                 };
             }
@@ -776,7 +771,7 @@ namespace IceRpc
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
                     await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
+                connection = Communicator.GetConnection(endpoints, NonSecure, Label);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -785,7 +780,7 @@ namespace IceRpc
 
             var options = Communicator.ConnectionOptions.Clone();
             options.Label = Label;
-            options.NonSecure = PreferNonSecure;
+            options.NonSecure = NonSecure;
 
             bool refreshCache = false;
 
@@ -863,9 +858,9 @@ namespace IceRpc
                 {
                     properties[$"{prefix}.PreferExistingConnection"] = preferExistingConnection ? "true" : "false";
                 }
-                if (PreferNonSecure is NonSecure preferNonSecure)
+                if (NonSecure is NonSecure nonSecure)
                 {
-                    properties[$"{prefix}.PreferNonSecure"] = preferNonSecure.ToString();
+                    properties[$"{prefix}.NonSecure"] = nonSecure.ToString();
                 }
             }
             // else, only a single property in the dictionary
@@ -919,7 +914,7 @@ namespace IceRpc
                 }
 
                 // With ice1 when secure endpoint is required filter out all non-secure endpoints.
-                if (Protocol == Protocol.Ice1 && PreferNonSecure == NonSecure.Never && !endpoint.IsAlwaysSecure)
+                if (Protocol == Protocol.Ice1 && NonSecure == NonSecure.Never && !endpoint.IsAlwaysSecure)
                 {
                     return false;
                 }
@@ -966,7 +961,7 @@ namespace IceRpc
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, PreferNonSecure, Label);
+                connection = Communicator.GetConnection(endpoints, NonSecure, Label);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -975,7 +970,7 @@ namespace IceRpc
 
             var connectionOptions = Communicator.ConnectionOptions.Clone();
             connectionOptions.Label = Label;
-            connectionOptions.NonSecure = PreferNonSecure;
+            connectionOptions.NonSecure = NonSecure;
 
             ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;

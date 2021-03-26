@@ -69,7 +69,7 @@ namespace IceRpc
                                                    ImmutableList.Create(LocEndpoint.Create(identity)),
                                                    facet: "",
                                                    identity,
-                                                   server.IsDatagramOnly || server.ProxyOptions.IsOneway);
+                                                   oneway: server.IsDatagramOnly || server.ProxyOptions.IsOneway);
             }
             else
             {
@@ -151,9 +151,9 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
             }
 
-            if (istr.ProxyOptions is not ProxyOptions streamProxyOptions)
+            if (istr.ProxyOptions is not ProxyOptions proxyOptions)
             {
-                throw new InvalidOperationException("cannot read a proxy from an InputStream with a no proxy options");
+                throw new InvalidOperationException("cannot read a proxy from an InputStream with no proxy options");
             }
 
             if (istr.Encoding == Encoding.V11)
@@ -296,28 +296,28 @@ namespace IceRpc
                 string facet,
                 Identity identity,
                 InvocationMode invocationMode) =>
-                factory.Create(streamProxyOptions.With(encoding,
-                                                       endpoints,
-                                                       facet,
-                                                       identity,
-                                                       invocationMode != InvocationMode.Twoway));
+                factory.Create(proxyOptions.With(encoding,
+                                                 endpoints,
+                                                 facet,
+                                                 identity,
+                                                 invocationMode != InvocationMode.Twoway));
 
             // Creates an ice2+ proxy
             T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
             {
-                ProxyOptions options = streamProxyOptions.With(encoding, endpoints, path, protocol);
+                ProxyOptions options = proxyOptions.With(encoding, endpoints, path, protocol);
 
                 if (endpoints.Count == 0) // relative proxy
                 {
-                    if (protocol != streamProxyOptions.Protocol)
+                    if (protocol != proxyOptions.Protocol)
                     {
                         throw new InvalidDataException(
                             $"received a relative proxy with invalid protocol {protocol.GetName()}");
                     }
 
-                    options.Connection = streamProxyOptions.Connection;
-                    options.Endpoints = streamProxyOptions.Endpoints;
-                    options.IsFixed = streamProxyOptions.IsFixed;
+                    options.Connection = proxyOptions.Connection;
+                    options.Endpoints = proxyOptions.Endpoints;
+                    options.IsFixed = proxyOptions.IsFixed;
                 }
                 return factory.Create(options);
             }

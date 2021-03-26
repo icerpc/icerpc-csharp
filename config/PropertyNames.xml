@@ -46,7 +46,7 @@ classes:
     <class name="proxy" prefix-only="false">
         <suffix name="EndpointSelection" />
         <suffix name="ConnectionCached" />
-        <suffix name="PreferNonSecure"  />
+        <suffix name="NonSecure"  />
         <suffix name="LocatorCacheTimeout"  />
         <suffix name="Locator"  />
         <suffix name="Router"  />
@@ -67,7 +67,7 @@ This definition is equivalent to the following:
         <property name="Default.Locator" />
         <property name="Default.Locator.EndpointSelection" />
         <property name="Default.Locator.ConnectionCached" />
-        <property name="Default.Locator.PreferNonSecure" />
+        <property name="Default.Locator.NonSecure" />
         <property name="Default.Locator.LocatorCacheTimeout" />
         <property name="Default.Locator.Locator" />
         <property name="Default.Locator.Router" />
@@ -243,7 +243,7 @@ generated from the section label.
         <suffix name="Locator" />
         <suffix name="LocatorCacheTimeout" />
         <suffix name="PreferExistingConnection" />
-        <suffix name="PreferNonSecure" />
+        <suffix name="NonSecure" />
         <suffix name="PreferSecure" /> <!-- TODO: remove -->
         <suffix name="Relative" />
         <suffix name="Router" />
@@ -331,7 +331,7 @@ generated from the section label.
         <property name="Default.InvocationTimeout" />
         <property name="Default.Package" />
         <property name="Default.PreferExistingConnection" />
-        <property name="Default.PreferNonSecure" />
+        <property name="Default.NonSecure" />
         <!-- TODO remove PreferSecure -->
         <property name="Default.PreferSecure" />
         <!-- TODO: remove Default.Protocol -->

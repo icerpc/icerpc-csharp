@@ -31,7 +31,7 @@ namespace IceRpc
 
         public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
 
-        /// <summary>The local options of proxies received in requests or created using thi server. Non-inheritable
+        /// <summary>The local options of proxies received in requests or created using this server. Non-inheritable
         /// options such as Path, Encoding and Endpoints are ignored.</summary>
         public ProxyOptions ProxyOptions { get; set; } = new();
 

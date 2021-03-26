@@ -18,7 +18,7 @@ namespace IceRpc.Test.UDP
         {
             try
             {
-                reply.Clone(preferNonSecure: NonSecure.Always).Reply(cancel: cancel);
+                reply.Clone(nonSecure: NonSecure.Always).Reply(cancel: cancel);
             }
             catch
             {
@@ -30,7 +30,7 @@ namespace IceRpc.Test.UDP
         {
             try
             {
-                reply?.Clone(preferNonSecure: NonSecure.Always).Reply(cancel: cancel);
+                reply?.Clone(nonSecure: NonSecure.Always).Reply(cancel: cancel);
             }
             catch
             {

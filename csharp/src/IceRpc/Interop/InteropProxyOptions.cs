@@ -48,9 +48,9 @@ namespace IceRpc.Interop
                 IsOneway = oneway,
                 Label = options.Label,
                 LocationResolver = options.LocationResolver,
+                NonSecure = options.NonSecure,
                 // Path remains empty
                 PreferExistingConnection = options.PreferExistingConnection,
-                PreferNonSecure = options.PreferNonSecure,
                 Protocol = Protocol.Ice1
             };
     }

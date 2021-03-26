@@ -191,7 +191,11 @@ namespace IceRpc.Tests.Api
             };
 
             await using var server = new Server(communicator,
-                                                new ServerOptions() { ProxyOptions = proxyOptions });
+                                                new ServerOptions()
+                                                {
+                                                    ColocationScope = ColocationScope.Communicator,
+                                                    ProxyOptions = proxyOptions
+                                                });
 
             var proxy = server.Add("foo/bar", new ProxyTest(CheckProxy), IProxyTestPrx.Factory);
             CheckProxy(proxy);

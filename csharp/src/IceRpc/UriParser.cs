@@ -24,8 +24,8 @@ namespace IceRpc
 
             internal bool? IsOneway;
             internal object? Label;
+            internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
-            internal NonSecure? PreferNonSecure;
             internal Protocol? Protocol;
         }
 
@@ -118,7 +118,7 @@ namespace IceRpc
             result.InvocationTimeout = parsedOptions.InvocationTimeout ?? result.InvocationTimeout;
             result.Label = parsedOptions.Label ?? result.Label;
             result.PreferExistingConnection = parsedOptions.PreferExistingConnection ?? result.PreferExistingConnection;
-            result.PreferNonSecure = parsedOptions.PreferNonSecure ?? result.PreferNonSecure;
+            result.NonSecure = parsedOptions.NonSecure ?? result.NonSecure;
 
             return result;
         }
@@ -317,6 +317,15 @@ namespace IceRpc
                     CheckProxyOption(name, proxyOptions.Label != null);
                     proxyOptions.Label = value;
                 }
+                else if (name == "non-secure")
+                {
+                    CheckProxyOption(name, proxyOptions.NonSecure != null);
+                    if (int.TryParse(value, out int _))
+                    {
+                        throw new FormatException($"{value} is not a valid option for non-secure");
+                    }
+                    proxyOptions.NonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
+                }
                 else if (name == "oneway")
                 {
                     CheckProxyOption(name, proxyOptions.IsOneway != null);
@@ -326,15 +335,6 @@ namespace IceRpc
                 {
                     CheckProxyOption(name, proxyOptions.PreferExistingConnection != null);
                     proxyOptions.PreferExistingConnection = bool.Parse(value);
-                }
-                else if (name == "prefer-non-secure")
-                {
-                    CheckProxyOption(name, proxyOptions.PreferNonSecure != null);
-                    if (int.TryParse(value, out int _))
-                    {
-                        throw new FormatException($"{value} is not a valid option for prefer-non-secure");
-                    }
-                    proxyOptions.PreferNonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
                 }
                 else if (name == "protocol")
                 {

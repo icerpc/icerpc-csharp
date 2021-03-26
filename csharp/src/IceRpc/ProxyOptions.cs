@@ -45,7 +45,12 @@ namespace IceRpc
 
         /// <summary>The invocation timeout of the proxy. This property is inherited when unmarshaling a proxy.
         /// </summary>
-        public TimeSpan InvocationTimeout { get; set; } = DefaultInvocationTimeout;
+        public TimeSpan InvocationTimeout
+        {
+            get => _invocationTimeout;
+            set => _invocationTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
+        }
 
         /// <summary>When true, the proxy is a "fixed" proxy bound to its connection. This property is not inherited
         /// when unmarshaling a proxy.</summary>
@@ -61,6 +66,9 @@ namespace IceRpc
         /// <summary>The location resolver of the proxy. This property is inherited when unmarshaling a proxy.</summary>
         public ILocationResolver? LocationResolver { get; set; }
 
+        /// <summary>(temporary). This property is inherited when unmarshaling a proxy.</summary>
+        public NonSecure NonSecure { get; set; } = NonSecure.Always;
+
         /// <summary>The path of the proxy. Its default value is the empty string. This property is not inherited when
         /// unmarshaling a proxy because a marshaled proxy always specifies its path.</summary>
         public string Path { get; set; } = "";
@@ -68,14 +76,12 @@ namespace IceRpc
         /// <summary>(temporary). This property is inherited when unmarshaling a proxy.</summary>
         public bool PreferExistingConnection { get; set; } = true;
 
-        /// <summary>(temporary). This property is inherited when unmarshaling a proxy.</summary>
-        public NonSecure PreferNonSecure { get; set; } = NonSecure.Always;
-
         /// <summary>The protocol of the proxy. Its default value is ice2. This property is not inherited when
         /// unmarshaling a proxy because a marshaled proxy always specifies its protocol.</summary>
         public Protocol Protocol { get; set; } = Protocol.Ice2;
 
         private Encoding? _encoding;
+        private TimeSpan _invocationTimeout = DefaultInvocationTimeout;
 
         public ProxyOptions Clone() => (ProxyOptions)MemberwiseClone();
 
@@ -100,9 +106,9 @@ namespace IceRpc
                 IsOneway = IsOneway,
                 Label = Label,
                 LocationResolver = LocationResolver,
+                NonSecure = NonSecure,
                 Path = path,
                 PreferExistingConnection = PreferExistingConnection,
-                PreferNonSecure = PreferNonSecure,
                 Protocol = protocol
             };
 
@@ -123,9 +129,9 @@ namespace IceRpc
                 IsOneway = IsOneway,
                 Label = Label,
                 LocationResolver = LocationResolver,
+                NonSecure = NonSecure,
                 Path = path,
                 PreferExistingConnection = PreferExistingConnection,
-                PreferNonSecure = PreferNonSecure,
                 Protocol = fixedConnection.Protocol
             };
     }

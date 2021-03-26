@@ -105,7 +105,7 @@ namespace IceRpc
 
         /// <summary>The Communicator associated with this stream. It cannot be null when reading a proxy, class, or
         /// exception.</summary>
-        public Communicator? Communicator { get; }
+        public Communicator? Communicator => ProxyOptions?.Communicator;
 
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
@@ -960,7 +960,6 @@ namespace IceRpc
             ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
-            Communicator = proxyOptions?.Communicator;
             ProxyOptions = proxyOptions;
 
             Pos = 0;

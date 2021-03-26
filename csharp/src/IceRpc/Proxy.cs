@@ -28,11 +28,11 @@ namespace IceRpc
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="locationResolver">The location resolver of the clone (optional).</param>
+        /// <param name="nonSecure">Determines whether the clone establishes a non-secure connection to an endpoint such
+        /// as ice+tcp that supports both secure and non-secure connections (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
-        /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
-        /// connections (optional).</param>
         /// <returns>A new proxy with the same type as this proxy.</returns>
         public static T Clone<T>(
             this T proxy,
@@ -46,9 +46,9 @@ namespace IceRpc
             TimeSpan? invocationTimeout = null,
             object? label = null,
             ILocationResolver? locationResolver = null,
+            NonSecure? nonSecure = null,
             bool? oneway = null,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null) where T : class, IServicePrx
+            bool? preferExistingConnection = null) where T : class, IServicePrx
         {
             if (label != null && clearLabel)
             {
@@ -83,7 +83,7 @@ namespace IceRpc
             options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
             options.PreferExistingConnection = preferExistingConnection ?? options.PreferExistingConnection;
-            options.PreferNonSecure = preferNonSecure ?? options.PreferNonSecure;
+            options.NonSecure = nonSecure ?? options.NonSecure;
 
             ServicePrx clone = impl.Clone(options);
             return clone == impl ? proxy : (clone as T)!;
