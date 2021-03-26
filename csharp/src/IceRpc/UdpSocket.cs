@@ -27,7 +27,6 @@ namespace IceRpc
 
         private readonly EndPoint? _addr;
         private readonly bool _incoming;
-        private EndPoint? _peerAddr;
         private readonly int _rcvSize;
 
         public override ValueTask<SingleStreamSocket> AcceptAsync(
@@ -65,12 +64,16 @@ namespace IceRpc
             }
         }
 
-        public override async ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel)
+        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            throw new InvalidOperationException();
+
+        public override async ValueTask<(ArraySegment<byte>, EndPoint?)> ReceiveDatagramAsync(CancellationToken cancel)
         {
             int packetSize = Math.Min(MaxPacketSize, _rcvSize - UdpOverhead);
             ArraySegment<byte> buffer = new byte[packetSize];
 
             int received = 0;
+            EndPoint? remoteAddress = null;
             try
             {
                 if (!_incoming)
@@ -79,26 +82,22 @@ namespace IceRpc
                 }
                 else
                 {
-                    EndPoint? peerAddr = _peerAddr;
-                    if (peerAddr == null)
+                    if (Socket.AddressFamily == AddressFamily.InterNetwork)
                     {
-                        if (Socket.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            peerAddr = new IPEndPoint(IPAddress.Any, 0);
-                        }
-                        else
-                        {
-                            Debug.Assert(Socket.AddressFamily == AddressFamily.InterNetworkV6);
-                            peerAddr = new IPEndPoint(IPAddress.IPv6Any, 0);
-                        }
+                        remoteAddress = new IPEndPoint(IPAddress.Any, 0);
+                    }
+                    else
+                    {
+                        Debug.Assert(Socket.AddressFamily == AddressFamily.InterNetworkV6);
+                        remoteAddress = new IPEndPoint(IPAddress.IPv6Any, 0);
                     }
 
                     // TODO: Use the cancellable API once https://github.com/dotnet/runtime/issues/33418 is fixed
                     SocketReceiveFromResult result =
                         await Socket.ReceiveFromAsync(buffer,
                                                       SocketFlags.None,
-                                                      peerAddr).WaitAsync(cancel).ConfigureAwait(false);
-                    _peerAddr = result.RemoteEndPoint;
+                                                      remoteAddress).WaitAsync(cancel).ConfigureAwait(false);
+                    remoteAddress = result.RemoteEndPoint;
                     received = result.ReceivedBytes;
                 }
             }
@@ -119,35 +118,37 @@ namespace IceRpc
                 throw new TransportException(e, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
 
-            return buffer.Slice(0, received);
+            return (buffer.Slice(0, received), remoteAddress);
         }
 
-        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException();
 
-        public override async ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel)
+        public override async ValueTask<int> SendDatagramAsync(
+            IList<ArraySegment<byte>> buffer,
+            EndPoint? remoteAddress,
+            CancellationToken cancel)
         {
             int count = buffer.GetByteCount();
 
-            if (_incoming && _peerAddr == null)
+            if (_incoming && remoteAddress == null)
             {
                 throw new TransportException("cannot send datagram to undefined peer", RetryPolicy.NoRetry);
             }
 
             try
             {
-                if (!_incoming)
+                if (_incoming)
                 {
-                    // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                    return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    Debug.Assert(_peerAddr != null);
                     // TODO: Fix to use the cancellable API with 5.0
                     return await Socket.SendToAsync(buffer.GetSegment(0, count),
                                                     SocketFlags.None,
-                                                    _peerAddr).WaitAsync(cancel).ConfigureAwait(false);
+                                                    remoteAddress!).WaitAsync(cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
+                    return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                 }
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
@@ -177,10 +178,6 @@ namespace IceRpc
                 if (_incoming)
                 {
                     sb.Append("local address = " + Network.LocalAddrToString(Network.GetLocalAddress(Socket)));
-                    if (_peerAddr != null)
-                    {
-                        sb.Append($"\nremote address = {_peerAddr}");
-                    }
                 }
                 else
                 {

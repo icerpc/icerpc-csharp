@@ -62,9 +62,6 @@ namespace IceRpc
             // session resumption if we want to allow connection migration.
             _underlying.CloseAsync(exception, cancel);
 
-        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            throw new InvalidOperationException("only supported by datagram transports");
-
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
@@ -96,6 +93,10 @@ namespace IceRpc
             return received;
         }
 
+        public override ValueTask<(ArraySegment<byte>, System.Net.EndPoint?)> ReceiveDatagramAsync(
+            CancellationToken cancel) =>
+            _underlying.ReceiveDatagramAsync(cancel);
+
         public override async ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel)
         {
             try
@@ -122,6 +123,12 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
         }
+
+        public override ValueTask<int> SendDatagramAsync(
+            IList<ArraySegment<byte>> buffer,
+            System.Net.EndPoint? remoteAddress,
+            CancellationToken cancel) =>
+            _underlying.SendDatagramAsync(buffer, remoteAddress, cancel);
 
         public override string ToString() => _underlying.ToString()!;
 

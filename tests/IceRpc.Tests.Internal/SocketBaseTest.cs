@@ -117,8 +117,9 @@ namespace IceRpc.Tests.Internal
                 if (protocol == Protocol.Ice2)
                 {
                     string host = ipv6 ? "[::1]" : "127.0.0.1";
-                    string endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
+                    string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
                     ServerEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
                     ClientEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
                 else
@@ -126,6 +127,7 @@ namespace IceRpc.Tests.Internal
                     string host = ipv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
                     ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
                     ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
             }
@@ -139,6 +141,9 @@ namespace IceRpc.Tests.Internal
             await _server.DisposeAsync();
             _loggerFactory.Dispose();
         }
+
+        static protected async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
+            (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
 
         protected async Task<MultiStreamSocket> AcceptAsync()
         {
