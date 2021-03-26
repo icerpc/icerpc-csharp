@@ -1051,6 +1051,8 @@ namespace IceRpc
                     stream = connection.CreateStream(!oneway);
 
                     // Send the request and wait for the sending to complete.
+                    response?.Dispose();
+                    response = null;
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
                     // The request is sent, notify the progress callback.
@@ -1066,7 +1068,6 @@ namespace IceRpc
                     }
                     sent = true;
                     exception = null;
-                    response?.Dispose();
 
                     if (oneway)
                     {
