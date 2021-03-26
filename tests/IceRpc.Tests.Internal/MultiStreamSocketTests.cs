@@ -763,16 +763,12 @@ namespace IceRpc.Tests.Internal
                         using var source2 = new CancellationTokenSource();
                         source2.CancelAfter(200);
                         ValueTask sendTask = stream.SendRequestFrameAsync(request, source2.Token);
-                        if (sendTask.IsCompleted)
-                        {
-                            requestCount++;
-                            await sendTask;
-                        }
-                        else
-                        {
-                            Assert.CatchAsync<OperationCanceledException>(async () => await sendTask);
-                            break;
-                        }
+                        await sendTask;
+                        requestCount++;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
                     }
                     finally
                     {

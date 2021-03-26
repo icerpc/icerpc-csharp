@@ -57,7 +57,7 @@ namespace IceRpc.Test.UDP
             // Use loopback to prevent other machines to answer.
             if (Host.Contains(":"))
             {
-                endpoint.Append("udp -h \"ff15::1:1\"");
+                endpoint.Append("udp -h \"ff02::1\"");
             }
             else
             {

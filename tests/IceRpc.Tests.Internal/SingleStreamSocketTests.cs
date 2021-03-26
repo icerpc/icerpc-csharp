@@ -515,7 +515,6 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(1)]
         [TestCase(1024)]
-        [TestCase(4096)]
         public async Task DatagramMulticastSocket_SendReceiveAsync(int size)
         {
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };

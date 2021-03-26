@@ -169,7 +169,7 @@ namespace IceRpc.Test.UDP
             // Use loopback to prevent other machines from answering.
             if (helper.Host.Contains(":"))
             {
-                sb.Append("\"ff15::1:1\"");
+                sb.Append("\"ff02::1\"");
             }
             else
             {
