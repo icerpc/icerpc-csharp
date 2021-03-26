@@ -99,9 +99,11 @@ namespace IceRpc
             TransportLogger = options.LoggerFactory.CreateLogger("IceRpc.Transport");
 
             ProxyOptions = options.ProxyOptions.Clone();
+            ProxyOptions.Communicator = communicator;
 
             // When unmarshaling a relative proxy, we create a fixed proxy with no endpoints bound to the "receiving"
-            // connection. Otherwise, IsFixed (Endpoints etc.) are ignored.
+            // connection. For non-relative proxies, IsFixed, Endpoints and all other non-inheritable properties are
+            // ignored.
             ProxyOptions.IsFixed = true;
             ProxyOptions.Endpoints = ImmutableList<Endpoint>.Empty;
 

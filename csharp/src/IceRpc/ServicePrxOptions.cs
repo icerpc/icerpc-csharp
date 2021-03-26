@@ -51,7 +51,7 @@ namespace IceRpc
         public bool IsFixed { get; set; }
 
         /// <summary>When true, a void-returning operation on the proxy is invoked "oneway" even when no oneway metadata
-        /// is specified. This property is not inherited when unmarshaling a proxy.</summary>
+        /// is specified. This property is inherited when unmarshaling a proxy.</summary>
         public bool IsOneway { get; set; }
 
         /// <summary>The label of the proxy. This property is inherited when unmarshaling a proxy.</summary>
@@ -77,5 +77,55 @@ namespace IceRpc
         private Encoding? _encoding;
 
         public ServicePrxOptions Clone() => (ServicePrxOptions)MemberwiseClone();
+
+        /// <summary>Returns a copy of this options instance with all its inheritable properties. Non-inheritable
+        /// properties are set to the value of the corresponding parameters or to their default values.</summary>
+        internal ServicePrxOptions With(
+            Encoding encoding,
+            IReadOnlyList<Endpoint> endpoints,
+            string path,
+            Protocol protocol) =>
+            new()
+            {
+                CacheConnection = CacheConnection,
+                Communicator = Communicator,
+                // Connection remains null
+                Context = Context,
+                Encoding = encoding,
+                Endpoints = endpoints,
+                InvocationInterceptors = InvocationInterceptors,
+                InvocationTimeout = InvocationTimeout,
+                // IsFixed remains false
+                IsOneway = IsOneway,
+                Label = Label,
+                LocationResolver = LocationResolver,
+                Path = path,
+                PreferExistingConnection = PreferExistingConnection,
+                PreferNonSecure = PreferNonSecure,
+                Protocol = protocol
+            };
+
+        /// <summary>Returns a copy of this options instance with all its inheritable properties. Non-inheritable
+        /// properties are set using the supplied connection and path, or to their default values.</summary>
+        internal ServicePrxOptions With(Connection fixedConnection, string path) =>
+            new()
+            {
+                CacheConnection = CacheConnection,
+                Communicator = Communicator,
+                Connection = fixedConnection,
+                Context = Context,
+                Encoding = fixedConnection.Protocol.GetEncoding(),
+                Endpoints = ImmutableList<Endpoint>.Empty,
+                InvocationInterceptors = InvocationInterceptors,
+                InvocationTimeout = InvocationTimeout,
+                IsFixed = true,
+                IsOneway = IsOneway,
+                Label = Label,
+                LocationResolver = LocationResolver,
+                Path = path,
+                PreferExistingConnection = PreferExistingConnection,
+                PreferNonSecure = PreferNonSecure,
+                Protocol = fixedConnection.Protocol
+            };
     }
 }

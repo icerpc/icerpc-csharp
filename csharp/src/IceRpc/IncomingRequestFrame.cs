@@ -146,14 +146,12 @@ namespace IceRpc
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
             }
 
+            ServicePrxOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
+            proxyOptions.Connection = connection;
+
             var istr = new InputStream(Payload.AsReadOnlyMemory(),
                                        Protocol.GetEncoding(),
-                                       proxyOptions: new ServicePrxOptions()
-                                                     {
-                                                        Communicator = connection.Communicator!,
-                                                        Connection = connection,
-                                                        IsFixed = true
-                                                     },
+                                       proxyOptions: proxyOptions,
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the

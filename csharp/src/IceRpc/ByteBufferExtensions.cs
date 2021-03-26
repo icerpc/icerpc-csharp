@@ -230,28 +230,5 @@ namespace IceRpc
         }
 
         internal static void WriteInt(this Span<byte> buffer, int v) => MemoryMarshal.Write(buffer, ref v);
-
-        private static ServicePrxOptions? ComputeOptions(Connection? connection, IServicePrx? proxy)
-        {
-            ServicePrxOptions? options = proxy?.Impl?.GetOptions();
-            if (connection != null)
-            {
-                if (options != null)
-                {
-                    options.Connection = connection;
-                    options.IsFixed = true;
-                }
-                else
-                {
-                    options = new ServicePrxOptions()
-                    {
-                        Communicator = connection.Communicator,
-                        Connection = connection,
-                        IsFixed = true
-                    };
-                }
-            }
-            return options;
-        }
     }
 }
