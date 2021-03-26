@@ -164,7 +164,7 @@ namespace IceRpc.Tests.ClientServer
         {
             private readonly IServicePrx _target;
 
-            ValueTask<OutgoingResponseFrame> IService.DispatchAsync(Current current, CancellationToken cancel)
+            ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
             {
                 current.Context["Forwarded"] = "1";
                 return _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);

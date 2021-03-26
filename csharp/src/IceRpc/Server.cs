@@ -64,10 +64,10 @@ namespace IceRpc
 
         private readonly Dictionary<string, IService> _defaultServiceMap = new();
 
-        private readonly IList<Func<Dispatcher, Dispatcher>> _dispatchInterceptorList =
-            new List<Func<Dispatcher, Dispatcher>>();
+        private readonly IList<Func<IDispatcher, IDispatcher>> _dispatchInterceptorList =
+            new List<Func<IDispatcher, IDispatcher>>();
 
-        private Dispatcher _dispatchPipeline;
+        private IDispatcher _dispatchPipeline;
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
@@ -209,17 +209,17 @@ namespace IceRpc
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
-            _dispatchPipeline = async (current, cancel) =>
-            {
-                Debug.Assert(current.Server == this);
-                IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
-                if (service == null)
+            _dispatchPipeline = new Dispatcher(
+                async (current, cancel) =>
                 {
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
-                }
-
-                return await service.DispatchAsync(current, cancel).ConfigureAwait(false);
-            };
+                    Debug.Assert(current.Server == this);
+                    IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
+                    if (service == null)
+                    {
+                        throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                    }
+                    return await service.DispatchAsync(current, cancel).ConfigureAwait(false);
+                });
         }
 
         /// <summary>Activates this server. After activation, the server can dispatch requests received
@@ -239,7 +239,7 @@ namespace IceRpc
                     throw new InvalidOperationException($"server {Name} already activated");
                 }
 
-                foreach (Func<Dispatcher, Dispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
+                foreach (Func<IDispatcher, IDispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
                 {
                     _dispatchPipeline = dispatchInterceptor(_dispatchPipeline);
                 }
@@ -521,7 +521,7 @@ namespace IceRpc
         /// <summary>Adds a dispatch interceptor to the dispatch pipeline.</summary>
         /// <param name="dispatchInterceptor">The dispatch interceptor to add.</param>
         /// <returns>This server.</returns>
-        public Server Use(Func<Dispatcher, Dispatcher> dispatchInterceptor)
+        public Server Use(Func<IDispatcher, IDispatcher> dispatchInterceptor)
         {
             lock (_mutex)
             {
@@ -543,7 +543,7 @@ namespace IceRpc
         {
             try
             {
-                return await _dispatchPipeline(current, cancel).ConfigureAwait(false);
+                return await _dispatchPipeline.DispatchAsync(current, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

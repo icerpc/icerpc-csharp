@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Api
                 await using var server = new Server(communicator);
                 server.Activate();
                 Assert.Throws<InvalidOperationException>(
-                    () => server.Use(next => async (current, cancel) => await next(current, cancel)));
+                    () => server.Use(async (current, next, cancel) => await next()));
             }
 
             {

@@ -1,15 +1,23 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Represents a server-side request dispatch pipeline element, and also the full pipeline itself.
-    /// </summary>
-    /// <param name="current">The request being dispatched.</param>
-    /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
-    /// </param>
-    /// <returns>The outgoing response frame.</returns>
-    public delegate ValueTask<OutgoingResponseFrame> Dispatcher(Current current, CancellationToken cancel);
+    /// <summary>Implements <see cref="IDispatcher"/> inline using a delegate.</summary>
+    public class Dispatcher : IDispatcher
+    {
+        private readonly Func<Current, CancellationToken, ValueTask<OutgoingResponseFrame>> _function;
+
+        /// <summary>Constructs a dispatcher using a delegate.</summary>
+        /// <param name="function">The delegate used to implement <see cref="IDispatcher.DispatchAsync"/>.</param>
+        public Dispatcher(Func<Current, CancellationToken, ValueTask<OutgoingResponseFrame>> function) =>
+            _function = function;
+
+        /// <inheritdoc/>
+        ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel) =>
+            _function(current, cancel);
+    }
 }

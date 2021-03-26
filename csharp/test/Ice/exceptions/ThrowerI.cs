@@ -11,7 +11,7 @@ namespace IceRpc.Test.Exceptions
     {
         private IServicePrx _target;
 
-        ValueTask<OutgoingResponseFrame> IService.DispatchAsync(
+        ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(
             Current current,
             CancellationToken cancel)
             => _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);

@@ -15,16 +15,7 @@ namespace IceRpc
         public static Server Use(
             this Server server,
             Func<Current, Func<ValueTask<OutgoingResponseFrame>>, CancellationToken, ValueTask<OutgoingResponseFrame>> dispatchInterceptor) =>
-            server.Use(
-                next => (current, cancel) =>
-                {
-                    return dispatchInterceptor(current, SimpleNext, cancel);
-
-                    // Parameterless version of next
-                    ValueTask<OutgoingResponseFrame> SimpleNext()
-                    {
-                        return next(current, cancel);
-                    }
-                });
+            server.Use(next => new Dispatcher(
+                (current, cancel) => dispatchInterceptor(current, () => next.DispatchAsync(current, cancel), cancel)));
     }
 }
