@@ -2,8 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,7 +12,7 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class StructTests : ClientServerBaseTest
+    public class StructTests
     {
         private readonly Communicator _communicator;
         private readonly Server _server;

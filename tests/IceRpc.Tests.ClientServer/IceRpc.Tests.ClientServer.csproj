@@ -7,13 +7,8 @@
     <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
-  <ItemDefinitionGroup>
-    <SliceCompile>
-        <IncludeDirectories>.</IncludeDirectories>
-    </SliceCompile>
-  </ItemDefinitionGroup>
-
   <ItemGroup>
+    <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
     <Compile Include="..\Shared\TestLogger.cs">
       <Link>TestLogger.cs</Link>
     </Compile>

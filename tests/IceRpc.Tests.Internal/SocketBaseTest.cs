@@ -52,8 +52,8 @@ namespace IceRpc.Tests.Internal
             _loggerFactory = LoggerFactory.Create(
                 builder =>
                 {
-                    builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
-                    // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+                    //builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
+                    builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.AddJsonConsole(configure =>
                     // {
                     //     configure.IncludeScopes = true;

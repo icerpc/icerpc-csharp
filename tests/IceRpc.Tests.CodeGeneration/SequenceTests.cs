@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class SequenceTests : ClientServerBaseTest
+    public class SequenceTests
     {
         private readonly Communicator _communicator;
         private readonly Server _server;

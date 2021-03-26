@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class DictionaryTests : ClientServerBaseTest
+    public class DictionaryTests
     {
         private readonly Communicator _communicator;
         private readonly Server _server;
