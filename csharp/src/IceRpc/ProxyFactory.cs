@@ -108,12 +108,14 @@ namespace IceRpc
             return factory.Create(options);
         }
 
-        /// <summary>Creates a proxy from a string and a communicator.</summary>
-        public static T Parse<T>(
-            this IProxyFactory<T> factory,
-            string s,
-            Communicator communicator,
-            string? propertyPrefix = null) where T : class, IServicePrx
+        // Temporary adapter
+        public static T Parse<T>(this IProxyFactory<T> factory, string s, Communicator communicator)
+            where T : class, IServicePrx =>
+            Parse(factory, s, new ProxyOptions() { Communicator = communicator });
+
+        /// <summary>Creates a proxy from a string and proxy options.</summary>
+        public static T Parse<T>(this IProxyFactory<T> factory, string s, ProxyOptions proxyOptions)
+            where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
@@ -121,37 +123,8 @@ namespace IceRpc
                 throw new FormatException("empty string is invalid");
             }
 
-            if (UriParser.IsProxyUri(proxyString))
-            {
-                return factory.Create(UriParser.ParseProxy(proxyString, communicator));
-            }
-            else
-            {
-                InteropProxyOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
-                Debug.Assert(options.Endpoints.Any());
-
-                // Override the defaults with the proxy properties if a property prefix is defined.
-                if (propertyPrefix != null && propertyPrefix.Length > 0)
-                {
-                    options.CacheConnection =
-                        communicator.GetPropertyAsBool($"{propertyPrefix}.CacheConnection") ?? true;
-
-                    string property = $"{propertyPrefix}.Context.";
-                    options.Context = communicator.GetProperties(forPrefix: property).
-                        ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
-
-                    options.InvocationTimeout =
-                        communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout") ??
-                            ProxyOptions.DefaultInvocationTimeout;
-
-                    options.Label = communicator.GetProperty($"{propertyPrefix}.Label");
-                    options.PreferNonSecure =
-                        communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure") ??
-                            NonSecure.Always;
-                }
-
-                return factory.Create(options);
-            }
+            return factory.Create(UriParser.IsProxyUri(proxyString) ?
+                UriParser.ParseProxy(proxyString, proxyOptions) : Ice1Parser.ParseProxy(proxyString, proxyOptions));
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>

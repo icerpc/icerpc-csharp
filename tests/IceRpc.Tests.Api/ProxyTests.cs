@@ -392,6 +392,40 @@ namespace IceRpc.Tests.Api
                             prx.Clone(fixedConnection: connection).WithPath<IGreeterServicePrx>("fixed").ToString());
         }
 
+        [TestCase("ice+tcp://host/test")]
+        [TestCase("ice:test")]
+        [TestCase("test:tcp -h host -p 10000")]
+        [TestCase("test @ adapt")]
+        public async Task Proxy_ParseWithOptions(string proxyString)
+        {
+            await using var communicator = new Communicator();
+            var proxyOptions = new ProxyOptions() { Communicator = communicator };
+
+            var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
+            Assert.IsTrue(proxy.CacheConnection);
+            Assert.IsFalse(proxy.IsOneway);
+            Assert.AreEqual(proxy.InvocationTimeout, ProxyOptions.DefaultInvocationTimeout);
+            CollectionAssert.IsEmpty(proxy.Context);
+
+            proxyOptions.CacheConnection = false;
+            proxyOptions.Context = new Dictionary<string, string>()
+            {
+                ["c1"] = "TEST1",
+                ["c2"] = "TEST2"
+            };
+            proxyOptions.InvocationTimeout = TimeSpan.FromSeconds(1);
+            proxyOptions.IsOneway = true;
+
+            proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
+            proxyOptions.Context = ImmutableSortedDictionary<string, string>.Empty;
+
+            Assert.IsFalse(proxy.CacheConnection);
+            Assert.IsTrue(proxy.IsOneway);
+            Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(1));
+            Assert.AreEqual(proxy.Context["c1"], "TEST1");
+            Assert.AreEqual(proxy.Context["c2"], "TEST2");
+        }
+
         [Test]
         public async Task Proxy_PropertyAsProxy()
         {
@@ -403,32 +437,6 @@ namespace IceRpc.Tests.Api
             communicator.SetProperty(propertyPrefix, proxyString);
             var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             Assert.AreEqual(prx.Path, "/test");
-
-            Assert.IsTrue(prx.CacheConnection);
-            communicator.SetProperty($"{propertyPrefix}.CacheConnection", "0");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.RemoveProperty($"{propertyPrefix}.CacheConnection");
-            Assert.IsFalse(prx.CacheConnection);
-
-            Assert.IsFalse(prx.Context.ContainsKey("c1"));
-            communicator.SetProperty($"{propertyPrefix}.Context.c1", "TEST1");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual(prx.Context["c1"], "TEST1");
-
-            Assert.IsFalse(prx.Context.ContainsKey("c2"));
-            communicator.SetProperty($"{propertyPrefix}.Context.c2", "TEST2");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual(prx.Context["c2"], "TEST2");
-
-            communicator.SetProperty($"{propertyPrefix}.Context.c1", "");
-            communicator.SetProperty($"{propertyPrefix}.Context.c2", "");
-
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
-
-            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "1s");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
         }
 
         [Test]

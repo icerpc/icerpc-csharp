@@ -108,17 +108,12 @@ namespace IceRpc
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
         /// <param name="s">The string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
+        /// <param name="proxyOptions">The proxy options.</param>
         /// <returns>The corresponding (interop) service proxy options.</returns>
-        internal static InteropProxyOptions ParseProxy(string s, Communicator communicator)
+        internal static InteropProxyOptions ParseProxy(string s, ProxyOptions proxyOptions)
         {
             // TODO: rework this implementation
-
-            var result = new InteropProxyOptions()
-            {
-                Communicator = communicator,
-                Encoding = Ice1Definitions.Encoding
-            };
+            Communicator communicator = proxyOptions.Communicator!;
 
             int beg = 0;
             int end = 0;
@@ -153,8 +148,12 @@ namespace IceRpc
                 throw new FormatException($"no identity in `{s}'");
             }
 
-            // Parsing the identity may raise FormatException.
-            result.Identity = Identity.Parse(identityString);
+            // Parsing the identity may throw FormatException.
+            InteropProxyOptions result = proxyOptions.With(Ice1Definitions.Encoding,
+                                                           ImmutableList<Endpoint>.Empty,
+                                                           facet: "",
+                                                           identity: Identity.Parse(identityString),
+                                                           oneway: proxyOptions.IsOneway);
 
             while (true)
             {

@@ -181,7 +181,7 @@ namespace IceRpc
             {
                 try
                 {
-                    return factory.Parse(value, communicator, name);
+                    return factory.Parse(value, communicator);
                 }
                 catch (FormatException ex)
                 {

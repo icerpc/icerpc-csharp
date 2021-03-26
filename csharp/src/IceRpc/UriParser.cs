@@ -97,31 +97,30 @@ namespace IceRpc
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
-        /// <returns>A service proxy options instance.</returns>
-        internal static ProxyOptions ParseProxy(string uriString, Communicator communicator)
+        /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
+        /// <returns>A new proxy options instance.</returns>
+        internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
-                Parse(uriString, serverEndpoints: false, communicator);
+                Parse(uriString, serverEndpoints: false, proxyOptions.Communicator!);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            return new()
-            {
-                CacheConnection = parsedOptions.CacheConnection ?? true,
-                Communicator = communicator,
-                Context = parsedOptions.Context?.ToImmutableSortedDictionary() ??
-                    ImmutableSortedDictionary<string, string>.Empty,
-                Encoding = parsedOptions.Encoding ?? Encoding.V20,
-                Endpoints = endpoints,
-                InvocationTimeout = parsedOptions.InvocationTimeout ?? ProxyOptions.DefaultInvocationTimeout,
-                IsOneway = parsedOptions.IsOneway ?? false,
-                Label = parsedOptions.Label,
-                Path = uri.AbsolutePath,
-                PreferExistingConnection = parsedOptions.PreferExistingConnection ?? true,
-                PreferNonSecure = parsedOptions.PreferNonSecure ?? NonSecure.Always,
-                Protocol = parsedOptions.Protocol ?? Protocol.Ice2
-            };
+            ProxyOptions result = proxyOptions.With(parsedOptions.Encoding ?? Encoding.V20,
+                                                    endpoints,
+                                                    uri.AbsolutePath,
+                                                    parsedOptions.Protocol ?? Protocol.Ice2);
+
+            // Also update other properties from parsed options
+            result.CacheConnection = parsedOptions.CacheConnection ?? result.CacheConnection;
+            result.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? result.Context;
+            result.IsOneway = parsedOptions.IsOneway ?? result.IsOneway;
+            result.InvocationTimeout = parsedOptions.InvocationTimeout ?? result.InvocationTimeout;
+            result.Label = parsedOptions.Label ?? result.Label;
+            result.PreferExistingConnection = parsedOptions.PreferExistingConnection ?? result.PreferExistingConnection;
+            result.PreferNonSecure = parsedOptions.PreferNonSecure ?? result.PreferNonSecure;
+
+            return result;
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
