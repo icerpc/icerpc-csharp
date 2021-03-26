@@ -2,6 +2,8 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
@@ -172,6 +174,54 @@ namespace IceRpc.Tests.Api
             }
         }
 
+        [Test]
+        public async Task Server_ProxyOptionsAsync()
+        {
+            await using var communicator = new Communicator();
+
+            var proxyOptions = new ProxyOptions()
+            {
+                CacheConnection = false,
+                // no need to set Communicator
+                Context = new Dictionary<string, string>() { ["speed"] = "fast" },
+                InvocationTimeout = TimeSpan.FromSeconds(10),
+                IsFixed = true, // ignored
+                IsOneway = true,
+                Path = "xxxxxxx" // ignored
+            };
+
+            await using var server = new Server(communicator,
+                                                new ServerOptions() { ProxyOptions = proxyOptions });
+
+            var proxy = server.Add("foo/bar", new ProxyTest(CheckProxy), IProxyTestPrx.Factory);
+            CheckProxy(proxy);
+
+            // change some properties
+            proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
+
+            server.Activate();
+            await proxy.SendProxyAsync(proxy); // the service executes CheckProxy on the received proxy
+
+            IProxyTestPrx received = await proxy.ReceiveProxyAsync();
+
+            // received inherits the proxy properties not the server options
+            Assert.AreEqual(received.CacheConnection, proxy.CacheConnection);
+            CollectionAssert.IsEmpty(received.Context);
+            Assert.AreEqual(received.InvocationTimeout, proxy.InvocationTimeout);
+            Assert.IsFalse(received.IsFixed);
+            Assert.AreEqual(received.IsOneway, proxy.IsOneway);
+
+            static void CheckProxy(IProxyTestPrx proxy)
+            {
+                Assert.IsFalse(proxy.CacheConnection);
+                Assert.AreEqual(proxy.Context["speed"], "fast");
+                Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(10));
+                Assert.IsFalse(proxy.IsFixed);
+                Assert.IsTrue(proxy.IsOneway);
+                Assert.AreEqual(proxy.Path, "/foo/bar");
+            }
+        }
+
         [TestCase("tcp -h localhost -p 12345 -t 30000")]
         [TestCase("ice+tcp://localhost:12345")]
         public async Task Server_PublishedEndpoints(string endpoint)
@@ -192,6 +242,22 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             Assert.Throws<FormatException>(
                 () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
+        }
+
+        private class ProxyTest : IAsyncProxyTest
+        {
+            private Action<IProxyTestPrx> _checkProxy;
+
+            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
+            {
+                _checkProxy(proxy);
+                return default;
+            }
+
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
+                new(IProxyTestPrx.Factory.Create(current.Server, current.Path));
+
+            internal ProxyTest(Action<IProxyTestPrx> checkProxy) => _checkProxy = checkProxy;
         }
     }
 }
