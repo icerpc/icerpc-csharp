@@ -178,7 +178,7 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
             }
 
-            if (istr.ProxyOptions is not ProxyOptions proxyOptions)
+            if (istr.ProxyOptions is not ProxyOptions streamProxyOptions)
             {
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a no proxy options");
             }
@@ -322,33 +322,29 @@ namespace IceRpc
                 IReadOnlyList<Endpoint> endpoints,
                 string facet,
                 Identity identity,
-                InvocationMode invocationMode)
-            {
-                InteropProxyOptions options = proxyOptions.With(encoding,
-                                                                endpoints,
-                                                                facet,
-                                                                identity,
-                                                                invocationMode != InvocationMode.Twoway);
-                return factory.Create(options);
-            }
+                InvocationMode invocationMode) =>
+                factory.Create(streamProxyOptions.With(encoding,
+                                                       endpoints,
+                                                       facet,
+                                                       identity,
+                                                       invocationMode != InvocationMode.Twoway));
 
             // Creates an ice2+ proxy
             T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
             {
-                ProxyOptions options = proxyOptions.With(encoding, endpoints, path, protocol);
+                ProxyOptions options = streamProxyOptions.With(encoding, endpoints, path, protocol);
 
                 if (endpoints.Count == 0) // relative proxy
                 {
-                    if (protocol != proxyOptions.Protocol)
+                    if (protocol != streamProxyOptions.Protocol)
                     {
                         throw new InvalidDataException(
                             $"received a relative proxy with invalid protocol {protocol.GetName()}");
                     }
 
-                    options.Connection = proxyOptions.Connection;
-                    options.Endpoints = proxyOptions.Endpoints;
-                    options.IsFixed = proxyOptions.IsFixed;
-
+                    options.Connection = streamProxyOptions.Connection;
+                    options.Endpoints = streamProxyOptions.Endpoints;
+                    options.IsFixed = streamProxyOptions.IsFixed;
                 }
                 return factory.Create(options);
             }
