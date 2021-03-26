@@ -128,7 +128,7 @@ namespace IceRpc
             else
             {
                 InteropProxyOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
-                Debug.Assert(options.Endpoints.Count > 0);
+                Debug.Assert(options.Endpoints.Any());
 
                 // Override the defaults with the proxy properties if a property prefix is defined.
                 if (propertyPrefix != null && propertyPrefix.Length > 0)
@@ -319,7 +319,7 @@ namespace IceRpc
             // Creates an ice1 proxy
             T CreateIce1Proxy(
                 Encoding encoding,
-                IReadOnlyList<Endpoint> endpoints,
+                IEnumerable<Endpoint> endpoints,
                 string facet,
                 Identity identity,
                 InvocationMode invocationMode) =>

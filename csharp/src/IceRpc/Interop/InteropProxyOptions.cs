@@ -28,7 +28,7 @@ namespace IceRpc.Interop
         internal static InteropProxyOptions With(
             this ProxyOptions options,
             Encoding encoding,
-            IReadOnlyList<Endpoint> endpoints,
+            IEnumerable<Endpoint> endpoints,
             string facet,
             Identity identity,
             bool oneway) =>

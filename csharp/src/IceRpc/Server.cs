@@ -27,7 +27,7 @@ namespace IceRpc
         /// <summary>Returns the endpoints this server is listening on.</summary>
         /// <value>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
         /// actual port selected by the operating system.</value>
-        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
+        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
@@ -168,7 +168,7 @@ namespace IceRpc
                         new AcceptorIncomingConnectionFactory(this, endpoint)));
 
                 // Replace Endpoints using the factories.
-                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableArray();
+                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableList();
             }
             else
             {
@@ -195,7 +195,7 @@ namespace IceRpc
                 }
 
                 PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
-                    Distinct().ToImmutableArray();
+                    Distinct().ToImmutableList();
             }
 
             if (ColocationScope != ColocationScope.None)

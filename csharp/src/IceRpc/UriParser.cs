@@ -393,7 +393,7 @@ namespace IceRpc
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
-        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ProxyOptions) Parse(
+        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(
             string uriString,
             bool serverEndpoints,
             Communicator communicator)
@@ -410,10 +410,10 @@ namespace IceRpc
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
-                (Uri uri, string? altEndpoint, ParsedOptions proxyOptions) =
+                (Uri uri, string? altEndpoint, ParsedOptions parsedOptions) =
                     InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
 
-                Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
+                Protocol protocol = parsedOptions.Protocol ?? Protocol.Ice2;
 
                 List<Endpoint>? endpoints = null;
 
@@ -465,7 +465,7 @@ namespace IceRpc
                         }
                     }
                 }
-                return (uri, (IReadOnlyList<Endpoint>?)endpoints ?? ImmutableArray<Endpoint>.Empty, proxyOptions);
+                return (uri, endpoints?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty, parsedOptions);
             }
             catch (Exception ex)
             {

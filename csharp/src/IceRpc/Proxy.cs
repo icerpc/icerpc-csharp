@@ -66,26 +66,23 @@ namespace IceRpc
             options.Connection = options.IsFixed ? (fixedConnection ?? options.Connection) :
                 (endpoints == null && locationResolver == null ? options.Connection : null);
 
-            options.Context = context?.ToImmutableDictionary() ?? options.Context;
+            options.Context = context ?? options.Context;
             options.Encoding = encoding ?? options.Encoding;
 
             if (options.IsFixed && endpoints != null)
             {
-                throw new ArgumentException($"cannot set endpoints on a fixed proxy", nameof(options));
+                throw new ArgumentException("cannot set endpoints on a fixed proxy", nameof(options));
             }
 
-            options.Endpoints = options.IsFixed ?
-                ImmutableList<Endpoint>.Empty : (endpoints?.ToImmutableList() ?? options.Endpoints);
+            options.Endpoints = options.IsFixed ? ImmutableList<Endpoint>.Empty : (endpoints ?? options.Endpoints);
 
-            options.InvocationInterceptors =
-                invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
+            options.InvocationInterceptors = invocationInterceptors ?? options.InvocationInterceptors;
             options.InvocationTimeout = invocationTimeout ?? options.InvocationTimeout;
 
             options.IsOneway = oneway ?? options.IsOneway;
             options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
-            options.PreferExistingConnection =
-                preferExistingConnection ?? options.PreferExistingConnection;
+            options.PreferExistingConnection = preferExistingConnection ?? options.PreferExistingConnection;
             options.PreferNonSecure = preferNonSecure ?? options.PreferNonSecure;
 
             ServicePrx clone = impl.Clone(options);

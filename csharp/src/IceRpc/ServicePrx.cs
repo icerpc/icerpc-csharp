@@ -517,11 +517,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs a new proxy class instance with the specified options. All dictionaries / lists must be
-        /// safe to reference as-is since they are not copied by this constructor.</summary>
+        /// <summary>Constructs a new proxy class instance with the specified options.</summary>
         protected internal ServicePrx(ProxyOptions options)
         {
-            int endpointCount = options.Endpoints.Count;
+            ImmutableList<Endpoint> endpoints = options.Endpoints.ToImmutableList();
+            int endpointCount = endpoints.Count;
 
             if (options.IsFixed)
             {
@@ -561,10 +561,10 @@ namespace IceRpc
 
             CacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
-            Context = options.Context;
+            Context = options.Context.ToImmutableSortedDictionary();
             Encoding = options.Encoding;
-            Endpoints = options.Endpoints;
-            InvocationInterceptors = options.InvocationInterceptors;
+            Endpoints = endpoints;
+            InvocationInterceptors = options.InvocationInterceptors.ToImmutableList();
             InvocationTimeout = options.InvocationTimeout;
             IsFixed = options.IsFixed;
             IsOneway = options.IsOneway;
@@ -891,7 +891,7 @@ namespace IceRpc
                 return new List<Endpoint>() { colocatedEndpoint };
             }
 
-            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
 
             // Get the proxy's endpoint or query the location resolver to get endpoints.
 

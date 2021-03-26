@@ -23,7 +23,8 @@ namespace IceRpc
         public Connection? Connection { get; set; }
 
         /// <summary>The context of the proxy. This property is inherited when unmarshaling a proxy.</summary>
-        public IReadOnlyDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
+        public IReadOnlyDictionary<string, string> Context { get; set; } =
+            ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>The encoding of the proxy. Its default value is the encoding of <see cref="Protocol"/>. This
         /// property is not inherited when unmarshaling a proxy because a marshaled proxy always specifies its
@@ -35,11 +36,11 @@ namespace IceRpc
         }
 
         /// <summary>The endpoints of the proxy. This property is not inherited when unmarshaling a proxy.</summary>
-        public IReadOnlyList<Endpoint> Endpoints { get; set; } = ImmutableList<Endpoint>.Empty;
+        public IEnumerable<Endpoint> Endpoints { get; set; } = ImmutableList<Endpoint>.Empty;
 
         /// <summary>The invocation interceptors of the proxy. This property is inherited when unmarshaling a proxy.
         /// </summary>
-        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; set; } =
+        public IEnumerable<InvocationInterceptor> InvocationInterceptors { get; set; } =
             ImmutableList<InvocationInterceptor>.Empty;
 
         /// <summary>The invocation timeout of the proxy. This property is inherited when unmarshaling a proxy.
@@ -82,7 +83,7 @@ namespace IceRpc
         /// properties are set to the value of the corresponding parameters or to their default values.</summary>
         internal ProxyOptions With(
             Encoding encoding,
-            IReadOnlyList<Endpoint> endpoints,
+            IEnumerable<Endpoint> endpoints,
             string path,
             Protocol protocol) =>
             new()
