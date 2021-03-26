@@ -57,33 +57,31 @@ namespace IceRpc
                 server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
 
             IReadOnlyList<Endpoint> endpoints = server.PublishedEndpoints;
+
+            ProxyOptions options;
+
             if (protocol == Protocol.Ice1 && endpoints.Count == 0)
             {
                 // Well-known proxy.
                 var identity = Identity.FromPath(path);
 
-                var options = server.ProxyOptions.With(server.Protocol.GetEncoding(),
-                                                       ImmutableList.Create(LocEndpoint.Create(identity)),
-                                                       facet: "",
-                                                       identity,
-                                                       server.IsDatagramOnly || server.ProxyOptions.IsOneway);
-                return factory.Create(options);
+                options = server.ProxyOptions.With(protocol.GetEncoding(),
+                                                   ImmutableList.Create(LocEndpoint.Create(identity)),
+                                                   facet: "",
+                                                   identity,
+                                                   server.IsDatagramOnly || server.ProxyOptions.IsOneway);
             }
             else
             {
-                var options = server.ProxyOptions.With(server.Protocol.GetEncoding(),
-                                                       endpoints,
-                                                       path,
-                                                       server.Protocol);
+                options = server.ProxyOptions.With(protocol.GetEncoding(), endpoints, path, protocol);
 
                 if (server.IsDatagramOnly)
                 {
                     options.IsOneway = true;
                 }
                 // else keep inherited value for IsOneway
-
-                return factory.Create(options);
             }
+            return factory.Create(options);
         }
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
@@ -96,12 +94,12 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            if (!(connection.Server is Server server))
+            if (connection.Server is not Server server)
             {
                 throw new InvalidOperationException("cannot create a fixed proxy using a connection without a server");
             }
 
-            var options = server.ProxyOptions.With(connection, path);
+            ProxyOptions options = server.ProxyOptions.With(connection, path);
             if (connection.Endpoint.IsDatagram)
             {
                 options.IsOneway = true;
@@ -180,7 +178,7 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
             }
 
-            if (!(istr.ProxyOptions is ProxyOptions proxyOptions))
+            if (istr.ProxyOptions is not ProxyOptions proxyOptions)
             {
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a no proxy options");
             }
@@ -326,18 +324,18 @@ namespace IceRpc
                 Identity identity,
                 InvocationMode invocationMode)
             {
-                var options = proxyOptions.With(encoding,
-                                                endpoints,
-                                                facet,
-                                                identity,
-                                                invocationMode != InvocationMode.Twoway);
+                InteropProxyOptions options = proxyOptions.With(encoding,
+                                                                endpoints,
+                                                                facet,
+                                                                identity,
+                                                                invocationMode != InvocationMode.Twoway);
                 return factory.Create(options);
             }
 
             // Creates an ice2+ proxy
             T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
             {
-                var options = proxyOptions.With(encoding, endpoints, path, protocol);
+                ProxyOptions options = proxyOptions.With(encoding, endpoints, path, protocol);
 
                 if (endpoints.Count == 0) // relative proxy
                 {

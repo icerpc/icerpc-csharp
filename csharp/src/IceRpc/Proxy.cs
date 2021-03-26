@@ -56,7 +56,7 @@ namespace IceRpc
             }
 
             ServicePrx impl = proxy.Impl;
-            var options = impl.GetOptions();
+            ProxyOptions options = impl.GetOptions();
 
             options.CacheConnection = cacheConnection ?? options.CacheConnection;
 
@@ -204,11 +204,11 @@ namespace IceRpc
                 {
                     interopOptions.Identity = Identity.Empty;
 
-                    if (proxy.Impl.IsWellKnown)
+                    if (proxy.Impl.IsWellKnown) // well-known implies not fixed
                     {
                         // Need to replace Loc endpoint since we're changing the identity.
                         options.Endpoints = ImmutableList.Create(LocEndpoint.Create(Identity.FromPath(path)));
-                        options.Connection = null; // clear cached connection
+                        options.Connection = null; // clear cached connection since we're changing the endpoint
                     }
                 }
 
