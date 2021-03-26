@@ -415,14 +415,12 @@ namespace IceRpc
 
                 Protocol protocol = parsedOptions.Protocol ?? Protocol.Ice2;
 
-                List<Endpoint>? endpoints = null;
+                var endpoints = ImmutableList<Endpoint>.Empty;
 
                 if (endpointOptions != null) // i.e. not ice scheme
                 {
-                    endpoints = new List<Endpoint>
-                    {
-                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri)
-                    };
+                    endpoints = ImmutableList.Create(
+                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri));
 
                     if (altEndpoint != null)
                     {
@@ -457,15 +455,15 @@ namespace IceRpc
                                     $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
                             }
 
-                            endpoints.Add(CreateEndpoint(communicator,
-                                                         serverEndpoints,
-                                                         endpointOptions,
-                                                         protocol,
-                                                         endpointUri));
+                            endpoints = endpoints.Add(CreateEndpoint(communicator,
+                                                                     serverEndpoints,
+                                                                     endpointOptions,
+                                                                     protocol,
+                                                                     endpointUri));
                         }
                     }
                 }
-                return (uri, endpoints?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty, parsedOptions);
+                return (uri, endpoints, parsedOptions);
             }
             catch (Exception ex)
             {
