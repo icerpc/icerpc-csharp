@@ -802,7 +802,7 @@ namespace IceRpc
 
             var options = Communicator.ConnectionOptions.Clone();
             options.Label = Label;
-            options.PreferNonSecure = PreferNonSecure;
+            options.NonSecure = PreferNonSecure;
 
             bool refreshCache = false;
 
@@ -992,7 +992,7 @@ namespace IceRpc
 
             var connectionOptions = Communicator.ConnectionOptions.Clone();
             connectionOptions.Label = Label;
-            connectionOptions.PreferNonSecure = PreferNonSecure;
+            connectionOptions.NonSecure = PreferNonSecure;
 
             ILogger protocolLogger = Communicator.ProtocolLogger;
             int nextEndpoint = 0;
@@ -1002,8 +1002,8 @@ namespace IceRpc
             IncomingResponseFrame? response = null;
             Exception? exception = null;
 
-            bool tryAgain;
-            bool refreshCache = false;
+            bool tryAgain = false;
+
             do
             {
                 bool sent = false;
@@ -1015,8 +1015,10 @@ namespace IceRpc
                         if (endpoints == null)
                         {
                             Debug.Assert(nextEndpoint == 0);
+
                             // ComputeEndpointsAsync throws if it can't figure out the endpoints
-                            endpoints = await ComputeEndpointsAsync(refreshCache,
+                            // We also request fresh endpoints when retrying, but not for the first attempt.
+                            endpoints = await ComputeEndpointsAsync(refreshCache: tryAgain,
                                                                     oneway,
                                                                     cancel).ConfigureAwait(false);
                             if (excludedEndpoints != null)
@@ -1049,6 +1051,8 @@ namespace IceRpc
                     stream = connection.CreateStream(!oneway);
 
                     // Send the request and wait for the sending to complete.
+                    response?.Dispose();
+                    response = null;
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
                     // The request is sent, notify the progress callback.
@@ -1064,7 +1068,6 @@ namespace IceRpc
                     }
                     sent = true;
                     exception = null;
-                    response?.Dispose();
 
                     if (oneway)
                     {
@@ -1089,11 +1092,11 @@ namespace IceRpc
                     }
                     observer?.RemoteException();
                 }
-                catch (NoEndpointException ex) when (refreshCache)
+                catch (NoEndpointException ex) when (tryAgain)
                 {
-                    // If we get NoEndpointException while using fresh endpoints, either all endpoints
-                    // have been excluded or the proxy has no endpoints. we cannot retry, return here to
-                    // preserve any previous exceptions that might have been throw.
+                    // If we get NoEndpointException while retrying, either all endpoints have been excluded or the
+                    // proxy has no endpoints. So we cannot retry, and we return here to preserve any previous
+                    // exception that might have been thrown.
                     observer?.Failed(ex.GetType().FullName ?? "System.Exception"); // TODO cleanup observer logic
                     return response ?? throw exception ?? ex;
                 }
@@ -1128,12 +1131,11 @@ namespace IceRpc
                     if (nextEndpoint == 0)
                     {
                         // nextEndpoint == 0 indicates that we already tried all the endpoints.
-                        if (IsIndirect && !refreshCache)
+                        if (IsIndirect && !tryAgain)
                         {
-                            // If we were potentially using cached endpoints, we clear the endpoints, and set
-                            // refreshCache to true to request fresher endpoints.
+                            // If we were potentially using cached endpoints, so we clear the endpoints before trying
+                            // again.
                             endpoints = null;
-                            refreshCache = true;
                         }
                         else
                         {
@@ -1204,13 +1206,6 @@ namespace IceRpc
                     }
 
                     observer?.Retried();
-
-                    // Try again with fresh endpoints.
-                    if (IsIndirect && !refreshCache)
-                    {
-                        refreshCache = true;
-                        endpoints = null;
-                    }
 
                     if (!IsFixed && connection != null)
                     {

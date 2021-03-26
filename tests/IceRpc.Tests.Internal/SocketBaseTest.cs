@@ -17,32 +17,27 @@ namespace IceRpc.Tests.Internal
     public class SocketBaseTest
     {
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? _clientCommunicator.ConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
-        private protected ILogger ClientProtocolLogger => _clientCommunicator.ProtocolLogger;
-        private protected ILogger ClientTransportLogger => _clientCommunicator.TransportLogger;
+        private protected ILogger Logger { get; }
+        protected IncomingConnectionOptions ServerConnectionOptions => _server.ConnectionOptions;
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions OutgoingConnectionOptions => _clientCommunicator.ConnectionOptions;
-        private protected Server Server { get; }
+        protected OutgoingConnectionOptions ClientConnectionOptions => _communicator.ConnectionOptions;
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? Server.ConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        private readonly Communicator _clientCommunicator;
+        private readonly Communicator _communicator;
+        private readonly Server _server;
         private readonly ILoggerFactory _loggerFactory;
         // Protects the _acceptor data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
-        protected readonly Communicator _serverCommunicator;
 
-        public SocketBaseTest(
-            Protocol protocol,
-            string transport,
-            bool secure,
-            Action<ServerOptions>? serverOptionsBuilder = null)
+        public SocketBaseTest(Protocol protocol, string transport, bool secure)
         {
             int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
@@ -57,7 +52,8 @@ namespace IceRpc.Tests.Internal
             _loggerFactory = LoggerFactory.Create(
                 builder =>
                 {
-                    builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+                    builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
+                    // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.AddJsonConsole(configure =>
                     // {
                     //     configure.IncludeScopes = true;
@@ -66,12 +62,26 @@ namespace IceRpc.Tests.Internal
                     //         Indented = true
                     //     };
                     // });
-                    builder.SetMinimumLevel(LogLevel.Trace);
+                    builder.SetMinimumLevel(LogLevel.Debug);
                 });
 
-            _serverCommunicator = new Communicator(loggerFactory : _loggerFactory);
+            Logger = _loggerFactory.CreateLogger("IceRPC");
 
-            var serverOptions = new ServerOptions()
+            _communicator = new Communicator(connectionOptions: new()
+            {
+                AuthenticationOptions = new()
+                {
+                    RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection()
+                                {
+                                    new X509Certificate2("../../../certs/cacert.pem")
+                                })
+                },
+                NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
+            });
+
+            _server = new Server(_communicator, new ServerOptions
             {
                 ConnectionOptions = new()
                 {
@@ -82,48 +92,28 @@ namespace IceRpc.Tests.Internal
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                     }
                 },
-                ColocationScope = transport == "colocated" ? ColocationScope.Communicator : ColocationScope.None,
-            };
-            serverOptionsBuilder?.Invoke(serverOptions);
-            Server = new(_serverCommunicator, serverOptions);
+                LoggerFactory = _loggerFactory
+            });
 
-            // TODO: support something like communicator/connection option builder
-            _clientCommunicator = new Communicator(
-                connectionOptions: new()
-                {
-                    AuthenticationOptions = new()
-                    {
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection()
-                                {
-                                    new X509Certificate2("../../../certs/cacert.pem")
-                                })
-                    },
-                    PreferNonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
-                },
-                loggerFactory: _loggerFactory);
-            Debug.Assert(_clientCommunicator.ConnectionOptions.AuthenticationOptions != null);
             if (transport == "colocated")
             {
-                ClientEndpoint = new ColocatedEndpoint(Server);
+                ClientEndpoint = new ColocatedEndpoint(_server);
                 ServerEndpoint = ClientEndpoint;
             }
             else
             {
                 if (protocol == Protocol.Ice2)
                 {
-                    ServerEndpoint =
-                        UriParser.ParseEndpoints($"ice+{transport}://127.0.0.1:{port}", _serverCommunicator)[0];
-                    ClientEndpoint = IServicePrx.Parse($"{ServerEndpoint}/dummy", _clientCommunicator).Endpoints[0];
+                    string endpoint = $"ice+{transport}://127.0.0.1:{port}";
+                    ServerEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    ClientEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
                 else
                 {
-                    ServerEndpoint =
-                        Ice1Parser.ParseEndpoints($"{transport} -h 127.0.0.1 -p {port}", _serverCommunicator)[0];
-                    ClientEndpoint = IServicePrx.Parse($"dummy:{ServerEndpoint}", _clientCommunicator).Endpoints[0];
+                    string endpoint = $"{transport} -h 127.0.0.1 -p {port}";
+                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
-
             }
         }
 
@@ -131,13 +121,12 @@ namespace IceRpc.Tests.Internal
         public async Task ShutdownAsync()
         {
             _acceptor?.Dispose();
-            await _clientCommunicator.DisposeAsync();
-            await Server.DisposeAsync();
-            await _serverCommunicator.DisposeAsync();
+            await _communicator.DisposeAsync();
+            await _server.DisposeAsync();
             _loggerFactory.Dispose();
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(_server);
 
         protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;
 
@@ -149,9 +138,9 @@ namespace IceRpc.Tests.Internal
             }
 
             Connection connection = await ClientEndpoint.ConnectAsync(
-                OutgoingConnectionOptions,
-                ClientProtocolLogger,
-                ClientTransportLogger,
+                ClientConnectionOptions,
+                Logger,
+                Logger,
                 default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
@@ -173,7 +162,7 @@ namespace IceRpc.Tests.Internal
             }
             var options = new ServicePrxOptions()
             {
-                Communicator = _clientCommunicator,
+                Communicator = _communicator,
                 Connection = connection,
                 IsFixed = true,
                 Path = "dummy",

@@ -230,52 +230,96 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_OtherReplica()
         {
             await using var communicator = new Communicator();
+            var calls = new List<string>();
+            await WithReplicatedRetryServiceAsync(
+                replicas:2,
+                servers =>
+                {
+                    servers[0].Add("replicated", new Replicated(fail: true));
+                    servers[1].Add("replicated", new Replicated(fail: false));
+
+                    foreach (var server in servers)
+                    {
+                        server.Use(async (current, next, cancel) =>
+                            {
+                                calls.Add(current.Server.Name);
+                                return await next();
+                            });
+                        server.Activate();
+                    }
+
+                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
+                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
+
+                    // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
+                    //  exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
+                    calls.Clear();
+                    prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
+                    Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
+                    Assert.AreEqual(servers[0].Name, calls[0]);
+                    Assert.AreEqual(servers[1].Name, calls[1]);
+                    Assert.AreEqual(2, calls.Count);
+                });
+        }
+
+        [Test]
+        public async Task Retry_ReportLastFailure()
+        {
+            await using var communicator = new Communicator();
 
             var calls = new List<string>();
-            await using var server1 = new Server(
-                communicator,
-                new ServerOptions()
+            await WithReplicatedRetryServiceAsync(
+                replicas: 3,
+                servers =>
                 {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 0)
-                });
-
-            server1.Use(async (current, next, cancel) =>
+                    foreach (var server in servers)
+                    {
+                        server.Use(async (current, next, cancel) =>
+                            {
+                                calls.Add(current.Server.Name);
+                                return await next();
+                            });
+                    }
+                    servers[1].Add("replicated", new Replicated(fail: true));
+                    servers[2].Use(async (current, next, cancel) =>
                         {
-                            calls.Add("server1");
+                            await current.Connection.AbortAsync("forcefully close connection!");
                             return await next();
                         });
 
-            await using var server2 = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(port: 1)
+                    foreach (var server in servers)
+                    {
+                        server.Activate();
+                    }
+                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
+                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
+                    var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 2), communicator);
+
+                    // The first replica fails with ServiceNotFoundException exception the second replica fails with
+                    // RetrySystemFailure the last failure should be reported.
+                    calls.Clear();
+                    var prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
+                    Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx.OtherReplicaAsync());
+                    Assert.AreEqual(servers[0].Name, calls[0]);
+                    Assert.AreEqual(servers[1].Name, calls[1]);
+                    Assert.AreEqual(2, calls.Count);
+
+                    // The first replica fails with ServiceNotFoundException exception the second replica fails with
+                    // ConnectionLostException the last failure should be reported. The 3rd replica cannot be used
+                    // because ConnectionLostException cannot be retry for a non idempotent request.
+                    calls.Clear();
+                    prx = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx3.Endpoints).Concat(prx2.Endpoints));
+                    Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
+                    Assert.AreEqual(servers[0].Name, calls[0]);
+                    Assert.AreEqual(servers[2].Name, calls[1]);
+                    Assert.AreEqual(2, calls.Count);
+
+                    // The first replica fails with ServiceNotFoundException exception and there is no additional
+                    // replicas.
+                    calls.Clear();
+                    Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx1.OtherReplicaAsync());
+                    Assert.AreEqual(servers[0].Name, calls[0]);
                 });
-            server2.Use(async (current, next, cancel) =>
-                        {
-                            calls.Add("server2");
-                            return await next();
-                        });
-
-            server1.Add("replicated", new Replicated(fail: true));
-            server2.Add("replicated", new Replicated(fail: false));
-
-            server1.Activate();
-            server2.Activate();
-
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
-
-            // The service proxy has 2 endpoints, the request fails using the first endpoint with a exception that
-            // has OtherReplica retry policy, it then retries the second endpoint and succeed.
-            calls.Clear();
-            prx1 = prx1.Clone(endpoints: prx1.Endpoints.Concat(prx2.Endpoints));
-            Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
-            Assert.AreEqual("server1", calls[0]);
-            Assert.AreEqual("server2", calls[1]);
-            Assert.AreEqual(2, calls.Count);
         }
 
         [Test]
@@ -327,6 +371,20 @@ namespace IceRpc.Tests.ClientServer
                         Assert.ThrowsAsync<RetrySystemFailure>(async () => await retry.OpWithDataAsync(1, 0, data));
                     }
                 });
+        }
+
+        private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[]> closure)
+        {
+            await using var communicator = new Communicator();
+            var servers = Enumerable.Range(0, replicas).Select(
+                i => new Server(communicator,
+                                new ServerOptions()
+                                {
+                                    ColocationScope = ColocationScope.None,
+                                    Endpoints = GetTestEndpoint(port: i)
+                                })).ToArray();
+            closure(servers);
+            await Task.WhenAll(servers.Select(server => server.ShutdownAsync()));
         }
 
         private async Task WithRetryServiceAsync(

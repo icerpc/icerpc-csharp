@@ -91,7 +91,15 @@ namespace IceRpc
                 }
 
                 string s = endpointString[beg..end];
-                endpoints.Add(CreateEndpoint(s, communicator, serverEndpoints));
+                try
+                {
+                    endpoints.Add(CreateEndpoint(s, communicator, serverEndpoints));
+                }
+                catch (Exception ex)
+                {
+                    // Give context to the exception.
+                    throw new FormatException($"failed to parse endpoint `{s}'", ex);
+                }
                 ++end;
             }
 
@@ -364,7 +372,15 @@ namespace IceRpc
                     }
 
                     string es = s[beg..end];
-                    endpoints = endpoints.Add(CreateEndpoint(es, communicator, false));
+                    try
+                    {
+                        endpoints = endpoints.Add(CreateEndpoint(es, communicator, false));
+                    }
+                    catch (Exception ex)
+                    {
+                        // Give context to the exception.
+                        throw new FormatException($"failed to parse endpoint `{es}'", ex);
+                    }
                 }
 
                 Debug.Assert(endpoints.Count > 0);

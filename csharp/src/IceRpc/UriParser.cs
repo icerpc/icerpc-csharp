@@ -412,11 +412,6 @@ namespace IceRpc
                 (Uri uri, string? altEndpoint, ParsedOptions proxyOptions) =
                     InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
 
-                if (serverEndpoints && !IPAddress.TryParse(uri.Host, out IPAddress? address))
-                {
-                    throw new FormatException($"invalid IP address `{uri.Host}' in server endpoint `{uri}'");
-                }
-
                 Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
 
                 List<Endpoint>? endpoints = null;

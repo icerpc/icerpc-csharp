@@ -114,9 +114,7 @@ namespace IceRpc
             return new WSEndpoint(new EndpointData(transport, host, port, endpointDataOptions),
                                   ParseTimeout(options, endpointString),
                                   ParseCompress(options, endpointString),
-                                  options,
-                                  serverEndpoint,
-                                  endpointString);
+                                  serverEndpoint);
         }
 
         internal static new WSEndpoint ParseIce2Endpoint(
@@ -154,7 +152,7 @@ namespace IceRpc
                                         port,
                                         resource == null ? Array.Empty<string>() : new string[] { resource });
 
-            return new WSEndpoint(data, options, serverEndpoint);
+            return new WSEndpoint(data, serverEndpoint);
         }
 
         internal override SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger) =>
@@ -170,23 +168,14 @@ namespace IceRpc
             new WSConnection(this, socket, options, server);
 
         // Constructor used for ice2 parsing.
-        private WSEndpoint(
-            EndpointData data,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
-            : base(data, options, serverEndpoint)
+        private WSEndpoint(EndpointData data, bool serverEndpoint)
+            : base(data, serverEndpoint)
         {
         }
 
         // Constructor for ice1 parsing
-        private WSEndpoint(
-            EndpointData data,
-            TimeSpan timeout,
-            bool compress,
-            Dictionary<string, string?> options,
-            bool serverEndpoint,
-            string endpointString)
-            : base(data, timeout, compress, options, serverEndpoint, endpointString)
+        private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress, bool serverEndpoint)
+            : base(data, timeout, compress, serverEndpoint)
         {
         }
 

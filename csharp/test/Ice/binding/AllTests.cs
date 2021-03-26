@@ -519,15 +519,24 @@ namespace IceRpc.Test.Binding
                     }
                 }
 
-                // Test IPv6 only endpoints
+                // Test IPv6 only
                 {
                     await using var serverCommunicator = new Communicator();
-                    string endpoint = getEndpoint("::0") + (ice1 ? " --ipv6Only" : "?ipv6-only=true");
+                    string endpoint = getEndpoint("::0");
                     await using var oa = new Server(
                         serverCommunicator,
-                        new() {
+                        new()
+                        {
                             ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint });
+                            Endpoints = endpoint,
+                            ConnectionOptions = new()
+                            {
+                                SocketOptions = new()
+                                {
+                                    IsIPv6Only = true
+                                }
+                            }
+                        });
                     oa.Activate();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
