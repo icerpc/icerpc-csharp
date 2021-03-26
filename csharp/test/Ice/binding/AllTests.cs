@@ -300,8 +300,8 @@ namespace IceRpc.Test.Binding
                     servers.RemoveAt(servers.Count - 1);
                     ITestIntfPrx testUDP = CreateTestIntfPrx(servers).Clone(oneway: true);
 
-                    // test that datagram proxies fail if PreferNonSecure is false
-                    testUDP = testUDP.Clone(preferNonSecure: NonSecure.Never);
+                    // test that datagram proxies fail if NonSecure is false
+                    testUDP = testUDP.Clone(nonSecure: NonSecure.Never);
                     try
                     {
                         await testUDP.GetConnectionAsync();
@@ -312,7 +312,7 @@ namespace IceRpc.Test.Binding
                         // expected
                     }
 
-                    testUDP = testUDP.Clone(preferNonSecure: NonSecure.Always);
+                    testUDP = testUDP.Clone(nonSecure: NonSecure.Always);
                     try
                     {
                         testUDP.GetAdapterName();
@@ -344,9 +344,9 @@ namespace IceRpc.Test.Binding
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    ITestIntfPrx testNonSecure = obj.Clone(preferNonSecure: NonSecure.Always);
-                    // TODO: update when PreferNonSecure default is updated
-                    ITestIntfPrx testSecure = obj.Clone(preferNonSecure: NonSecure.Never);
+                    ITestIntfPrx testNonSecure = obj.Clone(nonSecure: NonSecure.Always);
+                    // TODO: update when NonSecure default is updated
+                    ITestIntfPrx testSecure = obj.Clone(nonSecure: NonSecure.Never);
                     TestHelper.Assert(await obj.GetConnectionAsync() != await testSecure.GetConnectionAsync());
                     TestHelper.Assert(await obj.GetConnectionAsync() == await testNonSecure.GetConnectionAsync());
 

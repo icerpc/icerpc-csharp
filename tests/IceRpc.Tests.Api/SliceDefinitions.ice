@@ -20,4 +20,10 @@ module IceRpc::Tests::Api
         Context opContext();
         int opInt(int value);
     }
+
+    interface ProxyTest
+    {
+        void sendProxy(ProxyTest proxy);
+        ProxyTest receiveProxy();
+    }
 }

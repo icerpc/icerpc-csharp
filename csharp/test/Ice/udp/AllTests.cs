@@ -77,14 +77,14 @@ namespace IceRpc.Test.UDP
                 });
             var replyI = new PingReplyI();
             IPingReplyPrx reply = server.AddWithUUID(replyI, IPingReplyPrx.Factory)
-                .Clone(oneway: true, preferNonSecure: NonSecure.Always);
+                .Clone(oneway: true, nonSecure: NonSecure.Always);
             server.Activate();
 
             Console.Out.Write("testing udp... ");
             Console.Out.Flush();
             ITestIntfPrx obj = ITestIntfPrx.Parse(
                 helper.GetTestProxy("test", 0, "udp"),
-                communicator).Clone(oneway: true, preferNonSecure: NonSecure.Always);
+                communicator).Clone(oneway: true, nonSecure: NonSecure.Always);
             try
             {
                 int val = obj.GetValue();
@@ -116,7 +116,7 @@ namespace IceRpc.Test.UDP
                 replyI = new PingReplyI();
                 reply = server.AddWithUUID(
                     replyI, IPingReplyPrx.Factory).Clone(oneway: true,
-                                                         preferNonSecure: NonSecure.Always);
+                                                         nonSecure: NonSecure.Always);
             }
             TestHelper.Assert(ret == true);
 
@@ -182,7 +182,7 @@ namespace IceRpc.Test.UDP
                 string intf = helper.Host.Contains(":") ? $"\"{helper.Host}\"" : helper.Host;
                 sb.Append($" --interface {intf}");
             }
-            var objMcast = ITestIntfPrx.Parse(sb.ToString(), communicator).Clone(preferNonSecure: NonSecure.Always);
+            var objMcast = ITestIntfPrx.Parse(sb.ToString(), communicator).Clone(nonSecure: NonSecure.Always);
 
             nRetry = 5;
             while (nRetry-- > 0)
@@ -197,7 +197,7 @@ namespace IceRpc.Test.UDP
                 replyI = new PingReplyI();
                 reply = server.AddWithUUID(
                     replyI, IPingReplyPrx.Factory).Clone(oneway: true,
-                                                         preferNonSecure: NonSecure.Always);
+                                                         nonSecure: NonSecure.Always);
             }
             if (!ret)
             {
@@ -229,7 +229,7 @@ namespace IceRpc.Test.UDP
                     replyI = new PingReplyI();
                     reply = server.AddWithUUID(
                         replyI, IPingReplyPrx.Factory).Clone(oneway: true,
-                                                             preferNonSecure: NonSecure.Always);
+                                                             nonSecure: NonSecure.Always);
                 }
                 TestHelper.Assert(ret);
                 Console.Out.WriteLine("ok");

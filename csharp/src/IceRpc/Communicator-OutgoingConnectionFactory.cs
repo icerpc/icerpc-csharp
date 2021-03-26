@@ -191,7 +191,7 @@ namespace IceRpc
             }
         }
 
-        internal Connection? GetConnection(List<Endpoint> endpoints, NonSecure preferNonSecure, object? label)
+        internal Connection? GetConnection(List<Endpoint> endpoints, NonSecure nonSecure, object? label)
         {
             lock (_mutex)
             {
@@ -200,7 +200,7 @@ namespace IceRpc
                     if (_outgoingConnections.TryGetValue((endpoint, label),
                                                          out LinkedList<Connection>? connections) &&
                         connections.FirstOrDefault(
-                            connection => connection.IsActive && connection.CanTrust(preferNonSecure))
+                            connection => connection.IsActive && connection.CanTrust(nonSecure))
                         is Connection connection)
                     {
                         return connection;

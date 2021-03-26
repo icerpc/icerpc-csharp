@@ -112,7 +112,7 @@ namespace IceRpc.Interop
 
             string? category = endpoint["category"];
 
-            IReadOnlyList<Endpoint> endpoints = ImmutableArray<Endpoint>.Empty;
+            IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
             bool expired = false;
             bool justRefreshed = false;
             bool resolved = false;

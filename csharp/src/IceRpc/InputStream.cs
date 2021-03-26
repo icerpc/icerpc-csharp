@@ -105,7 +105,7 @@ namespace IceRpc
 
         /// <summary>The Communicator associated with this stream. It cannot be null when reading a proxy, class, or
         /// exception.</summary>
-        public Communicator? Communicator { get; }
+        public Communicator? Communicator => ProxyOptions?.Communicator;
 
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
@@ -115,7 +115,7 @@ namespace IceRpc
         internal int Pos { get; private set; }
 
         /// <summary>Proxy options used when unmarshaling proxies.</summary>
-        internal ServicePrxOptions? ProxyOptions { get; }
+        internal ProxyOptions? ProxyOptions { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -951,18 +951,15 @@ namespace IceRpc
         /// <summary>Constructs a new InputStream over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="communicator">The communicator (optional).</param>
         /// <param name="proxyOptions">Options used when unmarshaling proxies (optional).</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
-            Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null,
+            ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
-            Communicator = communicator ?? proxyOptions?.Communicator;
             ProxyOptions = proxyOptions;
 
             Pos = 0;

@@ -108,17 +108,12 @@ namespace IceRpc
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
         /// <param name="s">The string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
+        /// <param name="proxyOptions">The proxy options.</param>
         /// <returns>The corresponding (interop) service proxy options.</returns>
-        internal static InteropServicePrxOptions ParseProxy(string s, Communicator communicator)
+        internal static InteropProxyOptions ParseProxy(string s, ProxyOptions proxyOptions)
         {
             // TODO: rework this implementation
-
-            var result = new InteropServicePrxOptions()
-            {
-                Communicator = communicator,
-                Encoding = Ice1Definitions.Encoding
-            };
+            Communicator communicator = proxyOptions.Communicator!;
 
             int beg = 0;
             int end = 0;
@@ -153,8 +148,12 @@ namespace IceRpc
                 throw new FormatException($"no identity in `{s}'");
             }
 
-            // Parsing the identity may raise FormatException.
-            result.Identity = Identity.Parse(identityString);
+            // Parsing the identity may throw FormatException.
+            InteropProxyOptions result = proxyOptions.With(Ice1Definitions.Encoding,
+                                                           ImmutableList<Endpoint>.Empty,
+                                                           facet: "",
+                                                           identity: Identity.Parse(identityString),
+                                                           oneway: proxyOptions.IsOneway);
 
             while (true)
             {
@@ -533,8 +532,10 @@ namespace IceRpc
                     Debug.Assert(bufferList.Count == 1);
                     Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
-                    return new InputStream(bufferList[0], Ice1Definitions.Encoding, communicator).
-                        ReadEndpoint11(Protocol.Ice1);
+                    return new InputStream(
+                        bufferList[0],
+                        Ice1Definitions.Encoding,
+                        new ProxyOptions() { Communicator = communicator }).ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {
