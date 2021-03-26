@@ -99,11 +99,7 @@ namespace IceRpc
             ProxyOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
             proxyOptions.Connection = connection;
 
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(
-                Protocol.GetEncoding(),
-                reader,
-                connection.Communicator!,
-                proxyOptions);
+            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(), reader, proxyOptions);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>

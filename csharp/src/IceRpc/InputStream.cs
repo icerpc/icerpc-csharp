@@ -951,18 +951,16 @@ namespace IceRpc
         /// <summary>Constructs a new InputStream over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="communicator">The communicator (optional).</param>
         /// <param name="proxyOptions">Options used when unmarshaling proxies (optional).</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
-            Communicator? communicator = null,
             ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
-            Communicator = communicator ?? proxyOptions?.Communicator;
+            Communicator = proxyOptions?.Communicator;
             ProxyOptions = proxyOptions;
 
             Pos = 0;

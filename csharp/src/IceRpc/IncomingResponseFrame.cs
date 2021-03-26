@@ -60,18 +60,9 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            if (ResultType == ResultType.Success)
-            {
-                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(
-                    Protocol.GetEncoding(),
-                    reader,
-                    proxy.Communicator,
-                    proxy.GetOptions());
-            }
-            else
-            {
+            return ResultType == ResultType.Success ?
+                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, proxy.GetOptions()) :
                 throw ReadException(proxy);
-            }
         }
 
         /// <summary>Reads the return value which contains a stream return value. If this response frame carries a

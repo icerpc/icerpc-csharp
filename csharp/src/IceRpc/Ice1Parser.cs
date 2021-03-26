@@ -533,8 +533,10 @@ namespace IceRpc
                     Debug.Assert(bufferList.Count == 1);
                     Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
-                    return new InputStream(bufferList[0], Ice1Definitions.Encoding, communicator).
-                        ReadEndpoint11(Protocol.Ice1);
+                    return new InputStream(
+                        bufferList[0],
+                        Ice1Definitions.Encoding,
+                        new ProxyOptions() { Communicator = communicator }).ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {
