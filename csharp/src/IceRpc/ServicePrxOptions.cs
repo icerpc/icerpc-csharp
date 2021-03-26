@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 namespace IceRpc
 {
     /// <summary>An options class for configuring a service proxy (see <see cref="IServicePrx"/>).</summary>
-    public class ServicePrxOptions
+    public class ProxyOptions
     {
         public static TimeSpan DefaultInvocationTimeout { get; } = TimeSpan.FromSeconds(60);
 
@@ -76,11 +76,11 @@ namespace IceRpc
 
         private Encoding? _encoding;
 
-        public ServicePrxOptions Clone() => (ServicePrxOptions)MemberwiseClone();
+        public ProxyOptions Clone() => (ProxyOptions)MemberwiseClone();
 
         /// <summary>Returns a copy of this options instance with all its inheritable properties. Non-inheritable
         /// properties are set to the value of the corresponding parameters or to their default values.</summary>
-        internal ServicePrxOptions With(
+        internal ProxyOptions With(
             Encoding encoding,
             IReadOnlyList<Endpoint> endpoints,
             string path,
@@ -107,7 +107,7 @@ namespace IceRpc
 
         /// <summary>Returns a copy of this options instance with all its inheritable properties. Non-inheritable
         /// properties are set using the supplied connection and path, or to their default values.</summary>
-        internal ServicePrxOptions With(Connection fixedConnection, string path) =>
+        internal ProxyOptions With(Connection fixedConnection, string path) =>
             new()
             {
                 CacheConnection = CacheConnection,

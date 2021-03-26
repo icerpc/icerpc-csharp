@@ -7,6 +7,6 @@ namespace IceRpc
         /// <summary>Creates a new service proxy.</summary>
         /// <param name="options">The service proxy options.</param>
         /// <returns>The new service proxy.</returns>
-        T Create(ServicePrxOptions options);
+        T Create(ProxyOptions options);
     }
 }

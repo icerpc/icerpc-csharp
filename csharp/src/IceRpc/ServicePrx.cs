@@ -445,7 +445,7 @@ namespace IceRpc
                     sb.Append("fixed=true");
                 }
 
-                if (InvocationTimeout != ServicePrxOptions.DefaultInvocationTimeout)
+                if (InvocationTimeout != ProxyOptions.DefaultInvocationTimeout)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("invocation-timeout=");
@@ -519,7 +519,7 @@ namespace IceRpc
 
         /// <summary>Constructs a new proxy class instance with the specified options. All dictionaries / lists must be
         /// safe to reference as-is since they are not copied by this constructor.</summary>
-        protected internal ServicePrx(ServicePrxOptions options)
+        protected internal ServicePrx(ProxyOptions options)
         {
             int endpointCount = options.Endpoints.Count;
 
@@ -578,7 +578,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                if (options is InteropServicePrxOptions interopOptions)
+                if (options is InteropProxyOptions interopOptions)
                 {
                     Facet = interopOptions.Facet;
                     Identity = interopOptions.Identity;
@@ -618,7 +618,7 @@ namespace IceRpc
 
         /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
         /// proxy classes must override this method.</summary>
-        protected virtual ServicePrx IceClone(ServicePrxOptions options) => new(options);
+        protected virtual ServicePrx IceClone(ProxyOptions options) => new(options);
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
             IServicePrx proxy,
@@ -700,14 +700,14 @@ namespace IceRpc
         }
 
         /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
-        internal ServicePrx Clone(ServicePrxOptions options) => IceClone(options);
+        internal ServicePrx Clone(ProxyOptions options) => IceClone(options);
 
         /// <summary>Returns a new copy of the underlying options.</summary>
-        internal ServicePrxOptions GetOptions()
+        internal ProxyOptions GetOptions()
         {
             if (Protocol == Protocol.Ice1)
             {
-                return new InteropServicePrxOptions()
+                return new InteropProxyOptions()
                 {
                     CacheConnection = CacheConnection,
                     Communicator = Communicator,

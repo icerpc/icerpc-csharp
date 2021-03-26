@@ -33,7 +33,7 @@ namespace IceRpc
 
         /// <summary>The local options of proxies received in requests or created using thi server. Non-inheritable
         /// options such as Path, Encoding and Endpoints are ignored.</summary>
-        public ServicePrxOptions ProxyOptions { get; set; } = new();
+        public ProxyOptions ProxyOptions { get; set; } = new();
 
         public string PublishedEndpoints { get; set; } = "";
 

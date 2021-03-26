@@ -96,7 +96,7 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            ServicePrxOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
+            ProxyOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
             proxyOptions.Connection = connection;
 
             return Payload.AsReadOnlyMemory().ReadEncapsulation(
@@ -146,7 +146,7 @@ namespace IceRpc
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
             }
 
-            ServicePrxOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
+            ProxyOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
             proxyOptions.Connection = connection;
 
             var istr = new InputStream(Payload.AsReadOnlyMemory(),

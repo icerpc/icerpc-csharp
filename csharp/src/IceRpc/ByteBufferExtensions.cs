@@ -29,7 +29,7 @@ namespace IceRpc
             Encoding encoding,
             InputStreamReader<T> reader,
             Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null)
+            ProxyOptions? proxyOptions = null)
         {
             var istr = new InputStream(buffer, encoding, communicator, proxyOptions);
             T result = reader(istr);
@@ -53,7 +53,7 @@ namespace IceRpc
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> reader,
             Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null) =>
+            ProxyOptions? proxyOptions = null) =>
             buffer.Read(Encoding.V20, reader, communicator, proxyOptions);
 
         /// <summary>Reads an empty encapsulation from the buffer.</summary>
@@ -91,7 +91,7 @@ namespace IceRpc
             Encoding encoding,
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null)
+            ProxyOptions? proxyOptions = null)
         {
             var istr = new InputStream(buffer,
                                        encoding,
@@ -120,7 +120,7 @@ namespace IceRpc
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> payloadReader,
             Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null) =>
+            ProxyOptions? proxyOptions = null) =>
             buffer.ReadEncapsulation(Encoding.V20, payloadReader, communicator, proxyOptions);
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;

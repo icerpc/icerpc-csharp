@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace IceRpc.Interop
 {
     /// <summary>An options class for configuring a service proxy (see <see cref="IServicePrx"/>).</summary>
-    public sealed class InteropServicePrxOptions : ServicePrxOptions
+    public sealed class InteropProxyOptions : ProxyOptions
     {
         /// <summary>The facet of the proxy. Its default value is the empty string. This property is not inherited when
         /// unmarshaling a proxy because a marshaled ice1 proxy always specifies its facet.</summary>
@@ -15,18 +15,18 @@ namespace IceRpc.Interop
         /// marshaled ice1 proxy always specifies its identity.</summary>
         public Identity Identity { get; set; } = Identity.Empty;
 
-        public InteropServicePrxOptions()
+        public InteropProxyOptions()
         {
             Protocol = Protocol.Ice1;
         }
     }
 
-    internal static class InteropServicePrxOptionsExtensions
+    internal static class ProxyOptionsExtensions
     {
         /// <summary>Returns a copy of this options instance with all its inheritable properties. Non-inheritable
         /// properties are set to the value of the corresponding parameters or to their default values.</summary>
-        internal static InteropServicePrxOptions With(
-            this ServicePrxOptions options,
+        internal static InteropProxyOptions With(
+            this ProxyOptions options,
             Encoding encoding,
             IReadOnlyList<Endpoint> endpoints,
             string facet,

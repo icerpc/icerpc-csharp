@@ -409,7 +409,7 @@ namespace IceRpc
 
         private class ServicePrxFactory : IProxyFactory<IServicePrx>
         {
-            public IServicePrx Create(ServicePrxOptions options) => new ServicePrx(options);
+            public IServicePrx Create(ProxyOptions options) => new ServicePrx(options);
         }
     }
 }

@@ -44,7 +44,7 @@ namespace IceRpc.Interop
             }
             else if (proxy.Protocol == Protocol.Ice1)
             {
-                var options = (InteropServicePrxOptions)proxy.Impl.GetOptions();
+                var options = (InteropProxyOptions)proxy.Impl.GetOptions();
                 options.Facet = facet;
                 return Proxy.GetFactory<T>().Create(options);
             }

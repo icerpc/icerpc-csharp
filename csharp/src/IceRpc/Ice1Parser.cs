@@ -110,11 +110,11 @@ namespace IceRpc
         /// <param name="s">The string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The corresponding (interop) service proxy options.</returns>
-        internal static InteropServicePrxOptions ParseProxy(string s, Communicator communicator)
+        internal static InteropProxyOptions ParseProxy(string s, Communicator communicator)
         {
             // TODO: rework this implementation
 
-            var result = new InteropServicePrxOptions()
+            var result = new InteropProxyOptions()
             {
                 Communicator = communicator,
                 Encoding = Ice1Definitions.Encoding

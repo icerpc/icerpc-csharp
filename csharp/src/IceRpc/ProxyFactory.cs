@@ -129,7 +129,7 @@ namespace IceRpc
             }
             else
             {
-                InteropServicePrxOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
+                InteropProxyOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
                 Debug.Assert(options.Endpoints.Count > 0);
 
                 // Override the defaults with the proxy properties if a property prefix is defined.
@@ -144,7 +144,7 @@ namespace IceRpc
 
                     options.InvocationTimeout =
                         communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout") ??
-                            ServicePrxOptions.DefaultInvocationTimeout;
+                            ProxyOptions.DefaultInvocationTimeout;
 
                     options.Label = communicator.GetProperty($"{propertyPrefix}.Label");
                     options.PreferNonSecure =
@@ -180,7 +180,7 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
             }
 
-            if (!(istr.ProxyOptions is ServicePrxOptions proxyOptions))
+            if (!(istr.ProxyOptions is ProxyOptions proxyOptions))
             {
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a no proxy options");
             }

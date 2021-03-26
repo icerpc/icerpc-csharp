@@ -99,7 +99,7 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>A service proxy options instance.</returns>
-        internal static ServicePrxOptions ParseProxy(string uriString, Communicator communicator)
+        internal static ProxyOptions ParseProxy(string uriString, Communicator communicator)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
                 Parse(uriString, serverEndpoints: false, communicator);
@@ -114,7 +114,7 @@ namespace IceRpc
                     ImmutableSortedDictionary<string, string>.Empty,
                 Encoding = parsedOptions.Encoding ?? Encoding.V20,
                 Endpoints = endpoints,
-                InvocationTimeout = parsedOptions.InvocationTimeout ?? ServicePrxOptions.DefaultInvocationTimeout,
+                InvocationTimeout = parsedOptions.InvocationTimeout ?? ProxyOptions.DefaultInvocationTimeout,
                 IsOneway = parsedOptions.IsOneway ?? false,
                 Label = parsedOptions.Label,
                 Path = uri.AbsolutePath,

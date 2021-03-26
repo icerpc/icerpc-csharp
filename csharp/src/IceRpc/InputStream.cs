@@ -115,7 +115,7 @@ namespace IceRpc
         internal int Pos { get; private set; }
 
         /// <summary>Proxy options used when unmarshaling proxies.</summary>
-        internal ServicePrxOptions? ProxyOptions { get; }
+        internal ProxyOptions? ProxyOptions { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -959,7 +959,7 @@ namespace IceRpc
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             Communicator? communicator = null,
-            ServicePrxOptions? proxyOptions = null,
+            ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
             Communicator = communicator ?? proxyOptions?.Communicator;

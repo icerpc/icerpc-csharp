@@ -52,7 +52,7 @@ namespace IceRpc
         internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
         internal ILogger ProtocolLogger { get; }
-        internal ServicePrxOptions ProxyOptions { get; }
+        internal ProxyOptions ProxyOptions { get; }
         internal ILogger TransportLogger { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.

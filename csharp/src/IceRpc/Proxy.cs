@@ -160,7 +160,7 @@ namespace IceRpc
 
         /// <summary>Returns a new copy of the underlying options.</summary>
         /// <returns>An instance of the options class.</returns>
-        public static ServicePrxOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
+        public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
 
         /// <summary>Invokes a request on a proxy.</summary>
         /// <remarks>request.CancellationToken holds the cancellation token.</remarks>
@@ -197,10 +197,10 @@ namespace IceRpc
             }
             else
             {
-                ServicePrxOptions options = proxy.Impl.GetOptions();
+                ProxyOptions options = proxy.Impl.GetOptions();
                 options.Path = path;
 
-                if (options is InteropServicePrxOptions interopOptions)
+                if (options is InteropProxyOptions interopOptions)
                 {
                     interopOptions.Identity = Identity.Empty;
 
