@@ -209,7 +209,7 @@ namespace IceRpc
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
-            _dispatchPipeline = new Dispatcher(
+            _dispatchPipeline = IDispatcher.FromInlineDispatcher(
                 async (current, cancel) =>
                 {
                     Debug.Assert(current.Server == this);

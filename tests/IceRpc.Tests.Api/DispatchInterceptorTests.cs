@@ -41,13 +41,13 @@ namespace IceRpc.Tests.Api
                 var result = await next();
                 interceptorCalls.Add("DispatchInterceptors <- 0");
                 return result;
-            }).Use(next => new Dispatcher(async (current, cancel) =>
-                                          {
-                                            interceptorCalls.Add("DispatchInterceptors -> 1");
-                                            var result = await next.DispatchAsync(current, cancel);
-                                            interceptorCalls.Add("DispatchInterceptors <- 1");
-                                            return result;
-                                          }));
+            }).Use(next => IDispatcher.FromInlineDispatcher(async (current, cancel) =>
+            {
+                interceptorCalls.Add("DispatchInterceptors -> 1");
+                var result = await next.DispatchAsync(current, cancel);
+                interceptorCalls.Add("DispatchInterceptors <- 1");
+                return result;
+            }));
 
             var prx = server.AddWithUUID(new TestService(), IServicePrx.Factory);
             server.Activate();
