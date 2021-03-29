@@ -27,7 +27,7 @@ namespace IceRpc
         /// <summary>Returns the endpoints this server is listening on.</summary>
         /// <value>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
         /// actual port selected by the operating system.</value>
-        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableArray<Endpoint>.Empty;
+        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
 
         /// <summary>Returns the name of this server. This name is used for logging.</summary>
         /// <value>The server's name.</value>
@@ -52,6 +52,7 @@ namespace IceRpc
         internal IncomingConnectionOptions ConnectionOptions { get; }
         internal bool IsDatagramOnly { get; }
         internal ILogger ProtocolLogger { get; }
+        internal ProxyOptions ProxyOptions { get; }
         internal ILogger TransportLogger { get; }
 
         private static ulong _counter; // used to generate names for nameless servers.
@@ -96,6 +97,15 @@ namespace IceRpc
             TaskScheduler = options.TaskScheduler;
             ProtocolLogger = options.LoggerFactory.CreateLogger("IceRpc.Protocol");
             TransportLogger = options.LoggerFactory.CreateLogger("IceRpc.Transport");
+
+            ProxyOptions = options.ProxyOptions.Clone();
+            ProxyOptions.Communicator = communicator;
+
+            // When unmarshaling a relative proxy, we create a fixed proxy with no endpoints bound to the "receiving"
+            // connection. For non-relative proxies, IsFixed, Endpoints and all other non-inheritable properties are
+            // ignored.
+            ProxyOptions.IsFixed = true;
+            ProxyOptions.Endpoints = ImmutableList<Endpoint>.Empty;
 
             ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
             ConnectionOptions.SocketOptions ??= new SocketOptions();
@@ -158,7 +168,7 @@ namespace IceRpc
                         new AcceptorIncomingConnectionFactory(this, endpoint)));
 
                 // Replace Endpoints using the factories.
-                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableArray();
+                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableList();
             }
             else
             {
@@ -185,7 +195,7 @@ namespace IceRpc
                 }
 
                 PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
-                    Distinct().ToImmutableArray();
+                    Distinct().ToImmutableList();
             }
 
             if (ColocationScope != ColocationScope.None)

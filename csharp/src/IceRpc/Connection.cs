@@ -233,7 +233,7 @@ namespace IceRpc
             _state = ConnectionState.Initializing;
         }
 
-        internal abstract bool CanTrust(NonSecure preferNonSecure);
+        internal abstract bool CanTrust(NonSecure nonSecure);
 
         internal SocketStream CreateStream(bool bidirectional)
         {
@@ -706,7 +706,7 @@ namespace IceRpc
         {
         }
 
-        internal override bool CanTrust(NonSecure preferNonSecure) => true;
+        internal override bool CanTrust(NonSecure nonSecure) => true;
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -753,9 +753,9 @@ namespace IceRpc
             Server? server)
             : base(endpoint, socket, options, server) => _socket = socket;
 
-        internal override bool CanTrust(NonSecure preferNonSecure)
+        internal override bool CanTrust(NonSecure nonSecure)
         {
-            bool trusted = IsSecure || preferNonSecure switch
+            bool trusted = IsSecure || nonSecure switch
             {
                 NonSecure.SameHost => RemoteEndpoint?.IsSameHost() ?? false,
                 NonSecure.TrustedHost => false, // TODO implement trusted host

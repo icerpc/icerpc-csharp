@@ -216,7 +216,7 @@ namespace IceRpc.Tests.Internal
                 Debug.Assert(TransportName == "colocated");
                 Debug.Assert(connection.Socket is ColocatedSocket);
             }
-            var options = new ServicePrxOptions()
+            var options = new ProxyOptions()
             {
                 Communicator = _communicator,
                 Connection = connection,

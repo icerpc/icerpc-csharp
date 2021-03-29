@@ -102,8 +102,8 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("", other.GetIdentity().Category);
             }
 
-            Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Always).PreferNonSecure, NonSecure.Always);
-            Assert.AreEqual(prx.Clone(preferNonSecure: NonSecure.Never).PreferNonSecure, NonSecure.Never);
+            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Always).NonSecure, NonSecure.Always);
+            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Never).NonSecure, NonSecure.Never);
         }
 
         [Test]
@@ -317,8 +317,8 @@ namespace IceRpc.Tests.Api
 
             CheckGetHashCode(prx1.Clone(preferExistingConnection: true), prx2.Clone(preferExistingConnection: true));
 
-            CheckGetHashCode(prx1.Clone(preferNonSecure: NonSecure.Always),
-                             prx2.Clone(preferNonSecure: NonSecure.Always));
+            CheckGetHashCode(prx1.Clone(nonSecure: NonSecure.Always),
+                             prx2.Clone(nonSecure: NonSecure.Always));
 
             static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
             {
@@ -388,7 +388,42 @@ namespace IceRpc.Tests.Api
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
             Connection connection = await prx.GetConnectionAsync();
-            Assert.AreEqual(expected, IServicePrx.Factory.Create(connection, "fixed").ToString());
+            Assert.AreEqual(expected,
+                            prx.Clone(fixedConnection: connection).WithPath<IGreeterServicePrx>("fixed").ToString());
+        }
+
+        [TestCase("ice+tcp://host/test")]
+        [TestCase("ice:test")]
+        [TestCase("test:tcp -h host -p 10000")]
+        [TestCase("test @ adapt")]
+        public async Task Proxy_ParseWithOptionsAsync(string proxyString)
+        {
+            await using var communicator = new Communicator();
+            var proxyOptions = new ProxyOptions() { Communicator = communicator };
+
+            var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
+            Assert.IsTrue(proxy.CacheConnection);
+            Assert.IsFalse(proxy.IsOneway);
+            Assert.AreEqual(proxy.InvocationTimeout, ProxyOptions.DefaultInvocationTimeout);
+            CollectionAssert.IsEmpty(proxy.Context);
+
+            proxyOptions.CacheConnection = false;
+            proxyOptions.Context = new Dictionary<string, string>()
+            {
+                ["c1"] = "TEST1",
+                ["c2"] = "TEST2"
+            };
+            proxyOptions.InvocationTimeout = TimeSpan.FromSeconds(1);
+            proxyOptions.IsOneway = true;
+
+            proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
+            proxyOptions.Context = ImmutableSortedDictionary<string, string>.Empty;
+
+            Assert.IsFalse(proxy.CacheConnection);
+            Assert.IsTrue(proxy.IsOneway);
+            Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(1));
+            Assert.AreEqual(proxy.Context["c1"], "TEST1");
+            Assert.AreEqual(proxy.Context["c2"], "TEST2");
         }
 
         [Test]
@@ -402,32 +437,6 @@ namespace IceRpc.Tests.Api
             communicator.SetProperty(propertyPrefix, proxyString);
             var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
             Assert.AreEqual(prx.Path, "/test");
-
-            Assert.IsTrue(prx.CacheConnection);
-            communicator.SetProperty($"{propertyPrefix}.CacheConnection", "0");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.RemoveProperty($"{propertyPrefix}.CacheConnection");
-            Assert.IsFalse(prx.CacheConnection);
-
-            Assert.IsFalse(prx.Context.ContainsKey("c1"));
-            communicator.SetProperty($"{propertyPrefix}.Context.c1", "TEST1");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual(prx.Context["c1"], "TEST1");
-
-            Assert.IsFalse(prx.Context.ContainsKey("c2"));
-            communicator.SetProperty($"{propertyPrefix}.Context.c2", "TEST2");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual(prx.Context["c2"], "TEST2");
-
-            communicator.SetProperty($"{propertyPrefix}.Context.c1", "");
-            communicator.SetProperty($"{propertyPrefix}.Context.c2", "");
-
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
-
-            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "1s");
-            prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            communicator.SetProperty($"{propertyPrefix}.InvocationTimeout", "");
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
         }
 
         [Test]
@@ -437,7 +446,7 @@ namespace IceRpc.Tests.Api
             var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator).Clone(
                 cacheConnection: true,
                 preferExistingConnection: true,
-                preferNonSecure: NonSecure.Never,
+                nonSecure: NonSecure.Never,
                 invocationTimeout: TimeSpan.FromSeconds(10));
 
             Dictionary<string, string> proxyProps = prx.ToProperty("Test");
@@ -445,12 +454,12 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
 
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.PreferNonSecure"]);
+            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
 
             ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator).Clone(
                 cacheConnection: false,
                 preferExistingConnection: false,
-                preferNonSecure: NonSecure.Always);
+                nonSecure: NonSecure.Always);
 
             // TODO: LocatorClient should reject indirect locators.
             ILocationResolver locationResolver = new LocatorClient(locator);
@@ -461,7 +470,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.PreferNonSecure"]);
+            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
             Assert.AreEqual("true", proxyProps["Test.PreferExistingConnection"]);
         }
 
