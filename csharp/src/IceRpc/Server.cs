@@ -520,7 +520,13 @@ namespace IceRpc
             // TODO: temporary work-around
             if (_dispatcher == null)
             {
-                Activate();
+                lock(_mutex)
+                {
+                    if (_dispatcher == null)
+                    {
+                        Activate();
+                    }
+                }
             }
 
             // Dispatch works only once the server is activated, which sets _dispatcher.
