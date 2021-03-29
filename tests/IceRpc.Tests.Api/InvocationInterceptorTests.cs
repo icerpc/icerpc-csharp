@@ -14,8 +14,11 @@ namespace IceRpc.Tests.Api
     {
         private IInvocationInterceptorTestServicePrx Prx { get; }
 
-        public InvocationInterceptorTests() =>
+        public InvocationInterceptorTests()
+        {
             Prx = Server.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
+            Server.Activate();
+        }
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>
@@ -75,8 +78,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
-        /*
-
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
@@ -105,7 +106,7 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task InvocationIterceptor_Overwrite_RequestContext()
+        public async Task InvocationInterceptor_Overwrite_RequestContext()
         {
             var prx = Prx.Clone(
                 context: new Dictionary<string, string>()
@@ -124,8 +125,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("bar", ctx["foo"]);
             Assert.AreEqual(1, ctx.Count);
         }
-
-        */
 
         internal class TestService : IAsyncInvocationInterceptorTestService
         {
