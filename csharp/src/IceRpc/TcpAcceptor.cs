@@ -23,9 +23,9 @@ namespace IceRpc
             {
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-                var options = _server.ConnectionOptions;
+                ConnectionOptions options = _server.ConnectionOptions;
 
-                var socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, options.SocketOptions!, _server.TransportLogger);
+                SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.TransportLogger);
 
                 MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
                 {

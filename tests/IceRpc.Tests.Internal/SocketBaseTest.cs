@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -16,11 +17,13 @@ namespace IceRpc.Tests.Internal
     // Server and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
+        private protected Communicator Communicator => _communicator;
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
         protected IncomingConnectionOptions ServerConnectionOptions => _server.ConnectionOptions;
+        private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
         protected OutgoingConnectionOptions ClientConnectionOptions => _communicator.ConnectionOptions;
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
@@ -40,12 +43,10 @@ namespace IceRpc.Tests.Internal
         public SocketBaseTest(
             Protocol protocol,
             string transport,
-            bool secure,
-            bool ipv6 = false,
+            NonSecure nonSecure,
+            AddressFamily addressFamily = AddressFamily.InterNetwork,
             Func<string, int, string>? clientEndpoint = null,
-            Func<string, int, string>? serverEndpoint = null,
-            Action<ConnectionOptions>? clientConnectionOptionsBuilder = null,
-            Action<ConnectionOptions>? serverConnectionOptionsBuilder = null)
+            Func<string, int, string>? serverEndpoint = null)
         {
             int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
@@ -55,7 +56,8 @@ namespace IceRpc.Tests.Internal
             port += Interlocked.Add(ref _nextBasePort, 1);
 
             TransportName = transport;
-            IsSecure = secure;
+            IsSecure = nonSecure == NonSecure.Never;
+            IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
             _loggerFactory = LoggerFactory.Create(
                 builder =>
@@ -88,19 +90,17 @@ namespace IceRpc.Tests.Internal
                 },
                 NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
             };
-            clientConnectionOptionsBuilder?.Invoke(clientConnectionOptions);
             _communicator = new Communicator(connectionOptions: clientConnectionOptions);
 
             var serverConnectionOptions = new IncomingConnectionOptions()
             {
-                AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
+                AcceptNonSecure = nonSecure,
                 AuthenticationOptions = new()
                 {
                     ClientCertificateRequired = false,
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                 }
             };
-            serverConnectionOptionsBuilder?.Invoke(serverConnectionOptions);
             _server = new Server(_communicator, new ServerOptions
             {
                 ConnectionOptions = serverConnectionOptions,
@@ -116,7 +116,7 @@ namespace IceRpc.Tests.Internal
             {
                 if (protocol == Protocol.Ice2)
                 {
-                    string host = ipv6 ? "[::1]" : "127.0.0.1";
+                    string host = IsIPv6 ? "[::1]" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
                     ServerEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    string host = ipv6 ? "\"::1\"" : "127.0.0.1";
+                    string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
                     ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
@@ -181,9 +181,11 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;
+        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? options = null)
+            => (await ConnectAndGetProxyAsync(options)).Socket;
 
-        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync()
+        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync(
+            OutgoingConnectionOptions? connectionOptions = null)
         {
             if (!ClientEndpoint.IsDatagram)
             {
@@ -194,7 +196,7 @@ namespace IceRpc.Tests.Internal
             }
 
             Connection connection = await ClientEndpoint.ConnectAsync(
-                ClientConnectionOptions,
+                connectionOptions ?? ClientConnectionOptions,
                 Logger,
                 Logger,
                 default);

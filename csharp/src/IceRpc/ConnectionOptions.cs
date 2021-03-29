@@ -48,7 +48,7 @@ namespace IceRpc
         /// <summary>The source address to use for a client socket. If specified, the client socket will bind to
         /// this address before connection establishment.</summary>
         /// <value>The IP address to bind the socket to.</value>
-        public IPAddress? SourceAddress { get; set; }
+        public IPEndPoint? LocalEndPoint { get; set; }
 
         /// <summary>Configures the length of a server socket queue for accepting new connections. If a new
         /// connection request arrives and the queue is full, the client connection establishment will fail
@@ -220,7 +220,7 @@ namespace IceRpc
 
         public new OutgoingConnectionOptions Clone()
         {
-            OutgoingConnectionOptions options = (OutgoingConnectionOptions)base.Clone();
+            var options = (OutgoingConnectionOptions)base.Clone();
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
@@ -260,7 +260,7 @@ namespace IceRpc
 
         public new IncomingConnectionOptions Clone()
         {
-            IncomingConnectionOptions options = (IncomingConnectionOptions)base.Clone();
+            var options = (IncomingConnectionOptions)base.Clone();
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }

@@ -158,8 +158,8 @@ namespace IceRpc
         internal override SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger) =>
             new WSSocket(base.CreateSocket(addr, options, logger));
 
-        internal override SingleStreamSocket CreateSocket(Socket socket, SocketOptions options, ILogger logger) =>
-            new WSSocket(base.CreateSocket(socket, options, logger));
+        internal override SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>
+            new WSSocket(base.CreateSocket(socket, logger));
 
         protected internal override Connection CreateConnection(
             MultiStreamOverSingleStreamSocket socket,
