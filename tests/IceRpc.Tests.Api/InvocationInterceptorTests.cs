@@ -75,6 +75,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
+        /*
+
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
@@ -122,6 +124,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("bar", ctx["foo"]);
             Assert.AreEqual(1, ctx.Count);
         }
+
+        */
 
         internal class TestService : IAsyncInvocationInterceptorTestService
         {

@@ -188,7 +188,6 @@ namespace IceRpc.Tests.Api
                 Context = new Dictionary<string, string>() { ["speed"] = "fast" },
                 InvocationTimeout = TimeSpan.FromSeconds(10),
                 IsFixed = true, // ignored
-                IsOneway = true,
                 Path = "xxxxxxx" // ignored
             };
 
@@ -201,6 +200,7 @@ namespace IceRpc.Tests.Api
 
             var proxy = server.Add("foo/bar", new ProxyTest(CheckProxy), IProxyTestPrx.Factory);
             CheckProxy(proxy);
+            Assert.IsFalse(proxy.IsFixed);
 
             // change some properties
             proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
@@ -222,8 +222,6 @@ namespace IceRpc.Tests.Api
                 Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual(proxy.Context["speed"], "fast");
                 Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(10));
-                // Assert.IsFalse(proxy.IsFixed);
-                Assert.IsTrue(proxy.IsOneway);
                 Assert.AreEqual(proxy.Path, "/foo/bar");
             }
         }
@@ -252,11 +250,12 @@ namespace IceRpc.Tests.Api
 
         private class ProxyTest : IAsyncProxyTest
         {
-            private Action<IProxyTestPrx> _checkProxy;
+            private readonly Action<IProxyTestPrx> _checkProxy;
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
                 _checkProxy(proxy);
+                Assert.IsTrue(proxy.IsFixed);
                 return default;
             }
 
