@@ -34,9 +34,10 @@ namespace IceRpc
             {
                 // Receive the Ice1 frame header.
                 ArraySegment<byte> buffer;
+                System.Net.EndPoint? address = null;
                 if (Endpoint.IsDatagram)
                 {
-                    buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
+                    (buffer, address) = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
                         if (TransportLogger.IsEnabled(LogLevel.Warning))
@@ -153,7 +154,7 @@ namespace IceRpc
                     {
                         // Create a new input stream for the request. If serialization is enabled, ensure we acquire
                         // the semaphore first to serialize the dispatching.
-                        stream = new Ice1NetworkSocketStream(this, streamId);
+                        stream = new Ice1NetworkSocketStream(this, streamId, address);
                         try
                         {
                             AsyncSemaphore? semaphore = stream.IsBidirectional ?
@@ -293,7 +294,7 @@ namespace IceRpc
                 }
 
                 // Perform the sending.
-                await SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+                await SendAsync(buffer, stream?.RemoteAddress, CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
@@ -420,9 +421,20 @@ namespace IceRpc
             }
         }
 
-        private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
+        private async ValueTask SendAsync(
+            IList<ArraySegment<byte>> buffers,
+            System.Net.EndPoint? remoteAddress,
+            CancellationToken cancel = default)
         {
-            int sent = await Underlying.SendAsync(buffers, cancel).ConfigureAwait(false);
+            int sent;
+            if (Endpoint.IsDatagram)
+            {
+                sent = await Underlying.SendDatagramAsync(buffers, remoteAddress, cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                sent = await Underlying.SendAsync(buffers, cancel).ConfigureAwait(false);
+            }
             Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }

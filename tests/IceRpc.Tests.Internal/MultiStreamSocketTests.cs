@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
                    false) =>
             SocketType = socketType;
 
-        public async Task SetUpSockets()
+        public async Task SetUpSocketsAsync()
         {
             Task<MultiStreamSocket> acceptTask = AcceptAsync();
             (_clientSocket, _proxy) = await ConnectAndGetProxyAsync();
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_AbortStream()
+        public async Task MultiStreamSocket_AbortStreams_AbortStreamAsync()
         {
             var ex = new InvalidOperationException();
 
@@ -156,7 +156,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_NoAbortStream()
+        public async Task MultiStreamSocket_AbortStreams_NoAbortStreamAsync()
         {
             var ex = new InvalidOperationException();
 
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_LargestStreamIds()
+        public async Task MultiStreamSocket_AbortStreams_LargestStreamIdsAsync()
         {
             var ex = new InvalidOperationException();
 
@@ -244,7 +244,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AcceptStream()
+        public async Task MultiStreamSocket_AcceptStreamAsync()
         {
             SocketStream clientStream = ClientSocket.CreateStream(bidirectional: true);
             ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
@@ -280,7 +280,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_CloseAsync_Cancellation()
+        public async Task MultiStreamSocket_CloseAsync_CancellationAsync()
         {
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -323,7 +323,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_StreamMaxCount_Bidirectional()
+        public async Task MultiStreamSocket_StreamMaxCount_BidirectionalAsync()
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
@@ -382,7 +382,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task MultiStreamSocket_StreamMaxCount_StressTest(bool bidirectional)
+        public async Task MultiStreamSocket_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
                 ServerConnectionOptions.BidirectionalStreamMaxCount :
@@ -395,16 +395,16 @@ namespace IceRpc.Tests.Internal
             // Send many requests and receive the responses.
             for (int i = 0; i < 10 * maxCount; ++i)
             {
-                _ = SendRequestAndReceiveResponse(ClientSocket.CreateStream(bidirectional));
+                _ = SendRequestAndReceiveResponseAsync(ClientSocket.CreateStream(bidirectional));
             }
 
             // Receive all the requests and send the responses.
             for (int i = 0; i < 10 * maxCount; ++i)
             {
-                _ = ReceiveRequestAndSendResponse(await ServerSocket.AcceptStreamAsync(default));
+                _ = ReceiveRequestAndSendResponseAsync(await ServerSocket.AcceptStreamAsync(default));
             }
 
-            async Task SendRequestAndReceiveResponse(SocketStream stream)
+            async Task SendRequestAndReceiveResponseAsync(SocketStream stream)
             {
                 await stream.SendRequestFrameAsync(DummyRequest);
 
@@ -422,7 +422,7 @@ namespace IceRpc.Tests.Internal
                 stream.Release();
             }
 
-            async Task ReceiveRequestAndSendResponse(SocketStream stream)
+            async Task ReceiveRequestAndSendResponseAsync(SocketStream stream)
             {
                 // Ice1 stream max count is enforced on the server-side only. The stream is accepted only
                 // the server-side stream count permits it.
@@ -457,7 +457,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_StreamMaxCount_Unidirectional()
+        public async Task MultiStreamSocket_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
@@ -526,7 +526,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_Ping()
+        public async Task MultiStreamSocket_PingAsync()
         {
             var semaphore = new SemaphoreSlim(0);
             ServerSocket.Ping += EventHandler;
@@ -611,7 +611,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_SendResponse_Failure()
+        public async Task MultiStreamSocket_SendResponse_FailureAsync()
         {
             var stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
@@ -624,18 +624,18 @@ namespace IceRpc.Tests.Internal
         }
 
         [Order(1)]
-        public async Task MultiStreamSocket_StreamCount()
+        public async Task MultiStreamSocket_StreamCountAsync()
         {
             Assert.AreEqual(0, ClientSocket.IncomingStreamCount);
             Assert.AreEqual(0, ClientSocket.OutgoingStreamCount);
             Assert.AreEqual(0, ServerSocket.IncomingStreamCount);
             Assert.AreEqual(0, ServerSocket.OutgoingStreamCount);
 
-            var release1 = await Test(ClientSocket, ServerSocket, 1);
-            var release2 = await Test(ServerSocket, ClientSocket, 1);
+            var release1 = await TestAsync(ClientSocket, ServerSocket, 1);
+            var release2 = await TestAsync(ServerSocket, ClientSocket, 1);
 
-            var release3 = await Test(ClientSocket, ServerSocket, 2);
-            var release4 = await Test(ServerSocket, ClientSocket, 2);
+            var release3 = await TestAsync(ClientSocket, ServerSocket, 2);
+            var release4 = await TestAsync(ServerSocket, ClientSocket, 2);
 
             release4();
             release3();
@@ -643,7 +643,7 @@ namespace IceRpc.Tests.Internal
             release2();
             release1();
 
-            async Task<Action> Test(MultiStreamSocket socket, MultiStreamSocket peerSocket, int expectedCount)
+            async Task<Action> TestAsync(MultiStreamSocket socket, MultiStreamSocket peerSocket, int expectedCount)
             {
                 var clientStream = socket.CreateStream(true);
                 Assert.AreEqual(expectedCount - 1, socket.OutgoingStreamCount);
@@ -666,7 +666,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [SetUp]
-        public Task SetUp() => SetUpSockets();
+        public Task SetUp() => SetUpSocketsAsync();
 
         [TearDown]
         public void TearDown() => TearDownSockets();
@@ -685,7 +685,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [SetUp]
-        public Task SetUp() => SetUpSockets();
+        public Task SetUp() => SetUpSocketsAsync();
 
         [TearDown]
         public void TearDown() => TearDownSockets();
@@ -695,7 +695,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(32 * 1024)]
         [TestCase(128 * 1024)]
         [TestCase(512 * 1024)]
-        public async Task MultiStreamSocketStream_SendReceiveRequest(int size)
+        public async Task MultiStreamSocketStream_SendReceiveRequestAsync(int size)
         {
             var request = OutgoingRequestFrame.WithArgs(
                 Proxy,
@@ -727,7 +727,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_SendRequest_Cancellation()
+        public async Task MultiStreamSocketStream_SendRequest_CancellationAsync()
         {
             var stream = ClientSocket.CreateStream(true);
             using var source = new CancellationTokenSource();
@@ -763,16 +763,12 @@ namespace IceRpc.Tests.Internal
                         using var source2 = new CancellationTokenSource();
                         source2.CancelAfter(200);
                         ValueTask sendTask = stream.SendRequestFrameAsync(request, source2.Token);
-                        if (sendTask.IsCompleted)
-                        {
-                            requestCount++;
-                            await sendTask;
-                        }
-                        else
-                        {
-                            Assert.CatchAsync<OperationCanceledException>(async () => await sendTask);
-                            break;
-                        }
+                        await sendTask;
+                        requestCount++;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
                     }
                     finally
                     {
@@ -780,7 +776,7 @@ namespace IceRpc.Tests.Internal
                     }
                 }
 
-                await ReceiveRequests(requestCount);
+                await ReceiveRequestsAsync(requestCount);
             }
 
             // Ensure we can still send a request after the cancellation
@@ -788,7 +784,7 @@ namespace IceRpc.Tests.Internal
             await stream.SendRequestFrameAsync(DummyRequest);
             stream.Release();
 
-            async Task ReceiveRequests(int requestCount)
+            async Task ReceiveRequestsAsync(int requestCount)
             {
                 if (requestCount == 0)
                 {
@@ -806,7 +802,7 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     var serverStream = await ServerSocket.AcceptStreamAsync(default);
-                    Task receiveNextRequestTask = ReceiveRequests(--requestCount);
+                    Task receiveNextRequestTask = ReceiveRequestsAsync(--requestCount);
                     _ = await serverStream.ReceiveRequestFrameAsync();
                     serverStream.Release();
                     await receiveNextRequestTask;
@@ -815,7 +811,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_SendResponse_Cancellation()
+        public async Task MultiStreamSocketStream_SendResponse_CancellationAsync()
         {
             var stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
@@ -844,7 +840,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_ReceiveResponse_Cancellation()
+        public async Task MultiStreamSocketStream_ReceiveResponse_CancellationAsync()
         {
             var stream = ClientSocket.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
