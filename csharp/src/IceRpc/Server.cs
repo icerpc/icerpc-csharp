@@ -57,17 +57,12 @@ namespace IceRpc
 
         private static ulong _counter; // used to generate names for nameless servers.
 
-        private bool _activated;
-
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
 
         private readonly Dictionary<string, IService> _defaultServiceMap = new();
 
-        private readonly IList<Func<IDispatcher, IDispatcher>> _dispatchInterceptorList =
-            new List<Func<IDispatcher, IDispatcher>>();
-
-        private IDispatcher _dispatchPipeline;
+        private IDispatcher? _dispatcher;
 
         private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
 
@@ -207,10 +202,13 @@ namespace IceRpc
             {
                 Communicator.Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
             }
+        }
 
-            // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.
-            _dispatchPipeline = IDispatcher.FromInlineDispatcher(
-                async (current, cancel) =>
+        // Temporary: creates a dispatcher that wraps the ASM held by this server.
+        public void Activate()
+        {
+            var dispatcher = IDispatcher.FromInlineDispatcher(
+                (current, cancel) =>
                 {
                     Debug.Assert(current.Server == this);
                     IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
@@ -218,13 +216,15 @@ namespace IceRpc
                     {
                         throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                     }
-                    return await service.DispatchAsync(current, cancel).ConfigureAwait(false);
-                });
+                    return service.DispatchAsync(current, cancel);
+                 });
+
+            Activate(dispatcher);
         }
 
-        /// <summary>Activates this server. After activation, the server can dispatch requests received
-        /// through its endpoints.</summary>
-        public void Activate()
+        /// <summary>Activates this server. After activation, the server can dispatch requests received through its
+        /// endpoints.</summary>
+        public void Activate(IDispatcher dispatcher)
         {
             lock (_mutex)
             {
@@ -234,23 +234,17 @@ namespace IceRpc
                 }
 
                 // Activating twice the server is incorrect
-                if (_activated)
+                if (_dispatcher != null)
                 {
                     throw new InvalidOperationException($"server {Name} already activated");
                 }
-
-                foreach (Func<IDispatcher, IDispatcher> dispatchInterceptor in _dispatchInterceptorList.Reverse())
-                {
-                    _dispatchPipeline = dispatchInterceptor(_dispatchPipeline);
-                }
+                _dispatcher = dispatcher;
 
                 // Activate the incoming connection factories to start accepting connections
                 foreach (IncomingConnectionFactory factory in _incomingConnectionFactories)
                 {
                     factory.Activate();
                 }
-
-                _activated = true;
             }
 
             if ((Communicator.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false) && Name.Length > 0)
@@ -518,32 +512,23 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Adds a dispatch interceptor to the dispatch pipeline.</summary>
-        /// <param name="dispatchInterceptor">The dispatch interceptor to add.</param>
-        /// <returns>This server.</returns>
-        public Server Use(Func<IDispatcher, IDispatcher> dispatchInterceptor)
-        {
-            lock (_mutex)
-            {
-                if (_activated)
-                {
-                    throw new InvalidOperationException(
-                        "cannot add an dispatchInterceptor to a server after activation");
-                }
-
-                _dispatchInterceptorList.Add(dispatchInterceptor);
-                return this;
-            }
-        }
-
-        /// <summary>Runs the request dispatch pipeline in a try/catch block</summary>
+        /// <summary>Runs the dispatcher in a try/catch block</summary>
         internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
             Current current,
             CancellationToken cancel)
         {
+            // TODO: temporary work-around
+            if (_dispatcher == null)
+            {
+                Activate();
+            }
+
+            // Dispatch works only once the server is activated, which sets _dispatcher.
+            Debug.Assert(_dispatcher != null);
+
             try
             {
-                return await _dispatchPipeline.DispatchAsync(current, cancel).ConfigureAwait(false);
+                return await _dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -576,6 +561,28 @@ namespace IceRpc
             }
         }
 
+        internal Endpoint? GetColocatedEndpoint()
+        {
+            lock (_mutex)
+            {
+                if (_shutdownTask != null)
+                {
+                    return null;
+                }
+
+                if (_colocatedConnectionFactory == null)
+                {
+                    _colocatedConnectionFactory =
+                        new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
+
+                    // It's safe to start the connection within the synchronization, this isn't supposed to block
+                    // for colocated connections.
+                    _colocatedConnectionFactory.Activate();
+                }
+                return _colocatedConnectionFactory.Endpoint;
+            }
+        }
+
         internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
         {
             Debug.Assert(ColocationScope != ColocationScope.None);
@@ -594,7 +601,15 @@ namespace IceRpc
 
             if (proxy.IsWellKnown || proxy.IsRelative)
             {
-                isLocal = Find(proxy.Path, proxy.Facet) != null;
+                // TODO: temporary and ultra hacky
+                if (_dispatcher is Multiplexer multiplexer)
+                {
+                    isLocal = multiplexer.ContainsRoute(proxy.Path);
+                }
+                else
+                {
+                    isLocal = Find(proxy.Path, proxy.Facet) != null;
+                }
             }
             else
             {
@@ -608,28 +623,7 @@ namespace IceRpc
                 }
             }
 
-            if (isLocal)
-            {
-                lock (_mutex)
-                {
-                    if (_shutdownTask != null)
-                    {
-                        return null;
-                    }
-
-                    if (_colocatedConnectionFactory == null)
-                    {
-                        _colocatedConnectionFactory =
-                            new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
-
-                        // It's safe to start the connection within the synchronization, this isn't supposed to block
-                        // for colocated connections.
-                        _colocatedConnectionFactory.Activate();
-                    }
-                    return _colocatedConnectionFactory.Endpoint;
-                }
-            }
-            return null;
+            return isLocal ? GetColocatedEndpoint() : null;
         }
     }
 }

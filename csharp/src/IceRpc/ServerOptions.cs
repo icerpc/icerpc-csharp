@@ -20,7 +20,7 @@ namespace IceRpc
     {
         public IncomingConnectionOptions? ConnectionOptions { get; set; } = new();
 
-        public ColocationScope ColocationScope { get; set; }
+        public ColocationScope ColocationScope { get; set; } = ColocationScope.Communicator;
 
         // TODO: should it be Endpoint?
         public string Endpoints { get; set; } = "";

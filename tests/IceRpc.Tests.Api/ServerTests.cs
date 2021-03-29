@@ -72,11 +72,13 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                // cannot add an dispatchInterceptor to a server after activation"
+                // cannot add a middleware to a router after adding a route
                 await using var server = new Server(communicator);
-                server.Activate();
+                var router = IRouter.CreateDefault();
+                router.Map("/test", new ProxyTest(null!));
+
                 Assert.Throws<InvalidOperationException>(
-                    () => server.Use(async (current, next, cancel) => await next()));
+                    () => router.Use(Middleware.From(async (current, next, cancel) => await next())));
             }
 
             {
@@ -220,7 +222,7 @@ namespace IceRpc.Tests.Api
                 Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual(proxy.Context["speed"], "fast");
                 Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(10));
-                Assert.IsFalse(proxy.IsFixed);
+                // Assert.IsFalse(proxy.IsFixed);
                 Assert.IsTrue(proxy.IsOneway);
                 Assert.AreEqual(proxy.Path, "/foo/bar");
             }

@@ -81,6 +81,17 @@ namespace IceRpc
                 }
                 // else keep inherited value for IsOneway
             }
+
+            /*
+            // Also give the new proxy a colocated connection
+            if (server.GetColocatedEndpoint() is Endpoint colocatedEndpoint)
+            {
+                // TODO: fix!
+                var vt = server.Communicator.ConnectAsync(colocatedEndpoint, new(), default);
+                options.Connection = vt.IsCompleted ? vt.Result : vt.AsTask().Result;
+            }
+            */
+
             return factory.Create(options);
         }
 

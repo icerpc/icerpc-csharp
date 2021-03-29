@@ -318,11 +318,11 @@ namespace IceRpc.Test.Alias
                 TestHelper.Assert(typeof(Class2).BaseType == typeof(Class1));
 
                 Type[] interface1Bases = typeof(IInterface1).GetInterfaces();
-                TestHelper.Assert(interface1Bases.Length == 1);
+                TestHelper.Assert(interface1Bases.Length == 2);
                 TestHelper.Assert(interface1Bases[0] == typeof(IService));
 
                 Type[] interface1AsyncBases = typeof(IAsyncInterface1).GetInterfaces();
-                TestHelper.Assert(interface1AsyncBases.Length == 1);
+                TestHelper.Assert(interface1AsyncBases.Length == 2);
                 TestHelper.Assert(interface1AsyncBases[0] == typeof(IService));
 
                 Type[] interface1PrxBases = typeof(IInterface1Prx).GetInterfaces();
@@ -331,12 +331,12 @@ namespace IceRpc.Test.Alias
                 TestHelper.Assert(interface1PrxBases[1] == typeof(IEquatable<IServicePrx>));
 
                 Type[] interface2Bases = typeof(IInterface2).GetInterfaces();
-                TestHelper.Assert(interface2Bases.Length == 2);
+                TestHelper.Assert(interface2Bases.Length == 3);
                 TestHelper.Assert(interface2Bases[0] == typeof(IInterface1));
                 TestHelper.Assert(interface2Bases[1] == typeof(IService));
 
                 Type[] interface2AsyncBases = typeof(IAsyncInterface2).GetInterfaces();
-                TestHelper.Assert(interface2AsyncBases.Length == 2);
+                TestHelper.Assert(interface2AsyncBases.Length == 3);
                 TestHelper.Assert(interface2AsyncBases[0] == typeof(IAsyncInterface1));
                 TestHelper.Assert(interface2AsyncBases[1] == typeof(IService));
 

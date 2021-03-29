@@ -102,15 +102,18 @@ namespace IceRpc.Tests.ClientServer
             bool colocated)
         {
             _targetServer = new Server(_communicator, CreateServerOptions(targetProtocol, port: 0, colocated));
-            var targetService = _targetServer.Add("target",
-                                                  new ProtocolBridgingService(),
-                                                  IProtocolBridgingServicePrx.Factory);
-            _targetServer.Use(async (current, next, cancel) =>
-            {
-                _forwardedContext = current.Context;
-                return await next();
-            });
-            _targetServer.Activate();
+            var router = IRouter.CreateDefault();
+            router.Use(Middleware.From(
+                async (current, next, cancel) =>
+                {
+                    _forwardedContext = current.Context;
+                    return await next();
+                }));
+
+            router.Map("/target", new ProtocolBridgingService());
+            var targetService = IProtocolBridgingServicePrx.Factory.Create(_targetServer, "/target");
+
+            _targetServer.Activate(router);
 
             _forwarderServer = new Server(_communicator, CreateServerOptions(forwarderProtocol, port: 1, colocated));
             var forwardService = _forwarderServer.Add("Forward",

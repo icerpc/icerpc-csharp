@@ -40,7 +40,9 @@ namespace IceRpc.Tests.ClientServer
             int compressedResponseSize = 0;
             bool compressedResponse = false;
 
-            server.Use(async (current, next, cancel) =>
+            var router = IRouter.CreateDefault();
+            router.Use(Middleware.From(
+                async (current, next, cancel) =>
                 {
                     try
                     {
@@ -57,10 +59,12 @@ namespace IceRpc.Tests.ClientServer
                         compressedResponseSize = size;
                         throw;
                     }
-                });
-            server.Activate();
+                }));
 
-            var prx = server.Add("compress", new CompressService(), ICompressServicePrx.Factory);
+            server.Activate(router);
+
+            router.Map("/compress", new CompressService());
+            var prx = ICompressServicePrx.Factory.Create(server, "/compress");
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);

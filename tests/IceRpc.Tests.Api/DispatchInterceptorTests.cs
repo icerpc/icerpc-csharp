@@ -8,6 +8,8 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
+    // TODO: rename to middleware
+
     [Parallelizable]
     public class DispatchInterceptorTests
     {
@@ -16,41 +18,54 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator);
-            server.Use((current, next, cancel) => throw new ArgumentException());
+            await using var server = new Server(communicator,
+                                                new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+
+            var router = IRouter.CreateDefault();
+            router.Use(Middleware.From((current, next, cancel) => throw new ArgumentException()));
             var service = new TestService();
-            var prx = server.AddWithUUID(service, IDispatchInterceptorTestServicePrx.Factory);
-            server.Activate();
+            router.Map("/test", service);
+            var prx = IDispatchInterceptorTestServicePrx.Factory.Create(server, "/test");
+            server.Activate(router);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
         }
 
-        /// <summary>Ensure that server dispatch interceptors are called in the expected order.</summary>
+        /// <summary>Ensure that middlewares are called in the expected order.</summary>
         [Test]
         public async Task DispatchInterceptor_CallOrder()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator);
+            await using var server = new Server(communicator,
+                                                new ServerOptions() { ColocationScope = ColocationScope.Communicator });
             var interceptorCalls = new List<string>();
 
-            // Simple dispatch interceptor followed by regular dispatch interceptor
-            server.Use(async (current, next, cancel) =>
-            {
-                interceptorCalls.Add("DispatchInterceptors -> 0");
-                var result = await next();
-                interceptorCalls.Add("DispatchInterceptors <- 0");
-                return result;
-            }).Use(next => IDispatcher.FromInlineDispatcher(async (current, cancel) =>
-            {
-                interceptorCalls.Add("DispatchInterceptors -> 1");
-                var result = await next.DispatchAsync(current, cancel);
-                interceptorCalls.Add("DispatchInterceptors <- 1");
-                return result;
-            }));
+            var router = IRouter.CreateDefault();
 
-            var prx = server.AddWithUUID(new TestService(), IServicePrx.Factory);
-            server.Activate();
+            // Simple middleware followed by regular middleware
+            router.Use(Middleware.From(
+                    async (current, next, cancel) =>
+                    {
+                        interceptorCalls.Add("DispatchInterceptors -> 0");
+                        var result = await next();
+                        interceptorCalls.Add("DispatchInterceptors <- 0");
+                        return result;
+                    }));
+
+            router.Use(next => IDispatcher.FromInlineDispatcher
+                (async (current, cancel) =>
+                {
+                    interceptorCalls.Add("DispatchInterceptors -> 1");
+                    var result = await next.DispatchAsync(current, cancel);
+                    interceptorCalls.Add("DispatchInterceptors <- 1");
+                    return result;
+                }));
+
+            router.Map("/test", new TestService());
+            var prx = IServicePrx.Factory.Create(server, "/test");
+
+            server.Activate(router);
 
             await prx.IcePingAsync();
 
