@@ -247,7 +247,7 @@ namespace IceRpc.Tests.ClientServer
                         servers[i].Activate(routers[i]);
                     }
 
-                     routers[0].Map("/replicated", new Replicated(fail: true));
+                    routers[0].Map("/replicated", new Replicated(fail: true));
                     routers[1].Map("/replicated", new Replicated(fail: false));
 
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
