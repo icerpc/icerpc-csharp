@@ -10,19 +10,15 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    [TestFixture(Protocol.Ice1, "tcp", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "tcp", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice1, "tcp", NonSecure.Never, AddressFamily.InterNetworkV6)]
-    [TestFixture(Protocol.Ice2, "tcp", NonSecure.Never, AddressFamily.InterNetworkV6)]
+    [TestFixture(Protocol.Ice1, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice2, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice1, AddressFamily.InterNetworkV6)]
+    [TestFixture(Protocol.Ice2, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
     public class SocketOptionsTests : SocketBaseTest
     {
-        public SocketOptionsTests(
-            Protocol protocol,
-            string transport,
-            NonSecure nonSecure,
-            AddressFamily addressFamily)
-            : base(protocol, transport, nonSecure, addressFamily)
+        public SocketOptionsTests(Protocol protocol, AddressFamily addressFamily)
+            : base(protocol, "tcp", NonSecure.Always, addressFamily)
         {
         }
 
@@ -36,7 +32,7 @@ namespace IceRpc.Tests.Internal
                 ReceiveBufferSize = 512 * 1024
             });
 
-            // Depending on the OS, the OS might allocate more space than the request size.
+            // The OS might allocate more space than the requested size.
             Assert.GreaterOrEqual(clientSocket.Socket!.SendBufferSize, 512 * 1024);
             Assert.GreaterOrEqual(clientSocket.Socket!.ReceiveBufferSize, 512 * 1024);
         }
@@ -55,7 +51,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                // Accessing dual mode for an IPv4 socket throws NotSupportedException
+                // Accessing DualMode for an IPv4 socket throws NotSupportedException
                 Assert.Catch<NotSupportedException>(() => _ = clientSocket.Socket!.DualMode);
             }
         }
@@ -100,7 +96,7 @@ namespace IceRpc.Tests.Internal
                 default);
             using SingleStreamSocket serverSocket = await acceptTask;
 
-            // Depending on the OS, the OS might allocate more space than the request size.
+            // The OS might allocate more space than the requested size.
             Assert.GreaterOrEqual(serverSocket.Socket!.SendBufferSize, 512 * 1024);
             Assert.GreaterOrEqual(serverSocket.Socket!.ReceiveBufferSize, 512 * 1024);
 
