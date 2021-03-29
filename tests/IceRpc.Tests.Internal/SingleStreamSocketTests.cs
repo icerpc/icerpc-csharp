@@ -318,6 +318,7 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
+            Assert.AreNotEqual(0, count);
 
             count = 5;
             while (count-- > 0)
@@ -341,6 +342,7 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
+            Assert.AreNotEqual(0, count);
         }
 
         [Test]
@@ -465,6 +467,7 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
+            Assert.AreNotEqual(0, count);
         }
     }
 
@@ -540,6 +543,7 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
+            Assert.AreNotEqual(0, count);
         }
 
         // Bidir communication with multicast doesn't work. Supporting this would require additional investigations.
