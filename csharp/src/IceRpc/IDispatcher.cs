@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A dispatcher handles (dispatches) requests received by a server.</summary>
-    public partial interface IDispatcher
+    public interface IDispatcher
     {
         public static IDispatcher FromInlineDispatcher(InlineDispatcher inlineDispatcher) =>
             new Adapter(inlineDispatcher);
