@@ -44,13 +44,13 @@ namespace IceRpc.Tests.Api
             var router = new Router();
 
             router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        interceptorCalls.Add("DispatchInterceptors -> 0");
-                        var result = await next.DispatchAsync(current, cancel);
-                        interceptorCalls.Add("DispatchInterceptors <- 0");
-                        return result;
-                    }));
+                async (current, cancel) =>
+                {
+                    interceptorCalls.Add("DispatchInterceptors -> 0");
+                    var result = await next.DispatchAsync(current, cancel);
+                    interceptorCalls.Add("DispatchInterceptors <- 0");
+                    return result;
+                }));
 
             router.Use(next => new InlineDispatcher(
                 async (current, cancel) =>
