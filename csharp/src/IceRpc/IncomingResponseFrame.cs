@@ -60,18 +60,9 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            if (ResultType == ResultType.Success)
-            {
-                return Payload.AsReadOnlyMemory(1).ReadEncapsulation(
-                    Protocol.GetEncoding(),
-                    reader,
-                    communicator: proxy.Communicator,
-                    proxy: proxy);
-            }
-            else
-            {
+            return ResultType == ResultType.Success ?
+                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, proxy.GetOptions()) :
                 throw ReadException(proxy);
-            }
         }
 
         /// <summary>Reads the return value which contains a stream return value. If this response frame carries a
@@ -98,7 +89,7 @@ namespace IceRpc
 
                 var istr = new InputStream(Payload.AsReadOnlyMemory(1),
                                            Protocol.GetEncoding(),
-                                           proxyOptions: proxy.Impl.CloneOptions(),
+                                           proxyOptions: proxy.Impl.GetOptions(),
                                            startEncapsulation: true);
                 T value = reader(istr, SocketStream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
@@ -298,7 +289,7 @@ namespace IceRpc
             {
                 istr = new InputStream(Payload.Slice(1),
                                        Protocol.GetEncoding(),
-                                       proxyOptions: proxy.Impl.CloneOptions(),
+                                       proxyOptions: proxy.Impl.GetOptions(),
                                        startEncapsulation: true);
 
                 if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)

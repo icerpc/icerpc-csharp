@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc;
+using IceRpc.Instrumentation;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,8 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using IceRpc;
-using IceRpc.Instrumentation;
 
 // The new version of the Test helper classes. Will be renamed Test once all the tests have migrated to TestNew.
 namespace IceRpc.Test
@@ -87,7 +88,13 @@ namespace IceRpc.Test
             Dictionary<string, string> properties,
             ICommunicatorObserver? observer = null)
         {
-            return new Communicator(properties, observer: observer);
+            var loggerFactory = LoggerFactory.Create(
+                builder =>
+                {
+                    // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+                    // builder.SetMinimumLevel(LogLevel.Debug);
+                });
+            return new Communicator(properties, observer: observer, loggerFactory: loggerFactory);
         }
 
         public string GetTestEndpoint(

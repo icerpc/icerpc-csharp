@@ -28,11 +28,11 @@ namespace IceRpc
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
         /// <param name="label">The label of the clone (optional).</param>
         /// <param name="locationResolver">The location resolver of the clone (optional).</param>
+        /// <param name="nonSecure">Determines whether the clone establishes a non-secure connection to an endpoint such
+        /// as ice+tcp that supports both secure and non-secure connections (optional).</param>
         /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
         /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
         /// connection.</param>
-        /// <param name="preferNonSecure">Determines whether the clone prefers non-secure connections over secure
-        /// connections (optional).</param>
         /// <returns>A new proxy with the same type as this proxy.</returns>
         public static T Clone<T>(
             this T proxy,
@@ -46,9 +46,9 @@ namespace IceRpc
             TimeSpan? invocationTimeout = null,
             object? label = null,
             ILocationResolver? locationResolver = null,
+            NonSecure? nonSecure = null,
             bool? oneway = null,
-            bool? preferExistingConnection = null,
-            NonSecure? preferNonSecure = null) where T : class, IServicePrx
+            bool? preferExistingConnection = null) where T : class, IServicePrx
         {
             if (label != null && clearLabel)
             {
@@ -56,7 +56,7 @@ namespace IceRpc
             }
 
             ServicePrx impl = proxy.Impl;
-            var options = impl.CloneOptions();
+            ProxyOptions options = impl.GetOptions();
 
             options.CacheConnection = cacheConnection ?? options.CacheConnection;
 
@@ -66,22 +66,24 @@ namespace IceRpc
             options.Connection = options.IsFixed ? (fixedConnection ?? options.Connection) :
                 (endpoints == null && locationResolver == null ? options.Connection : null);
 
-            options.Context = context?.ToImmutableDictionary() ?? options.Context;
+            options.Context = context ?? options.Context;
             options.Encoding = encoding ?? options.Encoding;
 
-            options.Endpoints = endpoints?.ToImmutableList() ??
-                (fixedConnection != null ? ImmutableList<Endpoint>.Empty : options.Endpoints);
+            if (options.IsFixed && endpoints != null)
+            {
+                throw new ArgumentException("cannot set endpoints on a fixed proxy", nameof(options));
+            }
 
-            options.InvocationInterceptors =
-                invocationInterceptors?.ToImmutableList() ?? options.InvocationInterceptors;
-            options.InvocationTimeoutOverride = invocationTimeout ?? options.InvocationTimeoutOverride;
+            options.Endpoints = options.IsFixed ? ImmutableList<Endpoint>.Empty : (endpoints ?? options.Endpoints);
+
+            options.InvocationInterceptors = invocationInterceptors ?? options.InvocationInterceptors;
+            options.InvocationTimeout = invocationTimeout ?? options.InvocationTimeout;
 
             options.IsOneway = oneway ?? options.IsOneway;
             options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
-            options.PreferExistingConnectionOverride =
-                preferExistingConnection ?? options.PreferExistingConnectionOverride;
-            options.PreferNonSecureOverride = preferNonSecure ?? options.PreferNonSecureOverride;
+            options.PreferExistingConnection = preferExistingConnection ?? options.PreferExistingConnection;
+            options.NonSecure = nonSecure ?? options.NonSecure;
 
             ServicePrx clone = impl.Clone(options);
             return clone == impl ? proxy : (clone as T)!;
@@ -153,6 +155,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Returns a new copy of the underlying options.</summary>
+        /// <returns>An instance of the options class.</returns>
+        public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
+
         /// <summary>Invokes a request on a proxy.</summary>
         /// <remarks>request.CancellationToken holds the cancellation token.</remarks>
         /// <param name="proxy">The proxy for the target Ice object.</param>
@@ -188,18 +194,18 @@ namespace IceRpc
             }
             else
             {
-                ServicePrxOptions options = proxy.Impl.CloneOptions();
+                ProxyOptions options = proxy.Impl.GetOptions();
                 options.Path = path;
 
-                if (options is InteropServicePrxOptions interopOptions)
+                if (options is InteropProxyOptions interopOptions)
                 {
                     interopOptions.Identity = Identity.Empty;
 
-                    if (proxy.Impl.IsWellKnown)
+                    if (proxy.Impl.IsWellKnown) // well-known implies not fixed
                     {
                         // Need to replace Loc endpoint since we're changing the identity.
                         options.Endpoints = ImmutableList.Create(LocEndpoint.Create(Identity.FromPath(path)));
-                        options.Connection = null; // clear cached connection
+                        options.Connection = null; // clear cached connection since we're changing the endpoint
                     }
                 }
 

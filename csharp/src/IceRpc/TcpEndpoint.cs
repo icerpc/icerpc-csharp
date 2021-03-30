@@ -344,15 +344,16 @@ namespace IceRpc
             {
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, options.IsIPv6Only);
+                    socket.DualMode = !options.IsIPv6Only;
                 }
 
                 if (options.SourceAddress is IPAddress sourceAddress)
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
+
                 SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
-                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
+                socket.NoDelay = true;
             }
             catch (SocketException ex)
             {

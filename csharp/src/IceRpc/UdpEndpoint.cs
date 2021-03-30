@@ -52,9 +52,17 @@ namespace IceRpc
 
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
+                    // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        socket.DualMode = false;
+                    }
+                    else
+                    {
+                        socket.DualMode = !socketOptions.IsIPv6Only;
+                    }
                 }
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
+                socket.ExclusiveAddressUse = true;
 
                 SetBufferSize(socket,
                               socketOptions.ReceiveBufferSize,
@@ -200,7 +208,7 @@ namespace IceRpc
                 var socketOptions = options.SocketOptions!;
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
+                    socket.DualMode = !socketOptions.IsIPv6Only;
                 }
 
                 if (endpoint is IPEndPoint ipEndpoint && Network.IsMulticast(ipEndpoint.Address))
@@ -217,10 +225,11 @@ namespace IceRpc
                     }
                 }
 
-                if (options.SocketOptions!.SourceAddress is IPAddress sourceAddress)
+                if (socketOptions.SourceAddress is IPAddress sourceAddress)
                 {
                     socket.Bind(new IPEndPoint(sourceAddress, 0));
                 }
+
                 SetBufferSize(socket, socketOptions.ReceiveBufferSize, socketOptions.SendBufferSize, transportLogger);
             }
             catch (SocketException ex)

@@ -47,9 +47,6 @@ namespace IceRpc
             return this;
         }
 
-        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            Underlying.ReceiveDatagramAsync(cancel);
-
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {
             int received = 0;
@@ -70,8 +67,18 @@ namespace IceRpc
             return received;
         }
 
-        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel = default) =>
+        public override ValueTask<(ArraySegment<byte>, System.Net.EndPoint?)> ReceiveDatagramAsync(
+            CancellationToken cancel) =>
+            Underlying.ReceiveDatagramAsync(cancel);
+
+        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             Underlying.SendAsync(buffer, cancel);
+
+        public override ValueTask<int> SendDatagramAsync(
+            IList<ArraySegment<byte>> buffer,
+            System.Net.EndPoint? remoteAddress,
+            CancellationToken cancel) =>
+            Underlying.SendDatagramAsync(buffer, remoteAddress, cancel);
 
         /// <inheritdoc/>
         public override string? ToString() => Underlying.ToString();

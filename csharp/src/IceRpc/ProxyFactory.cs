@@ -41,7 +41,7 @@ namespace IceRpc
         /// <param name="proxy">The source proxy being copied.</param>
         /// <returns>A proxy with the desired type.</returns>
         public static T Copy<T>(this IProxyFactory<T> factory, IServicePrx proxy) where T : class, IServicePrx =>
-            factory.Create(proxy.Impl.CloneOptions());
+            factory.Create(proxy.Impl.GetOptions());
 
         /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -57,31 +57,31 @@ namespace IceRpc
                 server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
 
             IReadOnlyList<Endpoint> endpoints = server.PublishedEndpoints;
+
+            ProxyOptions options;
+
             if (protocol == Protocol.Ice1 && endpoints.Count == 0)
             {
                 // Well-known proxy.
                 var identity = Identity.FromPath(path);
-                var options = new InteropServicePrxOptions()
-                {
-                    Communicator = server.Communicator,
-                    Endpoints = ImmutableList.Create(LocEndpoint.Create(identity)),
-                    Identity = identity,
-                    IsOneway = server.IsDatagramOnly
-                };
-                return factory.Create(options);
+
+                options = server.ProxyOptions.With(protocol.GetEncoding(),
+                                                   ImmutableList.Create(LocEndpoint.Create(identity)),
+                                                   facet: "",
+                                                   identity,
+                                                   oneway: server.IsDatagramOnly || server.ProxyOptions.IsOneway);
             }
             else
             {
-                var options = new ServicePrxOptions()
+                options = server.ProxyOptions.With(protocol.GetEncoding(), endpoints, path, protocol);
+
+                if (server.IsDatagramOnly)
                 {
-                    Communicator = server.Communicator,
-                    Endpoints = endpoints,
-                    IsOneway = server.IsDatagramOnly,
-                    Path = path,
-                    Protocol = protocol
-                };
-                return factory.Create(options);
+                    options.IsOneway = true;
+                }
+                // else keep inherited value for IsOneway
             }
+            return factory.Create(options);
         }
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
@@ -94,41 +94,28 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            Protocol protocol = connection.Protocol;
+            if (connection.Server is not Server server)
+            {
+                throw new InvalidOperationException("cannot create a fixed proxy using a connection without a server");
+            }
 
-            if (protocol == Protocol.Ice1)
+            ProxyOptions options = server.ProxyOptions.With(connection, path);
+            if (connection.Endpoint.IsDatagram)
             {
-                var options = new ServicePrxOptions()
-                {
-                    Communicator = connection.Communicator!,
-                    Connection = connection,
-                    IsFixed = true,
-                    IsOneway = connection.Endpoint.IsDatagram,
-                    Path = path,
-                    Protocol = Protocol.Ice1
-                };
-                return factory.Create(options);
+                options.IsOneway = true;
             }
-            else
-            {
-                var options = new ServicePrxOptions()
-                {
-                    Communicator = connection.Communicator!,
-                    Connection = connection,
-                    IsFixed = true,
-                    Path = path,
-                    Protocol = protocol
-                };
-                return factory.Create(options);
-            }
+
+            return factory.Create(options);
         }
 
-        /// <summary>Creates a proxy from a string and a communicator.</summary>
-        public static T Parse<T>(
-            this IProxyFactory<T> factory,
-            string s,
-            Communicator communicator,
-            string? propertyPrefix = null) where T : class, IServicePrx
+        // Temporary adapter
+        public static T Parse<T>(this IProxyFactory<T> factory, string s, Communicator communicator)
+            where T : class, IServicePrx =>
+            Parse(factory, s, new ProxyOptions() { Communicator = communicator });
+
+        /// <summary>Creates a proxy from a string and proxy options.</summary>
+        public static T Parse<T>(this IProxyFactory<T> factory, string s, ProxyOptions proxyOptions)
+            where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
@@ -136,39 +123,8 @@ namespace IceRpc
                 throw new FormatException("empty string is invalid");
             }
 
-            if (UriParser.IsProxyUri(proxyString))
-            {
-                return factory.Create(UriParser.ParseProxy(proxyString, communicator));
-            }
-            else
-            {
-                InteropServicePrxOptions options = Ice1Parser.ParseProxy(proxyString, communicator);
-                Debug.Assert(options.Endpoints.Count > 0);
-
-                // Override the defaults with the proxy properties if a property prefix is defined.
-                if (propertyPrefix != null && propertyPrefix.Length > 0)
-                {
-                    options.CacheConnection =
-                        communicator.GetPropertyAsBool($"{propertyPrefix}.CacheConnection") ?? true;
-
-                    string property = $"{propertyPrefix}.Context.";
-                    options.Context = communicator.GetProperties(forPrefix: property).
-                        ToImmutableDictionary(e => e.Key[property.Length..], e => e.Value);
-
-                    if (options.Context.Count == 0)
-                    {
-                        options.Context = null;
-                    }
-
-                    options.InvocationTimeoutOverride =
-                        communicator.GetPropertyAsTimeSpan($"{propertyPrefix}.InvocationTimeout");
-                    options.Label = communicator.GetProperty($"{propertyPrefix}.Label");
-                    options.PreferNonSecureOverride =
-                        communicator.GetPropertyAsEnum<NonSecure>($"{propertyPrefix}.PreferNonSecure");
-                }
-
-                return factory.Create(options);
-            }
+            return factory.Create(UriParser.IsProxyUri(proxyString) ?
+                UriParser.ParseProxy(proxyString, proxyOptions) : Ice1Parser.ParseProxy(proxyString, proxyOptions));
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>
@@ -193,6 +149,11 @@ namespace IceRpc
             if (istr.Communicator == null)
             {
                 throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
+            }
+
+            if (istr.ProxyOptions is not ProxyOptions proxyOptions)
+            {
+                throw new InvalidOperationException("cannot read a proxy from an InputStream with no proxy options");
             }
 
             if (istr.Encoding == Encoding.V11)
@@ -331,73 +292,32 @@ namespace IceRpc
             // Creates an ice1 proxy
             T CreateIce1Proxy(
                 Encoding encoding,
-                IReadOnlyList<Endpoint> endpoints,
+                IEnumerable<Endpoint> endpoints,
                 string facet,
                 Identity identity,
-                InvocationMode invocationMode)
-            {
-                var options = new InteropServicePrxOptions()
-                {
-                    CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
-                    Communicator = istr.Communicator!,
-                    // Connection remains null, i.e. non fixed proxy
-                    Context = istr.ProxyOptions?.Context,
-                    Encoding = encoding,
-                    Endpoints = endpoints,
-                    Facet = facet,
-                    Identity = identity,
-                    InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
-                    InvocationTimeoutOverride = istr.ProxyOptions?.InvocationTimeoutOverride,
-                    IsOneway = invocationMode != InvocationMode.Twoway,
-                    Label = istr.ProxyOptions?.Label,
-                    LocationResolver = istr.ProxyOptions?.LocationResolver,
-                    PreferExistingConnectionOverride = istr.ProxyOptions?.PreferExistingConnectionOverride,
-                    PreferNonSecureOverride = istr.ProxyOptions?.PreferNonSecureOverride
-                };
-                return factory.Create(options);
-            }
+                InvocationMode invocationMode) =>
+                factory.Create(proxyOptions.With(encoding,
+                                                 endpoints,
+                                                 facet,
+                                                 identity,
+                                                 invocationMode != InvocationMode.Twoway));
 
             // Creates an ice2+ proxy
             T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
             {
-                var options = new ServicePrxOptions()
-                {
-                    CacheConnection = istr.ProxyOptions?.CacheConnection ?? true,
-                    Communicator = istr.Communicator!,
-                    // Connection remains null
-                    Context = istr.ProxyOptions?.Context,
-                    Encoding = encoding,
-                    Endpoints = endpoints,
-                    InvocationInterceptors = istr.ProxyOptions?.InvocationInterceptors,
-                    InvocationTimeoutOverride = istr.ProxyOptions?.InvocationTimeoutOverride,
-                    IsOneway = istr.ProxyOptions?.IsOneway ?? false,
-                    Label = istr.ProxyOptions?.Label,
-                    LocationResolver = istr.ProxyOptions?.LocationResolver,
-                    Path = path,
-                    PreferExistingConnectionOverride = istr.ProxyOptions?.PreferExistingConnectionOverride,
-                    PreferNonSecureOverride = istr.ProxyOptions?.PreferNonSecureOverride,
-                    Protocol = protocol
-                };
+                ProxyOptions options = proxyOptions.With(encoding, endpoints, path, protocol);
 
                 if (endpoints.Count == 0) // relative proxy
                 {
-                    ServicePrxOptions? source = istr.ProxyOptions;
-
-                    if (source == null)
-                    {
-                        throw new InvalidOperationException("cannot read a relative proxy from this input stream");
-                    }
-
-                    if (source.Protocol != protocol)
+                    if (protocol != proxyOptions.Protocol)
                     {
                         throw new InvalidDataException(
                             $"received a relative proxy with invalid protocol {protocol.GetName()}");
                     }
 
-                    options.Connection = source.Connection;
-                    options.Endpoints = source.Endpoints;
-                    options.IsFixed = source.IsFixed;
-
+                    options.Connection = proxyOptions.Connection;
+                    options.Endpoints = proxyOptions.Endpoints;
+                    options.IsFixed = proxyOptions.IsFixed;
                 }
                 return factory.Create(options);
             }

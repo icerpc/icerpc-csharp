@@ -24,8 +24,8 @@ namespace IceRpc
 
             internal bool? IsOneway;
             internal object? Label;
+            internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
-            internal NonSecure? PreferNonSecure;
             internal Protocol? Protocol;
         }
 
@@ -97,30 +97,30 @@ namespace IceRpc
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
-        /// <returns>A service proxy options instance.</returns>
-        internal static ServicePrxOptions ParseProxy(string uriString, Communicator communicator)
+        /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
+        /// <returns>A new proxy options instance.</returns>
+        internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
-                Parse(uriString, serverEndpoints: false, communicator);
+                Parse(uriString, serverEndpoints: false, proxyOptions.Communicator!);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            return new()
-            {
-                CacheConnection = parsedOptions.CacheConnection ?? true,
-                Communicator = communicator,
-                Context = parsedOptions.Context?.ToImmutableSortedDictionary(),
-                Encoding = parsedOptions.Encoding ?? Encoding.V20,
-                Endpoints = endpoints,
-                InvocationTimeoutOverride = parsedOptions.InvocationTimeout,
-                IsOneway = parsedOptions.IsOneway ?? false,
-                Label = parsedOptions.Label,
-                Path = uri.AbsolutePath,
-                PreferExistingConnectionOverride = parsedOptions.PreferExistingConnection,
-                PreferNonSecureOverride = parsedOptions.PreferNonSecure,
-                Protocol = parsedOptions.Protocol ?? Protocol.Ice2
-            };
+            ProxyOptions result = proxyOptions.With(parsedOptions.Encoding ?? Encoding.V20,
+                                                    endpoints,
+                                                    uri.AbsolutePath,
+                                                    parsedOptions.Protocol ?? Protocol.Ice2);
+
+            // Also update other properties from parsed options
+            result.CacheConnection = parsedOptions.CacheConnection ?? result.CacheConnection;
+            result.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? result.Context;
+            result.IsOneway = parsedOptions.IsOneway ?? result.IsOneway;
+            result.InvocationTimeout = parsedOptions.InvocationTimeout ?? result.InvocationTimeout;
+            result.Label = parsedOptions.Label ?? result.Label;
+            result.PreferExistingConnection = parsedOptions.PreferExistingConnection ?? result.PreferExistingConnection;
+            result.NonSecure = parsedOptions.NonSecure ?? result.NonSecure;
+
+            return result;
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
@@ -317,6 +317,15 @@ namespace IceRpc
                     CheckProxyOption(name, proxyOptions.Label != null);
                     proxyOptions.Label = value;
                 }
+                else if (name == "non-secure")
+                {
+                    CheckProxyOption(name, proxyOptions.NonSecure != null);
+                    if (int.TryParse(value, out int _))
+                    {
+                        throw new FormatException($"{value} is not a valid option for non-secure");
+                    }
+                    proxyOptions.NonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
+                }
                 else if (name == "oneway")
                 {
                     CheckProxyOption(name, proxyOptions.IsOneway != null);
@@ -326,15 +335,6 @@ namespace IceRpc
                 {
                     CheckProxyOption(name, proxyOptions.PreferExistingConnection != null);
                     proxyOptions.PreferExistingConnection = bool.Parse(value);
-                }
-                else if (name == "prefer-non-secure")
-                {
-                    CheckProxyOption(name, proxyOptions.PreferNonSecure != null);
-                    if (int.TryParse(value, out int _))
-                    {
-                        throw new FormatException($"{value} is not a valid option for prefer-non-secure");
-                    }
-                    proxyOptions.PreferNonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
                 }
                 else if (name == "protocol")
                 {
@@ -392,7 +392,7 @@ namespace IceRpc
         /// </param>
         /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
-        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ProxyOptions) Parse(
+        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(
             string uriString,
             bool serverEndpoints,
             Communicator communicator)
@@ -409,19 +409,17 @@ namespace IceRpc
 
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
-                (Uri uri, string? altEndpoint, ParsedOptions proxyOptions) =
+                (Uri uri, string? altEndpoint, ParsedOptions parsedOptions) =
                     InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
 
-                Protocol protocol = proxyOptions.Protocol ?? Protocol.Ice2;
+                Protocol protocol = parsedOptions.Protocol ?? Protocol.Ice2;
 
-                List<Endpoint>? endpoints = null;
+                var endpoints = ImmutableList<Endpoint>.Empty;
 
                 if (endpointOptions != null) // i.e. not ice scheme
                 {
-                    endpoints = new List<Endpoint>
-                    {
-                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri)
-                    };
+                    endpoints = ImmutableList.Create(
+                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri));
 
                     if (altEndpoint != null)
                     {
@@ -456,15 +454,15 @@ namespace IceRpc
                                     $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
                             }
 
-                            endpoints.Add(CreateEndpoint(communicator,
-                                                         serverEndpoints,
-                                                         endpointOptions,
-                                                         protocol,
-                                                         endpointUri));
+                            endpoints = endpoints.Add(CreateEndpoint(communicator,
+                                                                     serverEndpoints,
+                                                                     endpointOptions,
+                                                                     protocol,
+                                                                     endpointUri));
                         }
                     }
                 }
-                return (uri, (IReadOnlyList<Endpoint>?)endpoints ?? ImmutableArray<Endpoint>.Empty, proxyOptions);
+                return (uri, endpoints, parsedOptions);
             }
             catch (Exception ex)
             {

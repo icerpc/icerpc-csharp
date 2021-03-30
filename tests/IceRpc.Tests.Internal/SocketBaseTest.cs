@@ -37,7 +37,15 @@ namespace IceRpc.Tests.Internal
         private readonly object _mutex = new();
         private static int _nextBasePort;
 
-        public SocketBaseTest(Protocol protocol, string transport, bool secure)
+        public SocketBaseTest(
+            Protocol protocol,
+            string transport,
+            bool secure,
+            bool ipv6 = false,
+            Func<string, int, string>? clientEndpoint = null,
+            Func<string, int, string>? serverEndpoint = null,
+            Action<ConnectionOptions>? clientConnectionOptionsBuilder = null,
+            Action<ConnectionOptions>? serverConnectionOptionsBuilder = null)
         {
             int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
@@ -52,8 +60,8 @@ namespace IceRpc.Tests.Internal
             _loggerFactory = LoggerFactory.Create(
                 builder =>
                 {
-                    //builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
-                    builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+                    // builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
+                    // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.AddJsonConsole(configure =>
                     // {
                     //     configure.IncludeScopes = true;
@@ -67,7 +75,7 @@ namespace IceRpc.Tests.Internal
 
             Logger = _loggerFactory.CreateLogger("IceRPC");
 
-            _communicator = new Communicator(connectionOptions: new()
+            var clientConnectionOptions = new OutgoingConnectionOptions()
             {
                 AuthenticationOptions = new()
                 {
@@ -79,19 +87,23 @@ namespace IceRpc.Tests.Internal
                                 })
                 },
                 NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
-            });
+            };
+            clientConnectionOptionsBuilder?.Invoke(clientConnectionOptions);
+            _communicator = new Communicator(connectionOptions: clientConnectionOptions);
 
+            var serverConnectionOptions = new IncomingConnectionOptions()
+            {
+                AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
+                AuthenticationOptions = new()
+                {
+                    ClientCertificateRequired = false,
+                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                }
+            };
+            serverConnectionOptionsBuilder?.Invoke(serverConnectionOptions);
             _server = new Server(_communicator, new ServerOptions
             {
-                ConnectionOptions = new()
-                {
-                    AcceptNonSecure = secure ? NonSecure.Never : NonSecure.Always,
-                    AuthenticationOptions = new()
-                    {
-                        ClientCertificateRequired = false,
-                        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                    }
-                },
+                ConnectionOptions = serverConnectionOptions,
                 LoggerFactory = _loggerFactory
             });
 
@@ -104,14 +116,18 @@ namespace IceRpc.Tests.Internal
             {
                 if (protocol == Protocol.Ice2)
                 {
-                    string endpoint = $"ice+{transport}://127.0.0.1:{port}";
+                    string host = ipv6 ? "[::1]" : "127.0.0.1";
+                    string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
                     ServerEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
                     ClientEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
                 else
                 {
-                    string endpoint = $"{transport} -h 127.0.0.1 -p {port}";
+                    string host = ipv6 ? "\"::1\"" : "127.0.0.1";
+                    string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
                     ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
                     ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
                 }
             }
@@ -126,50 +142,8 @@ namespace IceRpc.Tests.Internal
             _loggerFactory.Dispose();
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(_server);
-
-        protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;
-
-        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync()
-        {
-            lock (_mutex)
-            {
-                _acceptor ??= CreateAcceptor();
-            }
-
-            Connection connection = await ClientEndpoint.ConnectAsync(
-                ClientConnectionOptions,
-                Logger,
-                Logger,
-                default);
-            if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
-            {
-                // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
-                // a single byte over the socket to figure out if the client establishes a secure/non-secure
-                // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
-                // indefinitely.
-                if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
-                {
-                    var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
-                    await socket.Underlying.SendAsync(buffer, default);
-                }
-            }
-
-            if (connection.Endpoint.TransportName != TransportName)
-            {
-                Debug.Assert(TransportName == "colocated");
-                Debug.Assert(connection.Socket is ColocatedSocket);
-            }
-            var options = new ServicePrxOptions()
-            {
-                Communicator = _communicator,
-                Connection = connection,
-                IsFixed = true,
-                Path = "dummy",
-                Protocol = ClientEndpoint.Protocol
-            };
-            return (connection.Socket, IServicePrx.Factory.Create(options));
-        }
+        static protected async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
+            (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
 
         protected async Task<MultiStreamSocket> AcceptAsync()
         {
@@ -196,7 +170,7 @@ namespace IceRpc.Tests.Internal
                 }
                 return connection.Socket;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.Error.WriteLine(ex);
                 throw;
@@ -206,5 +180,56 @@ namespace IceRpc.Tests.Internal
                 _acceptSemaphore.Release();
             }
         }
+
+        protected async Task<MultiStreamSocket> ConnectAsync() => (await ConnectAndGetProxyAsync()).Socket;
+
+        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync()
+        {
+            if (!ClientEndpoint.IsDatagram)
+            {
+                lock (_mutex)
+                {
+                    _acceptor ??= CreateAcceptor();
+                }
+            }
+
+            Connection connection = await ClientEndpoint.ConnectAsync(
+                ClientConnectionOptions,
+                Logger,
+                Logger,
+                default);
+            if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
+            {
+                // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
+                // a single byte over the socket to figure out if the client establishes a secure/non-secure
+                // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
+                // indefinitely.
+                if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
+                {
+                    var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
+                    await socket.Underlying.SendAsync(buffer, default);
+                }
+            }
+
+            if (connection.Endpoint.TransportName != TransportName)
+            {
+                Debug.Assert(TransportName == "colocated");
+                Debug.Assert(connection.Socket is ColocatedSocket);
+            }
+            var options = new ProxyOptions()
+            {
+                Communicator = _communicator,
+                Connection = connection,
+                IsFixed = true,
+                Path = "dummy",
+                Protocol = ClientEndpoint.Protocol
+            };
+            return (connection.Socket, IServicePrx.Factory.Create(options));
+        }
+
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(_server);
+
+        protected MultiStreamSocket CreateDatagramServerSocket() =>
+            ServerEndpoint.CreateDatagramServerConnection(_server).Socket;
     }
 }

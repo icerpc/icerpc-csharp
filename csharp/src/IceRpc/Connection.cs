@@ -233,7 +233,7 @@ namespace IceRpc
             _state = ConnectionState.Initializing;
         }
 
-        internal abstract bool CanTrust(NonSecure preferNonSecure);
+        internal abstract bool CanTrust(NonSecure nonSecure);
 
         internal SocketStream CreateStream(bool bidirectional)
         {
@@ -503,7 +503,7 @@ namespace IceRpc
                 {
                     // Be notified if the peer resets the stream to cancel the dispatch.
                     //
-                    // The error code is ignored here since we can't provide it to the CancelationTokenSource. We
+                    // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
                     // could consider setting the error code into Ice.Current to allow the user to figure out the
                     // reason of the stream reset.
                     stream.Reset += (long errorCode) => cancelSource.Cancel();
@@ -706,7 +706,7 @@ namespace IceRpc
         {
         }
 
-        internal override bool CanTrust(NonSecure preferNonSecure) => true;
+        internal override bool CanTrust(NonSecure nonSecure) => true;
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -753,9 +753,9 @@ namespace IceRpc
             Server? server)
             : base(endpoint, socket, options, server) => _socket = socket;
 
-        internal override bool CanTrust(NonSecure preferNonSecure)
+        internal override bool CanTrust(NonSecure nonSecure)
         {
-            bool trusted = IsSecure || preferNonSecure switch
+            bool trusted = IsSecure || nonSecure switch
             {
                 NonSecure.SameHost => RemoteEndpoint?.IsSameHost() ?? false,
                 NonSecure.TrustedHost => false, // TODO implement trusted host

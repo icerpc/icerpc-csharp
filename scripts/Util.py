@@ -741,7 +741,7 @@ class Mapping(object):
                             props["Test.Transport"] = self.transport
                             if self.transport in  {"wss", "ssl"}:
                                 # Switch this logic when the default in the Communicator is False
-                                props["Ice.Default.PreferNonSecure"] = "Never"
+                                props["Ice.Default.NonSecure"] = "Never"
                                 props["Ice.AcceptNonSecure"] = "Never"
                     else:
                         # For the Ice 3.7 binaries

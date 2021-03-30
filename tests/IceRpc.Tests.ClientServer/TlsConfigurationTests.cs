@@ -425,7 +425,7 @@ namespace IceRpc.Tests.ClientServer
             server.Activate();
 
             var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator).Clone(
-                preferNonSecure: NonSecure.Never);
+                nonSecure: NonSecure.Never);
             closure(server, prx);
         }
 

@@ -52,7 +52,7 @@ namespace IceRpc.Tests.ClientServer
 
             if (transport == "udp")
             {
-                prx = prx.Clone(preferNonSecure: NonSecure.Always, oneway: true);
+                prx = prx.Clone(nonSecure: NonSecure.Always, oneway: true);
             }
 
             var connection = (await prx.GetConnectionAsync()) as IPConnection;
