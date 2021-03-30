@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(16 * 1024)]
         [TestCase(64 * 1024)]
         [TestCase(256 * 1024)]
-        [TestCase(512 * 1024)]
+        [TestCase(384 * 1024)]
         public void SocketOptions_Client_BufferSize(int size)
         {
             using IAcceptor acceptor = CreateAcceptor();
@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(16 * 1024)]
         [TestCase(64 * 1024)]
         [TestCase(256 * 1024)]
-        [TestCase(512 * 1024)]
+        [TestCase(384 * 1024)]
         public async Task SocketOptions_Server_BufferSizeAsync(int size)
         {
             (Server server, IAcceptor acceptor) = CreateAcceptorWithSocketOptions(new SocketOptions
