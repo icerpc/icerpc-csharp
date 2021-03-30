@@ -51,10 +51,7 @@ namespace IceRpc
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogStartSendingDatagrams(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket));
+                    Logger.LogStartSendingDatagrams(endpoint.Transport, LocalAddrToString(), RemoteAddrToString());
                 }
                 return this;
             }
@@ -157,11 +154,11 @@ namespace IceRpc
                 var sb = new StringBuilder();
                 if (_incoming)
                 {
-                    sb.Append("local address = " + Network.LocalAddrToString(Network.GetLocalAddress(Socket)));
+                    sb.Append("local address = " + LocalAddrToString());
                 }
                 else
                 {
-                    sb.Append(Network.SocketToString(Socket));
+                    sb.Append(SocketToString());
                 }
 
                 if (MulticastAddress != null)
@@ -202,17 +199,11 @@ namespace IceRpc
             {
                 if (MulticastAddress != null)
                 {
-                    return Logger.StartMulticastSocketScope(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        MulticastAddress.ToString());
+                    return Logger.StartMulticastSocketScope(endpoint.Transport, LocalAddrToString(), MulticastAddress.ToString());
                 }
                 else
                 {
-                    return Logger.StartDatagramSocketScope(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket));
+                    return Logger.StartDatagramSocketScope(endpoint.Transport, LocalAddrToString(), RemoteAddrToString());
                 }
             }
             return null;

@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
@@ -82,6 +83,39 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The number of bytes sent.</return>
         public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
+
+        protected string LocalAddrToString()
+        {
+            try
+            {
+                return Socket?.LocalEndPoint?.ToString() ?? "<undefined>";
+            }
+            catch
+            {
+                return "<not connected>";
+            }
+        }
+
+        protected string RemoteAddrToString()
+        {
+            try
+            {
+                return Socket?.RemoteEndPoint?.ToString() ?? "<undefined>";
+            }
+            catch
+            {
+                return "<not connected>";
+            }
+        }
+
+        protected string SocketToString()
+        {
+            if (Socket == null)
+            {
+                return "<closed>";
+            }
+            return $"local address = {LocalAddrToString()}\nremote address = {RemoteAddrToString()}";
+        }
 
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only

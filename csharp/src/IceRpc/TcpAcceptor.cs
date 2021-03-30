@@ -38,9 +38,7 @@ namespace IceRpc
             {
                 if (_server.TransportLogger.IsEnabled(LogLevel.Error))
                 {
-                    _server.TransportLogger.LogAcceptingConnectionFailed(
-                        Endpoint.Transport,
-                        Network.LocalAddrToString(_addr), ex);
+                    _server.TransportLogger.LogAcceptingConnectionFailed(Endpoint.Transport, _addr.ToString(), ex);
                 }
                 throw;
             }
@@ -62,9 +60,7 @@ namespace IceRpc
 
             if (server.TransportLogger.IsEnabled(LogLevel.Debug))
             {
-                server.TransportLogger.LogAcceptingConnection(
-                    Endpoint.Transport,
-                    Network.LocalAddrToString(_addr));
+                server.TransportLogger.LogAcceptingConnection(Endpoint.Transport, _addr.ToString());
             }
         }
     }

@@ -29,7 +29,7 @@ namespace IceRpc
         {
             try
             {
-                _desc = Network.SocketToString(Socket);
+                _desc = SocketToString();
 
                 // On the server side, when accepting a new connection for Ice2 endpoint, the TCP socket checks
                 // the first byte sent by the peer to figure out if the peer tries to establish a TLS connection.
@@ -58,9 +58,7 @@ namespace IceRpc
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogConnectionAccepted(endpoint.Transport,
-                                                 Network.LocalAddrToString(Socket),
-                                                 Network.RemoteAddrToString(Socket));
+                    Logger.LogConnectionAccepted(endpoint.Transport, LocalAddrToString(), RemoteAddrToString());
                 }
 
                 return socket;
@@ -92,7 +90,7 @@ namespace IceRpc
             {
                 // Connect to the peer and cache the description of the socket.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                _desc = Network.SocketToString(Socket);
+                _desc = SocketToString();
 
                 // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
                 // responsible for using the returned SslSocket instead of using this TcpSocket.
@@ -105,10 +103,7 @@ namespace IceRpc
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogConnectionEstablished(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket));
+                    Logger.LogConnectionEstablished(endpoint.Transport, LocalAddrToString(), RemoteAddrToString());
                 }
 
                 return socket;
@@ -213,9 +208,7 @@ namespace IceRpc
         {
             if (Logger.IsEnabled(LogLevel.Critical))
             {
-                return Logger.StartSocketScope(endpoint.Transport,
-                                               Network.LocalAddrToString(Socket),
-                                               Network.RemoteAddrToString(Socket));
+                return Logger.StartSocketScope(endpoint.Transport, LocalAddrToString(), RemoteAddrToString());
             }
             return null;
         }
