@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A router routes incoming requests to dispatchers.</summary>
-    public class Router : IDispatcher
+    public sealed class Router : IDispatcher
     {
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
