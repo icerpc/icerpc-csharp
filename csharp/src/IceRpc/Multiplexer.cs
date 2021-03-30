@@ -12,6 +12,7 @@ namespace IceRpc
     /// <summary>Implements <see cref="IRouter"/> using two concurrent dictionaries.</summary>
     internal class Multiplexer : IRouter
     {
+        /// <inherit-doc/>
         public IDispatcher NotFound
         {
             get => _notFound;
@@ -41,9 +42,11 @@ namespace IceRpc
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
 
+        /// <inherit-doc/>
         ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel) =>
             (_pipeline ??= CreatePipeline()).DispatchAsync(current, cancel);
 
+        /// <inherit-doc/>
         public void Map(string path, IDispatcher dispatcher)
         {
             Check(path, nameof(path));
@@ -51,6 +54,7 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
+        /// <inherit-doc/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
             Check(prefix, nameof(prefix));
@@ -60,6 +64,7 @@ namespace IceRpc
             _prefixMatchRoutes[prefix] = dispatcher;
         }
 
+        /// <inherit-doc/>
         public IRouter Route(string prefix, Action<IRouter> configure)
         {
             var subRouter = new Multiplexer(this, prefix);
@@ -68,9 +73,13 @@ namespace IceRpc
             return subRouter;
         }
 
+        /// <inherit-doc/>
         public bool Unmap(string path) => _exactMatchRoutes.Remove(path);
+
+        /// <inherit-doc/>
         public bool Unmount(string prefix) => _prefixMatchRoutes.Remove(prefix);
 
+        /// <inherit-doc/>
         public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
         {
             if (_pipeline != null)
@@ -85,9 +94,6 @@ namespace IceRpc
         internal Multiplexer()
         {
         }
-
-        // TODO: temporary
-        internal bool ContainsRoute(string path) => _exactMatchRoutes.ContainsKey(path);
 
         private static void Check(string s, string paramName)
         {
