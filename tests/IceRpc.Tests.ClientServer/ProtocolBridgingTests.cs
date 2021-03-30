@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly Communicator _communicator;
         private Server _forwarderServer = null!;
-        private IRouter _router = IRouter.CreateDefault(); // shared by both servers for coloc to work properly
+        private Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
         public ProtocolBridgingTests()

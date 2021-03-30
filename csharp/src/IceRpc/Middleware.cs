@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A delegate with a simpler signature than a middleware delegate. It can be converted to a regular
-    /// middleware with <see cref="Middleware.From"/>.</summary>
+    /// middleware with <see cref="Middleware.FromSimpleMiddleware"/>.</summary>
     /// <param name="current">The request being dispatched.</param>
     /// <param name="next">A wrapper for the next middleware in the pipeline.</param>
     /// <param name="cancel">The cancellation token.</param>
@@ -26,7 +26,7 @@ namespace IceRpc
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
-            return From(
+            return FromSimpleMiddleware(
                 async (current, next, cancel) =>
                 {
                     // TODO: log "`scope` dispatching request ..."
@@ -51,7 +51,7 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(slashLimit)} must be at least 1", nameof(slashLimit));
             }
 
-            return From(
+            return FromSimpleMiddleware(
                 (current, next, cancel) =>
                 {
                     if (current.Path.Count(c => c == '/') > slashLimit)
@@ -64,7 +64,7 @@ namespace IceRpc
         }
 
         /// <summary>Creates a middleware from a simple middleware.</summary>
-        public static Func<IDispatcher, IDispatcher> From(SimpleMiddleware simple) =>
+        public static Func<IDispatcher, IDispatcher> FromSimpleMiddleware(SimpleMiddleware simple) =>
             nextDispatcher => IDispatcher.FromInlineDispatcher(
                 (current, cancel) => simple(current,
                                             () => nextDispatcher.DispatchAsync(current, cancel),

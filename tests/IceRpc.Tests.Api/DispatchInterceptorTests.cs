@@ -21,8 +21,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server(communicator,
                                                 new ServerOptions() { ColocationScope = ColocationScope.Communicator });
 
-            var router = IRouter.CreateDefault();
-            router.Use(Middleware.From((current, next, cancel) => throw new ArgumentException()));
+            var router = new Router();
+            router.Use(Middleware.FromSimpleMiddleware((current, next, cancel) => throw new ArgumentException()));
             var service = new TestService();
             router.Map("/test", service);
             var prx = IDispatchInterceptorTestServicePrx.Factory.Create(server, "/test");
@@ -41,10 +41,10 @@ namespace IceRpc.Tests.Api
                                                 new ServerOptions() { ColocationScope = ColocationScope.Communicator });
             var interceptorCalls = new List<string>();
 
-            var router = IRouter.CreateDefault();
+            var router = new Router();
 
             // Simple middleware followed by regular middleware
-            router.Use(Middleware.From(
+            router.Use(Middleware.FromSimpleMiddleware(
                     async (current, next, cancel) =>
                     {
                         interceptorCalls.Add("DispatchInterceptors -> 0");

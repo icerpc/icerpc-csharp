@@ -37,8 +37,8 @@ namespace IceRpc.Tests.Api
             DateTime dispatchDeadline = DateTime.UtcNow;
             DateTime invocationDeadline = DateTime.UtcNow;
 
-            var router = IRouter.CreateDefault();
-            router.Use(Middleware.From(
+            var router = new Router();
+            router.Use(Middleware.FromSimpleMiddleware(
                     async (current, next, cancel) =>
                     {
                         dispatchDeadline = current.Deadline;

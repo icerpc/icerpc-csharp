@@ -9,44 +9,40 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Implements <see cref="IRouter"/> using two concurrent dictionaries.</summary>
-    internal class Multiplexer : IRouter
+    /// <summary>A router routes incoming requests to dispatchers.</summary>
+    public class Router : IDispatcher
     {
-        /// <inherit-doc/>
-        public IDispatcher NotFound
-        {
-            get => _notFound;
-
-            set
-            {
-                // The registration of any route, including the not found route, triggers the creation of the pipeline.
-                _pipeline ??= CreatePipeline();
-                _notFound = value;
-            }
-        }
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
 
-        // The full prefix of this multiplexer, which includes its parent's full prefix. When null, this multiplexer is
-        // a top-level multiplexer.
+        // The full prefix of this router, which includes its parent's full prefix. When null, this router is a
+        // top-level router.
         private readonly string? _fullPrefix;
 
         private readonly List<Func<IDispatcher, IDispatcher>> _middlewareList = new();
-
-        private IDispatcher _notFound =
-            IDispatcher.FromInlineDispatcher(
-                (current, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
 
         private IDispatcher? _pipeline;
 
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
 
+        /// <summary>Constructs a top-level router.</summary>
+        public Router()
+        {
+        }
+
         /// <inherit-doc/>
         ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel) =>
             (_pipeline ??= CreatePipeline()).DispatchAsync(current, cancel);
 
-        /// <inherit-doc/>
+
+        /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
+        /// </summary>
+        /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
+        /// must start with a <c>/</c>.</param>
+        /// <param name="dispatcher">The target of this route. It is typically a <see cref="IService"/>.</param>
+        /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
             Check(path, nameof(path));
@@ -54,7 +50,13 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
-        /// <inherit-doc/>
+        /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
+        /// </summary>
+        /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
+        /// the request.</param>
+        /// <param name="dispatcher">The target of this route.</param>
+        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <seealso cref="Map"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
             Check(prefix, nameof(prefix));
@@ -64,22 +66,46 @@ namespace IceRpc
             _prefixMatchRoutes[prefix] = dispatcher;
         }
 
-        /// <inherit-doc/>
-        public IRouter Route(string prefix, Action<IRouter> configure)
+        /// <summary>Creates a sub-router, configures this sub-router and mounts it (with <see cref="Mount"/>"/> at the
+        /// given <c>prefix</c>.</summary>
+        /// <param name="prefix">The prefix of the route to the sub-router.</param>
+        /// <param name="configure">A delegate that configures the new sub-router.</param>
+        /// <returns>The new sub-router.</returns>
+        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        public Router Route(string prefix, Action<Router> configure)
         {
-            var subRouter = new Multiplexer(this, prefix);
+            Check(prefix, nameof(prefix));
+            var subRouter = new Router(this, prefix);
             configure(subRouter);
             Mount(prefix, subRouter);
             return subRouter;
         }
 
-        /// <inherit-doc/>
-        public bool Unmap(string path) => _exactMatchRoutes.Remove(path);
+        /// <summary>Unregisters a route previously registered with <see cref="Map"/>.</summary>
+        /// <param name="path">The path of the route.</param>
+        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
+        /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        public bool Unmap(string path)
+        {
+            Check(path, nameof(path));
+            return _exactMatchRoutes.Remove(path);
+        }
 
-        /// <inherit-doc/>
-        public bool Unmount(string prefix) => _prefixMatchRoutes.Remove(prefix);
+        /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
+        /// <param name="prefix">The prefix of the route.</param>
+        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
+        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        public bool Unmount(string prefix)
+        {
+            Check(prefix, nameof(prefix));
+            return _prefixMatchRoutes.Remove(prefix);
+        }
 
-        /// <inherit-doc/>
+        /// <summary>Installs one or more middleware in this router. Middlewares must be installed before any route is
+        /// registered.</summary>
+        /// <param name="middleware">One or more middlewares.</param>
+        /// <exception name="InvalidOperationException">Raised if a route was already registered, or if
+        /// <see cref="IDispatcher.DispatchAsync"/> was called on this router.</exception>
         public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
         {
             if (_pipeline != null)
@@ -89,11 +115,7 @@ namespace IceRpc
             _middlewareList.AddRange(middleware);
         }
 
-        public override string ToString() => _fullPrefix is string fullPrefix ? fullPrefix : "";
-
-        internal Multiplexer()
-        {
-        }
+        public override string ToString() => _fullPrefix is string fullPrefix ? $"router({fullPrefix})" : "router";
 
         private static void Check(string s, string paramName)
         {
@@ -110,11 +132,9 @@ namespace IceRpc
         private static string RemoveOptionalTrailingSlash(string prefix) =>
             prefix.Length > 1 && prefix[^1] == '/' ? prefix[..^1] : prefix;
 
-        private Multiplexer(Multiplexer parent, string prefix)
+        private Router(Router parent, string prefix)
         {
-            Check(prefix, nameof(prefix));
             prefix = RemoveOptionalTrailingSlash(prefix);
-
             _fullPrefix = (parent._fullPrefix is string parentFullPrefix) ? parentFullPrefix + prefix : prefix;
         }
 
@@ -137,7 +157,7 @@ namespace IceRpc
                         else
                         {
                             throw new InvalidOperationException(
-                                $"received request for path `{path}' in multiplexer mounted at `{_fullPrefix}'");
+                                $"received request for path `{path}' in router mounted at `{_fullPrefix}'");
                         }
                     }
                     // else _fullPrefix is null or "/" and there is nothing to remove
@@ -152,14 +172,14 @@ namespace IceRpc
                         // Then a prefix match
                         while (true)
                         {
-                            if (_prefixMatchRoutes.TryGetValue(current.Path, out dispatcher))
+                            if (_prefixMatchRoutes.TryGetValue(path, out dispatcher))
                             {
                                 return dispatcher.DispatchAsync(current, cancel);
                             }
 
                             if (path == "/")
                             {
-                                return NotFound.DispatchAsync(current, cancel);
+                                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                             }
 
                             // Cut last segment

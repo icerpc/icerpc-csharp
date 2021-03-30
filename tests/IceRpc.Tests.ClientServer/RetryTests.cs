@@ -238,7 +238,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     for (int i = 0; i < routers.Length; ++i)
                     {
-                        routers[i].Use(Middleware.From(
+                        routers[i].Use(Middleware.FromSimpleMiddleware(
                             async (current, next, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
@@ -276,7 +276,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     foreach (var router in routers)
                     {
-                        router.Use(Middleware.From(
+                        router.Use(Middleware.FromSimpleMiddleware(
                             async (current, next, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
@@ -284,7 +284,7 @@ namespace IceRpc.Tests.ClientServer
                             }));
                     }
                     routers[1].Map("/replicated", new Replicated(fail: true));
-                    routers[2].Use(Middleware.From(
+                    routers[2].Use(Middleware.FromSimpleMiddleware(
                         async (current, next, cancel) =>
                         {
                             await current.Connection.AbortAsync("forcefully close connection!");
@@ -377,7 +377,7 @@ namespace IceRpc.Tests.ClientServer
                 });
         }
 
-        private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[], IRouter[]> closure)
+        private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[], Router[]> closure)
         {
             await using var communicator = new Communicator();
             var servers = Enumerable.Range(0, replicas).Select(
@@ -388,7 +388,7 @@ namespace IceRpc.Tests.ClientServer
                                     Endpoints = GetTestEndpoint(port: i)
                                 })).ToArray();
 
-            var routers = Enumerable.Range(0, replicas).Select(i => IRouter.CreateDefault()).ToArray();
+            var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
 
             closure(servers, routers);
             await Task.WhenAll(servers.Select(server => server.ShutdownAsync()));
@@ -409,8 +409,8 @@ namespace IceRpc.Tests.ClientServer
                     Protocol = protocol
                 });
 
-            var router = IRouter.CreateDefault();
-            router.Use(Middleware.From(
+            var router = new Router();
+            router.Use(Middleware.FromSimpleMiddleware(
                 async (current, next, cancel) =>
                 {
                     service.Attempts++;

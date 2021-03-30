@@ -74,11 +74,11 @@ namespace IceRpc.Tests.Api
             {
                 // cannot add a middleware to a router after adding a route
                 await using var server = new Server(communicator);
-                var router = IRouter.CreateDefault();
+                var router = new Router();
                 router.Map("/test", new ProxyTest(null!));
 
                 Assert.Throws<InvalidOperationException>(
-                    () => router.Use(Middleware.From(async (current, next, cancel) => await next())));
+                    () => router.Use(Middleware.FromSimpleMiddleware(async (current, next, cancel) => await next())));
             }
 
             {

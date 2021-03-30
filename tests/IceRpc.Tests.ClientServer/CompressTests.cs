@@ -40,8 +40,8 @@ namespace IceRpc.Tests.ClientServer
             int compressedResponseSize = 0;
             bool compressedResponse = false;
 
-            var router = IRouter.CreateDefault();
-            router.Use(Middleware.From(
+            var router = new Router();
+            router.Use(Middleware.FromSimpleMiddleware(
                 async (current, next, cancel) =>
                 {
                     try
