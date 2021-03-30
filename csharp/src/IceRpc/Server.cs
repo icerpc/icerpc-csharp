@@ -107,7 +107,7 @@ namespace IceRpc
             ProxyOptions.IsFixed = true;
             ProxyOptions.Endpoints = ImmutableList<Endpoint>.Empty;
 
-            ConnectionOptions = options.ConnectionOptions?.Clone() ?? new IncomingConnectionOptions();
+            ConnectionOptions = options.ConnectionOptions.Clone();
             ConnectionOptions.SocketOptions ??= new SocketOptions();
             ConnectionOptions.SlicOptions ??= new SlicOptions();
 

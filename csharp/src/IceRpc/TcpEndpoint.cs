@@ -47,12 +47,18 @@ namespace IceRpc
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                var socketOptions = server.ConnectionOptions.SocketOptions!;
-                if (address.AddressFamily == AddressFamily.InterNetworkV6)
+                SocketOptions socketOptions = server.ConnectionOptions.SocketOptions!;
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, socketOptions.IsIPv6Only);
+                    socket.DualMode = !socketOptions.IsIPv6Only;
                 }
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
+                socket.ExclusiveAddressUse = true;
+
+                SetBufferSize(
+                    socket,
+                    socketOptions.ReceiveBufferSize,
+                    socketOptions.SendBufferSize,
+                    server.TransportLogger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -336,7 +342,7 @@ namespace IceRpc
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
             // created if the address is an IPv4 address.
-            var socket = HasDnsHost ?
+            Socket socket = HasDnsHost ?
                 new Socket(SocketType.Stream, ProtocolType.Tcp) :
                 new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -347,9 +353,9 @@ namespace IceRpc
                     socket.DualMode = !options.IsIPv6Only;
                 }
 
-                if (options.SourceAddress is IPAddress sourceAddress)
+                if (options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
-                    socket.Bind(new IPEndPoint(sourceAddress, 0));
+                    socket.Bind(localEndPoint);
                 }
 
                 SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
@@ -364,18 +370,7 @@ namespace IceRpc
             return new TcpSocket(socket, logger, addr);
         }
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket, SocketOptions options, ILogger logger)
-        {
-            try
-            {
-                SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex, RetryPolicy.OtherReplica);
-            }
-            return new TcpSocket(socket, logger);
-        }
+        internal virtual SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>
+            new TcpSocket(socket, logger);
     }
 }

@@ -67,38 +67,31 @@ namespace IceRpc
         public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException();
 
-        public override async ValueTask<(ArraySegment<byte>, EndPoint?)> ReceiveDatagramAsync(CancellationToken cancel)
+        public override async ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel)
         {
             int packetSize = Math.Min(MaxPacketSize, _rcvSize - UdpOverhead);
             ArraySegment<byte> buffer = new byte[packetSize];
 
             int received = 0;
-            EndPoint? remoteAddress = null;
             try
             {
-                if (!_incoming)
+                if (_incoming)
                 {
-                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    if (Socket.AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        remoteAddress = new IPEndPoint(IPAddress.Any, 0);
-                    }
-                    else
-                    {
-                        Debug.Assert(Socket.AddressFamily == AddressFamily.InterNetworkV6);
-                        remoteAddress = new IPEndPoint(IPAddress.IPv6Any, 0);
-                    }
+                    EndPoint remoteAddress = new IPEndPoint(
+                        Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                        0);
 
                     // TODO: Use the cancellable API once https://github.com/dotnet/runtime/issues/33418 is fixed
                     SocketReceiveFromResult result =
                         await Socket.ReceiveFromAsync(buffer,
                                                       SocketFlags.None,
                                                       remoteAddress).WaitAsync(cancel).ConfigureAwait(false);
-                    remoteAddress = result.RemoteEndPoint;
+
                     received = result.ReceivedBytes;
+                }
+                else
+                {
+                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
             catch (SocketException e) when (e.SocketErrorCode == SocketError.MessageSize)
@@ -118,7 +111,7 @@ namespace IceRpc
                 throw new TransportException(e, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
 
-            return (buffer.Slice(0, received), remoteAddress);
+            return buffer.Slice(0, received);
         }
 
         public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
@@ -126,30 +119,17 @@ namespace IceRpc
 
         public override async ValueTask<int> SendDatagramAsync(
             IList<ArraySegment<byte>> buffer,
-            EndPoint? remoteAddress,
             CancellationToken cancel)
         {
-            int count = buffer.GetByteCount();
-
-            if (_incoming && remoteAddress == null)
+            if (_incoming)
             {
-                throw new TransportException("cannot send datagram to undefined peer", RetryPolicy.NoRetry);
+                throw new TransportException("cannot send datagram with incoming connection", RetryPolicy.NoRetry);
             }
 
             try
             {
-                if (_incoming)
-                {
-                    // TODO: Fix to use the cancellable API with 5.0
-                    return await Socket.SendToAsync(buffer.GetSegment(0, count),
-                                                    SocketFlags.None,
-                                                    remoteAddress!).WaitAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                    return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
-                }
+                // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
+                return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {

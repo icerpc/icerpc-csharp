@@ -166,7 +166,7 @@ namespace IceRpc
             return received;
         }
 
-        public override ValueTask<(ArraySegment<byte>, EndPoint?)> ReceiveDatagramAsync(CancellationToken cancel) =>
+        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
         public override async ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel)
@@ -195,10 +195,7 @@ namespace IceRpc
             }
         }
 
-        public override ValueTask<int> SendDatagramAsync(
-            IList<ArraySegment<byte>> buffer,
-            EndPoint? remoteAddress,
-            CancellationToken cancel) =>
+        public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
         public override string ToString() => _desc;
