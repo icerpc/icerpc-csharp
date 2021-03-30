@@ -20,21 +20,12 @@ namespace IceRpc.Tests.ClientServer
             _basePort = Interlocked.Add(ref _nextBasePort, 15) + basePort;
         }
 
-        public static string EscapeIPv6Address(string address, Protocol protocol) =>
-            protocol switch
-            {
-                Protocol.Ice1 => address.Contains(":") ? $"\"{address}\"" : address,
-                _ => address.Contains(":") ? $"[{address}]" : address
-            };
-
         public string GetTestEndpoint(
             string host = "127.0.0.1",
             int port = 0,
             string transport = "tcp",
             Protocol protocol = Protocol.Ice2) =>
-            protocol == Protocol.Ice2 ?
-                $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{GetTestPort(port)}" :
-                $"{transport} -h {EscapeIPv6Address(host, protocol)} -p {GetTestPort(port)}";
+            TestHelper.GetTestEndpoint(host, GetTestPort(port), transport, protocol);
 
         public int GetTestPort(int num) => _basePort + num;
 
@@ -44,8 +35,6 @@ namespace IceRpc.Tests.ClientServer
             int port = 0,
             string transport = "tcp",
             Protocol protocol = Protocol.Ice2) =>
-            protocol == Protocol.Ice2 ?
-                $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{GetTestPort(port)}/{identity}" :
-                $"{identity}:{transport} -h {EscapeIPv6Address(host, protocol)} -p {GetTestPort(port)}";
+            TestHelper.GetTestProxy(identity, host, GetTestPort(port), transport, protocol);
     }
 }

@@ -9,12 +9,13 @@
 
   <ItemDefinitionGroup>
     <SliceCompile>
-      <OutputDir>generated</OutputDir>
+      <IncludeDirectories>.</IncludeDirectories>
     </SliceCompile>
   </ItemDefinitionGroup>
 
   <ItemGroup>
     <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
+    <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
     <Compile Update="generated\SequenceMappingTests.cs">
       <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
     </Compile>
