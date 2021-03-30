@@ -607,15 +607,7 @@ namespace IceRpc
 
             if (proxy.IsWellKnown || proxy.IsRelative)
             {
-                // TODO: temporary and ultra hacky
-                if (_dispatcher is Multiplexer multiplexer)
-                {
-                    isLocal = multiplexer.ContainsRoute(proxy.Path);
-                }
-                else
-                {
-                    isLocal = Find(proxy.Path, proxy.Facet) != null;
-                }
+                isLocal = Find(proxy.Path, proxy.Facet) != null;
             }
             else
             {
@@ -627,6 +619,13 @@ namespace IceRpc
                         PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
                 }
+            }
+
+            // A well-known (i.e. ice1) proxy with no location resolver can only be coloc. So we pick the first
+            // compatible (ice1) coloc server with no endpoint.
+            if (!isLocal && proxy.IsWellKnown && proxy.LocationResolver == null && PublishedEndpoints.Count == 0)
+            {
+                isLocal = true;
             }
 
             return isLocal ? GetColocatedEndpoint() : null;
