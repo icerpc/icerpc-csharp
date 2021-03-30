@@ -8,17 +8,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A delegate with a simpler signature than a middleware delegate. It can be converted to a regular
-    /// middleware with <see cref="Middleware.FromSimpleMiddleware"/>.</summary>
-    /// <param name="current">The request being dispatched.</param>
-    /// <param name="next">A wrapper for the next middleware in the pipeline.</param>
-    /// <param name="cancel">The cancellation token.</param>
-    /// <returns>A value task that holds the outgoing response frame.</returns>
-    public delegate ValueTask<OutgoingResponseFrame> SimpleMiddleware(
-        Current current,
-        Func<ValueTask<OutgoingResponseFrame>> next,
-        CancellationToken cancel);
-
     public static class Middleware
     {
         /// <summary>Creates a middleware that logs request dispatches.</summary>
@@ -26,14 +15,14 @@ namespace IceRpc
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
-            return FromSimpleMiddleware(
-                async (current, next, cancel) =>
+            return next => new InlineDispatcher(
+                async (current, cancel) =>
                 {
                     // TODO: log "`scope` dispatching request ..."
                     try
                     {
                         // TODO: check result and log
-                        return await next().ConfigureAwait(false);
+                        return await next.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -51,23 +40,16 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(slashLimit)} must be at least 1", nameof(slashLimit));
             }
 
-            return FromSimpleMiddleware(
-                (current, next, cancel) =>
+            return next => new InlineDispatcher(
+                (current, cancel) =>
                 {
                     if (current.Path.Count(c => c == '/') > slashLimit)
                     {
                         // TODO: throw a remote exception, e.g. ImplementationLimitException
                         throw new InvalidDataException($"the request's path `{current.Path}' has too many slashes");
                     }
-                    return next();
+                    return next.DispatchAsync(current, cancel);
                 });
         }
-
-        /// <summary>Creates a middleware from a simple middleware.</summary>
-        public static Func<IDispatcher, IDispatcher> FromSimpleMiddleware(SimpleMiddleware simple) =>
-            nextDispatcher => IDispatcher.FromInlineDispatcher(
-                (current, cancel) => simple(current,
-                                            () => nextDispatcher.DispatchAsync(current, cancel),
-                                            cancel));
     }
 }

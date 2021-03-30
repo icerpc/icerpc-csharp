@@ -77,8 +77,7 @@ namespace IceRpc.Tests.Api
                 var router = new Router();
                 router.Map("/test", new ProxyTest(null!));
 
-                Assert.Throws<InvalidOperationException>(
-                    () => router.Use(Middleware.FromSimpleMiddleware(async (current, next, cancel) => await next())));
+                Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
             }
 
             {

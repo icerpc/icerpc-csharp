@@ -207,7 +207,7 @@ namespace IceRpc
         // Temporary: creates a dispatcher that wraps the ASM held by this server.
         public void Activate()
         {
-            var dispatcher = IDispatcher.FromInlineDispatcher(
+            var dispatcher = new InlineDispatcher(
                 (current, cancel) =>
                 {
                     Debug.Assert(current.Server == this);

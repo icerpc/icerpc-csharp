@@ -41,14 +41,14 @@ namespace IceRpc.Tests.ClientServer
             bool compressedResponse = false;
 
             var router = new Router();
-            router.Use(Middleware.FromSimpleMiddleware(
-                async (current, next, cancel) =>
+            router.Use(next => new InlineDispatcher(
+                async (current, cancel) =>
                 {
                     try
                     {
                         compressedRequestSize = current.IncomingRequestFrame.PayloadSize;
                         compressedRequest = current.IncomingRequestFrame.HasCompressedPayload;
-                        var response = await next();
+                        var response = await next.DispatchAsync(current, cancel);
                         compressedResponse = response.HasCompressedPayload;
                         compressedRequestSize = response.PayloadSize;
                         return response;

@@ -238,11 +238,11 @@ namespace IceRpc.Tests.ClientServer
                 {
                     for (int i = 0; i < routers.Length; ++i)
                     {
-                        routers[i].Use(Middleware.FromSimpleMiddleware(
-                            async (current, next, cancel) =>
+                        routers[i].Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
-                                return await next();
+                                return await next.DispatchAsync(current, cancel);
                             }));
                         servers[i].Activate(routers[i]);
                     }
@@ -276,19 +276,19 @@ namespace IceRpc.Tests.ClientServer
                 {
                     foreach (var router in routers)
                     {
-                        router.Use(Middleware.FromSimpleMiddleware(
-                            async (current, next, cancel) =>
+                        router.Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
-                                return await next();
+                                return await next.DispatchAsync(current, cancel);
                             }));
                     }
                     routers[1].Map("/replicated", new Replicated(fail: true));
-                    routers[2].Use(Middleware.FromSimpleMiddleware(
-                        async (current, next, cancel) =>
+                    routers[2].Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
                         {
                             await current.Connection.AbortAsync("forcefully close connection!");
-                            return await next();
+                            return await next.DispatchAsync(current, cancel);
                         }));
 
                     for (int i = 0; i < servers.Length; ++i)
@@ -410,11 +410,11 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             var router = new Router();
-            router.Use(Middleware.FromSimpleMiddleware(
-                async (current, next, cancel) =>
+            router.Use(next => new InlineDispatcher(
+                async (current, cancel) =>
                 {
                     service.Attempts++;
-                    return await next();
+                    return await next.DispatchAsync(current, cancel);
                 }));
             router.Map("/retry", service);
             server.Activate(router);

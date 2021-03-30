@@ -38,12 +38,12 @@ namespace IceRpc.Tests.Api
             DateTime invocationDeadline = DateTime.UtcNow;
 
             var router = new Router();
-            router.Use(Middleware.FromSimpleMiddleware(
-                    async (current, next, cancel) =>
+            router.Use(next => new InlineDispatcher(
+                    async (current, cancel) =>
                     {
                         dispatchDeadline = current.Deadline;
                         await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next();
+                        return await next.DispatchAsync(current, cancel);
                     }));
 
             router.Map("/test", new TestService());

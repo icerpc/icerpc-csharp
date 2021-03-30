@@ -35,7 +35,6 @@ namespace IceRpc
         ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel) =>
             (_pipeline ??= CreatePipeline()).DispatchAsync(current, cancel);
 
-
         /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
         /// </summary>
         /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
@@ -141,7 +140,7 @@ namespace IceRpc
         private IDispatcher CreatePipeline()
         {
             // The last dispatcher of the pipeline:
-            var pipeline = IDispatcher.FromInlineDispatcher(
+            IDispatcher pipeline = new InlineDispatcher(
                 (current, cancel) =>
                 {
                     string path = current.Path;
