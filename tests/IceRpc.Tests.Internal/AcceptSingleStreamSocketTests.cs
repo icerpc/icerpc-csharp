@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -53,6 +54,7 @@ namespace IceRpc.Tests.Internal
             Assert.Throws<TransportException>(() => CreateAcceptor());
         }
 
+        [Test]
         public async Task AcceptSingleStreamSocket_AcceptAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
@@ -66,20 +68,35 @@ namespace IceRpc.Tests.Internal
 
             using SingleStreamSocket serverSocket = await acceptTask;
 
-            SingleStreamSocket socket = await serverSocket.AcceptAsync(
+            ValueTask<SingleStreamSocket> acceptTask2 = serverSocket.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
+
             await connectTask;
 
+            if (ClientEndpoint.Protocol == Protocol.Ice2 && TransportName == "tcp")
+            {
+                await clientSocket.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
+            }
+
+            SingleStreamSocket socket = await acceptTask2;
+
             // The SslSocket is returned if a secure connection is requested.
-            Assert.IsTrue(IsSecure ? socket != serverSocket : socket == serverSocket);
+            if (IsSecure && TransportName != "ws")
+            {
+                Assert.IsInstanceOf<SslSocket>(socket);
+            }
+            else
+            {
+                Assert.IsNotInstanceOf<SslSocket>(socket);
+            }
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
         // example the server SSL handshake completes before the RST is received.
         [Test]
-        public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostException()
+        public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
@@ -88,9 +105,8 @@ namespace IceRpc.Tests.Internal
 
             // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            IPAddress[] addresses = await Dns.GetHostAddressesAsync(ClientEndpoint.Host).ConfigureAwait(false);
-            var endpoint = new IPEndPoint(addresses[0], ClientEndpoint.Port);
-            await clientSocket.Socket!.ConnectAsync(endpoint).ConfigureAwait(false);
+            await clientSocket.Socket!.ConnectAsync(
+                new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
             using SingleStreamSocket serverSocket = await acceptTask;
 
@@ -116,8 +132,66 @@ namespace IceRpc.Tests.Internal
             Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void AcceptSingleStreamSocket_Acceptor_AddressReuse(bool wildcard1, bool wildcard2)
+        {
+            IAcceptor acceptor;
+            if (wildcard1)
+            {
+                var serverData = new EndpointData(
+                    ServerEndpoint.Transport,
+                    "::0",
+                    ServerEndpoint.Port,
+                    ServerEndpoint.Data.Options);
+                var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
+                acceptor = serverEndpoint.Acceptor(Server);
+            }
+            else
+            {
+                acceptor = CreateAcceptor();
+            }
+
+            if (wildcard2)
+            {
+                var serverData = new EndpointData(
+                    ServerEndpoint.Transport,
+                    "::0",
+                    ServerEndpoint.Port,
+                    ServerEndpoint.Data.Options);
+                var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // On Unix platform, it's possible to bind to a specific address even if a socket is bound
+                    // do the wildcard address.
+                    Assert.DoesNotThrow(() => serverEndpoint.Acceptor(Server).Dispose());
+                }
+                else
+                {
+                    Assert.Catch<TransportException>(() => serverEndpoint.Acceptor(Server));
+                }
+            }
+            else
+            {
+                if (wildcard1 && !OperatingSystem.IsWindows())
+                {
+                    // On Unix platform, it's possible to bind to a specific address even if a socket is bound
+                    // do the wildcard address.
+                    Assert.DoesNotThrow(() => CreateAcceptor().Dispose());
+                }
+                else
+                {
+                    Assert.Catch<TransportException>(() => CreateAcceptor());
+                }
+            }
+
+            acceptor.Dispose();
+        }
+
         [Test]
-        public async Task AcceptSingleStreamSocket_AcceptAsync_OperationCanceledException()
+        public async Task AcceptSingleStreamSocket_AcceptAsync_OperationCanceledExceptionAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
 

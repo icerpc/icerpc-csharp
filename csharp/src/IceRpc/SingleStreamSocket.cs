@@ -68,9 +68,8 @@ namespace IceRpc
 
         /// <summary>Receives a new datagram from the connection, only supported for datagram connections.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The received data and the address of the peer.</return>
-        public abstract ValueTask<(ArraySegment<byte>, System.Net.EndPoint?)> ReceiveDatagramAsync(
-            CancellationToken cancel);
+        /// <return>The received data.</return>
+        public abstract ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel);
 
         /// <summary>Send data over the connection.</summary>
         /// <param name="buffer">The buffer containing the data to send.</param>
@@ -80,14 +79,9 @@ namespace IceRpc
 
         /// <summary>Send datagram over the connection.</summary>
         /// <param name="buffer">The buffer containing the data to send.</param>
-        /// <param name="remoteAddress">The optional remote address to send the datagram to. If not set, the socket
-        /// must be connected or the call will fail otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The number of bytes sent.</return>
-        public abstract ValueTask<int> SendDatagramAsync(
-            IList<ArraySegment<byte>> buffer,
-            System.Net.EndPoint? remoteAddress,
-            CancellationToken cancel);
+        public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only

@@ -52,7 +52,7 @@ namespace IceRpc
                 {
                     socket.DualMode = !socketOptions.IsIPv6Only;
                 }
-                //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, true);
+                socket.ExclusiveAddressUse = true;
 
                 SetBufferSize(
                     socket,
@@ -353,9 +353,9 @@ namespace IceRpc
                     socket.DualMode = !options.IsIPv6Only;
                 }
 
-                if (options.LocalEndPoint is IPEndPoint sourceAddress)
+                if (options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
-                    socket.Bind(sourceAddress);
+                    socket.Bind(localEndPoint);
                 }
 
                 SetBufferSize(socket, options.ReceiveBufferSize, options.SendBufferSize, logger);
@@ -370,7 +370,7 @@ namespace IceRpc
             return new TcpSocket(socket, logger, addr);
         }
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket, ILogger logger)
-            => new TcpSocket(socket, logger);
+        internal virtual SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>
+            new TcpSocket(socket, logger);
     }
 }

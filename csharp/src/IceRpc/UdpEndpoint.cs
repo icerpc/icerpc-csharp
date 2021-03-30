@@ -225,9 +225,9 @@ namespace IceRpc
                     }
                 }
 
-                if (socketOptions.LocalEndPoint is IPEndPoint sourceAddress)
+                if (socketOptions.LocalEndPoint is IPEndPoint localEndPoint)
                 {
-                    socket.Bind(sourceAddress);
+                    socket.Bind(localEndPoint);
                 }
 
                 SetBufferSize(socket, socketOptions.ReceiveBufferSize, socketOptions.SendBufferSize, transportLogger);

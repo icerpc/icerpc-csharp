@@ -129,7 +129,7 @@ namespace IceRpc.Tests.Internal
         public void NonDatagramSocket_SendDatagramAsync_Exception()
         {
             Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, null, default));
+                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, default));
         }
 
         [TestCase(1)]

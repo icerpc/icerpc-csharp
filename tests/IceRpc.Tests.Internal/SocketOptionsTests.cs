@@ -167,7 +167,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
 
-                TcpEndpoint serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
+                var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
                 using IAcceptor acceptor = serverEndpoint.Acceptor(server);
 
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.Internal
                     ClientEndpoint.Port,
                     ClientEndpoint.Data.Options);
 
-                TcpEndpoint clientEndpoint = TcpEndpoint.CreateEndpoint(data, ClientEndpoint.Protocol);
+                var clientEndpoint = TcpEndpoint.CreateEndpoint(data, ClientEndpoint.Protocol);
 
                 using SingleStreamSocket clientSocket = CreateClientSocket(endpoint: clientEndpoint);
 
@@ -258,7 +258,7 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamSocket CreateClientSocket(SocketOptions? socketOptions = null, TcpEndpoint? endpoint = null)
         {
-            var options = ClientConnectionOptions;
+            OutgoingConnectionOptions options = ClientConnectionOptions;
             socketOptions ??= options.SocketOptions!;
             endpoint ??= (TcpEndpoint)ClientEndpoint;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);

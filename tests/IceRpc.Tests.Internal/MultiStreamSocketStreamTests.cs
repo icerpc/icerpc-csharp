@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
             ValueTask receiveTask = PerformReceiveAsync();
 
             SocketStream stream = ClientSocket.CreateStream(false);
-            await stream.SendRequestFrameAsync(DummyRequest);
+            await stream.SendRequestFrameAsync(request);
             stream.Release();
 
             await receiveTask;
@@ -53,6 +53,7 @@ namespace IceRpc.Tests.Internal
             async ValueTask PerformReceiveAsync()
             {
                 SocketStream serverStream = await ServerSocket.AcceptStreamAsync(default);
+                ValueTask<SocketStream> _ = ServerSocket.AcceptStreamAsync(default);
                 await serverStream.ReceiveRequestFrameAsync();
                 serverStream.Release();
             }

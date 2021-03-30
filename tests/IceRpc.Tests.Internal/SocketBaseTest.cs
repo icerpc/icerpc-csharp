@@ -17,15 +17,16 @@ namespace IceRpc.Tests.Internal
     // Server and setup client/server endpoints for a configurable protocol/transport/security.<summary>
     public class SocketBaseTest
     {
-        private protected Communicator Communicator => _communicator;
+        private protected Communicator Communicator { get; }
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
-        protected IncomingConnectionOptions ServerConnectionOptions => _server.ConnectionOptions;
+        protected Server Server { get; }
+        protected IncomingConnectionOptions ServerConnectionOptions => Server.ConnectionOptions;
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions ClientConnectionOptions => _communicator.ConnectionOptions;
+        protected OutgoingConnectionOptions ClientConnectionOptions => Communicator.ConnectionOptions;
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
             IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
@@ -33,8 +34,6 @@ namespace IceRpc.Tests.Internal
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        private readonly Communicator _communicator;
-        private readonly Server _server;
         private readonly ILoggerFactory _loggerFactory;
         // Protects the _acceptor data member
         private readonly object _mutex = new();
@@ -62,7 +61,7 @@ namespace IceRpc.Tests.Internal
             _loggerFactory = LoggerFactory.Create(
                 builder =>
                 {
-                    // builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
+                    builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
                     // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.AddJsonConsole(configure =>
                     // {
@@ -90,7 +89,7 @@ namespace IceRpc.Tests.Internal
                 },
                 NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
             };
-            _communicator = new Communicator(connectionOptions: clientConnectionOptions);
+            Communicator = new Communicator(connectionOptions: clientConnectionOptions);
 
             var serverConnectionOptions = new IncomingConnectionOptions()
             {
@@ -101,7 +100,7 @@ namespace IceRpc.Tests.Internal
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                 }
             };
-            _server = new Server(_communicator, new ServerOptions
+            Server = new Server(Communicator, new ServerOptions
             {
                 ConnectionOptions = serverConnectionOptions,
                 LoggerFactory = _loggerFactory
@@ -109,7 +108,7 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "colocated")
             {
-                ClientEndpoint = new ColocatedEndpoint(_server);
+                ClientEndpoint = new ColocatedEndpoint(Server);
                 ServerEndpoint = ClientEndpoint;
             }
             else
@@ -118,17 +117,17 @@ namespace IceRpc.Tests.Internal
                 {
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
-                    ServerEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    ServerEndpoint = UriParser.ParseEndpoints(endpoint, Communicator, serverEndpoints: true)[0];
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
-                    ClientEndpoint = UriParser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
+                    ClientEndpoint = UriParser.ParseEndpoints(endpoint, Communicator, serverEndpoints: false)[0];
                 }
                 else
                 {
                     string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: true)[0];
+                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, Communicator, serverEndpoints: true)[0];
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, _communicator, serverEndpoints: false)[0];
+                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, Communicator, serverEndpoints: false)[0];
                 }
             }
         }
@@ -137,12 +136,12 @@ namespace IceRpc.Tests.Internal
         public async Task ShutdownAsync()
         {
             _acceptor?.Dispose();
-            await _communicator.DisposeAsync();
-            await _server.DisposeAsync();
+            await Communicator.DisposeAsync();
+            await Server.DisposeAsync();
             _loggerFactory.Dispose();
         }
 
-        static protected async ValueTask<SingleStreamSocket> SingleStreamSocket(Task<MultiStreamSocket> socket) =>
+        static protected async ValueTask<SingleStreamSocket> SingleStreamSocketAsync(Task<MultiStreamSocket> socket) =>
             (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
 
         protected async Task<MultiStreamSocket> AcceptAsync()
@@ -181,8 +180,8 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? options = null)
-            => (await ConnectAndGetProxyAsync(options)).Socket;
+        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? options = null) =>
+            (await ConnectAndGetProxyAsync(options)).Socket;
 
         protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync(
             OutgoingConnectionOptions? connectionOptions = null)
@@ -220,7 +219,7 @@ namespace IceRpc.Tests.Internal
             }
             var options = new ProxyOptions()
             {
-                Communicator = _communicator,
+                Communicator = Communicator,
                 Connection = connection,
                 IsFixed = true,
                 Path = "dummy",
@@ -229,9 +228,9 @@ namespace IceRpc.Tests.Internal
             return (connection.Socket, IServicePrx.Factory.Create(options));
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(_server);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
 
         protected MultiStreamSocket CreateDatagramServerSocket() =>
-            ServerEndpoint.CreateDatagramServerConnection(_server).Socket;
+            ServerEndpoint.CreateDatagramServerConnection(Server).Socket;
     }
 }

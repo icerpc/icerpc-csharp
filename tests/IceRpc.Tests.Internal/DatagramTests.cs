@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
             clientSockets.Add(ClientSocket);
             for (int i = 0; i < clientSocketCount; ++i)
             {
-                clientSockets.Add(await SingleStreamSocket(ConnectAsync()));
+                clientSockets.Add(await SingleStreamSocketAsync(ConnectAsync()));
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
@@ -46,10 +46,9 @@ namespace IceRpc.Tests.Internal
                     foreach (SingleStreamSocket socket in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        ValueTask<int> sendTask = socket.SendDatagramAsync(sendBuffer, null, default);
+                        ValueTask<int> sendTask = socket.SendDatagramAsync(sendBuffer, default);
 
-                        (ArraySegment<byte> receiveBuffer, EndPoint? _) =
-                            await ServerSocket.ReceiveDatagramAsync(source.Token);
+                        ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
                         Assert.AreEqual(sendBuffer[0], receiveBuffer);
                     }
@@ -68,13 +67,12 @@ namespace IceRpc.Tests.Internal
                 {
                     foreach (SingleStreamSocket socket in clientSockets)
                     {
-                        await socket.SendDatagramAsync(sendBuffer, null, default);
+                        await socket.SendDatagramAsync(sendBuffer, default);
                     }
                     foreach (SingleStreamSocket socket in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        (ArraySegment<byte> receiveBuffer, EndPoint? _) =
-                            await ServerSocket.ReceiveDatagramAsync(source.Token);
+                        ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(sendBuffer[0].Count, receiveBuffer.Count);
                     }
                     break;
@@ -90,8 +88,7 @@ namespace IceRpc.Tests.Internal
         public void DatagramSocket_ReceiveDatagramAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
-            ValueTask<(ArraySegment<byte>, EndPoint?)> receiveTask = ClientSocket.ReceiveDatagramAsync(canceled.Token);
-            Assert.IsFalse(receiveTask.IsCompleted);
+            ValueTask<ArraySegment<byte>> receiveTask = ClientSocket.ReceiveDatagramAsync(canceled.Token);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
@@ -124,7 +121,7 @@ namespace IceRpc.Tests.Internal
             canceled.Cancel();
             var buffer = new List<ArraySegment<byte>>() { new byte[1] };
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientSocket.SendDatagramAsync(buffer, null, canceled.Token));
+                async () => await ClientSocket.SendDatagramAsync(buffer, canceled.Token));
         }
 
         [Test]
@@ -132,7 +129,7 @@ namespace IceRpc.Tests.Internal
         {
             ClientSocket.Dispose();
             Assert.CatchAsync<TransportException>(
-                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, null, default));
+                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, default));
         }
 
         [Test]
@@ -141,7 +138,7 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, null, canceled.Token));
+                async () => await ClientSocket.SendDatagramAsync(OneBSendBuffer, canceled.Token));
         }
 
         [TestCase(1)]
@@ -159,48 +156,9 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, null, default);
-                    (ArraySegment<byte> receiveBuffer, EndPoint? _) =
-                        await ServerSocket.ReceiveDatagramAsync(source.Token);
+                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, default);
+                    ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);
                     Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
-                    break;
-                }
-                catch (OperationCanceledException)
-                {
-                }
-            }
-        }
-
-        [TestCase(1)]
-        [TestCase(1024)]
-        [TestCase(4096)]
-        public async Task DatagramSocket_SendReceiveBidirAsync(int size)
-        {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
-            new Random().NextBytes(sendBuffer[0]);
-
-            // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
-            int count = 5;
-            while (count-- > 0)
-            {
-                try
-                {
-                    ArraySegment<byte> receiveBuffer;
-                    EndPoint? remoteAddress;
-
-                    // Send a datagram to the server socket.
-                    using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, null, default);
-                    (receiveBuffer, remoteAddress) = await ServerSocket.ReceiveDatagramAsync(source.Token);
-                    Assert.NotNull(remoteAddress);
-                    Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
-
-                    // Send back a datagram from the server socket to the client socket.
-                    ValueTask<int> sendTask2 = ServerSocket.SendDatagramAsync(sendBuffer, remoteAddress, default);
-                    (receiveBuffer, remoteAddress) = await ClientSocket.ReceiveDatagramAsync(source.Token);
-                    Assert.AreEqual(await sendTask2, receiveBuffer.Count);
                     Assert.AreEqual(sendBuffer[0], receiveBuffer);
                     break;
                 }

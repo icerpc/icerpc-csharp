@@ -30,8 +30,8 @@ namespace IceRpc.Tests.Internal
                 NonSecure.Always,
                 addressFamily,
                 clientEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: true),
-                serverEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: false))
-                => _incomingConnectionCount = incomingConnectionCount;
+                serverEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: false)) =>
+            _incomingConnectionCount = incomingConnectionCount;
 
         [SetUp]
         public async Task SetupAsync()
@@ -40,10 +40,9 @@ namespace IceRpc.Tests.Internal
             for(int i = 0; i < _incomingConnectionCount; ++i)
             {
                 _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying);
-
             }
 
-            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocket(ConnectAsync());
+            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
             _clientSocket = await connectTask;
         }
 
@@ -68,11 +67,10 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, null, default);
+                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, default);
                     foreach (SingleStreamSocket socket in ServerSockets)
                     {
-                        (ArraySegment<byte> receiveBuffer, EndPoint? _) =
-                            await socket.ReceiveDatagramAsync(source.Token);
+                        ArraySegment<byte> receiveBuffer = await socket.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
                         Assert.AreEqual(sendBuffer[0], receiveBuffer);
                     }
@@ -85,42 +83,6 @@ namespace IceRpc.Tests.Internal
             Assert.AreNotEqual(0, count);
         }
 
-        // Bidir communication with multicast doesn't work. Supporting this would require additional investigations.
-        // [TestCase(1)]
-        // [TestCase(1024)]
-        public async Task DatagramMulticastSocket_SendReceiveBidirAsync(int size)
-        {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
-            new Random().NextBytes(sendBuffer[0]);
-
-            // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
-            int count = 5;
-            while (count-- > 0)
-            {
-                try
-                {
-                    using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, null, default);
-                    foreach (SingleStreamSocket socket in ServerSockets)
-                    {
-                        (ArraySegment<byte> receiveBuffer, EndPoint? remoteAddress) =
-                            await socket.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                        Assert.AreEqual(sendBuffer[0], receiveBuffer);
-
-                        await socket.SendDatagramAsync(sendBuffer, remoteAddress, default);
-                    }
-                    foreach (SingleStreamSocket socket in ServerSockets)
-                    {
-                        await ClientSocket.ReceiveDatagramAsync(source.Token);
-                    }
-                    break;
-                }
-                catch (OperationCanceledException)
-                {
-                }
-            }
-        }
         private static string GetEndpoint(string host, int port, AddressFamily addressFamily, bool outgoing)
         {
             bool ipv6 = addressFamily == AddressFamily.InterNetworkV6;

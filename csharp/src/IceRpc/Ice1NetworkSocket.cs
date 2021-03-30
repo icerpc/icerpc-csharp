@@ -36,7 +36,7 @@ namespace IceRpc
                 ArraySegment<byte> buffer;
                 if (Endpoint.IsDatagram)
                 {
-                    (buffer, _) = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
+                    buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
                         if (TransportLogger.IsEnabled(LogLevel.Warning))
@@ -420,14 +420,12 @@ namespace IceRpc
             }
         }
 
-        private async ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffers,
-            CancellationToken cancel = default)
+        private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
         {
             int sent;
             if (Endpoint.IsDatagram)
             {
-                sent = await Underlying.SendDatagramAsync(buffers, null, cancel).ConfigureAwait(false);
+                sent = await Underlying.SendDatagramAsync(buffers, cancel).ConfigureAwait(false);
             }
             else
             {
