@@ -236,8 +236,8 @@ namespace IceRpc.Tests.Internal
 
                 // Tolerate a little more sockets than the exact expected count (on Linux, it appears to accept one
                 // more socket for instance).
-                Assert.GreaterOrEqual(19, sockets.Count);
-                Assert.LessOrEqual(25, sockets.Count);
+                Assert.GreaterOrEqual(sockets.Count, 19);
+                Assert.LessOrEqual(sockets.Count, 25);
 
                 sockets.ForEach(socket => socket.Dispose());
                 acceptor.Dispose();
