@@ -212,8 +212,11 @@ namespace IceRpc
         // TODO: switch to NonSecure.Never default
         public NonSecure NonSecure { get; set; } = NonSecure.Always;
 
-        // TODO: Remove?
-        internal object? Label { get; set; }
+        internal static OutgoingConnectionOptions Default = new()
+        {
+            SocketOptions = new(),
+            SlicOptions = new()
+        };
 
         private SslClientAuthenticationOptions? _authenticationOptions;
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

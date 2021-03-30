@@ -28,7 +28,7 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public abstract class Connection
+    public abstract class Connection : IAsyncDisposable
     {
         /// <summary>Gets the communicator.</summary>
         // TODO: Remove this once we add Runtime and once we removed the InputStream dependency on Communicator
@@ -87,11 +87,6 @@ namespace IceRpc
         /// <summary>Enables or disables the keep alive. When enabled, the connection is kept alive by sending ping
         /// frames at regular time intervals when the connection is idle.</summary>
         public bool KeepAlive { get; set; }
-
-        /// <summary>Gets the label which was used to create the connection, can be non-null only for outgoing
-        /// connections</summary>
-        /// <value>The label which was used to create the connection.</value>
-        public object? Label { get; }
 
         /// <summary>The peer's incoming frame maximum size. This is only supported with ice2 connections. For
         /// ice1 connections, the value is always -1.</summary>
@@ -153,6 +148,26 @@ namespace IceRpc
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
 
+        public static async Task<Connection> CreateAsync(
+            Endpoint endpoint,
+            Communicator communicator,
+            OutgoingConnectionOptions? options = null,
+            CancellationToken cancel = default)
+        {
+            // Perform connection establishment to the endpoint.
+            Connection connection = await endpoint.ConnectAsync(
+                options ?? OutgoingConnectionOptions.Default,
+                 communicator.ProtocolLogger,
+                 communicator.TransportLogger,
+                 cancel).ConfigureAwait(false);
+            connection.Communicator = communicator;
+
+            // Perform protocol level initialization.
+            await connection.InitializeAsync(cancel).ConfigureAwait(false);
+
+            return connection;
+        }
+
         /// <summary>Aborts the connection.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null) =>
@@ -177,6 +192,13 @@ namespace IceRpc
                 }
             }
             remove => _closed -= value;
+        }
+
+        /// <inheritdoc/>
+        public ValueTask DisposeAsync()
+        {
+            _timer?.Dispose(); // AbortAsync calls dispose on the timer, but we do it again here to prevent a warning.
+            return new(GoAwayAsync());
         }
 
         /// <summary>Gracefully closes the connection by sending a GoAway frame to the peer.</summary>
@@ -224,7 +246,6 @@ namespace IceRpc
             Server? server)
         {
             Socket = socket;
-            Label = (options as OutgoingConnectionOptions)?.Label;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
             IsIncoming = server != null;

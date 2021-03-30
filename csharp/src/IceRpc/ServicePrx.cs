@@ -29,7 +29,6 @@ namespace IceRpc
         public bool IsFixed { get; }
 
         public bool IsOneway { get; }
-        public object? Label { get; }
         public ILocationResolver? LocationResolver { get; }
         public NonSecure NonSecure { get; }
 
@@ -120,10 +119,6 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Label != other.Label)
-            {
-                return false;
-            }
             if (LocationResolver != other.LocationResolver)
             {
                 return false;
@@ -196,7 +191,6 @@ namespace IceRpc
                 hash.Add(InvocationTimeout);
                 hash.Add(IsFixed);
                 hash.Add(IsOneway);
-                hash.Add(Label);
                 hash.Add(LocationResolver);
                 hash.Add(NonSecure);
                 hash.Add(Path);
@@ -452,13 +446,6 @@ namespace IceRpc
                     sb.Append(TimeSpanExtensions.ToPropertyValue(InvocationTimeout));
                 }
 
-                if (Label?.ToString() is string label && label.Length > 0)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("label=");
-                    sb.Append(Uri.EscapeDataString(label));
-                }
-
                 if (NonSecure != NonSecure.Always)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -563,7 +550,6 @@ namespace IceRpc
             InvocationTimeout = options.InvocationTimeout;
             IsFixed = options.IsFixed;
             IsOneway = options.IsOneway;
-            Label = options.Label;
             LocationResolver = options.LocationResolver;
             NonSecure = options.NonSecure;
             PreferExistingConnection = options.PreferExistingConnection;
@@ -716,7 +702,6 @@ namespace IceRpc
                     InvocationTimeout = InvocationTimeout,
                     IsFixed = IsFixed,
                     IsOneway = IsOneway,
-                    Label = Label,
                     LocationResolver = LocationResolver,
                     NonSecure = NonSecure,
                     Path = "",
@@ -738,7 +723,6 @@ namespace IceRpc
                     InvocationTimeout = InvocationTimeout,
                     IsFixed = IsFixed,
                     IsOneway = IsOneway,
-                    Label = Label,
                     LocationResolver = LocationResolver,
                     NonSecure = NonSecure,
                     Path = Path,
@@ -771,7 +755,7 @@ namespace IceRpc
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
                     await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, NonSecure, Label);
+                connection = Communicator.GetConnection(endpoints, NonSecure);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -779,7 +763,6 @@ namespace IceRpc
             }
 
             var options = Communicator.ConnectionOptions.Clone();
-            options.Label = Label;
             options.NonSecure = NonSecure;
 
             bool refreshCache = false;
@@ -849,10 +832,6 @@ namespace IceRpc
                 {
                     // For ice2 the invocation timeout is included in the URI
                     properties[$"{prefix}.InvocationTimeout"] = invocationTimeout.ToPropertyValue();
-                }
-                if (Label?.ToString() is string label && label.Length > 0)
-                {
-                    properties[$"{prefix}.Label"] = label;
                 }
                 if (PreferExistingConnection is bool preferExistingConnection)
                 {
@@ -961,7 +940,7 @@ namespace IceRpc
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, NonSecure, Label);
+                connection = Communicator.GetConnection(endpoints, NonSecure);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -969,7 +948,6 @@ namespace IceRpc
             }
 
             var connectionOptions = Communicator.ConnectionOptions.Clone();
-            connectionOptions.Label = Label;
             connectionOptions.NonSecure = NonSecure;
 
             ILogger protocolLogger = Communicator.ProtocolLogger;
