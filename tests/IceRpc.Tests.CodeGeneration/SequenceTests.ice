@@ -8,7 +8,7 @@
 #include <EnumTests.ice>
 #include <StructTests.ice>
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     sequence<byte> ByteSeq;
     sequence<bool> BoolSeq;

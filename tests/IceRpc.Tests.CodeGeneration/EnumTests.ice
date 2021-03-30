@@ -4,7 +4,7 @@
 
 #pragma once
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     enum MyEnum
     {

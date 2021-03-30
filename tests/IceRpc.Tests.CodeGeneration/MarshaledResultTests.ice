@@ -9,7 +9,7 @@
 #include <SequenceTests.ice>
 #include <DictionaryTests.ice>
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     interface  MarshaledResultOperations
     {

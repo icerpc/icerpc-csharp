@@ -4,7 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     exception SomeException {}
 

@@ -7,7 +7,7 @@
 #include <OperationsTests.ice>
 #include <EnumTests.ice>
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     struct MyStruct
     {

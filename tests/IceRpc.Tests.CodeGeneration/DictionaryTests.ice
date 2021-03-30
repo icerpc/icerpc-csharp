@@ -8,7 +8,7 @@
 #include <EnumTests.ice>
 #include <StructTests.ice>
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::CodeGeneration
 {
     dictionary<byte, byte> ByteDict;
     dictionary<bool, bool> BoolDict;
