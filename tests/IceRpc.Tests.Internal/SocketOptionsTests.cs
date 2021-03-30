@@ -22,23 +22,37 @@ namespace IceRpc.Tests.Internal
         {
         }
 
-        [Test]
-        public void SocketOptions_Client_BufferSize()
+        [TestCase(16 * 1024)]
+        [TestCase(64 * 1024)]
+        [TestCase(256 * 1024)]
+        [TestCase(512 * 1024)]
+        public void SocketOptions_Client_BufferSize(int size)
         {
             using IAcceptor acceptor = CreateAcceptor();
             using SingleStreamSocket clientSocket = CreateClientSocket(new SocketOptions
             {
-                SendBufferSize = 64 * 1024,
-                ReceiveBufferSize = 64 * 1024
+                SendBufferSize = size,
+                ReceiveBufferSize = size
             });
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(clientSocket.Socket!.SendBufferSize, 64 * 1024);
-            Assert.GreaterOrEqual(clientSocket.Socket!.ReceiveBufferSize, 64 * 1024);
+            Assert.GreaterOrEqual(clientSocket.Socket!.SendBufferSize, size);
+            Assert.GreaterOrEqual(clientSocket.Socket!.ReceiveBufferSize, size);
 
             // But ensure it doesn't allocate too much as well
-            Assert.LessOrEqual(clientSocket.Socket!.SendBufferSize, 128 * 1024);
-            Assert.LessOrEqual(clientSocket.Socket!.ReceiveBufferSize, 128 * 1024);
+            if (OperatingSystem.IsLinux())
+            {
+                // Linux allocates twice the size.
+                Assert.LessOrEqual(clientSocket.Socket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(clientSocket.Socket!.ReceiveBufferSize, 2.5 * size);
+            }
+            else
+            {
+                // Windows typically allocates the requested size and macOS allocates a little more than the
+                // requested size.
+                Assert.LessOrEqual(clientSocket.Socket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(clientSocket.Socket!.ReceiveBufferSize, 1.5 * size);
+            }
         }
 
         [Test]
@@ -85,10 +99,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase(16 * 1024)]
-        [TestCase(32 * 1024)]
         [TestCase(64 * 1024)]
-        [TestCase(128 * 1024)]
         [TestCase(256 * 1024)]
+        [TestCase(512 * 1024)]
         public async Task SocketOptions_Server_BufferSizeAsync(int size)
         {
             (Server server, IAcceptor acceptor) = CreateAcceptorWithSocketOptions(new SocketOptions
@@ -97,10 +110,7 @@ namespace IceRpc.Tests.Internal
                 ReceiveBufferSize = size
             });
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
-            using SingleStreamSocket clientSocket = CreateClientSocket(new SocketOptions
-            {
-                SendBufferSize = size
-            });
+            using SingleStreamSocket clientSocket = CreateClientSocket();
             ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
@@ -110,11 +120,26 @@ namespace IceRpc.Tests.Internal
             // The OS might allocate more space than the requested size.
             Assert.GreaterOrEqual(serverSocket.Socket!.SendBufferSize, size);
             Assert.GreaterOrEqual(serverSocket.Socket!.ReceiveBufferSize, size);
-            Console.Error.WriteLine($"{size} {serverSocket.Socket!.ReceiveBufferSize} {serverSocket.Socket!.SendBufferSize}");
-            // But ensure it doesn't allocate too much as well
-            Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 512 * 1024);
-            Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 512 * 1024);
 
+            // But ensure it doesn't allocate too much as well
+            if (OperatingSystem.IsMacOS())
+            {
+                // macOS Big Sur appears to have a low limit of a little more than 256KB for the receive buffer and
+                // 64KB for the send buffer.
+                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
+                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                // Linux allocates twice the size
+                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 2.5 * size);
+            }
+            else
+            {
+                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 1.5 * size);
+            }
             acceptor.Dispose();
             await server.DisposeAsync();
         }
