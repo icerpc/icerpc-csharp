@@ -45,9 +45,9 @@ namespace IceRpc
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
         public bool IsIPv6Only { get; set; }
 
-        /// <summary>The source address to use for a client socket. If specified, the client socket will bind to
-        /// this address before connection establishment.</summary>
-        /// <value>The IP address to bind the socket to.</value>
+        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified
+        /// the client socket will bind to this address and port before connection establishment.</summary>
+        /// <value>The address and port to bind the socket to.</value>
         public IPEndPoint? LocalEndPoint { get; set; }
 
         /// <summary>Configures the length of a server socket queue for accepting new connections. If a new
