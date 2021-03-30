@@ -531,7 +531,7 @@ namespace IceRpc.Test.Binding
                             Endpoints = endpoint,
                             ConnectionOptions = new()
                             {
-                                SocketOptions = new()
+                                TcpOptions = new()
                                 {
                                     IsIPv6Only = true
                                 }

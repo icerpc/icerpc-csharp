@@ -6,8 +6,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Protocol" category.
-    /// </summary>
+    /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
         internal const int ReceivedIce1CloseConnectionFrame = 0;

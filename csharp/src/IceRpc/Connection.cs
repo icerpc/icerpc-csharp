@@ -455,7 +455,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Socket.TransportLogger.LogConnectionCallbackException(ex);
+                    Socket.Logger.LogConnectionCallbackException(ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -513,10 +513,10 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                using var requestScope = Socket.ProtocolLogger.StartRequestScope(request);
-                if (Socket.ProtocolLogger.IsEnabled(LogLevel.Information))
+                using var requestScope = Socket.Logger.StartRequestScope(request);
+                if (Socket.Logger.IsEnabled(LogLevel.Information))
                 {
-                    Socket.ProtocolLogger.LogReceivedRequest(request);
+                    Socket.Logger.LogReceivedRequest(request);
                 }
 
                 // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
@@ -606,10 +606,10 @@ namespace IceRpc
                 state == ConnectionState.Closed &&
                 !Endpoint.IsDatagram &&
                 ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Socket.TransportLogger.IsEnabled(LogLevel.Warning))
+                Socket.Logger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Socket.TransportLogger.LogConnectionException(exception);
+                Socket.Logger.LogConnectionException(exception);
             }
 
             if (state == ConnectionState.Active)

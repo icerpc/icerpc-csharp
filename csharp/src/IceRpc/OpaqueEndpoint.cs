@@ -103,8 +103,7 @@ namespace IceRpc
 
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger,
+            ILogger logger,
             CancellationToken cancel) =>
             throw new NotSupportedException("cannot create a connection to an opaque endpoint");
 

@@ -79,11 +79,12 @@ namespace IceRpc.Tests.Internal
         {
             var endpoint = (TcpEndpoint)ClientEndpoint;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, ClientConnectionOptions.SocketOptions!, Logger);
+            TcpOptions tcpOptions = ClientConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, ClientConnectionOptions, Logger),
-                _ => new SlicSocket(ClientEndpoint, socket, ClientConnectionOptions, Logger)
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, ClientConnectionOptions),
+                _ => new SlicSocket(ClientEndpoint, socket, ClientConnectionOptions)
             };
             Connection connection = endpoint.CreateConnection(multiStreamSocket, ClientConnectionOptions, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;

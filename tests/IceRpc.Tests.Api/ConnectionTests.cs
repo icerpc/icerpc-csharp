@@ -29,39 +29,39 @@ namespace IceRpc.Tests.Api
         {
             var options = new OutgoingConnectionOptions()
             {
-                SlicOptions = new SlicOptions(),
-                SocketOptions = new SocketOptions(),
+                TransportOptions = new TcpOptions(),
                 AuthenticationOptions = new System.Net.Security.SslClientAuthenticationOptions()
             };
-            var clonedOptions = options.Clone();
 
+            OutgoingConnectionOptions clonedOptions = options.Clone();
             Assert.AreNotSame(clonedOptions, options);
-            Assert.AreNotSame(clonedOptions.SlicOptions, options.SlicOptions);
-            Assert.AreNotSame(clonedOptions.SocketOptions, options.SocketOptions);
+            Assert.AreNotSame(clonedOptions.TransportOptions, options.TransportOptions);
             Assert.AreNotSame(clonedOptions.AuthenticationOptions, options.AuthenticationOptions);
 
             var incoming = new IncomingConnectionOptions()
             {
                 AuthenticationOptions = new()
             };
-            var clonedIncoming = incoming.Clone();
 
+            IncomingConnectionOptions clonedIncoming = incoming.Clone();
             Assert.AreNotSame(clonedIncoming.AuthenticationOptions, incoming.AuthenticationOptions);
         }
 
         [Test]
-        public void Connection_SlicOptions_ArgumentException()
+        public void Connection_TcpOptions_ArgumentException()
         {
-            var options = new SlicOptions();
-            Assert.Throws<ArgumentException>(() => options.PacketMaxSize = 512);
-            Assert.Throws<ArgumentException>(() => options.StreamBufferMaxSize = 512);
+            var options = new TcpOptions();
+            Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
+            Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
+            Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
+            Assert.Throws<ArgumentException>(() => options.SlicPacketMaxSize = 512);
+            Assert.Throws<ArgumentException>(() => options.SlicStreamBufferMaxSize = 512);
         }
 
         [Test]
-        public void Connection_SocketOptions_ArgumentException()
+        public void Connection_UdpOptions_ArgumentException()
         {
-            var options = new SocketOptions();
-            Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
+            var options = new UdpOptions();
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
         }

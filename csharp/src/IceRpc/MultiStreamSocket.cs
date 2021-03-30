@@ -39,9 +39,8 @@ namespace IceRpc
         internal long LastResponseStreamId { get; set; }
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
         internal int? PeerIncomingFrameMaxSize { get; set; }
-        internal ILogger ProtocolLogger { get; }
+        internal ILogger Logger { get; }
         internal event EventHandler? Ping;
-        internal ILogger TransportLogger { get; }
 
         private int _incomingStreamCount;
         // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
@@ -107,20 +106,14 @@ namespace IceRpc
         /// <summary>The MultiStreamSocket constructor.</summary>
         /// <param name="endpoint">The endpoint from which the socket was created.</param>
         /// <param name="options">The connection options.</param>
-        /// <param name="protocolLogger">The protocol logger.</param>
-        /// <param name="transportLogger">The transport logger.</param>
-        protected MultiStreamSocket(
-            Endpoint endpoint,
-            ConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger)
+        /// <param name="logger">The logger.</param>
+        protected MultiStreamSocket(Endpoint endpoint, ConnectionOptions options, ILogger logger)
         {
             Endpoint = endpoint;
             IsIncoming = options is IncomingConnectionOptions;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
-            ProtocolLogger = protocolLogger;
-            TransportLogger = transportLogger;
+            Logger = logger;
         }
 
         /// <summary>Releases the resources used by the socket.</summary>
@@ -153,9 +146,9 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TransportLogger.LogReceivedData(size, Endpoint.Transport);
+                Logger.LogReceivedData(size, Endpoint.Transport);
             }
         }
 
@@ -167,7 +160,7 @@ namespace IceRpc
             EventHandler? callback = Ping;
             if (callback != null)
             {
-                Task.Run(() =>
+                Task.Run((Action)(() =>
                 {
                     try
                     {
@@ -175,12 +168,12 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        if (TransportLogger.IsEnabled(LogLevel.Error))
+                        if (this.Logger.IsEnabled(LogLevel.Error))
                         {
-                            TransportLogger.LogPingEventHandlerException(ex);
+                            TransportLoggerExtensions.LogPingEventHandlerException(this.Logger, (Exception)ex);
                         }
                     }
-                });
+                }));
             }
         }
 
@@ -195,9 +188,9 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0 && TransportLogger.IsEnabled(LogLevel.Debug))
+            if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
             {
-                TransportLogger.LogSentData(size, Endpoint.Transport);
+                Logger.LogSentData(size, Endpoint.Transport);
             }
         }
 
@@ -235,16 +228,16 @@ namespace IceRpc
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
 
-            if (TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
                 // Trace the cause of unexpected connection closures
                 if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
                 {
-                    TransportLogger.LogConnectionClosed(Endpoint.Transport, exception);
+                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
                 }
                 else
                 {
-                    TransportLogger.LogConnectionClosed(Endpoint.Transport);
+                    Logger.LogConnectionClosed(Endpoint.Transport);
                 }
             }
         }

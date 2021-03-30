@@ -45,9 +45,9 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.TransportLogger.IsEnabled(LogLevel.Information))
+            if (_server.Logger.IsEnabled(LogLevel.Information))
             {
-                _server.TransportLogger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
+                _server.Logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
             }
 
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
@@ -171,9 +171,9 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
+                        if (_server.Logger.IsEnabled(LogLevel.Debug))
                         {
-                            _server.TransportLogger.LogConnectionNotTrusted(
+                            _server.Logger.LogConnectionNotTrusted(
                                 connection.Endpoint.Transport);
                         }
                         // Connection not trusted, abort it.
@@ -210,11 +210,11 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.TransportLogger.IsEnabled(LogLevel.Debug))
+            if (_server.Logger.IsEnabled(LogLevel.Debug))
             {
                 if (_connection is IPConnection connection)
                 {
-                    _server.TransportLogger.LogStartReceivingDatagrams(
+                    _server.Logger.LogStartReceivingDatagrams(
                         Endpoint.Transport,
                         connection.LocalEndpoint?.ToString() ?? "undefined",
                         connection.RemoteEndpoint?.ToString() ?? "undefined");

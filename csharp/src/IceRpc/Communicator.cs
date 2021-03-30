@@ -94,10 +94,8 @@ namespace IceRpc
         internal ILogger LocatorClientLogger { get; }
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }
-        internal ILogger ProtocolLogger { get; }
         internal int RetryBufferMaxSize { get; }
         internal int RetryRequestMaxSize { get; }
-        internal ILogger TransportLogger { get; }
 
         private static string[] _emptyArgs = Array.Empty<string>();
 
@@ -250,23 +248,27 @@ namespace IceRpc
                 }
             }
 
-            ProtocolLogger = loggerFactory.CreateLogger("IceRpc.Protocol");
-            TransportLogger = loggerFactory.CreateLogger("IceRpc.Transport");
+            Logger = loggerFactory.CreateLogger("IceRpc");
 
             ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
-            ConnectionOptions.SocketOptions ??= new SocketOptions();
-            ConnectionOptions.SlicOptions ??= new SlicOptions();
+            ConnectionOptions.TransportOptions = new TcpOptions();
 
             // TODO: remove once old tests which rely on properties are removed
-            var socketOptions = ConnectionOptions.SocketOptions!;
-            socketOptions.ReceiveBufferSize =
-                this.GetPropertyAsByteSize($"Ice.UDP.RcvSize") ?? socketOptions.ReceiveBufferSize;
-            socketOptions.SendBufferSize =
-                this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? socketOptions.SendBufferSize;
-            socketOptions.ReceiveBufferSize =
-                this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? socketOptions.ReceiveBufferSize;
-            socketOptions.SendBufferSize =
-                this.GetPropertyAsByteSize($"Ice.TCP.SndSize") ?? socketOptions.SendBufferSize;
+            if (ConnectionOptions.TransportOptions is UdpOptions udpOptions)
+            {
+                udpOptions.ReceiveBufferSize =
+                    this.GetPropertyAsByteSize($"Ice.UDP.RcvSize") ?? udpOptions.ReceiveBufferSize;
+                udpOptions.SendBufferSize =
+                    this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? udpOptions.SendBufferSize;
+            }
+            else if(ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
+            {
+                tcpOptions.ReceiveBufferSize =
+                    this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? tcpOptions.ReceiveBufferSize;
+                tcpOptions.SendBufferSize =
+                    this.GetPropertyAsByteSize($"Ice.TCP.SndSize") ?? tcpOptions.SendBufferSize;
+            }
+
             ConnectionOptions.IncomingFrameMaxSize =
                 this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
 
