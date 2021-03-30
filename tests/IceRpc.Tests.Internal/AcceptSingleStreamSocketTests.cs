@@ -162,10 +162,10 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
-                if (!OperatingSystem.IsWindows())
+                if (OperatingSystem.IsMacOS())
                 {
-                    // On Unix platform, it's possible to bind to a specific address even if a socket is bound
-                    // do the wildcard address.
+                    // On macOS, it's still possible to bind to a specific address even if a socket is bound
+                    // to the wildcard address.
                     Assert.DoesNotThrow(() => serverEndpoint.Acceptor(Server).Dispose());
                 }
                 else
@@ -175,10 +175,10 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                if (wildcard1 && !OperatingSystem.IsWindows())
+                if (wildcard1 && OperatingSystem.IsMacOS())
                 {
-                    // On Unix platform, it's possible to bind to a specific address even if a socket is bound
-                    // do the wildcard address.
+                    // On macOS, it's still possible to bind to a specific address even if a socket is bound
+                    // to the wildcard address.
                     Assert.DoesNotThrow(() => CreateAcceptor().Dispose());
                 }
                 else
