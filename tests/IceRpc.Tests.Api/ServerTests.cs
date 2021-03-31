@@ -199,7 +199,7 @@ namespace IceRpc.Tests.Api
 
             var service = new ProxyTest();
             IProxyTestPrx? proxy = server.Add("foo/bar", service, IProxyTestPrx.Factory);
-            CheckProxy(proxy, isFixded: false);
+            CheckProxy(proxy, isFixed: false);
 
             // change some properties
             proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
@@ -207,7 +207,7 @@ namespace IceRpc.Tests.Api
             server.Activate();
             await proxy.SendProxyAsync(proxy);
             // The server always unmarshals the proxy as a fixed proxy
-            CheckProxy(await service.SendProxyCompleted.Task, isFixded: true);
+            CheckProxy(await service.SendProxyCompleted.Task, isFixed: true);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
@@ -218,12 +218,12 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(received.IsFixed);
             Assert.AreEqual(received.IsOneway, proxy.IsOneway);
 
-            static void CheckProxy(IProxyTestPrx proxy, bool isFixded)
+            static void CheckProxy(IProxyTestPrx proxy, bool isFixed)
             {
                 Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual("fast", proxy.Context["speed"]);
                 Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
-                Assert.AreEqual(isFixded, proxy.IsFixed);
+                Assert.AreEqual(isFixed, proxy.IsFixed);
                 Assert.IsTrue(proxy.IsOneway);
                 Assert.AreEqual("/foo/bar", proxy.Path);
             }
