@@ -617,13 +617,6 @@ namespace IceRpc
                 }
             }
 
-            // A well-known (i.e. ice1) proxy with no location resolver can only be coloc. So we pick the first
-            // compatible (ice1) coloc server with no endpoint.
-            if (!isLocal && proxy.IsWellKnown && proxy.LocationResolver == null && PublishedEndpoints.Count == 0)
-            {
-                isLocal = true;
-            }
-
             return isLocal ? GetColocatedEndpoint() : null;
         }
     }

@@ -44,11 +44,11 @@ namespace IceRpc.Tests.CodeGeneration
             await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("foo", _communicator),
+                                              IOperationsPrx.Parse("ice+tcp://host/foo", _communicator),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
-                                              IOperationsPrx.Parse("bar", _communicator),
+                                              IOperationsPrx.Parse("ice+tcp://host/bar", _communicator),
                                               MyEnum.enum2,
                                               new MyStruct(3, 4)));
 
