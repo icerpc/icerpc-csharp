@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Api
                         Endpoints = "ice+tcp://127.0.0.1:15001"
                     });
 
-                IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
+                var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
                 await using var server2 = new Server(communicator);
@@ -197,14 +197,16 @@ namespace IceRpc.Tests.Api
                                                     ProxyOptions = proxyOptions
                                                 });
 
-            var proxy = server.Add("foo/bar", new ProxyTest(CheckProxy), IProxyTestPrx.Factory);
+            var service = new ProxyTest();
+            IProxyTestPrx? proxy = server.Add("foo/bar", service, IProxyTestPrx.Factory);
             CheckProxy(proxy);
 
             // change some properties
             proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
 
             server.Activate();
-            await proxy.SendProxyAsync(proxy); // the service executes CheckProxy on the received proxy
+            await proxy.SendProxyAsync(proxy);
+            Assert.IsNotNull(await service.SendProxyCompleted.Task);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
@@ -250,18 +252,16 @@ namespace IceRpc.Tests.Api
 
         private class ProxyTest : IAsyncProxyTest
         {
-            private Action<IProxyTestPrx> _checkProxy;
+            internal TaskCompletionSource<IProxyTestPrx> SendProxyCompleted = new();
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
-                _checkProxy(proxy);
+                SendProxyCompleted.SetResult(proxy);
                 return default;
             }
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
                 new(IProxyTestPrx.Factory.Create(current.Server, current.Path));
-
-            internal ProxyTest(Action<IProxyTestPrx> checkProxy) => _checkProxy = checkProxy;
         }
     }
 }
