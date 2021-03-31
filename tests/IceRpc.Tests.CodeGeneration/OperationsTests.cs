@@ -41,7 +41,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Operations_BuiltinTypes()
+        public async Task Operations_BuiltinTypesAsync()
         {
             await TestAsync((prx, p1, p2) => prx.OpByteAsync(p1, p2), byte.MinValue, byte.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpBoolAsync(p1, p2), false, true);
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.CodeGeneration
             await TestAsync((prx, p1, p2) => prx.OpLongAsync(p1, p2), long.MinValue, long.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpVarLongAsync(p1, p2), int.MinValue, (long)int.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpULongAsync(p1, p2), ulong.MinValue, ulong.MaxValue);
-            await TestAsync((prx, p1, p2) => prx.OpVarULongAsync(p1, p2), ulong.MinValue, (ulong)uint.MaxValue);
+            await TestAsync((prx, p1, p2) => prx.OpVarULongAsync(p1, p2), ulong.MinValue, uint.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpFloatAsync(p1, p2), float.MinValue, float.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpDoubleAsync(p1, p2), double.MinValue, double.MaxValue);
             await TestAsync((prx, p1, p2) => prx.OpStringAsync(p1, p2), "hello", "world");
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Operations_Oneway()
+        public async Task Operations_OnewayAsync()
         {
             Assert.IsFalse(_prx.IsOneway);
             Assert.ThrowsAsync<SomeException>(async () => await _prx.OpOnewayAsync());

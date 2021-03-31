@@ -41,7 +41,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Invocation_MarshalledResult()
+        public async Task Invocation_MarshalledResultAsync()
         {
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",

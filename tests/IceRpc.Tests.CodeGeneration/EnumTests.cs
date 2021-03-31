@@ -87,7 +87,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
-        public async Task Enum_Operations(Protocol protocol)
+        public async Task Enum_OperationsAsync(Protocol protocol)
         {
             await WithEnumOperationsServerAsync(
                 protocol,
@@ -109,10 +109,10 @@ namespace IceRpc.Tests.CodeGeneration
                     Assert.ThrowsAsync<UnhandledException>(
                         async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
                     Assert.ThrowsAsync<UnhandledException>(
-                    async () => await prx.OpMyFixedLengthEnumAsync((MyFixedLengthEnum)0, MyFixedLengthEnum.senum1));
+                    async () => await prx.OpMyFixedLengthEnumAsync(0, MyFixedLengthEnum.senum1));
                 });
 
-            async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
+            static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
                 (T r1, T r2) = await invoker(p1, p2);
                 Assert.AreEqual(p1, r1);
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.CodeGeneration
                     Protocol = protocol,
                     ColocationScope = ColocationScope.Communicator
                 });
-            var prx = server.Add("test", new EnumOperations(), IEnumOperationsPrx.Factory);
+            IEnumOperationsPrx? prx = server.Add("test", new EnumOperations(), IEnumOperationsPrx.Factory);
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);
         }
@@ -162,7 +162,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<MyFixedLengthEnum> OpInvalidMyFixedLengthEnumAsync(
                 Current current,
                 CancellationToken cancel) =>
-                new((MyFixedLengthEnum)0);
+                new(0);
         }
     }
 }
