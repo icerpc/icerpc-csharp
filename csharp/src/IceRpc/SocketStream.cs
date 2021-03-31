@@ -149,6 +149,18 @@ namespace IceRpc
                 cancel);
         }
 
+        public override string ToString()
+        {
+            string streamType = (Id % 4) switch
+            {
+                0 => "[client-initiated, bidirectional]",
+                1 => "[server-initiated, bidirectional]",
+                2 => "[client-initiated, unidirectional]",
+                _ => "[server-initiated, unidirectional]",
+            };
+            return $"ID = {Id} {streamType}";
+        }
+
         /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
         /// <param name="buffer">The buffer to store the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -515,7 +527,7 @@ namespace IceRpc
         {
             if (_socket.Logger.IsEnabled(LogLevel.Critical))
             {
-                return _socket.Logger.StartStreamScope(_socket.Endpoint.Protocol, Id);
+                return _socket.Logger.StartStreamScope(this);
             }
             return null;
         }

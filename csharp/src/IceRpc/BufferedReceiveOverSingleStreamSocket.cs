@@ -138,8 +138,6 @@ namespace IceRpc
             _buffer = new ArraySegment<byte>(_buffer.Array!, _buffer.Offset - bytes, _buffer.Count + bytes);
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) => Underlying.StartScope(endpoint);
-
         private async ValueTask ReceiveInBufferAsync(int byteCount, CancellationToken cancel = default)
         {
             Debug.Assert(byteCount == 0 || _buffer.Count < byteCount);

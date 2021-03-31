@@ -9,13 +9,21 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc" category.</summary>
     internal static class LoggerExtensions
     {
-        private const int DeprecatedProperty = 0;
-        private const int DeprecatedPropertyBy = 1;
-        private const int SlicingUnknownType = 2;
-        private const int UnknownProperty = 3;
-        private const int UnknownProxyProperty = 4;
-        private const int WarnProxySecureOptionHasNoEffect = 5;
-        private const int WarnDeprecatedProperty = 6;
+        internal const int ServerBaseEventId = 1 * EventIdRange;
+        internal const int ProtocolBaseEventId = 2 * EventIdRange;
+        internal const int TransportBaseEventId = 3 * EventIdRange;
+        internal const int WebSocketBaseEventId = 4 * EventIdRange;
+        internal const int SlicBaseEventId = 5 * EventIdRange;
+        internal const int OtherBaseEventId = 6 * EventIdRange;
+        private const int EventIdRange = 128;
+
+        private const int DeprecatedProperty = OtherBaseEventId + 0;
+        private const int DeprecatedPropertyBy = OtherBaseEventId + 1;
+        private const int SlicingUnknownType = OtherBaseEventId + 2;
+        private const int UnknownProperty = OtherBaseEventId + 3;
+        private const int UnknownProxyProperty = OtherBaseEventId + 4;
+        private const int WarnProxySecureOptionHasNoEffect = OtherBaseEventId + 5;
+        private const int WarnDeprecatedProperty = OtherBaseEventId + 6;
 
         private static readonly Action<ILogger, string, Exception> _deprecatedProperty =
             LoggerMessage.Define<string>(

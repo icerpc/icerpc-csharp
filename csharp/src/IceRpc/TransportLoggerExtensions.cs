@@ -10,132 +10,72 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static class TransportLoggerExtensions
     {
-        private const int AcceptingConnection = 0;
-        private const int AcceptingConnectionFailed = 1;
-        private const int ConnectionAccepted = 2;
-        private const int ConnectionCallbackException = 3;
-        private const int ConnectionClosed = 4;
-        private const int ConnectionEstablished = 5;
-        private const int ConnectionException = 6;
-        private const int DatagramConnectionReceiveCloseConnectionFrame = 7;
-        private const int DatagramSizeExceededIncomingFrameMaxSize = 8;
-        private const int HttpUpgradeRequestAccepted = 9;
-        private const int HttpUpgradeRequestFailed = 10;
-        private const int HttpUpgradeRequestSucceed = 11;
-        private const int MaximumDatagramSizeExceeded = 12;
-        private const int ServerPublishedEndpoints = 13;
-        private const int PingEventHandlerException = 14;
-        private const int ReceiveBufferSizeAdjusted = 15;
-        private const int ReceivedData = 16;
-        private const int ReceivedInvalidDatagram = 17;
-        private const int ReceivedSlicInitializeAckFrame = 18;
-        private const int ReceivedSlicInitializeFrame = 21;
-        private const int ReceivedSlicPingFrame = 22;
-        private const int ReceivedSlicPongFrame = 23;
-        private const int ReceivedSlicStreamConsumedFrame = 24;
-        private const int ReceivedSlicStreamFrame = 25;
-        private const int ReceivedSlicStreamLastFrame = 26;
-        private const int ReceivedSlicStreamResetFrame = 27;
-        private const int ReceivedSlicVersionFrame = 28;
-        private const int ReceivedWebSocketFrame = 29;
-        private const int SendBufferSizeAdjusted = 30;
-        private const int SendingSlicInitializeAckFrame = 31;
-        private const int SendingSlicInitializeFrame = 32;
-        private const int SendingSlicPingFrame = 33;
-        private const int SendingSlicPongFrame = 34;
-        private const int SendingSlicStreamConsumedFrame = 35;
-        private const int SendingSlicStreamFrame = 36;
-        private const int SendingSlicStreamLastFrame = 37;
-        private const int SendingSlicStreamResetFrame = 38;
-        private const int SendingSlicVersionFrame = 39;
-        private const int SendingWebSocketFrame = 40;
-        private const int SentData = 41;
-        private const int StartAcceptingConnections = 42;
-        private const int StartReceivingDatagrams = 43;
-        private const int StartSendingDatagrams = 44;
-        private const int StopAcceptingConnections = 45;
+        private const int BaseEventId = LoggerExtensions.TransportBaseEventId;
+        private const int AcceptingConnections = BaseEventId + 0;
+        private const int AcceptingConnectionFailed = BaseEventId + 1;
+        private const int ConnectionAccepted = BaseEventId + 2;
+        private const int ConnectionCallbackException = BaseEventId + 3;
+        private const int ConnectionClosed = BaseEventId + 4;
+        private const int ConnectionEstablished = BaseEventId + 5;
+        private const int ConnectionException = BaseEventId + 6;
+        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 7;
+        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 8;
+        private const int MaximumDatagramSizeExceeded = BaseEventId + 9;
+        private const int PingEventHandlerException = BaseEventId + 10;
+        private const int ReceiveBufferSizeAdjusted = BaseEventId + 11;
+        private const int ReceivedData = BaseEventId + 12;
+        private const int ReceivedInvalidDatagram = BaseEventId + 13;
+        private const int SendBufferSizeAdjusted = BaseEventId + 14;
+        private const int SentData = BaseEventId + 15;
+        private const int StartAcceptingConnections = BaseEventId + 16;
+        private const int StartReceivingDatagrams = BaseEventId + 17;
+        private const int StartSendingDatagrams = BaseEventId + 18;
+        private const int StopAcceptingConnections = BaseEventId + 19;
 
-        private static readonly Action<ILogger, string, string, Exception> _acceptingConnection =
-            LoggerMessage.Define<string, string>(
+        private static readonly Action<ILogger, string, IAcceptor, Exception> _acceptingConnections =
+            LoggerMessage.Define<string, IAcceptor>(
                 LogLevel.Debug,
-                new EventId(AcceptingConnection, nameof(AcceptingConnection)),
-                "accepting {Transport} connection at {LocalAddress}");
+                new EventId(AcceptingConnections, nameof(AcceptingConnections)),
+                "accepting {Transport} connections at {Acceptor}");
 
-        private static readonly Action<ILogger, string, string, Exception> _acceptingConnectionFailed =
-            LoggerMessage.Define<string, string>(
+        private static readonly Action<ILogger, string, IAcceptor, Exception> _acceptingConnectionFailed =
+            LoggerMessage.Define<string, IAcceptor>(
                 LogLevel.Error,
                 new EventId(AcceptingConnectionFailed, nameof(AcceptingConnectionFailed)),
-                "failed to accept {Transport} connection at {LocalAddress}");
+                "failed to accept {Transport} connection at {Acceptor}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _connectionAccepted =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _connectionAccepted =
+            LoggerMessage.Define<string, MultiStreamSocket>(
                 LogLevel.Debug,
                 new EventId(ConnectionAccepted, nameof(ConnectionAccepted)),
-                "accepted {Transport} connection: local address = {LocalAddress}, peer address = {PeerAddress}");
+                "accepted {Transport} connection: {Socket}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _connectionEstablished =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _connectionEstablished =
+            LoggerMessage.Define<string, MultiStreamSocket>(
                 LogLevel.Debug,
                 new EventId(ConnectionEstablished, nameof(ConnectionEstablished)),
-                "established {Transport} connection: local address {LocalAddress}, peer address {PeerAddress}");
+                "established {Transport} connection: {Socket}");
 
         private static readonly Action<ILogger, Exception> _connectionCallbackException = LoggerMessage.Define(
             LogLevel.Error,
             new EventId(ConnectionCallbackException, nameof(ConnectionCallbackException)),
             "connection callback exception");
 
-        private static readonly Action<ILogger, string, Exception> _connectionClosed =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
-                "closed {Transport} connection");
+        private static readonly Action<ILogger, Exception> _connectionClosed = LoggerMessage.Define(
+            LogLevel.Debug,
+            new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
+            "closed connection");
 
         private static readonly Action<ILogger, Exception> _connectionException = LoggerMessage.Define(
             LogLevel.Error,
             new EventId(ConnectionException, nameof(ConnectionException)),
             "connection exception");
 
-        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestAccepted =
-            LoggerMessage.Define<string>(
-                LogLevel.Error,
-                new EventId(HttpUpgradeRequestAccepted, nameof(HttpUpgradeRequestAccepted)),
-                "accepted {Transport} connection HTTP upgrade request");
-
-        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestFailed =
-            LoggerMessage.Define<string>(
-                LogLevel.Error,
-                new EventId(HttpUpgradeRequestFailed, nameof(HttpUpgradeRequestFailed)),
-                "{Transport} connection HTTP upgrade request failed");
-
-        private static readonly Action<ILogger, string, Exception> _httpUpgradeRequestSucceed =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                new EventId(HttpUpgradeRequestSucceed, nameof(HttpUpgradeRequestSucceed)),
-                "{Transport} connection HTTP upgrade request succeed");
-
         private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
             LoggerMessage.Define<int>(
                 LogLevel.Error,
                 new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
                 "received datagram with {Bytes} bytes");
-
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedEndpoints =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
-                LogLevel.Information,
-                new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
-                "published endpoints for server {Name}: {Endpoints}");
-
-        private static readonly Action<ILogger, string, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
-            LoggerMessage.Define<string, WSSocket.OpCode, int>(
-                LogLevel.Debug,
-                new EventId(ReceivedWebSocketFrame, nameof(ReceivedWebSocketFrame)),
-                "received {Transport} {OpCode} frame with {Size} bytes payload");
-
-        private static readonly Action<ILogger, string, WSSocket.OpCode, int, Exception> _sendingWebSocketFrame =
-            LoggerMessage.Define<string, WSSocket.OpCode, int>(
-                LogLevel.Debug,
-                new EventId(SendingWebSocketFrame, nameof(SendingWebSocketFrame)),
-                "sending {Transport} {OpCode} frame with {Size} bytes payload");
 
         private static readonly Action<ILogger, string, IAcceptor, Exception> _startAcceptingConnections =
             LoggerMessage.Define<string, IAcceptor>(
@@ -166,19 +106,17 @@ namespace IceRpc
                 new EventId(SentData, nameof(SentData)),
                 "sent {Size} bytes via {Transport}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _startReceivingDatagrams =
+            LoggerMessage.Define<string, MultiStreamSocket>(
                 LogLevel.Debug,
                 new EventId(StartReceivingDatagrams, nameof(StartReceivingDatagrams)),
-                "starting to receive {Transport} datagrams: local address = {LocalAddress}, " +
-                "peer address = {PeerAddress}");
+                "starting to receive {Transport} datagrams: {Socket}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _startSendingDatagrams =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, MultiStreamSocket, Exception> _startSendingDatagrams =
+            LoggerMessage.Define<string, MultiStreamSocket>(
                 LogLevel.Debug,
                 new EventId(StartSendingDatagrams, nameof(StartSendingDatagrams)),
-                "starting to send {Transport} datagrams: local address = {LocalAddress}, " +
-                "peer address = {PeerAddress}");
+                "starting to send {Transport} datagrams: {Socket}");
 
         private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
@@ -211,130 +149,24 @@ namespace IceRpc
                 new EventId(SendBufferSizeAdjusted, nameof(SendBufferSizeAdjusted)),
                 "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
-        private static readonly Action<ILogger, int, Exception> _receivedInitializeFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicInitializeFrame, nameof(ReceivedSlicInitializeFrame)),
-            "received Slic initialize frame: size = {Size}");
+        private static readonly Func<ILogger, string, MultiStreamSocket, IDisposable> _socketScope =
+            LoggerMessage.DefineScope<string, MultiStreamSocket>("socket({Transport}, {Socket})");
 
-        private static readonly Action<ILogger, int, Exception> _receivedInitializeAckFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicInitializeAckFrame, nameof(ReceivedSlicInitializeAckFrame)),
-            "received Slic initialize ack frame: size = {Size}");
+        private static readonly Func<ILogger, SocketStream, IDisposable> _streamScope =
+            LoggerMessage.DefineScope<SocketStream>("stream({Stream})");
 
-        private static readonly Action<ILogger, int, Exception> _receivedVersionFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicVersionFrame, nameof(ReceivedSlicVersionFrame)),
-            "received Slic version frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _receivedPingFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicPingFrame, nameof(ReceivedSlicPingFrame)),
-            "received Slic ping frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _receivedPongFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicPongFrame, nameof(ReceivedSlicPongFrame)),
-            "received Slic pong frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, long, Exception> _receivedStreamFrame =
-            LoggerMessage.Define<int, long>(
-                LogLevel.Debug,
-                new EventId(ReceivedSlicStreamFrame, nameof(ReceivedSlicStreamFrame)),
-                "received Slic stream frame: size = {Size}, streamId = {StreamId}");
-
-        private static readonly Action<ILogger, int, long, Exception> _receivedStreamLastFrame =
-            LoggerMessage.Define<int, long>(
-                LogLevel.Debug,
-                new EventId(ReceivedSlicStreamLastFrame, nameof(ReceivedSlicStreamLastFrame)),
-                "received Slic stream last frame: size = {Size}, streamId = {StreamId}");
-
-        private static readonly Action<ILogger, int, Exception> _receivedStreamResetFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(ReceivedSlicStreamResetFrame, nameof(ReceivedSlicStreamResetFrame)),
-            "received Slic stream reset frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _receivedStreamConsumedFrame =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                new EventId(ReceivedSlicStreamConsumedFrame),
-                "received Slic stream consumed frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingInitializeFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicInitializeFrame, nameof(SendingSlicInitializeFrame)),
-            "sending Slic initialize frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingInitializeAckFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicInitializeAckFrame, nameof(SendingSlicInitializeAckFrame)),
-            "sending Slic initialize ack frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingVersionFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicVersionFrame, nameof(SendingSlicInitializeAckFrame)),
-            "sending Slic version frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingPingFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicPingFrame, nameof(SendingSlicPingFrame)),
-            "sending Slic ping frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingPongFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicPongFrame, nameof(SendingSlicPongFrame)),
-            "sending Slic pong frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, long, Exception> _sendingStreamFrame =
-            LoggerMessage.Define<int, long>(
-                LogLevel.Debug,
-                new EventId(SendingSlicStreamFrame, nameof(SendingSlicStreamFrame)),
-                "sending Slic stream frame: size = {Size}, streamId = {StreamId}");
-
-        private static readonly Action<ILogger, int, long, Exception> _sendingStreamLastFrame =
-            LoggerMessage.Define<int, long>(
-                LogLevel.Debug,
-                new EventId(SendingSlicStreamLastFrame, nameof(SendingSlicStreamLastFrame)),
-                "sending Slic stream last frame: size = {Size}, streamId = {StreamId}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingStreamResetFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicStreamResetFrame, nameof(SendingSlicStreamResetFrame)),
-            "sending Slic stream reset frame: size = {Size}");
-
-        private static readonly Action<ILogger, int, Exception> _sendingStreamConsumedFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            new EventId(SendingSlicStreamConsumedFrame, nameof(SendingSlicStreamConsumedFrame)),
-            "sending Slic stream consumed frame: size = {Size}");
-
-        private static readonly Func<ILogger, long, string, IDisposable> _colocatedSocketScope =
-            LoggerMessage.DefineScope<long, string>("socket(colocated ID = {ID}, server = {ServerName}");
-
-        private static readonly Func<ILogger, string, string, string, IDisposable> _socketScope =
-            LoggerMessage.DefineScope<string, string, string>(
-                "socket({Transport}, local address = {LocalAddress}, peer address = {PeerAddress})");
-        private static readonly Func<ILogger, long, string, IDisposable> _streamScope =
-            LoggerMessage.DefineScope<long, string>("stream(ID = {ID}, {Kind})");
-
-        private static readonly Func<ILogger, string, string, string, IDisposable> _datagramSocketScope =
-            LoggerMessage.DefineScope<string, string, string>(
-                "socket({Transport}, local address = {LocalAddress}, peer address = {PeerAddress}");
-
-        private static readonly Func<ILogger, string, string, string, IDisposable> _multicastSocketScope =
-            LoggerMessage.DefineScope<string, string, string>(
-                "socket({Transport}, local address = {LocalAddress}, multicast address = {PeerAddress}");
-
-        internal static void LogAcceptingConnection(
+        internal static void LogAcceptingConnections(
             this ILogger logger,
             Transport transport,
-            string localAddress) =>
-            _acceptingConnection(logger, transport.ToString().ToLowerInvariant(), localAddress, null!);
+            IAcceptor acceptor) =>
+            _acceptingConnections(logger, transport.ToString().ToLowerInvariant(), acceptor, null!);
 
         internal static void LogAcceptingConnectionFailed(
             this ILogger logger,
             Transport transport,
-            string localAddress,
+            IAcceptor acceptor,
             Exception ex) =>
-            _acceptingConnectionFailed(logger, transport.ToString().ToLowerInvariant(), localAddress, ex);
+            _acceptingConnectionFailed(logger, transport.ToString().ToLowerInvariant(), acceptor, ex);
 
         internal static void LogConnectionCallbackException(this ILogger logger, Exception ex) =>
             _connectionCallbackException(logger, ex);
@@ -342,89 +174,38 @@ namespace IceRpc
         internal static void LogConnectionAccepted(
             this ILogger logger,
             Transport transport,
-            string localAddress,
-            string remoteAddress) =>
-            _connectionAccepted(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress, null!);
+            MultiStreamSocket socket) =>
+            _connectionAccepted(logger, transport.ToString().ToLowerInvariant(), socket, null!);
 
-        internal static void LogConnectionClosed(
-            this ILogger logger,
-            Transport transport,
-            Exception? exception = null) =>
-            _connectionClosed(logger, transport.ToString().ToLowerInvariant(), exception!);
+        internal static void LogConnectionClosed(this ILogger logger, Exception? exception = null) =>
+            _connectionClosed(logger, exception!);
 
         internal static void LogConnectionEstablished(
             this ILogger logger,
             Transport transport,
-            string localAddress,
-            string peerAddress) =>
-            _connectionEstablished(logger, transport.ToString().ToLowerInvariant(), localAddress, peerAddress, null!);
+            MultiStreamSocket socket) =>
+            _connectionEstablished(logger, transport.ToString().ToLowerInvariant(), socket, null!);
 
         internal static void LogConnectionException(this ILogger logger, Exception ex) =>
             _connectionException(logger, ex);
 
-        internal static void LogHttpUpgradeRequestAccepted(
-            this ILogger logger,
-            Transport transport) =>
-            _httpUpgradeRequestAccepted(logger, transport.ToString().ToLowerInvariant(), null!);
-
-        internal static void LogHttpUpgradeRequestFailed(
-            this ILogger logger,
-            Transport transport,
-            Exception ex) =>
-            _httpUpgradeRequestFailed(logger, transport.ToString().ToLowerInvariant(), ex);
-
-        internal static void LogHttpUpgradeRequestSucceed(
-            this ILogger logger,
-            Transport transport) =>
-            _httpUpgradeRequestSucceed(logger, transport.ToString().ToLowerInvariant(), null!);
-
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
-
-        internal static void LogServerPublishedEndpoints(
-            this ILogger logger,
-            string name,
-            IReadOnlyList<Endpoint> endpoints) =>
-            _serverPublishedEndpoints(logger, name, endpoints, null!);
 
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);
 
-        internal static void LogReceivedWebSocketFrame(
-            this ILogger logger,
-            Transport transport,
-            WSSocket.OpCode opCode,
-            int size) =>
-            _receivedWebSocketFrame(logger, transport.ToString().ToLowerInvariant(), opCode, size, null!);
-
-        internal static void LogSendingWebSocketFrame(
-            this ILogger logger,
-            Transport transport,
-            WSSocket.OpCode opCode,
-            int size) =>
-            _sendingWebSocketFrame(logger, transport.ToString().ToLowerInvariant(), opCode, size, null!);
-
         internal static void LogStartReceivingDatagrams(
             this ILogger logger,
             Transport transport,
-            string localAddress,
-            string peerAddress) =>
-            _startReceivingDatagrams(logger,
-                                     transport.ToString().ToLowerInvariant(),
-                                     localAddress,
-                                     peerAddress,
-                                     null!);
+            MultiStreamSocket socket) =>
+            _startReceivingDatagrams(logger, transport.ToString().ToLowerInvariant(), socket, null!);
 
         internal static void LogStartSendingDatagrams(
             this ILogger logger,
             Transport transport,
-            string localAddress,
-            string peerAddress) =>
-            _startSendingDatagrams(logger,
-                                   transport.ToString().ToLowerInvariant(),
-                                   localAddress,
-                                   peerAddress,
-                                   null!);
+            MultiStreamSocket socket) =>
+            _startSendingDatagrams(logger, transport.ToString().ToLowerInvariant(), socket, null!);
 
         internal static void LogStartAcceptingConnections(
             this ILogger logger,
@@ -475,183 +256,13 @@ namespace IceRpc
                                     adjustedSize,
                                     null!);
 
-        internal static void LogReceivedSlicFrame(
-            this ILogger logger,
-            SlicDefinitions.FrameType frameType,
-            int frameSize,
-            long? streamId)
-        {
-            switch (frameType)
-            {
-                case SlicDefinitions.FrameType.Initialize:
-                    {
-                        _receivedInitializeFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.InitializeAck:
-                    {
-                        _receivedInitializeAckFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Version:
-                    {
-                        _receivedVersionFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Ping:
-                    {
-                        _receivedPingFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Pong:
-                    {
-                        _receivedPongFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Stream:
-                    {
-                        Debug.Assert(streamId != null);
-                        _receivedStreamFrame(logger, frameSize, streamId!.Value, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamLast:
-                    {
-                        Debug.Assert(streamId != null);
-                        _receivedStreamLastFrame(logger, frameSize, streamId!.Value, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamReset:
-                    {
-                        _receivedStreamResetFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamConsumed:
-                    {
-                        _receivedStreamConsumedFrame(logger, frameSize, null!);
-                        break;
-                    }
-                default:
-                    {
-                        Debug.Assert(false);
-                        break;
-                    }
-            }
-        }
-
-        internal static void LogSendingSlicFrame(
-            this ILogger logger,
-            SlicDefinitions.FrameType frameType,
-            int frameSize,
-            long? streamId)
-        {
-            switch (frameType)
-            {
-                case SlicDefinitions.FrameType.Initialize:
-                    {
-                        _sendingInitializeFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.InitializeAck:
-                    {
-                        _sendingInitializeAckFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Version:
-                    {
-                        _sendingVersionFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Ping:
-                    {
-                        _sendingPingFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Pong:
-                    {
-                        _sendingPongFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.Stream:
-                    {
-                        Debug.Assert(streamId != null);
-                        _sendingStreamFrame(logger, frameSize, streamId!.Value, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamLast:
-                    {
-                        Debug.Assert(streamId != null);
-                        _sendingStreamLastFrame(logger, frameSize, streamId!.Value, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamReset:
-                    {
-                        _sendingStreamResetFrame(logger, frameSize, null!);
-                        break;
-                    }
-                case SlicDefinitions.FrameType.StreamConsumed:
-                    {
-                        _sendingStreamConsumedFrame(logger, frameSize, null!);
-                        break;
-                    }
-                default:
-                    {
-                        Debug.Assert(false);
-                        break;
-                    }
-            }
-        }
-
-        internal static IDisposable StartColocatedSocketScope(
-            this ILogger logger,
-            long id,
-            string adapterName) =>
-            _colocatedSocketScope(logger, id, adapterName);
-
-        internal static IDisposable StartDatagramSocketScope(
-            this ILogger logger,
-            Transport transport,
-            string localAddress,
-            string remoteAddress) =>
-            _datagramSocketScope(logger,
-                transport.ToString().ToLowerInvariant(),
-                localAddress,
-                remoteAddress);
-
-        internal static IDisposable StartMulticastSocketScope(
-            this ILogger logger,
-            Transport transport,
-            string localAddress,
-            string multicastAddress) =>
-            _multicastSocketScope(logger,
-                                  transport.ToString().ToLowerInvariant(),
-                                  localAddress,
-                                  multicastAddress);
-
         internal static IDisposable StartSocketScope(
             this ILogger logger,
             Transport transport,
-            string localAddress,
-            string remoteAddress) =>
-            _socketScope(logger, transport.ToString().ToLowerInvariant(), localAddress, remoteAddress);
+            MultiStreamSocket socket) =>
+            _socketScope(logger, transport.ToString().ToLowerInvariant(), socket);
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, Protocol protocol, long streamID)
-        {
-            if (protocol == Protocol.Ice1)
-            {
-                int requestID = streamID % 4 < 2 ? (int)(streamID >> 2) + 1 : 0;
-                return _streamScope(logger, requestID, requestID == 0 ? "oneway" : "twoway");
-            }
-            else
-            {
-                string streamType = (streamID % 4) switch
-                {
-                    0 => "[client-initiated, bidirectional]",
-                    1 => "[server-initiated, bidirectional]",
-                    2 => "[client-initiated, unidirectional]",
-                    _ => "[server-initiated, unidirectional]",
-                };
-                return _streamScope(logger, streamID, streamType);
-            }
-        }
+        internal static IDisposable? StartStreamScope(this ILogger logger, SocketStream stream) =>
+            _streamScope(logger, stream);
     }
 }

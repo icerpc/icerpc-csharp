@@ -156,8 +156,6 @@ namespace IceRpc
             _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
-
         private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
         {
             _incoming = incoming;
@@ -276,7 +274,7 @@ namespace IceRpc
             {
                 if (Logger.IsEnabled(LogLevel.Error))
                 {
-                    Logger.LogHttpUpgradeRequestFailed(_transport, ex);
+                    Logger.LogHttpUpgradeRequestFailed(ex);
                 }
                 throw;
             }
@@ -285,11 +283,11 @@ namespace IceRpc
             {
                 if (_incoming)
                 {
-                    Logger.LogHttpUpgradeRequestAccepted(_transport);
+                    Logger.LogHttpUpgradeRequestAccepted();
                 }
                 else
                 {
-                    Logger.LogHttpUpgradeRequestSucceed(_transport);
+                    Logger.LogHttpUpgradeRequestSucceed();
                 }
             }
         }
@@ -396,7 +394,7 @@ namespace IceRpc
 
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
+                    Logger.LogReceivedWebSocketFrame(opCode, payloadLength);
                 }
 
                 switch (opCode)
@@ -664,7 +662,7 @@ namespace IceRpc
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
                 if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    Logger.LogReceivedWebSocketFrame(_transport, opCode, size);
+                    Logger.LogReceivedWebSocketFrame(opCode, size);
                 }
 
                 if (_incoming || opCode == OpCode.Pong)

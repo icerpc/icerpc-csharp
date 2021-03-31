@@ -253,6 +253,40 @@ namespace IceRpc
             _state = ConnectionState.Initializing;
         }
 
+        internal async Task AcceptAsync(SslServerAuthenticationOptions? authentication, CancellationToken cancel)
+        {
+            await Socket.AcceptAsync(authentication, cancel).ConfigureAwait(false);
+
+            if (Socket.Logger.IsEnabled(LogLevel.Debug))
+            {
+                if (Endpoint.IsDatagram)
+                {
+                    Socket.Logger.LogStartReceivingDatagrams(Endpoint.Transport, Socket);
+                }
+                else
+                {
+                    Socket.Logger.LogConnectionAccepted(Endpoint.Transport, Socket);
+                }
+            }
+        }
+
+        internal async Task ConnectAsync(SslClientAuthenticationOptions? authentication, CancellationToken cancel)
+        {
+            await Socket.ConnectAsync(authentication, cancel).ConfigureAwait(false);
+
+            if (Socket.Logger.IsEnabled(LogLevel.Debug))
+            {
+                if (Endpoint.IsDatagram)
+                {
+                    Socket.Logger.LogStartSendingDatagrams(Endpoint.Transport, Socket);
+                }
+                else
+                {
+                    Socket.Logger.LogConnectionEstablished(Endpoint.Transport, Socket);
+                }
+            }
+        }
+
         internal abstract bool CanTrust(NonSecure nonSecure);
 
         internal SocketStream CreateStream(bool bidirectional)

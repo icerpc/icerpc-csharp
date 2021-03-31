@@ -41,6 +41,11 @@ namespace IceRpc
             _server = server;
             _acceptor = endpoint.Acceptor(_server);
             Endpoint = _acceptor.Endpoint;
+
+            if (server.Logger.IsEnabled(LogLevel.Debug) && !(_acceptor is ColocatedAcceptor))
+            {
+                server.Logger.LogAcceptingConnections(Endpoint.Transport, _acceptor);
+            }
         }
 
         internal override void Activate()
@@ -117,8 +122,13 @@ namespace IceRpc
                     // TODO: Hack, remove once we get rid of the communicator
                     connection.Communicator = _server.Communicator;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    if (_server.Logger.IsEnabled(LogLevel.Error))
+                    {
+                        _server.Logger.LogAcceptingConnectionFailed(Endpoint.Transport, _acceptor, ex);
+                    }
+
                     if (_shutdown)
                     {
                         return;
@@ -158,7 +168,7 @@ namespace IceRpc
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.Socket.AcceptAsync(
+                    await connection.AcceptAsync(
                         _server.ConnectionOptions.AuthenticationOptions,
                         cancel).ConfigureAwait(false);
 
@@ -210,16 +220,7 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.Logger.IsEnabled(LogLevel.Debug))
-            {
-                if (_connection is IPConnection connection)
-                {
-                    _server.Logger.LogStartReceivingDatagrams(
-                        Endpoint.Transport,
-                        connection.LocalEndpoint?.ToString() ?? "undefined",
-                        connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
-            }
+            _ = _connection.AcceptAsync(null, default);
             _ = _connection.InitializeAsync(default);
         }
 

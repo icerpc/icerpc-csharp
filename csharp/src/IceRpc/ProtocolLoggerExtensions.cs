@@ -9,31 +9,32 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
-        internal const int ReceivedIce1CloseConnectionFrame = 0;
-        internal const int ReceivedIce1RequestBatchFrame = 1;
-        internal const int ReceivedIce1RequestFrame = 2;
-        internal const int ReceivedIce1ResponseFrame = 3;
-        internal const int ReceivedIce1ValidateConnectionFrame = 4;
+        private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
+        private const int ReceivedIce1CloseConnectionFrame = BaseEventId + 0;
+        private const int ReceivedIce1RequestBatchFrame = BaseEventId + 1;
+        private const int ReceivedIce1RequestFrame = BaseEventId + 2;
+        private const int ReceivedIce1ResponseFrame = BaseEventId + 3;
+        private const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 4;
 
-        internal const int ReceivedIce2GoAwayFrame = 5;
-        internal const int ReceivedIce2InitializeFrame = 6;
-        internal const int ReceivedIce2RequestFrame = 7;
-        internal const int ReceivedIce2ResponseFrame = 8;
+        private const int ReceivedIce2GoAwayFrame = BaseEventId + 5;
+        private const int ReceivedIce2InitializeFrame = BaseEventId + 6;
+        private const int ReceivedIce2RequestFrame = BaseEventId + 7;
+        private const int ReceivedIce2ResponseFrame = BaseEventId + 8;
 
-        internal const int RequestDispatchException = 9;
+        private const int RequestDispatchException = BaseEventId + 9;
 
-        internal const int RetryRequestInvocation = 10;
-        internal const int RetryConnectionEstablishment = 11;
+        private const int RetryRequestInvocation = BaseEventId + 10;
+        private const int RetryConnectionEstablishment = BaseEventId + 11;
 
-        internal const int SendIce1ValidateConnectionFrame = 12;
-        internal const int SendingIce1CloseConnectionFrame = 13;
-        internal const int SendingIce1RequestFrame = 14;
-        internal const int SendingIce1ResponseFrame = 15;
+        private const int SendIce1ValidateConnectionFrame = BaseEventId + 12;
+        private const int SendingIce1CloseConnectionFrame = BaseEventId + 13;
+        private const int SendingIce1RequestFrame = BaseEventId + 14;
+        private const int SendingIce1ResponseFrame = BaseEventId + 15;
 
-        internal const int SendingIce2GoAwayFrame = 16;
-        internal const int SendingIce2InitializeFrame = 17;
-        internal const int SendingIce2RequestFrame = 18;
-        internal const int SendingIce2ResponseFrame = 19;
+        private const int SendingIce2GoAwayFrame = BaseEventId + 16;
+        private const int SendingIce2InitializeFrame = BaseEventId + 17;
+        private const int SendingIce2RequestFrame = BaseEventId + 18;
+        private const int SendingIce2ResponseFrame = BaseEventId + 19;
 
         private static readonly Action<ILogger, Encoding, Exception> _receivedIce1CloseConnectionFrame =
             LoggerMessage.Define<Encoding>(

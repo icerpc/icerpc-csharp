@@ -19,29 +19,18 @@ namespace IceRpc
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            try
+            Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+
+            ConnectionOptions options = _server.ConnectionOptions;
+
+            SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.Logger);
+
+            MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
             {
-                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-
-                ConnectionOptions options = _server.ConnectionOptions;
-
-                SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.Logger);
-
-                MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
-                {
-                    Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
-                    _ => new SlicSocket(Endpoint, socket, options)
-                };
-                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
-            }
-            catch (Exception ex)
-            {
-                if (_server.Logger.IsEnabled(LogLevel.Error))
-                {
-                    _server.LogAcceptingConnectionFailed(Endpoint.Transport, _addr.ToString(), ex);
-                }
-                throw;
-            }
+                Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
+                _ => new SlicSocket(Endpoint, socket, options)
+            };
+            return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
         }
 
         public void Dispose() => _socket.CloseNoThrow();
@@ -57,17 +46,6 @@ namespace IceRpc
             _server = server;
             _addr = (IPEndPoint)socket.LocalEndPoint!;
             _socket = socket;
-
-            if (server.Logger.IsEnabled(LogLevel.Debug))
-            {
-<<<<<<< HEAD
-                server.TransportLogger.LogAcceptingConnection(Endpoint.Transport, _addr.ToString());
-=======
-                server.Logger.LogAcceptingConnection(
-                    Endpoint.Transport,
-                    Network.LocalAddrToString(_addr));
->>>>>>> origin/main
-            }
         }
     }
 }

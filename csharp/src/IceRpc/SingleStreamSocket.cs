@@ -84,37 +84,29 @@ namespace IceRpc
         /// <return>The number of bytes sent.</return>
         public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
 
-        protected string LocalAddrToString()
-        {
-            try
-            {
-                return Socket?.LocalEndPoint?.ToString() ?? "<undefined>";
-            }
-            catch
-            {
-                return "<not connected>";
-            }
-        }
-
-        protected string RemoteAddrToString()
-        {
-            try
-            {
-                return Socket?.RemoteEndPoint?.ToString() ?? "<undefined>";
-            }
-            catch
-            {
-                return "<not connected>";
-            }
-        }
-
-        protected string SocketToString()
+        public override string? ToString()
         {
             if (Socket == null)
             {
-                return "<closed>";
+                return base.ToString();
             }
-            return $"local address = {LocalAddrToString()}\nremote address = {RemoteAddrToString()}";
+            else
+            {
+                try
+                {
+                    string localAddress = Socket?.LocalEndPoint?.ToString() ?? "<undefined>";
+                    string remoteAddress = Socket?.RemoteEndPoint?.ToString() ?? "<undefined>";
+                    return $"local address = {localAddress}, remote address={remoteAddress}";
+                }
+                catch (SocketException)
+                {
+                    return "<not connected>";
+                }
+                catch (ObjectDisposedException)
+                {
+                    return "<closed>";
+                }
+            }
         }
 
         /// <summary>Releases the resources used by the socket.</summary>
@@ -123,11 +115,5 @@ namespace IceRpc
         protected abstract void Dispose(bool disposing);
 
         internal SingleStreamSocket(ILogger logger) => Logger = logger;
-
-        /// <summary>Creates a scope that attaches info about the socket being used, the scope last until the
-        /// returned object is disposed.</summary>
-        /// <param name="endpoint">The endpoint that was used to create the socket.</param>
-        /// <returns>A disposable that can be used to cleanup the scope.</returns>
-        internal abstract IDisposable? StartScope(Endpoint endpoint);
     }
 }

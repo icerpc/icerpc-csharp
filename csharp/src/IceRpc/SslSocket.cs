@@ -147,9 +147,6 @@ namespace IceRpc
         internal SslSocket(SingleStreamSocket underlying)
             : base(underlying.Logger) => _underlying = underlying;
 
-        internal override IDisposable? StartScope(Endpoint endpoint) =>
-            _underlying.StartScope(endpoint);
-
         private async ValueTask AuthenticateAsync(Func<SslStream, ValueTask> authenticate)
         {
             // This can only be created with a connected socket.

@@ -20,6 +20,12 @@ namespace IceRpc
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
+        public override string ToString()
+        {
+            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
+            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
+        }
+
         protected override void Shutdown()
         {
             base.Shutdown();

@@ -152,7 +152,7 @@ namespace IceRpc
         }
 
         public override string ToString() =>
-            $"colocated ID = {_id}\nserver = {((ColocatedEndpoint)Endpoint).Server.Name}\nincoming = {IsIncoming}";
+            $"ID = {_id}, server = {((ColocatedEndpoint)Endpoint).Server.Name}, incoming = {IsIncoming}";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
@@ -278,16 +278,6 @@ namespace IceRpc
                     throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
                 }
             }
-        }
-
-        internal override IDisposable? StartScope()
-        {
-            // If any of the loggers is enabled we create the scope
-            if (Logger.IsEnabled(LogLevel.Critical))
-            {
-                return Logger.StartColocatedSocketScope(_id, ((ColocatedEndpoint)Endpoint).Server.Name);
-            }
-            return null;
         }
     }
 }

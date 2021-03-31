@@ -233,11 +233,11 @@ namespace IceRpc
                 // Trace the cause of unexpected connection closures
                 if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
                 {
-                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
+                    Logger.LogConnectionClosed(exception);
                 }
                 else
                 {
-                    Logger.LogConnectionClosed(Endpoint.Transport);
+                    Logger.LogConnectionClosed();
                 }
             }
         }
@@ -330,7 +330,15 @@ namespace IceRpc
             return stream;
         }
 
-        internal abstract IDisposable? StartScope();
+        internal IDisposable? StartScope()
+        {
+            // If any of the loggers is enabled we create the scope
+            if (Logger.IsEnabled(LogLevel.Critical))
+            {
+                return Logger.StartSocketScope(Endpoint.Transport, this);
+            }
+            return null;
+        }
 
         internal virtual async ValueTask WaitForEmptyStreamsAsync()
         {

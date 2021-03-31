@@ -256,7 +256,7 @@ namespace IceRpc
             var udpSocket = new UdpSocket(socket, logger, isIncoming: false, endpoint);
             var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options);
             var connection = new UdpConnection(this, multiStreamSocket, options, server: null);
-            await connection.Socket.ConnectAsync(null, cancel).ConfigureAwait(false);
+            await connection.ConnectAsync(null, cancel).ConfigureAwait(false);
             return connection;
         }
 
