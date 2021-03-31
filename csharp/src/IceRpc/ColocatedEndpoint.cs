@@ -43,8 +43,7 @@ namespace IceRpc
 
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger,
+            ILogger logger,
             CancellationToken cancel)
         {
             var readerOptions = new UnboundedChannelOptions
@@ -72,7 +71,7 @@ namespace IceRpc
 
             return Task.FromResult<Connection>(new ColocatedConnection(
                 this,
-                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options, protocolLogger, transportLogger),
+                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options, logger),
                 options,
                 server: null));
         }

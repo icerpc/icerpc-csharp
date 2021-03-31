@@ -47,22 +47,19 @@ namespace IceRpc
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                SocketOptions socketOptions = server.ConnectionOptions.SocketOptions!;
+                TcpOptions tcpOptions = server.ConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !socketOptions.IsIPv6Only;
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
                 }
+
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(
-                    socket,
-                    socketOptions.ReceiveBufferSize,
-                    socketOptions.SendBufferSize,
-                    server.TransportLogger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, server.Logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(socketOptions.ListenerBackLog);
+                socket.Listen(tcpOptions.ListenerBackLog);
             }
             catch (SocketException ex)
             {
@@ -223,8 +220,7 @@ namespace IceRpc
 
         protected internal override async Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger,
+            ILogger logger,
             CancellationToken cancel)
         {
             // If the endpoint is always secure or a secure connection is required, connect with the SSL client
@@ -244,12 +240,13 @@ namespace IceRpc
                 };
             }
 
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint, options.SocketOptions!, transportLogger);
+            SingleStreamSocket socket = CreateSocket(endpoint, tcpOptions, logger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options, protocolLogger),
-                _ => new SlicSocket(this, socket, options, protocolLogger)
+                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
+                _ => new SlicSocket(this, socket, options)
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
@@ -338,7 +335,7 @@ namespace IceRpc
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger)
+        internal virtual SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger)
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
             // created if the address is an IPv4 address.

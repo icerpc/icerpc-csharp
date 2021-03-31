@@ -242,18 +242,18 @@ namespace IceRpc
                 fin: frame.StreamDataWriter == null,
                 cancel).ConfigureAwait(false);
 
-            if (_socket.ProtocolLogger.IsEnabled(LogLevel.Information))
+            if (_socket.Logger.IsEnabled(LogLevel.Information))
             {
                 if (frame is OutgoingRequestFrame request)
                 {
                     // TODO: create the scope when the stream is started rather than after the request creation.
                     using var scope = StartScope();
-                    _socket.ProtocolLogger.LogSendingRequest(request);
+                    _socket.Logger.LogSendingRequest(request);
                 }
                 else
                 {
                     Debug.Assert(frame is OutgoingResponseFrame);
-                    _socket.ProtocolLogger.LogSendingResponse((OutgoingResponseFrame)frame);
+                    _socket.Logger.LogSendingResponse((OutgoingResponseFrame)frame);
                 }
             }
         }
