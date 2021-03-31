@@ -12,9 +12,9 @@ namespace IceRpc
 {
     public sealed partial class Communicator
     {
-        private readonly Dictionary<(Endpoint, object?), LinkedList<Connection>> _outgoingConnections =
+        private readonly Dictionary<Endpoint, LinkedList<Connection>> _outgoingConnections =
             new(EndpointComparer.Equivalent);
-        private readonly Dictionary<(Endpoint, object?), Task<Connection>> _pendingOutgoingConnections =
+        private readonly Dictionary<Endpoint, Task<Connection>> _pendingOutgoingConnections =
             new(EndpointComparer.Equivalent);
         // We keep a map of the endpoints that recently resulted in a failure while establishing a connection. This is
         // used to influence the selection of endpoints when creating new connections. Endpoints with recent failures
@@ -39,9 +39,7 @@ namespace IceRpc
                     }
 
                     // Check if there is an active connection that we can use according to the endpoint settings.
-                    if (_outgoingConnections.TryGetValue(
-                        (endpoint, options.Label),
-                        out LinkedList<Connection>? connections))
+                    if (_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections))
                     {
                         // The list of connections is already sorted with non-secure connections first, this will
                         // return the first active and trusted connection according to the non-secure preference.
@@ -60,15 +58,15 @@ namespace IceRpc
                     }
 
                     // If we didn't find an active connection check if there is a pending connect task for the same
-                    // endpoint and label.
-                    if (!_pendingOutgoingConnections.TryGetValue((endpoint, options.Label), out connectTask))
+                    // endpoint.
+                    if (!_pendingOutgoingConnections.TryGetValue(endpoint, out connectTask))
                     {
                         connectTask = PerformConnectAsync(endpoint, options);
                         if (!connectTask.IsCompleted)
                         {
                             // If the task didn't complete synchronously we add it to the pending map
                             // and it will be removed once PerformConnectAsync completes.
-                            _pendingOutgoingConnections[(endpoint, options.Label)] = connectTask;
+                            _pendingOutgoingConnections[endpoint] = connectTask;
                         }
                     }
                 }
@@ -99,11 +97,7 @@ namespace IceRpc
 
                 try
                 {
-                    Connection connection = await endpoint.ConnectAsync(
-                        options,
-                        ProtocolLogger,
-                        TransportLogger,
-                        cancel).ConfigureAwait(false);
+                    Connection connection = await endpoint.ConnectAsync(options, Logger, cancel).ConfigureAwait(false);
                     // TODO: Hack, remove once we get rid of the communicator
                     connection.Communicator = this;
 
@@ -120,12 +114,10 @@ namespace IceRpc
                             return connection;
                         }
 
-                        if (!_outgoingConnections.TryGetValue(
-                            (endpoint, options.Label),
-                            out LinkedList<Connection>? list))
+                        if (!_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? list))
                         {
                             list = new LinkedList<Connection>();
-                            _outgoingConnections[(endpoint, options.Label)] = list;
+                            _outgoingConnections[endpoint] = list;
                         }
 
                         // Keep the list of connections sorted with non-secure connections first so that when we check
@@ -184,21 +176,20 @@ namespace IceRpc
                         // Don't modify the pending connections map after the communicator was disposed.
                         if (_shutdownTask == null)
                         {
-                            _pendingOutgoingConnections.Remove((endpoint, options.Label));
+                            _pendingOutgoingConnections.Remove(endpoint);
                         }
                     }
                 }
             }
         }
 
-        internal Connection? GetConnection(List<Endpoint> endpoints, NonSecure nonSecure, object? label)
+        internal Connection? GetConnection(List<Endpoint> endpoints, NonSecure nonSecure)
         {
             lock (_mutex)
             {
                 foreach (Endpoint endpoint in endpoints)
                 {
-                    if (_outgoingConnections.TryGetValue((endpoint, label),
-                                                         out LinkedList<Connection>? connections) &&
+                    if (_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
                         connections.FirstOrDefault(
                             connection => connection.IsActive && connection.CanTrust(nonSecure))
                         is Connection connection)
@@ -240,28 +231,25 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                LinkedList<Connection> list = _outgoingConnections[(connection.Endpoint, connection.Label)];
+                LinkedList<Connection> list = _outgoingConnections[connection.Endpoint];
                 list.Remove(connection);
                 if (list.Count == 0)
                 {
-                    _outgoingConnections.Remove((connection.Endpoint, connection.Label));
+                    _outgoingConnections.Remove(connection.Endpoint);
                 }
             }
         }
 
-        private abstract class EndpointComparer : EqualityComparer<(Endpoint Endpoint, object? Label)>
+        private abstract class EndpointComparer : EqualityComparer<Endpoint>
         {
             internal static EndpointComparer Equivalent { get; } = new EquivalentEndpointComparer();
         }
 
         private class EquivalentEndpointComparer : EndpointComparer
         {
-            public override bool Equals((Endpoint Endpoint, object? Label) lhs,
-                                       (Endpoint Endpoint, object? Label) rhs) =>
-               lhs.Endpoint.IsEquivalent(rhs.Endpoint) && Equals(lhs.Label, rhs.Label);
+            public override bool Equals(Endpoint? lhs, Endpoint? rhs) => lhs!.IsEquivalent(rhs!);
 
-            public override int GetHashCode((Endpoint Endpoint, object? Label) obj) =>
-                HashCode.Combine(obj.Endpoint.GetEquivalentHashCode(), obj.Label);
+            public override int GetHashCode(Endpoint endpoint) => endpoint.GetEquivalentHashCode();
         }
     }
 }

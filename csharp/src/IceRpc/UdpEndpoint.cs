@@ -49,8 +49,8 @@ namespace IceRpc
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
-                var options = server.ConnectionOptions;
-                var socketOptions = options.SocketOptions!;
+                IncomingConnectionOptions options = server.ConnectionOptions;
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
 
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
@@ -61,15 +61,15 @@ namespace IceRpc
                     }
                     else
                     {
-                        socket.DualMode = !socketOptions.IsIPv6Only;
+                        socket.DualMode = !udpOptions.IsIPv6Only;
                     }
                 }
                 socket.ExclusiveAddressUse = true;
 
                 SetBufferSize(socket,
-                              socketOptions.ReceiveBufferSize,
-                              socketOptions.SendBufferSize,
-                              server.TransportLogger);
+                              udpOptions.ReceiveBufferSize,
+                              udpOptions.SendBufferSize,
+                              server.Logger);
 
                 var addr = new IPEndPoint(Address, Port);
                 IPEndPoint? multicastAddress = null;
@@ -105,9 +105,9 @@ namespace IceRpc
                     SetMulticastGroup(socket, multicastAddress.Address, MulticastInterface);
                 }
 
-                var endpoint = Clone(port);
-                var udpSocket = new UdpSocket(socket, server.TransportLogger, isIncoming: true, multicastAddress);
-                var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options, server.ProtocolLogger);
+                Endpoint endpoint = Clone(port);
+                var udpSocket = new UdpSocket(socket, server.Logger, isIncoming: true, multicastAddress);
+                var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options);
                 return new UdpConnection(endpoint, multiStreamSocket, options, server);
             }
             catch (SocketException ex)
@@ -195,22 +195,21 @@ namespace IceRpc
 
         protected internal override async Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger,
+            ILogger logger,
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
-            var socket = HasDnsHost ?
+            Socket socket = HasDnsHost ?
                 new Socket(SocketType.Stream, ProtocolType.Tcp) :
                 new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
-                var socketOptions = options.SocketOptions!;
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !socketOptions.IsIPv6Only;
+                    socket.DualMode = !udpOptions.IsIPv6Only;
                 }
 
                 if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
@@ -241,12 +240,12 @@ namespace IceRpc
                     }
                 }
 
-                if (socketOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                if (udpOptions.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, socketOptions.ReceiveBufferSize, socketOptions.SendBufferSize, transportLogger);
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
             }
             catch (SocketException ex)
             {
@@ -254,8 +253,8 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.NoRetry);
             }
 
-            var udpSocket = new UdpSocket(socket, transportLogger, isIncoming: false, endpoint);
-            var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options, protocolLogger);
+            var udpSocket = new UdpSocket(socket, logger, isIncoming: false, endpoint);
+            var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options);
             var connection = new UdpConnection(this, multiStreamSocket, options, server: null);
             await connection.Socket.ConnectAsync(null, cancel).ConfigureAwait(false);
             return connection;

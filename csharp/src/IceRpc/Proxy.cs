@@ -17,7 +17,6 @@ namespace IceRpc
         /// specified through the parameters change anything.</summary>
         /// <param name="proxy">The source proxy.</param>
         /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
-        /// <param name="clearLabel">When set to true, the clone does not have an associated label (optional).</param>
         /// <param name="context">The context of the clone (optional).</param>
         /// <param name="encoding">The encoding of the clone (optional).</param>
         /// <param name="endpoints">The endpoints of the clone (optional).</param>
@@ -26,7 +25,6 @@ namespace IceRpc
         /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
         /// executed with each invocation</param>
         /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
-        /// <param name="label">The label of the clone (optional).</param>
         /// <param name="locationResolver">The location resolver of the clone (optional).</param>
         /// <param name="nonSecure">Determines whether the clone establishes a non-secure connection to an endpoint such
         /// as ice+tcp that supports both secure and non-secure connections (optional).</param>
@@ -37,24 +35,17 @@ namespace IceRpc
         public static T Clone<T>(
             this T proxy,
             bool? cacheConnection = null,
-            bool clearLabel = false,
             IReadOnlyDictionary<string, string>? context = null,
             Encoding? encoding = null,
             IEnumerable<Endpoint>? endpoints = null,
             Connection? fixedConnection = null,
             IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
             TimeSpan? invocationTimeout = null,
-            object? label = null,
             ILocationResolver? locationResolver = null,
             NonSecure? nonSecure = null,
             bool? oneway = null,
             bool? preferExistingConnection = null) where T : class, IServicePrx
         {
-            if (label != null && clearLabel)
-            {
-                throw new ArgumentException($"cannot set both {nameof(label)} and {nameof(clearLabel)}", nameof(label));
-            }
-
             ServicePrx impl = proxy.Impl;
             ProxyOptions options = impl.GetOptions();
 
@@ -80,7 +71,6 @@ namespace IceRpc
             options.InvocationTimeout = invocationTimeout ?? options.InvocationTimeout;
 
             options.IsOneway = oneway ?? options.IsOneway;
-            options.Label = clearLabel ? null : (label ?? options.Label);
             options.LocationResolver = locationResolver ?? options.LocationResolver;
             options.PreferExistingConnection = preferExistingConnection ?? options.PreferExistingConnection;
             options.NonSecure = nonSecure ?? options.NonSecure;

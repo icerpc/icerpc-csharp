@@ -24,12 +24,6 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(prx.Clone(cacheConnection: false).CacheConnection);
             Assert.IsTrue(prx.Clone(cacheConnection: true).CacheConnection);
 
-            var label = "my label";
-            prx = prx.Clone(label: label);
-            Assert.AreEqual(prx.Label, label);
-            prx = prx.Clone(clearLabel: true);
-            Assert.IsNull(prx.Label);
-
             prx = prx.Clone(context: new Dictionary<string, string>
             {
                 { "key1", "value1" },
@@ -113,8 +107,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
             var prxIce2 = IServicePrx.Parse("ice+tcp://host.zeroc.com/hello", Communicator);
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
-            // Cannot set both label and clearLabel
-            Assert.Throws<ArgumentException>(() => prxIce2.Clone(label: "foo", clearLabel: true));
 
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => prxIce1.Clone(endpoints: prxIce2.Endpoints));
@@ -310,9 +302,6 @@ namespace IceRpc.Tests.Api
             CheckGetHashCode(prx1.Clone(invocationTimeout: TimeSpan.FromSeconds(1)),
                              prx2.Clone(invocationTimeout: TimeSpan.FromSeconds(1)));
 
-            object label = new object();
-            CheckGetHashCode(prx1.Clone(label: label), prx2.Clone(label: label));
-
             CheckGetHashCode(prx1.Clone(oneway: true), prx2.Clone(oneway: true));
 
             CheckGetHashCode(prx1.Clone(preferExistingConnection: true), prx2.Clone(preferExistingConnection: true));
@@ -504,8 +493,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
 
             string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
-                "&label=myLabel&oneway=true" +
-                "&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
+                "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
             Assert.AreEqual(prx.Endpoints.Count, 2);
@@ -515,7 +503,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.Context["c 1"], "some value");
             Assert.AreEqual(prx.Context["c5"], "v5");
             Assert.IsTrue(prx.IsOneway);
-            Assert.AreEqual(prx.Label, "myLabel");
         }
 
         public class GreeterService : IAsyncGreeterService

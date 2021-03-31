@@ -28,7 +28,7 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public abstract class Connection
+    public abstract class Connection : IAsyncDisposable
     {
         /// <summary>Gets the communicator.</summary>
         // TODO: Remove this once we add Runtime and once we removed the InputStream dependency on Communicator
@@ -87,11 +87,6 @@ namespace IceRpc
         /// <summary>Enables or disables the keep alive. When enabled, the connection is kept alive by sending ping
         /// frames at regular time intervals when the connection is idle.</summary>
         public bool KeepAlive { get; set; }
-
-        /// <summary>Gets the label which was used to create the connection, can be non-null only for outgoing
-        /// connections</summary>
-        /// <value>The label which was used to create the connection.</value>
-        public object? Label { get; }
 
         /// <summary>The peer's incoming frame maximum size. This is only supported with ice2 connections. For
         /// ice1 connections, the value is always -1.</summary>
@@ -153,6 +148,25 @@ namespace IceRpc
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
 
+        public static async Task<Connection> CreateAsync(
+            Endpoint endpoint,
+            Communicator communicator,
+            OutgoingConnectionOptions? options = null,
+            CancellationToken cancel = default)
+        {
+            // Perform connection establishment to the endpoint.
+            Connection connection = await endpoint.ConnectAsync(
+                options ?? OutgoingConnectionOptions.Default,
+                communicator.Logger,
+                cancel).ConfigureAwait(false);
+            connection.Communicator = communicator;
+
+            // Perform protocol level initialization.
+            await connection.InitializeAsync(cancel).ConfigureAwait(false);
+
+            return connection;
+        }
+
         /// <summary>Aborts the connection.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null) =>
@@ -177,6 +191,13 @@ namespace IceRpc
                 }
             }
             remove => _closed -= value;
+        }
+
+        /// <inheritdoc/>
+        public ValueTask DisposeAsync()
+        {
+            _timer?.Dispose(); // AbortAsync calls dispose on the timer, but we do it again here to prevent a warning.
+            return new(GoAwayAsync());
         }
 
         /// <summary>Gracefully closes the connection by sending a GoAway frame to the peer.</summary>
@@ -224,7 +245,6 @@ namespace IceRpc
             Server? server)
         {
             Socket = socket;
-            Label = (options as OutgoingConnectionOptions)?.Label;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
             IsIncoming = server != null;
@@ -455,7 +475,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Socket.TransportLogger.LogConnectionCallbackException(ex);
+                    Socket.Logger.LogConnectionCallbackException(ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -513,10 +533,10 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                using var requestScope = Socket.ProtocolLogger.StartRequestScope(request);
-                if (Socket.ProtocolLogger.IsEnabled(LogLevel.Information))
+                using var requestScope = Socket.Logger.StartRequestScope(request);
+                if (Socket.Logger.IsEnabled(LogLevel.Information))
                 {
-                    Socket.ProtocolLogger.LogReceivedRequest(request);
+                    Socket.Logger.LogReceivedRequest(request);
                 }
 
                 // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
@@ -606,10 +626,10 @@ namespace IceRpc
                 state == ConnectionState.Closed &&
                 !Endpoint.IsDatagram &&
                 ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Socket.TransportLogger.IsEnabled(LogLevel.Warning))
+                Socket.Logger.IsEnabled(LogLevel.Warning))
             {
                 Debug.Assert(exception != null);
-                Socket.TransportLogger.LogConnectionException(exception);
+                Socket.Logger.LogConnectionException(exception);
             }
 
             if (state == ConnectionState.Active)

@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class LoggingTests : ClientServerBaseTest
     {
-        /// <summary>Check that connection establishment retries are log with IceRpc.Protocol category log level is
+        /// <summary>Check that connection establishment retries are log with IceRpc category log level is
         /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts.
         /// </summary>
         [Test]
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             using StringWriter writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
-                builder => builder.AddFilter("IceRpc.Protocol", LogLevel.Debug));
+                builder => builder.AddFilter("IceRpc", LogLevel.Debug));
             await using var communicator = new Communicator(
                 connectionOptions: new()
                 {
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.AreEqual(11, GetEventId(entry));
                 Assert.AreEqual("Debug", GetLogLevel(entry));
-                Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
+                Assert.AreEqual("IceRpc", GetCategory(entry));
                 Assert.IsTrue(GetMessage(entry).StartsWith(
                     "retrying connection establishment because of retryable exception:",
                     StringComparison.Ordinal));
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.Greater(logEntries.Count, 0);
         }
 
-        /// <summary>Check that connection establishment retries are not log when IceRpc.Protocol category log level is
+        /// <summary>Check that connection establishment retries are not log when IceRpc category log level is
         /// greater than debug.</summary>
         [Test]
         public async Task Logging_Disabled_ConnectionRetries()
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.ClientServer
             using StringWriter writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
-                builder => builder.AddFilter("IceRpc.Protocol", LogLevel.Information));
+                builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(
                 connectionOptions: new()
                 {
@@ -87,11 +87,7 @@ namespace IceRpc.Tests.ClientServer
             using StringWriter writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
-                builder =>
-                {
-                    builder.AddFilter("IceRpc.Protocol", LogLevel.Error);
-                    builder.AddFilter("IceRpc.Transport", LogLevel.Error);
-                });
+                builder => builder.AddFilter("IceRpc", LogLevel.Error));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
             await using var adapter = CreateServer(communicator, colocated, portNumber: 1);
@@ -113,11 +109,7 @@ namespace IceRpc.Tests.ClientServer
             using StringWriter writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
-                builder =>
-                {
-                    builder.AddFilter("IceRpc.Protocol", LogLevel.Information);
-                    builder.AddFilter("IceRpc.Transport", LogLevel.Critical);
-                });
+                builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using var adapter = CreateServer(communicator, colocated, portNumber: 2);
             adapter.Activate();
@@ -140,7 +132,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     case 7:
                     {
-                        Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
+                        Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
                         Assert.AreEqual("received ice2 request frame", GetMessage(entry));
                         JsonElement[] scopes = GetScopes(entry);
@@ -151,7 +143,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     case 18:
                     {
-                        Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
+                        Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
                         Assert.AreEqual("sending ice2 request frame", GetMessage(entry));
                         JsonElement[] scopes = GetScopes(entry);
@@ -162,7 +154,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     case 8:
                     {
-                        Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
+                        Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
                         Assert.AreEqual("received ice2 response frame: result = Success",
                                         GetMessage(entry));
@@ -176,7 +168,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     case 19:
                     {
-                        Assert.AreEqual("IceRpc.Protocol", GetCategory(entry));
+                        Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
                         Assert.AreEqual("sending ice2 response frame: result = Success",
                                         GetMessage(entry));

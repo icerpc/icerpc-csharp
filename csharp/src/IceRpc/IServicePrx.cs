@@ -157,11 +157,6 @@ namespace IceRpc
         /// is overridden by metadata on the Slice operation's definition.</value>
         public bool IsOneway { get; }
 
-        /// <summary>An optional label that can be used to prevent proxies with identical endpoints to share a
-        /// connection, outgoing connections between equivalent endpoints are shared for proxies with equal labels.
-        /// </summary>
-        public object? Label { get; }
-
         /// <summary>The location resolver associated with this proxy.</summary>
         public ILocationResolver? LocationResolver { get; }
 
