@@ -365,17 +365,16 @@ namespace IceRpc
         internal SlicSocket(
             Endpoint endpoint,
             SingleStreamSocket socket,
-            ConnectionOptions options,
-            ILogger protocolLogger)
-            : base(endpoint, socket, options, protocolLogger)
+            ConnectionOptions options)
+            : base(endpoint, socket, options)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            var slicOptions = options.SlicOptions!;
-            PacketMaxSize = slicOptions.PacketMaxSize;
-            StreamBufferMaxSize = slicOptions.StreamBufferMaxSize;
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            PacketMaxSize = tcpOptions.SlicPacketMaxSize;
+            StreamBufferMaxSize = tcpOptions.SlicStreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
@@ -435,9 +434,9 @@ namespace IceRpc
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TransportLogger.LogSendingSlicFrame(type, frameSize, streamId);
+                Logger.LogSendingSlicFrame(type, frameSize, streamId);
             }
 
             // Wait for other packets to be sent.
@@ -606,9 +605,9 @@ namespace IceRpc
                     headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                     buffer[0] = headerData;
 
-                    if (TransportLogger.IsEnabled(LogLevel.Debug))
+                    if (Logger.IsEnabled(LogLevel.Debug))
                     {
-                        TransportLogger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
+                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
                     }
 
                     try
@@ -739,9 +738,9 @@ namespace IceRpc
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (TransportLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                TransportLogger.LogReceivedSlicFrame(type, size, (long?)streamId);
+                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
             }
 
             // The size check doesn't include the stream ID length

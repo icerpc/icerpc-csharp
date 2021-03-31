@@ -7,8 +7,7 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc.Transport" category.
-    /// </summary>
+    /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static class TransportLoggerExtensions
     {
         private const int AcceptingConnection = 0;

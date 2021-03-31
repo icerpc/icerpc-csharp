@@ -160,9 +160,8 @@ namespace IceRpc
             ChannelWriter<(long, object?, bool)> writer,
             ChannelReader<(long, object?, bool)> reader,
             ConnectionOptions options,
-            ILogger protocolLogger,
-            ILogger transportLogger)
-            : base(endpoint, options, protocolLogger, transportLogger)
+            ILogger logger)
+            : base(endpoint, options, logger)
         {
 
             _id = id;
@@ -284,9 +283,9 @@ namespace IceRpc
         internal override IDisposable? StartScope()
         {
             // If any of the loggers is enabled we create the scope
-            if (TransportLogger.IsEnabled(LogLevel.Critical))
+            if (Logger.IsEnabled(LogLevel.Critical))
             {
-                return TransportLogger.StartColocatedSocketScope(_id, ((ColocatedEndpoint)Endpoint).Server.Name);
+                return Logger.StartColocatedSocketScope(_id, ((ColocatedEndpoint)Endpoint).Server.Name);
             }
             return null;
         }

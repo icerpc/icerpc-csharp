@@ -226,11 +226,12 @@ namespace IceRpc.Tests.Internal
             var endpoint = (TcpEndpoint)ClientEndpoint;
             OutgoingConnectionOptions options = ClientConnectionOptions;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, options.SocketOptions!, Logger);
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, Logger),
-                _ => new SlicSocket(ClientEndpoint, socket, options, Logger)
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
+                _ => new SlicSocket(ClientEndpoint, socket, options)
             };
             Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;

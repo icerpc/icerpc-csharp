@@ -33,8 +33,7 @@ namespace IceRpc
                     writer,
                     reader,
                     _server.ConnectionOptions,
-                    _server.ProtocolLogger,
-                    _server.TransportLogger),
+                    _server.Logger),
                 _server.ConnectionOptions,
                 _server);
         }

@@ -197,7 +197,6 @@ namespace IceRpc.Tests.Internal
             Connection connection = await ClientEndpoint.ConnectAsync(
                 connectionOptions ?? ClientConnectionOptions,
                 Logger,
-                Logger,
                 default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {

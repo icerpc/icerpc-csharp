@@ -155,7 +155,7 @@ namespace IceRpc
             return new WSEndpoint(data, serverEndpoint);
         }
 
-        internal override SingleStreamSocket CreateSocket(EndPoint addr, SocketOptions options, ILogger logger) =>
+        internal override SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
             new WSSocket(base.CreateSocket(addr, options, logger));
 
         internal override SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>

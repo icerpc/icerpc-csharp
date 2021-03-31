@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class SocketOptionsTests : SocketBaseTest
+    public class TcpOptionsTests : SocketBaseTest
     {
-        public SocketOptionsTests(Protocol protocol, AddressFamily addressFamily)
+        public TcpOptionsTests(Protocol protocol, AddressFamily addressFamily)
             : base(protocol, "tcp", NonSecure.Always, addressFamily)
         {
         }
@@ -26,10 +26,10 @@ namespace IceRpc.Tests.Internal
         [TestCase(64 * 1024)]
         [TestCase(256 * 1024)]
         [TestCase(384 * 1024)]
-        public void SocketOptions_Client_BufferSize(int size)
+        public void TcpOptions_Client_BufferSize(int size)
         {
             using IAcceptor acceptor = CreateAcceptor();
-            using SingleStreamSocket clientSocket = CreateClientSocket(new SocketOptions
+            using SingleStreamSocket clientSocket = CreateClientSocket(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -56,10 +56,10 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SocketOptions_Client_IsIPv6Only()
+        public void TcpOptions_Client_IsIPv6Only()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            using SingleStreamSocket clientSocket = CreateClientSocket(new SocketOptions
+            using SingleStreamSocket clientSocket = CreateClientSocket(new TcpOptions
             {
                 IsIPv6Only = true
             });
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SocketOptions_Client_LocalEndPoint()
+        public void TcpOptions_Client_LocalEndPoint()
         {
             int port = 45678;
             while (true)
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
                 {
                     using IAcceptor acceptor = CreateAcceptor();
                     var localEndPoint = new IPEndPoint(IsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
-                    using SingleStreamSocket clientSocket = CreateClientSocket(new SocketOptions
+                    using SingleStreamSocket clientSocket = CreateClientSocket(new TcpOptions
                     {
                         LocalEndPoint = localEndPoint
                     });
@@ -102,9 +102,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(64 * 1024)]
         [TestCase(256 * 1024)]
         [TestCase(384 * 1024)]
-        public async Task SocketOptions_Server_BufferSizeAsync(int size)
+        public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            (Server server, IAcceptor acceptor) = CreateAcceptorWithSocketOptions(new SocketOptions
+            (Server server, IAcceptor acceptor) = CreateAcceptorWithTcpOptions(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -146,13 +146,13 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task SocketOptions_Server_IsIPv6OnlyAsync(bool ipv6Only)
+        public async Task TcpOptions_Server_IsIPv6OnlyAsync(bool ipv6Only)
         {
             if (IsIPv6)
             {
                 // Create a server endpoint for ::0 instead of loopback
                 IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
-                connectionOptions.SocketOptions = new()
+                connectionOptions.TransportOptions = new TcpOptions()
                 {
                     IsIPv6Only = ipv6Only
                 };
@@ -206,13 +206,13 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task SocketOptions_Server_ListenerBackLog()
+        public async Task TcpOptions_Server_ListenerBackLog()
         {
             // This test can only work with TCP, ConnectAsync would block on other protocol initialization
             // (TLS handshake or WebSocket initialization).
             if (TransportName == "tcp" && !IsSecure)
             {
-                (Server server, IAcceptor acceptor) = CreateAcceptorWithSocketOptions(new SocketOptions
+                (Server server, IAcceptor acceptor) = CreateAcceptorWithTcpOptions(new TcpOptions
                 {
                     ListenerBackLog = 18
                 });
@@ -245,10 +245,10 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private (Server, IAcceptor) CreateAcceptorWithSocketOptions(SocketOptions options)
+        private (Server, IAcceptor) CreateAcceptorWithTcpOptions(TcpOptions options)
         {
             IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
-            connectionOptions.SocketOptions = options;
+            connectionOptions.TransportOptions = options;
             var server = new Server(Communicator, new ServerOptions()
             {
                 ConnectionOptions = connectionOptions
@@ -256,17 +256,17 @@ namespace IceRpc.Tests.Internal
             return (server, ServerEndpoint.Acceptor(server));
         }
 
-        private SingleStreamSocket CreateClientSocket(SocketOptions? socketOptions = null, TcpEndpoint? endpoint = null)
+        private SingleStreamSocket CreateClientSocket(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
         {
             OutgoingConnectionOptions options = ClientConnectionOptions;
-            socketOptions ??= options.SocketOptions!;
+            tcpOptions ??= options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             endpoint ??= (TcpEndpoint)ClientEndpoint;
             EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, socketOptions, Logger);
+            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
             MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options, Logger),
-                _ => new SlicSocket(ClientEndpoint, socket, options, Logger)
+                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
+                _ => new SlicSocket(ClientEndpoint, socket, options)
             };
             Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
             return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;

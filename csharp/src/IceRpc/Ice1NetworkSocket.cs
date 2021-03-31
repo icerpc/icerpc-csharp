@@ -39,9 +39,9 @@ namespace IceRpc
                     buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
-                        if (TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            TransportLogger.LogReceivedInvalidDatagram(buffer.Count);
+                            Logger.LogReceivedInvalidDatagram(buffer.Count);
                         }
                         continue;
                     }
@@ -60,9 +60,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            TransportLogger.LogReceivedInvalidDatagram(size);
+                            Logger.LogReceivedInvalidDatagram(size);
                         }
                     }
                     else
@@ -75,9 +75,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (TransportLogger.IsEnabled(LogLevel.Warning))
+                        if (Logger.IsEnabled(LogLevel.Warning))
                         {
-                            TransportLogger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                            Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
                         }
                         continue;
                     }
@@ -93,9 +93,9 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (TransportLogger.IsEnabled(LogLevel.Debug))
+                        if (Logger.IsEnabled(LogLevel.Debug))
                         {
-                            TransportLogger.LogMaximumDatagramSizeExceeded(buffer.Count);
+                            Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
                         }
                         continue;
                     }
@@ -206,18 +206,14 @@ namespace IceRpc
 
             await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
-            if (ProtocolLogger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                ProtocolLogger.LogSendIce1ValidateConnectionFrame();
+                Logger.LogSendIce1ValidateConnectionFrame();
             }
         }
 
-        internal Ice1NetworkSocket(
-            Endpoint endpoint,
-            SingleStreamSocket socket,
-            ConnectionOptions options,
-            ILogger protocolLogger)
-            : base(endpoint, socket, options, protocolLogger)
+        internal Ice1NetworkSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
+            : base(endpoint, socket, options)
         {
             IdleTimeout = options.IdleTimeout;
 
@@ -347,9 +343,9 @@ namespace IceRpc
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram && TransportLogger.IsEnabled(LogLevel.Debug))
+                    if (Endpoint.IsDatagram && Logger.IsEnabled(LogLevel.Debug))
                     {
-                        TransportLogger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                        Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     }
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
@@ -375,9 +371,9 @@ namespace IceRpc
                 case Ice1FrameType.RequestBatch:
                 {
                     int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    if (ProtocolLogger.IsEnabled(LogLevel.Debug))
+                    if (Logger.IsEnabled(LogLevel.Debug))
                     {
-                        ProtocolLogger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                        Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
                     }
 
                     if (invokeNum < 0)
