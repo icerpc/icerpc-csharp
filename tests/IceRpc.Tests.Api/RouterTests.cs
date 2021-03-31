@@ -28,21 +28,15 @@ namespace IceRpc.Tests.Api
 
         public RouterTests()
         {
-            _communicator = new();
-            _server = new(_communicator);
+            _communicator = new Communicator();
+            _server = new Server(_communicator);
             _server.Activate(_router);
         }
 
         [TestCase("/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q")]
         public void Router_BadPath(string path)
         {
-            _router.Mount("/", new InlineDispatcher(
-                async (current, cancel) =>
-                {
-                    Assert.Fail();
-                    return await _service.DispatchAsync(current, cancel);
-                }));
-
+            _router.Mount("/", _failDispatcher);
             Assert.ThrowsAsync<ServerException>(async () => await GetGreeter(path).IcePingAsync());
         }
 
@@ -53,10 +47,13 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo/////")] // bad form but nevertheless still works
         public async Task Router_MapMountAsync(string path)
         {
+            int value = 0;
+
             // Verifies that exact match is selected first.
             _router.Map(path, new InlineDispatcher(
                 async (current, cancel) =>
                 {
+                    value = 1;
                     Assert.AreEqual(path, current.Path);
                     return await _service.DispatchAsync(current, cancel);
                 }));
@@ -64,8 +61,8 @@ namespace IceRpc.Tests.Api
             _router.Mount(path, _failDispatcher);
 
             IGreeterServicePrx greeter = GetGreeter(path);
-
             await greeter.IcePingAsync();
+            Assert.AreEqual(1, value);
 
             // Without exact match from Map, we hit the mounted route:
             Assert.IsTrue(_router.Unmap(path));
@@ -73,16 +70,20 @@ namespace IceRpc.Tests.Api
             _router.Mount(path, new InlineDispatcher(
                 async (current, cancel) =>
                 {
+                    value = 2;
                     Assert.AreEqual(path, current.Path);
                     return await _service.DispatchAsync(current, cancel);
                 }));
 
             await greeter.IcePingAsync();
+            Assert.AreEqual(2, value);
+            value = 0;
 
             // With a slightly different Map-path, we still hit the mounted route
 
             _router.Map($"{path}/", _failDispatcher);
             await greeter.IcePingAsync();
+            Assert.AreEqual(2, value);
         }
 
         [TestCase("/foo", "/foo/")]
@@ -100,15 +101,19 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo///bar/a", "/foo///bar/a/b/c/d")]
         public async Task Router_MountAsync(string prefix, string path)
         {
+            bool called = false;
+
             _router.Mount(prefix, new InlineDispatcher(
                 async (current, cancel) =>
                 {
+                    called = true;
                     Assert.AreEqual(path, current.Path);
                     Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/')));
                     return await _service.DispatchAsync(current, cancel);
                 }));
 
             await GetGreeter(path).IcePingAsync();
+            Assert.IsTrue(called);
         }
 
         [TestCase("/foo", "/foobar")]
@@ -125,11 +130,13 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo///bar/a", "/foo///bar/a/b/c/d", "/b/c/d")]
         public async Task Router_RouteAsync(string prefix, string path, string subpath)
         {
+            bool called = false;
             _router.Route(prefix, r =>
                 {
                     r.Map(subpath, new InlineDispatcher(
                         async (current, cancel) =>
                         {
+                            called = true;
                             Assert.AreEqual(path, current.Path);
                             Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/')));
                             return await _service.DispatchAsync(current, cancel);
@@ -137,6 +144,7 @@ namespace IceRpc.Tests.Api
                 });
 
             await GetGreeter(path).IcePingAsync();
+            Assert.IsTrue(called);
         }
 
         // Same test as above with one more level of nesting
@@ -144,6 +152,7 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
         public async Task Router_RouteNestedAsync(string prefix, string subprefix, string path, string subpath)
         {
+            bool called = false;
             _router.Route(prefix, r =>
                 {
                     r.Route(subprefix, r =>
@@ -151,6 +160,7 @@ namespace IceRpc.Tests.Api
                         r.Map(subpath, new InlineDispatcher(
                             async (current, cancel) =>
                             {
+                                called = true;
                                 Assert.AreEqual(path, current.Path);
                                 Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/') + subprefix.TrimEnd('/')));
                                 return await _service.DispatchAsync(current, cancel);
@@ -159,6 +169,7 @@ namespace IceRpc.Tests.Api
                 });
 
             await GetGreeter(path).IcePingAsync();
+            Assert.IsTrue(called);
         }
 
         [TearDown]
