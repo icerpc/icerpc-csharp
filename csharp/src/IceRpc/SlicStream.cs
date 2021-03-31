@@ -79,7 +79,7 @@ namespace IceRpc
             // from the socket when the StreamLast or StreamReset frame is received (which can be received after
             // the stream is destroyed, for example, with oneway requests, the stream is disposed as soon as the
             // request is sent and before receiving the StreamLast frame).
-            if (IsIncoming && ReleaseStreamCount())
+            if (IsIncoming && ReleaseStreamCount() && !IsControl)
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.

@@ -12,7 +12,7 @@ try
        .AddJsonFile("appsettings.json", optional: true)
        .Build();
 
-    using var loggerFactory = LoggerFactory.Create(
+    using ILoggerFactory loggerFactory = LoggerFactory.Create(
         builder =>
         {
             builder.AddConfiguration(configuration.GetSection("Logging"));
@@ -32,12 +32,12 @@ try
             });*/
         });
 
-    await using var communicator = new Communicator(loggerFactory: loggerFactory);
-    await using var server = new Server(communicator,
+    await using var server = new Server(new Communicator(),
         new ServerOptions()
         {
             Name = "Hello",
-            Endpoints = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints")
+            Endpoints = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints"),
+            LoggerFactory = loggerFactory
         });
 
     // Destroy the server on Ctrl+C or Ctrl+Break

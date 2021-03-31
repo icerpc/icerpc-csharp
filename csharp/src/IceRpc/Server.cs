@@ -199,9 +199,9 @@ namespace IceRpc
                 LocalServerRegistry.RegisterServer(this);
             }
 
-            if (PublishedEndpoints.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (PublishedEndpoints.Count > 0 && Logger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
+                Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
             }
 
             // The initial dispatch pipeline (without dispatch interceptors). It's also the default leaf dispatcher.

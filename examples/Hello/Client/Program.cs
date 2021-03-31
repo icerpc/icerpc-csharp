@@ -12,11 +12,16 @@ IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true)
     .Build();
 
-using var loggerFactory = LoggerFactory.Create(
+using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder =>
     {
         builder.AddConfiguration(configuration.GetSection("Logging"));
-        builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
+        builder.AddSimpleConsole(configure =>
+        {
+            configure.IncludeScopes = true;
+            configure.SingleLine = false;
+            configure.UseUtcTimestamp = true;
+        });
         /*builder.AddJsonConsole(configure =>
         {
             configure.IncludeScopes = true;

@@ -19,10 +19,11 @@ namespace IceRpc
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
+        internal long Id { get; }
+
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private readonly long _id;
         private readonly object _mutex = new();
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
@@ -152,7 +153,7 @@ namespace IceRpc
         }
 
         public override string ToString() =>
-            $"ID = {_id}, server = {((ColocatedEndpoint)Endpoint).Server.Name}, incoming = {IsIncoming}";
+            $"{base.ToString()} (ID={Id}, Server={((ColocatedEndpoint)Endpoint).Server.Name}, Incoming={IsIncoming})";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,
@@ -164,7 +165,7 @@ namespace IceRpc
             : base(endpoint, options, logger)
         {
 
-            _id = id;
+            Id = id;
             _writer = writer;
             _reader = reader;
 

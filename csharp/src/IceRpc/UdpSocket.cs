@@ -139,8 +139,6 @@ namespace IceRpc
             }
         }
 
-        public override string ToString() => $"{base.ToString()!},multicast address = {MulticastAddress}";
-
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
         // Only for use by UdpEndpoint.

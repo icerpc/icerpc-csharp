@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
@@ -17,5 +18,14 @@ namespace IceRpc
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
         ValueTask<Connection> AcceptAsync();
+
+        IDisposable? StartScope(Server server)
+        {
+            if (server.Logger.IsEnabled(LogLevel.Critical))
+            {
+                return server.Logger.StartAcceptorScope(server, this);
+            }
+            return null;
+        }
     }
 }

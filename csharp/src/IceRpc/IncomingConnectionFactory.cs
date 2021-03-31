@@ -28,7 +28,6 @@ namespace IceRpc
         private readonly IAcceptor _acceptor;
         private Task? _acceptTask;
         private readonly Server _server;
-        private readonly Communicator _communicator;
         private readonly HashSet<Connection> _connections = new();
         private readonly object _mutex = new();
         private bool _shutdown;
@@ -37,24 +36,19 @@ namespace IceRpc
 
         internal AcceptorIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _communicator = server.Communicator;
             _server = server;
             _acceptor = endpoint.Acceptor(_server);
             Endpoint = _acceptor.Endpoint;
 
+            using IDisposable? scope = _acceptor.StartScope(_server);
             if (server.Logger.IsEnabled(LogLevel.Debug) && !(_acceptor is ColocatedAcceptor))
             {
-                server.Logger.LogAcceptingConnections(Endpoint.Transport, _acceptor);
+                server.Logger.LogAcceptingConnections(Endpoint.Transport);
             }
         }
 
         internal override void Activate()
         {
-            if (_server.Logger.IsEnabled(LogLevel.Information))
-            {
-                _server.Logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
-            }
-
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
             // synchronously new connections from this thread.
             lock (_mutex)
@@ -80,9 +74,10 @@ namespace IceRpc
 
         internal override async Task ShutdownAsync()
         {
-            if (_communicator.Logger.IsEnabled(LogLevel.Information))
+            using IDisposable? scope = _server.Logger.StartAcceptorScope(_server, _acceptor);
+            if (_server.Logger.IsEnabled(LogLevel.Information))
             {
-                _communicator.Logger.LogStopAcceptingConnections(Endpoint.Transport, _acceptor);
+                _server.Logger.LogStopAcceptingConnections(Endpoint.Transport);
             }
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without
@@ -113,6 +108,12 @@ namespace IceRpc
             Justification = "Ensure continuations execute on the server scheduler if it is set")]
         private async ValueTask AcceptAsync()
         {
+            using IDisposable? scope = _acceptor.StartScope(_server);
+            if (_server.Logger.IsEnabled(LogLevel.Information))
+            {
+                _server.Logger.LogStartAcceptingConnections(Endpoint.Transport);
+            }
+
             while (true)
             {
                 Connection connection;
@@ -126,7 +127,7 @@ namespace IceRpc
                 {
                     if (_server.Logger.IsEnabled(LogLevel.Error))
                     {
-                        _server.Logger.LogAcceptingConnectionFailed(Endpoint.Transport, _acceptor, ex);
+                        _server.Logger.LogAcceptingConnectionFailed(Endpoint.Transport, ex);
                     }
 
                     if (_shutdown)
@@ -183,8 +184,7 @@ namespace IceRpc
                     {
                         if (_server.Logger.IsEnabled(LogLevel.Debug))
                         {
-                            _server.Logger.LogConnectionNotTrusted(
-                                connection.Endpoint.Transport);
+                            _server.Logger.LogConnectionNotTrusted(connection.Endpoint.Transport);
                         }
                         // Connection not trusted, abort it.
                         await connection.AbortAsync().ConfigureAwait(false);
@@ -226,5 +226,5 @@ namespace IceRpc
 
         internal override Task ShutdownAsync() =>
             _connection.GoAwayAsync(new ObjectDisposedException($"{typeof(Server).FullName}:{_server!.Name}"));
-    }
+     }
 }

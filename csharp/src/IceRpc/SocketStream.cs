@@ -149,17 +149,7 @@ namespace IceRpc
                 cancel);
         }
 
-        public override string ToString()
-        {
-            string streamType = (Id % 4) switch
-            {
-                0 => "[client-initiated, bidirectional]",
-                1 => "[server-initiated, bidirectional]",
-                2 => "[client-initiated, unidirectional]",
-                _ => "[server-initiated, unidirectional]",
-            };
-            return $"ID = {Id} {streamType}";
-        }
+        public override string ToString() => $"{base.ToString()} (ID={Id})";
 
         /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
         /// <param name="buffer">The buffer to store the received data.</param>

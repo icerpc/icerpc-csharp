@@ -84,27 +84,27 @@ namespace IceRpc
         /// <return>The number of bytes sent.</return>
         public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
 
-        public override string? ToString()
+        public override string ToString()
         {
             if (Socket == null)
             {
-                return base.ToString();
+                return base.ToString()!;
             }
             else
             {
                 try
                 {
-                    string localAddress = Socket?.LocalEndPoint?.ToString() ?? "<undefined>";
-                    string remoteAddress = Socket?.RemoteEndPoint?.ToString() ?? "<undefined>";
-                    return $"local address = {localAddress}, remote address={remoteAddress}";
+                    string localEndpoint = Socket?.LocalEndPoint?.ToString() ?? "undefined";
+                    string remoteEndpoint = Socket?.RemoteEndPoint?.ToString() ?? "undefined";
+                    return $"{base.ToString()} (LocalEndpoint={localEndpoint}, RemoteEndpoint={remoteEndpoint})";
                 }
                 catch (SocketException)
                 {
-                    return "<not connected>";
+                    return $"{base.ToString()} (not connected)";
                 }
                 catch (ObjectDisposedException)
                 {
-                    return "<closed>";
+                    return $"{base.ToString()} (closed)";
                 }
             }
         }

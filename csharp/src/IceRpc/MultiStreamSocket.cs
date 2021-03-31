@@ -211,7 +211,7 @@ namespace IceRpc
             return false;
         }
 
-        internal void Abort(Exception exception)
+        internal bool Abort(Exception exception)
         {
             // Abort the transport.
             Abort();
@@ -228,18 +228,7 @@ namespace IceRpc
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                // Trace the cause of unexpected connection closures
-                if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
-                {
-                    Logger.LogConnectionClosed(exception);
-                }
-                else
-                {
-                    Logger.LogConnectionClosed();
-                }
-            }
+            return graceful;
         }
 
         internal virtual (long Bidirectional, long Unidirectional) AbortStreams(
@@ -330,12 +319,12 @@ namespace IceRpc
             return stream;
         }
 
-        internal IDisposable? StartScope()
+        internal IDisposable? StartScope(Server? server = null)
         {
             // If any of the loggers is enabled we create the scope
             if (Logger.IsEnabled(LogLevel.Critical))
             {
-                return Logger.StartSocketScope(Endpoint.Transport, this);
+                return Logger.StartSocketScope(Endpoint.Transport, this, server);
             }
             return null;
         }

@@ -77,7 +77,7 @@ namespace IceRpc
             Underlying.SendDatagramAsync(buffer, cancel);
 
         /// <inheritdoc/>
-        public override string? ToString() => Underlying.ToString();
+        public override string ToString() => Underlying.ToString();
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 

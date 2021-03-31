@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Logging_ConnectionRetries()
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             foreach (JsonDocument entry in logEntries)
             {
-                Assert.AreEqual(11, GetEventId(entry));
+                Assert.AreEqual(256 + 11, GetEventId(entry));
                 Assert.AreEqual("Debug", GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 Assert.IsTrue(GetMessage(entry).StartsWith(
@@ -60,7 +60,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Logging_Disabled_ConnectionRetries()
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(false)]
         public async Task Logging_Disabled_Request(bool colocated)
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(false)]
         public async Task Logging_Request(bool colocated)
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
@@ -130,7 +130,7 @@ namespace IceRpc.Tests.ClientServer
                 CollectionAssert.AllItemsAreUnique(events);
                 switch (eventId)
                 {
-                    case 7:
+                    case 256 + 7:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -141,7 +141,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckRequestScope(scopes[2]);
                         break;
                     }
-                    case 18:
+                    case 256 + 18:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckStreamScope(scopes[2]);
                         break;
                     }
-                    case 8:
+                    case 256 + 8:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -163,10 +163,10 @@ namespace IceRpc.Tests.ClientServer
                         CheckRequestScope(scopes[1]);
                         CheckStreamScope(scopes[2]);
                         // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 18);
+                        CollectionAssert.Contains(events, 256 + 18);
                         break;
                     }
-                    case 19:
+                    case 256 + 19:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckStreamScope(scopes[1]);
                         CheckRequestScope(scopes[2]);
                         // The sending of the response always comes before the receiving of the request
-                        CollectionAssert.Contains(events, 7);
+                        CollectionAssert.Contains(events, 256 + 7);
                         break;
                     }
                     default:
@@ -226,7 +226,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private Server CreateServer(Communicator communicator, bool colocated, int portNumber) =>
-            new Server(communicator,
+            new(communicator,
                 colocated switch
                 {
                     false => new ServerOptions
