@@ -14,7 +14,7 @@ namespace IceRpc.Test.Binding
                 Communicator,
                 new()
                 {
-                    Endpoints = GetTestEndpoint(0),
+                    Endpoint = GetTestEndpoint(0),
                     PublishedHost = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 

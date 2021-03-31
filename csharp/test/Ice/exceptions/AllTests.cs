@@ -21,7 +21,7 @@ namespace IceRpc.Test.Exceptions
 
                 await using var first = new Server(
                     communicator,
-                    new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
+                    new() { Endpoint = helper.GetTestEndpoint(ephemeral: true) });
 
                 try
                 {
@@ -30,7 +30,7 @@ namespace IceRpc.Test.Exceptions
                     props["Test.Host"] = "foo";
                     await using var badOa = new Server(
                         communicator,
-                        new() { Endpoints = TestHelper.GetTestEndpoint(props, ephemeral: true) });
+                        new() { Endpoint = TestHelper.GetTestEndpoint(props, ephemeral: true) });
 
                     TestHelper.Assert(false);
                 }
@@ -45,7 +45,7 @@ namespace IceRpc.Test.Exceptions
                 output.Write("testing servant registration exceptions... ");
                 await using Server server = new Server(
                     communicator,
-                    new() { Endpoints = helper.GetTestEndpoint(ephemeral: true) });
+                    new() { Endpoint = helper.GetTestEndpoint(ephemeral: true) });
                 var obj = new Empty();
                 server.Add("x", obj);
                 try

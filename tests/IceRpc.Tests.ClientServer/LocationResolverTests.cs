@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
                                  {
                                     ColocationScope = ColocationScope.None,
                                     // TODO: should GetTestEndpoint be capable of returning port 0?
-                                    Endpoints =
+                                    Endpoint =
                                         protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
                                  });
 

@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
                 Communicator,
                 new ServerOptions()
                 {
-                    Endpoints = GetTestEndpoint(protocol: Protocol, transport: Transport),
+                    Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
                     ColocationScope = ColocationScope.None
                 });
             Servant = new TestService();

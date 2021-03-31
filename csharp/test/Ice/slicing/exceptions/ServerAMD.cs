@@ -11,7 +11,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         public override async Task RunAsync(string[] args)
         {
             await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoint = GetTestEndpoint(0) });
 
             server.Add("Test", new AsyncTestIntf());
             server.Activate();

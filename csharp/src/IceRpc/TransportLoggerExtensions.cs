@@ -23,7 +23,7 @@ namespace IceRpc
         private const int HttpUpgradeRequestFailed = 10;
         private const int HttpUpgradeRequestSucceed = 11;
         private const int MaximumDatagramSizeExceeded = 12;
-        private const int ServerPublishedEndpoints = 13;
+        private const int ServerPublishedAddress = 13;
         private const int PingEventHandlerException = 14;
         private const int ReceiveBufferSizeAdjusted = 15;
         private const int ReceivedData = 16;
@@ -119,10 +119,10 @@ namespace IceRpc
                 new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
                 "received datagram with {Bytes} bytes");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedEndpoints =
+        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedAddress =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
                 LogLevel.Information,
-                new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
+                new EventId(ServerPublishedAddress, nameof(ServerPublishedAddress)),
                 "published endpoints for server {Name}: {Endpoints}");
 
         private static readonly Action<ILogger, string, WSSocket.OpCode, int, Exception> _receivedWebSocketFrame =
@@ -381,11 +381,11 @@ namespace IceRpc
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
 
-        internal static void LogServerPublishedEndpoints(
+        internal static void LogServerPublishedAddress(
             this ILogger logger,
             string name,
             IReadOnlyList<Endpoint> endpoints) =>
-            _serverPublishedEndpoints(logger, name, endpoints, null!);
+            _serverPublishedAddress(logger, name, endpoints, null!);
 
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);

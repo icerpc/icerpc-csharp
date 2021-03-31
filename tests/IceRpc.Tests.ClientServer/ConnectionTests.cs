@@ -38,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(transport: transport, protocol: protocol),
+                    Endpoint = GetTestEndpoint(transport: transport, protocol: protocol),
                     ConnectionOptions = new()
                     {
                         AcceptNonSecure = NonSecure.Always
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol),
+                    Endpoint = GetTestEndpoint(protocol: protocol),
                     ConnectionOptions = new()
                     {
                         IdleTimeout = TimeSpan.FromSeconds(2),
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol)
+                    Endpoint = GetTestEndpoint(protocol: protocol)
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -165,7 +165,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol),
+                    Endpoint = GetTestEndpoint(protocol: protocol),
                     ConnectionOptions = new()
                     {
                         IdleTimeout = TimeSpan.FromSeconds(1),
@@ -218,7 +218,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint()
+                    Endpoint = GetTestEndpoint()
                 });
 
             server.Add("test", new ConnectionTestService());
@@ -255,7 +255,7 @@ namespace IceRpc.Tests.ClientServer
                                                 new()
                                                 {
                                                     ColocationScope = ColocationScope.None,
-                                                    Endpoints = GetTestEndpoint(),
+                                                    Endpoint = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
@@ -289,7 +289,7 @@ namespace IceRpc.Tests.ClientServer
                                                 new()
                                                 {
                                                     ColocationScope = ColocationScope.None,
-                                                    Endpoints = GetTestEndpoint(),
+                                                    Endpoint = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
             server.Add("test", new ConnectionTestService());
@@ -335,7 +335,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol)
+                    Endpoint = GetTestEndpoint(protocol: protocol)
                 });
             var prx = server.Add("test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
             server.Activate();

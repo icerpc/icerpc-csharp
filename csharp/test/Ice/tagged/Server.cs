@@ -10,7 +10,7 @@ namespace IceRpc.Test.Tagged
         public override async Task RunAsync(string[] args)
         {
             await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoint = GetTestEndpoint(0) });
 
             server.Add("initial", new Initial());
             server.Activate();

@@ -38,7 +38,7 @@ namespace IceRpc
         public Protocol Protocol { get; }
 
         /// <summary>Returns the endpoints listed in a direct proxy created by this server.</summary>
-        public IReadOnlyList<Endpoint> PublishedEndpoints { get; private set; } = ImmutableList<Endpoint>.Empty;
+        public IReadOnlyList<Endpoint> PublishedAddress { get; private set; } = ImmutableList<Endpoint>.Empty;
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
@@ -109,17 +109,17 @@ namespace IceRpc
                     nameof(options));
             }
 
-            if (options.Endpoints.Length > 0)
+            if (options.Endpoint.Length > 0)
             {
-                if (UriParser.IsEndpointUri(options.Endpoints))
+                if (UriParser.IsEndpointUri(options.Endpoint))
                 {
                     Protocol = Protocol.Ice2;
-                    Endpoints = UriParser.ParseEndpoints(options.Endpoints, Communicator);
+                    Endpoints = UriParser.ParseEndpoints(options.Endpoint, Communicator);
                 }
                 else
                 {
                     Protocol = Protocol.Ice1;
-                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoints, communicator);
+                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoint, communicator);
 
                     if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
                     {
@@ -166,26 +166,26 @@ namespace IceRpc
                 Protocol = options.Protocol;
             }
 
-            if (options.PublishedEndpoints.Length > 0)
+            if (options.PublishedAddress.Length > 0)
             {
-                PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
-                    UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false);
+                PublishedAddress = UriParser.IsEndpointUri(options.PublishedAddress) ?
+                    UriParser.ParseEndpoints(options.PublishedAddress, Communicator, serverEndpoints: false) :
+                    Ice1Parser.ParseEndpoints(options.PublishedAddress, Communicator, serverEndpoints: false);
             }
 
-            if (PublishedEndpoints.Count == 0)
+            if (PublishedAddress.Count == 0)
             {
-                // If the PublishedEndpoints config property isn't set, we compute the published endpoints from
+                // If the PublishedAddress config property isn't set, we compute the published endpoints from
                 // the endpoints.
 
                 if (options.PublishedHost.Length == 0)
                 {
                     throw new ArgumentException(
-                        "both options.PublishedHost and options.PublishedEndpoints are empty",
+                        "both options.PublishedHost and options.PublishedAddress are empty",
                         nameof(options));
                 }
 
-                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
+                PublishedAddress = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
                     Distinct().ToImmutableList();
             }
 
@@ -194,9 +194,9 @@ namespace IceRpc
                 LocalServerRegistry.RegisterServer(this);
             }
 
-            if (PublishedEndpoints.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (PublishedAddress.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
             {
-                Communicator.Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
+                Communicator.Logger.LogServerPublishedAddress(Name, PublishedAddress);
             }
         }
 
@@ -612,14 +612,14 @@ namespace IceRpc
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
                     // server's incoming connection factories are considered local.
                     isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
-                        PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
+                        PublishedAddress.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
                         _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
                 }
             }
 
             // A well-known (i.e. ice1) proxy with no location resolver can only be coloc. So we pick the first
             // compatible (ice1) coloc server with no endpoint.
-            if (!isLocal && proxy.IsWellKnown && proxy.LocationResolver == null && PublishedEndpoints.Count == 0)
+            if (!isLocal && proxy.IsWellKnown && proxy.LocationResolver == null && PublishedAddress.Count == 0)
             {
                 isLocal = true;
             }

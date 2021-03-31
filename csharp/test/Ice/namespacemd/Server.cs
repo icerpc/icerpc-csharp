@@ -9,7 +9,7 @@ namespace IceRpc.Test.NamespaceMD
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoint = GetTestEndpoint(0) });
 
             server.Add("initial", new Initial());
             server.Activate();

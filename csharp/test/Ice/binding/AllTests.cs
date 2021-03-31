@@ -412,42 +412,42 @@ namespace IceRpc.Test.Binding
                 var anyipv4 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("0.0.0.0"),
-                    PublishedEndpoints = getEndpoint("127.0.0.1")
+                    Endpoint = getEndpoint("0.0.0.0"),
+                    PublishedAddress = getEndpoint("127.0.0.1")
                 };
 
                 var anyipv6 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("::0"),
-                    PublishedEndpoints = getEndpoint("::1")
+                    Endpoint = getEndpoint("::0"),
+                    PublishedAddress = getEndpoint("::1")
                 };
 
                 var anyipv46 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("::0"),
-                    PublishedEndpoints = getEndpoint("127.0.0.1")
+                    Endpoint = getEndpoint("::0"),
+                    PublishedAddress = getEndpoint("127.0.0.1")
                 };
 
                 var anylocalhost = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("::0"),
-                    PublishedEndpoints = getEndpoint("localhost")
+                    Endpoint = getEndpoint("::0"),
+                    PublishedAddress = getEndpoint("localhost")
                 };
 
                 var localipv4 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("127.0.0.1"),
+                    Endpoint = getEndpoint("127.0.0.1"),
                     PublishedHost = "127.0.0.1"
                 };
 
                 var localipv6 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = getEndpoint("::1"),
+                    Endpoint = getEndpoint("::1"),
                     PublishedHost = "::1"
                 };
 
@@ -489,7 +489,7 @@ namespace IceRpc.Test.Binding
                         serverCommunicator,
                         new() {
                             ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint });
+                            Endpoint = endpoint });
                     oa.Activate();
 
                     Console.Out.Flush();
@@ -498,7 +498,7 @@ namespace IceRpc.Test.Binding
                     {
                         await using var ipv4Server = new Server(
                             serverCommunicator,
-                            new() { Endpoints = getEndpoint("0.0.0.0") });
+                            new() { Endpoint = getEndpoint("0.0.0.0") });
                         ipv4Server.Activate();
                         TestHelper.Assert(false);
                     }
@@ -528,7 +528,7 @@ namespace IceRpc.Test.Binding
                         new()
                         {
                             ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint,
+                            Endpoint = endpoint,
                             ConnectionOptions = new()
                             {
                                 TransportOptions = new TcpOptions()
@@ -546,7 +546,7 @@ namespace IceRpc.Test.Binding
                                 serverCommunicator,
                                 new() {
                                     ColocationScope = ColocationScope.None,
-                                    Endpoints = ipv4Endpoint });
+                                    Endpoint = ipv4Endpoint });
                         ipv4Server.Activate();
                     }
 
@@ -571,7 +571,7 @@ namespace IceRpc.Test.Binding
                         serverCommunicator,
                         new() {
                             ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint });
+                            Endpoint = endpoint });
                     oa.Activate();
 
                     try
@@ -581,7 +581,7 @@ namespace IceRpc.Test.Binding
                             serverCommunicator,
                             new() {
                                 ColocationScope = ColocationScope.None,
-                                Endpoints = ipv4Endpoint });
+                                Endpoint = ipv4Endpoint });
                         ipv4Server.Activate();
                         TestHelper.Assert(false);
                     }

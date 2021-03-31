@@ -10,7 +10,7 @@ namespace IceRpc.Test.Threading
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server(Communicator, new() { Endpoint = GetTestEndpoint(0) });
             server.Add("test", new TestIntf(TaskScheduler.Default));
             server.Activate();
 
@@ -18,13 +18,13 @@ namespace IceRpc.Test.Threading
 
             await using var server2 = new Server(
                 Communicator,
-                new() { Endpoints = GetTestEndpoint(1), TaskScheduler = schedulerPair.ExclusiveScheduler });
+                new() { Endpoint = GetTestEndpoint(1), TaskScheduler = schedulerPair.ExclusiveScheduler });
             server2.Add("test", new TestIntf(schedulerPair.ExclusiveScheduler));
             server2.Activate();
 
             await using var server3 = new Server(
                 Communicator,
-                new() { Endpoints = GetTestEndpoint(2), TaskScheduler = schedulerPair.ConcurrentScheduler });
+                new() { Endpoint = GetTestEndpoint(2), TaskScheduler = schedulerPair.ConcurrentScheduler });
             server3.Add("test", new TestIntf(schedulerPair.ConcurrentScheduler));
             server3.Activate();
 

@@ -104,7 +104,7 @@ namespace IceRpc.Tests.ClientServer
                     new ServerOptions()
                     {
                         ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: port, protocol: protocol)
+                        Endpoint = GetTestEndpoint(port: port, protocol: protocol)
                     };
         }
 

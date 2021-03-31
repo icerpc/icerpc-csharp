@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Api
 
             // A hostname cannot be used with a server endpoint
             Assert.Throws<FormatException>(
-                () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
+                () => new Server(new Communicator(), new ServerOptions() { Endpoint = "tcp -h foo -p 10000" }));
 
             // Server can only accept secure connections
             Assert.Throws<ArgumentException>(
@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Api
                                      {
                                          AcceptNonSecure = NonSecure.Never
                                      },
-                                     Endpoints = "tcp -h 127.0.0.1 -p 10000"
+                                     Endpoint = "tcp -h 127.0.0.1 -p 10000"
                                  }));
 
             // only one endpoint is allowed when a dynamic IP port (:0) is configured
@@ -40,17 +40,17 @@ namespace IceRpc.Tests.Api
                                      {
                                          AcceptNonSecure = NonSecure.Never
                                      },
-                                     Endpoints = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
+                                     Endpoint = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
                                  }));
 
-            // both PublishedHost and PublishedEndpoints are empty
+            // both PublishedHost and PublishedAddress are empty
             Assert.Throws<ArgumentException>(
                 () => new Server(communicator,
                                  new ServerOptions()
                                  {
-                                     PublishedEndpoints = "",
+                                     PublishedAddress = "",
                                      PublishedHost = "",
-                                     Endpoints = "ice+tcp://127.0.0.1:10000"
+                                     Endpoint = "ice+tcp://127.0.0.1:10000"
                                  }));
 
             // Accept only secure connections require tls configuration
@@ -83,13 +83,13 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server(
                     communicator,
-                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                    new ServerOptions() { Endpoint = "ice+tcp://127.0.0.1:15001" });
 
                 Assert.ThrowsAsync<TransportException>(async () =>
                     {
                         await using var server2 = new Server(
                             communicator,
-                            new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                            new ServerOptions() { Endpoint = "ice+tcp://127.0.0.1:15001" });
                     });
             }
 
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Api
                     new ServerOptions()
                     {
                         ColocationScope = ColocationScope.Communicator,
-                        Endpoints = "ice+tcp://127.0.0.1:15001"
+                        Endpoint = "ice+tcp://127.0.0.1:15001"
                     });
 
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
@@ -126,13 +126,13 @@ namespace IceRpc.Tests.Api
                     {
                         AcceptNonSecure = NonSecure.Always
                     },
-                    Endpoints = $"tcp -h 127.0.0.1 -p 0 -t 15000",
+                    Endpoint = $"tcp -h 127.0.0.1 -p 0 -t 15000",
                     PublishedHost = "localhost"
                 });
 
             Assert.AreEqual(1, server.Endpoints.Count);
 
-            CollectionAssert.AreEquivalent(server.PublishedEndpoints, server.PublishedEndpoints);
+            CollectionAssert.AreEquivalent(server.PublishedAddress, server.PublishedAddress);
 
             Assert.IsNotNull(server.Endpoints[0]);
             Assert.AreEqual(Transport.TCP, server.Endpoints[0].Transport);
@@ -140,11 +140,11 @@ namespace IceRpc.Tests.Api
             Assert.IsTrue(server.Endpoints[0].Port > 0);
             Assert.AreEqual("15000", server.Endpoints[0]["timeout"]);
 
-            Assert.IsNotNull(server.PublishedEndpoints[0]);
-            Assert.AreEqual(Transport.TCP, server.PublishedEndpoints[0].Transport);
-            Assert.AreEqual("localhost", server.PublishedEndpoints[0].Host);
-            Assert.IsTrue(server.PublishedEndpoints[0].Port > 0);
-            Assert.AreEqual("15000", server.PublishedEndpoints[0]["timeout"]);
+            Assert.IsNotNull(server.PublishedAddress[0]);
+            Assert.AreEqual(Transport.TCP, server.PublishedAddress[0].Transport);
+            Assert.AreEqual("localhost", server.PublishedAddress[0].Host);
+            Assert.IsTrue(server.PublishedAddress[0].Port > 0);
+            Assert.AreEqual("15000", server.PublishedAddress[0]["timeout"]);
 
             await server.DisposeAsync();
 
@@ -157,21 +157,21 @@ namespace IceRpc.Tests.Api
                     communicator,
                     new()
                     {
-                        Endpoints = string.Format(endpoint, "0.0.0.0", port),
-                        PublishedEndpoints = string.Format(endpoint, "127.0.0.1", port)
+                        Endpoint = string.Format(endpoint, "0.0.0.0", port),
+                        PublishedAddress = string.Format(endpoint, "127.0.0.1", port)
 
                     });
 
                 Assert.IsTrue(server.Endpoints.Count >= 1);
-                Assert.IsTrue(server.PublishedEndpoints.Count == 1);
+                Assert.IsTrue(server.PublishedAddress.Count == 1);
 
                 foreach (Endpoint e in server.Endpoints)
                 {
                     Assert.AreEqual(port, e.Port);
                 }
 
-                Assert.AreEqual("127.0.0.1", server.PublishedEndpoints[0].Host);
-                Assert.AreEqual(port, server.PublishedEndpoints[0].Port);
+                Assert.AreEqual("127.0.0.1", server.PublishedAddress[0].Host);
+                Assert.AreEqual(port, server.PublishedAddress[0].Port);
             }
         }
 
@@ -231,14 +231,14 @@ namespace IceRpc.Tests.Api
 
         [TestCase("tcp -h localhost -p 12345 -t 30000")]
         [TestCase("ice+tcp://localhost:12345")]
-        public async Task Server_PublishedEndpoints(string endpoint)
+        public async Task Server_PublishedAddress(string endpoint)
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator, new ServerOptions() { PublishedEndpoints = endpoint });
+            await using var server = new Server(communicator, new ServerOptions() { PublishedAddress = endpoint });
 
-            Assert.AreEqual(1, server.PublishedEndpoints.Count);
-            Assert.IsNotNull(server.PublishedEndpoints[0]);
-            Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
+            Assert.AreEqual(1, server.PublishedAddress.Count);
+            Assert.IsNotNull(server.PublishedAddress[0]);
+            Assert.AreEqual(endpoint, server.PublishedAddress[0].ToString());
         }
 
         [TestCase(" :" )]
@@ -248,7 +248,7 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
             Assert.Throws<FormatException>(
-                () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
+                () => new Server(communicator, new ServerOptions() { Endpoint = endpoint }));
         }
 
         private class ProxyTest : IAsyncProxyTest

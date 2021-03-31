@@ -54,9 +54,9 @@ namespace IceRpc
             where T : class, IServicePrx
         {
             Protocol protocol =
-                server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
+                server.PublishedAddress.Count > 0 ? server.PublishedAddress[0].Protocol : server.Protocol;
 
-            IReadOnlyList<Endpoint> endpoints = server.PublishedEndpoints;
+            IReadOnlyList<Endpoint> endpoints = server.PublishedAddress;
 
             ProxyOptions options;
 

@@ -22,8 +22,7 @@ namespace IceRpc
 
         public ColocationScope ColocationScope { get; set; } = ColocationScope.Communicator;
 
-        // TODO: should it be Endpoint?
-        public string Endpoints { get; set; } = "";
+        public string Endpoint { get; set; } = "";
 
         public string Name { get; set; } = "";
 
@@ -31,11 +30,11 @@ namespace IceRpc
 
         public Protocol Protocol { get; set; } = Protocol.Ice2; // only used if Endpoints is empty
 
+        public string PublishedAddress { get; set; } = "";
+
         /// <summary>The local options of proxies received in requests or created using this server. Non-inheritable
         /// options such as Path, Encoding and Endpoints are ignored.</summary>
         public ProxyOptions ProxyOptions { get; set; } = new();
-
-        public string PublishedEndpoints { get; set; } = "";
 
         // TODO: fix default
         public string PublishedHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();

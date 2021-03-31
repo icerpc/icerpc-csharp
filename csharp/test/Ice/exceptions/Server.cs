@@ -15,7 +15,7 @@ namespace IceRpc.Test.Exceptions
                 new()
                 {
                     ConnectionOptions = new() { IncomingFrameMaxSize = 10 * 1024 },
-                    Endpoints = GetTestEndpoint(0)
+                    Endpoint = GetTestEndpoint(0)
                 });
 
             Server server2 = new Server(
@@ -23,7 +23,7 @@ namespace IceRpc.Test.Exceptions
                 new()
                 {
                     ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
-                    Endpoints = GetTestEndpoint(1),
+                    Endpoint = GetTestEndpoint(1),
                 });
 
             Server server3 = new Server(
@@ -31,7 +31,7 @@ namespace IceRpc.Test.Exceptions
                 new()
                 {
                     ConnectionOptions = new() { IncomingFrameMaxSize = 1024 },
-                    Endpoints = GetTestEndpoint(2),
+                    Endpoint = GetTestEndpoint(2),
                 });
 
             var obj = new Thrower();
@@ -48,7 +48,7 @@ namespace IceRpc.Test.Exceptions
                 new()
                 {
                     ConnectionOptions = new() { IncomingFrameMaxSize = int.MaxValue },
-                    Endpoints = GetTestEndpoint(3),
+                    Endpoint = GetTestEndpoint(3),
                 });
             forwarderAdapter.Add("forwarder", new Forwarder(IServicePrx.Parse(GetTestProxy("thrower"), communicator2)));
             forwarderAdapter.Activate();

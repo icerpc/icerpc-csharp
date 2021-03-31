@@ -59,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
                     new ServerOptions()
                     {
                         ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: port, protocol: protocol),
+                        Endpoint = GetTestEndpoint(port: port, protocol: protocol),
                         Protocol = protocol
                     });
 
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ColocationScope = ColocationScope.None,
                     Protocol = Protocol.Ice2,
-                    Endpoints = GetTestEndpoint()
+                    Endpoint = GetTestEndpoint()
                 });
             server.Activate();
             var proxy = server.Add("bidir", new Bidir(), IRetryBidirServicePrx.Factory);
@@ -386,7 +386,7 @@ namespace IceRpc.Tests.ClientServer
                                 new ServerOptions()
                                 {
                                     ColocationScope = ColocationScope.None,
-                                    Endpoints = GetTestEndpoint(port: i)
+                                    Endpoint = GetTestEndpoint(port: i)
                                 })).ToArray();
 
             var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -406,7 +406,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol),
+                    Endpoint = GetTestEndpoint(protocol: protocol),
                     Protocol = protocol
                 });
 

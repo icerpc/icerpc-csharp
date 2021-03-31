@@ -413,7 +413,7 @@ namespace IceRpc.Tests.ClientServer
                 new ServerOptions()
                 {
                     ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(serverHost),
+                    Endpoint = GetTestEndpoint(serverHost),
                     ConnectionOptions = new()
                     {
                         AcceptNonSecure = NonSecure.Never,

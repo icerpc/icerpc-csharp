@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
                                  new ServerOptions()
                                  {
                                     ColocationScope = ColocationScope.None,
-                                    Endpoints = "tcp -h 127.0.0.1 -p 0"
+                                    Endpoint = "tcp -h 127.0.0.1 -p 0"
                                  });
 
             _greeter = _server.AddWithUUID(new GreeterTestService(), IGreeterTestServicePrx.Factory);

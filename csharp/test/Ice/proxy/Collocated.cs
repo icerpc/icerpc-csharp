@@ -11,7 +11,7 @@ namespace IceRpc.Test.Proxy
         public override async Task RunAsync(string[] args)
         {
             await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+                                                        new() { Endpoint = GetTestEndpoint(0) });
 
             server.Add("test", new MyDerivedClass());
             // Don't activate Server to ensure collocation is used.

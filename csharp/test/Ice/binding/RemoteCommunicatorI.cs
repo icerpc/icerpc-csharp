@@ -34,7 +34,7 @@ namespace IceRpc.Test.Binding
                                     current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
                                         NonSecure.Always,
                             },
-                            Endpoints = endpoints,
+                            Endpoint = endpoints,
                             Name = name,
                             PublishedHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
                         });
@@ -60,7 +60,7 @@ namespace IceRpc.Test.Binding
         {
             var server = new Server(
                 current.Communicator,
-                new ServerOptions { Endpoints = endpoints, Name = name });
+                new ServerOptions { Endpoint = endpoints, Name = name });
             server.Activate();
 
             return new(current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory));
