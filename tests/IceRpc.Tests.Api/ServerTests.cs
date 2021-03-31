@@ -206,7 +206,7 @@ namespace IceRpc.Tests.Api
 
             server.Activate();
             await proxy.SendProxyAsync(proxy);
-            Assert.IsNotNull(await service.SendProxyCompleted.Task);
+            CheckProxy(await service.SendProxyCompleted.Task);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
