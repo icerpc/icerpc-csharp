@@ -9,8 +9,24 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class InvocationTimeoutTests : ColocatedTest
+    public class InvocationTimeoutTests
     {
+        private readonly Communicator _communicator;
+        private readonly Server _server;
+
+        public InvocationTimeoutTests()
+        {
+            _communicator = new Communicator();
+            _server = new Server(_communicator, new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+        }
+
+        [OneTimeTearDown]
+        public async Task ShutdownAsync()
+        {
+            await _server.DisposeAsync();
+            await _communicator.DisposeAsync();
+        }
+
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timemout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
@@ -20,15 +36,20 @@ namespace IceRpc.Tests.Api
         {
             DateTime dispatchDeadline = DateTime.UtcNow;
             DateTime invocationDeadline = DateTime.UtcNow;
-            Server.Use(
-                async (current, next, cancel) =>
-                {
-                    dispatchDeadline = current.Deadline;
-                    await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                    return await next();
-                });
 
-            var prx = Server.AddWithUUID(new TestService(), IServicePrx.Factory).Clone(
+            var router = new Router();
+            router.Use(next => new InlineDispatcher(
+                    async (current, cancel) =>
+                    {
+                        dispatchDeadline = current.Deadline;
+                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                        return await next.DispatchAsync(current, cancel);
+                    }));
+
+            router.Map("/test", new TestService());
+            _server.Activate(router);
+
+            var prx = IServicePrx.Factory.Create(_server, "/test").Clone(
                 invocationTimeout: TimeSpan.FromMilliseconds(timeout),
                 invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
                     async (target, request, next, cancel) =>
@@ -36,8 +57,6 @@ namespace IceRpc.Tests.Api
                         invocationDeadline = request.Deadline;
                         return await next(target, request, cancel);
                     }));
-
-            Server.Activate();
 
             // Establish a connection
             var connection = await prx.GetConnectionAsync();
