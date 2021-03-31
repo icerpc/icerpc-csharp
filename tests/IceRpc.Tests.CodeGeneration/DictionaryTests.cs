@@ -41,7 +41,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Dictionary_BuiltinTypes()
+        public async Task Dictionary_BuiltinTypesAsync()
         {
             int size = 100;
             await TestDictAsync((p1, p2) => _prx.OpByteDictAsync(p1, p2),
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.CodeGeneration
                                 Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value),
                                 Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value));
 
-            async Task TestDictAsync<T>(
+            static async Task TestDictAsync<T>(
                 Func<Dictionary<T, T>, Dictionary<T, T>, Task<(Dictionary<T, T>, Dictionary<T, T>)>> invoker,
                 Dictionary<T, T> p1,
                 Dictionary<T, T> p2) where T : notnull
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Dictionary_DefinedTypes()
+        public async Task Dictionary_DefinedTypesAsync()
         {
             int size = 100;
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.CodeGeneration
                                                              new MyStruct(i, i + 1));
                                 }));
 
-            async Task TestAsync<Key, Value>(
+            static async Task TestAsync<Key, Value>(
                 Func<Dictionary<Key, Value>, Dictionary<Key, Value>, Task<(Dictionary<Key, Value>, Dictionary<Key, Value>)>> invoker,
                 Dictionary<Key, Value> p1,
                 Dictionary<Key, Value> p2) where Key : notnull

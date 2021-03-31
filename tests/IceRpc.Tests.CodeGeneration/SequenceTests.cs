@@ -41,7 +41,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Sequence_BuiltinTypes()
+        public async Task Sequence_BuiltinTypesAsync()
         {
             int size = 100;
             await TestSeqAsync((p1, p2) => _prx.OpByteSeqAsync(p1, p2),
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Sequence_DefinedTypes()
+        public async Task Sequence_DefinedTypesAsync()
         {
             int size = 100;
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
