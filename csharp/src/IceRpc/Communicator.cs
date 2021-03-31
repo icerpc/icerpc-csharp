@@ -251,7 +251,7 @@ namespace IceRpc
             Logger = loggerFactory.CreateLogger("IceRpc");
 
             ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
-            ConnectionOptions.TransportOptions = new TcpOptions();
+            ConnectionOptions.TransportOptions ??= new TcpOptions();
 
             // TODO: remove once old tests which rely on properties are removed
             if (ConnectionOptions.TransportOptions is UdpOptions udpOptions)

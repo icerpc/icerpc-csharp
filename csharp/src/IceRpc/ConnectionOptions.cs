@@ -6,14 +6,14 @@ using System.Net.Security;
 
 namespace IceRpc
 {
-    /// <summary>An options base class for configuring transports.</summary>
-    public abstract class TransportOptions
+    /// <summary>The options interface for configuring transports.</summary>
+    public interface ITransportOptions
     {
-        public abstract TransportOptions Clone();
+        public abstract ITransportOptions Clone();
     }
 
     /// <summary>An options class for configuring TCP based transports.</summary>
-    public sealed class TcpOptions : TransportOptions
+    public sealed class TcpOptions : ITransportOptions
     {
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
@@ -87,11 +87,11 @@ namespace IceRpc
         private int _slicPacketMaxSize = 32 * 1024;
         private int? _slicStreamBufferMaxSize;
 
-        public override TcpOptions Clone() => (TcpOptions)MemberwiseClone();
+        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
     }
 
     /// <summary>An options class for configuring UDP based transports.</summary>
-    public sealed class UdpOptions : TransportOptions
+    public sealed class UdpOptions : ITransportOptions
     {
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
@@ -128,7 +128,7 @@ namespace IceRpc
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
 
-        public override UdpOptions Clone() => (UdpOptions)MemberwiseClone();
+        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
     }
 
     /// <summary>An options base class for configuring IceRPC connections.</summary>
@@ -193,7 +193,7 @@ namespace IceRpc
 
         /// <summary>The transport options.</summary>
         /// <value>The transport options.</value>
-        public TransportOptions? TransportOptions { get; set; }
+        public ITransportOptions? TransportOptions { get; set; }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream

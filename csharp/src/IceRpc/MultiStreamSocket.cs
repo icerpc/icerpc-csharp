@@ -160,7 +160,7 @@ namespace IceRpc
             EventHandler? callback = Ping;
             if (callback != null)
             {
-                Task.Run((Action)(() =>
+                Task.Run(() =>
                 {
                     try
                     {
@@ -168,12 +168,12 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        if (this.Logger.IsEnabled(LogLevel.Error))
+                        if (Logger.IsEnabled(LogLevel.Error))
                         {
-                            TransportLoggerExtensions.LogPingEventHandlerException(this.Logger, (Exception)ex);
+                            Logger.LogPingEventHandlerException(ex);
                         }
                     }
-                }));
+                });
             }
         }
 
