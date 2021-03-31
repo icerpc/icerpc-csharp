@@ -31,25 +31,5 @@ namespace IceRpc
                     }
                 });
         }
-
-        /// <summary>Creates a middleware that limits the number of slashes in a request's path.</summary>
-        public static Func<IDispatcher, IDispatcher> SlashLimiter(int slashLimit = 3)
-        {
-            if (slashLimit < 1)
-            {
-                throw new ArgumentException($"{nameof(slashLimit)} must be at least 1", nameof(slashLimit));
-            }
-
-            return next => new InlineDispatcher(
-                (current, cancel) =>
-                {
-                    if (current.Path.Count(c => c == '/') > slashLimit)
-                    {
-                        // TODO: throw a remote exception, e.g. ImplementationLimitException
-                        throw new InvalidDataException($"the request's path `{current.Path}' has too many slashes");
-                    }
-                    return next.DispatchAsync(current, cancel);
-                });
-        }
     }
 }
