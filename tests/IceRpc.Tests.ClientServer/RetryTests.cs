@@ -332,19 +332,21 @@ namespace IceRpc.Tests.ClientServer
                 },
                 async (service, retry) =>
                 {
-
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
 
-                    Task t1 = retry.Clone(label: "conn-1").OpWithDataAsync(2, 5000, data);
+                    await using var connection1 = await Connection.CreateAsync(retry.Endpoints[0], retry.Communicator);
+                    await using var connection2 = await Connection.CreateAsync(retry.Endpoints[0], retry.Communicator);
+
+                    Task t1 = retry.Clone(fixedConnection: connection1).OpWithDataAsync(2, 5000, data);
                     await Task.Delay(1000); // Ensure the first request it is send before the second request
-                    Task t2 = retry.Clone(label: "conn-2").OpWithDataAsync(2, 0, data);
+                    Task t2 = retry.Clone(fixedConnection: connection2).OpWithDataAsync(2, 0, data);
 
                     Assert.DoesNotThrowAsync(async () => await t1);
                     Assert.ThrowsAsync<RetrySystemFailure>(async () => await t2);
 
-                    await retry.Clone(label: "conn-1").OpWithDataAsync(2, 100, data);
+                    await retry.Clone(fixedConnection: connection1).OpWithDataAsync(2, 100, data);
                 });
         }
 

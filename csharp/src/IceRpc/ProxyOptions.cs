@@ -60,9 +60,6 @@ namespace IceRpc
         /// is specified. This property is inherited when unmarshaling a proxy.</summary>
         public bool IsOneway { get; set; }
 
-        /// <summary>The label of the proxy. This property is inherited when unmarshaling a proxy.</summary>
-        public object? Label { get; set; }
-
         /// <summary>The location resolver of the proxy. This property is inherited when unmarshaling a proxy.</summary>
         public ILocationResolver? LocationResolver { get; set; }
 
@@ -104,7 +101,6 @@ namespace IceRpc
                 InvocationTimeout = InvocationTimeout,
                 // IsFixed remains false
                 IsOneway = IsOneway,
-                Label = Label,
                 LocationResolver = LocationResolver,
                 NonSecure = NonSecure,
                 Path = path,
@@ -127,7 +123,6 @@ namespace IceRpc
                 InvocationTimeout = InvocationTimeout,
                 IsFixed = true,
                 IsOneway = IsOneway,
-                Label = Label,
                 LocationResolver = LocationResolver,
                 NonSecure = NonSecure,
                 Path = path,

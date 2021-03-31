@@ -46,7 +46,6 @@ namespace IceRpc.Interop
                 InvocationTimeout = options.InvocationTimeout,
                 // IsFixed remains false
                 IsOneway = oneway,
-                Label = options.Label,
                 LocationResolver = options.LocationResolver,
                 NonSecure = options.NonSecure,
                 // Path remains empty

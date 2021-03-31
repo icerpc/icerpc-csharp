@@ -140,8 +140,6 @@ namespace IceRpc.Test.Proxy
                     TestHelper.Assert(cl.Clone(context: ctx, fixedConnection: connection2).Context.Count == 2);
                     TestHelper.Assert(await cl.Clone(fixedConnection: connection2).GetConnectionAsync() == connection2);
                     TestHelper.Assert(await cl.Clone(fixedConnection: connection2).Clone(fixedConnection: connection2).GetConnectionAsync() == connection2);
-                    Connection? fixedConnection = await cl.Clone(label: "ice_fixed").GetConnectionAsync();
-                    TestHelper.Assert(await cl.Clone(fixedConnection: connection2).Clone(fixedConnection: fixedConnection).GetConnectionAsync() == fixedConnection);
                 }
             }
             output.WriteLine("ok");

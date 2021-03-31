@@ -23,7 +23,6 @@ namespace IceRpc
             internal TimeSpan? InvocationTimeout;
 
             internal bool? IsOneway;
-            internal object? Label;
             internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
             internal Protocol? Protocol;
@@ -116,7 +115,6 @@ namespace IceRpc
             result.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? result.Context;
             result.IsOneway = parsedOptions.IsOneway ?? result.IsOneway;
             result.InvocationTimeout = parsedOptions.InvocationTimeout ?? result.InvocationTimeout;
-            result.Label = parsedOptions.Label ?? result.Label;
             result.PreferExistingConnection = parsedOptions.PreferExistingConnection ?? result.PreferExistingConnection;
             result.NonSecure = parsedOptions.NonSecure ?? result.NonSecure;
 
@@ -311,11 +309,6 @@ namespace IceRpc
                     {
                         throw new FormatException($"0 is not a valid value for the {name} option in `{uriString}'");
                     }
-                }
-                else if (name == "label")
-                {
-                    CheckProxyOption(name, proxyOptions.Label != null);
-                    proxyOptions.Label = value;
                 }
                 else if (name == "non-secure")
                 {

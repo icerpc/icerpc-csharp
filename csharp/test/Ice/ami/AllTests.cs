@@ -639,7 +639,8 @@ namespace IceRpc.Test.AMI
                     // Local case: start an operation and then close the connection gracefully on the client side
                     // without waiting for the pending invocation to complete. There will be no retry and we expect the
                     // invocation to fail with ConnectionClosedException.
-                    p = p.Clone(label: "CloseGracefully"); // Start with a new connection.
+                    await using var connection = await Connection.CreateAsync(p.Endpoints[0], p.Communicator);
+                    p = p.Clone(fixedConnection: connection); // Start with a new connection.
                     Connection con = await p.GetConnectionAsync();
                     var cb = new CallbackBase();
                     Task t = p.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));
