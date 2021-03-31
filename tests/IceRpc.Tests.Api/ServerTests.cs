@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Api
                 // cannot add a middleware to a router after adding a route
                 await using var server = new Server(communicator);
                 var router = new Router();
-                router.Map("/test", new ProxyTest(null!));
+                router.Map("/test", new ProxyTest());
 
                 Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
             }
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.Api
                         Endpoints = "ice+tcp://127.0.0.1:15001"
                     });
 
-                IServicePrx prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
+                var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
                 await using var server2 = new Server(communicator);
@@ -197,15 +197,18 @@ namespace IceRpc.Tests.Api
                                                     ProxyOptions = proxyOptions
                                                 });
 
-            var proxy = server.Add("foo/bar", new ProxyTest(CheckProxy), IProxyTestPrx.Factory);
-            CheckProxy(proxy);
-            Assert.IsFalse(proxy.IsFixed);
+            var service = new ProxyTest();
+            IProxyTestPrx? proxy = server.Add("foo/bar", service, IProxyTestPrx.Factory);
+            CheckProxy(proxy, isFixed: false);
 
             // change some properties
             proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
 
             server.Activate();
-            await proxy.SendProxyAsync(proxy); // the service executes CheckProxy on the received proxy
+            await proxy.SendProxyAsync(proxy);
+            // The server always unmarshals the proxy as a fixed proxy
+            Assert.IsNotNull(service.Proxy);
+            CheckProxy(service.Proxy!, isFixed: true);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
@@ -216,12 +219,13 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(received.IsFixed);
             Assert.AreEqual(received.IsOneway, proxy.IsOneway);
 
-            static void CheckProxy(IProxyTestPrx proxy)
+            static void CheckProxy(IProxyTestPrx proxy, bool isFixed)
             {
                 Assert.IsFalse(proxy.CacheConnection);
-                Assert.AreEqual(proxy.Context["speed"], "fast");
-                Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(10));
-                Assert.AreEqual(proxy.Path, "/foo/bar");
+                Assert.AreEqual("fast", proxy.Context["speed"]);
+                Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
+                Assert.AreEqual(isFixed, proxy.IsFixed);
+                Assert.AreEqual("/foo/bar", proxy.Path);
             }
         }
 
@@ -249,19 +253,16 @@ namespace IceRpc.Tests.Api
 
         private class ProxyTest : IAsyncProxyTest
         {
-            private readonly Action<IProxyTestPrx> _checkProxy;
+            internal IProxyTestPrx? Proxy { get; set; }
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
-                _checkProxy(proxy);
-                Assert.IsTrue(proxy.IsFixed);
+                Proxy = proxy;
                 return default;
             }
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
                 new(IProxyTestPrx.Factory.Create(current.Server, current.Path));
-
-            internal ProxyTest(Action<IProxyTestPrx> checkProxy) => _checkProxy = checkProxy;
         }
     }
 }
