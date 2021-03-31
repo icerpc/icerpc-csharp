@@ -233,20 +233,21 @@ namespace IceRpc.Tests.ClientServer
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
                 replicas:2,
-                servers =>
+                (servers, routers) =>
                 {
-                    servers[0].Add("replicated", new Replicated(fail: true));
-                    servers[1].Add("replicated", new Replicated(fail: false));
-
-                    foreach (var server in servers)
+                    for (int i = 0; i < routers.Length; ++i)
                     {
-                        server.Use(async (current, next, cancel) =>
+                        routers[i].Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
-                                return await next();
-                            });
-                        server.Activate();
+                                return await next.DispatchAsync(current, cancel);
+                            }));
+                        servers[i].Activate(routers[i]);
                     }
+
+                    routers[0].Map("/replicated", new Replicated(fail: true));
+                    routers[1].Map("/replicated", new Replicated(fail: false));
 
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
@@ -270,26 +271,28 @@ namespace IceRpc.Tests.ClientServer
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
                 replicas: 3,
-                servers =>
+                (servers, routers) =>
                 {
-                    foreach (var server in servers)
+                    foreach (var router in routers)
                     {
-                        server.Use(async (current, next, cancel) =>
+                        router.Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
                             {
                                 calls.Add(current.Server.Name);
-                                return await next();
-                            });
+                                return await next.DispatchAsync(current, cancel);
+                            }));
                     }
-                    servers[1].Add("replicated", new Replicated(fail: true));
-                    servers[2].Use(async (current, next, cancel) =>
+                    routers[1].Map("/replicated", new Replicated(fail: true));
+                    routers[2].Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
                         {
                             await current.Connection.AbortAsync("forcefully close connection!");
-                            return await next();
-                        });
+                            return await next.DispatchAsync(current, cancel);
+                        }));
 
-                    foreach (var server in servers)
+                    for (int i = 0; i < servers.Length; ++i)
                     {
-                        server.Activate();
+                        servers[i].Activate(routers[i]);
                     }
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
@@ -375,7 +378,7 @@ namespace IceRpc.Tests.ClientServer
                 });
         }
 
-        private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[]> closure)
+        private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[], Router[]> closure)
         {
             await using var communicator = new Communicator();
             var servers = Enumerable.Range(0, replicas).Select(
@@ -385,7 +388,10 @@ namespace IceRpc.Tests.ClientServer
                                     ColocationScope = ColocationScope.None,
                                     Endpoints = GetTestEndpoint(port: i)
                                 })).ToArray();
-            closure(servers);
+
+            var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
+
+            closure(servers, routers);
             await Task.WhenAll(servers.Select(server => server.ShutdownAsync()));
         }
 
@@ -403,13 +409,16 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint(protocol: protocol),
                     Protocol = protocol
                 });
-            server.Use(async (current, next, cancel) =>
-            {
-                service.Attempts++;
-                return await next();
-            });
-            server.Add("retry", service);
-            server.Activate();
+
+            var router = new Router();
+            router.Use(next => new InlineDispatcher(
+                async (current, cancel) =>
+                {
+                    service.Attempts++;
+                    return await next.DispatchAsync(current, cancel);
+                }));
+            router.Map("/retry", service);
+            server.Activate(router);
             var retry = IRetryServicePrx.Parse(GetTestProxy("retry", protocol: protocol), communicator);
             await closure(service, retry);
         }

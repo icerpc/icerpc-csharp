@@ -81,6 +81,16 @@ namespace IceRpc
                 }
                 // else keep inherited value for IsOneway
             }
+
+            // Also give the new proxy a colocated connection if it has no endpoint or is "well-known".
+            // TODO: why not give it a coloc connection all the time?
+            if (endpoints.Count == 0 && server.GetColocatedEndpoint() is Endpoint colocatedEndpoint)
+            {
+                // TODO: fix!
+                var vt = server.Communicator.ConnectAsync(colocatedEndpoint, new(), default);
+                options.Connection = vt.IsCompleted ? vt.Result : vt.AsTask().Result;
+            }
+
             return factory.Create(options);
         }
 

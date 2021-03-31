@@ -72,11 +72,12 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                // cannot add an dispatchInterceptor to a server after activation"
+                // cannot add a middleware to a router after adding a route
                 await using var server = new Server(communicator);
-                server.Activate();
-                Assert.Throws<InvalidOperationException>(
-                    () => server.Use(next => async (current, cancel) => await next(current, cancel)));
+                var router = new Router();
+                router.Map("/test", new ProxyTest());
+
+                Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
             }
 
             {
@@ -186,7 +187,6 @@ namespace IceRpc.Tests.Api
                 Context = new Dictionary<string, string>() { ["speed"] = "fast" },
                 InvocationTimeout = TimeSpan.FromSeconds(10),
                 IsFixed = true, // ignored
-                IsOneway = true,
                 Path = "xxxxxxx" // ignored
             };
 
@@ -207,7 +207,8 @@ namespace IceRpc.Tests.Api
             server.Activate();
             await proxy.SendProxyAsync(proxy);
             // The server always unmarshals the proxy as a fixed proxy
-            CheckProxy(await service.SendProxyCompleted.Task, isFixed: true);
+            Assert.IsNotNull(service.Proxy);
+            CheckProxy(service.Proxy!, isFixed: true);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
@@ -224,7 +225,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("fast", proxy.Context["speed"]);
                 Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
                 Assert.AreEqual(isFixed, proxy.IsFixed);
-                Assert.IsTrue(proxy.IsOneway);
                 Assert.AreEqual("/foo/bar", proxy.Path);
             }
         }
@@ -253,11 +253,11 @@ namespace IceRpc.Tests.Api
 
         private class ProxyTest : IAsyncProxyTest
         {
-            internal TaskCompletionSource<IProxyTestPrx> SendProxyCompleted = new();
+            internal IProxyTestPrx? Proxy { get; set; }
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
-                SendProxyCompleted.SetResult(proxy);
+                Proxy = proxy;
                 return default;
             }
 
