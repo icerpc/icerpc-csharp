@@ -44,55 +44,134 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task Dictionary_BuiltinTypesAsync()
         {
             int size = 100;
-            await TestDictAsync((p1, p2) => _prx.OpByteDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpBoolDictAsync(p1, p2),
-                                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpShortDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpUShortDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpIntDictAsync(p1, p2),
-                                Enumerable.Range(0, size).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpVarIntDictAsync(p1, p2),
-                                Enumerable.Range(0, size).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpUIntDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpVarUIntDictAsync(p1, p2),
-                               Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
-                               Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpLongDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpVarLongDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpULongDictAsync(p1, p2),
-                               Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
-                               Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpVarULongDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
-            await TestDictAsync((p1, p2) => _prx.OpStringDictAsync(p1, p2),
-                                Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value),
-                                Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpByteDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpBoolDictAsync(p1, p2),
+                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpShortDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpUShortDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpVarIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpUIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpVarUIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpLongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpVarLongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpULongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpVarULongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpStringDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value),
+                Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value));
 
-            static async Task TestDictAsync<T>(
-                Func<Dictionary<T, T>, Dictionary<T, T>, Task<(Dictionary<T, T>, Dictionary<T, T>)>> invoker,
-                Dictionary<T, T> p1,
-                Dictionary<T, T> p2) where T : notnull
-            {
-                (Dictionary<T, T> r1, Dictionary<T, T> r2) = await invoker(p1, p2);
-                CollectionAssert.AreEqual(r1, p1);
-                CollectionAssert.AreEqual(r2, p2);
-            }
+            // Sorted dict
+            await TestSortedDictAsync(
+               (p1, p2) => _prx.OpByteSortedDictAsync(p1, p2),
+               new SortedDictionary<byte, byte>(
+                   Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value)),
+               new SortedDictionary<byte, byte>(
+                   Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpBoolSortedDictAsync(p1, p2),
+                new SortedDictionary<bool, bool>(
+                    Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value)),
+                new SortedDictionary<bool, bool>(
+                    Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpShortSortedDictAsync(p1, p2),
+                new SortedDictionary<short, short>(
+                    Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<short, short>(
+                    Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpUShortSortedDictAsync(p1, p2),
+                new SortedDictionary<ushort, ushort>(
+                    Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<ushort, ushort>(
+                    Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpIntSortedDictAsync(p1, p2),
+                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
+                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpVarIntSortedDictAsync(p1, p2),
+                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
+                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpUIntSortedDictAsync(p1, p2),
+                new SortedDictionary<uint, uint>(
+                    Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<uint, uint>(
+                    Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpVarUIntSortedDictAsync(p1, p2),
+                new SortedDictionary<uint, uint>(
+                    Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<uint, uint>(
+                    Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpLongSortedDictAsync(p1, p2),
+                new SortedDictionary<long, long>(
+                    Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<long, long>(
+                    Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpVarLongSortedDictAsync(p1, p2),
+                new SortedDictionary<long, long>(
+                    Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<long, long>(
+                    Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpULongSortedDictAsync(p1, p2),
+                new SortedDictionary<ulong, ulong>(
+                    Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<ulong, ulong>(
+                    Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpVarULongSortedDictAsync(p1, p2),
+                new SortedDictionary<ulong, ulong>(
+                    Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)),
+                new SortedDictionary<ulong, ulong>(
+                    Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)));
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpStringSortedDictAsync(p1, p2),
+                new SortedDictionary<string, string>(
+                    Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value)),
+                new SortedDictionary<string, string>(
+                    Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value)));
         }
 
         [Test]
@@ -100,7 +179,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             int size = 100;
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
-            await TestAsync((p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
+            await TestDictAsync((p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
                             Enumerable.Range(0, myEnumValues.Length).ToDictionary(
                                 i => GetEnum<MyEnum>(myEnumValues, i),
                                 i => GetEnum<MyEnum>(myEnumValues, i)),
@@ -109,7 +188,7 @@ namespace IceRpc.Tests.CodeGeneration
                                 i => GetEnum<MyEnum>(myEnumValues, i)));
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
-            await TestAsync(
+            await TestDictAsync(
                 (p1, p2) => _prx.OpMyFixedLengthEnumDictAsync(p1, p2),
                 Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
                     i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
@@ -118,46 +197,59 @@ namespace IceRpc.Tests.CodeGeneration
                     i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
                     i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)));
 
-            await TestAsync(
+            await TestDictAsync(
                 (p1, p2) => _prx.OpMyUncheckedEnumDictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i),
                 Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i));
 
-            await TestAsync((p1, p2) => _prx.OpMyStructDictAsync(p1, p2),
-                            Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)),
-                            Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpMyStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)),
+                Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)));
 
-            await TestAsync((p1, p2) => _prx.OpAnotherStructDictAsync(p1, p2),
-                            Enumerable.Range(0, size).ToDictionary(
-                                i => $"key-{i}",
-                                i =>
-                                {
-                                    return new AnotherStruct($"hello-{i}",
-                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
-                                                             GetEnum<MyEnum>(myEnumValues, i),
-                                                             new MyStruct(i, i + 1));
-                                }),
-                            Enumerable.Range(0, size).ToDictionary(
-                                i => $"key-{i}",
-                                i =>
-                                {
-                                    return new AnotherStruct($"hello-{i}",
-                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
-                                                             GetEnum<MyEnum>(myEnumValues, i),
-                                                             new MyStruct(i, i + 1));
-                                }));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpAnotherStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)));
 
-            static async Task TestAsync<Key, Value>(
-                Func<Dictionary<Key, Value>, Dictionary<Key, Value>, Task<(Dictionary<Key, Value>, Dictionary<Key, Value>)>> invoker,
-                Dictionary<Key, Value> p1,
-                Dictionary<Key, Value> p2) where Key : notnull
-            {
-                (Dictionary<Key, Value> r1, Dictionary<Key, Value> r2) = await invoker(p1, p2);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p2, r2);
-            }
+            // repeat with sorted dictionaries
+            await TestDictAsync((p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
+                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                                i => GetEnum<MyEnum>(myEnumValues, i),
+                                i => GetEnum<MyEnum>(myEnumValues, i)),
+                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                                i => GetEnum<MyEnum>(myEnumValues, i),
+                                i => GetEnum<MyEnum>(myEnumValues, i)));
+
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpMyFixedLengthEnumSortedDictAsync(p1, p2),
+                new SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
+                    Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                        i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                        i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
+                new SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
+                    Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                        i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                        i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
+
+            await TestSortedDictAsync(
+                (p1, p2) => _prx.OpMyUncheckedEnumSortedDictAsync(p1, p2),
+                new SortedDictionary<MyUncheckedEnum, MyUncheckedEnum>(
+                    Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i)),
+                new SortedDictionary<MyUncheckedEnum, MyUncheckedEnum>(
+                    Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i)));
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
+
+            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"foo-{i}", _communicator);
+
+            AnotherStruct GetAnotherStruct(int i)
+            {
+                return new AnotherStruct($"hello-{i}",
+                                         GetOperationsPrx(i),
+                                         (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
+                                         new MyStruct(i, i + 1));
+            }
         }
 
         public class DictionaryOperations : IAsyncDictionaryOperations
@@ -276,6 +368,105 @@ namespace IceRpc.Tests.CodeGeneration
                 Dictionary<string, AnotherStruct> p2,
                 Current current,
                 CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<byte, byte> R1, IReadOnlyDictionary<byte, byte> R2)> OpByteSortedDictAsync(
+                SortedDictionary<byte, byte> p1,
+                SortedDictionary<byte, byte> p2,
+                Current current, CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<bool, bool> R1, IReadOnlyDictionary<bool, bool> R2)> OpBoolSortedDictAsync(
+                SortedDictionary<bool, bool> p1,
+                SortedDictionary<bool, bool> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<short, short> R1, IReadOnlyDictionary<short, short> R2)> OpShortSortedDictAsync(
+                SortedDictionary<short, short> p1,
+                SortedDictionary<short, short> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<ushort, ushort> R1, IReadOnlyDictionary<ushort, ushort> R2)> OpUShortSortedDictAsync(
+                SortedDictionary<ushort, ushort> p1,
+                SortedDictionary<ushort, ushort> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpIntSortedDictAsync(
+                SortedDictionary<int, int> p1,
+                SortedDictionary<int, int> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpVarIntSortedDictAsync(
+                SortedDictionary<int, int> p1,
+                SortedDictionary<int, int> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpUIntSortedDictAsync(
+                SortedDictionary<uint, uint> p1,
+                SortedDictionary<uint, uint> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpVarUIntSortedDictAsync(
+                SortedDictionary<uint, uint> p1,
+                SortedDictionary<uint, uint> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpLongSortedDictAsync(
+                SortedDictionary<long, long> p1,
+                SortedDictionary<long, long> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpVarLongSortedDictAsync(
+                SortedDictionary<long, long> p1,
+                SortedDictionary<long, long> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpULongSortedDictAsync(
+                SortedDictionary<ulong, ulong> p1,
+                SortedDictionary<ulong, ulong> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpVarULongSortedDictAsync(
+                SortedDictionary<ulong, ulong> p1,
+                SortedDictionary<ulong, ulong> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<string, string> R1, IReadOnlyDictionary<string, string> R2)> OpStringSortedDictAsync(
+                SortedDictionary<string, string> p1,
+                SortedDictionary<string, string> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<MyEnum, MyEnum> R1, IReadOnlyDictionary<MyEnum, MyEnum> R2)> OpMyEnumSortedDictAsync(
+                SortedDictionary<MyEnum, MyEnum> p1,
+                SortedDictionary<MyEnum, MyEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R1, IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R2)> OpMyFixedLengthEnumSortedDictAsync(
+                SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
+                SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+            public ValueTask<(IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R1, IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R2)> OpMyUncheckedEnumSortedDictAsync(
+                SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
+                SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
+                Current current,
+                CancellationToken cancel) => new((p1, p2));
+        }
+
+        static async Task TestDictAsync<Key, Value>(
+                Func<Dictionary<Key, Value>, Dictionary<Key, Value>, Task<(Dictionary<Key, Value>, Dictionary<Key, Value>)>> invoker,
+                Dictionary<Key, Value> p1,
+                Dictionary<Key, Value> p2) where Key : notnull
+        {
+            (Dictionary<Key, Value> r1, Dictionary<Key, Value> r2) = await invoker(p1, p2);
+            CollectionAssert.AreEqual(p1, r1);
+            CollectionAssert.AreEqual(p2, r2);
+        }
+
+        static async Task TestSortedDictAsync<Key, Value>(
+                Func<SortedDictionary<Key, Value>, SortedDictionary<Key, Value>, Task<(SortedDictionary<Key, Value>, SortedDictionary<Key, Value>)>> invoker,
+                SortedDictionary<Key, Value> p1,
+                SortedDictionary<Key, Value> p2) where Key : notnull
+        {
+            (SortedDictionary<Key, Value> r1, SortedDictionary<Key, Value> r2) = await invoker(p1, p2);
+            CollectionAssert.AreEqual(p1, r1);
+            CollectionAssert.AreEqual(p2, r2);
         }
     }
 }
