@@ -39,7 +39,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
         /// must start with a <c>/</c>.</param>
-        /// <param name="dispatcher">The target of this route. It is typically a <see cref="IService"/>.</param>
+        /// <param name="dispatcher">The target of this route. It is typically an <see cref="IService"/>.</param>
         /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
