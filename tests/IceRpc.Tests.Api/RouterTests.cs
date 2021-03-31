@@ -139,6 +139,28 @@ namespace IceRpc.Tests.Api
             await GetGreeter(path).IcePingAsync();
         }
 
+        // Same test as above with one more level of nesting
+        [TestCase("/foo", "/bar", "/foo/bar/abc", "/abc")]
+        [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
+        public async Task Router_RouteNestedAsync(string prefix, string subprefix, string path, string subpath)
+        {
+            _router.Route(prefix, r =>
+                {
+                    r.Route(subprefix, r =>
+                    {
+                        r.Map(subpath, new InlineDispatcher(
+                            async (current, cancel) =>
+                            {
+                                Assert.AreEqual(path, current.Path);
+                                Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/') + subprefix.TrimEnd('/')));
+                                return await _service.DispatchAsync(current, cancel);
+                            }));
+                     });
+                });
+
+            await GetGreeter(path).IcePingAsync();
+        }
+
         [TearDown]
         public async Task TearDownAsync()
         {
