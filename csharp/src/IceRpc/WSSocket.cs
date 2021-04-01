@@ -66,7 +66,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
             await _underlying.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
+            var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
         }
@@ -218,58 +218,51 @@ namespace IceRpc
                     }
                 }
 
-                try
+                if (_parser.Parse(httpBuffer))
                 {
-                    if (_parser.Parse(httpBuffer))
+                    if (_incoming)
                     {
-                        if (_incoming)
+                        (bool addProtocol, string key) = ReadUpgradeRequest();
+
+                        // Compose the response.
+                        var sb = new StringBuilder();
+                        sb.Append("HTTP/1.1 101 Switching Protocols\r\n");
+                        sb.Append("Upgrade: websocket\r\n");
+                        sb.Append("Connection: Upgrade\r\n");
+                        if (addProtocol)
                         {
-                            (bool addProtocol, string key) = ReadUpgradeRequest();
+                            sb.Append($"Sec-WebSocket-Protocol: {IceProtocol}\r\n");
+                        }
 
-                            // Compose the response.
-                            var sb = new StringBuilder();
-                            sb.Append("HTTP/1.1 101 Switching Protocols\r\n");
-                            sb.Append("Upgrade: websocket\r\n");
-                            sb.Append("Connection: Upgrade\r\n");
-                            if (addProtocol)
-                            {
-                                sb.Append($"Sec-WebSocket-Protocol: {IceProtocol}\r\n");
-                            }
-
-                            // The response includes:
-                            //
-                            // "A |Sec-WebSocket-Accept| header field.  The value of this header field is constructed
-                            // by concatenating /key/, defined above in step 4 in Section 4.2.2, with the string
-                            // "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", taking the SHA-1 hash of this concatenated value
-                            // to obtain a 20-byte value and base64-encoding (see Section 4 of [RFC4648]) this 20-byte
-                            // hash.
-                            sb.Append("Sec-WebSocket-Accept: ");
-                            string input = key + WsUUID;
+                        // The response includes:
+                        //
+                        // "A |Sec-WebSocket-Accept| header field.  The value of this header field is constructed
+                        // by concatenating /key/, defined above in step 4 in Section 4.2.2, with the string
+                        // "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", taking the SHA-1 hash of this concatenated value
+                        // to obtain a 20-byte value and base64-encoding (see Section 4 of [RFC4648]) this 20-byte
+                        // hash.
+                        sb.Append("Sec-WebSocket-Accept: ");
+                        string input = key + WsUUID;
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
-                            using var sha1 = SHA1.Create();
-                            byte[] hash = sha1.ComputeHash(_utf8.GetBytes(input));
+                        using var sha1 = SHA1.Create();
+                        byte[] hash = sha1.ComputeHash(_utf8.GetBytes(input));
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
-                            sb.Append(Convert.ToBase64String(hash) + "\r\n" + "\r\n"); // EOM
+                        sb.Append(Convert.ToBase64String(hash) + "\r\n" + "\r\n"); // EOM
 
-                            Debug.Assert(_sendBuffer.Count == 0);
-                            byte[] data = _utf8.GetBytes(sb.ToString());
-                            _sendBuffer.Add(data);
-                            await _underlying.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
-                            _sendBuffer.Clear();
-                        }
-                        else
-                        {
-                            ReadUpgradeResponse();
-                        }
+                        Debug.Assert(_sendBuffer.Count == 0);
+                        byte[] data = _utf8.GetBytes(sb.ToString());
+                        _sendBuffer.Add(data);
+                        await _underlying.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
+                        _sendBuffer.Clear();
                     }
                     else
                     {
-                        throw new InvalidDataException("incomplete WebSocket request frame");
+                        ReadUpgradeResponse();
                     }
                 }
-                catch (WebSocketException ex)
+                else
                 {
-                    throw new InvalidDataException(ex.Message, ex);
+                    throw new InvalidDataException("incomplete WebSocket request frame");
                 }
             }
             catch (Exception ex)
@@ -472,18 +465,18 @@ namespace IceRpc
             // HTTP/1.1
             if (_parser.VersionMajor() != 1 || _parser.VersionMinor() != 1)
             {
-                throw new WebSocketException("unsupported HTTP version");
+                throw new InvalidDataException("unsupported HTTP version");
             }
 
             // "An |Upgrade| header field containing the value 'websocket', treated as an ASCII case-insensitive value."
             string? value = _parser.GetHeader("Upgrade", true);
             if (value == null)
             {
-                throw new WebSocketException("missing value for Upgrade field");
+                throw new InvalidDataException("missing value for Upgrade field");
             }
             else if (value != "websocket")
             {
-                throw new WebSocketException($"invalid value `{value}' for Upgrade field");
+                throw new InvalidDataException($"invalid value `{value}' for Upgrade field");
             }
 
             // "A |Connection| header field that includes the token 'Upgrade', treated as an ASCII case-insensitive
@@ -491,22 +484,22 @@ namespace IceRpc
             value = _parser.GetHeader("Connection", true);
             if (value == null)
             {
-                throw new WebSocketException("missing value for Connection field");
+                throw new InvalidDataException("missing value for Connection field");
             }
             else if (!value.Contains("upgrade"))
             {
-                throw new WebSocketException($"invalid value `{value}' for Connection field");
+                throw new InvalidDataException($"invalid value `{value}' for Connection field");
             }
 
             // "A |Sec-WebSocket-Version| header field, with a value of 13."
             value = _parser.GetHeader("Sec-WebSocket-Version", false);
             if (value == null)
             {
-                throw new WebSocketException("missing value for WebSocket version");
+                throw new InvalidDataException("missing value for WebSocket version");
             }
             else if (value != "13")
             {
-                throw new WebSocketException($"unsupported WebSocket version `{value}'");
+                throw new InvalidDataException($"unsupported WebSocket version `{value}'");
             }
 
             // "Optionally, a |Sec-WebSocket-Protocol| header field, with a list of values indicating which protocols
@@ -518,14 +511,14 @@ namespace IceRpc
                 string[]? protocols = StringUtil.SplitString(value, ",");
                 if (protocols == null)
                 {
-                    throw new WebSocketException($"invalid value `{value}' for WebSocket protocol");
+                    throw new InvalidDataException($"invalid value `{value}' for WebSocket protocol");
                 }
 
                 foreach (string protocol in protocols)
                 {
                     if (protocol.Trim() != IceProtocol)
                     {
-                        throw new WebSocketException($"unknown value `{protocol}' for WebSocket protocol");
+                        throw new InvalidDataException($"unknown value `{protocol}' for WebSocket protocol");
                     }
                     addProtocol = true;
                 }
@@ -536,13 +529,13 @@ namespace IceRpc
             string? key = _parser.GetHeader("Sec-WebSocket-Key", false);
             if (key == null)
             {
-                throw new WebSocketException("missing value for WebSocket key");
+                throw new InvalidDataException("missing value for WebSocket key");
             }
 
             byte[] decodedKey = Convert.FromBase64String(key);
             if (decodedKey.Length != 16)
             {
-                throw new WebSocketException($"invalid value `{key}' for WebSocket key");
+                throw new InvalidDataException($"invalid value `{key}' for WebSocket key");
             }
 
             return (addProtocol, key);
@@ -553,7 +546,7 @@ namespace IceRpc
             // HTTP/1.1
             if (_parser.VersionMajor() != 1 || _parser.VersionMinor() != 1)
             {
-                throw new WebSocketException("unsupported HTTP version");
+                throw new InvalidDataException("unsupported HTTP version");
             }
 
             // "If the status code received from the server is not 101, the client handles the response per HTTP
@@ -567,7 +560,7 @@ namespace IceRpc
                 {
                     sb.Append(":\n" + _parser.Reason());
                 }
-                throw new WebSocketException(sb.ToString());
+                throw new InvalidDataException(sb.ToString());
             }
 
             // "If the response lacks an |Upgrade| header field or the |Upgrade| header field contains a value that is
@@ -576,11 +569,11 @@ namespace IceRpc
             string? value = _parser.GetHeader("Upgrade", true);
             if (value == null)
             {
-                throw new WebSocketException("missing value for Upgrade field");
+                throw new InvalidDataException("missing value for Upgrade field");
             }
             else if (value != "websocket")
             {
-                throw new WebSocketException($"invalid value `{value}' for Upgrade field");
+                throw new InvalidDataException($"invalid value `{value}' for Upgrade field");
             }
 
             // "If the response lacks a |Connection| header field or the |Connection| header field doesn't contain a
@@ -589,11 +582,11 @@ namespace IceRpc
             value = _parser.GetHeader("Connection", true);
             if (value == null)
             {
-                throw new WebSocketException("missing value for Connection field");
+                throw new InvalidDataException("missing value for Connection field");
             }
             else if (!value.Contains("upgrade"))
             {
-                throw new WebSocketException($"invalid value `{value}' for Connection field");
+                throw new InvalidDataException($"invalid value `{value}' for Connection field");
             }
 
             // "If the response includes a |Sec-WebSocket-Protocol| header field and this header field indicates the
@@ -602,7 +595,7 @@ namespace IceRpc
             value = _parser.GetHeader("Sec-WebSocket-Protocol", true);
             if (value != null && value != IceProtocol)
             {
-                throw new WebSocketException($"invalid value `{value}' for WebSocket protocol");
+                throw new InvalidDataException($"invalid value `{value}' for WebSocket protocol");
             }
 
             // "If the response lacks a |Sec-WebSocket-Accept| header field or the |Sec-WebSocket-Accept| contains a
@@ -612,7 +605,7 @@ namespace IceRpc
             value = _parser.GetHeader("Sec-WebSocket-Accept", false);
             if (value == null)
             {
-                throw new WebSocketException("missing value for Sec-WebSocket-Accept");
+                throw new InvalidDataException("missing value for Sec-WebSocket-Accept");
             }
 
             string input = _key + WsUUID;
@@ -622,7 +615,7 @@ namespace IceRpc
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
             if (value != Convert.ToBase64String(hash))
             {
-                throw new WebSocketException($"invalid value `{value}' for Sec-WebSocket-Accept");
+                throw new InvalidDataException($"invalid value `{value}' for Sec-WebSocket-Accept");
             }
         }
 

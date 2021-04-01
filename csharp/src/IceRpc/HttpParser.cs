@@ -7,18 +7,6 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>This exception reports a websocket protocol error.</summary>
-    public sealed class WebSocketException : Exception
-    {
-        /// <summary>Constructs a new instance of the <see cref="WebSocketException"/> class with a specified error message.
-        /// </summary>
-        /// <param name="message">The message that describes the error.</param>
-        internal WebSocketException(string message)
-            : base(message)
-        {
-        }
-    }
-
     internal sealed class HttpParser
     {
         internal HttpParser()
@@ -144,7 +132,7 @@ namespace IceRpc
                         }
                         else
                         {
-                            throw new WebSocketException("malformed request or response");
+                            throw new InvalidDataException("malformed request or response");
                         }
                         break;
                     }
@@ -172,7 +160,7 @@ namespace IceRpc
                         }
                         else if (c == CR || c == LF)
                         {
-                            throw new WebSocketException("malformed request");
+                            throw new InvalidDataException("malformed request");
                         }
                         _state = State.RequestURI;
                         continue;
@@ -195,7 +183,7 @@ namespace IceRpc
                         }
                         else if (c == CR || c == LF)
                         {
-                            throw new WebSocketException("malformed request");
+                            throw new InvalidDataException("malformed request");
                         }
                         _state = State.Version;
                         continue;
@@ -204,7 +192,7 @@ namespace IceRpc
                     {
                         if (c != LF)
                         {
-                            throw new WebSocketException("malformed request");
+                            throw new InvalidDataException("malformed request");
                         }
                         _state = State.HeaderFieldStart;
                         break;
@@ -252,7 +240,7 @@ namespace IceRpc
                             {
                                 if (_headerName.Length == 0)
                                 {
-                                    throw new WebSocketException("malformed header");
+                                    throw new InvalidDataException("malformed header");
                                 }
                                 Debug.Assert(_headers.ContainsKey(_headerName));
                                 string s = _headers[_headerName];
@@ -291,7 +279,7 @@ namespace IceRpc
                         }
                         else if (c == CR || c == LF)
                         {
-                            throw new WebSocketException("malformed header");
+                            throw new InvalidDataException("malformed header");
                         }
                         break;
                     }
@@ -319,7 +307,7 @@ namespace IceRpc
                         }
                         else if (c != ':' || p == start)
                         {
-                            throw new WebSocketException("malformed header");
+                            throw new InvalidDataException("malformed header");
                         }
 
                         _state = State.HeaderFieldValueStart;
@@ -392,7 +380,7 @@ namespace IceRpc
                     {
                         if (c != LF)
                         {
-                            throw new WebSocketException("malformed header");
+                            throw new InvalidDataException("malformed header");
                         }
                         _state = State.HeaderFieldStart;
                         break;
@@ -401,7 +389,7 @@ namespace IceRpc
                     {
                         if (c != LF)
                         {
-                            throw new WebSocketException("malformed header");
+                            throw new InvalidDataException("malformed header");
                         }
                         _state = State.Complete;
                         break;
@@ -410,7 +398,7 @@ namespace IceRpc
                     {
                         if (c != 'H')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         _state = State.VersionH;
                         break;
@@ -419,7 +407,7 @@ namespace IceRpc
                     {
                         if (c != 'T')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         _state = State.VersionHT;
                         break;
@@ -428,7 +416,7 @@ namespace IceRpc
                     {
                         if (c != 'T')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         _state = State.VersionHTT;
                         break;
@@ -437,7 +425,7 @@ namespace IceRpc
                     {
                         if (c != 'P')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         _state = State.VersionHTTP;
                         break;
@@ -446,7 +434,7 @@ namespace IceRpc
                     {
                         if (c != '/')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         _state = State.VersionMajor;
                         break;
@@ -457,14 +445,14 @@ namespace IceRpc
                         {
                             if (_versionMajor == -1)
                             {
-                                throw new WebSocketException("malformed version");
+                                throw new InvalidDataException("malformed version");
                             }
                             _state = State.VersionMinor;
                             break;
                         }
                         else if (c < '0' || c > '9')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         if (_versionMajor == -1)
                         {
@@ -480,7 +468,7 @@ namespace IceRpc
                         {
                             if (_versionMinor == -1 || _type != Type.Request)
                             {
-                                throw new WebSocketException("malformed version");
+                                throw new InvalidDataException("malformed version");
                             }
                             _state = State.RequestLF;
                             break;
@@ -489,7 +477,7 @@ namespace IceRpc
                         {
                             if (_versionMinor == -1 || _type != Type.Request)
                             {
-                                throw new WebSocketException("malformed version");
+                                throw new InvalidDataException("malformed version");
                             }
                             _state = State.HeaderFieldStart;
                             break;
@@ -498,14 +486,14 @@ namespace IceRpc
                         {
                             if (_versionMinor == -1 || _type != Type.Response)
                             {
-                                throw new WebSocketException("malformed version");
+                                throw new InvalidDataException("malformed version");
                             }
                             _state = State.ResponseVersionSP;
                             break;
                         }
                         else if (c < '0' || c > '9')
                         {
-                            throw new WebSocketException("malformed version");
+                            throw new InvalidDataException("malformed version");
                         }
                         if (_versionMinor == -1)
                         {
@@ -538,7 +526,7 @@ namespace IceRpc
                         {
                             if (_status == -1)
                             {
-                                throw new WebSocketException("malformed response status");
+                                throw new InvalidDataException("malformed response status");
                             }
                             _state = State.ResponseLF;
                             break;
@@ -547,7 +535,7 @@ namespace IceRpc
                         {
                             if (_status == -1)
                             {
-                                throw new WebSocketException("malformed response status");
+                                throw new InvalidDataException("malformed response status");
                             }
                             _state = State.HeaderFieldStart;
                             break;
@@ -556,14 +544,14 @@ namespace IceRpc
                         {
                             if (_status == -1)
                             {
-                                throw new WebSocketException("malformed response status");
+                                throw new InvalidDataException("malformed response status");
                             }
                             _state = State.ResponseReasonStart;
                             break;
                         }
                         else if (c < '0' || c > '9')
                         {
-                            throw new WebSocketException("malformed response status");
+                            throw new InvalidDataException("malformed response status");
                         }
                         if (_status == -1)
                         {
@@ -607,7 +595,7 @@ namespace IceRpc
                     {
                         if (c != LF)
                         {
-                            throw new WebSocketException("malformed status line");
+                            throw new InvalidDataException("malformed status line");
                         }
                         _state = State.HeaderFieldStart;
                         break;
