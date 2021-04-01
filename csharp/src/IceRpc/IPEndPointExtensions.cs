@@ -2,6 +2,7 @@
 
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 
 namespace IceRpc
 {
@@ -15,7 +16,17 @@ namespace IceRpc
         {
             try
             {
-                return IPEndpoint.GetLocalAddresses(null, false, false).Any(address => address.Equals(peer.Address));
+                foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (networkInterface.OperationalStatus == OperationalStatus.Up)
+                    {
+                        if(networkInterface.GetIPProperties().UnicastAddresses.Any(
+                             address => address.Address.Equals(peer.Address)))
+                        {
+                            return true;
+                        }
+                    }
+                }
             }
             catch
             {

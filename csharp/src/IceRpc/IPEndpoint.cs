@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Net.NetworkInformation;
 using System.Text;
 
 namespace IceRpc
@@ -107,50 +106,6 @@ namespace IceRpc
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             publishedHost == Host ? this : Clone(publishedHost, Port);
-
-        internal static IPAddress[] GetLocalAddresses(
-            AddressFamily? family,
-            bool singleAddressPerInterface,
-            bool supportMulticast)
-        {
-            var addresses = new HashSet<IPAddress>();
-            try
-            {
-                foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
-                {
-                    if (supportMulticast && !ni.SupportsMulticast || ni.OperationalStatus != OperationalStatus.Up)
-                    {
-                        continue;
-                    }
-
-                    IPInterfaceProperties ipProps = ni.GetIPProperties();
-                    UnicastIPAddressInformationCollection uniColl = ipProps.UnicastAddresses;
-                    foreach (UnicastIPAddressInformation uni in uniColl)
-                    {
-                        if (family == null || uni.Address.AddressFamily == family)
-                        {
-                            if (!IPAddress.IsLoopback(uni.Address))
-                            {
-                                addresses.Add(uni.Address);
-                                if (singleAddressPerInterface)
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new TransportException(
-                    "error retrieving local network interface IP addresses",
-                    ex,
-                    RetryPolicy.NoRetry);
-            }
-
-            return addresses.ToArray();
-        }
 
         internal IPEndpoint Clone(ushort port)
         {

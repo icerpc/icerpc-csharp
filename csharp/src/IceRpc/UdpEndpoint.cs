@@ -55,15 +55,9 @@ namespace IceRpc
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
                     // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
-                    if (OperatingSystem.IsMacOS())
-                    {
-                        socket.DualMode = false;
-                    }
-                    else
-                    {
-                        socket.DualMode = !udpOptions.IsIPv6Only;
-                    }
+                    socket.DualMode = !(OperatingSystem.IsMacOS() || udpOptions.IsIPv6Only);
                 }
+
                 socket.ExclusiveAddressUse = true;
 
                 SetBufferSize(socket,
@@ -82,27 +76,23 @@ namespace IceRpc
 
                     if (OperatingSystem.IsWindows())
                     {
-                        // Windows does not allow binding to the multicast address itself so we bind to INADDR_ANY
+                        // Windows does not allow binding to the multicast address itself so we bind to the wildcard
                         // instead. As a result, bidirectional connection won't work because the source address won't
                         // be the multicast address and the client will therefore reject the datagram.
-                        if (addr.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            addr = new IPEndPoint(IPAddress.Any, addr.Port);
-                        }
-                        else
-                        {
-                            addr = new IPEndPoint(IPAddress.IPv6Any, addr.Port);
-                        }
+                        addr = new IPEndPoint(
+                            addr.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                             addr.Port);
                     }
                 }
 
                 socket.Bind(addr);
 
                 ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
+
                 if (multicastAddress != null)
                 {
                     multicastAddress.Port = port;
-                    SetMulticastGroup(socket, multicastAddress.Address, MulticastInterface);
+                    SetMulticastGroup(socket, multicastAddress.Address);
                 }
 
                 Endpoint endpoint = Clone(port);
@@ -201,39 +191,39 @@ namespace IceRpc
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
             Socket socket = HasDnsHost ?
-                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
                 UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !udpOptions.IsIPv6Only;
-                }
-
                 if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
                 {
+                    if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        socket.DualMode = !udpOptions.IsIPv6Only;
+                    }
+
                     // IP multicast socket options require a socket created with the correct address family.
                     if (MulticastInterface != null)
                     {
                         Debug.Assert(MulticastInterface.Length > 0);
-
                         if (Address.AddressFamily == AddressFamily.InterNetwork)
                         {
                             socket.SetSocketOption(
                                 SocketOptionLevel.IP,
                                 SocketOptionName.MulticastInterface,
-                                GetInterfaceAddress(MulticastInterface, Address.AddressFamily)!.GetAddressBytes());
+                                GetIPv4InterfaceAddress(MulticastInterface).GetAddressBytes());
                         }
                         else
                         {
-                            socket.SetSocketOption(SocketOptionLevel.IPv6,
+                            socket.SetSocketOption(
+                                SocketOptionLevel.IPv6,
                                 SocketOptionName.MulticastInterface,
-                                GetInterfaceIndex(MulticastInterface, socket.AddressFamily));
+                                GetIPv6InterfaceIndex(MulticastInterface));
                         }
-
                     }
+
                     if (MulticastTtl != -1)
                     {
                         socket.Ttl = (short)MulticastTtl;
@@ -328,19 +318,50 @@ namespace IceRpc
                 multicastInterface = argument ?? throw new FormatException(
                     $"no argument provided for --interface option in endpoint `{endpointString}'");
 
-                if (serverEndpoint)
+                if (multicastInterface == "*")
                 {
-                    throw new FormatException($"invalid `--interface' option in server endpoint `{endpointString}'");
-                }
-                else if (multicastInterface == "*")
-                {
-                    throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
+                    if (!serverEndpoint)
+                    {
+                        throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
+                    }
+
+                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
+                    multicastInterface = null;
                 }
                 else if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
                 {
                     throw new FormatException(
                         $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
                         endpointString}'");
+                }
+                else if (IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
+                {
+                    if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
+                    {
+                        throw new FormatException(
+                            $@"`--interface' option address family is different from the multicast address family `{
+                            endpointString}'");
+                    }
+
+                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
+                    if (multicastInterfaceAddr == IPAddress.Any)
+                    {
+                        if (!serverEndpoint)
+                        {
+                            throw new FormatException(
+                                $"`--interface 0.0.0.0' is not valid for proxy endpoint `{endpointString}'");
+                        }
+                        multicastInterface = null;
+                    }
+                    else if(multicastInterfaceAddr == IPAddress.IPv6Any)
+                    {
+                        if (!serverEndpoint)
+                        {
+                            throw new FormatException(
+                                $"`--interface \"::0\" is not valid for proxy endpoint `{endpointString}'");
+                        }
+                        multicastInterface = null;
+                    }
                 }
                 options.Remove("--interface");
             }
@@ -352,72 +373,28 @@ namespace IceRpc
                                    serverEndpoint);
         }
 
-        private static IPAddress? GetInterfaceAddress(string iface, AddressFamily family)
+        private static IPAddress GetIPv4InterfaceAddress(string iface)
         {
-            Debug.Assert(iface.Length > 0);
-
             // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
             // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
             // name we search an interface with this name.
-            try
+
+            if (IPAddress.TryParse(iface, out IPAddress? address))
             {
-                return IPAddress.Parse(iface);
-            }
-            catch (FormatException)
-            {
+                return address;
             }
 
-            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
-            try
+            bool isIndex = int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
-                int index = int.Parse(iface, CultureInfo.InvariantCulture);
-                foreach (NetworkInterface ni in nics)
+                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
+                IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
+                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == iface)
                 {
-                    IPInterfaceProperties ipProps = ni.GetIPProperties();
-                    int interfaceIndex = -1;
-                    if (family == AddressFamily.InterNetwork)
+                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
-                        IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                        if (ipv4Props != null && ipv4Props.Index == index)
-                        {
-                            interfaceIndex = ipv4Props.Index;
-                        }
-                    }
-                    else
-                    {
-                        IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
-                        if (ipv6Props != null && ipv6Props.Index == index)
-                        {
-                            interfaceIndex = ipv6Props.Index;
-                        }
-                    }
-                    if (interfaceIndex >= 0)
-                    {
-                        foreach (UnicastIPAddressInformation a in ipProps.UnicastAddresses)
-                        {
-                            if (a.Address.AddressFamily == family)
-                            {
-                                return a.Address;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (FormatException)
-            {
-            }
-
-            foreach (NetworkInterface ni in nics)
-            {
-                if (ni.Name == iface)
-                {
-                    IPInterfaceProperties ipProps = ni.GetIPProperties();
-                    foreach (UnicastIPAddressInformation a in ipProps.UnicastAddresses)
-                    {
-                        if (a.Address.AddressFamily == family)
-                        {
-                            return a.Address;
-                        }
+                        Debug.Assert(unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork);
+                        return unicastAddress.Address;
                     }
                 }
             }
@@ -425,76 +402,26 @@ namespace IceRpc
             throw new ArgumentException($"couldn't find interface `{iface}'");
         }
 
-        private static int GetInterfaceIndex(string iface, AddressFamily family)
+        private static int GetIPv6InterfaceIndex(string iface)
         {
-            if (iface.Length == 0)
-            {
-                return -1;
-            }
-
             // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
             // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
             // name we search an interface with this name.
-            try
+            if (int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
             {
-                return int.Parse(iface, CultureInfo.InvariantCulture);
-            }
-            catch (FormatException)
-            {
+                return index;
             }
 
-            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
-            try
+            bool isAddress = IPAddress.TryParse(iface, out IPAddress? address);
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
-                var addr = IPAddress.Parse(iface);
-                foreach (NetworkInterface ni in nics)
+                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
+                IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
+                if (ipv6Props != null)
                 {
-                    IPInterfaceProperties ipProps = ni.GetIPProperties();
-                    foreach (UnicastIPAddressInformation uni in ipProps.UnicastAddresses)
+                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
-                        if (uni.Address.Equals(addr))
-                        {
-                            if (addr.AddressFamily == AddressFamily.InterNetwork)
-                            {
-                                IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                                if (ipv4Props != null)
-                                {
-                                    return ipv4Props.Index;
-                                }
-                            }
-                            else
-                            {
-                                IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
-                                if (ipv6Props != null)
-                                {
-                                    return ipv6Props.Index;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (FormatException)
-            {
-            }
-
-            foreach (NetworkInterface ni in nics)
-            {
-                if (ni.Name == iface)
-                {
-                    IPInterfaceProperties ipProps = ni.GetIPProperties();
-                    if (family == AddressFamily.InterNetwork)
-                    {
-                        IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                        if (ipv4Props != null)
-                        {
-                            return ipv4Props.Index;
-                        }
-                    }
-                    else
-                    {
-                        IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
-                        if (ipv6Props != null)
+                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == iface)
                         {
                             return ipv6Props.Index;
                         }
@@ -505,71 +432,9 @@ namespace IceRpc
             throw new ArgumentException("couldn't find interface `" + iface + "'");
         }
 
-        private static List<string> GetInterfacesForMulticast(string? intf, AddressFamily family)
-        {
-            var interfaces = new List<string>();
-
-            bool isWildcard = false;
-            if (intf != null && IPAddress.TryParse(intf, out IPAddress? addr))
-            {
-                isWildcard = addr.Equals(family == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any);
-            }
-
-            if (intf == null || isWildcard)
-            {
-                interfaces.AddRange(GetLocalAddresses(family, true, true).Select(i => i.ToString()));
-            }
-
-            if (intf != null && interfaces.Count == 0)
-            {
-                interfaces.Add(intf);
-            }
-            return interfaces;
-        }
-
         private static bool IsMulticast(IPAddress addr) =>
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
-
-        private static void SetMulticastGroup(Socket s, IPAddress group, string? iface)
-        {
-            var indexes = new HashSet<int>();
-            foreach (string intf in GetInterfacesForMulticast(iface, group.AddressFamily))
-            {
-                if (group.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    MulticastOption option;
-                    IPAddress? addr = GetInterfaceAddress(intf, group.AddressFamily);
-                    if (addr == null)
-                    {
-                        option = new MulticastOption(group);
-                    }
-                    else
-                    {
-                        option = new MulticastOption(group, addr);
-                    }
-                    s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, option);
-                }
-                else
-                {
-                    int index = GetInterfaceIndex(intf, group.AddressFamily);
-                    if (!indexes.Contains(index))
-                    {
-                        indexes.Add(index);
-                        IPv6MulticastOption option;
-                        if (index == -1)
-                        {
-                            option = new IPv6MulticastOption(group);
-                        }
-                        else
-                        {
-                            option = new IPv6MulticastOption(group, index);
-                        }
-                        s.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.AddMembership, option);
-                    }
-                }
-            }
-        }
 
         // Constructor for ice1 unmarshaling
         private UdpEndpoint(EndpointData data, bool compress)
@@ -599,6 +464,65 @@ namespace IceRpc
             MulticastTtl = endpoint.MulticastTtl;
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
+
+        private void SetMulticastGroup(Socket socket, IPAddress group)
+        {
+            if (MulticastInterface == null) // Wildcard
+            {
+                // Get all the interfaces that support multicast and add each interface to the multicast group.
+                var indexes = new HashSet<int>();
+                foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (networkInterface.OperationalStatus == OperationalStatus.Up &&
+                        networkInterface.SupportsMulticast)
+                    {
+                        IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
+                        ;
+                        if (ipProps.UnicastAddresses.Select(addr => addr.Address).FirstOrDefault(
+                                addr => addr.AddressFamily == group.AddressFamily) is IPAddress address)
+                        {
+                            if (group.AddressFamily == AddressFamily.InterNetwork)
+                            {
+                                socket.SetSocketOption(
+                                    SocketOptionLevel.IP,
+                                    SocketOptionName.AddMembership,
+                                    new MulticastOption(group, address));
+                            }
+                            else
+                            {
+                                int index = GetIPv6InterfaceIndex(address.ToString());
+                                if (!indexes.Contains(index))
+                                {
+                                    indexes.Add(index);
+                                    socket.SetSocketOption(
+                                        SocketOptionLevel.IPv6,
+                                        SocketOptionName.AddMembership,
+                                        new IPv6MulticastOption(group, index));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (group.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    socket.SetSocketOption(
+                        SocketOptionLevel.IP,
+                        SocketOptionName.AddMembership,
+                        new MulticastOption(group, GetIPv4InterfaceAddress(MulticastInterface)));
+                }
+                else
+                {
+                    socket.SetSocketOption(
+                        SocketOptionLevel.IPv6,
+                        SocketOptionName.AddMembership,
+                        new IPv6MulticastOption(group, GetIPv6InterfaceIndex(MulticastInterface)));
+                }
+            }
+        }
+
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new UdpEndpoint(this, host, port);
     }
