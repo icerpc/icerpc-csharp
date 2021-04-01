@@ -15,14 +15,10 @@ namespace IceRpc
     {
         /// <summary>Parses a string that represents one or more endpoints.</summary>
         /// <param name="endpointString">The string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
         /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
-        internal static IReadOnlyList<Endpoint> ParseEndpoints(
-            string endpointString,
-            Communicator communicator,
-            bool serverEndpoints = true)
+        internal static IReadOnlyList<Endpoint> ParseEndpoints(string endpointString, bool serverEndpoints = true)
         {
             int beg;
             int end = 0;
@@ -93,7 +89,7 @@ namespace IceRpc
                 string s = endpointString[beg..end];
                 try
                 {
-                    endpoints.Add(CreateEndpoint(s, communicator, serverEndpoints));
+                    endpoints.Add(CreateEndpoint(s, serverEndpoints));
                 }
                 catch (Exception ex)
                 {
@@ -113,7 +109,6 @@ namespace IceRpc
         internal static InteropProxyOptions ParseProxy(string s, ProxyOptions proxyOptions)
         {
             // TODO: rework this implementation
-            Communicator communicator = proxyOptions.Communicator!;
 
             int beg = 0;
             int end = 0;
@@ -279,11 +274,6 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -s option in `{s}'");
                         }
-
-                        if (communicator.Logger.IsEnabled(LogLevel.Warning))
-                        {
-                            communicator.Logger.LogWarnProxySecureOptionHasNoEffect(s);
-                        }
                         break;
 
                     case 'e':
@@ -373,7 +363,7 @@ namespace IceRpc
                     string es = s[beg..end];
                     try
                     {
-                        endpoints = endpoints.Add(CreateEndpoint(es, communicator, false));
+                        endpoints = endpoints.Add(CreateEndpoint(es, false));
                     }
                     catch (Exception ex)
                     {
@@ -438,14 +428,13 @@ namespace IceRpc
 
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
         /// <param name="endpointString">The string parsed by this method.</param>
-        /// <param name="communicator">The communicator of the enclosing proxy or server.</param>
         /// <param name="serverEndpoint">When true, endpointString represents a server's endpoint configuration;
         /// when false, endpointString represents a proxy endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
         /// <exception cref="NotSupportedException">Thrown when the transport specified in endpointString does not
         /// the ice1 protocol.</exception>
-        private static Endpoint CreateEndpoint(string endpointString, Communicator communicator, bool serverEndpoint)
+        private static Endpoint CreateEndpoint(string endpointString, bool serverEndpoint)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -493,7 +482,7 @@ namespace IceRpc
                 }
             }
 
-            if (communicator.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
+            if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
             {
                 Endpoint endpoint = parser(transport, options, serverEndpoint, endpointString);
                 if (options.Count > 0)
@@ -516,7 +505,7 @@ namespace IceRpc
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    communicator.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
+                    Runtime.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.
@@ -532,10 +521,7 @@ namespace IceRpc
                     Debug.Assert(bufferList.Count == 1);
                     Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
-                    return new InputStream(
-                        bufferList[0],
-                        Ice1Definitions.Encoding,
-                        new ProxyOptions() { Communicator = communicator }).ReadEndpoint11(Protocol.Ice1);
+                    return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {

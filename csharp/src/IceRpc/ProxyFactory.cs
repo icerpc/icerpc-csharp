@@ -81,6 +81,16 @@ namespace IceRpc
                 }
                 // else keep inherited value for IsOneway
             }
+
+            // Also give the new proxy a colocated connection if it has no endpoint or is "well-known".
+            // TODO: why not give it a coloc connection all the time?
+            if (endpoints.Count == 0 && server.GetColocatedEndpoint() is Endpoint colocatedEndpoint)
+            {
+                // TODO: fix!
+                var vt = server.Communicator.ConnectAsync(colocatedEndpoint, new(), default);
+                options.Connection = vt.IsCompleted ? vt.Result : vt.AsTask().Result;
+            }
+
             return factory.Create(options);
         }
 
@@ -181,6 +191,8 @@ namespace IceRpc
                 Endpoint[] endpoints =
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint11(proxyData.Protocol));
 
+                bool wellKnown = false;
+
                 if (endpoints.Length == 0)
                 {
                     string adapterId = istr.ReadString();
@@ -192,6 +204,8 @@ namespace IceRpc
                             LocEndpoint.Create(identity);
 
                         endpoints = new Endpoint[] { locEndpoint };
+
+                        wellKnown = adapterId.Length == 0;
                     }
                 }
                 else if (endpoints.Length > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
@@ -213,7 +227,8 @@ namespace IceRpc
                                            endpoints,
                                            proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                                            identity,
-                                           proxyData.InvocationMode);
+                                           proxyData.InvocationMode,
+                                           wellKnown);
                 }
                 else
                 {
@@ -244,7 +259,7 @@ namespace IceRpc
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
                 IReadOnlyList<Endpoint> endpoints =
                     proxyData.Endpoints?.Select(
-                        data => data.ToEndpoint(istr.Communicator!, protocol))?.ToImmutableList() ??
+                        data => data.ToEndpoint(protocol))?.ToImmutableList() ??
                     ImmutableList<Endpoint>.Empty;
 
                 if (endpoints.Count > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
@@ -277,11 +292,16 @@ namespace IceRpc
                         throw new InvalidDataException($"received invalid ice1 identity `{proxyData.Path}'");
                     }
 
+                    bool wellKnown = endpoints.Count == 1 &&
+                                     endpoints[0].Transport == Transport.Loc &&
+                                     endpoints[0]["category"] != null;
+
                     return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V20,
                                            endpoints,
                                            facet,
                                            identity,
-                                           invocationMode);
+                                           invocationMode,
+                                           wellKnown);
                 }
                 else
                 {
@@ -292,15 +312,45 @@ namespace IceRpc
             // Creates an ice1 proxy
             T CreateIce1Proxy(
                 Encoding encoding,
-                IEnumerable<Endpoint> endpoints,
+                IReadOnlyList<Endpoint> endpoints,
                 string facet,
                 Identity identity,
-                InvocationMode invocationMode) =>
-                factory.Create(proxyOptions.With(encoding,
-                                                 endpoints,
-                                                 facet,
-                                                 identity,
-                                                 invocationMode != InvocationMode.Twoway));
+                InvocationMode invocationMode,
+                bool wellKnown)
+            {
+                InteropProxyOptions options = proxyOptions.With(encoding,
+                                                                endpoints,
+                                                                facet,
+                                                                identity,
+                                                                invocationMode != InvocationMode.Twoway);
+
+                // A well-known proxy with no location resolver is unmarshaled as a relative proxy. This makes various
+                // coloc situations work.
+                if (wellKnown && options.LocationResolver == null)
+                {
+                    if (proxyOptions.Protocol != Protocol.Ice1)
+                    {
+                        if (facet.Length > 0)
+                        {
+                            throw new InvalidDataException(
+                                @$"received a relative proxy with a facet on an {proxyOptions.Protocol.GetName()
+                                } connection or proxy");
+                        }
+                        else
+                        {
+                            // The protocol of the source proxy/connection prevails. It's typically ice2.
+                            options.Protocol = proxyOptions.Protocol;
+                            options.Path = identity.ToPath();
+                            options.Identity = Identity.Empty;
+                        }
+                    }
+
+                    options.Connection = proxyOptions.Connection;
+                    options.Endpoints = proxyOptions.Endpoints;
+                    options.IsFixed = proxyOptions.IsFixed;
+                }
+                return factory.Create(options);
+            }
 
             // Creates an ice2+ proxy
             T CreateIce2Proxy(Encoding encoding, IReadOnlyList<Endpoint> endpoints, string path, Protocol protocol)
@@ -309,11 +359,8 @@ namespace IceRpc
 
                 if (endpoints.Count == 0) // relative proxy
                 {
-                    if (protocol != proxyOptions.Protocol)
-                    {
-                        throw new InvalidDataException(
-                            $"received a relative proxy with invalid protocol {protocol.GetName()}");
-                    }
+                    // The protocol of the source proxy/connection prevails. It could be for example ice1.
+                    options.Protocol = proxyOptions.Protocol;
 
                     options.Connection = proxyOptions.Connection;
                     options.Endpoints = proxyOptions.Endpoints;

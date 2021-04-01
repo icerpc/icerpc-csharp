@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task InvocationIterceptor_Overwrite_RequestContext()
+        public async Task InvocationInterceptor_Overwrite_RequestContext()
         {
             var prx = Prx.Clone(
                 context: new Dictionary<string, string>()

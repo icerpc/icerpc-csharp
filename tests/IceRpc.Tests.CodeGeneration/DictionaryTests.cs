@@ -133,7 +133,8 @@ namespace IceRpc.Tests.CodeGeneration
                                 i =>
                                 {
                                     return new AnotherStruct($"hello-{i}",
-                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                             IOperationsPrx.Parse(
+                                                                    $"ice+tcp://host/foo-{i}", _communicator),
                                                              GetEnum<MyEnum>(myEnumValues, i),
                                                              new MyStruct(i, i + 1));
                                 }),
@@ -142,7 +143,8 @@ namespace IceRpc.Tests.CodeGeneration
                                 i =>
                                 {
                                     return new AnotherStruct($"hello-{i}",
-                                                             IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                             IOperationsPrx.Parse(
+                                                                    $"ice+tcp://host/foo-{i} -f facet", _communicator),
                                                              GetEnum<MyEnum>(myEnumValues, i),
                                                              new MyStruct(i, i + 1));
                                 }));

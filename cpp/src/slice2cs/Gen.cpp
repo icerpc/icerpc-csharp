@@ -2734,7 +2734,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame> IceRpc.IDispatcher"
          << ".DispatchAsync("
          << "IceRpc.Current current, "
          << "global::System.Threading.CancellationToken cancel) =>";
