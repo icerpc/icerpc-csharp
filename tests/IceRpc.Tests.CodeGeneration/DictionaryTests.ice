@@ -67,7 +67,7 @@ module IceRpc::Tests::CodeGeneration
         (VarULongDict r1, VarULongDict r2) opVarULongDict(VarULongDict p1, VarULongDict p2);
         (StringDict r1, StringDict r2) opStringDict(StringDict p1, StringDict p2);
 
-        // Defined types dictionaries
+        // Dictionaries with constructed types
         (MyEnumDict r1, MyEnumDict r2) opMyEnumDict(MyEnumDict p1, MyEnumDict p2);
         (MyFixedLengthEnumDict r1, MyFixedLengthEnumDict r2) opMyFixedLengthEnumDict(
             MyFixedLengthEnumDict p1,
@@ -79,7 +79,7 @@ module IceRpc::Tests::CodeGeneration
         (OperationsDict r1, OperationsDict r2) opOperationsDict(OperationsDict p1, OperationsDict p2);
         (AnotherStructDict r1, AnotherStructDict r2) opAnotherStructDict(AnotherStructDict p1, AnotherStructDict p2);
 
-        // Builtin type sorted dictionaries
+        // Sorted dictionaries with builtin types
         (ByteSortedDict r1, ByteSortedDict r2) opByteSortedDict(ByteSortedDict p1, ByteSortedDict p2);
         (BoolSortedDict r1, BoolSortedDict r2) opBoolSortedDict(BoolSortedDict p1, BoolSortedDict p2);
         (ShortSortedDict r1, ShortSortedDict r2) opShortSortedDict(ShortSortedDict p1, ShortSortedDict p2);
@@ -96,7 +96,7 @@ module IceRpc::Tests::CodeGeneration
             VarULongSortedDict p2);
         (StringSortedDict r1, StringSortedDict r2) opStringSortedDict(StringSortedDict p1, StringSortedDict p2);
 
-        // Defined types sorted dictionaries
+        // Sorted dictionaries with constructed types
         (MyEnumSortedDict r1, MyEnumSortedDict r2) opMyEnumSortedDict(MyEnumSortedDict p1, MyEnumSortedDict p2);
         (MyFixedLengthEnumSortedDict r1, MyFixedLengthEnumSortedDict r2) opMyFixedLengthEnumSortedDict(
             MyFixedLengthEnumSortedDict p1,
