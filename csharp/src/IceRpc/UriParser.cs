@@ -84,15 +84,13 @@ namespace IceRpc
 
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
         /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(
             string uriString,
-            Communicator communicator,
             bool serverEndpoints = true) =>
-            Parse(uriString, serverEndpoints, communicator).Endpoints;
+            Parse(uriString, serverEndpoints).Endpoints;
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
@@ -101,7 +99,7 @@ namespace IceRpc
         internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
-                Parse(uriString, serverEndpoints: false, proxyOptions.Communicator!);
+                Parse(uriString, serverEndpoints: false);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
@@ -143,13 +141,12 @@ namespace IceRpc
             System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
 
         private static Endpoint CreateEndpoint(
-            Communicator communicator,
             bool serverEndpoint,
             Dictionary<string, string> options,
             Protocol protocol,
             Uri uri)
         {
-            Debug.Assert(uri.Scheme.StartsWith("ice+", StringComparison.InvariantCulture));
+            Debug.Assert(uri.Scheme.StartsWith("ice+", StringComparison.Ordinal));
             string transportName = uri.Scheme[4..]; // i.e. chop-off "ice+"
 
             ushort port;
@@ -175,10 +172,10 @@ namespace IceRpc
                 {
                     // It's possible we have a factory for this transport, and we check it only when the protocol is
                     // ice2 (otherwise, we want to create a UniversalEndpoint).
-                    parser = communicator.FindIce2EndpointParser(transport);
+                    parser = Runtime.FindIce2EndpointParser(transport);
                 }
             }
-            else if (communicator.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
+            else if (Runtime.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
             {
                 if (protocol != Protocol.Ice2)
                 {
@@ -242,6 +239,7 @@ namespace IceRpc
                 }
             }
 
+            Runtime.UriInitialize();
             var uri = new Uri(uriString);
 
             if (pureEndpoints)
@@ -383,12 +381,10 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="serverEndpoints">True when parsing the endpoints of a server; false when parsing a proxy.
         /// </param>
-        /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
         private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(
             string uriString,
-            bool serverEndpoints,
-            Communicator communicator)
+            bool serverEndpoints)
         {
             Debug.Assert(IsProxyUri(uriString));
 
@@ -412,7 +408,7 @@ namespace IceRpc
                 if (endpointOptions != null) // i.e. not ice scheme
                 {
                     endpoints = ImmutableList.Create(
-                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri));
+                        CreateEndpoint(serverEndpoints, endpointOptions, protocol, uri));
 
                     if (altEndpoint != null)
                     {
@@ -447,8 +443,7 @@ namespace IceRpc
                                     $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
                             }
 
-                            endpoints = endpoints.Add(CreateEndpoint(communicator,
-                                                                     serverEndpoints,
+                            endpoints = endpoints.Add(CreateEndpoint(serverEndpoints,
                                                                      endpointOptions,
                                                                      protocol,
                                                                      endpointUri));

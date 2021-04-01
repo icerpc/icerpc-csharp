@@ -493,7 +493,7 @@ namespace IceRpc
                 }
             }
 
-            if (communicator.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
+            if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
             {
                 Endpoint endpoint = parser(transport, options, serverEndpoint, endpointString);
                 if (options.Count > 0)
@@ -516,7 +516,7 @@ namespace IceRpc
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    communicator.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
+                    Runtime.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.

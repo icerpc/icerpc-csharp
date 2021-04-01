@@ -254,7 +254,7 @@ namespace IceRpc
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
                 IReadOnlyList<Endpoint> endpoints =
                     proxyData.Endpoints?.Select(
-                        data => data.ToEndpoint(istr.Communicator!, protocol))?.ToImmutableList() ??
+                        data => data.ToEndpoint(protocol))?.ToImmutableList() ??
                     ImmutableList<Endpoint>.Empty;
 
                 if (endpoints.Count > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
