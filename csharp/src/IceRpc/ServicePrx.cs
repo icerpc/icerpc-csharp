@@ -269,7 +269,7 @@ namespace IceRpc
                 else if (IsRelative)
                 {
                     ostr.WriteSize(0); // 0 endpoints
-                    ostr.WriteString("");
+                    ostr.WriteString(""); // empty adapter ID
                 }
                 else
                 {
