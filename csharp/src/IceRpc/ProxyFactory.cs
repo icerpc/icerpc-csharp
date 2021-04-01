@@ -328,7 +328,10 @@ namespace IceRpc
                 // coloc situations work.
                 if (wellKnown && options.LocationResolver == null)
                 {
-                    if (proxyOptions.Protocol != Protocol.Ice1)
+                    // The protocol of the source proxy/connection prevails.
+                    Protocol protocol = proxyOptions.Connection?.Protocol ?? proxyOptions.Protocol;
+
+                    if (protocol != Protocol.Ice1)
                     {
                         if (facet.Length > 0)
                         {
@@ -338,8 +341,8 @@ namespace IceRpc
                         }
                         else
                         {
-                            // The protocol of the source proxy/connection prevails. It's typically ice2.
-                            options.Protocol = proxyOptions.Protocol;
+
+                            options.Protocol = protocol;
                             options.Path = identity.ToPath();
                             options.Identity = Identity.Empty;
                         }
@@ -360,7 +363,7 @@ namespace IceRpc
                 if (endpoints.Count == 0) // relative proxy
                 {
                     // The protocol of the source proxy/connection prevails. It could be for example ice1.
-                    options.Protocol = proxyOptions.Protocol;
+                    options.Protocol = proxyOptions.Connection?.Protocol ?? proxyOptions.Protocol;
 
                     options.Connection = proxyOptions.Connection;
                     options.Endpoints = proxyOptions.Endpoints;
