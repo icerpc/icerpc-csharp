@@ -29,7 +29,7 @@ namespace IceRpc.Test.Proxy
 
         public IRelativeTestPrx OpRelative(ICallbackPrx callback, Current current, CancellationToken cancel)
         {
-            TestHelper.Assert(callback.IsFixed);
+            TestHelper.Assert(callback.FixedConnection != null);
 
             // TODO: need better way to create a relative proxy on the server-side.
             IRelativeTestPrx relativeTest =

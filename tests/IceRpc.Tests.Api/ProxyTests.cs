@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Api
             var fixedPrxIce1 = serverIce1.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
             var connectionIce1 = await fixedPrxIce1.GetConnectionAsync();
             fixedPrxIce1 = fixedPrxIce1.Clone(fixedConnection: connectionIce1);
-            Assert.IsTrue(fixedPrxIce1.IsFixed);
+            Assert.IsNotNull(fixedPrxIce1.FixedConnection);
             Assert.AreEqual(Protocol.Ice1, fixedPrxIce1.Protocol);
 
             await using var serverIce2 = new Server(Communicator, new()
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Api
             var fixedPrxIce2 = serverIce2.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
             var connectionIce2 = await fixedPrxIce2.GetConnectionAsync();
             fixedPrxIce2 = fixedPrxIce2.Clone(fixedConnection: connectionIce2);
-            Assert.IsTrue(fixedPrxIce2.IsFixed);
+            Assert.IsNotNull(fixedPrxIce2.FixedConnection);
             Assert.AreEqual(Protocol.Ice2, fixedPrxIce2.Protocol);
 
             // Cannot change the endpoints of a fixed proxy

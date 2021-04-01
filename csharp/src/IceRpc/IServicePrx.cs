@@ -123,7 +123,7 @@ namespace IceRpc
 
         /// <summary>Indicates whether or not this proxy caches its connection.</summary>
         /// <value>True when the proxy caches its connection; otherwise, false.</value>
-        public bool CacheConnection { get; }
+        public bool CacheConnection { get; set; }
 
         /// <summary>Returns the communicator that created this proxy.</summary>
         /// <returns>The communicator that created this proxy.</returns>
@@ -131,34 +131,31 @@ namespace IceRpc
 
         /// <summary>The context of this proxy, which will be sent with each invocation made using this proxy.
         /// </summary>
-        public IReadOnlyDictionary<string, string> Context { get; }
+        public IReadOnlyDictionary<string, string> Context { get; set; }
 
         /// <summary>The encoding used to marshal request parameters.</summary>
-        public Encoding Encoding { get; }
+        public Encoding Encoding { get; set; }
 
         /// <summary>The endpoints of this proxy. A proxy with a non-empty endpoint list is a direct proxy.</summary>
-        public IReadOnlyList<Endpoint> Endpoints { get; }
+        public IReadOnlyList<Endpoint> Endpoints { get; set; }
+
+        public Connection? FixedConnection { get; set; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>
-        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; }
+        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; set; }
 
         /// <summary>The invocation timeout of this proxy.</summary>
-        public TimeSpan InvocationTimeout { get; }
-
-        /// <summary>Indicates whether or not this proxy is bound to a connection.</summary>
-        /// <value>True when this proxy is bound to a connection. Such a proxy has no endpoint. Otherwise, false.
-        /// </value>
-        public bool IsFixed { get; }
+        public TimeSpan InvocationTimeout { get; set; }
 
         /// <summary>Indicates whether or not using this proxy to invoke an operation that does not return anything
         /// waits for an empty response from the target Ice object.</summary>
         /// <value>When true, invoking such an operation does not wait for the response from the target object. When
         /// false, invoking such an operation waits for the empty response from the target object, unless this behavior
         /// is overridden by metadata on the Slice operation's definition.</value>
-        public bool IsOneway { get; }
+        public bool IsOneway { get; set; }
 
         /// <summary>The location resolver associated with this proxy.</summary>
-        public ILocationResolver? LocationResolver { get; }
+        public ILocationResolver? LocationResolver { get; set; }
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         public string Path { get; }
@@ -167,10 +164,10 @@ namespace IceRpc
         /// When <c>true</c> the proxy will prefer reusing an active connection to any of its endpoints, otherwise
         /// endpoints are checked in order trying to get an active connection to the first endpoint, and if one doesn't
         /// exists creating a new one to the first endpoint.</summary>
-        public bool PreferExistingConnection { get; }
+        public bool PreferExistingConnection { get; set; }
 
         /// <summary>Indicates the proxy's preference for establishing non-secure connections.</summary>
-        public NonSecure NonSecure { get; }
+        public NonSecure NonSecure { get; set; }
 
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }

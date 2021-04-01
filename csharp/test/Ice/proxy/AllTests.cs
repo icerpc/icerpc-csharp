@@ -100,7 +100,7 @@ namespace IceRpc.Test.Proxy
                     ICallbackPrx callback = oa.AddWithUUID(
                         new Callback((relativeTest, current, cancel) =>
                                      {
-                                         TestHelper.Assert(relativeTest.IsFixed);
+                                         TestHelper.Assert(relativeTest.FixedConnection != null);
                                          return relativeTest.DoIt(cancel: cancel);
                                     }),
                         ICallbackPrx.Factory);
@@ -119,9 +119,9 @@ namespace IceRpc.Test.Proxy
             {
                 if (await cl.GetConnectionAsync() is Connection connection2)
                 {
-                    TestHelper.Assert(!cl.IsFixed);
+                    TestHelper.Assert(cl.FixedConnection == null);
                     IMyClassPrx prx = cl.Clone(fixedConnection: connection2);
-                    TestHelper.Assert(prx.IsFixed);
+                    TestHelper.Assert(prx.FixedConnection != null);
                     await prx.IcePingAsync();
 
                     if (ice1)

@@ -216,7 +216,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(received.CacheConnection, proxy.CacheConnection);
             CollectionAssert.IsEmpty(received.Context);
             Assert.AreEqual(received.InvocationTimeout, proxy.InvocationTimeout);
-            Assert.IsFalse(received.IsFixed);
+            Assert.IsNull(received.FixedConnection);
             Assert.AreEqual(received.IsOneway, proxy.IsOneway);
 
             static void CheckProxy(IProxyTestPrx proxy, bool isFixed)
@@ -224,7 +224,14 @@ namespace IceRpc.Tests.Api
                 Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual("fast", proxy.Context["speed"]);
                 Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
-                Assert.AreEqual(isFixed, proxy.IsFixed);
+                if (isFixed)
+                {
+                    Assert.IsNotNull(proxy.FixedConnection);
+                }
+                else
+                {
+                    Assert.IsNull(proxy.FixedConnection);
+                }
                 Assert.AreEqual("/foo/bar", proxy.Path);
             }
         }

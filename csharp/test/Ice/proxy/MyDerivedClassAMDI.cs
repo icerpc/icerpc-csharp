@@ -38,7 +38,7 @@ namespace IceRpc.Test.Proxy
             Current current,
             CancellationToken cancel)
         {
-            TestHelper.Assert(callback.IsFixed);
+            TestHelper.Assert(callback.FixedConnection != null);
             IRelativeTestPrx relativeTest =
                 current.Server.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory).Clone(
                     endpoints: ImmutableList<Endpoint>.Empty);
