@@ -175,7 +175,7 @@ namespace IceRpc
 
             if (PublishedAddress.Count == 0)
             {
-                // If the PublishedAddress config property isn't set, we compute the published endpoints from
+                // If the PublishedAddress option isn't set, we compute the published address from
                 // the endpoints.
 
                 if (options.PublishedHost.Length == 0)
