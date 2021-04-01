@@ -15,7 +15,7 @@ namespace IceRpc
                 Protocol.Ice1 => Encoding.V11,
                 Protocol.Ice2 => Encoding.V20,
                 _ => throw new NotSupportedException(
-                    @$"RPC protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
+                    @$"Ice protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
                     })")
             };
 
@@ -58,7 +58,7 @@ namespace IceRpc
             if (!protocol.IsSupported())
             {
                 throw new NotSupportedException(
-                    @$"RPC protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
+                    @$"Ice protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
                     })");
             }
         }
@@ -69,7 +69,7 @@ namespace IceRpc
                 Protocol.Ice1 => Ice1Definitions.GetEmptyArgsPayload(encoding),
                 Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding),
                 _ => throw new NotSupportedException(
-                    @$"RPC protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
+                    @$"Ice protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
                     })"),
             };
 
@@ -79,7 +79,7 @@ namespace IceRpc
                 Protocol.Ice1 => Ice1Definitions.GetVoidReturnValuePayload(encoding),
                 Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding),
                 _ => throw new NotSupportedException(
-                    @$"RPC protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
+                    @$"Ice protocol `{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
                     })"),
             };
 
