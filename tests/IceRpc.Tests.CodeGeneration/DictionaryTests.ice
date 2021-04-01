@@ -31,7 +31,6 @@ module IceRpc::Tests::CodeGeneration
     dictionary<string, Operations> OperationsDict;
     dictionary<string, AnotherStruct> AnotherStructDict;
 
-
     [cs:generic(SortedDictionary)] dictionary<byte, byte> ByteSortedDict;
     [cs:generic(SortedDictionary)] dictionary<bool, bool> BoolSortedDict;
     [cs:generic(SortedDictionary)] dictionary<short, short> ShortSortedDict;
