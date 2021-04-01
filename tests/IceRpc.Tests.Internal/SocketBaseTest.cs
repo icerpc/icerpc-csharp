@@ -125,9 +125,9 @@ namespace IceRpc.Tests.Internal
                 {
                     string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, Communicator, serverEndpoints: true)[0];
+                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint, serverEndpoints: true)[0];
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, Communicator, serverEndpoints: false)[0];
+                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint, serverEndpoints: false)[0];
                 }
             }
         }
