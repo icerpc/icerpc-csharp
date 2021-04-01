@@ -33,11 +33,15 @@ namespace IceRpc.Tests.Api
             _server.Activate(_router);
         }
 
-        [TestCase("/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q")]
-        public void Router_BadPath(string path)
+        [Test]
+        public void Router_BadPath()
         {
             _router.Mount("/", _failDispatcher);
-            Assert.ThrowsAsync<ServerException>(async () => await GetGreeter(path).IcePingAsync());
+            string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
+            Assert.ThrowsAsync<ServerException>(async () => await GetGreeter(badPath).IcePingAsync());
+
+            Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
+            Assert.Throws<ArgumentException>(() => _router.Mount("foo", _failDispatcher));
         }
 
         [TestCase("/foo")]
