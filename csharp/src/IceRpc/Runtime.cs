@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,16 +20,12 @@ namespace IceRpc
     /// <summary>The Ice runtime.</summary>
     public static class Runtime
     {
-        /// <summary>Returns the Ice version as an integer in the form A.BB.CC, where A indicates the major version,
-        /// BB indicates the minor version, and CC indicates the patch level. For example, for Ice 3.3.1, the returned
-        /// value is 30301.</summary>
-        /// <returns>The Ice version.</returns>
-        public const int IntVersion = 40000; // AABBCC, with AA=major, BB=minor, CC=patch
+        /// <summary>The IceRPC version in semver format.</summary>
+        public const string StringVersion = "0.0.1-alpha";
 
-        /// <summary>Returns the Ice version in the form A.B.C, where A indicates the major version, B indicates the
-        /// minor version, and C indicates the patch level.</summary>
-        /// <returns>The Ice version.</returns>
-        public const string StringVersion = "4.0.0-alpha.0"; // "A.B.C", with A=major, B=minor, C=patch
+        /// <summary>Gets or sets the logger factory used by IceRpc classes when no logger factory is explicitely
+        /// configured.</summary>
+        public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
         private static readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
         private static readonly ConcurrentDictionary<int, Func<AnyClass>?> _compactIdCache = new();
@@ -35,7 +33,7 @@ namespace IceRpc
         private static HashSet<Assembly> _loadedAssemblies = new();
 
         // The mutex protects _loadedAssemblies
-        private static object _mutex = new();
+        private static readonly object _mutex = new();
 
         private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
             new();
