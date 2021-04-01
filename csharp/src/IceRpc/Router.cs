@@ -12,6 +12,11 @@ namespace IceRpc
     /// <summary>A router routes incoming requests to dispatchers.</summary>
     public sealed class Router : IDispatcher
     {
+        // When searching in the prefixMatchRoutes, we search up to MaxSegments before giving up. This prevents a
+        // a malicious client from sending a request with a huge number of segments (/a/a/a/a/a/a/a/a/a/a...) that
+        // results in numerous unsuccessful lookups.
+        private const int MaxSegments = 10;
+
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
 
@@ -59,7 +64,7 @@ namespace IceRpc
         public void Mount(string prefix, IDispatcher dispatcher)
         {
             Check(prefix, nameof(prefix));
-            prefix = RemoveOptionalTrailingSlash(prefix);
+            prefix = NormalizePrefix(prefix);
 
             _pipeline ??= CreatePipeline();
             _prefixMatchRoutes[prefix] = dispatcher;
@@ -124,16 +129,23 @@ namespace IceRpc
             }
         }
 
-        // A prefix can have an optional trailing slash, e.g. `/foo/bar/`, which is equivalent to `/foo/bar` for a
-        // prefix. This method normalizes the prefix by removing this trailing slash. Note that this method never
-        // removes the leading slash and multiple trailing slashes are not removed - at most one trailing slash is
-        // removed.
-        private static string RemoveOptionalTrailingSlash(string prefix) =>
-            prefix.Length > 1 && prefix[^1] == '/' ? prefix[..^1] : prefix;
+        // Trim trailing slashes but keep the leading slash.
+        private static string NormalizePrefix(string prefix)
+        {
+            if (prefix.Length > 1)
+            {
+                prefix = prefix.TrimEnd('/');
+                if (prefix.Length == 0)
+                {
+                    prefix = "/";
+                }
+            }
+            return prefix;
+        }
 
         private Router(Router parent, string prefix)
         {
-            prefix = RemoveOptionalTrailingSlash(prefix);
+            prefix = NormalizePrefix(prefix);
             _fullPrefix = (parent._fullPrefix is string parentFullPrefix) ? parentFullPrefix + prefix : prefix;
         }
 
@@ -169,30 +181,33 @@ namespace IceRpc
                     else
                     {
                         // Then a prefix match
-                        while (true)
+                        string prefix = NormalizePrefix(path);
+
+                        foreach (int _ in Enumerable.Range(0, MaxSegments))
                         {
-                            if (_prefixMatchRoutes.TryGetValue(path, out dispatcher))
+                            if (_prefixMatchRoutes.TryGetValue(prefix, out dispatcher))
                             {
                                 return dispatcher.DispatchAsync(current, cancel);
                             }
 
-                            if (path == "/")
+                            if (prefix == "/")
                             {
                                 throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                             }
 
                             // Cut last segment
-                            int lastSlashPos = path.LastIndexOf('/');
+                            int lastSlashPos = prefix.LastIndexOf('/');
                             if (lastSlashPos > 0)
                             {
-                                path = path[..lastSlashPos];
+                                prefix = NormalizePrefix(prefix[..lastSlashPos]);
                             }
                             else
                             {
-                                path = "/";
+                                prefix = "/";
                             }
                             // and try again with the new shorter prefix
                         }
+                        throw new ServerException("too many segments in path");
                     }
                 });
 
