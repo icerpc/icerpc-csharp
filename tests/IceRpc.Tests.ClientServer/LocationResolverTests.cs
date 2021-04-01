@@ -25,7 +25,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
-            Assert.AreEqual(greeter.Endpoints[0].Transport, Transport.Loc);
+            Assert.AreEqual(Transport.Loc, greeter.Endpoints[0].Transport);
 
             ILocationResolver locationResolver = SetupServer(greeter.Protocol,
                                                              greeter.Path,
@@ -42,7 +42,7 @@ namespace IceRpc.Tests.ClientServer
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
-                Assert.AreEqual(badGreeter.Endpoints[0].Transport, Transport.Loc);
+                Assert.AreEqual(Transport.Loc, badGreeter.Endpoints[0].Transport);
 
                 badGreeter = badGreeter.Clone(locationResolver: locationResolver);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.ClientServer
                 bool refreshCache,
                 CancellationToken cancel)
             {
-                Assert.AreEqual(endpoint.Transport, Transport.Loc);
+                Assert.AreEqual(Transport.Loc, endpoint.Transport);
 
                 if (endpoint.Protocol == _protocol && endpoint.Host == _location && endpoint["category"] == _category)
                 {

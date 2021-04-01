@@ -60,13 +60,13 @@ namespace IceRpc.Tests.ClientServer
                     { "MyCtx", "hello" }
                 };
 
-                Assert.AreEqual(await prx.OpAsync(13, ctx), 13);
+                Assert.AreEqual(13, await prx.OpAsync(13, ctx));
 
                 await prx.OpVoidAsync(ctx);
 
                 (int v, string s) = await prx.OpReturnOutAsync(34, ctx);
-                Assert.AreEqual(v, 34);
-                Assert.AreEqual(s, "value=34");
+                Assert.AreEqual(34, v);
+                Assert.AreEqual("value=34", s);
 
                 await prx.OpOnewayAsync(42);
 

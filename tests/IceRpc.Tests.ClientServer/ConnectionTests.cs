@@ -298,7 +298,7 @@ namespace IceRpc.Tests.ClientServer
             var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator1);
             // No close timeout
             var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator2);
-            Assert.AreEqual(prx1.Protocol, Protocol.Ice2);
+            Assert.AreEqual(Protocol.Ice2, prx1.Protocol);
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
 

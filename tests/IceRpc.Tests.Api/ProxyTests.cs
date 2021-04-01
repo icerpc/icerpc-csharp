@@ -96,8 +96,8 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("", other.GetIdentity().Category);
             }
 
-            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Always).NonSecure, NonSecure.Always);
-            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Never).NonSecure, NonSecure.Never);
+            Assert.AreEqual(NonSecure.Always, prx.Clone(nonSecure: NonSecure.Always).NonSecure);
+            Assert.AreEqual(NonSecure.Never, prx.Clone(nonSecure: NonSecure.Never).NonSecure);
         }
 
         [Test]
@@ -330,15 +330,15 @@ namespace IceRpc.Tests.Api
             IReadOnlyList<Endpoint> endps = p1.Endpoints;
 
             Endpoint tcpEndpoint = endps[0];
-            Assert.AreEqual(tcpEndpoint.Transport, Transport.TCP);
+            Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
             Assert.IsFalse(tcpEndpoint.IsAlwaysSecure);
-            Assert.AreEqual(tcpEndpoint.Host, "tcphost");
-            Assert.AreEqual(tcpEndpoint.Port, 10000);
+            Assert.AreEqual("tcphost", tcpEndpoint.Host);
+            Assert.AreEqual(10000, tcpEndpoint.Port);
 
             if (p1.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual(tcpEndpoint["timeout"], "1200");
-                Assert.AreEqual(tcpEndpoint["compress"], "true");
+                Assert.AreEqual("1200", tcpEndpoint["timeout"]);
+                Assert.AreEqual("true", tcpEndpoint["compress"]);
             }
             Assert.IsFalse(tcpEndpoint.IsDatagram);
 
@@ -410,9 +410,9 @@ namespace IceRpc.Tests.Api
 
             Assert.IsFalse(proxy.CacheConnection);
             Assert.IsTrue(proxy.IsOneway);
-            Assert.AreEqual(proxy.InvocationTimeout, TimeSpan.FromSeconds(1));
-            Assert.AreEqual(proxy.Context["c1"], "TEST1");
-            Assert.AreEqual(proxy.Context["c2"], "TEST2");
+            Assert.AreEqual(TimeSpan.FromSeconds(1), proxy.InvocationTimeout);
+            Assert.AreEqual("TEST1", proxy.Context["c1"]);
+            Assert.AreEqual("TEST2", proxy.Context["c2"]);
         }
 
         [Test]
@@ -425,7 +425,7 @@ namespace IceRpc.Tests.Api
 
             communicator.SetProperty(propertyPrefix, proxyString);
             var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual(prx.Path, "/test");
+            Assert.AreEqual("/test", prx.Path);
         }
 
         [Test]
@@ -439,7 +439,7 @@ namespace IceRpc.Tests.Api
                 invocationTimeout: TimeSpan.FromSeconds(10));
 
             Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(proxyProps.Count, 4);
+            Assert.AreEqual(4, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
 
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
@@ -479,11 +479,11 @@ namespace IceRpc.Tests.Api
                     $"{proxyString}?context=c1=TEST1,c2=TEST&context=c2=TEST2,d%204=TEST%204,c3=TEST3",
                     communicator);
 
-            Assert.AreEqual(prx.Context.Count, 4);
-            Assert.AreEqual(prx.Context["c1"], "TEST1");
-            Assert.AreEqual(prx.Context["c2"], "TEST2");
-            Assert.AreEqual(prx.Context["c3"], "TEST3");
-            Assert.AreEqual(prx.Context["d 4"], "TEST 4");
+            Assert.AreEqual(4, prx.Context.Count);
+            Assert.AreEqual("TEST1", prx.Context["c1"]);
+            Assert.AreEqual("TEST2", prx.Context["c2"]);
+            Assert.AreEqual("TEST3", prx.Context["c3"]);
+            Assert.AreEqual("TEST 4", prx.Context["d 4"]);
 
             // This works because Context is a sorted dictionary
             Assert.AreEqual(prx.ToString(), $"{proxyString}?context=c1=TEST1,c2=TEST2,c3=TEST3,d%204=TEST%204");
@@ -496,12 +496,12 @@ namespace IceRpc.Tests.Api
                 "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
-            Assert.AreEqual(prx.Endpoints.Count, 2);
-            Assert.AreEqual(prx.Endpoints[1].Transport, Transport.WS);
-            Assert.AreEqual(prx.Endpoints[1]["resource"], "/x/y");
-            Assert.AreEqual(prx.Context.Count, 2);
-            Assert.AreEqual(prx.Context["c 1"], "some value");
-            Assert.AreEqual(prx.Context["c5"], "v5");
+            Assert.AreEqual(2, prx.Endpoints.Count);
+            Assert.AreEqual(Transport.WS, prx.Endpoints[1].Transport);
+            Assert.AreEqual("/x/y", prx.Endpoints[1]["resource"]);
+            Assert.AreEqual(2, prx.Context.Count);
+            Assert.AreEqual("some value", prx.Context["c 1"]);
+            Assert.AreEqual("v5", prx.Context["c5"]);
             Assert.IsTrue(prx.IsOneway);
         }
 
