@@ -142,14 +142,14 @@ namespace IceRpc.Tests.CodeGeneration
                             Enumerable.Range(0, size).Select(i =>
                             {
                                 return new AnotherStruct($"hello-{i}",
-                                                         IOperationsPrx.Parse($"foo-{i}", _communicator),
+                                                         IOperationsPrx.Parse($"ice+tcp://host/foo-{i}", _communicator),
                                                          (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
                                                          new MyStruct(i, i + 1));
                             }).ToArray(),
                             Enumerable.Range(0, size).Select(i =>
                             {
                                 return new AnotherStruct($"world-{i}",
-                                                         IOperationsPrx.Parse($"bar-{i}", _communicator),
+                                                         IOperationsPrx.Parse($"ice+tcp://host/bar-{i}", _communicator),
                                                          (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
                                                          new MyStruct(i, i + 1));
                             }).Reverse().ToArray());

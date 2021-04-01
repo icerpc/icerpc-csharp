@@ -265,7 +265,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"foo-{i}", _communicator);
+            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}", _communicator);
 
             AnotherStruct GetAnotherStruct(int i)
             {

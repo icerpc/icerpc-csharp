@@ -41,14 +41,14 @@ namespace IceRpc
         /// <param name="s">The string to check.</param>
         /// <returns>True when the string is most likely an ice+transport URI; otherwise, false.</returns>
         internal static bool IsEndpointUri(string s) =>
-            s.StartsWith("ice+", StringComparison.InvariantCulture) && s.Contains("://");
+            s.StartsWith("ice+", StringComparison.Ordinal) && s.Contains("://");
 
         /// <summary>Checks if a string is an ice or ice+transport URI, and not a proxy string using the ice1 string
         /// format.</summary>
         /// <param name="s">The string to check.</param>
         /// <returns>True when the string is most likely an ice or ice+transport URI; otherwise, false.</returns>
         internal static bool IsProxyUri(string s) =>
-            s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
+            s.StartsWith("ice:", StringComparison.Ordinal) || IsEndpointUri(s);
 
         /// <summary>Checks if <c>path</c> contains only unreserved characters, %, or reserved characters other than ?.
         /// </summary>
@@ -84,15 +84,13 @@ namespace IceRpc
 
         /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
         /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
         internal static IReadOnlyList<Endpoint> ParseEndpoints(
             string uriString,
-            Communicator communicator,
             bool serverEndpoints = true) =>
-            Parse(uriString, serverEndpoints, communicator).Endpoints;
+            Parse(uriString, serverEndpoints).Endpoints;
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
@@ -101,7 +99,7 @@ namespace IceRpc
         internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
-                Parse(uriString, serverEndpoints: false, proxyOptions.Communicator!);
+                Parse(uriString, serverEndpoints: false);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
@@ -122,10 +120,8 @@ namespace IceRpc
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
-        internal static void RegisterCommon()
+        internal static void RegisterIceScheme()
         {
-            RegisterTransport("universal", UniversalEndpoint.DefaultUniversalPort);
-
             // There is actually no authority at all with the ice scheme, but we emulate it with an empty authority
             // during parsing by the Uri class and the GenericUriParser.
             GenericUriParserOptions options =
@@ -143,13 +139,12 @@ namespace IceRpc
             System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
 
         private static Endpoint CreateEndpoint(
-            Communicator communicator,
             bool serverEndpoint,
             Dictionary<string, string> options,
             Protocol protocol,
             Uri uri)
         {
-            Debug.Assert(uri.Scheme.StartsWith("ice+", StringComparison.InvariantCulture));
+            Debug.Assert(uri.Scheme.StartsWith("ice+", StringComparison.Ordinal));
             string transportName = uri.Scheme[4..]; // i.e. chop-off "ice+"
 
             ushort port;
@@ -175,10 +170,10 @@ namespace IceRpc
                 {
                     // It's possible we have a factory for this transport, and we check it only when the protocol is
                     // ice2 (otherwise, we want to create a UniversalEndpoint).
-                    parser = communicator.FindIce2EndpointParser(transport);
+                    parser = Runtime.FindIce2EndpointParser(transport);
                 }
             }
-            else if (communicator.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
+            else if (Runtime.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
             {
                 if (protocol != Protocol.Ice2)
                 {
@@ -223,11 +218,11 @@ namespace IceRpc
         {
             if (endpointOptions == null) // i.e. ice scheme
             {
-                Debug.Assert(uriString.StartsWith("ice:", StringComparison.InvariantCulture));
+                Debug.Assert(uriString.StartsWith("ice:", StringComparison.Ordinal));
                 Debug.Assert(!pureEndpoints);
 
                 string body = uriString[4..];
-                if (body.StartsWith("//", StringComparison.InvariantCulture))
+                if (body.StartsWith("//", StringComparison.Ordinal))
                 {
                     throw new FormatException("the ice URI scheme cannot define a host or port");
                 }
@@ -242,6 +237,7 @@ namespace IceRpc
                 }
             }
 
+            Runtime.UriInitialize();
             var uri = new Uri(uriString);
 
             if (pureEndpoints)
@@ -383,18 +379,16 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="serverEndpoints">True when parsing the endpoints of a server; false when parsing a proxy.
         /// </param>
-        /// <param name="communicator">The communicator.</param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
         private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(
             string uriString,
-            bool serverEndpoints,
-            Communicator communicator)
+            bool serverEndpoints)
         {
             Debug.Assert(IsProxyUri(uriString));
 
             try
             {
-                bool iceScheme = uriString.StartsWith("ice:", StringComparison.InvariantCulture);
+                bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
                 if (iceScheme && serverEndpoints)
                 {
                     throw new FormatException("a server endpoint supports only ice+transport URIs");
@@ -412,20 +406,20 @@ namespace IceRpc
                 if (endpointOptions != null) // i.e. not ice scheme
                 {
                     endpoints = ImmutableList.Create(
-                        CreateEndpoint(communicator, serverEndpoints, endpointOptions, protocol, uri));
+                        CreateEndpoint(serverEndpoints, endpointOptions, protocol, uri));
 
                     if (altEndpoint != null)
                     {
                         foreach (string endpointStr in altEndpoint.Split(','))
                         {
-                            if (endpointStr.StartsWith("ice:", StringComparison.InvariantCulture))
+                            if (endpointStr.StartsWith("ice:", StringComparison.Ordinal))
                             {
                                 throw new FormatException(
                                     $"invalid URI scheme for endpoint `{endpointStr}': must be empty or ice+transport");
                             }
 
                             string altUriString = endpointStr;
-                            if (!altUriString.StartsWith("ice+", StringComparison.InvariantCulture))
+                            if (!altUriString.StartsWith("ice+", StringComparison.Ordinal))
                             {
                                 altUriString = $"{uri.Scheme}://{altUriString}";
                             }
@@ -447,8 +441,7 @@ namespace IceRpc
                                     $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
                             }
 
-                            endpoints = endpoints.Add(CreateEndpoint(communicator,
-                                                                     serverEndpoints,
+                            endpoints = endpoints.Add(CreateEndpoint(serverEndpoints,
                                                                      endpointOptions,
                                                                      protocol,
                                                                      endpointUri));
