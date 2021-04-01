@@ -114,12 +114,12 @@ namespace IceRpc
                 if (UriParser.IsEndpointUri(options.Endpoints))
                 {
                     Protocol = Protocol.Ice2;
-                    Endpoints = UriParser.ParseEndpoints(options.Endpoints, Communicator);
+                    Endpoints = UriParser.ParseEndpoints(options.Endpoints);
                 }
                 else
                 {
                     Protocol = Protocol.Ice1;
-                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoints, communicator);
+                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoints);
 
                     if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
                     {
@@ -169,8 +169,8 @@ namespace IceRpc
             if (options.PublishedEndpoints.Length > 0)
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
-                    UriParser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, Communicator, serverEndpoints: false);
+                    UriParser.ParseEndpoints(options.PublishedEndpoints, serverEndpoints: false) :
+                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, serverEndpoints: false);
             }
 
             if (PublishedEndpoints.Count == 0)
