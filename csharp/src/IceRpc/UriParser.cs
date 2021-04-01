@@ -41,14 +41,14 @@ namespace IceRpc
         /// <param name="s">The string to check.</param>
         /// <returns>True when the string is most likely an ice+transport URI; otherwise, false.</returns>
         internal static bool IsEndpointUri(string s) =>
-            s.StartsWith("ice+", StringComparison.InvariantCulture) && s.Contains("://");
+            s.StartsWith("ice+", StringComparison.Ordinal) && s.Contains("://");
 
         /// <summary>Checks if a string is an ice or ice+transport URI, and not a proxy string using the ice1 string
         /// format.</summary>
         /// <param name="s">The string to check.</param>
         /// <returns>True when the string is most likely an ice or ice+transport URI; otherwise, false.</returns>
         internal static bool IsProxyUri(string s) =>
-            s.StartsWith("ice:", StringComparison.InvariantCulture) || IsEndpointUri(s);
+            s.StartsWith("ice:", StringComparison.Ordinal) || IsEndpointUri(s);
 
         /// <summary>Checks if <c>path</c> contains only unreserved characters, %, or reserved characters other than ?.
         /// </summary>
@@ -120,10 +120,8 @@ namespace IceRpc
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
-        internal static void RegisterCommon()
+        internal static void RegisterIceScheme()
         {
-            RegisterTransport("universal", UniversalEndpoint.DefaultUniversalPort);
-
             // There is actually no authority at all with the ice scheme, but we emulate it with an empty authority
             // during parsing by the Uri class and the GenericUriParser.
             GenericUriParserOptions options =
@@ -220,11 +218,11 @@ namespace IceRpc
         {
             if (endpointOptions == null) // i.e. ice scheme
             {
-                Debug.Assert(uriString.StartsWith("ice:", StringComparison.InvariantCulture));
+                Debug.Assert(uriString.StartsWith("ice:", StringComparison.Ordinal));
                 Debug.Assert(!pureEndpoints);
 
                 string body = uriString[4..];
-                if (body.StartsWith("//", StringComparison.InvariantCulture))
+                if (body.StartsWith("//", StringComparison.Ordinal))
                 {
                     throw new FormatException("the ice URI scheme cannot define a host or port");
                 }
@@ -390,7 +388,7 @@ namespace IceRpc
 
             try
             {
-                bool iceScheme = uriString.StartsWith("ice:", StringComparison.InvariantCulture);
+                bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
                 if (iceScheme && serverEndpoints)
                 {
                     throw new FormatException("a server endpoint supports only ice+transport URIs");
@@ -414,14 +412,14 @@ namespace IceRpc
                     {
                         foreach (string endpointStr in altEndpoint.Split(','))
                         {
-                            if (endpointStr.StartsWith("ice:", StringComparison.InvariantCulture))
+                            if (endpointStr.StartsWith("ice:", StringComparison.Ordinal))
                             {
                                 throw new FormatException(
                                     $"invalid URI scheme for endpoint `{endpointStr}': must be empty or ice+transport");
                             }
 
                             string altUriString = endpointStr;
-                            if (!altUriString.StartsWith("ice+", StringComparison.InvariantCulture))
+                            if (!altUriString.StartsWith("ice+", StringComparison.Ordinal))
                             {
                                 altUriString = $"{uri.Scheme}://{altUriString}";
                             }

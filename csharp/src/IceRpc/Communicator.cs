@@ -4,14 +4,11 @@ using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -99,12 +96,9 @@ namespace IceRpc
 
         private static string[] _emptyArgs = Array.Empty<string>();
 
-        private static bool _oneOffDone;
-
         private static bool _printProcessIdDone;
 
         private static readonly object _staticMutex = new();
-        private readonly bool _backgroundLocatorCacheUpdates;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         private readonly ThreadLocal<SortedDictionary<string, string>> _currentContext = new();
@@ -232,16 +226,6 @@ namespace IceRpc
 
             combinedProperties.ParseIceArgs(ref args);
             SetProperties(combinedProperties);
-
-            lock (_staticMutex)
-            {
-                if (!_oneOffDone)
-                {
-                    UriParser.RegisterCommon();
-                    _oneOffDone = true;
-                }
-            }
-
             Logger = loggerFactory.CreateLogger("IceRpc");
 
             ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
@@ -284,8 +268,6 @@ namespace IceRpc
             ClassGraphMaxDepth = classGraphMaxDepth < 1 ? int.MaxValue : classGraphMaxDepth;
 
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
-
-            _backgroundLocatorCacheUpdates = this.GetPropertyAsBool("Ice.BackgroundLocatorCacheUpdates") ?? false;
 
             // Show process id if requested (but only once).
             lock (_staticMutex)
