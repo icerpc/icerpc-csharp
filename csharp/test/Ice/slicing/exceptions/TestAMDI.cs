@@ -67,7 +67,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public async ValueTask RelayKnownPreservedAsBaseAsync(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 await p.KnownPreservedAsBaseAsync(cancel: cancel);
@@ -84,7 +86,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public async ValueTask RelayKnownPreservedAsKnownPreservedAsync(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 await p.KnownPreservedAsKnownPreservedAsync(cancel: cancel);
@@ -113,7 +117,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public async ValueTask RelayUnknownPreservedAsBaseAsync(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 await p.UnknownPreservedAsBaseAsync(cancel: cancel);
@@ -130,7 +136,8 @@ namespace IceRpc.Test.Slicing.Exceptions
         public async ValueTask RelayUnknownPreservedAsKnownPreservedAsync(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
             try
             {
                 await p.UnknownPreservedAsKnownPreservedAsync(cancel: cancel);
@@ -147,7 +154,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public async ValueTask RelayClientPrivateExceptionAsync(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 await p.ClientPrivateExceptionAsync(cancel: cancel);

@@ -99,7 +99,9 @@ namespace IceRpc.Test.Slicing.Exceptions
             CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 p.KnownPreservedAsBase(cancel: cancel);
@@ -119,7 +121,9 @@ namespace IceRpc.Test.Slicing.Exceptions
             CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 p.KnownPreservedAsKnownPreserved(cancel: cancel);
@@ -136,7 +140,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public void RelayClientPrivateException(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 p.ClientPrivateException(cancel: cancel);
@@ -165,7 +171,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public void RelayUnknownPreservedAsBase(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 p.UnknownPreservedAsBase(cancel: cancel);
@@ -182,7 +190,9 @@ namespace IceRpc.Test.Slicing.Exceptions
         public void RelayUnknownPreservedAsKnownPreserved(IRelayPrx? r, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(r != null);
-            IRelayPrx p = r.Clone(fixedConnection: current.Connection);
+            IRelayPrx p = r.Clone();
+            p.FixedConnection = current.Connection;
+
             try
             {
                 p.UnknownPreservedAsKnownPreserved(cancel: cancel);

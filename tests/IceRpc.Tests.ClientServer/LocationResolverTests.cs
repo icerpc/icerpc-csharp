@@ -35,16 +35,16 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNull(greeter.LocationResolver);
             Assert.ThrowsAsync<NoEndpointException>(async () => await greeter.SayHelloAsync());
 
-            greeter = greeter.Clone(locationResolver: locationResolver);
+            greeter.LocationResolver = locationResolver;
             await greeter.SayHelloAsync();
-            Assert.IsNotNull(greeter.GetCachedConnection());
+            Assert.IsNotNull(greeter.CachedConnection);
 
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
                 Assert.AreEqual(Transport.Loc, badGreeter.Endpoints[0].Transport);
 
-                badGreeter = badGreeter.Clone(locationResolver: locationResolver);
+                badGreeter.LocationResolver = locationResolver;
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
             }
         }

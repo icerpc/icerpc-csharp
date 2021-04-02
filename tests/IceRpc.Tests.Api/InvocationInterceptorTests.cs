@@ -22,8 +22,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public void InvocationInterceptor_Throws_ArgumentException()
         {
-            var prx = Prx.Clone(invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) => throw new ArgumentException()));
+            var prx = Prx.Clone();
+            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+                (target, request, next, cancel) => throw new ArgumentException());
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
@@ -31,14 +32,14 @@ namespace IceRpc.Tests.Api
         [Test]
         public void InvocationInterceptor_Timeout_OperationCanceledException()
         {
-            var prx = Prx.Clone(
-                invocationTimeout: TimeSpan.FromMilliseconds(10),
-                invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
+            var prx = Prx.Clone();
+            prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
+            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                     async (target, request, next, cancel) =>
                         {
                             await Task.Delay(100, default);
                             return await next(target, request, cancel);
-                        }));
+                        });
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
         }
 
@@ -47,8 +48,8 @@ namespace IceRpc.Tests.Api
         public async Task InvocationInterceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
-            var prx = Prx.Clone(
-                invocationInterceptors: new InvocationInterceptor[]
+            var prx = Prx.Clone();
+            prx.InvocationInterceptors = new InvocationInterceptor[]
                 {
                     async (target, request, next, cancel) =>
                         {
@@ -64,7 +65,7 @@ namespace IceRpc.Tests.Api
                             interceptorCalls.Add("ProxyInvocationInterceptors <- 1");
                             return result;
                         }
-                });
+                };
 
             await prx.IcePingAsync();
 
@@ -81,8 +82,8 @@ namespace IceRpc.Tests.Api
         public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponseFrame? response = null;
-            var prx = Prx.Clone(
-                invocationInterceptors: new InvocationInterceptor[]
+            var prx = Prx.Clone();
+            prx.InvocationInterceptors = new InvocationInterceptor[]
                 {
                     async (target, request, next, cancel) =>
                         {
@@ -92,7 +93,7 @@ namespace IceRpc.Tests.Api
                             }
                             return response;
                         },
-                });
+                };
 
             int r1 = await prx.OpIntAsync(p1);
             int r2 = await prx.OpIntAsync(p2);
@@ -105,19 +106,20 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task InvocationInterceptor_Overwrite_RequestContext()
         {
-            var prx = Prx.Clone(
-                context: new Dictionary<string, string>()
+            var prx = Prx.Clone();
+            prx.Context = new Dictionary<string, string>()
                 {
                     { "foo", "foo" }
-                },
-                invocationInterceptors: new InvocationInterceptor[]
+                };
+
+            prx.InvocationInterceptors = new InvocationInterceptor[]
                 {
                     async (target, request, next, cancel) =>
                         {
                             request.WritableContext["foo"] = "bar";
                             return await next(target, request, cancel);
                         },
-                });
+                };
             var ctx = await prx.OpContextAsync();
             Assert.AreEqual("bar", ctx["foo"]);
             Assert.AreEqual(1, ctx.Count);

@@ -642,8 +642,10 @@ namespace IceRpc.Test.AMI
                     // invocation to fail with ConnectionClosedException.
                     await using var connection = await Connection.CreateAsync(p.Endpoints[0], p.Communicator);
                     var cb = new CallbackBase();
-                    Task t = p.Clone(fixedConnection: connection).StartDispatchAsync(
-                        progress: new Progress(sentSynchronously => cb.Called()));
+                    var fixedPrx = p.Clone();
+                    p.FixedConnection = connection;
+
+                    Task t = fixedPrx.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));
                     cb.Check(); // Ensure the request was sent before we close the connection.
                     _ = connection.GoAwayAsync();
                     try

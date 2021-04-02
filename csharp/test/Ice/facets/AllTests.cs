@@ -65,12 +65,12 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing unchecked cast... ");
             output.Flush();
-            d = IDPrx.Factory.Copy(prx);
+            d = prx.As<IDPrx>();
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.GetFacet().Length == 0);
             IDPrx df = prx.WithFacet<IDPrx>("facetABCD");
             TestHelper.Assert(df.GetFacet() == "facetABCD");
-            df2 = IDPrx.Factory.Copy(df);
+            df2 = df.As<IDPrx>();
             TestHelper.Assert(df2 != null);
             TestHelper.Assert(df2.GetFacet() == "facetABCD");
             df3 = df.WithFacet<IDPrx>("");
@@ -80,12 +80,12 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing checked cast... ");
             output.Flush();
-            d = await IDPrx.Factory.CheckedCastAsync(prx);
+            d = await prx.CheckedCastAsync<IDPrx>();
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.GetFacet().Length == 0);
             df = prx.WithFacet<IDPrx>("facetABCD");
             TestHelper.Assert(df.GetFacet() == "facetABCD");
-            df2 = IDPrx.Factory.Copy(df);
+            df2 = df.As<IDPrx>();
             TestHelper.Assert(df2 != null);
             TestHelper.Assert(df2.GetFacet() == "facetABCD");
             df3 = df.WithFacet<IDPrx>("");
@@ -94,7 +94,7 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing non-facets A, B, C, and D... ");
             output.Flush();
-            d = IDPrx.Factory.Copy(prx);
+            d = prx.As<IDPrx>();
             TestHelper.Assert(d != null);
             TestHelper.Assert(d.Equals(prx));
             TestHelper.Assert(d.CallA().Equals("A"));
@@ -128,7 +128,7 @@ namespace IceRpc.Test.Facets
 
             output.Write("testing whether casting preserves the facet... ");
             output.Flush();
-            var hf = IHPrx.Factory.Copy(gf);
+            var hf = gf.As<IHPrx>();
             TestHelper.Assert(hf != null);
             TestHelper.Assert(hf.CallG().Equals("G"));
             TestHelper.Assert(hf.CallH().Equals("H"));

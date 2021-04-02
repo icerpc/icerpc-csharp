@@ -73,7 +73,8 @@ namespace IceRpc.Tests.ClientServer
             var indirectGreeter = IGreeterTestServicePrx.Parse($"{_greeter.GetIdentity()} @ adapt", _communicator);
 
             // We don't cache the connection in order to use the location resolver (locator client) for each invocation.
-            indirectGreeter = indirectGreeter.Clone(cacheConnection: false, locationResolver: locationResolver);
+            indirectGreeter.CacheConnection = false;
+            indirectGreeter.LocationResolver = locationResolver;
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
             await locator.RegisterAdapterAsync("adapt", _greeter);
@@ -100,7 +101,8 @@ namespace IceRpc.Tests.ClientServer
             // Same with well-known greeter
 
             var wellKnownGreeter = IGreeterTestServicePrx.Parse(_greeter.GetIdentity().ToString(), _communicator);
-            wellKnownGreeter = wellKnownGreeter.Clone(cacheConnection: false, locationResolver: locationResolver);
+            wellKnownGreeter.CacheConnection = false;
+            wellKnownGreeter.LocationResolver = locationResolver;
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
             await locator.RegisterWellKnownProxyAsync(_greeter.GetIdentity(), indirectGreeter);
