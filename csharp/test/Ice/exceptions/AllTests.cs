@@ -243,7 +243,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (InvalidDataException)
                     {
-                        TestHelper.Assert(!thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(!thrower.CachedConnection!.IsActive);
                     }
                     catch (Exception ex)
                     {
@@ -257,7 +257,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ConnectionLostException)
                     {
-                        TestHelper.Assert(!thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(!thrower.CachedConnection!.IsActive);
                     }
                     catch (UnhandledException)
                     {
@@ -288,7 +288,7 @@ namespace IceRpc.Test.Exceptions
                         }
                         catch (ConnectionLostException)
                         {
-                            TestHelper.Assert(thrower.GetCachedConnection()!.Protocol == Protocol.Ice1);
+                            TestHelper.Assert(thrower.CachedConnection!.Protocol == Protocol.Ice1);
                         }
                     }
                     catch (ConnectionRefusedException)
@@ -307,7 +307,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ServerException)
                     {
-                        TestHelper.Assert(thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(thrower.CachedConnection!.IsActive);
                     }
 
                     try
@@ -318,7 +318,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (LimitExceededException)
                     {
-                        TestHelper.Assert(thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(thrower.CachedConnection!.IsActive);
                     }
 
                     var thrower2 = IThrowerPrx.Parse(helper.GetTestProxy("thrower", 1), communicator);
@@ -331,7 +331,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ServerException)
                     {
-                        TestHelper.Assert(thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(thrower.CachedConnection!.IsActive);
                     }
 
                     var thrower3 = IThrowerPrx.Parse(helper.GetTestProxy("thrower", 2), communicator);
@@ -355,7 +355,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ServerException)
                     {
-                        TestHelper.Assert(thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(thrower.CachedConnection!.IsActive);
                     }
 
                     try
@@ -365,7 +365,7 @@ namespace IceRpc.Test.Exceptions
                     }
                     catch (ServerException)
                     {
-                        TestHelper.Assert(thrower.GetCachedConnection()!.IsActive);
+                        TestHelper.Assert(thrower.CachedConnection!.IsActive);
                     }
                 }
                 output.WriteLine("ok");

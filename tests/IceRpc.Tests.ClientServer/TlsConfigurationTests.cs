@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
                 (server, prx) =>
                 {
                     Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    Assert.IsTrue(prx.CachedConnection!.IsSecure);
                 });
         }
 
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
                 (server, prx) =>
                 {
                     Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    Assert.IsTrue(prx.CachedConnection!.IsSecure);
                 });
             Assert.IsTrue(clientValidationCallbackCalled);
             Assert.IsTrue(serverValidationCallbackCalled);
@@ -155,7 +155,7 @@ namespace IceRpc.Tests.ClientServer
                 (server, prx) =>
                 {
                     Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                    Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                    Assert.IsTrue(prx.CachedConnection!.IsSecure);
                 });
         }
 
@@ -298,7 +298,7 @@ namespace IceRpc.Tests.ClientServer
                     if ((GetOperatingSystem() & mustSucceed) != 0)
                     {
                         Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                        Assert.IsTrue(prx.GetCachedConnection()!.IsSecure);
+                        Assert.IsTrue(prx.CachedConnection!.IsSecure);
                     }
                     else
                     {
@@ -339,8 +339,8 @@ namespace IceRpc.Tests.ClientServer
                 (server, prx) =>
                 {
                     Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                    Assert.IsTrue(prx.GetCachedConnection() is TcpConnection);
-                    TcpConnection connection = (TcpConnection)prx.GetCachedConnection()!;
+                    Assert.IsTrue(prx.CachedConnection is TcpConnection);
+                    TcpConnection connection = (TcpConnection)prx.CachedConnection!;
                     Assert.IsTrue(connection.IsSecure);
                     Assert.AreEqual(SslProtocols.Tls12, connection.SslProtocol);
                 });

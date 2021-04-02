@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Api
             prx = server.Add("test", new GreeterService(), IGreeterServicePrx.Factory);
             var connection = await prx.GetConnectionAsync();
             prx.FixedConnection = connection;
-            Assert.AreEqual(prx.GetCachedConnection(), connection);
+            Assert.IsNull(prx.CachedConnection);
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 

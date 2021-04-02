@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
 
             greeter.LocationResolver = locationResolver;
             await greeter.SayHelloAsync();
-            Assert.IsNotNull(greeter.GetCachedConnection());
+            Assert.IsNotNull(greeter.CachedConnection);
 
             foreach (string badProxy in badProxies)
             {

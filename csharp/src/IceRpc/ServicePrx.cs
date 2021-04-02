@@ -34,6 +34,9 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
+        public Connection? CachedConnection => _isFixed ? null : _connection;
+
         public Communicator Communicator { get; }
 
         /// <inheritdoc/>
@@ -52,8 +55,12 @@ namespace IceRpc
             get => _endpoints;
             set
             {
-                var endpoints = value.ToImmutableList();
+                if (_isFixed)
+                {
+                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(Endpoints));
+                }
 
+                var endpoints = value.ToImmutableList();
                 if (endpoints.Count > 0)
                 {
                     if (endpoints.Count > 1 && endpoints.Any(e => e.Transport == Transport.Loc))
@@ -67,14 +74,13 @@ namespace IceRpc
                                                     nameof(Endpoints));
                     }
                 }
-                else if (!_isFixed && Protocol == Protocol.Ice1)
+                else if (Protocol == Protocol.Ice1)
                 {
                     throw new ArgumentException("a non-fixed ice1 proxy requires at least one endpoint",
                                                 nameof(Endpoints));
                 }
 
-                _endpoints = !_isFixed ? endpoints :
-                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(Endpoints));
+                _endpoints = endpoints;
 
                 // Clears the cached connection.
                 _connection = null;
@@ -762,7 +768,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates a shallow copy of this service.</summary>
+        /// <summary>Creates a shallow copy of this service proxy.</summary>
         internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
 
         /// <summary>Returns a new copy of the underlying options.</summary>
@@ -813,9 +819,6 @@ namespace IceRpc
                 };
             }
         }
-
-        /// <summary>Provides the implementation of <see cref="Proxy.GetCachedConnection"/>.</summary>
-        internal Connection? GetCachedConnection() => _connection;
 
         /// <summary>Provides the implementation of <see cref="Proxy.GetConnectionAsync"/>.</summary>
         internal async ValueTask<Connection> GetConnectionAsync(CancellationToken cancel)

@@ -126,6 +126,11 @@ namespace IceRpc
         /// the cached connection.</value>
         public bool CacheConnection { get; set; }
 
+        /// <summary>Returns the cached connection of this proxy.</summary>
+        /// <value>The cached connection for this proxy, or null if the proxy does not cache connections, does not have
+        /// a connection yet or is a fixed proxy.</value>
+        public Connection? CachedConnection { get; }
+
         /// <summary>Returns the communicator that created this proxy.</summary>
         /// <returns>The communicator that created this proxy.</returns>
         public Communicator Communicator { get; }
@@ -140,6 +145,11 @@ namespace IceRpc
         /// <summary>The endpoints of this proxy. A proxy with a non-empty endpoint list is a direct proxy.</summary>
         public IReadOnlyList<Endpoint> Endpoints { get; set; }
 
+        /// <summary>A proxy bound to a connection is called a fixed proxy. This property gets or sets the fixed
+        /// connection of a proxy. Setting this property to null converts a fixed proxy into a relative proxy or into a
+        /// well known proxy. Setting this property to a non-null value clears the endpoints of this proxy since a fixed
+        /// proxy has no endpoint.</summary>
+        /// <value>The fixed connection of this proxy, or null.</value>
         public Connection? FixedConnection { get; set; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>

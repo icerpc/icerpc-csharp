@@ -75,14 +75,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns the cached Connection for this proxy. If the proxy does not yet have an established
-        /// connection, it does not attempt to create a connection.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <returns>The cached Connection for this proxy (null if the proxy does not have
-        /// an established connection).</returns>
-        public static Connection? GetCachedConnection(this IServicePrx proxy) =>
-            proxy.Impl.GetCachedConnection();
-
         /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
         /// it first attempts to create a connection.</summary>
         /// <param name="proxy">The proxy.</param>
