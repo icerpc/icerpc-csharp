@@ -87,8 +87,7 @@ namespace IceRpc
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
         internal bool IsDisposed => _shutdownTask != null;
-        // TODO: should pass the factory and create a logger per locator client
-        internal ILogger LocatorClientLogger { get; }
+
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }
         internal int RetryBufferMaxSize { get; }
@@ -188,8 +187,6 @@ namespace IceRpc
         {
             loggerFactory ??= NullLoggerFactory.Instance;
             Logger = loggerFactory.CreateLogger("IceRpc");
-            LocatorClientLogger = loggerFactory.CreateLogger("IceRpc.Interop.LocatorClient");
-
             Observer = observer;
 
             // clone properties as we don't want to modify the properties given to this constructor
