@@ -550,7 +550,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Socket.Logger.LogConnectionCallbackException(ex);
+                    Socket.Logger.LogConnectionEventHandlerException("close", ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked

@@ -12,7 +12,7 @@ namespace IceRpc
     internal class TcpAcceptor : IAcceptor
     {
         public Endpoint Endpoint { get; }
-        internal IPEndPoint Address { get; }
+        internal IPEndPoint IPEndPoint { get; }
 
         private readonly Server _server;
         private readonly Socket _socket;
@@ -35,7 +35,7 @@ namespace IceRpc
 
         public void Dispose() => _socket.CloseNoThrow();
 
-        public override string ToString() => $"{base.ToString()} {Address}";
+        public override string ToString() => $"{base.ToString()} {IPEndPoint}";
 
         internal TcpAcceptor(Socket socket, TcpEndpoint endpoint, Server server)
         {
@@ -44,7 +44,7 @@ namespace IceRpc
             Endpoint = endpoint;
 
             _server = server;
-            Address = (IPEndPoint)socket.LocalEndPoint!;
+            IPEndPoint = (IPEndPoint)socket.LocalEndPoint!;
             _socket = socket;
         }
     }

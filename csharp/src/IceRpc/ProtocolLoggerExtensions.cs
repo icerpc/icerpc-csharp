@@ -10,27 +10,52 @@ namespace IceRpc
     internal static class ProtocolLoggerExtensions
     {
         private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
-        private const int ReceivedIce1CloseConnectionFrame = BaseEventId + 0;
-        private const int ReceivedIce1RequestBatchFrame = BaseEventId + 1;
-        private const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 2;
 
-        private const int ReceivedGoAwayFrame = BaseEventId + 3;
-        private const int ReceivedInitializeFrame = BaseEventId + 4;
-        private const int ReceivedRequestFrame = BaseEventId + 5;
-        private const int ReceivedResponseFrame = BaseEventId + 6;
+        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
+        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 1;
+        private const int DatagramMaximumSizeExceeded = BaseEventId + 2;
 
-        private const int DispatchException = BaseEventId + 7;
-        private const int RequestException = BaseEventId + 8;
+        private const int ReceivedIce1CloseConnectionFrame = BaseEventId + 3;
+        private const int ReceivedIce1RequestBatchFrame = BaseEventId + 4;
+        private const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 5;
 
-        private const int RetryRequestRetryableException = BaseEventId + 9;
-        private const int RetryRetryConnectionException = BaseEventId + 10;
+        private const int ReceivedGoAwayFrame = BaseEventId + 6;
+        private const int ReceivedInitializeFrame = BaseEventId + 7;
+        private const int ReceivedRequestFrame = BaseEventId + 8;
+        private const int ReceivedResponseFrame = BaseEventId + 9;
 
-        private const int SentIce1ValidateConnectionFrame = BaseEventId + 11;
-        private const int SentIce1CloseConnectionFrame = BaseEventId + 12;
-        private const int SentGoAwayFrame = BaseEventId + 13;
-        private const int SentInitializeFrame = BaseEventId + 14;
-        private const int SentRequestFrame = BaseEventId + 15;
-        private const int SentResponseFrame = BaseEventId + 16;
+        private const int DispatchException = BaseEventId + 10;
+        private const int RequestException = BaseEventId + 11;
+
+        private const int RetryRequestRetryableException = BaseEventId + 12;
+        private const int RetryRetryConnectionException = BaseEventId + 13;
+
+        private const int SentIce1ValidateConnectionFrame = BaseEventId + 14;
+        private const int SentIce1CloseConnectionFrame = BaseEventId + 15;
+        private const int SentGoAwayFrame = BaseEventId + 16;
+        private const int SentInitializeFrame = BaseEventId + 17;
+        private const int SentRequestFrame = BaseEventId + 18;
+        private const int SentResponseFrame = BaseEventId + 19;
+
+        private static readonly Action<ILogger, int, Exception> _datagramMaximumSizeExceeded =
+            LoggerMessage.Define<int>(
+                LogLevel.Debug,
+                new EventId(DatagramMaximumSizeExceeded, nameof(DatagramMaximumSizeExceeded)),
+                "maximum datagram size of {Size} exceeded");
+
+        private static readonly Action<ILogger, int, Exception> _datagramSizeExceededIncomingFrameMaxSize =
+            LoggerMessage.Define<int>(
+                LogLevel.Debug,
+                new EventId(DatagramSizeExceededIncomingFrameMaxSize, nameof(DatagramSizeExceededIncomingFrameMaxSize)),
+                "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value");
+
+        private static readonly Action<ILogger, Exception> _datagramConnectionReceiveCloseConnectionFrame =
+            LoggerMessage.Define(
+                LogLevel.Debug,
+                new EventId(
+                    DatagramConnectionReceiveCloseConnectionFrame,
+                    nameof(DatagramConnectionReceiveCloseConnectionFrame)),
+                "ignoring close connection frame for datagram connection");
 
         private static readonly Action<ILogger, Exception> _receivedIce1CloseConnectionFrame =
             LoggerMessage.Define(
@@ -139,6 +164,15 @@ namespace IceRpc
                 new EventId(SentResponseFrame, nameof(SentResponseFrame)),
                 "sent response (ResultType={ResultType}, Size={Size}, Encoding={Encoding}, " +
                 "CompressionFormat={CompressionFormat})");
+
+        internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
+            _datagramSizeExceededIncomingFrameMaxSize(logger, size, null!);
+
+        internal static void LogDatagramConnectionReceiveCloseConnectionFrame(this ILogger logger) =>
+            _datagramConnectionReceiveCloseConnectionFrame(logger, null!);
+
+        internal static void LogDatagramMaximumSizeExceeded(this ILogger logger, int bytes) =>
+            _datagramMaximumSizeExceeded(logger, bytes, null!);
 
         internal static void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requests) =>
             _receivedIce1RequestBatchFrame(logger, requests, null!);

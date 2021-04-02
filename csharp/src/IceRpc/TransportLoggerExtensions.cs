@@ -13,23 +13,19 @@ namespace IceRpc
         private const int AcceptingConnections = BaseEventId + 0;
         private const int AcceptingConnectionFailed = BaseEventId + 1;
         private const int ConnectionAccepted = BaseEventId + 2;
-        private const int ConnectionCallbackException = BaseEventId + 3;
+        private const int ConnectionEventHandlerException = BaseEventId + 3;
         private const int ConnectionClosed = BaseEventId + 4;
         private const int ConnectionEstablished = BaseEventId + 5;
-        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 6;
-        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 7;
-        private const int MaximumDatagramSizeExceeded = BaseEventId + 8;
-        private const int PingEventHandlerException = BaseEventId + 9;
-        private const int ReceiveBufferSizeAdjusted = BaseEventId + 10;
-        private const int ReceivedData = BaseEventId + 11;
-        private const int ReceivedInvalidDatagram = BaseEventId + 12;
-        private const int SendBufferSizeAdjusted = BaseEventId + 13;
-        private const int SentData = BaseEventId + 14;
-        private const int StartAcceptingConnections = BaseEventId + 15;
-        private const int StartReceivingDatagrams = BaseEventId + 16;
-        private const int StartSendingDatagrams = BaseEventId + 17;
-        private const int StopAcceptingConnections = BaseEventId + 18;
-        private const int StopReceivingDatagrams = BaseEventId + 19;
+        private const int ReceiveBufferSizeAdjusted = BaseEventId + 6;
+        private const int ReceivedData = BaseEventId + 7;
+        private const int ReceivedInvalidDatagram = BaseEventId + 8;
+        private const int SendBufferSizeAdjusted = BaseEventId + 9;
+        private const int SentData = BaseEventId + 10;
+        private const int StartAcceptingConnections = BaseEventId + 11;
+        private const int StartReceivingDatagrams = BaseEventId + 12;
+        private const int StartSendingDatagrams = BaseEventId + 13;
+        private const int StopAcceptingConnections = BaseEventId + 14;
+        private const int StopReceivingDatagrams = BaseEventId + 15;
 
         private static readonly Action<ILogger, Exception> _acceptingConnections =
             LoggerMessage.Define(
@@ -74,24 +70,17 @@ namespace IceRpc
                 new EventId(ConnectionEstablished, nameof(ConnectionEstablished)),
                 "established connection");
 
-        private static readonly Action<ILogger, Exception> _connectionCallbackException = LoggerMessage.Define(
-            LogLevel.Warning,
-            new EventId(ConnectionCallbackException, nameof(ConnectionCallbackException)),
-            "close event handler raised exception");
+        private static readonly Action<ILogger, string, Exception> _connectionEventHandlerException =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(ConnectionEventHandlerException, nameof(ConnectionEventHandlerException)),
+                "{Name} event handler raised exception");
 
         private static readonly Action<ILogger, string, bool, Exception> _connectionClosed =
             LoggerMessage.Define<string, bool>(
                 LogLevel.Debug,
-                new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
+                new EventId(ConnectionClosed, nameof(ConnectionEventHandlerException)),
                 "closed connection (Reason={Reason}, IsClosedByPeer={IsClosedByPeer})");
-
-        private static readonly Action<ILogger, Exception> _datagramConnectionReceiveCloseConnectionFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                new EventId(
-                    DatagramConnectionReceiveCloseConnectionFrame,
-                    nameof(DatagramConnectionReceiveCloseConnectionFrame)),
-                "ignoring close connection frame for datagram connection");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverSocketServerSocketScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
@@ -103,12 +92,6 @@ namespace IceRpc
                 "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
                 "Description={Description})");
 
-        private static readonly Action<ILogger, int, Exception> _maximumDatagramSizeExceeded =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                new EventId(MaximumDatagramSizeExceeded, nameof(MaximumDatagramSizeExceeded)),
-                "maximum datagram size of {Size} exceeded");
-
         private static readonly Func<ILogger, string, IDisposable> _overSocketServerSocketScope =
             LoggerMessage.DefineScope<string>(
                 "socket(RemoteEndPoint={RemoteEndpoint})");
@@ -117,11 +100,6 @@ namespace IceRpc
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "socket(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
                 "RemoteEndPoint={RemoteEndpoint})");
-
-        private static readonly Action<ILogger, Exception> _pingEventHanderException = LoggerMessage.Define(
-            LogLevel.Warning,
-            new EventId(PingEventHandlerException, nameof(PingEventHandlerException)),
-            "ping event handler raised an exception");
 
         private static readonly Action<ILogger, string, int, int, Exception> _receiveBufferSizeAdjusted =
             LoggerMessage.Define<string, int, int>(
@@ -134,12 +112,6 @@ namespace IceRpc
                 LogLevel.Trace,
                 new EventId(ReceivedData, nameof(ReceivedData)),
                 "received {Size} bytes");
-        private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                new EventId(DatagramSizeExceededIncomingFrameMaxSize, nameof(DatagramSizeExceededIncomingFrameMaxSize)),
-                "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value");
-
         private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
@@ -205,8 +177,8 @@ namespace IceRpc
         internal static void LogAcceptingConnectionFailed(this ILogger logger, Exception ex) =>
             _acceptingConnectionFailed(logger, ex);
 
-        internal static void LogConnectionCallbackException(this ILogger logger, Exception ex) =>
-            _connectionCallbackException(logger, ex);
+        internal static void LogConnectionEventHandlerException(this ILogger logger, string name, Exception ex) =>
+            _connectionEventHandlerException(logger, name, ex);
 
         internal static void LogConnectionAccepted(this ILogger logger) =>
             _connectionAccepted(logger, null!);
@@ -220,9 +192,6 @@ namespace IceRpc
 
         internal static void LogConnectionEstablished(this ILogger logger) =>
             _connectionEstablished(logger, null!);
-
-        internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
-            _maximumDatagramSizeExceeded(logger, bytes, null!);
 
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);
@@ -242,16 +211,7 @@ namespace IceRpc
         internal static void LogStopReceivingDatagrams(this ILogger logger) =>
             _stopReceivingDatagrams(logger, null!);
 
-        internal static void LogPingEventHandlerException(this ILogger logger, Exception exception) =>
-            _pingEventHanderException(logger, exception);
-
         internal static void LogReceivedData(this ILogger logger, int size) => _receivedData(logger, size, null!);
-
-        internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
-            _receivedDatagramExceededIncomingFrameMaxSize(logger, size, null!);
-
-        internal static void LogDatagramConnectionReceiveCloseConnectionFrame(this ILogger logger) =>
-            _datagramConnectionReceiveCloseConnectionFrame(logger, null!);
 
         internal static void LogReceiveBufferSizeAdjusted(
             this ILogger logger,
@@ -431,7 +391,7 @@ namespace IceRpc
                     acceptor.Endpoint.TransportName,
                     acceptor.Endpoint.Protocol,
                     server.Name,
-                    tcpAcceptor.Address);
+                    tcpAcceptor.IPEndPoint);
             }
             else if (acceptor is ColocatedAcceptor)
             {

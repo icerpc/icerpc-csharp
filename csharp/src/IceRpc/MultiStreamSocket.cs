@@ -165,7 +165,7 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogPingEventHandlerException(ex);
+                        Logger.LogConnectionEventHandlerException("ping", ex);
                     }
                 });
             }

@@ -16,7 +16,7 @@ namespace IceRpc
         internal const int TlsBaseEventId = 4 * EventIdRange;
         internal const int TransportBaseEventId = 5 * EventIdRange;
         internal const int WebSocketBaseEventId = 6 * EventIdRange;
-        internal const int LocatorClientEventId = 7 * EventIdRange;
+        internal const int LocatorClientBaseEventId = 7 * EventIdRange;
         private const int EventIdRange = 128;
 
         private const int SlicingUnknownType = OtherBaseEventId + 0;

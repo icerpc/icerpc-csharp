@@ -10,7 +10,7 @@ namespace IceRpc.Interop
     /// "IceRpc.Interop.LocatorClient" category.</summary>
     internal static class LocatorClientLoggerExtensions
     {
-        private const int BaseEventId = LoggerExtensions.LocatorClientEventId;
+        private const int BaseEventId = LoggerExtensions.LocatorClientBaseEventId;
         private const int ClearCacheEntry = BaseEventId + 0;
         private const int CouldNotResolveEndpoint = BaseEventId + 1;
         private const int FoundEntryInCache = BaseEventId + 2;

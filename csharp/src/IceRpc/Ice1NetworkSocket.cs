@@ -84,7 +84,7 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
+                        Logger.LogDatagramMaximumSizeExceeded(buffer.Count);
                         continue;
                     }
 
