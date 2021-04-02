@@ -41,9 +41,9 @@ namespace IceRpc
             Endpoint = _acceptor.Endpoint;
 
             using IDisposable? scope = _acceptor.StartScope(_server);
-            if (server.Logger.IsEnabled(LogLevel.Debug) && !(_acceptor is ColocatedAcceptor))
+            if (!(_acceptor is ColocatedAcceptor))
             {
-                server.Logger.LogAcceptingConnections(Endpoint.Transport);
+                server.Logger.LogAcceptingConnections();
             }
         }
 
@@ -74,11 +74,8 @@ namespace IceRpc
 
         internal override async Task ShutdownAsync()
         {
-            using IDisposable? scope = _server.Logger.StartAcceptorScope(_server, _acceptor);
-            if (_server.Logger.IsEnabled(LogLevel.Information))
-            {
-                _server.Logger.LogStopAcceptingConnections(Endpoint.Transport);
-            }
+            using IDisposable? scope = _acceptor.StartScope(_server);
+            _server.Logger.LogStopAcceptingConnections();
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without
             // any await in between to guarantee that once Communicator.ShutdownAsync returns the communicator no
@@ -109,10 +106,7 @@ namespace IceRpc
         private async ValueTask AcceptAsync()
         {
             using IDisposable? scope = _acceptor.StartScope(_server);
-            if (_server.Logger.IsEnabled(LogLevel.Information))
-            {
-                _server.Logger.LogStartAcceptingConnections(Endpoint.Transport);
-            }
+            _server.Logger.LogStartAcceptingConnections();
 
             while (true)
             {
@@ -125,15 +119,12 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    if (_server.Logger.IsEnabled(LogLevel.Error))
-                    {
-                        _server.Logger.LogAcceptingConnectionFailed(Endpoint.Transport, ex);
-                    }
-
                     if (_shutdown)
                     {
                         return;
                     }
+
+                    _server.Logger.LogAcceptingConnectionFailed(ex);
 
                     // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
                     // again. Failures here are unexpected and could be considered fatal.
@@ -145,7 +136,7 @@ namespace IceRpc
                 {
                     if (_shutdown)
                     {
-                        connection.AbortAsync();
+                        connection.AbortAsync("server shutdown");
                         return;
                     }
 
@@ -182,18 +173,14 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (_server.Logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _server.Logger.LogConnectionNotTrusted(connection.Endpoint.Transport);
-                        }
                         // Connection not trusted, abort it.
-                        await connection.AbortAsync().ConfigureAwait(false);
+                        await connection.AbortAsync("connection is not trusted").ConfigureAwait(false);
                     }
                 }
-                catch
+                catch(Exception)
                 {
                     // Failed incoming connection, abort the connection.
-                    await connection.AbortAsync().ConfigureAwait(false);
+                    await connection.AbortAsync("connection lost").ConfigureAwait(false);
                 }
             }
         }
@@ -225,6 +212,8 @@ namespace IceRpc
         }
 
         internal override Task ShutdownAsync() =>
-            _connection.GoAwayAsync(new ObjectDisposedException($"{typeof(Server).FullName}:{_server!.Name}"));
+            _connection.GoAwayAsync(new ObjectDisposedException(
+                "server shutdown",
+                $"{typeof(Server).FullName}:{_server!.Name}"));
      }
 }

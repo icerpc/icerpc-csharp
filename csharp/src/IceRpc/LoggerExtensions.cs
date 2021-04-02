@@ -9,12 +9,13 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc" category.</summary>
     internal static class LoggerExtensions
     {
-        internal const int ServerBaseEventId = 1 * EventIdRange;
-        internal const int ProtocolBaseEventId = 2 * EventIdRange;
-        internal const int TransportBaseEventId = 3 * EventIdRange;
-        internal const int WebSocketBaseEventId = 4 * EventIdRange;
-        internal const int SlicBaseEventId = 5 * EventIdRange;
-        internal const int OtherBaseEventId = 6 * EventIdRange;
+        internal const int OtherBaseEventId = 0 * EventIdRange;
+        internal const int ProtocolBaseEventId = 1 * EventIdRange;
+        internal const int ServerBaseEventId = 2 * EventIdRange;
+        internal const int SlicBaseEventId = 3 * EventIdRange;
+        internal const int TlsBaseEventId = 4 * EventIdRange;
+        internal const int TransportBaseEventId = 5 * EventIdRange;
+        internal const int WebSocketBaseEventId = 6 * EventIdRange;
         private const int EventIdRange = 128;
 
         private const int DeprecatedProperty = OtherBaseEventId + 0;

@@ -232,6 +232,9 @@ namespace IceRpc
 
         internal virtual async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
         {
+            Debug.Assert(IsStarted);
+            using IDisposable? scope = StartScope();
+
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
 
@@ -241,38 +244,38 @@ namespace IceRpc
                 throw new InvalidDataException($"expected end of stream after GoAway frame");
             }
 
-            if (_socket.Logger.IsEnabled(LogLevel.Debug))
-            {
-                if (_socket.Endpoint.Protocol == Protocol.Ice2)
-                {
-                    _socket.Logger.LogReceivedIce2GoAwayFrame();
-                }
-                else
-                {
-                    _socket.Logger.LogReceivedIce1CloseConnectionFrame();
-                }
-            }
-
+            long lastBidirectionalId;
+            long lastUnidirectionalId;
+            string message;
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
             {
                 // LastResponseStreamId contains the stream ID of the last received response. We make sure to return
                 // this stream ID to ensure the request with this stream ID will complete successfully in case the
                 // close connection message is received shortly after the response and potentially processed before
                 // due to the thread scheduling.
-                return ((_socket.LastResponseStreamId, 0), "connection gracefully closed by peer");
+                lastBidirectionalId = _socket.LastResponseStreamId;
+                lastUnidirectionalId = 0;
+                message = "connection gracefully closed by peer";
             }
             else
             {
                 var goAwayFrame = new Ice2GoAwayBody(new InputStream(data, Ice2Definitions.Encoding));
-                return (((long)goAwayFrame.LastBidirectionalStreamId, (long)goAwayFrame.LastUnidirectionalStreamId),
-                        goAwayFrame.Message);
+                lastBidirectionalId = (long)goAwayFrame.LastBidirectionalStreamId;
+                lastUnidirectionalId = (long)goAwayFrame.LastUnidirectionalStreamId;
+                message = goAwayFrame.Message;
             }
+
+            _socket.Logger.LogReceivedGoAwayFrame(_socket, lastBidirectionalId, lastUnidirectionalId, message);
+            return ((lastBidirectionalId, lastUnidirectionalId), message);
         }
 
         internal virtual void ReceivedReset(long errorCode) => Reset?.Invoke(errorCode);
 
         internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
+            Debug.Assert(IsStarted);
+            using IDisposable? scope = StartScope();
+
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
 
@@ -280,18 +283,6 @@ namespace IceRpc
             if (ReceivedEndOfStream)
             {
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
-            }
-
-            if (_socket.Logger.IsEnabled(LogLevel.Debug))
-            {
-                if (_socket.Endpoint.Protocol == Protocol.Ice1)
-                {
-                    _socket.Logger.LogReceivedIce1ValidateConnectionFrame();
-                }
-                else
-                {
-                    _socket.Logger.LogReceivedIce2InitializeFrame();
-                }
             }
 
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
@@ -334,6 +325,8 @@ namespace IceRpc
                     throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
                 }
             }
+
+            _socket.Logger.LogReceivedInitializeFrame(_socket);
         }
 
         internal async virtual ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(
@@ -382,12 +375,20 @@ namespace IceRpc
             IncomingResponseFrame response;
             if (ReceivedEndOfStream)
             {
-                response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, null);
+                response = new IncomingResponseFrame(
+                    _socket.Endpoint.Protocol,
+                    data,
+                    _socket.IncomingFrameMaxSize,
+                    null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                response = new IncomingResponseFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
+                response = new IncomingResponseFrame(
+                    _socket.Endpoint.Protocol,
+                    data,
+                    _socket.IncomingFrameMaxSize,
+                    this);
             }
 
             return response;
@@ -398,14 +399,12 @@ namespace IceRpc
             string reason,
             CancellationToken cancel = default)
         {
+            Debug.Assert(IsStarted);
+            using IDisposable? scope = StartScope();
+
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
-
-                if (_socket.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    _socket.Logger.LogSendingIce1CloseConnectionFrame();
-                }
             }
             else
             {
@@ -427,12 +426,9 @@ namespace IceRpc
                 ostr.Finish();
 
                 await SendAsync(data, true, cancel).ConfigureAwait(false);
-
-                if (_socket.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    _socket.Logger.LogSendingIce2GoAwayFrame();
-                }
             }
+
+            _socket.Logger.LogSentGoAwayFrame(_socket, streamIds.Bidirectional, streamIds.Unidirectional, reason);
         }
 
         internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
@@ -440,11 +436,6 @@ namespace IceRpc
             if (_socket.Endpoint.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
-
-                if (_socket.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    _socket.Logger.LogSendIce1ValidateConnectionFrame();
-                }
             }
             else
             {
@@ -471,12 +462,10 @@ namespace IceRpc
                 ostr.Finish();
 
                 await SendAsync(data, false, cancel).ConfigureAwait(false);
-
-                if (_socket.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    _socket.Logger.LogSendingIce2InitializeFrame();
-                }
             }
+
+            using IDisposable? scope = StartScope();
+            _socket.Logger.LogSentInitializeFrame(_socket, _socket.IncomingFrameMaxSize);
         }
 
         internal async ValueTask SendRequestFrameAsync(OutgoingRequestFrame request, CancellationToken cancel = default)
@@ -513,14 +502,7 @@ namespace IceRpc
             response.StreamDataWriter?.Invoke(this);
         }
 
-        internal IDisposable? StartScope()
-        {
-            if (_socket.Logger.IsEnabled(LogLevel.Critical))
-            {
-                return _socket.Logger.StartStreamScope(this);
-            }
-            return null;
-        }
+        internal IDisposable? StartScope() => _socket.Logger.StartStreamScope(this);
 
         internal void Release()
         {
@@ -608,21 +590,6 @@ namespace IceRpc
             }
 
             await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
-
-            if (_socket.Logger.IsEnabled(LogLevel.Information))
-            {
-                if (frame is OutgoingRequestFrame request)
-                {
-                    // TODO: create the scope when the stream is started rather than after the request creation.
-                    using var scope = StartScope();
-                    _socket.Logger.LogSendingRequest(request);
-                }
-                else
-                {
-                    Debug.Assert(frame is OutgoingResponseFrame);
-                    _socket.Logger.LogSendingResponse((OutgoingResponseFrame)frame);
-                }
-            }
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)

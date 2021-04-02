@@ -53,7 +53,7 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="CommunicatorDisposedException"/> class.</summary>
         public CommunicatorDisposedException()
-            : base($"{typeof(Communicator).FullName}")
+            : base(objectName: null, message: "communicator shutdown")
         {
         }
 

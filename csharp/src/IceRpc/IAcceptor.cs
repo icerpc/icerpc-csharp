@@ -19,13 +19,6 @@ namespace IceRpc
         /// <return>The accepted connection.</return>
         ValueTask<Connection> AcceptAsync();
 
-        IDisposable? StartScope(Server server)
-        {
-            if (server.Logger.IsEnabled(LogLevel.Critical))
-            {
-                return server.Logger.StartAcceptorScope(server, this);
-            }
-            return null;
-        }
+        IDisposable? StartScope(Server server) => server.Logger.StartAcceptorScope(server, this);
     }
 }

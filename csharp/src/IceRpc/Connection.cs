@@ -265,16 +265,13 @@ namespace IceRpc
             lock (_mutex)
             {
                 using IDisposable? scope = Socket.StartScope(_server);
-                if (Socket.Logger.IsEnabled(LogLevel.Debug))
+                if (Endpoint.IsDatagram)
                 {
-                    if (Endpoint.IsDatagram)
-                    {
-                        Socket.Logger.LogStartReceivingDatagrams(Endpoint.Transport);
-                    }
-                    else
-                    {
-                        Socket.Logger.LogConnectionAccepted(Endpoint.Transport);
-                    }
+                    Socket.Logger.LogStartReceivingDatagrams();
+                }
+                else
+                {
+                    Socket.Logger.LogConnectionAccepted();
                 }
 
                 _state = ConnectionState.Initializing;
@@ -288,16 +285,13 @@ namespace IceRpc
             lock (_mutex)
             {
                 using IDisposable? scope = Socket.StartScope(_server);
-                if (Socket.Logger.IsEnabled(LogLevel.Debug))
+                if (Endpoint.IsDatagram)
                 {
-                    if (Endpoint.IsDatagram)
-                    {
-                        Socket.Logger.LogStartSendingDatagrams(Endpoint.Transport);
-                    }
-                    else
-                    {
-                        Socket.Logger.LogConnectionEstablished(Endpoint.Transport);
-                    }
+                    Socket.Logger.LogStartSendingDatagrams();
+                }
+                else
+                {
+                    Socket.Logger.LogConnectionEstablished();
                 }
 
                 _state = ConnectionState.Initializing;
@@ -341,10 +335,11 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                // Ignore
+                // Ignore if user cancellation token got canceled.
             }
             catch (Exception ex)
             {
+                // PerformGoAwayAsync doesn't throw.
                 Debug.Assert(false, $"unexpected exception {ex}");
             }
 
@@ -392,11 +387,11 @@ namespace IceRpc
                 }
                 catch (OperationCanceledException)
                 {
-                    await AbortAsync(new TimeoutException()).ConfigureAwait(false);
+                    await AbortAsync(new TimeoutException("connection closure timed out")).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    await AbortAsync(ex).ConfigureAwait(false);
+                    await AbortAsync(exception).ConfigureAwait(false);
                 }
             }
         }
@@ -497,6 +492,38 @@ namespace IceRpc
             {
                 if (_state < ConnectionState.Closed)
                 {
+                    if (_state == ConnectionState.NotInitialized)
+                    {
+                        // If the connection is not initialized yet, we print a trace to show that the connection got
+                        // accepted before printing out the connection closed trace.
+                        Socket.Logger.LogConnectionAccepted();
+                    }
+
+                    if (Endpoint.IsDatagram && IsIncoming)
+                    {
+                        Socket.Logger.LogStopReceivingDatagrams();
+                    }
+                    else
+                    {
+                        // Trace the cause of unexpected connection closures
+                        if (exception is ConnectionClosedException closedException)
+                        {
+                            Socket.Logger.LogConnectionClosed(exception.Message, closedException.IsClosedByPeer);
+                        }
+                        else if (_state == ConnectionState.Closing)
+                        {
+                            Socket.Logger.LogConnectionClosed(exception.Message, false);
+                        }
+                        else if (exception.IsConnectionLost())
+                        {
+                            Socket.Logger.LogConnectionClosed("connection lost", true);
+                        }
+                        else
+                        {
+                            Socket.Logger.LogConnectionClosed(exception.Message, false, exception);
+                        }
+                    }
+
                     SetState(ConnectionState.Closed, exception);
                     _closeTask = PerformAbortAsync();
                 }
@@ -505,28 +532,7 @@ namespace IceRpc
 
             async Task PerformAbortAsync()
             {
-                bool graceful = Socket.Abort(exception);
-
-                // No logging if the connection is not initialized.
-                if (_state > ConnectionState.NotInitialized && Socket.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    if (Endpoint.IsDatagram && IsIncoming)
-                    {
-                        Socket.Logger.LogStopReceivingDatagrams(Endpoint.Transport);
-                    }
-                    else
-                    {
-                        // Trace the cause of unexpected connection closures
-                        if (graceful || exception is ConnectionClosedException || exception is ObjectDisposedException)
-                        {
-                            Socket.Logger.LogConnectionClosed();
-                        }
-                        else
-                        {
-                            Socket.Logger.LogConnectionClosed(exception);
-                        }
-                    }
-                }
+                Socket.Abort(exception);
 
                 // Dispose of the socket.
                 Socket.Dispose();
@@ -564,9 +570,13 @@ namespace IceRpc
                     // Accept a new stream.
                     stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                catch (ConnectionClosedException) when (_state == ConnectionState.Closing)
+                catch (Exception) when (_state >= ConnectionState.Closing)
                 {
-                    // Ignore and continue accepting stream data until the peer closes the connection.
+                    // Don't abort, just end the accept stream task. The code is waiting for the
+                    // connection closure when graceful connection closure is in progress and we
+                    // wait the connection to be aborted by the graceful connection closure code
+                    // to report an appropriate exception.
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -599,11 +609,7 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                using IDisposable? requestScope = Socket.Logger.StartRequestScope(request);
-                if (Socket.Logger.IsEnabled(LogLevel.Information))
-                {
-                    Socket.Logger.LogReceivedRequest(request);
-                }
+                Socket.Logger.LogReceivedRequest(request);
 
                 // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
                 OutgoingResponseFrame? response = null;
@@ -632,9 +638,19 @@ namespace IceRpc
                 }
 
                 // No need to send the response if the dispatch is canceled.
-                cancel.ThrowIfCancellationRequested();
-
-                if (stream.IsBidirectional)
+                if (cancel.IsCancellationRequested)
+                {
+                    try
+                    {
+                        cancel.ThrowIfCancellationRequested();
+                    }
+                    catch (Exception ex)
+                    {
+                        Socket.Logger.LogDispatchException(request, ex);
+                        return;
+                    }
+                }
+                else if (stream.IsBidirectional)
                 {
                     Debug.Assert(response != null);
                     try
@@ -649,11 +665,8 @@ namespace IceRpc
                         response = new OutgoingResponseFrame(request, ex);
                         await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
                     }
+                    Socket.Logger.LogSentResponse(response);
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore, the dispatch got canceled
             }
             catch (Exception ex)
             {
@@ -685,18 +698,6 @@ namespace IceRpc
                          (exception != null && state >= ConnectionState.Closing));
 
             Debug.Assert(_state < state); // Don't switch twice and only switch to a higher value state.
-
-            // If the connection is active and the new state is Closed without first going into the Closing state
-            // we print a warning, the connection was closed non-gracefully.
-            if (_state == ConnectionState.Active &&
-                state == ConnectionState.Closed &&
-                !Endpoint.IsDatagram &&
-                ((Socket as Ice1NetworkSocket)?.IsValidated ?? true) &&
-                Socket.Logger.IsEnabled(LogLevel.Warning))
-            {
-                Debug.Assert(exception != null);
-                Socket.Logger.LogConnectionException(exception);
-            }
 
             if (state == ConnectionState.Active)
             {

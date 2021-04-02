@@ -15,31 +15,30 @@ namespace IceRpc
         private const int ReceivedWebSocketFrame = BaseEventId + 3;
         private const int SendingWebSocketFrame = BaseEventId + 4;
 
-        private static readonly Action<ILogger, Exception> _httpUpgradeRequestAccepted =
-            LoggerMessage.Define(
-                LogLevel.Error,
-                new EventId(HttpUpgradeRequestAccepted, nameof(HttpUpgradeRequestAccepted)),
-                "accepted connection HTTP upgrade request");
+        private static readonly Action<ILogger, Exception> _httpUpgradeRequestAccepted = LoggerMessage.Define(
+            LogLevel.Trace,
+            new EventId(HttpUpgradeRequestAccepted, nameof(HttpUpgradeRequestAccepted)),
+            "accepted connection HTTP upgrade request");
 
         private static readonly Action<ILogger, Exception> _httpUpgradeRequestFailed = LoggerMessage.Define(
-            LogLevel.Error,
+            LogLevel.Trace,
             new EventId(HttpUpgradeRequestFailed, nameof(HttpUpgradeRequestFailed)),
             "connection HTTP upgrade request failed");
 
         private static readonly Action<ILogger, Exception> _httpUpgradeRequestSucceed = LoggerMessage.Define(
-            LogLevel.Debug,
+            LogLevel.Trace,
             new EventId(HttpUpgradeRequestSucceed, nameof(HttpUpgradeRequestSucceed)),
             "connection HTTP upgrade request succeed");
 
         private static readonly Action<ILogger, string, int, Exception> _receivedWebSocketFrame =
             LoggerMessage.Define<string, int>(
-                LogLevel.Debug,
+                LogLevel.Trace,
                 new EventId(ReceivedWebSocketFrame, nameof(ReceivedWebSocketFrame)),
                 "received {OpCode} frame with {Size} bytes payload");
 
         private static readonly Action<ILogger, string, int, Exception> _sendingWebSocketFrame =
             LoggerMessage.Define<string, int>(
-                LogLevel.Debug,
+                LogLevel.Trace,
                 new EventId(SendingWebSocketFrame, nameof(SendingWebSocketFrame)),
                 "sending {OpCode} frame with {Size} bytes payload");
 
@@ -52,16 +51,10 @@ namespace IceRpc
         internal static void LogHttpUpgradeRequestSucceed(this ILogger logger) =>
             _httpUpgradeRequestSucceed(logger, null!);
 
-        internal static void LogReceivedWebSocketFrame(
-            this ILogger logger,
-            WSSocket.OpCode opCode,
-            int size) =>
+        internal static void LogReceivedWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
             _receivedWebSocketFrame(logger, opCode.ToString(), size, null!);
 
-        internal static void LogSendingWebSocketFrame(
-            this ILogger logger,
-            WSSocket.OpCode opCode,
-            int size) =>
+        internal static void LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
             _sendingWebSocketFrame(logger, opCode.ToString(), size, null!);
     }
 }

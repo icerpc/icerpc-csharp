@@ -246,7 +246,7 @@ namespace IceRpc
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
                     socket.ReceiveBufferSize = receiveSize.Value;
-                    if (socket.ReceiveBufferSize != receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    if (socket.ReceiveBufferSize != receiveSize)
                     {
                         logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, socket.ReceiveBufferSize);
                     }
@@ -257,7 +257,7 @@ namespace IceRpc
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
                     socket.SendBufferSize = sendSize.Value;
-                    if (socket.SendBufferSize != sendSize && logger.IsEnabled(LogLevel.Debug))
+                    if (socket.SendBufferSize != sendSize)
                     {
                         logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, socket.SendBufferSize);
                     }

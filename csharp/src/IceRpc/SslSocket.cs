@@ -31,10 +31,8 @@ namespace IceRpc
             {
                 throw new InvalidOperationException("cannot accept TLS connection: no TLS authentication configured");
             }
-            await AuthenticateAsync(async (SslStream sslStream) =>
-            {
-                await sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            await AuthenticateAsync(sslStream =>
+                sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
             return this;
         }
 
@@ -50,10 +48,8 @@ namespace IceRpc
                 options.TargetHost = endpoint.Host;
             }
 
-            await AuthenticateAsync(async (SslStream sslStream) =>
-            {
-                await sslStream.AuthenticateAsClientAsync(options, cancel).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            await AuthenticateAsync(sslStream =>
+                sslStream.AuthenticateAsClientAsync(options, cancel)).ConfigureAwait(false);
             return this;
         }
 
@@ -147,7 +143,7 @@ namespace IceRpc
         internal SslSocket(SingleStreamSocket underlying)
             : base(underlying.Logger) => _underlying = underlying;
 
-        private async ValueTask AuthenticateAsync(Func<SslStream, ValueTask> authenticate)
+        private async Task AuthenticateAsync(Func<SslStream, Task> authenticate)
         {
             // This can only be created with a connected socket.
             _sslStream = new SslStream(new NetworkStream(_underlying.Socket!, false), false);
@@ -165,21 +161,19 @@ namespace IceRpc
             }
             catch (AuthenticationException ex)
             {
+                Logger.LogTlsAuthenticationFailed(_sslStream, ex);
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogTlsConnectionCreated(ToString(), new Dictionary<string, string>()
-                    {
-                        { "authenticated", $"{_sslStream.IsAuthenticated}" },
-                        { "encrypted", $"{_sslStream.IsEncrypted}" },
-                        { "signed", $"{_sslStream.IsSigned}" },
-                        { "mutually authenticated", $"{_sslStream.IsMutuallyAuthenticated}" },
-                        { "cipher", $"{_sslStream.NegotiatedCipherSuite}" },
-                        { "protocol", $"{_sslStream.SslProtocol}" }
-                    });
-            }
+            Logger.LogTlsAuthenticationSucceeded(_sslStream, new Dictionary<string, string>()
+                {
+                    { "authenticated", $"{_sslStream.IsAuthenticated}" },
+                    { "encrypted", $"{_sslStream.IsEncrypted}" },
+                    { "signed", $"{_sslStream.IsSigned}" },
+                    { "mutually authenticated", $"{_sslStream.IsMutuallyAuthenticated}" },
+                    { "cipher", $"{_sslStream.NegotiatedCipherSuite}" },
+                    { "protocol", $"{_sslStream.SslProtocol}" }
+                });
 
             // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
             // small buffers will be sent within a single SSL frame.

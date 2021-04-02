@@ -272,23 +272,17 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                if (Logger.IsEnabled(LogLevel.Error))
-                {
-                    Logger.LogHttpUpgradeRequestFailed(ex);
-                }
+                Logger.LogHttpUpgradeRequestFailed(ex);
                 throw;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (_incoming)
             {
-                if (_incoming)
-                {
-                    Logger.LogHttpUpgradeRequestAccepted();
-                }
-                else
-                {
-                    Logger.LogHttpUpgradeRequestSucceed();
-                }
+                Logger.LogHttpUpgradeRequestAccepted();
+            }
+            else
+            {
+                Logger.LogHttpUpgradeRequestSucceed();
             }
         }
 
@@ -392,10 +386,7 @@ namespace IceRpc
                     (await _underlying.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Logger.LogReceivedWebSocketFrame(opCode, payloadLength);
-                }
+                Logger.LogReceivedWebSocketFrame(opCode, payloadLength);
 
                 switch (opCode)
                 {
@@ -660,10 +651,8 @@ namespace IceRpc
                 Debug.Assert(_sendBuffer.Count == 0);
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Logger.LogReceivedWebSocketFrame(opCode, size);
-                }
+
+                Logger.LogReceivedWebSocketFrame(opCode, size);
 
                 if (_incoming || opCode == OpCode.Pong)
                 {

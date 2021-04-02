@@ -47,4 +47,4 @@ var context = new Dictionary<string, string>()
 {
     { "User", "Jose" }
 };
-Console.Out.WriteLine(twoway.SayHello(greeting, context));
+Console.Out.WriteLine(twoway.Clone(invocationTimeout: TimeSpan.FromSeconds(1)).SayHello(greeting, context));

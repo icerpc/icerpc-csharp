@@ -16,81 +16,92 @@ namespace IceRpc
         private const int ConnectionCallbackException = BaseEventId + 3;
         private const int ConnectionClosed = BaseEventId + 4;
         private const int ConnectionEstablished = BaseEventId + 5;
-        private const int ConnectionException = BaseEventId + 6;
-        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 7;
-        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 8;
-        private const int MaximumDatagramSizeExceeded = BaseEventId + 9;
-        private const int PingEventHandlerException = BaseEventId + 10;
-        private const int ReceiveBufferSizeAdjusted = BaseEventId + 11;
-        private const int ReceivedData = BaseEventId + 12;
-        private const int ReceivedInvalidDatagram = BaseEventId + 13;
-        private const int SendBufferSizeAdjusted = BaseEventId + 14;
-        private const int SentData = BaseEventId + 15;
-        private const int StartAcceptingConnections = BaseEventId + 16;
-        private const int StartReceivingDatagrams = BaseEventId + 17;
-        private const int StartSendingDatagrams = BaseEventId + 18;
-        private const int StopAcceptingConnections = BaseEventId + 19;
+        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 6;
+        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 7;
+        private const int MaximumDatagramSizeExceeded = BaseEventId + 8;
+        private const int PingEventHandlerException = BaseEventId + 9;
+        private const int ReceiveBufferSizeAdjusted = BaseEventId + 10;
+        private const int ReceivedData = BaseEventId + 11;
+        private const int ReceivedInvalidDatagram = BaseEventId + 12;
+        private const int SendBufferSizeAdjusted = BaseEventId + 13;
+        private const int SentData = BaseEventId + 14;
+        private const int StartAcceptingConnections = BaseEventId + 15;
+        private const int StartReceivingDatagrams = BaseEventId + 16;
+        private const int StartSendingDatagrams = BaseEventId + 17;
+        private const int StopAcceptingConnections = BaseEventId + 18;
+        private const int StopReceivingDatagrams = BaseEventId + 19;
 
-        private static readonly Action<ILogger, string, Exception> _acceptingConnections =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, Exception> _acceptingConnections =
+            LoggerMessage.Define(
+                LogLevel.Information,
                 new EventId(AcceptingConnections, nameof(AcceptingConnections)),
-                "accepting {Transport} connections");
+                "listening for connections");
 
-        private static readonly Action<ILogger, string, Exception> _acceptingConnectionFailed =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _acceptingConnectionFailed =
+            LoggerMessage.Define(
                 LogLevel.Error,
                 new EventId(AcceptingConnectionFailed, nameof(AcceptingConnectionFailed)),
-                "failed to accept {Transport} connection");
+                "failed to accept connection");
 
-        private static readonly Func<ILogger, string, string, string, IDisposable> _acceptorScope =
-            LoggerMessage.DefineScope<string, string, string>("server({Transport}, Name={Name}, {Description})");
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _acceptorScope =
+            LoggerMessage.DefineScope<string, Protocol, string, string>(
+                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, Description={Description})");
 
-        private static readonly Func<ILogger, string, string, IDisposable> _colocatedAcceptorScope =
-            LoggerMessage.DefineScope<string, string>("server({Transport}, Name={Name})");
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _clientSocketScope =
+            LoggerMessage.DefineScope<string, Protocol, string>(
+                "socket(Transport={Transport}, Protocol={Protocol}, Description={Description})");
 
-        private static readonly Func<ILogger, string, long, IDisposable> _colocatedSocketScope =
-            LoggerMessage.DefineScope<string, long>("socket({Transport}, ID={ID})");
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocatedAcceptorScope =
+            LoggerMessage.DefineScope<string, Protocol, string>(
+                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName})");
 
-        private static readonly Action<ILogger, string, Exception> _connectionAccepted =
-            LoggerMessage.Define<string>(
+        private static readonly Func<ILogger, long, IDisposable> _colocatedServerSocketScope =
+            LoggerMessage.DefineScope<long>("socket(ID={ID})");
+
+        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocatedClientSocketScope =
+            LoggerMessage.DefineScope<string, Protocol, long, string>(
+                "socket(Transport={Transport}, Protocol={Protocol}, ID={ID}, ServerName={ServerName})");
+
+        private static readonly Action<ILogger, Exception> _connectionAccepted =
+            LoggerMessage.Define(
                 LogLevel.Debug,
                 new EventId(ConnectionAccepted, nameof(ConnectionAccepted)),
-                "accepted {Transport} connection");
+                "accepted connection");
 
-        private static readonly Action<ILogger, string, Exception> _connectionEstablished =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _connectionEstablished =
+            LoggerMessage.Define(
                 LogLevel.Debug,
                 new EventId(ConnectionEstablished, nameof(ConnectionEstablished)),
-                "established {Transport} connection");
+                "established connection");
 
         private static readonly Action<ILogger, Exception> _connectionCallbackException = LoggerMessage.Define(
-            LogLevel.Error,
+            LogLevel.Warning,
             new EventId(ConnectionCallbackException, nameof(ConnectionCallbackException)),
-            "connection callback exception");
+            "close event handler raised exception");
 
-        private static readonly Action<ILogger, Exception> _connectionClosed = LoggerMessage.Define(
-            LogLevel.Debug,
-            new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
-            "closed connection");
-
-        private static readonly Action<ILogger, Exception> _connectionException = LoggerMessage.Define(
-            LogLevel.Error,
-            new EventId(ConnectionException, nameof(ConnectionException)),
-            "connection exception");
+        private static readonly Action<ILogger, string, bool, Exception> _connectionClosed =
+            LoggerMessage.Define<string, bool>(
+                LogLevel.Debug,
+                new EventId(ConnectionClosed, nameof(ConnectionCallbackException)),
+                "closed connection (Reason={Reason}, IsClosedByPeer={IsClosedByPeer})");
 
         private static readonly Action<ILogger, Exception> _datagramConnectionReceiveCloseConnectionFrame =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(DatagramConnectionReceiveCloseConnectionFrame,
-                            nameof(DatagramConnectionReceiveCloseConnectionFrame)),
+                new EventId(
+                    DatagramConnectionReceiveCloseConnectionFrame,
+                    nameof(DatagramConnectionReceiveCloseConnectionFrame)),
                 "ignoring close connection frame for datagram connection");
 
-        private static readonly Func<ILogger, string, string, string, IDisposable> _datagramOverSocketServerSocketScope =
-            LoggerMessage.DefineScope<string, string, string>("server({Transport}, Name={Name}, Address={Address})");
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverSocketServerSocketScope =
+            LoggerMessage.DefineScope<string, Protocol, string, string>(
+                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "LocalEndPoint={LocalEndPoint})");
 
-        private static readonly Func<ILogger, string, string, string, IDisposable> _datagramServerSocketScope =
-            LoggerMessage.DefineScope<string, string, string>("server({Transport}, Name={Name}, {Description})");
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramServerSocketScope =
+            LoggerMessage.DefineScope<string, Protocol, string, string>(
+                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "Description={Description})");
 
         private static readonly Action<ILogger, int, Exception> _maximumDatagramSizeExceeded =
             LoggerMessage.Define<int>(
@@ -98,12 +109,17 @@ namespace IceRpc
                 new EventId(MaximumDatagramSizeExceeded, nameof(MaximumDatagramSizeExceeded)),
                 "maximum datagram size of {Size} exceeded");
 
-        private static readonly Func<ILogger, string, string, string, IDisposable> _overSocketSocketScope =
-            LoggerMessage.DefineScope<string, string, string>(
-                "socket({Transport}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+        private static readonly Func<ILogger, string, IDisposable> _overSocketServerSocketScope =
+            LoggerMessage.DefineScope<string>(
+                "socket(RemoteEndPoint={RemoteEndpoint})");
+
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overSocketClientSocketScope =
+            LoggerMessage.DefineScope<string, Protocol, string, string>(
+                "socket(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
+                "RemoteEndPoint={RemoteEndpoint})");
 
         private static readonly Action<ILogger, Exception> _pingEventHanderException = LoggerMessage.Define(
-            LogLevel.Error,
+            LogLevel.Warning,
             new EventId(PingEventHandlerException, nameof(PingEventHandlerException)),
             "ping event handler raised an exception");
 
@@ -113,11 +129,11 @@ namespace IceRpc
                 new EventId(ReceiveBufferSizeAdjusted, nameof(ReceiveBufferSizeAdjusted)),
                 "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
-        private static readonly Action<ILogger, int, string, Exception> _receivedData =
-            LoggerMessage.Define<int, string>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, int, Exception> _receivedData =
+            LoggerMessage.Define<int>(
+                LogLevel.Trace,
                 new EventId(ReceivedData, nameof(ReceivedData)),
-                "received {Size} bytes via {Transport}");
+                "received {Size} bytes");
         private static readonly Action<ILogger, int, Exception> _receivedDatagramExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
@@ -126,9 +142,9 @@ namespace IceRpc
 
         private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
             LoggerMessage.Define<int>(
-                LogLevel.Error,
+                LogLevel.Debug,
                 new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
-                "received datagram with {Bytes} bytes");
+                "received invalid {Bytes} bytes datagram");
 
         private static readonly Action<ILogger, string, int, int, Exception> _sendBufferSizeAdjusted =
             LoggerMessage.Define<string, int, int>(
@@ -136,71 +152,74 @@ namespace IceRpc
                 new EventId(SendBufferSizeAdjusted, nameof(SendBufferSizeAdjusted)),
                 "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
-        private static readonly Action<ILogger, int, string, Exception> _sentData =
-            LoggerMessage.Define<int, string>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, int, Exception> _sentData =
+            LoggerMessage.Define<int>(
+                LogLevel.Trace,
                 new EventId(SentData, nameof(SentData)),
-                "sent {Size} bytes via {Transport}");
+                "sent {Size} bytes");
 
-        private static readonly Func<ILogger, string, string, IDisposable> _socketScope =
-            LoggerMessage.DefineScope<string, string>("socket({Transport} {Description})");
+        private static readonly Func<ILogger, string, IDisposable> _serverSocketScope =
+            LoggerMessage.DefineScope<string>("socket(Description={Description})");
 
-        private static readonly Action<ILogger, string, Exception> _startAcceptingConnections =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _startAcceptingConnections =
+            LoggerMessage.Define(
                 LogLevel.Information,
                 new EventId(StartAcceptingConnections, nameof(StartAcceptingConnections)),
-                "starting to accept {Transport} connections");
+                "starting to accept connections");
 
-        private static readonly Action<ILogger, string, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
+        private static readonly Action<ILogger, Exception> _startReceivingDatagrams =
+            LoggerMessage.Define(
+                LogLevel.Information,
                 new EventId(StartReceivingDatagrams, nameof(StartReceivingDatagrams)),
-                "starting to receive {Transport} datagrams");
+                "starting to receive datagrams");
 
-        private static readonly Action<ILogger, string, Exception> _startSendingDatagrams =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _startSendingDatagrams =
+            LoggerMessage.Define(
                 LogLevel.Debug,
                 new EventId(StartSendingDatagrams, nameof(StartSendingDatagrams)),
-                "starting to send {Transport} datagrams");
+                "starting to send datagrams");
 
-        private static readonly Action<ILogger, string, Exception> _stopAcceptingConnections =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _stopAcceptingConnections =
+            LoggerMessage.Define(
                 LogLevel.Information,
                 new EventId(StopAcceptingConnections, nameof(StopAcceptingConnections)),
-                "stoping to accept {Transport} connections");
+                "stoping to accept connections");
 
-        private static readonly Action<ILogger, string, Exception> _stopSendingDatagrams =
-            LoggerMessage.Define<string>(
+        private static readonly Action<ILogger, Exception> _stopReceivingDatagrams =
+            LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StopAcceptingConnections, nameof(StopAcceptingConnections)),
-                "stoping to receive {Transport} datagrams");
+                new EventId(StopReceivingDatagrams, nameof(StopReceivingDatagrams)),
+                "stoping to receive datagrams");
 
-        private static readonly Func<ILogger, long, string, IDisposable> _streamScope =
-            LoggerMessage.DefineScope<long, string>("stream(ID={ID}, {Kind})");
+        private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
+            LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
-        private static readonly Func<ILogger, string, string, EndPoint, IDisposable> _tcpAcceptorScope =
-            LoggerMessage.DefineScope<string, string, EndPoint>("server({Transport}, Name={Name}, Address={Address})");
+        private static readonly Func<ILogger, string, Protocol, string, EndPoint, IDisposable> _tcpAcceptorScope =
+            LoggerMessage.DefineScope<string, Protocol, string, EndPoint>(
+                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "LocalEndPoint={LocalEndPoint})");
 
-        internal static void LogAcceptingConnections(this ILogger logger, Transport transport) =>
-            _acceptingConnections(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogAcceptingConnections(this ILogger logger) =>
+            _acceptingConnections(logger, null!);
 
-        internal static void LogAcceptingConnectionFailed(this ILogger logger, Transport transport, Exception ex) =>
-            _acceptingConnectionFailed(logger, transport.ToString().ToLowerInvariant(), ex);
+        internal static void LogAcceptingConnectionFailed(this ILogger logger, Exception ex) =>
+            _acceptingConnectionFailed(logger, ex);
 
         internal static void LogConnectionCallbackException(this ILogger logger, Exception ex) =>
             _connectionCallbackException(logger, ex);
 
-        internal static void LogConnectionAccepted(this ILogger logger, Transport transport) =>
-            _connectionAccepted(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogConnectionAccepted(this ILogger logger) =>
+            _connectionAccepted(logger, null!);
 
-        internal static void LogConnectionClosed(this ILogger logger, Exception? exception = null) =>
-            _connectionClosed(logger, exception!);
+        internal static void LogConnectionClosed(
+            this ILogger logger,
+            string message,
+            bool closedByPeer,
+            Exception? exception = null) =>
+            _connectionClosed(logger, message, closedByPeer, exception!);
 
-        internal static void LogConnectionEstablished(this ILogger logger, Transport transport) =>
-            _connectionEstablished(logger, transport.ToString().ToLowerInvariant(), null!);
-
-        internal static void LogConnectionException(this ILogger logger, Exception ex) =>
-            _connectionException(logger, ex);
+        internal static void LogConnectionEstablished(this ILogger logger) =>
+            _connectionEstablished(logger, null!);
 
         internal static void LogMaximumDatagramSizeExceeded(this ILogger logger, int bytes) =>
             _maximumDatagramSizeExceeded(logger, bytes, null!);
@@ -208,32 +227,25 @@ namespace IceRpc
         internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
             _receivedInvalidDatagram(logger, bytes, null!);
 
-        internal static void LogStartReceivingDatagrams(this ILogger logger, Transport transport) =>
-            _startReceivingDatagrams(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogStartReceivingDatagrams(this ILogger logger) =>
+            _startReceivingDatagrams(logger, null!);
 
-        internal static void LogStartSendingDatagrams(this ILogger logger, Transport transport) =>
-            _startSendingDatagrams(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogStartSendingDatagrams(this ILogger logger) =>
+            _startSendingDatagrams(logger, null!);
 
-        internal static void LogStartAcceptingConnections(this ILogger logger, Transport transport) =>
-            _startAcceptingConnections(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogStartAcceptingConnections(this ILogger logger) =>
+            _startAcceptingConnections(logger, null!);
 
-        internal static void LogStopAcceptingConnections(this ILogger logger, Transport transport) =>
-            _stopAcceptingConnections(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogStopAcceptingConnections(this ILogger logger) =>
+            _stopAcceptingConnections(logger, null!);
 
-        internal static void LogStopSendingDatagrams(this ILogger logger, Transport transport) =>
-            _stopSendingDatagrams(logger, transport.ToString().ToLowerInvariant(), null!);
-
-        internal static void LogStopReceivingDatagrams(this ILogger logger, Transport transport) =>
-            _startReceivingDatagrams(logger, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogStopReceivingDatagrams(this ILogger logger) =>
+            _stopReceivingDatagrams(logger, null!);
 
         internal static void LogPingEventHandlerException(this ILogger logger, Exception exception) =>
             _pingEventHanderException(logger, exception);
 
-        internal static void LogReceivedData(this ILogger logger, int size, Transport transport) =>
-            _receivedData(logger, size, transport.ToString().ToLowerInvariant(), null!);
-
-        internal static void LogSentData(this ILogger logger, int size, Transport transport) =>
-            _sentData(logger, size, transport.ToString().ToLowerInvariant(), null!);
+        internal static void LogReceivedData(this ILogger logger, int size) => _receivedData(logger, size, null!);
 
         internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
             _receivedDatagramExceededIncomingFrameMaxSize(logger, size, null!);
@@ -246,35 +258,54 @@ namespace IceRpc
             Transport transport,
             int requestedSize,
             int adjustedSize) =>
-            _receiveBufferSizeAdjusted(logger,
-                                       transport.ToString().ToLowerInvariant(),
-                                       requestedSize,
-                                       adjustedSize,
-                                       null!);
+            _receiveBufferSizeAdjusted(
+                logger,
+                transport.ToString().ToLowerInvariant(),
+                requestedSize,
+                adjustedSize,
+                null!);
 
         internal static void LogSendBufferSizeAdjusted(
             this ILogger logger,
             Transport transport,
             int requestedSize,
             int adjustedSize) =>
-            _sendBufferSizeAdjusted(logger,
-                                    transport.ToString().ToLowerInvariant(),
-                                    requestedSize,
-                                    adjustedSize,
-                                    null!);
+            _sendBufferSizeAdjusted(
+                logger,
+                transport.ToString().ToLowerInvariant(),
+                requestedSize,
+                adjustedSize,
+                null!);
 
-        internal static IDisposable StartSocketScope(
+        internal static void LogSentData(this ILogger logger, int size) => _sentData(logger, size, null!);
+
+        internal static IDisposable? StartSocketScope(
             this ILogger logger,
-            Transport transport,
             MultiStreamSocket socket,
             Server? server)
         {
-            string transportName = transport.ToString().ToLowerInvariant();
+            if (!logger.IsEnabled(LogLevel.Error))
+            {
+                return null;
+            }
+
             try
             {
                 if (socket is ColocatedSocket colocatedSocket)
                 {
-                    return _colocatedSocketScope(logger, transportName, colocatedSocket.Id);
+                    if (socket.IsIncoming)
+                    {
+                        return _colocatedServerSocketScope(logger, colocatedSocket.Id);
+                    }
+                    else
+                    {
+                        return _colocatedClientSocketScope(
+                            logger,
+                            socket.Endpoint.TransportName,
+                            socket.Endpoint.Protocol,
+                            colocatedSocket.Id,
+                            ((ColocatedEndpoint)socket.Endpoint).Server.Name);
+                    }
                 }
                 else if(socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
                         overSingleStreamSocket.Underlying.Socket is System.Net.Sockets.Socket dotnetsocket)
@@ -285,28 +316,55 @@ namespace IceRpc
                         {
                             return _datagramOverSocketServerSocketScope(
                                 logger,
-                                transportName,
+                                socket.Endpoint.TransportName,
+                                socket.Endpoint.Protocol,
                                 server.Name,
                                 dotnetsocket.LocalEndPoint?.ToString() ?? "undefined");
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
-                            return _datagramServerSocketScope(logger, transportName, server.Name, "not connected");
+                            return _datagramServerSocketScope(
+                                logger,
+                                socket.Endpoint.TransportName,
+                                socket.Endpoint.Protocol,
+                                server.Name,
+                                "not connected");
                         }
                     }
                     else
                     {
                         try
                         {
-                            return _overSocketSocketScope(
-                                logger,
-                                transportName,
-                                dotnetsocket.LocalEndPoint?.ToString() ?? "undefined",
-                                dotnetsocket.RemoteEndPoint?.ToString() ?? "undefined");
+                            if (socket.IsIncoming)
+                            {
+                                return _overSocketServerSocketScope(
+                                    logger,
+                                    dotnetsocket.RemoteEndPoint?.ToString() ?? "undefined");
+                            }
+                            else
+                            {
+                                return _overSocketClientSocketScope(
+                                    logger,
+                                    socket.Endpoint.TransportName,
+                                    socket.Endpoint.Protocol,
+                                    dotnetsocket.LocalEndPoint?.ToString() ?? "undefined",
+                                    dotnetsocket.RemoteEndPoint?.ToString() ?? "undefined");
+                            }
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
-                            return _socketScope(logger, transportName, "not connected");
+                            if (socket.IsIncoming)
+                            {
+                                return _serverSocketScope(logger, "not connected");
+                            }
+                            else
+                            {
+                                return _clientSocketScope(
+                                    logger,
+                                    socket.Endpoint.TransportName,
+                                    socket.Endpoint.Protocol,
+                                    "not connected");
+                            }
                         }
                     }
                 }
@@ -314,46 +372,83 @@ namespace IceRpc
                 {
                     if (socket.Endpoint.IsDatagram && server != null)
                     {
-                        return _datagramServerSocketScope(logger, transportName, server.Name, socket.ToString()!);
+                        return _datagramServerSocketScope(
+                            logger,
+                            socket.Endpoint.TransportName,
+                            socket.Endpoint.Protocol,
+                            server.Name,
+                            socket.ToString()!);
+                    }
+                    else if(socket.IsIncoming)
+                    {
+                        return _serverSocketScope(logger, socket.ToString()!);
                     }
                     else
                     {
-                        return _socketScope(logger, transportName, socket.ToString()!);
+                        return _clientSocketScope(
+                            logger,
+                            socket.Endpoint.TransportName,
+                            socket.Endpoint.Protocol,
+                            socket.ToString()!);
                     }
                 }
             }
             catch (ObjectDisposedException)
             {
-                return _socketScope(logger, transportName, "closed");
+                return null;
             }
         }
 
         internal static IDisposable? StartStreamScope(this ILogger logger, SocketStream stream)
         {
-            string streamType = (stream.Id % 4) switch
+            if (!logger.IsEnabled(LogLevel.Error))
             {
-                0 => "[client-initiated, bidirectional]",
-                1 => "[server-initiated, bidirectional]",
-                2 => "[client-initiated, unidirectional]",
-                _ => "[server-initiated, unidirectional]",
+                return null;
+            }
+
+            (string initiatedBy, string kind)  = (stream.Id % 4) switch
+            {
+                0 => ("Client", "Bidirectional"),
+                1 => ("Server", "Bidirectional"),
+                2 => ("Client", "Unidirectional"),
+                _ => ("Server", "Unidirectional")
             };
-            return _streamScope(logger, stream.Id, streamType);
+            return _streamScope(logger, stream.Id, initiatedBy, kind);
         }
 
         internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
         {
+            if (!logger.IsEnabled(LogLevel.Error))
+            {
+                return null;
+            }
+
             string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
             if (acceptor is TcpAcceptor tcpAcceptor)
             {
-                return _tcpAcceptorScope(logger, transportName, server.Name, tcpAcceptor.Address);
+                return _tcpAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.Name,
+                    tcpAcceptor.Address);
             }
             else if (acceptor is ColocatedAcceptor)
             {
-                return _colocatedAcceptorScope(logger, transportName, server.Name);
+                return _colocatedAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.Name);
             }
             else
             {
-                return _acceptorScope(logger, transportName, server.Name, acceptor.ToString()!);
+                return _acceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.Name,
+                    acceptor.ToString()!);
             }
         }
     }
