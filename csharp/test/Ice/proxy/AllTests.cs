@@ -30,9 +30,9 @@ namespace IceRpc.Test.Proxy
 
             output.Write("testing checked cast... ");
             output.Flush();
-            var cl = await IMyClassPrx.Factory.CheckedCastAsync(baseProxy);
+            var cl = await baseProxy.CheckedCastAsync<IMyClassPrx>();
             TestHelper.Assert(cl != null);
-            var derived = await IMyDerivedClassPrx.Factory.CheckedCastAsync(cl);
+            var derived = await cl.CheckedCastAsync<IMyDerivedClassPrx>();
             TestHelper.Assert(derived != null);
             TestHelper.Assert(cl.Equals(baseProxy));
             TestHelper.Assert(derived.Equals(baseProxy));
@@ -62,7 +62,7 @@ namespace IceRpc.Test.Proxy
                 ["one"] = "hello",
                 ["two"] = "world"
             };
-            cl = await IMyClassPrx.Factory.CheckedCastAsync(baseProxy, c);
+            cl = await baseProxy.CheckedCastAsync<IMyClassPrx>(c);
             SortedDictionary<string, string> c2 = cl!.GetContext();
             TestHelper.Assert(c.DictionaryEqual(c2));
             output.WriteLine("ok");
@@ -73,7 +73,7 @@ namespace IceRpc.Test.Proxy
                 output.Flush();
                 var ice2Prx = IServicePrx.Parse(
                     "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000", communicator);
-                var prx = IMyDerivedClassPrx.Factory.Copy(baseProxy).Echo(ice2Prx);
+                var prx = baseProxy.As<IMyDerivedClassPrx>().Echo(ice2Prx);
                 TestHelper.Assert(ice2Prx.Equals(prx));
                 output.WriteLine("ok");
             }
@@ -84,7 +84,7 @@ namespace IceRpc.Test.Proxy
                 var ice1Prx = IServicePrx.Parse(
                     "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000", communicator);
 
-                var prx = IMyDerivedClassPrx.Factory.Copy(baseProxy).Echo(ice1Prx);
+                var prx = baseProxy.As<IMyDerivedClassPrx>().Echo(ice1Prx);
                 TestHelper.Assert(ice1Prx.Equals(prx));
                 output.WriteLine("ok");
             }

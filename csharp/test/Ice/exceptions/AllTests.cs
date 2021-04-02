@@ -428,7 +428,7 @@ namespace IceRpc.Test.Exceptions
 
             try
             {
-                var thrower2 = IWrongOperationPrx.Factory.Copy(thrower);
+                var thrower2 = thrower.As<IWrongOperationPrx>();
                 thrower2.NoSuchOperation();
                 TestHelper.Assert(false);
             }
@@ -818,7 +818,7 @@ namespace IceRpc.Test.Exceptions
             {
                 try
                 {
-                    var thrower4 = IWrongOperationPrx.Factory.Copy(thrower);
+                    var thrower4 = thrower.As<IWrongOperationPrx>();
                     thrower4.NoSuchOperationAsync().Wait();
                     TestHelper.Assert(false);
                 }
@@ -986,7 +986,7 @@ namespace IceRpc.Test.Exceptions
             output.Flush();
 
             {
-                var thrower4 = IWrongOperationPrx.Factory.Copy(thrower);
+                var thrower4 = thrower.As<IWrongOperationPrx>();
                 try
                 {
                     thrower4.NoSuchOperationAsync().Wait();

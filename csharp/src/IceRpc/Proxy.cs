@@ -12,6 +12,31 @@ namespace IceRpc
     /// <summary>Proxy provides extension methods for IServicePrx.</summary>
     public static class Proxy
     {
+        /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <returns>A proxy with the desired type.</returns>
+        public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx =>
+            GetFactory<T>().Create(proxy.Impl.GetOptions());
+
+        /// <summary>Tests whether a proxy points to a remote service whose associated proxy interface is T or an
+        /// interface type derived from T. If so, returns a proxy of type, otherwise returns null. This is a convenience
+        /// wrapper for <see cref="IServicePrx.IceIsAAsync"/>.
+        /// </summary>
+        /// <paramtype name="T">The type of the desired service proxy.</paramtype>
+        /// <param name="proxy">The source proxy being tested.</param>
+        /// <param name="context">The context dictionary for the invocation.</param>
+        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A new proxy with the desired type, or null.</returns>
+        public static async Task<T?> CheckedCastAsync<T>(
+            this IServicePrx proxy,
+            IReadOnlyDictionary<string, string>? context = null,
+            IProgress<bool>? progress = null,
+            CancellationToken cancel = default) where T : class, IServicePrx =>
+            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
+                (proxy is T t ? t : proxy.As<T>()) : null;
+
         /// <summary>Creates a clone of this proxy.</summary>
         /// <param name="proxy">The source proxy.</param>
         /// <returns>A clone of the source proxy.</returns>

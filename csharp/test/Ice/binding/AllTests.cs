@@ -64,7 +64,7 @@ namespace IceRpc.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = ITestIntfPrx.Factory.Copy(test1);
+                var test3 = test1.As<ITestIntfPrx>();
                 TestHelper.Assert(test3.GetCachedConnection() == test1.GetCachedConnection());
 
                 try
@@ -141,7 +141,7 @@ namespace IceRpc.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = ITestIntfPrx.Factory.Copy(test1);
+                var test3 = test1.As<ITestIntfPrx>();
                 try
                 {
                     TestHelper.Assert(await test3.GetConnectionAsync() == await test1.GetConnectionAsync());

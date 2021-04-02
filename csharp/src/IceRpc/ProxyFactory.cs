@@ -13,36 +13,6 @@ namespace IceRpc
 {
     public static class ProxyFactory
     {
-        /// <summary>Tests whether a proxy points to a remote service that implements T. If so, returns a proxy of
-        /// type T otherwise returns null. This is a convenience wrapper for <see cref="IServicePrx.IceIsAAsync"/>.
-        /// </summary>
-        /// <paramtype name="T">The type of the desired service proxy.</paramtype>
-        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// proxy type.</param>
-        /// <param name="proxy">The source proxy being tested.</param>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new proxy manufactured by this proxy factory, or null.</returns>
-        public static async Task<T?> CheckedCastAsync<T>(
-            this IProxyFactory<T> factory,
-            IServicePrx proxy,
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
-            CancellationToken cancel = default) where T : class, IServicePrx =>
-            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
-                (proxy is T t ? t : factory.Copy(proxy)) : null;
-
-        /// <summary>Creates a copy of a proxy with a new proxy type specified using this proxy factory. The copy is
-        /// identical to the source proxy except for the type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// proxy type.</param>
-        /// <param name="proxy">The source proxy being copied.</param>
-        /// <returns>A proxy with the desired type.</returns>
-        public static T Copy<T>(this IProxyFactory<T> factory, IServicePrx proxy) where T : class, IServicePrx =>
-            factory.Create(proxy.Impl.GetOptions());
-
         /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the

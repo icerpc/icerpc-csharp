@@ -75,6 +75,9 @@ namespace IceRpc
 
                 _endpoints = !_isFixed ? endpoints :
                     throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(Endpoints));
+
+                // Clears the cached connection.
+                _connection = null;
             }
         }
 
@@ -133,7 +136,19 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <inheritdoc/>
-        public ILocationResolver? LocationResolver { get; set; }
+        public ILocationResolver? LocationResolver
+        {
+            get => _locationResolver;
+            set
+            {
+                _locationResolver = value;
+                if (!_isFixed)
+                {
+                    // Clears cached connection
+                    _connection = null;
+                }
+            }
+        }
 
         /// <inheritdoc/>
         public NonSecure NonSecure { get; set; }
@@ -170,6 +185,8 @@ namespace IceRpc
         private TimeSpan _invocationTimeout;
 
         private bool _isFixed;
+
+        private ILocationResolver? _locationResolver;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -235,7 +252,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (LocationResolver != other.LocationResolver)
+            if (_locationResolver != other._locationResolver)
             {
                 return false;
             }
@@ -611,11 +628,10 @@ namespace IceRpc
             _invocationTimeout = options.InvocationTimeout;
             _isFixed = options.IsFixed;
             IsOneway = options.IsOneway;
-            LocationResolver = options.LocationResolver;
+            _locationResolver = options.LocationResolver;
             NonSecure = options.NonSecure;
             PreferExistingConnection = options.PreferExistingConnection;
             Protocol = options.Protocol;
-            _connection = options.Connection;
 
             _endpoints = ImmutableList<Endpoint>.Empty;
             var endpoints = options.Endpoints.ToImmutableList();
@@ -623,6 +639,9 @@ namespace IceRpc
             {
                 Endpoints = endpoints; // use Endpoints set validation.
             }
+
+            // Set cached (or fixed) connection after setting Endpoints since Endpoints set clears _connection:
+            _connection = options.Connection;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -765,7 +784,7 @@ namespace IceRpc
                     InvocationTimeout = _invocationTimeout,
                     IsFixed = _isFixed,
                     IsOneway = IsOneway,
-                    LocationResolver = LocationResolver,
+                    LocationResolver = _locationResolver,
                     NonSecure = NonSecure,
                     Path = "",
                     PreferExistingConnection = PreferExistingConnection,
@@ -786,7 +805,7 @@ namespace IceRpc
                     InvocationTimeout = _invocationTimeout,
                     IsFixed = _isFixed,
                     IsOneway = IsOneway,
-                    LocationResolver = LocationResolver,
+                    LocationResolver = _locationResolver,
                     NonSecure = NonSecure,
                     Path = Path,
                     PreferExistingConnection = PreferExistingConnection,
@@ -934,7 +953,7 @@ namespace IceRpc
 
             if (IsIndirect)
             {
-                if (LocationResolver is ILocationResolver locationResolver)
+                if (_locationResolver is ILocationResolver locationResolver)
                 {
                     endpoints =
                         await locationResolver.ResolveAsync(Endpoints[0], refreshCache, cancel).ConfigureAwait(false);
