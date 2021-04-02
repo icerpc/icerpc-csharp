@@ -202,7 +202,8 @@ namespace IceRpc.Tests.Api
             CheckProxy(proxy, isFixed: false);
 
             // change some properties
-            proxy = proxy.Clone(context: new Dictionary<string, string>(), invocationTimeout: TimeSpan.FromSeconds(20));
+            proxy.Context = new Dictionary<string, string>();
+            proxy.InvocationTimeout = TimeSpan.FromSeconds(20);
 
             server.Activate();
             await proxy.SendProxyAsync(proxy);

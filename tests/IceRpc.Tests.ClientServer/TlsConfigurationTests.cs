@@ -424,8 +424,8 @@ namespace IceRpc.Tests.ClientServer
             server.Add("hello", new GreeterTestService());
             server.Activate();
 
-            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator).Clone(
-                nonSecure: NonSecure.Never);
+            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator);
+            prx.NonSecure = NonSecure.Never;
             closure(server, prx);
         }
 

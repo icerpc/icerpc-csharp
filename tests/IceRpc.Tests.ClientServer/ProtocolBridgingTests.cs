@@ -73,7 +73,9 @@ namespace IceRpc.Tests.ClientServer
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
-                return prx.OpNewProxy().Clone(context: new Dictionary<string, string> { { "Direct", "1" } });
+                prx = prx.OpNewProxy();
+                prx.Context = new Dictionary<string, string> { { "Direct", "1" } };
+                return prx;
             }
         }
 
@@ -118,9 +120,12 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpExceptionAsync(Current current, CancellationToken cancel) =>
                 throw new ProtocolBridgingException(42);
 
-            public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel) =>
-                new (IProtocolBridgingServicePrx.Factory.Create(current.Server,
-                                                                current.Path).Clone(encoding: current.Encoding));
+            public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel)
+            {
+                var proxy = IProtocolBridgingServicePrx.Factory.Create(current.Server, current.Path);
+                proxy.Encoding = current.Encoding; // use the request's encoding instead of the server's encoding.
+                return new(proxy);
+            }
 
             public ValueTask OpOnewayAsync(int x, Current current, CancellationToken cancel) => default;
 

@@ -52,7 +52,8 @@ namespace IceRpc.Tests.ClientServer
 
             if (transport == "udp")
             {
-                prx = prx.Clone(nonSecure: NonSecure.Always, oneway: true);
+                prx.NonSecure = NonSecure.Always;
+                prx.IsOneway = true; // TODO: is this necessary?
             }
 
             var connection = (await prx.GetConnectionAsync()) as IPConnection;

@@ -339,13 +339,10 @@ namespace IceRpc
                                 @$"received a relative proxy with a facet on an {proxyOptions.Protocol.GetName()
                                 } connection or proxy");
                         }
-                        else
-                        {
 
-                            options.Protocol = protocol;
-                            options.Path = identity.ToPath();
-                            options.Identity = Identity.Empty;
-                        }
+                        options.Protocol = protocol;
+                        options.Path = identity.ToPath();
+                        options.Identity = Identity.Empty;
                     }
 
                     options.Connection = proxyOptions.Connection;

@@ -16,35 +16,41 @@ namespace IceRpc.Tests.Api
     {
         [TestCase("ice+tcp://localhost:10000/test")]
         [TestCase("test:tcp -h localhost -p 10000")]
-        public async Task Proxy_Clone(string s)
+        public async Task Proxy_SetProperty(string s)
         {
             await using var communicator = new Communicator();
             var prx = IGreeterServicePrx.Parse(s, communicator);
 
-            Assert.IsFalse(prx.Clone(cacheConnection: false).CacheConnection);
-            Assert.IsTrue(prx.Clone(cacheConnection: true).CacheConnection);
+            prx.CacheConnection = false;
+            Assert.IsFalse(prx.CacheConnection);
+            prx.CacheConnection = true;
+            Assert.IsTrue(prx.CacheConnection);
 
-            prx = prx.Clone(context: new Dictionary<string, string>
+            prx.Context = new Dictionary<string, string>
             {
                 { "key1", "value1" },
                 { "key2", "value2" },
-            });
+            };
             Assert.AreEqual(2, prx.Context.Count);
             Assert.AreEqual("value1", prx.Context["key1"]);
             Assert.AreEqual("value2", prx.Context["key2"]);
 
-            Assert.AreEqual(prx.Clone(encoding: Encoding.V11).Encoding, Encoding.V11);
-            Assert.AreEqual(prx.Clone(encoding: Encoding.V20).Encoding, Encoding.V20);
+            prx.Encoding = Encoding.V11;
+            Assert.AreEqual(prx.Encoding, Encoding.V11);
+            prx.Encoding = Encoding.V20;
+            Assert.AreEqual(prx.Encoding, Encoding.V20);
 
             if (prx.Protocol == Protocol.Ice1)
             {
                 var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
-                Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
+                prx.Endpoints = prx2.Endpoints;
+                Assert.AreEqual(prx.Endpoints, prx2.Endpoints);
             }
             else
             {
                 var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
-                Assert.AreEqual(prx.Clone(endpoints: prx2.Endpoints).Endpoints, prx2.Endpoints);
+                prx.Endpoints = prx2.Endpoints;
+                Assert.AreEqual(prx.Endpoints, prx2.Endpoints);
             }
 
             if (prx.Protocol == Protocol.Ice1)
@@ -59,22 +65,29 @@ namespace IceRpc.Tests.Api
                                     });
             prx = server.Add("test", new GreeterService(), IGreeterServicePrx.Factory);
             var connection = await prx.GetConnectionAsync();
-            Assert.AreEqual(prx.Clone(fixedConnection: connection).GetCachedConnection(), connection);
+            prx.FixedConnection = connection;
+            Assert.AreEqual(prx.GetCachedConnection(), connection);
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 
             var interceptors = ImmutableList.Create<InvocationInterceptor>(
                 (target, request, next, cancel) => throw new ArgumentException());
-            Assert.AreEqual(interceptors, prx.Clone(invocationInterceptors: interceptors).InvocationInterceptors);
 
-            Assert.AreEqual(prx.Clone(invocationTimeout: TimeSpan.FromMilliseconds(10)).InvocationTimeout,
-                            TimeSpan.FromMilliseconds(10));
+            prx.InvocationInterceptors = interceptors;
+            Assert.AreEqual(interceptors, prx.InvocationInterceptors);
 
-            Assert.IsFalse(prx.Clone(preferExistingConnection: false).PreferExistingConnection);
-            Assert.IsTrue(prx.Clone(preferExistingConnection: true).PreferExistingConnection);
+            prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
+            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromMilliseconds(10));
 
-            Assert.IsFalse(prx.Clone(oneway: false).IsOneway);
-            Assert.IsTrue(prx.Clone(oneway: true).IsOneway);
+            prx.PreferExistingConnection = false;
+            Assert.IsFalse(prx.PreferExistingConnection);
+            prx.PreferExistingConnection = true;
+            Assert.IsTrue(prx.PreferExistingConnection);
+
+            prx.IsOneway = false;
+            Assert.IsFalse(prx.IsOneway);
+            prx.IsOneway = true;
+            Assert.IsTrue(prx.IsOneway);
 
             if (prx.Protocol == Protocol.Ice1)
             {
@@ -96,12 +109,14 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("", other.GetIdentity().Category);
             }
 
-            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Always).NonSecure, NonSecure.Always);
-            Assert.AreEqual(prx.Clone(nonSecure: NonSecure.Never).NonSecure, NonSecure.Never);
+            prx.NonSecure = NonSecure.Always;
+            Assert.AreEqual(prx.NonSecure, NonSecure.Always);
+            prx.NonSecure = NonSecure.Never;
+            Assert.AreEqual(prx.NonSecure, NonSecure.Never);
         }
 
         [Test]
-        public async Task Proxy_Clone_ArgumentException()
+        public async Task Proxy_SetProperty_ArgumentException()
         {
             var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000", Communicator);
             Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
@@ -109,11 +124,11 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
 
             // Endpoints protocol must match the proxy protocol
-            Assert.Throws<ArgumentException>(() => prxIce1.Clone(endpoints: prxIce2.Endpoints));
-            Assert.Throws<ArgumentException>(() => prxIce2.Clone(endpoints: prxIce1.Endpoints));
+            Assert.Throws<ArgumentException>(() => prxIce1.Endpoints = prxIce2.Endpoints);
+            Assert.Throws<ArgumentException>(() => prxIce2.Endpoints = prxIce1.Endpoints);
 
             // Zero is not a valid invocation timeout
-            Assert.Throws<ArgumentException>(() => prxIce2.Clone(invocationTimeout: TimeSpan.Zero));
+            Assert.Throws<ArgumentException>(() => prxIce2.InvocationTimeout = TimeSpan.Zero);
 
             await using var serverIce1 = new Server(Communicator, new()
             {
@@ -122,7 +137,7 @@ namespace IceRpc.Tests.Api
             });
             var fixedPrxIce1 = serverIce1.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
             var connectionIce1 = await fixedPrxIce1.GetConnectionAsync();
-            fixedPrxIce1 = fixedPrxIce1.Clone(fixedConnection: connectionIce1);
+            fixedPrxIce1.FixedConnection = connectionIce1;
             Assert.IsNotNull(fixedPrxIce1.FixedConnection);
             Assert.AreEqual(Protocol.Ice1, fixedPrxIce1.Protocol);
 
@@ -132,12 +147,12 @@ namespace IceRpc.Tests.Api
             });
             var fixedPrxIce2 = serverIce2.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
             var connectionIce2 = await fixedPrxIce2.GetConnectionAsync();
-            fixedPrxIce2 = fixedPrxIce2.Clone(fixedConnection: connectionIce2);
+            fixedPrxIce2.FixedConnection = connectionIce2;
             Assert.IsNotNull(fixedPrxIce2.FixedConnection);
             Assert.AreEqual(Protocol.Ice2, fixedPrxIce2.Protocol);
 
             // Cannot change the endpoints of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Clone(endpoints: prxIce2.Endpoints));
+            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Endpoints = prxIce2.Endpoints);
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
@@ -284,40 +299,6 @@ namespace IceRpc.Tests.Api
             Assert.IsFalse(IServicePrx.Equals(prx, null));
         }
 
-        /// <summary>Test that proxies that are equal produce the same hash code.</summary>
-        [Test]
-        public void Proxy_HashCode()
-        {
-            var prx1 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
-            var prx2 = IServicePrx.Parse("hello:tcp -h localhost", Communicator);
-
-            var prx3 = IServicePrx.Parse("bar:tcp -h 127.0.0.1 -p 10000", Communicator);
-
-            CheckGetHashCode(prx1, prx2);
-
-            CheckGetHashCode(prx1.Clone(cacheConnection: true), prx2.Clone(cacheConnection: true));
-
-            CheckGetHashCode(prx1.Clone(endpoints: prx3.Endpoints), prx2.Clone(endpoints: prx3.Endpoints));
-
-            CheckGetHashCode(prx1.Clone(invocationTimeout: TimeSpan.FromSeconds(1)),
-                             prx2.Clone(invocationTimeout: TimeSpan.FromSeconds(1)));
-
-            CheckGetHashCode(prx1.Clone(oneway: true), prx2.Clone(oneway: true));
-
-            CheckGetHashCode(prx1.Clone(preferExistingConnection: true), prx2.Clone(preferExistingConnection: true));
-
-            CheckGetHashCode(prx1.Clone(nonSecure: NonSecure.Always),
-                             prx2.Clone(nonSecure: NonSecure.Always));
-
-            static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
-            {
-                Assert.AreEqual(prx1, prx2);
-                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
-                // The second attempt should hit the hash code cache
-                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
-            }
-        }
-
         [TestCase("ice+tcp://tcphost:10000/test?" +
                   "alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
         [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
@@ -377,8 +358,30 @@ namespace IceRpc.Tests.Api
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
             Connection connection = await prx.GetConnectionAsync();
-            Assert.AreEqual(expected,
-                            prx.Clone(fixedConnection: connection).WithPath<IGreeterServicePrx>("fixed").ToString());
+
+            prx.FixedConnection = connection;
+            Assert.AreEqual(expected, prx.WithPath<IGreeterServicePrx>("fixed").ToString());
+        }
+
+         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
+        [TestCase("hello:tcp -h localhost")]
+        [TestCase("ice+tcp://localhost/path?invocation-timeout=10s&cache-connection=false&alt-endpoint=ice+ws://[::1]")]
+        public void Proxy_HashCode(string proxyString)
+        {
+            var prx1 = IServicePrx.Parse(proxyString, Communicator);
+            var prx2 = prx1.Clone();
+            var prx3 = IServicePrx.Parse(prx2.ToString()!, Communicator);
+
+            CheckGetHashCode(prx1, prx2);
+            CheckGetHashCode(prx1, prx3);
+
+            static void CheckGetHashCode(IServicePrx prx1, IServicePrx prx2)
+            {
+                Assert.AreEqual(prx1, prx2);
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
+                // The second attempt should hit the hash code cache
+                Assert.AreEqual(prx1.GetHashCode(), prx2.GetHashCode());
+            }
         }
 
         [TestCase("ice+tcp://host/test")]
@@ -432,27 +435,27 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_ToProperty()
         {
             await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator).Clone(
-                cacheConnection: true,
-                preferExistingConnection: true,
-                nonSecure: NonSecure.Never,
-                invocationTimeout: TimeSpan.FromSeconds(10));
+            var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator);
+            prx.CacheConnection = true;
+            prx.PreferExistingConnection = false;
+            prx.NonSecure = NonSecure.Never;
+            prx.InvocationTimeout = TimeSpan.FromSeconds(10);
 
             Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(proxyProps.Count, 4);
+            Assert.AreEqual(4, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
 
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
             Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
 
-            ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator).Clone(
-                cacheConnection: false,
-                preferExistingConnection: false,
-                nonSecure: NonSecure.Always);
+            ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator);
+            locator.CacheConnection = false;
+            locator.PreferExistingConnection = false;
+            locator.NonSecure = NonSecure.Always;
 
             // TODO: LocatorClient should reject indirect locators.
             ILocationResolver locationResolver = new LocatorClient(locator);
-            prx = prx.Clone(locationResolver: locationResolver);
+            prx.LocationResolver = locationResolver;
 
             proxyProps = prx.ToProperty("Test");
 
@@ -460,7 +463,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
             Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
-            Assert.AreEqual("true", proxyProps["Test.PreferExistingConnection"]);
+            Assert.AreEqual("false", proxyProps["Test.PreferExistingConnection"]);
         }
 
         [Test]

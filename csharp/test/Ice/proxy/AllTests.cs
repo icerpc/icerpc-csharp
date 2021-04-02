@@ -120,33 +120,23 @@ namespace IceRpc.Test.Proxy
                 if (await cl.GetConnectionAsync() is Connection connection2)
                 {
                     TestHelper.Assert(cl.FixedConnection == null);
-                    IMyClassPrx prx = cl.Clone(fixedConnection: connection2);
+                    IMyClassPrx prx = cl.Clone();
+                    prx.FixedConnection = connection2;
                     TestHelper.Assert(prx.FixedConnection != null);
                     await prx.IcePingAsync();
 
                     if (ice1)
                     {
-                        TestHelper.Assert(
-                            cl.WithFacet<IServicePrx>("facet").Clone(fixedConnection: connection2).GetFacet() ==
-                            "facet");
+                        TestHelper.Assert(cl.WithFacet<IServicePrx>("facet").GetFacet() == "facet");
                     }
-                    TestHelper.Assert(cl.Clone(oneway: true, fixedConnection: connection2).IsOneway);
-                    var ctx = new Dictionary<string, string>
-                    {
-                        ["one"] = "hello",
-                        ["two"] = "world"
-                    };
-                    TestHelper.Assert(cl.Clone(fixedConnection: connection2).Context.Count == 0);
-                    TestHelper.Assert(cl.Clone(context: ctx, fixedConnection: connection2).Context.Count == 2);
-                    TestHelper.Assert(await cl.Clone(fixedConnection: connection2).GetConnectionAsync() == connection2);
-                    TestHelper.Assert(await cl.Clone(fixedConnection: connection2).Clone(fixedConnection: connection2).GetConnectionAsync() == connection2);
                 }
             }
             output.WriteLine("ok");
 
             output.Write("testing encoding versioning... ");
             string ref13 = helper.GetTestProxy("test", 0);
-            IMyClassPrx cl13 = IMyClassPrx.Parse(ref13, communicator).Clone(encoding: new Encoding(1, 3));
+            IMyClassPrx cl13 = IMyClassPrx.Parse(ref13, communicator);
+            cl13.Encoding = new Encoding(1, 3);
             try
             {
                 await cl13.IcePingAsync();
@@ -254,8 +244,8 @@ namespace IceRpc.Test.Proxy
             {
                 try
                 {
-                    IServicePrx.Parse("ice+tcp://localhost/identity", communicator).Clone(
-                        invocationTimeout: TimeSpan.Zero);
+                    var prx = IServicePrx.Parse("ice+tcp://localhost/identity", communicator);
+                    prx.InvocationTimeout = TimeSpan.Zero;
                     TestHelper.Assert(false);
                 }
                 catch (ArgumentException)

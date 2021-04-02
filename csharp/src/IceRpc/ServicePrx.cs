@@ -19,7 +19,20 @@ namespace IceRpc
     public class ServicePrx : IServicePrx, IEquatable<ServicePrx>
     {
         /// <inheritdoc/>
-        public bool CacheConnection { get; set; }
+        public bool CacheConnection
+        {
+            get => _cacheConnection;
+            set
+            {
+                _cacheConnection = value;
+
+                if (!_isFixed && !_cacheConnection)
+                {
+                    // Also clears the cached connection, if there is one.
+                    _connection = null;
+                }
+            }
+        }
 
         public Communicator Communicator { get; }
 
@@ -37,8 +50,32 @@ namespace IceRpc
         public IReadOnlyList<Endpoint> Endpoints
         {
             get => _endpoints;
-            set => _endpoints = !_isFixed ? value.ToImmutableList() :
-                throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(Endpoints));
+            set
+            {
+                var endpoints = value.ToImmutableList();
+
+                if (endpoints.Count > 0)
+                {
+                    if (endpoints.Count > 1 && endpoints.Any(e => e.Transport == Transport.Loc))
+                    {
+                        throw new ArgumentException("a loc endpoint must be the only endpoint", nameof(Endpoints));
+                    }
+
+                    if (endpoints.Any(e => e.Protocol != Protocol))
+                    {
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
+                                                    nameof(Endpoints));
+                    }
+                }
+                else if (!_isFixed && Protocol == Protocol.Ice1)
+                {
+                    throw new ArgumentException("a non-fixed ice1 proxy requires at least one endpoint",
+                                                nameof(Endpoints));
+                }
+
+                _endpoints = !_isFixed ? endpoints :
+                    throw new ArgumentException("cannot change the endpoints of a fixed proxy", nameof(Endpoints));
+            }
         }
 
         /// <inheritdoc/>
@@ -49,11 +86,27 @@ namespace IceRpc
             {
                 if (value == null)
                 {
-                    _isFixed = false;
-                    _connection = null;
+                    if (_isFixed)
+                    {
+                        _isFixed = false;
+                        _connection = null;
+                        if (Protocol == Protocol.Ice1)
+                        {
+                            // Becomes a well-known proxy
+                            _endpoints = ImmutableList.Create(LocEndpoint.Create(Identity) as Endpoint);
+                        }
+                        // else becomes a relative proxy
+                    }
+                    // else, isFixed was already false and we don't clear the cached connection.
                 }
                 else
                 {
+                    if (value.Protocol != Protocol)
+                    {
+                        throw new ArgumentException(
+                            "a fixed connection cannot change the protocol of a proxy", nameof(FixedConnection));
+                    }
+
                     _isFixed = true;
                     _connection = value;
                     _endpoints = ImmutableList<Endpoint>.Empty;
@@ -69,10 +122,15 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-         public TimeSpan InvocationTimeout { get; set; }
+        public TimeSpan InvocationTimeout
+        {
+            get => _invocationTimeout;
+            set => _invocationTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
+        }
 
         /// <inheritdoc/>
-         public bool IsOneway { get; set; }
+        public bool IsOneway { get; set; }
 
         /// <inheritdoc/>
         public ILocationResolver? LocationResolver { get; set; }
@@ -99,6 +157,8 @@ namespace IceRpc
         internal bool IsRelative => Protocol != Protocol.Ice1 && Endpoints.Count == 0 && !_isFixed;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && Endpoints[0].HasOptions;
 
+        private bool _cacheConnection;
+
         private volatile Connection? _connection;
 
         private ImmutableSortedDictionary<string, string> _context;
@@ -106,6 +166,9 @@ namespace IceRpc
         private ImmutableList<Endpoint> _endpoints;
 
         private ImmutableList<InvocationInterceptor> _invocationInterceptors;
+
+        private TimeSpan _invocationTimeout;
+
         private bool _isFixed;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -144,7 +207,7 @@ namespace IceRpc
                 return true;
             }
 
-            if (CacheConnection != other.CacheConnection)
+            if (_cacheConnection != other._cacheConnection)
             {
                 return false;
             }
@@ -160,7 +223,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (InvocationTimeout != other.InvocationTimeout)
+            if (_invocationTimeout != other._invocationTimeout)
             {
                 return false;
             }
@@ -229,7 +292,7 @@ namespace IceRpc
             // We only hash a subset of the properties to keep GetHashCode reasonably fast.
             var hash = new HashCode();
             hash.Add(Facet);
-            hash.Add(InvocationTimeout);
+            hash.Add(_invocationTimeout);
             hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
@@ -436,7 +499,7 @@ namespace IceRpc
                     sb.Append(Path);
                 }
 
-                if (!CacheConnection)
+                if (!_cacheConnection)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("cache-connection=false");
@@ -472,11 +535,11 @@ namespace IceRpc
                     sb.Append("fixed=true");
                 }
 
-                if (InvocationTimeout != ProxyOptions.DefaultInvocationTimeout)
+                if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("invocation-timeout=");
-                    sb.Append(TimeSpanExtensions.ToPropertyValue(InvocationTimeout));
+                    sb.Append(TimeSpanExtensions.ToPropertyValue(_invocationTimeout));
                 }
 
                 if (NonSecure != NonSecure.Always)
@@ -540,54 +603,26 @@ namespace IceRpc
         /// <summary>Constructs a new proxy class instance with the specified options.</summary>
         protected internal ServicePrx(ProxyOptions options)
         {
-            _endpoints = options.Endpoints.ToImmutableList();
-            int endpointCount = _endpoints.Count;
-
-            if (options.IsFixed)
-            {
-                if (endpointCount > 0)
-                {
-                    throw new ArgumentException("a fixed proxy cannot specify endpoints", nameof(options));
-                }
-                if (options.Connection == null)
-                {
-                    throw new ArgumentException("a fixed proxy requires a connection", nameof(options));
-                }
-            }
-
-            if (endpointCount > 0)
-            {
-                if (endpointCount > 1 && _endpoints .Any(e => e.Transport == Transport.Loc))
-                {
-                    throw new ArgumentException("a loc endpoint must be the only endpoint", nameof(options));
-                }
-
-                if (_endpoints.Any(e => e.Protocol != options.Protocol))
-                {
-                    throw new ArgumentException($"the protocol of all endpoints must be {options.Protocol.GetName()}",
-                                                nameof(options));
-                }
-            }
-            else if (!options.IsFixed && options.Protocol == Protocol.Ice1)
-            {
-                throw new ArgumentException("a non-fixed ice1 proxy requires at least one endpoint",
-                                            nameof(options));
-            }
-
-            CacheConnection = options.CacheConnection;
+            _cacheConnection = options.CacheConnection;
             Communicator = options.Communicator!;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = options.Encoding;
             _invocationInterceptors = options.InvocationInterceptors.ToImmutableList();
-            InvocationTimeout = options.InvocationTimeout;
+            _invocationTimeout = options.InvocationTimeout;
             _isFixed = options.IsFixed;
             IsOneway = options.IsOneway;
             LocationResolver = options.LocationResolver;
             NonSecure = options.NonSecure;
             PreferExistingConnection = options.PreferExistingConnection;
             Protocol = options.Protocol;
-
             _connection = options.Connection;
+
+            _endpoints = ImmutableList<Endpoint>.Empty;
+            var endpoints = options.Endpoints.ToImmutableList();
+            if (endpoints.Count > 0)
+            {
+                Endpoints = endpoints; // use Endpoints set validation.
+            }
 
             if (Protocol == Protocol.Ice1)
             {
@@ -628,10 +663,6 @@ namespace IceRpc
                 Path = UriParser.NormalizePath(options.Path);
             }
         }
-
-        /// <summary>Creates a new proxy with the same type as <c>this</c> and with the provided options. Derived
-        /// proxy classes must override this method.</summary>
-        protected virtual ServicePrx IceClone(ProxyOptions options) => new(options);
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
             IServicePrx proxy,
@@ -712,8 +743,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates a new proxy with the same type as this proxy and the provided options.</summary>
-        internal ServicePrx Clone(ProxyOptions options) => IceClone(options);
+        /// <summary>Creates a shallow copy of this service.</summary>
+        internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
 
         /// <summary>Returns a new copy of the underlying options.</summary>
         internal ProxyOptions GetOptions()
@@ -722,7 +753,7 @@ namespace IceRpc
             {
                 return new InteropProxyOptions()
                 {
-                    CacheConnection = CacheConnection,
+                    CacheConnection = _cacheConnection,
                     Communicator = Communicator,
                     Connection = _connection,
                     Context = _context,
@@ -731,7 +762,7 @@ namespace IceRpc
                     Facet = Facet,
                     Identity = Identity,
                     InvocationInterceptors = _invocationInterceptors,
-                    InvocationTimeout = InvocationTimeout,
+                    InvocationTimeout = _invocationTimeout,
                     IsFixed = _isFixed,
                     IsOneway = IsOneway,
                     LocationResolver = LocationResolver,
@@ -745,14 +776,14 @@ namespace IceRpc
             {
                 return new()
                 {
-                    CacheConnection = CacheConnection,
+                    CacheConnection = _cacheConnection,
                     Communicator = Communicator,
                     Connection = _connection,
                     Context = _context,
                     Encoding = Encoding,
                     Endpoints = _endpoints,
                     InvocationInterceptors = _invocationInterceptors,
-                    InvocationTimeout = InvocationTimeout,
+                    InvocationTimeout = _invocationTimeout,
                     IsFixed = _isFixed,
                     IsOneway = IsOneway,
                     LocationResolver = LocationResolver,
@@ -788,7 +819,7 @@ namespace IceRpc
                 endpoints =
                     await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, NonSecure);
-                if (CacheConnection)
+                if (_cacheConnection)
                 {
                     _connection = connection;
                 }
@@ -812,7 +843,7 @@ namespace IceRpc
                     try
                     {
                         connection = await Communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
-                        if (CacheConnection)
+                        if (_cacheConnection)
                         {
                             _connection = connection;
                         }
@@ -853,25 +884,25 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                if (!CacheConnection)
+                if (!_cacheConnection)
                 {
                     properties[$"{prefix}.CacheConnection"] = "false";
                 }
 
                 // We don't output context as this would require hard-to-generate escapes.
 
-                if (InvocationTimeout is TimeSpan invocationTimeout)
+                if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
                 {
                     // For ice2 the invocation timeout is included in the URI
-                    properties[$"{prefix}.InvocationTimeout"] = invocationTimeout.ToPropertyValue();
+                    properties[$"{prefix}.InvocationTimeout"] = _invocationTimeout.ToPropertyValue();
                 }
-                if (PreferExistingConnection is bool preferExistingConnection)
+                if (!PreferExistingConnection)
                 {
-                    properties[$"{prefix}.PreferExistingConnection"] = preferExistingConnection ? "true" : "false";
+                    properties[$"{prefix}.PreferExistingConnection"] = "false";
                 }
-                if (NonSecure is NonSecure nonSecure)
+                if (NonSecure != NonSecure.Always)
                 {
-                    properties[$"{prefix}.NonSecure"] = nonSecure.ToString();
+                    properties[$"{prefix}.NonSecure"] = NonSecure.ToString();
                 }
             }
             // else, only a single property in the dictionary
@@ -973,7 +1004,7 @@ namespace IceRpc
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
                 connection = Communicator.GetConnection(endpoints, NonSecure);
-                if (CacheConnection)
+                if (_cacheConnection)
                 {
                     _connection = connection;
                 }
@@ -1024,7 +1055,7 @@ namespace IceRpc
                                                                      connectionOptions,
                                                                      cancel).ConfigureAwait(false);
 
-                        if (CacheConnection)
+                        if (_cacheConnection)
                         {
                             _connection = connection;
                         }

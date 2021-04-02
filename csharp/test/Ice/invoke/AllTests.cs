@@ -15,7 +15,8 @@ namespace IceRpc.Test.Invoke
 
             bool ice1 = helper.Protocol == Protocol.Ice1;
             var cl = IMyClassPrx.Parse(helper.GetTestProxy("test", 0), communicator);
-            IMyClassPrx oneway = cl.Clone(oneway: true);
+            IMyClassPrx oneway = cl.Clone();
+            oneway.IsOneway = true;
 
             System.IO.TextWriter output = helper.Output;
             output.Write("testing InvokeAsync... ");

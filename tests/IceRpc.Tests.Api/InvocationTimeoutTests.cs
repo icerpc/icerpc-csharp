@@ -49,14 +49,14 @@ namespace IceRpc.Tests.Api
             router.Map("/test", new TestService());
             _server.Activate(router);
 
-            var prx = IServicePrx.Factory.Create(_server, "/test").Clone(
-                invocationTimeout: TimeSpan.FromMilliseconds(timeout),
-                invocationInterceptors: ImmutableList.Create<InvocationInterceptor>(
+            var prx = IServicePrx.Factory.Create(_server, "/test");
+            prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);
+            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                     async (target, request, next, cancel) =>
                     {
                         invocationDeadline = request.Deadline;
                         return await next(target, request, cancel);
-                    }));
+                    });
 
             // Establish a connection
             var connection = await prx.GetConnectionAsync();

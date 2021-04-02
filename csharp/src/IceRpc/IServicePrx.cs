@@ -122,7 +122,8 @@ namespace IceRpc
             (ostr, value) => ostr.WriteNullableProxy(value);
 
         /// <summary>Indicates whether or not this proxy caches its connection.</summary>
-        /// <value>True when the proxy caches its connection; otherwise, false.</value>
+        /// <value>True when the proxy caches its connection; otherwise, false. Setting this value to false also clears
+        /// the cached connection.</value>
         public bool CacheConnection { get; set; }
 
         /// <summary>Returns the communicator that created this proxy.</summary>

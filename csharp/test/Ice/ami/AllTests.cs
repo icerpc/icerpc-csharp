@@ -640,7 +640,7 @@ namespace IceRpc.Test.AMI
                     // without waiting for the pending invocation to complete. There will be no retry and we expect the
                     // invocation to fail with ConnectionClosedException.
                     await using var connection = await Connection.CreateAsync(p.Endpoints[0], p.Communicator);
-                    p = p.Clone(fixedConnection: connection); // Start with a new connection.
+                    p.FixedConnection = connection; // Start with a new connection.
                     Connection con = await p.GetConnectionAsync();
                     var cb = new CallbackBase();
                     Task t = p.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));

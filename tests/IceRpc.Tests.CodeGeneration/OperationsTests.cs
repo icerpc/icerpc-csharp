@@ -75,11 +75,15 @@ namespace IceRpc.Tests.CodeGeneration
         {
             Assert.IsFalse(_prx.IsOneway);
             Assert.ThrowsAsync<SomeException>(async () => await _prx.OpOnewayAsync());
-            await _prx.Clone(oneway: true).OpOnewayAsync();
+
+            var onewayPrx = _prx.Clone();
+            onewayPrx.IsOneway = true;
+
+            await onewayPrx.OpOnewayAsync();
 
             // This is invoked as a oneway, despite using a twoway proxy.
             await _prx.OpOnewayMetadataAsync();
-            await _prx.Clone(oneway: true).OpOnewayMetadataAsync();
+            await onewayPrx.OpOnewayMetadataAsync();
         }
 
         public class Operations : IAsyncOperations
