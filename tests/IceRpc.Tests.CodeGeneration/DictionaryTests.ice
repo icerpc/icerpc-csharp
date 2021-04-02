@@ -31,6 +31,24 @@ module IceRpc::Tests::CodeGeneration
     dictionary<string, Operations> OperationsDict;
     dictionary<string, AnotherStruct> AnotherStructDict;
 
+    [cs:generic(SortedDictionary)] dictionary<byte, byte> ByteSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<bool, bool> BoolSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<short, short> ShortSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<ushort, ushort> UShortSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<int, int> IntSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<varint, varint> VarIntSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<uint, uint> UIntSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<varuint, varuint> VarUIntSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<long, long> LongSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<varlong, varlong> VarLongSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<ulong, ulong> ULongSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<varulong, varulong> VarULongSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<string, string> StringSortedDict;
+
+    [cs:generic(SortedDictionary)] dictionary<MyEnum, MyEnum> MyEnumSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<MyFixedLengthEnum, MyFixedLengthEnum> MyFixedLengthEnumSortedDict;
+    [cs:generic(SortedDictionary)] dictionary<MyUncheckedEnum, MyUncheckedEnum> MyUncheckedEnumSortedDict;
+
     interface DictionaryOperations
     {
         // Builtin type dictionaries
@@ -48,7 +66,7 @@ module IceRpc::Tests::CodeGeneration
         (VarULongDict r1, VarULongDict r2) opVarULongDict(VarULongDict p1, VarULongDict p2);
         (StringDict r1, StringDict r2) opStringDict(StringDict p1, StringDict p2);
 
-        // Defined types dictionaries
+        // Dictionaries with constructed types
         (MyEnumDict r1, MyEnumDict r2) opMyEnumDict(MyEnumDict p1, MyEnumDict p2);
         (MyFixedLengthEnumDict r1, MyFixedLengthEnumDict r2) opMyFixedLengthEnumDict(
             MyFixedLengthEnumDict p1,
@@ -59,5 +77,32 @@ module IceRpc::Tests::CodeGeneration
         (MyStructDict r1, MyStructDict r2) opMyStructDict(MyStructDict p1, MyStructDict p2);
         (OperationsDict r1, OperationsDict r2) opOperationsDict(OperationsDict p1, OperationsDict p2);
         (AnotherStructDict r1, AnotherStructDict r2) opAnotherStructDict(AnotherStructDict p1, AnotherStructDict p2);
+
+        // Sorted dictionaries with builtin types
+        (ByteSortedDict r1, ByteSortedDict r2) opByteSortedDict(ByteSortedDict p1, ByteSortedDict p2);
+        (BoolSortedDict r1, BoolSortedDict r2) opBoolSortedDict(BoolSortedDict p1, BoolSortedDict p2);
+        (ShortSortedDict r1, ShortSortedDict r2) opShortSortedDict(ShortSortedDict p1, ShortSortedDict p2);
+        (UShortSortedDict r1, UShortSortedDict r2) opUShortSortedDict(UShortSortedDict p1, UShortSortedDict p2);
+        (IntSortedDict r1, IntSortedDict r2) opIntSortedDict(IntSortedDict p1, IntSortedDict p2);
+        (VarIntSortedDict r1, VarIntSortedDict r2) opVarIntSortedDict(VarIntSortedDict p1, VarIntSortedDict p2);
+        (UIntSortedDict r1, UIntSortedDict r2) opUIntSortedDict(UIntSortedDict p1, UIntSortedDict p2);
+        (VarUIntSortedDict r1, VarUIntSortedDict r2) opVarUIntSortedDict(VarUIntSortedDict p1, VarUIntSortedDict p2);
+        (LongSortedDict r1, LongSortedDict r2) opLongSortedDict(LongSortedDict p1, LongSortedDict p2);
+        (VarLongSortedDict r1, VarLongSortedDict r2) opVarLongSortedDict(VarLongSortedDict p1, VarLongSortedDict p2);
+        (ULongSortedDict r1, ULongSortedDict r2) opULongSortedDict(ULongSortedDict p1, ULongSortedDict p2);
+        (VarULongSortedDict r1, VarULongSortedDict r2) opVarULongSortedDict(
+            VarULongSortedDict p1,
+            VarULongSortedDict p2);
+        (StringSortedDict r1, StringSortedDict r2) opStringSortedDict(StringSortedDict p1, StringSortedDict p2);
+
+        // Sorted dictionaries with constructed types
+        (MyEnumSortedDict r1, MyEnumSortedDict r2) opMyEnumSortedDict(MyEnumSortedDict p1, MyEnumSortedDict p2);
+        (MyFixedLengthEnumSortedDict r1, MyFixedLengthEnumSortedDict r2) opMyFixedLengthEnumSortedDict(
+            MyFixedLengthEnumSortedDict p1,
+            MyFixedLengthEnumSortedDict p2);
+        (MyUncheckedEnumSortedDict r1, MyUncheckedEnumSortedDict r2) opMyUncheckedEnumSortedDict(
+            MyUncheckedEnumSortedDict p1,
+            MyUncheckedEnumSortedDict p2);
+        // TODO Allow structs as sorted dictionary keys, implementing IComparable
     }
 }

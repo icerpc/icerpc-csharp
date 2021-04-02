@@ -16,22 +16,8 @@ namespace IceRpc
     public delegate T RequestReader<T>(Connection connection, IncomingRequestFrame request);
 
     /// <summary>The base interface for all services.</summary>
-    public interface IService
+    public interface IService : IDispatcher
     {
-        /// <summary>Dispatches a request on this servant.</summary>
-        /// <param name="current">Holds decoded header data and other information about the current request.</param>
-        /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
-        /// </param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        /// <exception cref="Exception">Any exception thrown by DispatchAsync will be marshaled into the response
-        /// frame.</exception>
-        public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
-        {
-            // TODO: switch to abstract method (but doesn't work as of .NET 5 RC1).
-            Debug.Assert(false);
-            return new ValueTask<OutgoingResponseFrame>(OutgoingResponseFrame.WithVoidReturnValue(current));
-        }
-
         // The following are helper classes and methods for generated servants.
 
         /// <summary>Holds a <see cref="RequestReader{T}"/> for each remote operation with parameter(s) defined in

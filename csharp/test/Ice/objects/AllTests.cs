@@ -323,7 +323,7 @@ namespace IceRpc.Test.Objects
                 if (initial.HasF3())
                 {
                     (F3? f31, F3? f32) = initial.OpF3(new F3(new F1("F11"),
-                        IF2Prx.Parse(initial.Protocol == Protocol.Ice1 ? "F21" : "ice+tcp://localhost/F21", communicator)));
+                        IF2Prx.Parse(initial.Protocol == Protocol.Ice1 ? "F21:tcp -h localhost -p 10000" : "ice+tcp://localhost/F21", communicator)));
 
                     TestHelper.Assert(f31!.F1!.Name.Equals("F11"));
                     TestHelper.Assert(f31!.F2!.Path == "/F21");

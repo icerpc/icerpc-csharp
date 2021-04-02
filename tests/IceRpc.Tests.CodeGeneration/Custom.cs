@@ -3,7 +3,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace IceRpc.Test.SeqMapping
+namespace IceRpc.Tests.CodeGeneration
 {
     public class Custom<T> : IReadOnlyCollection<T>
     {
@@ -35,15 +35,15 @@ namespace IceRpc.Test.SeqMapping
 
         public void Add(T elmt) => _list.Add(elmt);
 
-        public override bool Equals(object? o)
+        public override bool Equals(object? obj)
         {
-            if (o == null)
+            if (obj == null)
             {
                 return false;
             }
             try
             {
-                var tmp = (Custom<T>)o;
+                var tmp = (Custom<T>)obj;
                 IEnumerator<T> e = tmp.GetEnumerator();
                 foreach (T elmt in _list)
                 {

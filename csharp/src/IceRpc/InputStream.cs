@@ -1065,7 +1065,6 @@ namespace IceRpc
         /// <returns>The endpoint read from the stream.</returns>
         internal Endpoint ReadEndpoint11(Protocol protocol)
         {
-            Debug.Assert(Communicator != null);
             Debug.Assert(OldEncoding);
 
             Endpoint endpoint;
@@ -1074,7 +1073,7 @@ namespace IceRpc
             (int size, Encoding encoding) = ReadEncapsulationHeader(checkFullBuffer: false);
 
             Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
-                Communicator.FindIce1EndpointFactory(transport) : null;
+                Runtime.FindIce1EndpointFactory(transport) : null;
 
             // Remove the two bytes of the encoding included in size. Endpoint encapsulations don't include a
             // compression byte.
@@ -1103,7 +1102,7 @@ namespace IceRpc
                                                 port: ReadUShort(),
                                                 options: ReadArray(1, IceReaderIntoString));
 
-                    endpoint = data.ToEndpoint(Communicator, protocol);
+                    endpoint = data.ToEndpoint(protocol);
                 }
 
                 // Make sure we read the full encapsulation.
