@@ -30,14 +30,14 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
-        [TestCase(Protocol.Ice2, Protocol.Ice1, true)]
-        // TODO enable once we fix https://github.com/zeroc-ice/icerpc-csharp/issues/140
-        // [TestCase(Protocol.Ice1, Protocol.Ice2, true)]
         [TestCase(Protocol.Ice1, Protocol.Ice1, true)]
         [TestCase(Protocol.Ice2, Protocol.Ice2, false)]
+        [TestCase(Protocol.Ice1, Protocol.Ice1, false)]
+        [TestCase(Protocol.Ice2, Protocol.Ice1, true)]
+        [TestCase(Protocol.Ice1, Protocol.Ice2, true)]
         [TestCase(Protocol.Ice2, Protocol.Ice1, false)]
         [TestCase(Protocol.Ice1, Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice1, Protocol.Ice1, false)]
+
         public async Task ProtocolBridging_Forward(Protocol forwarderProtocol, Protocol targetProtocol, bool colocated)
         {
             // TODO: add context testing
@@ -46,7 +46,9 @@ namespace IceRpc.Tests.ClientServer
                 SetupForwarderServer(forwarderProtocol, targetProtocol, colocated);
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
-            Assert.AreEqual(newPrx.Protocol, targetProtocol);
+
+            Assert.AreEqual(newPrx.Protocol, colocated ? forwarderProtocol : targetProtocol);
+
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<IProtocolBridgingServicePrx> TestProxyAsync(IProtocolBridgingServicePrx prx, bool direct)
@@ -58,13 +60,13 @@ namespace IceRpc.Tests.ClientServer
                     { "MyCtx", "hello" }
                 };
 
-                Assert.AreEqual(await prx.OpAsync(13, ctx), 13);
+                Assert.AreEqual(13, await prx.OpAsync(13, ctx));
 
                 await prx.OpVoidAsync(ctx);
 
                 (int v, string s) = await prx.OpReturnOutAsync(34, ctx);
-                Assert.AreEqual(v, 34);
-                Assert.AreEqual(s, "value=34");
+                Assert.AreEqual(34, v);
+                Assert.AreEqual("value=34", s);
 
                 await prx.OpOnewayAsync(42);
 

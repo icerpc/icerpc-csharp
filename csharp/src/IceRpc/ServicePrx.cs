@@ -266,8 +266,14 @@ namespace IceRpc
                     ostr.WriteSize(0); // 0 endpoints
                     ostr.WriteString(IsWellKnown ? "" : Endpoints[0].Host); // adapter ID unless well-known
                 }
+                else if (IsRelative)
+                {
+                    ostr.WriteSize(0); // 0 endpoints
+                    ostr.WriteString(""); // empty adapter ID
+                }
                 else
                 {
+                    Debug.Assert(Endpoints.Count > 0);
                     ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
                 }
             }

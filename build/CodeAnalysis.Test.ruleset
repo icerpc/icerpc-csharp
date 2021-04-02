@@ -21,4 +21,9 @@
       <Rule Id="SA1501" Action="None" /> <!-- Statement should not be on a single line -->
       <Rule Id="SA1503" Action="None" /> <!-- Braces should not be omitted -->
   </Rules>
+  <Rules AnalyzerId="NUnit.Analyzers" RuleNamespace="StyleCop.Analyzers">
+      <Rule Id="NUnit2005" Action="None" /> <!-- Consider using Assert.That(actual, Is.EqualTo(expected)) -->
+      <Rule Id="NUnit2006" Action="None" /> <!-- Consider using Assert.That(actual, Is.Not.EqualTo(expected))  -->
+      <Rule Id="NUnit2031" Action="None" /> <!-- Consider using Assert.That(actual, Is.Not.SameAs(expected))  -->
+  </Rules>
 </RuleSet>

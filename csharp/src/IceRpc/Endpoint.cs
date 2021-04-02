@@ -212,15 +212,14 @@ namespace IceRpc
     {
         /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
         /// <param name="data">The endpoint's data.</param>
-        /// <param name="communicator">The communicator.</param>
         /// <param name="protocol">The endpoint's protocol.</param>
         /// <returns>A new endpoint.</returns>
         /// <remarks>If the transport is not registered, this method returns a <see cref="UniversalEndpoint"/> when
         /// <c>protocol</c> is ice2 or greater, and throws <see cref="NotSupportedException"/> when <c>protocol</c> is
         /// ice1.</remarks>
-        public static Endpoint ToEndpoint(this EndpointData data, Communicator communicator, Protocol protocol)
+        public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
         {
-            if (communicator.FindEndpointFactory(data.Transport) is EndpointFactory factory)
+            if (Runtime.FindEndpointFactory(data.Transport) is EndpointFactory factory)
             {
                 return factory(data, protocol);
             }

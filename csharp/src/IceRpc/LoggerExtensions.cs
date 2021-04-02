@@ -14,8 +14,7 @@ namespace IceRpc
         private const int SlicingUnknownType = 2;
         private const int UnknownProperty = 3;
         private const int UnknownProxyProperty = 4;
-        private const int WarnProxySecureOptionHasNoEffect = 5;
-        private const int WarnDeprecatedProperty = 6;
+        private const int WarnDeprecatedProperty = 5;
 
         private static readonly Action<ILogger, string, Exception> _deprecatedProperty =
             LoggerMessage.Define<string>(
@@ -47,12 +46,6 @@ namespace IceRpc
                 new EventId(UnknownProxyProperty, nameof(UnknownProxyProperty)),
                 "found unknown properties {Properties} for proxy {Proxy}");
 
-        private static readonly Action<ILogger, string, Exception> _warnProxySecureOptionHasNoEffect =
-            LoggerMessage.Define<string>(
-                LogLevel.Warning,
-                new EventId(WarnProxySecureOptionHasNoEffect, nameof(WarnProxySecureOptionHasNoEffect)),
-                "warning while parsing {Proxy}: the -s proxy option no longer has any effect");
-
         private static readonly Action<ILogger, string, Exception> _warnDeprecatedProperty =
             LoggerMessage.Define<string>(
                 LogLevel.Warning,
@@ -82,9 +75,5 @@ namespace IceRpc
 
         internal static void LogWarnDeprecatedProperty(this ILogger logger, string property) =>
             _warnDeprecatedProperty(logger, property, null!);
-
-        internal static void LogWarnProxySecureOptionHasNoEffect(this ILogger logger, string proxy) =>
-            _warnProxySecureOptionHasNoEffect(logger, proxy, null!);
-
     }
 }

@@ -47,8 +47,8 @@ namespace IceRpc.Tests.ClientServer
             await locator.RegisterAdapterAsync(adapter, greeter);
 
             var indirectGreeter = IGreeterTestServicePrx.Parse($"{greeter.GetIdentity()} @ {adapter}", _communicator);
-            Assert.AreEqual(indirectGreeter.Endpoints.Count, 1);
-            Assert.AreEqual(indirectGreeter.Endpoints[0].Transport, Transport.Loc);
+            Assert.AreEqual(1, indirectGreeter.Endpoints.Count);
+            Assert.AreEqual(Transport.Loc, indirectGreeter.Endpoints[0].Transport);
 
             IServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.IsNotNull(found);
@@ -149,8 +149,8 @@ namespace IceRpc.Tests.ClientServer
             await locator.RegisterWellKnownProxyAsync(identity, greeter);
 
             var wellKnownGreeter = IGreeterTestServicePrx.Parse(identity.ToString(), _communicator);
-            Assert.AreEqual(wellKnownGreeter.Endpoints.Count, 1);
-            Assert.AreEqual(wellKnownGreeter.Endpoints[0].Transport, Transport.Loc);
+            Assert.AreEqual(1, wellKnownGreeter.Endpoints.Count);
+            Assert.AreEqual(Transport.Loc, wellKnownGreeter.Endpoints[0].Transport);
 
             IServicePrx? found = await locator.FindObjectByIdAsync(identity);
             Assert.IsNotNull(found);
