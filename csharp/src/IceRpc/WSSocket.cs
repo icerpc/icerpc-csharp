@@ -156,8 +156,6 @@ namespace IceRpc
             _transport = (underlying is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
-        internal override IDisposable? StartScope(Endpoint endpoint) => _underlying.StartScope(endpoint);
-
         private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
         {
             _incoming = incoming;
@@ -267,23 +265,17 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                if (Logger.IsEnabled(LogLevel.Error))
-                {
-                    Logger.LogHttpUpgradeRequestFailed(_transport, ex);
-                }
+                Logger.LogHttpUpgradeRequestFailed(ex);
                 throw;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (_incoming)
             {
-                if (_incoming)
-                {
-                    Logger.LogHttpUpgradeRequestAccepted(_transport);
-                }
-                else
-                {
-                    Logger.LogHttpUpgradeRequestSucceed(_transport);
-                }
+                Logger.LogHttpUpgradeRequestAccepted();
+            }
+            else
+            {
+                Logger.LogHttpUpgradeRequestSucceed();
             }
         }
 
@@ -387,10 +379,7 @@ namespace IceRpc
                     (await _underlying.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Logger.LogReceivedWebSocketFrame(_transport, opCode, payloadLength);
-                }
+                Logger.LogReceivedWebSocketFrame(opCode, payloadLength);
 
                 switch (opCode)
                 {
@@ -655,10 +644,8 @@ namespace IceRpc
                 Debug.Assert(_sendBuffer.Count == 0);
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Logger.LogReceivedWebSocketFrame(_transport, opCode, size);
-                }
+
+                Logger.LogReceivedWebSocketFrame(opCode, size);
 
                 if (_incoming || opCode == OpCode.Pong)
                 {

@@ -21,7 +21,9 @@ namespace IceRpc.Test.Binding
                 endpoints.AddRange(obj!.Endpoints);
             }
             TestHelper.Assert(obj != null);
-            return obj.Clone(endpoints: endpoints, oneway: false);
+            obj.Endpoints = endpoints;
+            obj.IsOneway = false;
+            return obj;
         }
 
         private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteServerPrx> servers)
@@ -62,8 +64,8 @@ namespace IceRpc.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = ITestIntfPrx.Factory.Copy(test1);
-                TestHelper.Assert(test3.GetCachedConnection() == test1.GetCachedConnection());
+                var test3 = test1.As<ITestIntfPrx>();
+                TestHelper.Assert(test3.CachedConnection == test1.CachedConnection);
 
                 try
                 {
@@ -123,10 +125,14 @@ namespace IceRpc.Test.Binding
             {
                 IRemoteServerPrx? server = await com.CreateServerAsync("Adapter41", testTransport);
                 TestHelper.Assert(server != null);
-                ITestIntfPrx test1 = server.GetTestIntf()!.Clone(cacheConnection: false,
-                                                                  preferExistingConnection: false);
-                ITestIntfPrx test2 = server.GetTestIntf()!.Clone(cacheConnection: false,
-                                                                  preferExistingConnection: false);
+                ITestIntfPrx test1 = server.GetTestIntf()!;
+                test1.CacheConnection = false;
+                test1.PreferExistingConnection = false;
+
+                ITestIntfPrx test2 = server.GetTestIntf()!;
+                test2.CacheConnection = false;
+                test2.PreferExistingConnection = false;
+
                 TestHelper.Assert(!test1.CacheConnection && !test1.PreferExistingConnection);
                 TestHelper.Assert(!test2.CacheConnection && !test2.PreferExistingConnection);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
@@ -135,7 +141,7 @@ namespace IceRpc.Test.Binding
 
                 com.DeactivateServer(server);
 
-                var test3 = ITestIntfPrx.Factory.Copy(test1);
+                var test3 = test1.As<ITestIntfPrx>();
                 try
                 {
                     TestHelper.Assert(await test3.GetConnectionAsync() == await test1.GetConnectionAsync());
@@ -158,7 +164,8 @@ namespace IceRpc.Test.Binding
                 };
 
                 ITestIntfPrx obj = CreateTestIntfPrx(servers);
-                obj = obj.Clone(cacheConnection: false, preferExistingConnection: false);
+                obj.CacheConnection = false;
+                obj.PreferExistingConnection = false;
                 TestHelper.Assert(!obj.CacheConnection && !obj.PreferExistingConnection);
 
                 // Ensure that endpoints are tried in order by deactivating the servers one after the other.
@@ -298,10 +305,11 @@ namespace IceRpc.Test.Binding
                     TestHelper.Assert(obj.GetAdapterName().Equals("Adapter71"));
 
                     servers.RemoveAt(servers.Count - 1);
-                    ITestIntfPrx testUDP = CreateTestIntfPrx(servers).Clone(oneway: true);
+                    ITestIntfPrx testUDP = CreateTestIntfPrx(servers);
+                    testUDP.IsOneway = true;
 
                     // test that datagram proxies fail if NonSecure is false
-                    testUDP = testUDP.Clone(nonSecure: NonSecure.Never);
+                    testUDP.NonSecure = NonSecure.Never;
                     try
                     {
                         await testUDP.GetConnectionAsync();
@@ -312,7 +320,7 @@ namespace IceRpc.Test.Binding
                         // expected
                     }
 
-                    testUDP = testUDP.Clone(nonSecure: NonSecure.Always);
+                    testUDP.NonSecure = NonSecure.Always;
                     try
                     {
                         testUDP.GetAdapterName();
@@ -344,9 +352,13 @@ namespace IceRpc.Test.Binding
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    ITestIntfPrx testNonSecure = obj.Clone(nonSecure: NonSecure.Always);
+                    ITestIntfPrx testNonSecure = obj.Clone();
+                    testNonSecure.NonSecure = NonSecure.Always;
+
                     // TODO: update when NonSecure default is updated
-                    ITestIntfPrx testSecure = obj.Clone(nonSecure: NonSecure.Never);
+                    ITestIntfPrx testSecure = obj.Clone();
+                    testSecure.NonSecure = NonSecure.Never;
+
                     TestHelper.Assert(await obj.GetConnectionAsync() != await testSecure.GetConnectionAsync());
                     TestHelper.Assert(await obj.GetConnectionAsync() == await testNonSecure.GetConnectionAsync());
 

@@ -12,72 +12,35 @@ namespace IceRpc
     /// <summary>Proxy provides extension methods for IServicePrx.</summary>
     public static class Proxy
     {
-        /// <summary>Creates a clone of this proxy. The clone is identical to this proxy except for the options set
-        /// through parameters. This method returns this proxy instead of a new proxy in the event none of the options
-        /// specified through the parameters change anything.</summary>
-        /// <param name="proxy">The source proxy.</param>
-        /// <param name="cacheConnection">Determines whether or not the clone caches its connection (optional).</param>
-        /// <param name="context">The context of the clone (optional).</param>
-        /// <param name="encoding">The encoding of the clone (optional).</param>
-        /// <param name="endpoints">The endpoints of the clone (optional).</param>
-        /// <param name="fixedConnection">The connection of the clone (optional). When specified, the clone is a fixed
-        /// proxy. You can clone a non-fixed proxy into a fixed proxy but not vice-versa.</param>
-        /// <param name="invocationInterceptors">A collection of <see cref="InvocationInterceptor"/> that will be
-        /// executed with each invocation</param>
-        /// <param name="invocationTimeout">The invocation timeout of the clone (optional).</param>
-        /// <param name="locationResolver">The location resolver of the clone (optional).</param>
-        /// <param name="nonSecure">Determines whether the clone establishes a non-secure connection to an endpoint such
-        /// as ice+tcp that supports both secure and non-secure connections (optional).</param>
-        /// <param name="oneway">Determines whether the clone is oneway or twoway (optional).</param>
-        /// <param name="preferExistingConnection">Determines whether or not the clone prefer using an existing
-        /// connection.</param>
-        /// <returns>A new proxy with the same type as this proxy.</returns>
-        public static T Clone<T>(
-            this T proxy,
-            bool? cacheConnection = null,
+        /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <returns>A proxy with the desired type.</returns>
+        public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx =>
+            GetFactory<T>().Create(proxy.Impl.GetOptions());
+
+        /// <summary>Tests whether a proxy points to a remote service whose associated proxy interface is T or an
+        /// interface type derived from T. If so, returns a proxy of type, otherwise returns null. This is a convenience
+        /// wrapper for <see cref="IServicePrx.IceIsAAsync"/>.
+        /// </summary>
+        /// <paramtype name="T">The type of the desired service proxy.</paramtype>
+        /// <param name="proxy">The source proxy being tested.</param>
+        /// <param name="context">The context dictionary for the invocation.</param>
+        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A new proxy with the desired type, or null.</returns>
+        public static async Task<T?> CheckedCastAsync<T>(
+            this IServicePrx proxy,
             IReadOnlyDictionary<string, string>? context = null,
-            Encoding? encoding = null,
-            IEnumerable<Endpoint>? endpoints = null,
-            Connection? fixedConnection = null,
-            IEnumerable<InvocationInterceptor>? invocationInterceptors = null,
-            TimeSpan? invocationTimeout = null,
-            ILocationResolver? locationResolver = null,
-            NonSecure? nonSecure = null,
-            bool? oneway = null,
-            bool? preferExistingConnection = null) where T : class, IServicePrx
-        {
-            ServicePrx impl = proxy.Impl;
-            ProxyOptions options = impl.GetOptions();
+            IProgress<bool>? progress = null,
+            CancellationToken cancel = default) where T : class, IServicePrx =>
+            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
+                (proxy is T t ? t : proxy.As<T>()) : null;
 
-            options.CacheConnection = cacheConnection ?? options.CacheConnection;
-
-            options.IsFixed = fixedConnection != null || options.IsFixed;
-
-            // We keep the cached connection (if any) only when the endpoints or locationResolver don't change.
-            options.Connection = options.IsFixed ? (fixedConnection ?? options.Connection) :
-                (endpoints == null && locationResolver == null ? options.Connection : null);
-
-            options.Context = context ?? options.Context;
-            options.Encoding = encoding ?? options.Encoding;
-
-            if (options.IsFixed && endpoints != null)
-            {
-                throw new ArgumentException("cannot set endpoints on a fixed proxy", nameof(options));
-            }
-
-            options.Endpoints = options.IsFixed ? ImmutableList<Endpoint>.Empty : (endpoints ?? options.Endpoints);
-
-            options.InvocationInterceptors = invocationInterceptors ?? options.InvocationInterceptors;
-            options.InvocationTimeout = invocationTimeout ?? options.InvocationTimeout;
-
-            options.IsOneway = oneway ?? options.IsOneway;
-            options.LocationResolver = locationResolver ?? options.LocationResolver;
-            options.PreferExistingConnection = preferExistingConnection ?? options.PreferExistingConnection;
-            options.NonSecure = nonSecure ?? options.NonSecure;
-
-            ServicePrx clone = impl.Clone(options);
-            return clone == impl ? proxy : (clone as T)!;
-        }
+        /// <summary>Creates a clone of this proxy.</summary>
+        /// <param name="proxy">The source proxy.</param>
+        /// <returns>A clone of the source proxy.</returns>
+        public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
         /// <summary>Forwards an incoming request to another Ice object represented by the <paramref name="proxy"/>
         /// parameter.</summary>
@@ -111,14 +74,6 @@ namespace IceRpc
                 return new OutgoingResponseFrame(request, new ServerException(exception.Message, exception));
             }
         }
-
-        /// <summary>Returns the cached Connection for this proxy. If the proxy does not yet have an established
-        /// connection, it does not attempt to create a connection.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <returns>The cached Connection for this proxy (null if the proxy does not have
-        /// an established connection).</returns>
-        public static Connection? GetCachedConnection(this IServicePrx proxy) =>
-            proxy.Impl.GetCachedConnection();
 
         /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
         /// it first attempts to create a connection.</summary>

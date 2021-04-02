@@ -2387,11 +2387,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "private class " << impl << " : IceRpc.ServicePrx, " << name;
     _out << sb;
-    _out << nl << "protected override IceRpc.ServicePrx IceClone(IceRpc.ProxyOptions options) =>";
-    _out.inc();
-    _out << nl << "new " << impl << "(options);";
-    _out.dec();
-    _out << sp;
     _out << nl << "internal " << impl << "(IceRpc.ProxyOptions options)";
     _out.inc();
     _out << nl << ": base(options)";

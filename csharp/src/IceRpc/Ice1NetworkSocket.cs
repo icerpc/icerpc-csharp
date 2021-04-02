@@ -39,10 +39,7 @@ namespace IceRpc
                     buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
-                        {
-                            Logger.LogReceivedInvalidDatagram(buffer.Count);
-                        }
+                        Logger.LogReceivedInvalidDatagram(buffer.Count);
                         continue;
                     }
                     Received(buffer.Count);
@@ -60,10 +57,7 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
-                        {
-                            Logger.LogReceivedInvalidDatagram(size);
-                        }
+                        Logger.LogReceivedInvalidDatagram(size);
                     }
                     else
                     {
@@ -75,10 +69,7 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Warning))
-                        {
-                            Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
-                        }
+                        Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
                         continue;
                     }
                     else
@@ -93,10 +84,7 @@ namespace IceRpc
                 {
                     if (Endpoint.IsDatagram)
                     {
-                        if (Logger.IsEnabled(LogLevel.Debug))
-                        {
-                            Logger.LogMaximumDatagramSizeExceeded(buffer.Count);
-                        }
+                        Logger.LogDatagramMaximumSizeExceeded(buffer.Count);
                         continue;
                     }
 
@@ -206,10 +194,7 @@ namespace IceRpc
 
             await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogSendIce1ValidateConnectionFrame();
-            }
+            Logger.LogSentInitializeFrame(this, 0);
         }
 
         internal Ice1NetworkSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
@@ -343,10 +328,7 @@ namespace IceRpc
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    if (Endpoint.IsDatagram && Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
-                    }
+                    Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
 
@@ -371,10 +353,7 @@ namespace IceRpc
                 case Ice1FrameType.RequestBatch:
                 {
                     int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    if (Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
-                    }
+                    Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                     if (invokeNum < 0)
                     {

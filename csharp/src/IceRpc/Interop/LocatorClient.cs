@@ -31,6 +31,9 @@ namespace IceRpc.Interop
         /// won't be updated even when the caller requests a refresh.</summary>
         public TimeSpan JustRefreshedAge { get; set; } = TimeSpan.FromSeconds(1);
 
+        /// <summary>The logger factory used to create the IceRpc logger used by <see cref="LocatorClient"/>.</summary>
+        public ILoggerFactory LoggerFactory { get; set; } = Runtime.DefaultLoggerFactory;
+
         /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning the
         /// cache entries never become stale.</summary>
         public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
@@ -54,6 +57,8 @@ namespace IceRpc.Interop
 
         private readonly ILocatorPrx _locator;
 
+        private readonly ILogger _logger;
+
         // _mutex protects _cacheKeys, _requests and updates to _cache
         private readonly object _mutex = new();
 
@@ -73,6 +78,7 @@ namespace IceRpc.Interop
             _cacheMaxSize = options.CacheMaxSize;
             _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
             _justRefreshedAge = options.JustRefreshedAge;
+            _logger = options.LoggerFactory.CreateLogger("IceRpc");
             _ttl = options.Ttl;
 
             if (_ttl != Timeout.InfiniteTimeSpan && _justRefreshedAge >= _ttl)
@@ -117,20 +123,14 @@ namespace IceRpc.Interop
             bool justRefreshed = false;
             bool resolved = false;
 
-            if (HasCache)
+            if (HasCache && _cache.TryGetValue(
+                (location, category),
+                out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> _) entry))
             {
-                lock (_mutex)
-                {
-                    if(_cache.TryGetValue(
-                        (location, category),
-                        out (TimeSpan InsertionTime, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> _) entry))
-                    {
-                        endpoints = entry.Endpoints;
-                        TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
-                        expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
-                        justRefreshed = cacheEntryAge <= _justRefreshedAge;
-                    }
-                }
+                endpoints = entry.Endpoints;
+                TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
+                expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
+                justRefreshed = cacheEntryAge <= _justRefreshedAge;
             }
 
             if (endpoints.Count == 0 || (!_background && expired) || (refreshCache && !justRefreshed))
@@ -168,24 +168,20 @@ namespace IceRpc.Interop
                 }
             }
 
-            var logger = _locator.Communicator.LocatorClientLogger;
-            if (logger.IsEnabled(LogLevel.Debug))
+            if (endpoints.Count > 0)
             {
-                if (endpoints.Count > 0)
+                if (resolved)
                 {
-                    if (resolved)
-                    {
-                        logger.LogResolved(location, category, endpoints);
-                    }
-                    else
-                    {
-                        logger.LogFoundEntryInCache(location, category, endpoints);
-                    }
+                    _logger.LogResolved(location, category, endpoints);
                 }
                 else
                 {
-                    logger.LogCouldNotResolveEndpoint(location, category);
+                    _logger.LogFoundEntryInCache(location, category, endpoints);
                 }
+            }
+            else
+            {
+                _logger.LogCouldNotResolveEndpoint(location, category);
             }
 
             return endpoints;
@@ -202,13 +198,7 @@ namespace IceRpc.Interop
                         out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> Node) entry))
                     {
                         _cacheKeys.Remove(entry.Node);
-
-                        if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Trace))
-                        {
-                            _locator.Communicator.LocatorClientLogger.LogClearCacheEntry(location,
-                                                                                         category,
-                                                                                         entry.Endpoints);
-                        }
+                        _logger.LogClearCacheEntry(location, category, entry.Endpoints);
                     }
                 }
             }
@@ -219,10 +209,7 @@ namespace IceRpc.Interop
             string? category,
             CancellationToken cancel)
         {
-            if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Debug))
-            {
-                _locator.Communicator.LocatorClientLogger.LogResolving(location, category);
-            }
+            _logger.LogResolving(location, category);
 
             Task<IReadOnlyList<Endpoint>>? task;
             lock (_mutex)
@@ -287,13 +274,7 @@ namespace IceRpc.Interop
                           resolved.IsWellKnown ||
                           resolved.Protocol != Protocol.Ice1))
                     {
-                        if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Debug))
-                        {
-                            _locator.Communicator.LocatorClientLogger.LogReceivedInvalidProxy(
-                                location,
-                                category,
-                                resolved);
-                        }
+                        _logger.LogReceivedInvalidProxy(location, category, resolved);
                         resolved = null;
                     }
 
@@ -328,10 +309,7 @@ namespace IceRpc.Interop
                 }
                 catch (Exception exception)
                 {
-                    if (_locator.Communicator.LocatorClientLogger.IsEnabled(LogLevel.Error))
-                    {
-                        _locator.Communicator.LocatorClientLogger.LogResolveFailure(location, category, exception);
-                    }
+                    _logger.LogResolveFailure(location, category, exception);
                     throw;
                 }
                 finally

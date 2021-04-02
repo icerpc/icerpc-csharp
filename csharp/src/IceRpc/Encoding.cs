@@ -8,15 +8,15 @@ namespace IceRpc
     // Extends the Slice-defined Encoding struct
     public readonly partial struct Encoding
     {
-        // The encodings known to the Ice runtime.
+        // The encodings known to the IceRPC runtime.
 
         /// <summary>Version 1.0 of the Ice encoding, supported by Ice 1.0 to Ice 3.7.</summary>
         public static readonly Encoding V10 = new(1, 0);
 
-        /// <summary>Version 1.1 of the Ice encoding, supported since Ice 3.5.</summary>
+        /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
         public static readonly Encoding V11 = new(1, 1);
 
-        /// <summary>Version 2.0 of the Ice encoding, supported since Ice 4.0.</summary>
+        /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
         public static readonly Encoding V20 = new(2, 0);
 
         internal bool IsSupported => this == V11 || this == V20;
@@ -72,7 +72,7 @@ namespace IceRpc
             if (!IsSupported)
             {
                 throw new NotSupportedException(
-                    $"Ice encoding `{this}' is not supported by this Ice runtime ({Runtime.StringVersion})");
+                    $"Ice encoding `{this}' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
             }
         }
     }

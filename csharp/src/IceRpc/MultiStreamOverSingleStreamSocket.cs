@@ -14,7 +14,7 @@ namespace IceRpc
     {
         internal SingleStreamSocket Underlying { get; private set; }
 
-        public override string ToString() => Underlying.ToString()!;
+        public override string ToString() => $"{base.ToString()} ({Underlying})";
 
         public override void Abort() => Underlying.Dispose();
 
@@ -42,7 +42,5 @@ namespace IceRpc
             SingleStreamSocket socket,
             ConnectionOptions options)
             : base(endpoint, options, socket.Logger) => Underlying = socket;
-
-        internal override IDisposable? StartScope() => Underlying.StartScope(Endpoint);
     }
 }

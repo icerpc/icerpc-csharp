@@ -32,11 +32,7 @@ namespace IceRpc
         public override ValueTask<SingleStreamSocket> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Debug.Assert(false);
-            return new((SingleStreamSocket)null!);
-        }
+            CancellationToken cancel) => new(this);
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
 
@@ -49,13 +45,6 @@ namespace IceRpc
             try
             {
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                if (Logger.IsEnabled(LogLevel.Debug))
-                {
-                    Logger.LogStartSendingDatagrams(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket));
-                }
                 return this;
             }
             catch (Exception ex)
@@ -150,32 +139,6 @@ namespace IceRpc
             }
         }
 
-        public override string ToString()
-        {
-            try
-            {
-                var sb = new StringBuilder();
-                if (_incoming)
-                {
-                    sb.Append("local address = " + Network.LocalAddrToString(Network.GetLocalAddress(Socket)));
-                }
-                else
-                {
-                    sb.Append(Network.SocketToString(Socket));
-                }
-
-                if (MulticastAddress != null)
-                {
-                    sb.Append($"\nmulticast address = {MulticastAddress}");
-                }
-                return sb.ToString();
-            }
-            catch (ObjectDisposedException)
-            {
-                return "<closed>";
-            }
-        }
-
         protected override void Dispose(bool disposing) => Socket.Dispose();
 
         // Only for use by UdpEndpoint.
@@ -193,29 +156,6 @@ namespace IceRpc
             {
                 _addr = addr!;
             }
-        }
-
-        internal override IDisposable? StartScope(Endpoint endpoint)
-        {
-            // If any of the loggers is enabled we create the scope
-            if (Logger.IsEnabled(LogLevel.Critical))
-            {
-                if (MulticastAddress != null)
-                {
-                    return Logger.StartMulticastSocketScope(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        MulticastAddress.ToString());
-                }
-                else
-                {
-                    return Logger.StartDatagramSocketScope(
-                        endpoint.Transport,
-                        Network.LocalAddrToString(Socket),
-                        Network.RemoteAddrToString(Socket));
-                }
-            }
-            return null;
         }
     }
 }

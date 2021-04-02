@@ -12,43 +12,30 @@ namespace IceRpc
     internal class TcpAcceptor : IAcceptor
     {
         public Endpoint Endpoint { get; }
+        internal IPEndPoint IPEndPoint { get; }
 
         private readonly Server _server;
         private readonly Socket _socket;
-        private readonly IPEndPoint _addr;
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            try
+            Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+
+            ConnectionOptions options = _server.ConnectionOptions;
+
+            SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.Logger);
+
+            MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
             {
-                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-
-                ConnectionOptions options = _server.ConnectionOptions;
-
-                SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.Logger);
-
-                MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
-                {
-                    Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
-                    _ => new SlicSocket(Endpoint, socket, options)
-                };
-                return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
-            }
-            catch (Exception ex)
-            {
-                if (_server.Logger.IsEnabled(LogLevel.Error))
-                {
-                    _server.Logger.LogAcceptingConnectionFailed(
-                        Endpoint.Transport,
-                        Network.LocalAddrToString(_addr), ex);
-                }
-                throw;
-            }
+                Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
+                _ => new SlicSocket(Endpoint, socket, options)
+            };
+            return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
         }
 
         public void Dispose() => _socket.CloseNoThrow();
 
-        public override string ToString() => _addr.ToString();
+        public override string ToString() => $"{base.ToString()} {IPEndPoint}";
 
         internal TcpAcceptor(Socket socket, TcpEndpoint endpoint, Server server)
         {
@@ -57,15 +44,8 @@ namespace IceRpc
             Endpoint = endpoint;
 
             _server = server;
-            _addr = (IPEndPoint)socket.LocalEndPoint!;
+            IPEndPoint = (IPEndPoint)socket.LocalEndPoint!;
             _socket = socket;
-
-            if (server.Logger.IsEnabled(LogLevel.Debug))
-            {
-                server.Logger.LogAcceptingConnection(
-                    Endpoint.Transport,
-                    Network.LocalAddrToString(_addr));
-            }
         }
     }
 }

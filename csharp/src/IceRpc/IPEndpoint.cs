@@ -7,10 +7,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
-using System.Net.Security;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -46,8 +43,7 @@ namespace IceRpc
 
         private IPAddress? _address;
 
-        public override bool Equals(Endpoint? other) =>
-            other is IPEndpoint ipEndpoint && base.Equals(other);
+        public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
 
         public override bool IsLocal(Endpoint endpoint)
         {
@@ -249,7 +245,7 @@ namespace IceRpc
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
                     socket.ReceiveBufferSize = receiveSize.Value;
-                    if (socket.ReceiveBufferSize != receiveSize && logger.IsEnabled(LogLevel.Debug))
+                    if (socket.ReceiveBufferSize != receiveSize)
                     {
                         logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, socket.ReceiveBufferSize);
                     }
@@ -260,7 +256,7 @@ namespace IceRpc
                     // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
                     // read the size back to get the size that was actually set.
                     socket.SendBufferSize = sendSize.Value;
-                    if (socket.SendBufferSize != sendSize && logger.IsEnabled(LogLevel.Debug))
+                    if (socket.SendBufferSize != sendSize)
                     {
                         logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, socket.SendBufferSize);
                     }

@@ -8,7 +8,7 @@ namespace IceRpc.Test.AMI
 {
     public class Client : TestHelper
     {
-        public override Task RunAsync(string[] args) => AllTests.RunAsync(this);
+        public override Task RunAsync(string[] args) => AllTests.RunAsync(this, false);
 
         public static async Task<int> Main(string[] args)
         {

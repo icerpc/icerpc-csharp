@@ -98,7 +98,7 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public static async Task RunAsync(TestHelper helper)
+        public static async Task RunAsync(TestHelper helper, bool colocated)
         {
             Communicator communicator = helper.Communicator;
 
@@ -635,17 +635,19 @@ namespace IceRpc.Test.AMI
                     }
                 }
 
+                if (!colocated)
                 {
                     // Local case: start an operation and then close the connection gracefully on the client side
                     // without waiting for the pending invocation to complete. There will be no retry and we expect the
                     // invocation to fail with ConnectionClosedException.
                     await using var connection = await Connection.CreateAsync(p.Endpoints[0], p.Communicator);
-                    p = p.Clone(fixedConnection: connection); // Start with a new connection.
-                    Connection con = await p.GetConnectionAsync();
                     var cb = new CallbackBase();
-                    Task t = p.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));
+                    var fixedPrx = p.Clone();
+                    p.FixedConnection = connection;
+
+                    Task t = fixedPrx.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));
                     cb.Check(); // Ensure the request was sent before we close the connection.
-                    _ = con.GoAwayAsync();
+                    _ = connection.GoAwayAsync();
                     try
                     {
                         t.Wait();
@@ -659,7 +661,7 @@ namespace IceRpc.Test.AMI
 
                     // Remote case: the server closes the connection gracefully, which means the connection will not
                     // be closed until all pending dispatched requests have completed.
-                    con = await p.GetConnectionAsync();
+                    Connection con = await p.GetConnectionAsync();
                     cb = new CallbackBase();
                     con.Closed += (sender, args) => cb.Called();
                     t = p.SleepAsync(100);
