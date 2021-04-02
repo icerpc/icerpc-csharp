@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace IceRpc
@@ -374,6 +374,12 @@ namespace IceRpc
 
                 Debug.Assert(endpoints.Count > 0);
                 result.Endpoints = endpoints;
+
+                if (endpoints.All(e => e.IsDatagram))
+                {
+                    result.IsOneway = true;
+                }
+
                 return result;
             }
             else if (s[beg] == '@')
