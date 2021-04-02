@@ -16,7 +16,7 @@ namespace IceRpc.Test.AMI
             server.Add("test2", new TestIntf2());
             // Don't activate Server to ensure collocation is used.
 
-            await AllTests.RunAsync(this);
+            await AllTests.RunAsync(this, true);
         }
 
         public static async Task<int> Main(string[] args)
