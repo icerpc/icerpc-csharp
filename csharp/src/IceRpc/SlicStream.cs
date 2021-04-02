@@ -62,11 +62,14 @@ namespace IceRpc
                         Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _receivedEndOfStream) = valueTask.Result;
-                        _socket.FinishedReceivedStreamData(_receivedSize);
+                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
                     }
                     else
                     {
-                        _socket.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
+                        _socket.FinishedReceivedStreamData(
+                            _receivedSize,
+                            _receivedEndOfStream,
+                            _receivedSize - _receivedOffset);
                     }
                 }
                 catch
@@ -79,7 +82,7 @@ namespace IceRpc
             // from the socket when the StreamLast or StreamReset frame is received (which can be received after
             // the stream is destroyed, for example, with oneway requests, the stream is disposed as soon as the
             // request is sent and before receiving the StreamLast frame).
-            if (IsIncoming && ReleaseStreamCount())
+            if (IsIncoming && ReleaseStreamCount() && !IsControl)
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.
@@ -153,7 +156,7 @@ namespace IceRpc
                 {
                     if (_receiveBuffer == null)
                     {
-                        _socket.FinishedReceivedStreamData(0);
+                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                     }
                     return 0;
                 }
@@ -169,7 +172,7 @@ namespace IceRpc
                 // If we've consumed the whole Slic frame, notify the socket that it can start receiving a new frame.
                 if (_receivedOffset == _receivedSize)
                 {
-                    _socket.FinishedReceivedStreamData(0);
+                    _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                 }
             }
             else
@@ -196,6 +199,9 @@ namespace IceRpc
                                 new StreamConsumedBody((ulong)consumed).IceWrite(ostr);
                             }
                         },
+                        frameSize => _socket.Logger.LogSentSlicFrame(
+                            SlicDefinitions.FrameType.StreamConsumed,
+                            frameSize),
                         Id,
                         CancellationToken.None).ConfigureAwait(false);
                 }
@@ -218,6 +224,7 @@ namespace IceRpc
                         new StreamResetBody((ulong)errorCode).IceWrite(ostr);
                     }
                 },
+                frameSize => _socket.Logger.LogSentSlicResetFrame(frameSize, (StreamResetErrorCode)errorCode),
                 Id).ConfigureAwait(false);
         }
 
@@ -412,7 +419,7 @@ namespace IceRpc
                     {
                         // Ignore, the stream has been aborted. Notify the socket that we're not interested
                         // with the data to allow it to receive data for other streams.
-                        _socket.FinishedReceivedStreamData(size);
+                        _socket.FinishedReceivedStreamData(size, fin, size);
                     }
                 }
                 else
@@ -469,7 +476,7 @@ namespace IceRpc
                 {
                     // Ignore exceptions, the stream has been aborted.
                 }
-                _socket.FinishedReceivedStreamData(0);
+                _socket.FinishedReceivedStreamData(size, fin, 0);
             }
         }
 

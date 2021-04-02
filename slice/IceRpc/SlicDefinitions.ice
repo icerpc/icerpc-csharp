@@ -22,9 +22,6 @@ module IceRpc::Slic
     [cs:readonly]
     struct InitializeHeaderBody
     {
-        /// The supported Slic version.
-        varuint slicVersion;
-
         /// The application protocol name.
         string applicationProtocolName;
     }

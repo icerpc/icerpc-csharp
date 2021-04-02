@@ -10,16 +10,14 @@ namespace IceRpc.Interop
     /// "IceRpc.Interop.LocatorClient" category.</summary>
     internal static class LocatorClientLoggerExtensions
     {
-        // TODO: should come from a separate class with all the base event IDs?
-        private const int Base = 50_000;
-
-        private const int ClearCacheEntry = Base + 0;
-        private const int CouldNotResolveEndpoint = Base + 1;
-        private const int FoundEntryInCache = Base + 2;
-        private const int ReceivedInvalidProxy = Base + 3;
-        private const int ResolveFailure = Base + 4;
-        private const int Resolved = Base + 5;
-        private const int Resolving = Base + 6;
+        private const int BaseEventId = LoggerExtensions.LocatorClientBaseEventId;
+        private const int ClearCacheEntry = BaseEventId + 0;
+        private const int CouldNotResolveEndpoint = BaseEventId + 1;
+        private const int FoundEntryInCache = BaseEventId + 2;
+        private const int ReceivedInvalidProxy = BaseEventId + 3;
+        private const int ResolveFailure = BaseEventId + 4;
+        private const int Resolved = BaseEventId + 5;
+        private const int Resolving = BaseEventId + 6;
 
         private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _clearAdapterCacheEntry =
             LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
