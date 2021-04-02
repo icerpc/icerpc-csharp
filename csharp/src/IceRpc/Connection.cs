@@ -8,7 +8,6 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -496,7 +495,14 @@ namespace IceRpc
                     {
                         // If the connection is not initialized yet, we print a trace to show that the connection got
                         // accepted before printing out the connection closed trace.
-                        Socket.Logger.LogConnectionAccepted();
+                        if (Endpoint.IsDatagram)
+                        {
+                            Socket.Logger.LogStartReceivingDatagrams();
+                        }
+                        else
+                        {
+                            Socket.Logger.LogConnectionAccepted();
+                        }
                     }
 
                     if (Endpoint.IsDatagram && IsIncoming)
@@ -512,15 +518,15 @@ namespace IceRpc
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            Socket.Logger.LogConnectionClosed(exception.Message, false);
+                            Socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            Socket.Logger.LogConnectionClosed("connection lost", true);
+                            Socket.Logger.LogConnectionClosed("connection lost", closedByPeer: true);
                         }
                         else
                         {
-                            Socket.Logger.LogConnectionClosed(exception.Message, false, exception);
+                            Socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false, exception);
                         }
                     }
 

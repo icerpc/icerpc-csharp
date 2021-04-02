@@ -43,11 +43,12 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(5, logEntries.Count);
             foreach (JsonDocument entry in logEntries)
             {
-                Assert.AreEqual(GetEventId(entry) == 128 + 10 ? "Debug" : "Information", GetLogLevel(entry));
+                Assert.AreEqual(GetEventId(entry) != 139 ? "Debug" : "Information", GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 JsonElement[] scopes = GetScopes(entry);
-                Assert.IsEmpty(scopes);
-                Assert.IsTrue(GetEventId(entry) == 128 + 10 || GetEventId(entry) == 128 + 8);
+                Assert.That(scopes, Is.Empty);
+                Console.WriteLine(GetEventId(entry));
+                Assert.That(GetEventId(entry) == 139 || GetEventId(entry) == 141, Is.True);
             }
         }
 
@@ -77,8 +78,8 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("Information", GetLogLevel(entry));
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
-            Assert.IsEmpty(scopes);
-            Assert.IsTrue(GetEventId(entry) == 128 + 8);
+            Assert.That(scopes, Is.Empty);
+            Assert.That(GetEventId(entry), Is.EqualTo(139));
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -133,50 +134,50 @@ namespace IceRpc.Tests.ClientServer
                 CollectionAssert.AllItemsAreUnique(events);
                 switch (eventId)
                 {
-                    case 128 + 7:
+                    case 136:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.IsTrue(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal));
+                        Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
                         CheckServerScope(scopes[0], colocated);
                         CheckServerSocketScope(scopes[1], colocated);
                         CheckStreamScope(scopes[2]);
                         break;
                     }
-                    case 128 + 15:
+                    case 146:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.IsTrue(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal));
+                        Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
                         CheckClientSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
                         break;
                     }
-                    case 128 + 6:
+                    case 137:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.IsTrue(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal));
+                        Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
                         CheckClientSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
                         // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 128 + 15);
+                        CollectionAssert.Contains(events, 146);
                         break;
                     }
-                    case 128 + 16:
+                    case 147:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.IsTrue(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal));
+                        Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
                         CheckServerScope(scopes[0], colocated);
                         CheckServerSocketScope(scopes[1], colocated);
                         CheckStreamScope(scopes[2]);
                         // The sending of the response always comes before the receiving of the request
-                        CollectionAssert.Contains(events, 128 + 7);
+                        CollectionAssert.Contains(events, 136);
                         break;
                     }
                     default:

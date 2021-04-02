@@ -218,7 +218,6 @@ namespace IceRpc
                 null!);
 
         internal static void LogReceivedResponse(this ILogger logger, IncomingResponseFrame response) =>
-            // TODO: log the response retry policy if the result type is a failure?
             _receivedResponseFrame(logger, response.ResultType, null!);
 
         internal static void LogRetryRequestRetryableException(

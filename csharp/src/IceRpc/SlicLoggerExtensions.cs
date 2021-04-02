@@ -136,12 +136,17 @@ namespace IceRpc
         internal static void LogSentSlicVersionFrame(
             this ILogger logger,
             int frameSize,
-            VersionBody body) =>
-            LogSlicVersionFrame(
-                logger,
-                new EventId(SentVersionFrame, nameof(SentVersionFrame)),
-                frameSize,
-                body);
+            VersionBody body)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                LogSlicVersionFrame(
+                    logger,
+                    new EventId(SentVersionFrame, nameof(SentVersionFrame)),
+                    frameSize,
+                    body);
+            }
+        }
 
         internal static void LogSlicInitializeFrame(
             this ILogger logger,
@@ -151,31 +156,39 @@ namespace IceRpc
             InitializeHeaderBody body,
             Dictionary<ParameterKey, ulong> parameters)
         {
-            logger.Log(
-                LogLevel.Debug,
-                eventId,
-                eventId.Id == SentInitializeFrame ?
-                    "sent Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})" :
-                    "received Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})",
-                frameSize,
-                version,
-                body.ApplicationProtocolName,
-                string.Join(", ", parameters.Select(pair => $"{pair.Key}={pair.Value}")));
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.Log(
+                    LogLevel.Debug,
+                    eventId,
+                    eventId.Id == SentInitializeFrame ?
+                        "sent Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})" :
+                        "received Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})",
+                    frameSize,
+                    version,
+                    body.ApplicationProtocolName,
+                    string.Join(", ", parameters.Select(pair => $"{pair.Key}={pair.Value}")));
+            }
         }
 
         internal static void LogSlicInitializeAckFrame(
             this ILogger logger,
             EventId eventId,
             int frameSize,
-            Dictionary<ParameterKey, ulong> parameters) =>
-            logger.Log(
-                LogLevel.Debug,
-                SentInitializeAckFrame,
-                eventId.Id == SentInitializeAckFrame ?
-                    "sent Slic InitializeAck frame (Size={Size}, {Parameters})" :
-                    "received Slic InitializeAck frame (Size={Size}, {Parameters})",
-                frameSize,
-                string.Join(", ", parameters.Select(pair => $"{pair.Key}={pair.Value}")));
+            Dictionary<ParameterKey, ulong> parameters)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.Log(
+                    LogLevel.Debug,
+                    SentInitializeAckFrame,
+                    eventId.Id == SentInitializeAckFrame ?
+                        "sent Slic InitializeAck frame (Size={Size}, {Parameters})" :
+                        "received Slic InitializeAck frame (Size={Size}, {Parameters})",
+                    frameSize,
+                    string.Join(", ", parameters.Select(pair => $"{pair.Key}={pair.Value}")));
+            }
+        }
 
         internal static void LogSlicVersionFrame(
             this ILogger logger,
@@ -183,7 +196,9 @@ namespace IceRpc
             int frameSize,
             VersionBody body)
         {
-            logger.Log(
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.Log(
                 LogLevel.Debug,
                 SentInitializeAckFrame,
                 eventId.Id == SentVersionFrame ?
@@ -191,6 +206,7 @@ namespace IceRpc
                     "received Slic Version frame (Size={Size}, Versions=[{Versions}])",
                 frameSize,
                 string.Join(", ", body.Versions));
+            }
         }
     }
 }

@@ -1134,21 +1134,23 @@ namespace IceRpc
                         attempt++;
 
                         using IDisposable? socketScope = connection?.Socket.StartScope();
-                        logger.LogRetryRequestRetryableException(retryPolicy,
-                                                                      attempt,
-                                                                      Communicator.InvocationMaxAttempts,
-                                                                      request,
-                                                                      exception);
+                        logger.LogRetryRequestRetryableException(
+                            retryPolicy,
+                            attempt,
+                            Communicator.InvocationMaxAttempts,
+                            request,
+                            exception);
                     }
                     else if (triedAllEndpoints)
                     {
                         attempt++;
 
-                        logger.LogRetryRequestConnectionException(retryPolicy,
-                                                                       attempt,
-                                                                       Communicator.InvocationMaxAttempts,
-                                                                       request,
-                                                                       exception);
+                        logger.LogRetryRequestConnectionException(
+                            retryPolicy,
+                            attempt,
+                            Communicator.InvocationMaxAttempts,
+                            request,
+                            exception);
                     }
 
                     if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)

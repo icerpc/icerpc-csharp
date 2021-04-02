@@ -33,9 +33,20 @@ namespace IceRpc
 
         internal static void LogTlsAuthenticationSucceeded(
             this ILogger logger,
-            System.Net.Security.SslStream _,
-            Dictionary<string, string> info) =>
-            // TODO: log SslStream properties
-            _tlsAuthenticationSucceeded(logger, info, null!);
+            System.Net.Security.SslStream sslStream)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                _tlsAuthenticationSucceeded(logger, new Dictionary<string, string>()
+                    {
+                        { "authenticated", $"{sslStream.IsAuthenticated}" },
+                        { "encrypted", $"{sslStream.IsEncrypted}" },
+                        { "signed", $"{sslStream.IsSigned}" },
+                        { "mutually authenticated", $"{sslStream.IsMutuallyAuthenticated}" },
+                        { "cipher", $"{sslStream.NegotiatedCipherSuite}" },
+                        { "protocol", $"{sslStream.SslProtocol}" }
+                    }, null!);
+            }
+        }
     }
 }

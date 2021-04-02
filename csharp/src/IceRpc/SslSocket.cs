@@ -165,15 +165,7 @@ namespace IceRpc
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            Logger.LogTlsAuthenticationSucceeded(_sslStream, new Dictionary<string, string>()
-                {
-                    { "authenticated", $"{_sslStream.IsAuthenticated}" },
-                    { "encrypted", $"{_sslStream.IsEncrypted}" },
-                    { "signed", $"{_sslStream.IsSigned}" },
-                    { "mutually authenticated", $"{_sslStream.IsMutuallyAuthenticated}" },
-                    { "cipher", $"{_sslStream.NegotiatedCipherSuite}" },
-                    { "protocol", $"{_sslStream.SslProtocol}" }
-                });
+            Logger.LogTlsAuthenticationSucceeded(_sslStream);
 
             // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
             // small buffers will be sent within a single SSL frame.
