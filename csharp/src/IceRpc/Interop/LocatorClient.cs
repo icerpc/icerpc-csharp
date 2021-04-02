@@ -168,23 +168,20 @@ namespace IceRpc.Interop
                 }
             }
 
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (endpoints.Count > 0)
             {
-                if (endpoints.Count > 0)
+                if (resolved)
                 {
-                    if (resolved)
-                    {
-                        _logger.LogResolved(location, category, endpoints);
-                    }
-                    else
-                    {
-                        _logger.LogFoundEntryInCache(location, category, endpoints);
-                    }
+                    _logger.LogResolved(location, category, endpoints);
                 }
                 else
                 {
-                    _logger.LogCouldNotResolveEndpoint(location, category);
+                    _logger.LogFoundEntryInCache(location, category, endpoints);
                 }
+            }
+            else
+            {
+                _logger.LogCouldNotResolveEndpoint(location, category);
             }
 
             return endpoints;
@@ -201,11 +198,7 @@ namespace IceRpc.Interop
                         out (TimeSpan _, IReadOnlyList<Endpoint> Endpoints, LinkedListNode<(string, string?)> Node) entry))
                     {
                         _cacheKeys.Remove(entry.Node);
-
-                        if (_logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _logger.LogClearCacheEntry(location, category, entry.Endpoints);
-                        }
+                        _logger.LogClearCacheEntry(location, category, entry.Endpoints);
                     }
                 }
             }
@@ -216,10 +209,7 @@ namespace IceRpc.Interop
             string? category,
             CancellationToken cancel)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogResolving(location, category);
-            }
+            _logger.LogResolving(location, category);
 
             Task<IReadOnlyList<Endpoint>>? task;
             lock (_mutex)
@@ -284,10 +274,7 @@ namespace IceRpc.Interop
                           resolved.IsWellKnown ||
                           resolved.Protocol != Protocol.Ice1))
                     {
-                        if (_logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _logger.LogReceivedInvalidProxy(location, category, resolved);
-                        }
+                        _logger.LogReceivedInvalidProxy(location, category, resolved);
                         resolved = null;
                     }
 
@@ -322,10 +309,7 @@ namespace IceRpc.Interop
                 }
                 catch (Exception exception)
                 {
-                    if (_logger.IsEnabled(LogLevel.Error))
-                    {
-                        _logger.LogResolveFailure(location, category, exception);
-                    }
+                    _logger.LogResolveFailure(location, category, exception);
                     throw;
                 }
                 finally
