@@ -88,8 +88,7 @@ namespace IceRpc
             }
 
             // The connection set is immutable once _shutdown is true
-            var exception = new ObjectDisposedException($"{typeof(Server).FullName}:{_server.Name}");
-            IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync(exception));
+            IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync($"server shutdown"));
 
             // Wait for AcceptAsync and the connection closure to return.
             if (_acceptTask != null)
@@ -177,7 +176,7 @@ namespace IceRpc
                         await connection.AbortAsync("connection is not trusted").ConfigureAwait(false);
                     }
                 }
-                catch(Exception)
+                catch
                 {
                     // Failed incoming connection, abort the connection.
                     await connection.AbortAsync("connection lost").ConfigureAwait(false);
@@ -211,9 +210,6 @@ namespace IceRpc
             _ = _connection.InitializeAsync(default);
         }
 
-        internal override Task ShutdownAsync() =>
-            _connection.GoAwayAsync(new ObjectDisposedException(
-                "server shutdown",
-                $"{typeof(Server).FullName}:{_server!.Name}"));
+        internal override Task ShutdownAsync() => _connection.GoAwayAsync($"server shutdown");
      }
 }

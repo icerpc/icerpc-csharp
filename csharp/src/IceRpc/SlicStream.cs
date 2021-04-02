@@ -62,12 +62,11 @@ namespace IceRpc
                         Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _receivedEndOfStream) = valueTask.Result;
-                        _socket.FinishedReceivedStreamData(Id, _receivedSize, _receivedEndOfStream, _receivedSize);
+                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
                     }
                     else
                     {
                         _socket.FinishedReceivedStreamData(
-                            Id,
                             _receivedSize,
                             _receivedEndOfStream,
                             _receivedSize - _receivedOffset);
@@ -157,7 +156,7 @@ namespace IceRpc
                 {
                     if (_receiveBuffer == null)
                     {
-                        _socket.FinishedReceivedStreamData(Id, _receivedSize, _receivedEndOfStream, 0);
+                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                     }
                     return 0;
                 }
@@ -173,7 +172,7 @@ namespace IceRpc
                 // If we've consumed the whole Slic frame, notify the socket that it can start receiving a new frame.
                 if (_receivedOffset == _receivedSize)
                 {
-                    _socket.FinishedReceivedStreamData(Id, _receivedSize, _receivedEndOfStream, 0);
+                    _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                 }
             }
             else
@@ -420,7 +419,7 @@ namespace IceRpc
                     {
                         // Ignore, the stream has been aborted. Notify the socket that we're not interested
                         // with the data to allow it to receive data for other streams.
-                        _socket.FinishedReceivedStreamData(Id, size, fin, size);
+                        _socket.FinishedReceivedStreamData(size, fin, size);
                     }
                 }
                 else
@@ -477,7 +476,7 @@ namespace IceRpc
                 {
                     // Ignore exceptions, the stream has been aborted.
                 }
-                _socket.FinishedReceivedStreamData(Id, size, fin, 0);
+                _socket.FinishedReceivedStreamData(size, fin, 0);
             }
         }
 

@@ -130,7 +130,7 @@ namespace IceRpc
                                 // connection is being closed gracefully, the connection waits for the socket
                                 // to receive the RST from the peer so it's important to receive and skip all
                                 // the data until the RST is received.
-                                FinishedReceivedStreamData(streamId.Value, size, fin, size);
+                                FinishedReceivedStreamData(size, fin, size);
                                 throw;
                             }
 
@@ -440,7 +440,7 @@ namespace IceRpc
             return streamIds;
         }
 
-        internal void FinishedReceivedStreamData(long _, int frameSize, bool fin, int remainingSize)
+        internal void FinishedReceivedStreamData(int frameSize, bool fin, int remainingSize)
         {
             Logger.LogReceivedSlicFrame(
                 fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream,

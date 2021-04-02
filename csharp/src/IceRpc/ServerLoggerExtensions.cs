@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    /// <summary>This class contains ILogger extensions methods for logging WebSocket transport messages.</summary>
+    /// <summary>This class contains ILogger extensions methods for logging Server messages.</summary>
     internal static class ServerLoggerExtensions
     {
         private const int BaseEventId = LoggerExtensions.ServerBaseEventId;

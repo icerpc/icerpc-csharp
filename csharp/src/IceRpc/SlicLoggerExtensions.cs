@@ -8,7 +8,7 @@ using IceRpc.Slic;
 
 namespace IceRpc
 {
-    /// <summary>This class contains ILogger extensions methods for logging WebSocket transport messages.</summary>
+    /// <summary>This class contains ILogger extensions methods for logging Slic transport messages.</summary>
     internal static class SlicLoggerExtensions
     {
         private const int BaseEventId = LoggerExtensions.SlicBaseEventId;
