@@ -146,10 +146,7 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogReceivedData(size, Endpoint.Transport);
-            }
+            Logger.LogReceivedData(size);
         }
 
         /// <summary>Notifies event handlers of the received ping. Transport implementations should call this method
@@ -168,10 +165,7 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        if (Logger.IsEnabled(LogLevel.Error))
-                        {
-                            Logger.LogPingEventHandlerException(ex);
-                        }
+                        Logger.LogConnectionEventHandlerException("ping", ex);
                     }
                 });
             }
@@ -188,9 +182,9 @@ namespace IceRpc
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0 && Logger.IsEnabled(LogLevel.Debug))
+            if (size > 0)
             {
-                Logger.LogSentData(size, Endpoint.Transport);
+                Logger.LogSentData(size);
             }
         }
 
@@ -216,30 +210,10 @@ namespace IceRpc
             // Abort the transport.
             Abort();
 
-            // Consider the abort as graceful if the streams were already aborted.
-            bool graceful;
-            lock (_mutex)
-            {
-                graceful = _streamsAborted;
-            }
-
             // Abort the streams if not already done. It's important to call this again even if has already been
             // called previously by graceful connection closure. Not all the streams might have been aborted and
             // at this point we want to make sure all the streams are aborted.
             AbortStreams(exception);
-
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                // Trace the cause of unexpected connection closures
-                if (!graceful && !(exception is ConnectionClosedException || exception is ObjectDisposedException))
-                {
-                    Logger.LogConnectionClosed(Endpoint.Transport, exception);
-                }
-                else
-                {
-                    Logger.LogConnectionClosed(Endpoint.Transport);
-                }
-            }
         }
 
         internal virtual (long Bidirectional, long Unidirectional) AbortStreams(
@@ -330,7 +304,7 @@ namespace IceRpc
             return stream;
         }
 
-        internal abstract IDisposable? StartScope();
+        internal IDisposable? StartScope(Server? server = null) => Logger.StartSocketScope(this, server);
 
         internal virtual async ValueTask WaitForEmptyStreamsAsync()
         {

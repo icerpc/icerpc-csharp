@@ -17,13 +17,14 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(10000)]
     public class LoggingTests : ClientServerBaseTest
     {
-        /// <summary>Check that connection establishment retries are log with IceRpc category log level is
-        /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts.
+        /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
+        /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
+        // and a last entry for the request exception.
         /// </summary>
         [Test]
         public async Task Logging_ConnectionRetries()
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
@@ -39,28 +40,24 @@ namespace IceRpc.Tests.ClientServer
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
+            Assert.AreEqual(5, logEntries.Count);
             foreach (JsonDocument entry in logEntries)
             {
-                Assert.AreEqual(11, GetEventId(entry));
-                Assert.AreEqual("Debug", GetLogLevel(entry));
+                Assert.AreEqual(GetEventId(entry) != 139 ? "Debug" : "Information", GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
-                Assert.IsTrue(GetMessage(entry).StartsWith(
-                    "retrying connection establishment because of retryable exception:",
-                    StringComparison.Ordinal));
-
                 JsonElement[] scopes = GetScopes(entry);
-                Assert.AreEqual(1, scopes.Length);
-                CheckRequestScope(scopes[0]);
+                Assert.That(scopes, Is.Empty);
+                Console.WriteLine(GetEventId(entry));
+                Assert.That(GetEventId(entry) == 139 || GetEventId(entry) == 141, Is.True);
             }
-            Assert.Greater(logEntries.Count, 0);
         }
 
-        /// <summary>Check that connection establishment retries are not log when IceRpc category log level is
+        /// <summary>Check that connection establishment retries are not logged when log level is
         /// greater than debug.</summary>
         [Test]
         public async Task Logging_Disabled_ConnectionRetries()
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
@@ -75,16 +72,23 @@ namespace IceRpc.Tests.ClientServer
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
 
-            Assert.AreEqual("", writer.ToString());
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
+            Assert.AreEqual(1, logEntries.Count);
+            var entry = logEntries[0];
+            Assert.AreEqual("Information", GetLogLevel(entry));
+            Assert.AreEqual("IceRpc", GetCategory(entry));
+            JsonElement[] scopes = GetScopes(entry);
+            Assert.That(scopes, Is.Empty);
+            Assert.That(GetEventId(entry), Is.EqualTo(139));
         }
 
-        /// <summary>Check that the protocol and transport logging doesn't emit any ouput for a normal request,
+        /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
         /// when LogLevel is set to Error</summary>
         [TestCase(true)]
         [TestCase(false)]
         public async Task Logging_Disabled_Request(bool colocated)
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
@@ -106,7 +110,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(false)]
         public async Task Logging_Request(bool colocated)
         {
-            using StringWriter writer = new StringWriter();
+            using var writer = new StringWriter();
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
@@ -130,54 +134,50 @@ namespace IceRpc.Tests.ClientServer
                 CollectionAssert.AllItemsAreUnique(events);
                 switch (eventId)
                 {
-                    case 7:
+                    case 136:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("received ice2 request frame", GetMessage(entry));
+                        Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
-                        CheckSocketScope(scopes[0], colocated);
+                        CheckServerScope(scopes[0], colocated);
+                        CheckServerSocketScope(scopes[1], colocated);
+                        CheckStreamScope(scopes[2]);
+                        break;
+                    }
+                    case 146:
+                    {
+                        Assert.AreEqual("IceRpc", GetCategory(entry));
+                        Assert.AreEqual("Information", GetLogLevel(entry));
+                        Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
+                        JsonElement[] scopes = GetScopes(entry);
+                        CheckClientSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
-                        CheckRequestScope(scopes[2]);
                         break;
                     }
-                    case 18:
+                    case 137:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("sending ice2 request frame", GetMessage(entry));
+                        Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
-                        CheckSocketScope(scopes[0], colocated);
-                        CheckRequestScope(scopes[1]);
-                        CheckStreamScope(scopes[2]);
-                        break;
-                    }
-                    case 8:
-                    {
-                        Assert.AreEqual("IceRpc", GetCategory(entry));
-                        Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("received ice2 response frame: result = Success",
-                                        GetMessage(entry));
-                        JsonElement[] scopes = GetScopes(entry);
-                        CheckSocketScope(scopes[0], colocated);
-                        CheckRequestScope(scopes[1]);
-                        CheckStreamScope(scopes[2]);
+                        CheckClientSocketScope(scopes[0], colocated);
+                        CheckStreamScope(scopes[1]);
                         // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 18);
+                        CollectionAssert.Contains(events, 146);
                         break;
                     }
-                    case 19:
+                    case 147:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.AreEqual("sending ice2 response frame: result = Success",
-                                        GetMessage(entry));
+                        Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
                         JsonElement[] scopes = GetScopes(entry);
-                        CheckSocketScope(scopes[0], colocated);
-                        CheckStreamScope(scopes[1]);
-                        CheckRequestScope(scopes[2]);
+                        CheckServerScope(scopes[0], colocated);
+                        CheckServerSocketScope(scopes[1], colocated);
+                        CheckStreamScope(scopes[2]);
                         // The sending of the response always comes before the receiving of the request
-                        CollectionAssert.Contains(events, 7);
+                        CollectionAssert.Contains(events, 136);
                         break;
                     }
                     default:
@@ -198,35 +198,51 @@ namespace IceRpc.Tests.ClientServer
                                                                writer: TextWriter.Synchronized(writer)));
                 });
 
-        private static void CheckSocketScope(JsonElement scope, bool colocated)
+        private static void CheckClientSocketScope(JsonElement scope, bool colocated)
         {
             if (colocated)
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(colocated", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=colocated", StringComparison.Ordinal));
             }
             else
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(tcp", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=tcp", StringComparison.Ordinal));
+            }
+        }
+
+        private static void CheckServerScope(JsonElement scope, bool colocated)
+        {
+            if (colocated)
+            {
+                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=colocated", StringComparison.Ordinal));
+            }
+            else
+            {
+                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=tcp", StringComparison.Ordinal));
+            }
+        }
+
+        private static void CheckServerSocketScope(JsonElement scope, bool colocated)
+        {
+            if (colocated)
+            {
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(", StringComparison.Ordinal));
+            }
+            else
+            {
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(", StringComparison.Ordinal));
             }
         }
 
         private static void CheckStreamScope(JsonElement scope)
         {
             Assert.AreEqual(0, scope.GetProperty("ID").GetInt64());
-            Assert.AreEqual("[client-initiated, bidirectional]", scope.GetProperty("Kind").GetString());
-        }
-
-        private static void CheckRequestScope(JsonElement scope)
-        {
-            Assert.AreEqual("/hello", scope.GetProperty("Path").GetString());
-            Assert.AreEqual("ice_ping", scope.GetProperty("Operation").GetString());
-            Assert.AreEqual("Ice2", scope.GetProperty("Protocol").GetString());
-            Assert.AreEqual(4, scope.GetProperty("PayloadSize").GetInt32());
-            Assert.AreEqual("2.0", scope.GetProperty("PayloadEncoding").GetString());
+            Assert.AreEqual("Client", scope.GetProperty("InitiatedBy").GetString());
+            Assert.AreEqual("Bidirectional", scope.GetProperty("Kind").GetString());
         }
 
         private Server CreateServer(Communicator communicator, bool colocated, int portNumber) =>
-            new Server(communicator,
+            new(communicator,
                 colocated switch
                 {
                     false => new ServerOptions

@@ -56,6 +56,8 @@ namespace IceRpc
                 {
                     case SlicDefinitions.FrameType.Ping:
                     {
+                        Logger.LogReceivedSlicFrame(type, size);
+
                         if (size != 0)
                         {
                             throw new InvalidDataException("unexpected data for Slic Ping fame");
@@ -66,6 +68,8 @@ namespace IceRpc
                     }
                     case SlicDefinitions.FrameType.Pong:
                     {
+                        Logger.LogReceivedSlicFrame(type, size);
+
                         // TODO: setup and reset timer here for the pong frame response?
                         if (size != 0)
                         {
@@ -126,7 +130,7 @@ namespace IceRpc
                                 // connection is being closed gracefully, the connection waits for the socket
                                 // to receive the RST from the peer so it's important to receive and skip all
                                 // the data until the RST is received.
-                                FinishedReceivedStreamData(size);
+                                FinishedReceivedStreamData(size, fin, size);
                                 throw;
                             }
 
@@ -183,12 +187,16 @@ namespace IceRpc
                                     ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
                                 }
                             }
+
+                            Logger.LogReceivedSlicFrame(
+                                fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream, size);
                         }
                         break;
                     }
                     case SlicDefinitions.FrameType.StreamReset:
                     {
                         Debug.Assert(streamId != null);
+
                         if (streamId == 2 || streamId == 3)
                         {
                             throw new InvalidDataException("can't reset control streams");
@@ -203,11 +211,16 @@ namespace IceRpc
                         {
                             stream.ReceivedReset((long)streamReset.ApplicationProtocolErrorCode);
                         }
+                        Logger.LogReceivedSlicResetFrame(
+                            size,
+                            (StreamResetErrorCode)streamReset.ApplicationProtocolErrorCode);
                         break;
                     }
                     case SlicDefinitions.FrameType.StreamConsumed:
                     {
                         Debug.Assert(streamId != null);
+                        Logger.LogReceivedSlicFrame(type, size);
+
                         if (streamId == 2 || streamId == 3)
                         {
                             throw new InvalidDataException("control streams don't support flow control");
@@ -264,19 +277,18 @@ namespace IceRpc
 
                 // Check that the Slic version is supported (we only support version 1 for now)
                 var istr = new InputStream(data, SlicDefinitions.Encoding);
-                var initializeBody = new InitializeHeaderBody(istr);
-
-                if (initializeBody.SlicVersion != 1)
+                uint version = istr.ReadVarUInt();
+                if (version != 1)
                 {
+                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Count, version);
+
                     // If unsupported Slic version, we stop reading there and reply with a Version frame to provide
                     // the client the supported Slic versions.
+                    var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        ostr =>
-                        {
-                            var versionBody = new VersionBody(new uint[] { 1 });
-                            versionBody.IceWrite(ostr);
-                        },
+                        ostr => versionBody.IceWrite(ostr),
+                        frameSize => Logger.LogSentSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
                     (type, data) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
@@ -286,13 +298,19 @@ namespace IceRpc
                     }
 
                     istr = new InputStream(data, SlicDefinitions.Encoding);
-                    initializeBody = new InitializeHeaderBody(istr);
-                    if (initializeBody.SlicVersion != 1)
+                    version = istr.ReadVarUInt();
+                    if (version != 1)
                     {
-                        throw new InvalidDataException($"unsupported Slic version `{initializeBody.SlicVersion}'");
+                        throw new InvalidDataException($"unsupported Slic version `{version}'");
                     }
                 }
 
+                // Read initialize frame
+                var initializeBody = new InitializeHeaderBody(istr);
+                Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
+                Logger.LogReceivedSlicInitializeFrame(data.Count, version, initializeBody, parameters);
+
+                // Check the application protocol and set the parameters.
                 try
                 {
                     if (ProtocolExtensions.Parse(initializeBody.ApplicationProtocolName) != Protocol.Ice2)
@@ -306,27 +324,31 @@ namespace IceRpc
                     throw new NotSupportedException(
                         $"unknown application protocol `{initializeBody.ApplicationProtocolName}'", ex);
                 }
-
-                // Read transport parameters
-                ReadParameters(istr);
+                SetParameters(parameters);
 
                 // Send back an InitializeAck frame.
+                parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.InitializeAck,
-                    WriteParameters,
+                    ostr => WriteParameters(ostr, parameters),
+                    frameSize => Logger.LogSentSlicInitializeAckFrame(frameSize, parameters),
                     cancel: cancel).ConfigureAwait(false);
             }
             else
             {
                 // Send the Initialize frame.
+                const uint version = 1;
+                var initializeBody = new InitializeHeaderBody(Protocol.Ice2.GetName());
+                Dictionary<ParameterKey, ulong> parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.Initialize,
                     ostr =>
                     {
-                        var initializeBody = new InitializeHeaderBody(1, Protocol.Ice2.GetName());
+                        ostr.WriteVarUInt(version);
                         initializeBody.IceWrite(ostr);
-                        WriteParameters(ostr);
+                        WriteParameters(ostr, parameters);
                     },
+                    frameSize => Logger.LogSentSlicInitializeFrame(frameSize, version, initializeBody, parameters),
                     cancel: cancel).ConfigureAwait(false);
 
                 // Read the InitializeAck or Version frame from the server
@@ -341,6 +363,8 @@ namespace IceRpc
                 {
                     // Read the version sequence provided by the server.
                     var versionBody = new VersionBody(istr);
+                    Logger.LogReceivedSlicVersionFrame(data.Count, versionBody);
+
                     throw new InvalidDataException(
                         $"unsupported Slic version, server supports Slic `{string.Join(", ", versionBody.Versions)}'");
                 }
@@ -348,9 +372,13 @@ namespace IceRpc
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
                 }
-
-                // Read transport parameters
-                ReadParameters(istr);
+                else
+                {
+                    // Read and set parameters.
+                    parameters = ReadParameters(istr);
+                    Logger.LogReceivedSlicInitializeAckFrame(data.Count, parameters);
+                    SetParameters(parameters);
+                }
             }
         }
 
@@ -412,12 +440,18 @@ namespace IceRpc
             return streamIds;
         }
 
-        internal void FinishedReceivedStreamData(int remainingSize) =>
+        internal void FinishedReceivedStreamData(int frameSize, bool fin, int remainingSize)
+        {
+            Logger.LogReceivedSlicFrame(
+                fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream,
+                frameSize);
             _receiveStreamCompletionTaskSource.SetResult(remainingSize);
+        }
 
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
             Action<OutputStream>? writer = null,
+            Action<int>? logAction = null,
             long? streamId = null,
             CancellationToken cancel = default)
         {
@@ -434,17 +468,21 @@ namespace IceRpc
             ostr.EndFixedLengthSize(sizePos, 4);
             ostr.Finish();
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogSendingSlicFrame(type, frameSize, streamId);
-            }
-
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             try
             {
                 await SendPacketAsync(data).ConfigureAwait(false);
+
+                if (logAction != null)
+                {
+                    logAction?.Invoke(frameSize);
+                }
+                else
+                {
+                    Logger.LogSentSlicFrame(type, frameSize);
+                }
             }
             finally
             {
@@ -542,7 +580,8 @@ namespace IceRpc
                 }
             }
 
-            if (!stream.IsStarted)
+            bool started = stream.IsStarted;
+            if (!started)
             {
                 try
                 {
@@ -565,6 +604,10 @@ namespace IceRpc
                 }
             }
 
+            // If the stream wasn't started, we start the scope here because the caller can't start it until
+            // the stream is started.
+            using IDisposable? streamScope = started ? null : stream.StartScope();
+
             // The incoming bidirectional stream is considered completed once no more data will be written on
             // the stream. It's important to release the stream here before the peer receives the last stream
             // frame to prevent a race where the peer could start a new stream before the stream count is
@@ -578,9 +621,9 @@ namespace IceRpc
             // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't
             // interrupt a send on the underlying socket and we want to make sure that once a stream is started,
             // the peer will always receive at least one stream frame.
-            await PerformSendPacket().WaitAsync(cancel).ConfigureAwait(false);
+            await PerformSendPacketAsync().WaitAsync(cancel).ConfigureAwait(false);
 
-            async ValueTask PerformSendPacket()
+            async ValueTask PerformSendPacketAsync()
             {
                 try
                 {
@@ -605,10 +648,7 @@ namespace IceRpc
                     headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
                     buffer[0] = headerData;
 
-                    if (Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        Logger.LogSendingSlicFrame(frameType, packetSize, stream.Id);
-                    }
+                    Logger.LogSentSlicFrame(frameType, packetSize);
 
                     try
                     {
@@ -626,37 +666,66 @@ namespace IceRpc
             }
         }
 
-        private void ReadParameters(InputStream istr)
+        private static void WriteParameters(OutputStream ostr, Dictionary<ParameterKey, ulong> parameters)
         {
-            TimeSpan? peerIdleTimeout = null;
+            ostr.WriteSize(parameters.Count);
+            foreach ((ParameterKey key, ulong value) in parameters)
+            {
+                ostr.WriteBinaryContextEntry((int)key, value, OutputStream.IceWriterFromVarULong);
+            }
+        }
+
+        private static Dictionary<ParameterKey, ulong> ReadParameters(InputStream istr)
+        {
             int dictionarySize = istr.ReadSize();
+            var parameters = new Dictionary<ParameterKey, ulong>();
             for (int i = 0; i < dictionarySize; ++i)
             {
                 (int key, ReadOnlyMemory<byte> value) = istr.ReadBinaryContextEntry();
-                if (key == (int)ParameterKey.MaxBidirectionalStreams)
+                parameters.Add((ParameterKey)key, value.Span.ReadVarULong().Value);
+            }
+            return parameters;
+        }
+
+        private Dictionary<ParameterKey, ulong> GetParameters() =>
+            new()
+            {
+                { ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams },
+                { ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams },
+                { ParameterKey.IdleTimeout, (ulong)_idleTimeout.TotalMilliseconds },
+                { ParameterKey.PacketMaxSize, (ulong)PacketMaxSize },
+                { ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize }
+            };
+
+        private void SetParameters(Dictionary<ParameterKey, ulong> parameters)
+        {
+            TimeSpan? peerIdleTimeout = null;
+            foreach ((ParameterKey key, ulong value) in parameters)
+            {
+                if (key == ParameterKey.MaxBidirectionalStreams)
                 {
-                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value.Span.ReadVarULong().Value);
+                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value);
                 }
-                else if (key == (int)ParameterKey.MaxUnidirectionalStreams)
+                else if (key == ParameterKey.MaxUnidirectionalStreams)
                 {
-                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value.Span.ReadVarULong().Value);
+                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value);
                 }
-                else if (key == (int)ParameterKey.IdleTimeout)
+                else if (key == ParameterKey.IdleTimeout)
                 {
                     // Use the smallest idle timeout.
-                    peerIdleTimeout = TimeSpan.FromMilliseconds(value.Span.ReadVarULong().Value);
+                    peerIdleTimeout = TimeSpan.FromMilliseconds(value);
                     if (peerIdleTimeout < IdleTimeout)
                     {
                         _idleTimeout = peerIdleTimeout.Value;
                     }
                 }
-                else if (key == (int)ParameterKey.PacketMaxSize)
+                else if (key == ParameterKey.PacketMaxSize)
                 {
-                    PeerPacketMaxSize = (int)value.Span.ReadVarULong().Value;
+                    PeerPacketMaxSize = (int)value;
                 }
-                else if (key == (int)ParameterKey.StreamBufferMaxSize)
+                else if (key == ParameterKey.StreamBufferMaxSize)
                 {
-                    PeerStreamBufferMaxSize = (int)value.Span.ReadVarULong().Value;
+                    PeerStreamBufferMaxSize = (int)value;
                 }
                 else
                 {
@@ -738,11 +807,6 @@ namespace IceRpc
 
             Received(1 + sizeLength + streamIdLength);
 
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                Logger.LogReceivedSlicFrame(type, size, (long?)streamId);
-            }
-
             // The size check doesn't include the stream ID length
             size -= streamIdLength;
             if (size > PeerPacketMaxSize)
@@ -769,29 +833,6 @@ namespace IceRpc
                     ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
                 }
             }
-        }
-
-        private void WriteParameters(OutputStream ostr)
-        {
-            ostr.WriteSize(5);
-            ostr.WriteBinaryContextEntry((int)ParameterKey.MaxBidirectionalStreams,
-                                         (ulong)_bidirectionalMaxStreams,
-                                         OutputStream.IceWriterFromVarULong);
-            ostr.WriteBinaryContextEntry((int)ParameterKey.MaxUnidirectionalStreams,
-                                         (ulong)_unidirectionalMaxStreams,
-                                         OutputStream.IceWriterFromVarULong);
-
-            ostr.WriteBinaryContextEntry((int)ParameterKey.IdleTimeout,
-                                            (ulong)_idleTimeout.TotalMilliseconds,
-                                            OutputStream.IceWriterFromVarULong);
-
-            ostr.WriteBinaryContextEntry((int)ParameterKey.PacketMaxSize,
-                                         (ulong)PacketMaxSize,
-                                         OutputStream.IceWriterFromVarULong);
-
-            ostr.WriteBinaryContextEntry((int)ParameterKey.StreamBufferMaxSize,
-                                         (ulong)StreamBufferMaxSize,
-                                         OutputStream.IceWriterFromVarULong);
         }
     }
 }

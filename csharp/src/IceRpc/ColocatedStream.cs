@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +18,12 @@ namespace IceRpc
         private readonly ColocatedSocket _socket;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
+
+        public override string ToString()
+        {
+            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
+            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
+        }
 
         protected override void Shutdown()
         {
@@ -234,28 +239,11 @@ namespace IceRpc
             }
         }
 
-        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
-        {
+        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel) =>
             await _socket.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
                 fin: frame.StreamDataWriter == null,
                 cancel).ConfigureAwait(false);
-
-            if (_socket.Logger.IsEnabled(LogLevel.Information))
-            {
-                if (frame is OutgoingRequestFrame request)
-                {
-                    // TODO: create the scope when the stream is started rather than after the request creation.
-                    using var scope = StartScope();
-                    _socket.Logger.LogSendingRequest(request);
-                }
-                else
-                {
-                    Debug.Assert(frame is OutgoingResponseFrame);
-                    _socket.Logger.LogSendingResponse((OutgoingResponseFrame)frame);
-                }
-            }
-        }
     }
 }

@@ -101,21 +101,6 @@ namespace IceRpc
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
-
-            if (_socket.Logger.IsEnabled(LogLevel.Information))
-            {
-                if (frame is OutgoingRequestFrame request)
-                {
-                    // TODO: create the scope when the stream is started rather than after the request creation.
-                    using var scope = StartScope();
-                    _socket.Logger.LogSendingRequest(request);
-                }
-                else
-                {
-                    Debug.Assert(frame is OutgoingResponseFrame);
-                    _socket.Logger.LogSendingResponse((OutgoingResponseFrame)frame);
-                }
-            }
         }
     }
 }

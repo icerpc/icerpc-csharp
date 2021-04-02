@@ -30,7 +30,14 @@ namespace IceRpc
         /// receive or send data.</summary>
         internal static bool IsConnectionLost(this Exception ex)
         {
-            Debug.Assert(!(ex is TransportException));
+            if (ex is ConnectionLostException)
+            {
+                return true;
+            }
+            else if (ex is TransportException)
+            {
+                return false;
+            }
 
             // Check the inner exceptions if the given exception isn't a socket exception. Streams wrapping a socket
             // typically throw an IOException with the SocketException as the InnerException.
@@ -59,7 +66,6 @@ namespace IceRpc
             {
                 // On Unix platforms, IOException can be raised without inner socket exception. This is
                 // in particular the case for SSLStream reads.
-                Debug.Assert(ex.InnerException == null);
                 return true;
             }
             return false;

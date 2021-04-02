@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,7 +27,6 @@ namespace IceRpc
         private readonly IAcceptor _acceptor;
         private Task? _acceptTask;
         private readonly Server _server;
-        private readonly Communicator _communicator;
         private readonly HashSet<Connection> _connections = new();
         private readonly object _mutex = new();
         private bool _shutdown;
@@ -37,19 +35,19 @@ namespace IceRpc
 
         internal AcceptorIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _communicator = server.Communicator;
             _server = server;
             _acceptor = endpoint.Acceptor(_server);
             Endpoint = _acceptor.Endpoint;
+
+            using IDisposable? scope = _acceptor.StartScope(_server);
+            if (!(_acceptor is ColocatedAcceptor))
+            {
+                server.Logger.LogAcceptingConnections();
+            }
         }
 
         internal override void Activate()
         {
-            if (_server.Logger.IsEnabled(LogLevel.Information))
-            {
-                _server.Logger.LogStartAcceptingConnections(Endpoint.Transport, _acceptor);
-            }
-
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
             // synchronously new connections from this thread.
             lock (_mutex)
@@ -75,10 +73,8 @@ namespace IceRpc
 
         internal override async Task ShutdownAsync()
         {
-            if (_communicator.Logger.IsEnabled(LogLevel.Information))
-            {
-                _communicator.Logger.LogStopAcceptingConnections(Endpoint.Transport, _acceptor);
-            }
+            using IDisposable? scope = _acceptor.StartScope(_server);
+            _server.Logger.LogStopAcceptingConnections();
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without
             // any await in between to guarantee that once Communicator.ShutdownAsync returns the communicator no
@@ -91,8 +87,7 @@ namespace IceRpc
             }
 
             // The connection set is immutable once _shutdown is true
-            var exception = new ObjectDisposedException($"{typeof(Server).FullName}:{_server.Name}");
-            IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync(exception));
+            IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync($"server shutdown"));
 
             // Wait for AcceptAsync and the connection closure to return.
             if (_acceptTask != null)
@@ -108,6 +103,9 @@ namespace IceRpc
             Justification = "Ensure continuations execute on the server scheduler if it is set")]
         private async ValueTask AcceptAsync()
         {
+            using IDisposable? scope = _acceptor.StartScope(_server);
+            _server.Logger.LogStartAcceptingConnections();
+
             while (true)
             {
                 Connection connection;
@@ -117,12 +115,14 @@ namespace IceRpc
                     // TODO: Hack, remove once we get rid of the communicator
                     connection.Communicator = _server.Communicator;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     if (_shutdown)
                     {
                         return;
                     }
+
+                    _server.Logger.LogAcceptingConnectionFailed(ex);
 
                     // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
                     // again. Failures here are unexpected and could be considered fatal.
@@ -134,7 +134,7 @@ namespace IceRpc
                 {
                     if (_shutdown)
                     {
-                        connection.AbortAsync();
+                        connection.AbortAsync("server shutdown");
                         return;
                     }
 
@@ -158,7 +158,7 @@ namespace IceRpc
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.Socket.AcceptAsync(
+                    await connection.AcceptAsync(
                         _server.ConnectionOptions.AuthenticationOptions,
                         cancel).ConfigureAwait(false);
 
@@ -171,19 +171,14 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (_server.Logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _server.Logger.LogConnectionNotTrusted(
-                                connection.Endpoint.Transport);
-                        }
                         // Connection not trusted, abort it.
-                        await connection.AbortAsync().ConfigureAwait(false);
+                        await connection.AbortAsync("connection is not trusted").ConfigureAwait(false);
                     }
                 }
                 catch
                 {
                     // Failed incoming connection, abort the connection.
-                    await connection.AbortAsync().ConfigureAwait(false);
+                    await connection.AbortAsync("connection lost").ConfigureAwait(false);
                 }
             }
         }
@@ -210,20 +205,10 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            if (_server.Logger.IsEnabled(LogLevel.Debug))
-            {
-                if (_connection is IPConnection connection)
-                {
-                    _server.Logger.LogStartReceivingDatagrams(
-                        Endpoint.Transport,
-                        connection.LocalEndpoint?.ToString() ?? "undefined",
-                        connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
-            }
+            _ = _connection.AcceptAsync(null, default);
             _ = _connection.InitializeAsync(default);
         }
 
-        internal override Task ShutdownAsync() =>
-            _connection.GoAwayAsync(new ObjectDisposedException($"{typeof(Server).FullName}:{_server!.Name}"));
-    }
+        internal override Task ShutdownAsync() => _connection.GoAwayAsync($"server shutdown");
+     }
 }

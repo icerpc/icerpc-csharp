@@ -194,9 +194,9 @@ namespace IceRpc
                 LocalServerRegistry.RegisterServer(this);
             }
 
-            if (PublishedEndpoints.Count > 0 && Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (PublishedEndpoints.Count > 0)
             {
-                Communicator.Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
+                Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
             }
         }
 
@@ -544,20 +544,14 @@ namespace IceRpc
                     else
                     {
                         actualEx = new UnhandledException(ex);
-                        if (Logger.IsEnabled(LogLevel.Warning))
-                        {
-                            Logger.LogRequestDispatchException(ex);
-                        }
+                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
                     }
 
                     return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                 }
                 else
                 {
-                    if (Logger.IsEnabled(LogLevel.Warning))
-                    {
-                        Logger.LogRequestDispatchException(ex);
-                    }
+                    Logger.LogDispatchException(current.IncomingRequestFrame, ex);
                     return OutgoingResponseFrame.WithVoidReturnValue(current);
                 }
             }

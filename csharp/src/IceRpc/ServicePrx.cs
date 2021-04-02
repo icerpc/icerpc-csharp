@@ -847,7 +847,7 @@ namespace IceRpc
                 }
             }
 
-            var options = Communicator.ConnectionOptions.Clone();
+            OutgoingConnectionOptions options = Communicator.ConnectionOptions.Clone();
             options.NonSecure = NonSecure;
 
             bool refreshCache = false;
@@ -1085,16 +1085,19 @@ namespace IceRpc
 
                     cancel.ThrowIfCancellationRequested();
 
-                    using var socketScope = connection.Socket.StartScope();
-                    using var requestScope = logger.StartRequestScope(request);
+                    response?.Dispose();
+                    response = null;
+
+                    using IDisposable? socketScope = connection.Socket.StartScope();
 
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
 
                     // Send the request and wait for the sending to complete.
-                    response?.Dispose();
-                    response = null;
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+
+                    using IDisposable? streamSocket = stream.StartScope();
+                    logger.LogSentRequest(request);
 
                     // The request is sent, notify the progress callback.
                     // TODO: Get rid of the sentSynchronously parameter which is always false now?
@@ -1115,16 +1118,10 @@ namespace IceRpc
                         return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
                     }
 
-                    // TODO: create the scope when the stream is started rather than after the request creation.
-                    using var streamScope = stream.StartScope();
-
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
 
-                    if (logger.IsEnabled(LogLevel.Information))
-                    {
-                        logger.LogReceivedResponse(response);
-                    }
+                    logger.LogReceivedResponse(response);
 
                     // If success, just return the response!
                     if (response.ResultType == ResultType.Success)
@@ -1207,36 +1204,32 @@ namespace IceRpc
                 else
                 {
                     tryAgain = true;
-                    if (logger.IsEnabled(LogLevel.Debug))
-                    {
-                        using var socketScope = connection?.Socket.StartScope();
-                        using var requestScope = logger.StartRequestScope(request);
-                        if (connection != null)
-                        {
-                            logger.LogRetryRequestInvocation(retryPolicy,
-                                                             attempt,
-                                                             Communicator.InvocationMaxAttempts,
-                                                             exception);
-                        }
-                        else if (triedAllEndpoints)
-                        {
-                            logger.LogRetryConnectionEstablishment(retryPolicy,
-                                                                   attempt,
-                                                                   Communicator.InvocationMaxAttempts,
-                                                                   exception);
-                        }
-                        else
-                        {
-                            logger.LogRetryConnectionEstablishment(exception);
-                        }
-                    }
 
-                    if (connection != null || triedAllEndpoints)
+                    // Only count an attempt if the connection was established or if all the endpoints were tried
+                    // at least once. This ensures that we don't end up into an infinite loop for connection
+                    // establishment failures which don't result in endpoint exclusion.
+                    if (connection != null)
                     {
-                        // Only count an attempt if the connection was established or if all the endpoints were tried
-                        // at least once. This ensures that we don't end up into an infinite loop for connection
-                        // establishment failures which don't result in endpoint exclusion.
                         attempt++;
+
+                        using IDisposable? socketScope = connection?.Socket.StartScope();
+                        logger.LogRetryRequestRetryableException(
+                            retryPolicy,
+                            attempt,
+                            Communicator.InvocationMaxAttempts,
+                            request,
+                            exception);
+                    }
+                    else if (triedAllEndpoints)
+                    {
+                        attempt++;
+
+                        logger.LogRetryRequestConnectionException(
+                            retryPolicy,
+                            attempt,
+                            Communicator.InvocationMaxAttempts,
+                            request,
+                            exception);
                     }
 
                     if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
@@ -1256,6 +1249,11 @@ namespace IceRpc
                 }
             }
             while (tryAgain);
+
+            if (exception != null)
+            {
+                logger.LogRequestException(request, exception);
+            }
 
             // TODO cleanup observer logic we report "System.Exception" for all remote exceptions
             observer?.Failed(exception?.GetType().FullName ?? "System.Exception");

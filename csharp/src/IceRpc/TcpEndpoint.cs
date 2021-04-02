@@ -249,7 +249,7 @@ namespace IceRpc
                 _ => new SlicSocket(this, socket, options)
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
-            await connection.Socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
+            await connection.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
             Debug.Assert(connection.CanTrust(options.NonSecure));
             return connection;
         }
