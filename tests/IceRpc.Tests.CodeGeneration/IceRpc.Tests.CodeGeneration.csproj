@@ -19,6 +19,9 @@
     <Compile Update="generated\SequenceMappingTests.cs">
       <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
     </Compile>
+    <Compile Update="generated\TaggedTests.cs">
+      <SliceCompileSource>TaggedTests.ice</SliceCompileSource>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
