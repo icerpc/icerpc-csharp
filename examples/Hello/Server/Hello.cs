@@ -10,7 +10,6 @@ namespace Demo
     {
         public string? SayHello(string? greeting, Current current, CancellationToken cancel)
         {
-            Thread.Sleep(10000);
             Console.Out.WriteLine("Hello World!");
             return greeting + ", server!";
         }

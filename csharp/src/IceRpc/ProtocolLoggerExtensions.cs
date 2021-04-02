@@ -66,8 +66,9 @@ namespace IceRpc
             LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
                 LogLevel.Information,
                 new EventId(ReceivedRequestFrame, nameof(ReceivedRequestFrame)),
-                "received request (Path={Path}, Operation={Operation}, Size={Size}, Encoding={Encoding}, " +
-                "CompressionFormat={CompressionFormat}, Context={Context})");
+                "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                "PayloadEncoding={PayloadEncoding}, PayloadCompressionFormat={PayloadCompressionFormat}, " +
+                "Context={Context})");
 
         private static readonly Action<ILogger, ResultType, Exception> _receivedResponseFrame =
             LoggerMessage.Define<ResultType>(
@@ -128,8 +129,9 @@ namespace IceRpc
             LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
                 LogLevel.Information,
                 new EventId(SentRequestFrame, nameof(SentRequestFrame)),
-                "sent request (Path={Path}, Operation={Operation}, Size={Size}, Encoding={Encoding}, " +
-                "CompressionFormat={CompressionFormat}, Context={Context})");
+                "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                "PayloadEncoding={PayloadEncoding}, PayloadCompressionFormat={PayloadCompressionFormat}, " +
+                "Context={Context})");
 
         private static readonly Action<ILogger, ResultType, int, Encoding, CompressionFormat, Exception> _sentResponseFrame =
             LoggerMessage.Define<ResultType, int, Encoding, CompressionFormat>(
