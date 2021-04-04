@@ -19,6 +19,10 @@ namespace IceRpc
     /// </summary>
     internal sealed class OpaqueEndpoint : Endpoint
     {
+        /// <inherit-doc/>
+        public override bool IsServerCompatible => false;
+
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option switch
             {

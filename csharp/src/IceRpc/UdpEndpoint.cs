@@ -254,12 +254,11 @@ namespace IceRpc
         internal static UdpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.UDP);
 
-            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
             int ttl = -1;
 
@@ -287,6 +286,8 @@ namespace IceRpc
 
             string? multicastInterface = null;
 
+            bool proxyCompatible = true;
+
             if (options.TryGetValue("--interface", out argument))
             {
                 multicastInterface = argument ?? throw new FormatException(
@@ -294,10 +295,7 @@ namespace IceRpc
 
                 if (multicastInterface == "*")
                 {
-                    if (!serverEndpoint)
-                    {
-                        throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
-                    }
+                    proxyCompatible = false;
 
                     // The MulticastInterface property is null for server endpoints with a wildcard interface address.
                     multicastInterface = null;
@@ -320,20 +318,12 @@ namespace IceRpc
                     // The MulticastInterface property is null for server endpoints with a wildcard interface address.
                     if (multicastInterfaceAddr == IPAddress.Any)
                     {
-                        if (!serverEndpoint)
-                        {
-                            throw new FormatException(
-                                $"`--interface 0.0.0.0' is not valid for proxy endpoint `{endpointString}'");
-                        }
+                        proxyCompatible = false;
                         multicastInterface = null;
                     }
                     else if(multicastInterfaceAddr == IPAddress.IPv6Any)
                     {
-                        if (!serverEndpoint)
-                        {
-                            throw new FormatException(
-                                $"`--interface \"::0\" is not valid for proxy endpoint `{endpointString}'");
-                        }
+                        proxyCompatible = false;
                         multicastInterface = null;
                     }
                 }
@@ -344,7 +334,7 @@ namespace IceRpc
                                    ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface,
-                                   serverEndpoint);
+                                   proxyCompatible);
         }
 
         private static IPAddress GetIPv4InterfaceAddress(string iface)
@@ -412,18 +402,18 @@ namespace IceRpc
 
         // Constructor for ice1 unmarshaling
         private UdpEndpoint(EndpointData data, bool compress)
-            : base(data, Protocol.Ice1) =>
+            : base(data, Protocol.Ice1, proxyCompatible: true) =>
             _hasCompressionFlag = compress;
 
         // Constructor for unmarshaling with the 2.0 encoding.
         private UdpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol)
+            : base(data, protocol, proxyCompatible: true)
         {
         }
 
         // Constructor for ice1 parsing
-        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface, bool serverEndpoint)
-            : base(data, serverEndpoint, Protocol.Ice1)
+        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface, bool proxyCompatible)
+            : base(data, Protocol.Ice1, proxyCompatible)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

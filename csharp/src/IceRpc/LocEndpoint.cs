@@ -14,6 +14,10 @@ namespace IceRpc
     /// <see cref="ILocationResolver"/>.</summary>
     internal sealed class LocEndpoint : Endpoint
     {
+        /// <inherit-doc/>
+        public override bool IsServerCompatible => false;
+
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option == "category" && Protocol == Protocol.Ice1 ?
                 (Data.Options.Length > 0 ? Data.Options[0] : null) : base[option];
@@ -74,24 +78,13 @@ namespace IceRpc
 
         // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Microsoft.Performance",
-            "CA1801: Review unused parameters",
-            Justification = "Must match signature of Ice2EndpointParser")]
         internal static LocEndpoint ParseIce2Endpoint(
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
+            Dictionary<string, string> _)
         {
             Debug.Assert(transport == Transport.Loc);
-
-            if (serverEndpoint)
-            {
-                throw new NotSupportedException("cannot create a server-side loc endpoint");
-            }
-
             return new(new EndpointData(transport, host, port, Array.Empty<string>()), Protocol.Ice2);
         }
 

@@ -141,6 +141,12 @@ namespace IceRpc
                 }
                 Debug.Assert(Endpoints.Count > 0);
 
+                if (Endpoints.FirstOrDefault(e => !e.IsServerCompatible) is Endpoint badEndpoint)
+                {
+                    throw new ArgumentException($"cannot use endpoint `{badEndpoint}' as a server endpoint",
+                                                nameof(options));
+                }
+
                 if (Endpoints.Any(endpoint => endpoint is IPEndpoint ipEndpoint && ipEndpoint.Port == 0))
                 {
                     if (Endpoints.Count > 1)
@@ -169,8 +175,14 @@ namespace IceRpc
             if (options.PublishedEndpoints.Length > 0)
             {
                 PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
-                    UriParser.ParseEndpoints(options.PublishedEndpoints, serverEndpoints: false) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints, serverEndpoints: false);
+                    UriParser.ParseEndpoints(options.PublishedEndpoints) :
+                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints);
+
+                if (PublishedEndpoints.FirstOrDefault(e => !e.IsProxyCompatible) is Endpoint badEndpoint)
+                {
+                    throw new ArgumentException($"cannot use endpoint `{badEndpoint}' as a proxy endpoint",
+                                                 nameof(options));
+                }
             }
 
             if (PublishedEndpoints.Count == 0)

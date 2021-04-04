@@ -17,6 +17,10 @@ namespace IceRpc
     /// ice2 or greater.</summary>
     internal sealed class UniversalEndpoint : Endpoint
     {
+        /// <inherit-doc/>
+        public override bool IsServerCompatible => false;
+
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option switch
             {

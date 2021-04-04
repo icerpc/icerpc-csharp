@@ -17,6 +17,15 @@ namespace IceRpc
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
+        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <param name="s">The string representation of the endpoint.</param>
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// </exception>
+        public static Endpoint Parse(string s) =>
+            // TODO: better implementation!
+            UriParser.IsEndpointUri(s) ? UriParser.ParseEndpoints(s)[0] : Ice1Parser.ParseEndpoint(s);
+
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this
         /// external representation.</summary>
@@ -36,6 +45,14 @@ namespace IceRpc
         /// <value>True when this endpoint's transport is datagram-based; otherwise, false. There is currently a
         /// single datagram-based transport: UDP.</value>
         public virtual bool IsDatagram => false;
+
+        /// <summary>Returns whether or not this endpoint can be used as a proxy endpoint.</summary>
+        /// <value>True when the endpoint can be used for a proxy; false when it cannot.</value>
+        public virtual bool IsProxyCompatible => true;
+
+        /// <summary>Returns whether or not this endpoint can be used as a server endpoint.</summary>
+        /// <value>True when the endpoint can be used for a server; false when it cannot.</value>
+        public virtual bool IsServerCompatible => true;
 
         /// <summary>Gets an option of the endpoint.</summary>
         /// <param name="option">The name of the option to retrieve.</param>

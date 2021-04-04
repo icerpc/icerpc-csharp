@@ -20,14 +20,11 @@ namespace IceRpc
     /// <param name="transport">The transport of the new endpoint.</param>
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
-    /// <param name="serverEndpoint">When true, the new endpoint corresponds to a server's endpoint configuration;
-    /// when false, endpointString represents a proxy endpoint.</param>
     /// <param name="endpointString">The original endpoint string, for error messages and tracing.</param>
     /// <returns>A new endpoint for the ice1 protocol.</returns>
     public delegate Endpoint Ice1EndpointParser(
         Transport transport,
         Dictionary<string, string?> options,
-        bool serverEndpoint,
         string endpointString);
 
     /// <summary>Creates an ice2 endpoint from a parsed URI.</summary>
@@ -36,13 +33,10 @@ namespace IceRpc
     /// <param name="port">The port number.</param>
     /// <param name="options">The options of the new endpoint. This delegate removes any option it understands from this
     /// dictionary.</param>
-    /// <param name="serverEndpoint">When true, the new endpoint corresponds to a server's endpoint configuration;
-    /// when false, represents a proxy endpoint.</param>
     /// <returns>A new endpoint for the ice2 protocol.</returns>
     public delegate Endpoint Ice2EndpointParser(
         Transport transport,
         string host,
         ushort port,
-        Dictionary<string, string> options,
-        bool serverEndpoint);
+        Dictionary<string, string> options);
 }

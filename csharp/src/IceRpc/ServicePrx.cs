@@ -63,6 +63,8 @@ namespace IceRpc
                 var endpoints = value.ToImmutableList();
                 if (endpoints.Count > 0)
                 {
+                    // TODO: we should not use Linq each time we unmarshal a proxy.
+
                     if (endpoints.Count > 1 && endpoints.Any(e => e.Transport == Transport.Loc))
                     {
                         throw new ArgumentException("a loc endpoint must be the only endpoint", nameof(Endpoints));
@@ -71,6 +73,12 @@ namespace IceRpc
                     if (endpoints.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
+                                                    nameof(Endpoints));
+                    }
+
+                    if (endpoints.FirstOrDefault(e => !e.IsProxyCompatible) is Endpoint badEndpoint)
+                    {
+                        throw new ArgumentException($"cannot use endpoint `{badEndpoint}' as a proxy endpoint",
                                                     nameof(Endpoints));
                     }
                 }

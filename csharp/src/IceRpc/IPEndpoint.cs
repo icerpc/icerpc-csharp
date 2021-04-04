@@ -14,6 +14,12 @@ namespace IceRpc
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
+        /// <inherit-doc/>
+        public override bool IsProxyCompatible { get; } = true;
+
+        /// <inherit-doc/>
+        public override bool IsServerCompatible { get; } = true;
+
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.
@@ -25,30 +31,12 @@ namespace IceRpc
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
         /// returns IPAddress.None.</summary>
-        internal IPAddress Address
-        {
-            get
-            {
-                if (_address == null)
-                {
-                    if (!IPAddress.TryParse(Host, out _address))
-                    {
-                        // Assume it's a DNS name
-                        _address = IPAddress.None;
-                    }
-                }
-                return _address;
-            }
-        }
-
-        private IPAddress? _address;
+        internal IPAddress Address { get; }
 
         public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
 
         public override bool IsLocal(Endpoint endpoint)
         {
-            // TODO: revisit, is connection ID gone?
-
             if (endpoint is IPEndpoint ipEndpoint)
             {
                 // Same as Equals except we don't consider the connection ID
@@ -99,7 +87,6 @@ namespace IceRpc
 
                 sb.Append(" -p ");
                 sb.Append(Port.ToString(CultureInfo.InvariantCulture));
-
             }
         }
 
@@ -115,7 +102,6 @@ namespace IceRpc
             else
             {
                 IPEndpoint clone = Clone(Host, port);
-                clone._address = _address;
                 return clone;
             }
         }
@@ -140,7 +126,6 @@ namespace IceRpc
         // Parse host and port from ice1 endpoint string.
         private protected static (string Host, ushort Port) ParseHostAndPort(
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
             string host;
@@ -155,8 +140,7 @@ namespace IceRpc
                 {
                     // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
                     // ::0 just bind to the IPv4 addresses in this case?
-                    host = serverEndpoint ? "::0" :
-                        throw new FormatException($"`-h *' not valid for proxy endpoint `{endpointString}'");
+                    host = "::0";
                 }
 
                 options.Remove("-h");
@@ -199,37 +183,38 @@ namespace IceRpc
             return port;
         }
 
-        // Constructor for ice1/ice2 unmarshaling.
-        private protected IPEndpoint(EndpointData data, Protocol protocol)
+        // Main constructor
+        private protected IPEndpoint(EndpointData data, Protocol protocol, bool proxyCompatible)
             : base(data, protocol)
         {
+            IsProxyCompatible = proxyCompatible;
+
             if (data.Host.Length == 0)
             {
                 throw new InvalidDataException("endpoint host is empty");
             }
-        }
 
-        private protected IPEndpoint(EndpointData data, bool serverEndpoint, Protocol protocol)
-            : base(data, protocol)
-        {
-            if (serverEndpoint)
+            if (IPAddress.TryParse(data.Host, out IPAddress? address))
             {
-                if (!IPAddress.TryParse(data.Host, out IPAddress? _))
+                Address = address;
+                if (Address.Equals(IPAddress.Any) || Address.Equals(IPAddress.IPv6Any))
                 {
-                    throw new ArgumentException($"invalid IP address `{data.Host}'", nameof(data));
+                    IsProxyCompatible = false; // cannot use 0.0.0.0 or ::0 for a proxy
                 }
             }
-
-            if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
-                (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
+            else
             {
-                throw new ArgumentException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint", nameof(data));
+                // Assume it's a DNS name
+                Address = IPAddress.None;
+                IsServerCompatible = false; // DNS names are not server-compatible.
             }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
+            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
+                   endpoint.Protocol,
+                   endpoint.IsProxyCompatible)
         {
         }
 

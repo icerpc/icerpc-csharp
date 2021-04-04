@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
 
             // A hostname cannot be used with a server endpoint
-            Assert.Throws<FormatException>(
+            Assert.Throws<ArgumentException>(
                 () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
 
             // Server can only accept secure connections

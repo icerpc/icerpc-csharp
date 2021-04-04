@@ -205,8 +205,8 @@ namespace IceRpc
             return lhs.Equals(rhs);
         }
 
-        /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
-        /// <param name="s">The proxy string representation.</param>
+        /// <summary>Creates a proxy from its string representation.</summary>
+        /// <param name="s">The string representation of the proxy.</param>
         /// <param name="communicator">The communicator for the new proxy.</param>
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
