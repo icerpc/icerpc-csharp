@@ -47,6 +47,12 @@ module IceRpc::Tests::CodeGeneration
     [cs:generic(Stack)] sequence<bool> BoolStack;
     [cs:generic(IceRpc.Tests.CodeGeneration.Custom)] sequence<bool> BoolCustomSeq;
 
+    [cs:generic(List)] sequence<short> ShortList;
+    [cs:generic(LinkedList)] sequence<short> ShortLinkedList;
+    [cs:generic(Queue)] sequence<short> ShortQueue;
+    [cs:generic(Stack)] sequence<short> ShortStack;
+    [cs:generic(IceRpc.Tests.CodeGeneration.Custom)] sequence<short> ShortCustomSeq;
+
     [cs:generic(List)] sequence<int> IntList;
     [cs:generic(LinkedList)] sequence<int> IntLinkedList;
     [cs:generic(Queue)] sequence<int> IntQueue;
@@ -64,6 +70,12 @@ module IceRpc::Tests::CodeGeneration
     [cs:generic(Queue)] sequence<float> FloatQueue;
     [cs:generic(Stack)] sequence<float> FloatStack;
     [cs:generic(IceRpc.Tests.CodeGeneration.Custom)] sequence<float> FloatCustomSeq;
+
+    [cs:generic(List)] sequence<double> DoubleList;
+    [cs:generic(LinkedList)] sequence<double> DoubleLinkedList;
+    [cs:generic(Queue)] sequence<double> DoubleQueue;
+    [cs:generic(Stack)] sequence<double> DoubleStack;
+    [cs:generic(IceRpc.Tests.CodeGeneration.Custom)] sequence<double> DoubleCustomSeq;
 
     [cs:generic(List)] sequence<string> StringList;
     [cs:generic(LinkedList)] sequence<string> StringLinkedList;
