@@ -295,16 +295,15 @@ namespace IceRpc
 
                 if (multicastInterface == "*")
                 {
+                    // The MulticastInterface property is null for a server-only endpoint with a wildcard interface
+                    // address.
                     proxyCompatible = false;
-
-                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
                     multicastInterface = null;
                 }
                 else if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
                 {
-                    throw new FormatException(
-                        $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
-                        endpointString}'");
+                    throw new FormatException(@$"--interface option in endpoint `{endpointString
+                        }' must be for a host with a multicast address");
                 }
                 else if (IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
                 {
@@ -315,18 +314,16 @@ namespace IceRpc
                             endpointString}'");
                     }
 
-                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
-                    if (multicastInterfaceAddr == IPAddress.Any)
+                    if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
                     {
-                        proxyCompatible = false;
-                        multicastInterface = null;
-                    }
-                    else if(multicastInterfaceAddr == IPAddress.IPv6Any)
-                    {
+                        // The MulticastInterface property is null for server endpoints with a wildcard interface
+                        // address.
                         proxyCompatible = false;
                         multicastInterface = null;
                     }
                 }
+                // else keep argument such as eth0
+
                 options.Remove("--interface");
             }
 
