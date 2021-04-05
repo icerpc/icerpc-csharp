@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[3.7]] // For optional()
 [[suppress-warning(reserved-identifier)]]
 
 #pragma once
@@ -113,13 +112,13 @@ module IceRpc::Tests::CodeGeneration
 
     interface TaggedOperations
     {
-        Object pingPong(Object o);
+        AnyClass pingPong(AnyClass o);
 
-        void opTaggedException(tag(1) int? p1, tag(2) string? p2, optional(3) AnotherStruct? p3);
+        void opTaggedException(tag(1) int? p1, tag(2) string? p2, tag(3) AnotherStruct? p3);
 
-        void opDerivedException(tag(1) int? p1, tag(2) string? p2, optional(3) AnotherStruct? p3);
+        void opDerivedException(tag(1) int? p1, tag(2) string? p2, tag(3) AnotherStruct? p3);
 
-        void opRequiredException(tag(1) int? p1, tag(2) string? p2, optional(3) AnotherStruct? p3);
+        void opRequiredException(tag(1) int? p1, tag(2) string? p2, tag(3) AnotherStruct? p3);
 
         (tag(1) byte? r1, tag(2) byte? r2) opByte(tag(1) byte? p1);
 

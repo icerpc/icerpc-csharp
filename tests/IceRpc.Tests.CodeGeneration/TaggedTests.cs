@@ -49,14 +49,13 @@ namespace IceRpc.Tests.CodeGeneration
         [Test]
         public async Task Tagged_Parameters()
         {
-            var oneTagged = (OneTagged?)await _prx.PingPongAsync(new OneTagged());
-            Assert.IsFalse(oneTagged!.A.HasValue);
+            var oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged());
+            Assert.IsFalse(oneTagged.A.HasValue);
 
-            oneTagged = (OneTagged?)await _prx.PingPongAsync(new OneTagged(16));
-            Assert.AreEqual(16, oneTagged!.A);
+            oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged(16));
+            Assert.AreEqual(16, oneTagged.A);
 
-            var multiTagged = (MultiTagged?) await _prx.PingPongAsync(new MultiTagged());
-            Assert.IsNotNull(multiTagged);
+            var multiTagged = (MultiTagged) await _prx.PingPongAsync(new MultiTagged());
             CheckMultiTaggedHasNoValue(multiTagged);
 
             multiTagged.MByte = 1;
@@ -90,8 +89,7 @@ namespace IceRpc.Tests.CodeGeneration
                 { "key", multiTagged.MAnotherStruct.Value}
             };
 
-            var multiTagged1 = (MultiTagged?)await _prx.PingPongAsync(multiTagged);
-            Assert.IsNotNull(multiTagged1);
+            var multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
             Assert.AreEqual(multiTagged.MByte, multiTagged1.MByte);
             Assert.AreEqual(multiTagged.MBool, multiTagged1.MBool);
             Assert.AreEqual(multiTagged.MShort, multiTagged1.MShort);
@@ -151,8 +149,7 @@ namespace IceRpc.Tests.CodeGeneration
                 { new MyStruct(1, 1), new MyStruct(1, 1) }
             };
 
-            multiTagged1 = (MultiTagged?)_prx.PingPong(multiTagged);
-            Assert.IsNotNull(multiTagged1);
+            multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
             Assert.AreEqual(multiTagged.MByte, multiTagged1.MByte);
             Assert.AreEqual(multiTagged.MBool, multiTagged1.MBool);
             Assert.AreEqual(multiTagged.MShort, multiTagged1.MShort);
@@ -206,15 +203,13 @@ namespace IceRpc.Tests.CodeGeneration
             using IncomingResponseFrame response = await _prx.InvokeAsync(requestFrame);
             Assert.AreEqual(ResultType.Success, response.ResultType);
 
-            var b = (B?) await _prx.PingPongAsync(new B());
-            Assert.IsNotNull(b);
+            var b = (B)await _prx.PingPongAsync(new B());
             Assert.IsFalse(b.MInt2.HasValue);
             Assert.IsFalse(b.MInt3.HasValue);
             Assert.IsFalse(b.MInt4.HasValue);
             Assert.IsFalse(b.MInt6.HasValue);
 
-            b = (B?) await _prx.PingPongAsync(new B(10, 11, 12, 13, 0, null));
-            Assert.IsNotNull(b);
+            b = (B)await _prx.PingPongAsync(new B(10, 11, 12, 13, 0, null));
             Assert.AreEqual(10, b.MInt1);
             Assert.AreEqual(11, b.MInt2);
             Assert.AreEqual(12, b.MInt3);
@@ -656,47 +651,47 @@ namespace IceRpc.Tests.CodeGeneration
         public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
             AnotherStruct? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructListAsync(
             List<AnotherStruct>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructSeqAsync(
             AnotherStruct[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(bool? R1, bool? R2)> OpBoolAsync(
             bool? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<bool>? R1, IEnumerable<bool>? R2)> OpBoolListAsync(
             List<bool>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<bool> R1, ReadOnlyMemory<bool> R2)> OpBoolSeqAsync(
             bool[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(byte? R1, byte? R2)> OpByteAsync(
             byte? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<byte>? R1, IEnumerable<byte>? R2)> OpByteListAsync(
             List<byte>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpByteSeqAsync(
             byte[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask OpDerivedExceptionAsync(
             int? p1,
@@ -708,42 +703,42 @@ namespace IceRpc.Tests.CodeGeneration
         public ValueTask<(double? R1, double? R2)> OpDoubleAsync(
             double? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<double>? R1, IEnumerable<double>? R2)> OpDoubleListAsync(
             List<double>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<double> R1, ReadOnlyMemory<double> R2)> OpDoubleSeqAsync(
             double[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(float? R1, float? R2)> OpFloatAsync(
             float? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<float>? R1, IEnumerable<float>? R2)> OpFloatListAsync(
             List<float>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<float> R1, ReadOnlyMemory<float> R2)> OpFloatSeqAsync(
             float[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(int? R1, int? R2)> OpIntAsync(
             int? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IReadOnlyDictionary<int, int>? R1, IReadOnlyDictionary<int, int>? R2)> OpIntDictAsync(
             Dictionary<int, int>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<ITaggedOperations.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
             Dictionary<int, int>? p1,
@@ -753,53 +748,53 @@ namespace IceRpc.Tests.CodeGeneration
         public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
             List<int>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<int> R1, ReadOnlyMemory<int> R2)> OpIntSeqAsync(
             int[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(long? R1, long? R2)> OpLongAsync(
             long? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<long>? R1, IEnumerable<long>? R2)> OpLongListAsync(
             List<long>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpLongSeqAsync(
             long[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(MyEnum? R1, MyEnum? R2)> OpMyEnumAsync(
             MyEnum? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(MyStruct? R1, MyStruct? R2)> OpMyStructAsync(
             MyStruct? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructListAsync(
             List<MyStruct>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
             MyStruct? p1,
             Current current,
             CancellationToken cancel) =>
-            new (new ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, current));
+            new(new ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, current));
 
         public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
             MyStruct[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask OpRequiredExceptionAsync(
             int? p1,
@@ -812,42 +807,42 @@ namespace IceRpc.Tests.CodeGeneration
         public ValueTask<(short? R1, short? R2)> OpShortAsync(
             short? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<short>? R1, IEnumerable<short>? R2)> OpShortListAsync(
             List<short>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(ReadOnlyMemory<short> R1, ReadOnlyMemory<short> R2)> OpShortSeqAsync(
             short[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(string? R1, string? R2)> OpStringAsync(
             string? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IReadOnlyDictionary<string, string>? R1, IReadOnlyDictionary<string, string>? R2)> OpStringDictAsync(
             Dictionary<string, string>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<string>? R1, IEnumerable<string>? R2)> OpStringListAsync(
             List<string>? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<(IEnumerable<string>? R1, IEnumerable<string>? R2)> OpStringSeqAsync(
             string[]? p1,
             Current current,
-            CancellationToken cancel) => new ((p1, p1));
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask<ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
             string[]? p1,
             Current current,
-            CancellationToken cancel) => new (new ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, current));
+            CancellationToken cancel) => new(new ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, current));
 
         public ValueTask OpTaggedExceptionAsync(
             int? p1,
@@ -860,8 +855,8 @@ namespace IceRpc.Tests.CodeGeneration
             Current current,
             CancellationToken cancel) => default;
 
-        public ValueTask<AnyClass?> PingPongAsync(
-            AnyClass? o,
+        public ValueTask<AnyClass> PingPongAsync(
+            AnyClass o,
             Current current,
             CancellationToken cancel) => new(o);
     }
