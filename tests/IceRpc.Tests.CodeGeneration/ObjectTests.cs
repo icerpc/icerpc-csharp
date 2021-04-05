@@ -142,7 +142,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task Object_ClassWithComplexDictionary()
         {
             var d = new Dictionary<MyStruct, MyClassL>();
-            
+
             var k1 = new MyStruct(1, 1);
             d[k1] = new MyClassL("one");
 
@@ -269,34 +269,34 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(MyClassB R1, MyClassB R2, MyClassC R3, MyClassD R4)> GetAllAsync(
                 Current current,
                 CancellationToken cancel) => new((_b1, _b2, _c, _d));
-            
+
             public ValueTask<MyClassB> GetB1Async(Current current, CancellationToken cancel) => new(_b1);
-            
+
             public ValueTask<MyClassB> GetB2Async(Current current, CancellationToken cancel) => new(_b2);
-            
+
             public ValueTask<MyClassC> GetCAsync(Current current, CancellationToken cancel) => new(_c);
-            
+
             public ValueTask<MyCompactClass> GetCompactAsync(Current current, CancellationToken cancel) =>
                 new(new MyDerivedCompactClass());
-            
+
             public ValueTask<MyClassD1> GetD1Async(MyClassD1 p1, Current current, CancellationToken cancel) =>
                 new(p1);
-            
+
             public ValueTask<MyClassD> GetDAsync(Current current, CancellationToken cancel) => new(_d);
-            
+
             public ValueTask<MyClassK> GetKAsync(Current current, CancellationToken cancel) =>
                 new(new MyClassK(new MyClassL("l")));
-            
+
             public ValueTask<(AnyClass? R1, AnyClass? R2)> OpClassAsync(
                 AnyClass? p1,
                 Current current,
                 CancellationToken cancel) => new((p1, p1));
-            
+
             public ValueTask<(IReadOnlyDictionary<string, AnyClass?> R1, IReadOnlyDictionary<string, AnyClass?> R2)> OpClassMapAsync(
                 Dictionary<string, AnyClass?> p1,
                 Current current,
                 CancellationToken cancel) => new((p1, p1));
-            
+
             public ValueTask<(IEnumerable<AnyClass?> R1, IEnumerable<AnyClass?> R2)> OpClassSeqAsync(
                 AnyClass?[] p1,
                 Current current,
@@ -305,17 +305,17 @@ namespace IceRpc.Tests.CodeGeneration
                 MyClassE p1,
                 Current current,
                 CancellationToken cancel) => new((p1, p1));
-            
+
             public ValueTask<(MyClassM R1, MyClassM R2)> OpMAsync(
                 MyClassM p1,
                 Current current,
                 CancellationToken cancel) => new ((p1, p1));
-            
+
             public ValueTask OpRecursiveAsync(MyClassRecursive? p1, Current current, CancellationToken cancel) =>
                 default;
-            
+
             public ValueTask ThrowMyDerivedExceptionAsync(Current current, CancellationToken cancel) =>
-                throw new MyDerivedException(new MyClassA1("a1"), 
+                throw new MyDerivedException(new MyClassA1("a1"),
                                              new MyClassA1("a2"),
                                              new MyClassA1("a3"),
                                              new MyClassA1("a4"));

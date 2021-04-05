@@ -92,7 +92,6 @@ module IceRpc::Tests::CodeGeneration
     sequence<AnyClass?> ClassSeq;
     dictionary<string, AnyClass?> ClassMap;
 
-
     dictionary<MyStruct, MyClassL> MyClassLMap;
 
     class MyClassM
