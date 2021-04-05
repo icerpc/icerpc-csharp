@@ -19,11 +19,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     public partial class MyClass2
     {
-        public bool Called
-        {
-            get;
-            set;
-        }
+        public bool Called { get; set; }
 
         partial void Initialize() => Called = true;
     }
