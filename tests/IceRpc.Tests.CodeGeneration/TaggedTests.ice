@@ -12,7 +12,7 @@
 
 module IceRpc::Tests::CodeGeneration
 {
-	class OneTagged
+    class OneTagged
     {
         tag(1) int? a;
     }
