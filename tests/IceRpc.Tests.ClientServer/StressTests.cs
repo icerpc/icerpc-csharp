@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [TestFixture(Protocol.Ice2, "tcp")]
     [TestFixture(Protocol.Ice2, "ws")]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(10000)]
+    [Timeout(30000)]
     public class StressTests : ClientServerBaseTest
     {
         private Communicator Communicator { get; }

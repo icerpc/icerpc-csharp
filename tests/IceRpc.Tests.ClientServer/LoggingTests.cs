@@ -47,7 +47,6 @@ namespace IceRpc.Tests.ClientServer
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 JsonElement[] scopes = GetScopes(entry);
                 Assert.That(scopes, Is.Empty);
-                Console.WriteLine(GetEventId(entry));
                 Assert.That(GetEventId(entry) == 139 || GetEventId(entry) == 141, Is.True);
             }
         }
