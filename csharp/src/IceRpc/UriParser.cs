@@ -374,8 +374,12 @@ namespace IceRpc
                 bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
+                // TODO: pureEndpoints below is not correct. The difficulty is currently we have two parsings, one
+                // for proxies (pure endpoints = false, meaning we can have proxy options in the URI) and one for
+                // published endpoints (pure endpoints = true). We should replace published endpoints by a proxy URI to
+                // fix it.
                 (Uri uri, string? altEndpoint, ParsedOptions parsedOptions) =
-                    InitialParse(uriString, pureEndpoints: false, endpointOptions); // TODO: pureEndpoints
+                    InitialParse(uriString, pureEndpoints: false, endpointOptions);
 
                 Protocol protocol = parsedOptions.Protocol ?? Protocol.Ice2;
 
