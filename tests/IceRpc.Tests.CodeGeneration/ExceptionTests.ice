@@ -8,21 +8,19 @@
 
 module IceRpc::Tests::CodeGeneration
 {
+    exception MyExceptionA
+    {
+        int m1;
+    }
 
-exception MyExceptionA
-{
-    int m1;
-}
+    exception MyExceptionB
+    {
+        int m1;
+    }
 
-exception MyExceptionB
-{
-    int m1;
-}
-
-interface ExceptionOperations
-{
-    void throwA(int a);
-    void throwAorB(int a);
-}
-
+    interface ExceptionOperations
+    {
+        void throwA(int a);
+        void throwAorB(int a);
+    }
 }
