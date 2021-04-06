@@ -160,13 +160,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Checks whether this endpoint and the given endpoint point to the same local peer. This is used for
-        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local server.
-        /// </summary>
-        /// <param name="endpoint">The other endpoint.</param>
-        /// <returns><c>True</c> if the other endpoint point to the same local peer, <c>False</c> otherwise.</returns>
-        public abstract bool IsLocal(Endpoint endpoint);
-
         /// <summary>Appends the options of this endpoint with non default values to the string builder.</summary>
         /// <param name="sb">The string builder.</param>
         /// <param name="optionSeparator">The character used to separate two options. This separator is not used for

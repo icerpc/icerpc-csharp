@@ -606,8 +606,8 @@ namespace IceRpc
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
                     // server's incoming connection factories are considered local.
                     isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
-                        PublishedEndpoints.Any(publishedEndpoint => endpoint.IsLocal(publishedEndpoint)) ||
-                        _incomingConnectionFactories.Any(factory => factory.IsLocal(endpoint)));
+                        PublishedEndpoints.Any(publishedEndpoint => endpoint == publishedEndpoint) ||
+                        _incomingConnectionFactories.Any(factory => endpoint == factory.Endpoint));
                 }
             }
 

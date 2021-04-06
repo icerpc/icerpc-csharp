@@ -39,8 +39,6 @@ namespace IceRpc
 
         // There is no Equals as it's identical to the base.
 
-        public override bool IsLocal(Endpoint endpoint) => false;
-
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
 

@@ -24,9 +24,6 @@ namespace IceRpc
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
-        // TODO: can we remove this override?
-        public override bool IsLocal(Endpoint endpoint) => endpoint is WSEndpoint && base.IsLocal(endpoint);
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);

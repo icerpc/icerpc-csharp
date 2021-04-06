@@ -29,9 +29,6 @@ namespace IceRpc
 
         // There is no Equals as it's identical to the base.
 
-        // There is currently no support for server-side loc endpoints
-        public override bool IsLocal(Endpoint endpoint) => false;
-
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
 

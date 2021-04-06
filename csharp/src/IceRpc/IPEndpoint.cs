@@ -44,32 +44,6 @@ namespace IceRpc
 
         public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
 
-        public override bool IsLocal(Endpoint endpoint)
-        {
-            if (endpoint is IPEndpoint ipEndpoint)
-            {
-                // Same as Equals except we don't consider the connection ID
-
-                if (Transport != ipEndpoint.Transport)
-                {
-                    return false;
-                }
-                if (Host != ipEndpoint.Host)
-                {
-                    return false;
-                }
-                if (Port != ipEndpoint.Port)
-                {
-                    return false;
-                }
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);

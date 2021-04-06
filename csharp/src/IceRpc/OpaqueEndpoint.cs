@@ -53,8 +53,6 @@ namespace IceRpc
                 base.Equals(other);
         }
 
-        public override bool IsLocal(Endpoint endpoint) => false;
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(false);

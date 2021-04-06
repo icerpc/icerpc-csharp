@@ -26,8 +26,8 @@ namespace IceRpc
         public override IAcceptor Acceptor(Server server) =>
             new ColocatedAcceptor(this, server, _channel.Writer, _channel.Reader);
 
-        public override bool IsLocal(Endpoint endpoint) =>
-            endpoint is ColocatedEndpoint colocatedEndpoint && colocatedEndpoint.Server == Server;
+        public override bool Equals(Endpoint? other) =>
+            other is ColocatedEndpoint colocatedEndpoint && Server == colocatedEndpoint.Server;
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
