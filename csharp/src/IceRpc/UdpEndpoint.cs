@@ -176,7 +176,7 @@ namespace IceRpc
 
             if (MulticastInterface == "*")
             {
-                throw new NotSupportedException($"cannot connect to endpoint `{this}'");
+                throw new NotSupportedException($"endpoint `{this}' cannot use interface `*' to send datagrams");
             }
 
             Socket socket = HasDnsHost ?
@@ -338,23 +338,23 @@ namespace IceRpc
                                    multicastInterface);
         }
 
-        private static IPAddress GetIPv4InterfaceAddress(string iface)
+        private static IPAddress GetIPv4InterfaceAddress(string @interface)
         {
-            // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
-            // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
-            // name we search an interface with this name.
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
 
-            if (IPAddress.TryParse(iface, out IPAddress? address))
+            if (IPAddress.TryParse(@interface, out IPAddress? address))
             {
                 return address;
             }
 
-            bool isIndex = int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
+            bool isIndex = int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
             foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
                 IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
                 IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == iface)
+                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == @interface)
                 {
                     foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
@@ -364,20 +364,20 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException($"couldn't find interface `{iface}'");
+            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
         }
 
-        private static int GetIPv6InterfaceIndex(string iface)
+        private static int GetIPv6InterfaceIndex(string @interface)
         {
-            // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
-            // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
-            // name we search an interface with this name.
-            if (int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
+            if (int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
             {
                 return index;
             }
 
-            bool isAddress = IPAddress.TryParse(iface, out IPAddress? address);
+            bool isAddress = IPAddress.TryParse(@interface, out IPAddress? address);
             foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
                 IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
@@ -386,7 +386,7 @@ namespace IceRpc
                 {
                     foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
-                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == iface)
+                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == @interface)
                         {
                             return ipv6Props.Index;
                         }
@@ -394,7 +394,7 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException($"couldn't find interface `{iface}'");
+            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
         }
 
         private static bool IsMulticast(IPAddress addr) =>
