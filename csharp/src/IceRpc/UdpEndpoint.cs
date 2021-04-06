@@ -37,8 +37,6 @@ namespace IceRpc
 
         private readonly bool _hasCompressionFlag;
 
-        private int _hashCode;
-
         public override IAcceptor Acceptor(Server server) =>
             throw new InvalidOperationException();
 
@@ -125,30 +123,6 @@ namespace IceRpc
                 base.Equals(udpEndpoint);
         }
 
-        public override int GetHashCode()
-        {
-            // This code is thread safe because reading/writing _hashCode (an int) is atomic.
-            if (_hashCode != 0)
-            {
-                // Return cached value
-                return _hashCode;
-            }
-            else
-            {
-                var hash = new HashCode();
-                hash.Add(base.GetHashCode());
-                hash.Add(_hasCompressionFlag);
-                hash.Add(MulticastInterface);
-                hash.Add(MulticastTtl);
-                int hashCode = hash.ToHashCode();
-                if (hashCode == 0) // 0 is not a valid value as it means "not initialized".
-                {
-                    hashCode = 1;
-                }
-                _hashCode = hashCode;
-                return _hashCode;
-            }
-        }
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
             Debug.Assert(Protocol == Protocol.Ice1);

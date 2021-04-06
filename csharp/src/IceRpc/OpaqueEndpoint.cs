@@ -37,8 +37,6 @@ namespace IceRpc
 
         internal Encoding ValueEncoding { get; }
 
-        private int _hashCode; // 0 is a special value that means not initialized.
-
         public override IAcceptor Acceptor(Server server) =>
             throw new InvalidOperationException();
 
@@ -52,28 +50,6 @@ namespace IceRpc
                 ValueEncoding == opaqueEndpoint.ValueEncoding &&
                 Value.Span.SequenceEqual(opaqueEndpoint.Value.Span) &&
                 base.Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            if (_hashCode != 0)
-            {
-                return _hashCode;
-            }
-            else
-            {
-                int hashCode = HashCode.Combine(
-                    base.GetHashCode(),
-                    ValueEncoding,
-                    MemoryMarshal.ToEnumerable(Value).GetSequenceHashCode());
-
-                if (hashCode == 0)
-                {
-                    hashCode = 1;
-                }
-                _hashCode = hashCode;
-                return _hashCode;
-            }
         }
 
         public override bool IsLocal(Endpoint endpoint) => false;

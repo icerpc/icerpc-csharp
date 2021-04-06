@@ -35,9 +35,6 @@ namespace IceRpc
         /// <summary>The default timeout for ice1 endpoints.</summary>
         protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
-        private int _equivalentHashCode;
-        private int _hashCode;
-
         // TODO: should not be public
         public override IAcceptor Acceptor(Server server)
         {
@@ -92,35 +89,6 @@ namespace IceRpc
             }
         }
 
-        public override int GetHashCode()
-        {
-            // This code is thread safe because reading/writing _hashCode (an int) is atomic.
-            if (_hashCode != 0)
-            {
-                // Return cached value
-                return _hashCode;
-            }
-            else
-            {
-                int hashCode;
-                if (Protocol == Protocol.Ice1)
-                {
-                    hashCode = HashCode.Combine(base.GetHashCode(), HasCompressionFlag, Timeout);
-                }
-                else
-                {
-                    hashCode = base.GetHashCode();
-                }
-
-                if (hashCode == 0) // 0 is not a valid value as it means "not initialized".
-                {
-                    hashCode = 1;
-                }
-                _hashCode = hashCode;
-                return _hashCode;
-            }
-        }
-
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
             base.AppendOptions(sb, optionSeparator);
@@ -134,26 +102,6 @@ namespace IceRpc
                 {
                     sb.Append(" -z");
                 }
-            }
-        }
-
-        protected internal override int GetEquivalentHashCode()
-        {
-            // This code is thread safe because reading/writing _hashCode (an int) is atomic.
-            if (_equivalentHashCode != 0)
-            {
-                // Return cached value
-                return _equivalentHashCode;
-            }
-            else
-            {
-                int hashCode = base.GetHashCode();
-                if (hashCode == 0) // 0 is not a valid value as it means "not initialized".
-                {
-                    hashCode = 1;
-                }
-                _equivalentHashCode = hashCode;
-                return _equivalentHashCode;
             }
         }
 

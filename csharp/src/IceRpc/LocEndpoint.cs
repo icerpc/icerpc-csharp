@@ -23,31 +23,10 @@ namespace IceRpc
 
         internal const ushort DefaultLocPort = 0;
 
-        private int _hashCode; // 0 is a special value that means not initialized.
-
         public override IAcceptor Acceptor(Server server) =>
             throw new InvalidOperationException();
 
         // There is no Equals as it's identical to the base.
-
-        // Only for caching, same value as base.
-        public override int GetHashCode()
-        {
-            if (_hashCode != 0)
-            {
-                return _hashCode;
-            }
-            else
-            {
-                int hashCode = base.GetHashCode();
-                if (hashCode == 0)
-                {
-                    hashCode = 1;
-                }
-                _hashCode = hashCode;
-                return _hashCode;
-            }
-        }
 
         // There is currently no support for server-side loc endpoints
         public override bool IsLocal(Endpoint endpoint) => false;
