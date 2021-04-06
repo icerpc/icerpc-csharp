@@ -99,7 +99,25 @@ module IceRpc::Tests::CodeGeneration
         MyClassLMap v;
     }
 
-    interface ObjectOperations
+    class MyBaseClass1
+    {
+        string id;
+    }
+
+    class MyDerivedClass1 : MyBaseClass1
+    {
+        string name;
+    }
+
+    class MyDerivedClass2 : MyBaseClass1
+    {
+    }
+
+    class MyClass2
+    {
+    }
+
+    interface ClassOperations
     {
         MyClassB getB1();
         MyClassB getB2();
@@ -124,6 +142,10 @@ module IceRpc::Tests::CodeGeneration
 
         (MyClassM r1, MyClassM r2) opM(MyClassM p1);
         (MyClassE r1, MyClassE r2) opE(MyClassE p1);
+
+        MyDerivedClass1 getMyDerivedClass1();
+        MyDerivedClass2 getMyDerivedClass2();
+        MyClass2 getMyClass2();
     }
 
     class MyClassEmpty
@@ -134,26 +156,8 @@ module IceRpc::Tests::CodeGeneration
     {
     }
 
-    interface ObjectOperationsUnexpectedObject
+    interface ClassOperationsUnexpectedClass
     {
         MyClassEmpty op();
-    }
-
-    class MyBaseClass1
-    {
-        string id = "";
-    }
-
-    class MyDerivedClass1 : MyBaseClass1
-    {
-        string name = "";
-    }
-
-    class MyDerivedClass2 : MyBaseClass1
-    {
-    }
-
-    class MyClass2
-    {
     }
 }

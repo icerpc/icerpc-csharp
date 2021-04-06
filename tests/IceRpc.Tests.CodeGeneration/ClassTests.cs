@@ -9,11 +9,15 @@ namespace IceRpc.Tests.CodeGeneration
 {
     public partial class MyBaseClass1
     {
+        // Overwrite property to ensure this value takes preference over a value set by
+        // the constructor.
         partial void Initialize() => Id = "My id";
     }
 
     public partial class MyDerivedClass1
     {
+        // Overwrite property to ensure this value takes preference over a value set by
+        // the constructor.
         partial void Initialize() => Name = "My name";
     }
 
@@ -21,6 +25,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         public bool Called { get; set; }
 
+        // Ensure that partial initialize is also called for classes without data members
         partial void Initialize() => Called = true;
     }
 
@@ -29,14 +34,14 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class ObjectTests
+    public class ClassTests
     {
         private readonly Communicator _communicator;
         private readonly Server _server;
-        private readonly IObjectOperationsPrx _prx;
-        private readonly IObjectOperationsUnexpectedObjectPrx _prxUnexpectedObject;
+        private readonly IClassOperationsPrx _prx;
+        private readonly IClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
 
-        public ObjectTests(Protocol protocol)
+        public ClassTests(Protocol protocol)
         {
             _communicator = new Communicator();
             _server = new Server(_communicator,
@@ -45,10 +50,10 @@ namespace IceRpc.Tests.CodeGeneration
                     Protocol = protocol,
                     ColocationScope = ColocationScope.Communicator
                 });
-            _prx = _server.Add("test", new ObjectOperations(), IObjectOperationsPrx.Factory);
-            _prxUnexpectedObject = _server.Add("test1",
-                                               new ObjectOperationsUnexpectedObject(),
-                                               IObjectOperationsUnexpectedObjectPrx.Factory);
+            _prx = _server.Add("test", new ClassOperations(), IClassOperationsPrx.Factory);
+            _prxUnexpectedClass = _server.Add("test1",
+                                               new ClassOperationsUnexpectedClass(),
+                                               IClassOperationsUnexpectedClassPrx.Factory);
         }
 
         [OneTimeTearDown]
@@ -59,7 +64,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Object_OperationsAsync()
+        public async Task Class_OperationsAsync()
         {
             MyClassB? b1 = await _prx.GetB1Async();
             Assert.IsNotNull(b1);
@@ -135,7 +140,8 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.IsInstanceOf<MyClassC>(e2.TheC);
         }
 
-        public async Task Object_ClassWithComplexDictionary()
+        [Test]
+        public async Task Class_WithComplexDictionaryAsync()
         {
             var d = new Dictionary<MyStruct, MyClassL>();
 
@@ -149,31 +155,42 @@ namespace IceRpc.Tests.CodeGeneration
 
             Assert.IsNotNull(m1);
             Assert.AreEqual(2, m1.V.Count);
-            Assert.AreEqual("one", m1.V[k1]!.Data);
-            Assert.AreEqual("two", m1.V[k1]!.Data);
+            Assert.AreEqual("one", m1.V[k1].Data);
+            Assert.AreEqual("two", m1.V[k2].Data);
 
             Assert.IsNotNull(m2);
             Assert.AreEqual(2, m2.V.Count);
-            Assert.AreEqual("one", m2.V[k1]!.Data);
-            Assert.AreEqual("two", m2.V[k1]!.Data);
+            Assert.AreEqual("one", m2.V[k1].Data);
+            Assert.AreEqual("two", m2.V[k2].Data);
         }
 
         [Test]
-        public void Object_PartialInitialize()
+        public async Task Class_PartialInitializeAsync()
         {
             Assert.AreEqual("My id", new MyBaseClass1("").Id);
 
-            var derived = new MyDerivedClass1("", "");
-            Assert.AreEqual("My id", derived.Id);
-            Assert.AreEqual("My name", derived.Name);
+            var derived1 = new MyDerivedClass1("", "");
+            Assert.AreEqual("My id", derived1.Id);
+            Assert.AreEqual("My name", derived1.Name);
 
             Assert.AreEqual("My id", new MyDerivedClass2("").Id);
 
             Assert.IsTrue(new MyClass2().Called);
+
+            // Ensure the partial Initialize method called when unmarshaling a class
+            derived1 = await _prx.GetMyDerivedClass1Async();
+            Assert.AreEqual("My id", derived1.Id);
+            Assert.AreEqual("My name", derived1.Name);
+
+            MyDerivedClass2 derived2 = await _prx.GetMyDerivedClass2Async();
+            Assert.AreEqual("My id", derived2.Id);
+
+            MyClass2 class2 = await _prx.GetMyClass2Async();
+            Assert.IsTrue(class2.Called);
         }
 
         [Test]
-        public async Task Object_AnyClassParameterAsync()
+        public async Task Class_AnyClassParameterAsync()
         {
             // testing AnyClass as parameter
             {
@@ -197,25 +214,25 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public void Object_UnexpectedObject() =>
-            Assert.ThrowsAsync<InvalidDataException>(async () => await _prxUnexpectedObject.OpAsync());
+        public void Class_UnexpectedClass() =>
+            Assert.ThrowsAsync<InvalidDataException>(async () => await _prxUnexpectedClass.OpAsync());
 
         [Test]
-        public async Task Object_CompactIdAsync() =>
+        public async Task Class_CompactIdAsync() =>
             Assert.IsNotNull(await _prx.GetCompactAsync());
 
         [Test]
-        public async Task Object_RecursiveTypeAsync()
+        public async Task Class_RecursiveTypeAsync()
         {
             // testing recursive type
-            var top = new MyClassRecursive(v: null!);
+            var top = new MyClassRecursive();
             MyClassRecursive p = top;
             int depth = 0;
             try
             {
                 for (; depth <= 1000; ++depth)
                 {
-                    p.V = new MyClassRecursive(v: null!);
+                    p.V = new MyClassRecursive();
                     p = p.V;
                     if ((depth < 10 && (depth % 10) == 0) ||
                         (depth < 1000 && (depth % 100) == 0) ||
@@ -233,23 +250,23 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class ObjectOperations : IAsyncObjectOperations
+        public class ClassOperations : IAsyncClassOperations
         {
             private readonly MyClassB _b1;
             private readonly MyClassB _b2;
             private readonly MyClassC _c;
             private readonly MyClassD _d;
 
-            public ObjectOperations()
+            public ClassOperations()
             {
-                _b1 = new MyClassB(theB: null!, theC: null!, theA: null!);
-                _b2 = new MyClassB(theB: null!, theC: null!, theA: null!);
-                _c = new MyClassC(theB: null!);
-                _d = new MyClassD(theA: null!, theB: null!, theC: null!);
+                _b1 = new MyClassB();
+                _b2 = new MyClassB();
+                _c = new MyClassC();
+                _d = new MyClassD();
 
                 _b1.TheA = _b2; // Cyclic reference to another B
                 _b1.TheB = _b1; // Self reference.
-                _b1.TheC = null!; // Null reference.
+                _b1.TheC = null; // Null reference.
 
                 _b2.TheA = _b2; // Self reference, using base.
                 _b2.TheB = _b1; // Cyclic reference to another B
@@ -259,7 +276,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 _d.TheA = _b1; // Reference to a B.
                 _d.TheB = _b2; // Reference to a B.
-                _d.TheC = null!; // Reference to a C.
+                _d.TheC = null; // Reference to a C.
             }
 
             public ValueTask<(MyClassB R1, MyClassB R2, MyClassC R3, MyClassD R4)> GetAllAsync(
@@ -282,7 +299,25 @@ namespace IceRpc.Tests.CodeGeneration
 
             public ValueTask<MyClassK> GetKAsync(Current current, CancellationToken cancel) =>
                 new(new MyClassK(new MyClassL("l")));
-
+            public ValueTask<MyClass2> GetMyClass2Async(Current current, CancellationToken cancel) =>
+                new (new MyClass2());
+            public ValueTask<MyDerivedClass1> GetMyDerivedClass1Async(Current current, CancellationToken cancel)
+            {
+                // We don't pass the values in the constructor because the partial initialize implementation overrides them
+                // for testing purpose.
+                var derived = new MyDerivedClass1("", "");
+                derived.Id = "Other id";
+                derived.Name = "Other name";
+                return new(derived);
+            }
+            public ValueTask<MyDerivedClass2> GetMyDerivedClass2Async(Current current, CancellationToken cancel)
+            {
+                // We don't pass the values in the constructor because the partial initialize implementation overrides them
+                // for testing purpose.
+                var derived = new MyDerivedClass2("");
+                derived.Id = "Other id";
+                return new(derived);
+            }
             public ValueTask<(AnyClass? R1, AnyClass? R2)> OpClassAsync(
                 AnyClass? p1,
                 Current current,
@@ -317,7 +352,7 @@ namespace IceRpc.Tests.CodeGeneration
                                              new MyClassA1("a4"));
         }
 
-        public class ObjectOperationsUnexpectedObject : IService
+        public class ClassOperationsUnexpectedClass : IService
         {
             public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel) =>
                 new (OutgoingResponseFrame.WithReturnValue(current,
