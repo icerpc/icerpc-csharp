@@ -48,6 +48,12 @@ namespace IceRpc
                     $"endpoint `{this}' cannot accept datagram connections because it has a DNS name");
             }
 
+            if (MulticastInterface != null && MulticastInterface != "*")
+            {
+                throw new NotSupportedException(
+                    $"endpoint `{this}' cannot accept datagram connections because of its interface option");
+            }
+
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
@@ -167,6 +173,11 @@ namespace IceRpc
             CancellationToken cancel)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+
+            if (MulticastInterface == "*")
+            {
+                throw new NotSupportedException($"cannot connect to endpoint `{this}'");
+            }
 
             Socket socket = HasDnsHost ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
@@ -295,31 +306,25 @@ namespace IceRpc
                 multicastInterface = argument ?? throw new FormatException(
                     $"no argument provided for --interface option in endpoint `{endpointString}'");
 
-                if (multicastInterface == "*")
-                {
-                    // The MulticastInterface property is null for a server-only endpoint with a wildcard interface
-                    // address.
-                    multicastInterface = null;
-                }
-                else if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
+                if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
                 {
                     throw new FormatException(@$"--interface option in endpoint `{endpointString
                         }' must be for a host with a multicast address");
                 }
-                else if (IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
+
+                if (multicastInterface != "*" &&
+                    IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
                 {
                     if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
                     {
                         throw new FormatException(
-                            $@"`--interface' option address family is different from the multicast address family `{
-                            endpointString}'");
+                            $@"the address family of the interface in `{endpointString
+                            }' is not the multicast address family");
                     }
 
                     if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
                     {
-                        // The MulticastInterface property is null for server endpoints with a wildcard interface
-                        // address.
-                        multicastInterface = null;
+                        multicastInterface = "*";
                     }
                 }
                 // else keep argument such as eth0
@@ -389,7 +394,7 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException("couldn't find interface `" + iface + "'");
+            throw new ArgumentException($"couldn't find interface `{iface}'");
         }
 
         private static bool IsMulticast(IPAddress addr) =>
@@ -427,7 +432,7 @@ namespace IceRpc
 
         private void SetMulticastGroup(Socket socket, IPAddress group)
         {
-            if (MulticastInterface == null) // Wildcard
+            if (MulticastInterface == null || MulticastInterface == "*")
             {
                 // Get all the interfaces that support multicast and add each interface to the multicast group.
                 var indexes = new HashSet<int>();
