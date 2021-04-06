@@ -34,7 +34,7 @@ namespace IceRpc.Test.Exceptions
 
                     TestHelper.Assert(false);
                 }
-                catch (ArgumentException)
+                catch (NotSupportedException)
                 {
                     // Expected
                 }

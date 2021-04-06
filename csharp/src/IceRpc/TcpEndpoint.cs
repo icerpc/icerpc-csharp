@@ -38,7 +38,11 @@ namespace IceRpc
         // TODO: should not be public
         public override IAcceptor Acceptor(Server server)
         {
-            Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint `{this}' cannot accept connections because it has a DNS name");
+            }
 
             var address = new IPEndPoint(Address, Port);
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -243,7 +247,7 @@ namespace IceRpc
 
         // Constructor for ice1 unmarshaling and parsing
         private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
-            : base(data, Protocol.Ice1, proxyCompatible: true) // proxy compatibility determined entirely by base ctor
+            : base(data, Protocol.Ice1)
         {
             Timeout = timeout;
             HasCompressionFlag = compress;
@@ -251,13 +255,13 @@ namespace IceRpc
 
         // Constructor for unmarshaling with the 2.0 encoding.
         private protected TcpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol, proxyCompatible: true)
+            : base(data, protocol)
         {
         }
 
         // Constructor for ice2 parsing.
         private protected TcpEndpoint(EndpointData data)
-            : base(data, Protocol.Ice2, proxyCompatible: true)
+            : base(data, Protocol.Ice2)
         {
         }
 

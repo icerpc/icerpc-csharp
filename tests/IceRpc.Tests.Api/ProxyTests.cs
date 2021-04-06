@@ -198,6 +198,10 @@ namespace IceRpc.Tests.Api
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
+        [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
@@ -248,10 +252,6 @@ namespace IceRpc.Tests.Api
         [TestCase("id:opaque -t 99 -v x?c")] // invalid char in v
         [TestCase("id:opaque -t 99 -v xc")] // invalid length for base64 input
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
-        [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Invalid Any IPv4 in proxy endpoint
-        [TestCase("ice+tcp://[::0]/identity#facet")] // Invalid Any IPv6 in proxy endpoint
-        [TestCase("identity:tcp -h 0.0.0.0")] // Invalid Any IPv4 in proxy endpoint
-        [TestCase("identity:tcp -h [::0]")] // Invalid Any IPv6 address in proxy endpoint
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => IServicePrx.Parse(str, Communicator));

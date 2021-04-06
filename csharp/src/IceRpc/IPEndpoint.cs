@@ -14,12 +14,6 @@ namespace IceRpc
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
-        /// <inherit-doc/>
-        public override bool IsProxyCompatible { get; } = true;
-
-        /// <inherit-doc/>
-        public override bool IsServerCompatible { get; } = true;
-
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.
@@ -31,7 +25,22 @@ namespace IceRpc
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
         /// returns IPAddress.None.</summary>
-        internal IPAddress Address { get; }
+        internal IPAddress Address
+        {
+            get
+            {
+                if (_address == null)
+                {
+                    if (!IPAddress.TryParse(Host, out _address))
+                    {
+                        _address = IPAddress.None; // assume it's a DNS name
+                    }
+                }
+                return _address;
+            }
+        }
+
+        private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
 
@@ -184,37 +193,19 @@ namespace IceRpc
         }
 
         // Main constructor
-        private protected IPEndpoint(EndpointData data, Protocol protocol, bool proxyCompatible)
+        private protected IPEndpoint(EndpointData data, Protocol protocol)
             : base(data, protocol)
         {
-            IsProxyCompatible = proxyCompatible;
-
             if (data.Host.Length == 0)
             {
                 throw new InvalidDataException("endpoint host is empty");
-            }
-
-            if (IPAddress.TryParse(data.Host, out IPAddress? address))
-            {
-                Address = address;
-                if (Address.Equals(IPAddress.Any) || Address.Equals(IPAddress.IPv6Any))
-                {
-                    IsProxyCompatible = false; // cannot use 0.0.0.0 or ::0 for a proxy
-                }
-            }
-            else
-            {
-                // Assume it's a DNS name
-                Address = IPAddress.None;
-                IsServerCompatible = false; // DNS names are not server-compatible.
             }
         }
 
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
             : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
-                   endpoint.Protocol,
-                   endpoint.IsProxyCompatible)
+                   endpoint.Protocol)
         {
         }
 

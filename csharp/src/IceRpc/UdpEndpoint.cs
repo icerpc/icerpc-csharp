@@ -38,11 +38,15 @@ namespace IceRpc
         private readonly bool _hasCompressionFlag;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"endpoint `{this}' does not accept connections");
 
         public override Connection CreateDatagramServerConnection(Server server)
         {
-            Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint `{this}' cannot accept datagram connections because it has a DNS name");
+            }
 
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
@@ -286,8 +290,6 @@ namespace IceRpc
 
             string? multicastInterface = null;
 
-            bool proxyCompatible = true;
-
             if (options.TryGetValue("--interface", out argument))
             {
                 multicastInterface = argument ?? throw new FormatException(
@@ -297,7 +299,6 @@ namespace IceRpc
                 {
                     // The MulticastInterface property is null for a server-only endpoint with a wildcard interface
                     // address.
-                    proxyCompatible = false;
                     multicastInterface = null;
                 }
                 else if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
@@ -318,7 +319,6 @@ namespace IceRpc
                     {
                         // The MulticastInterface property is null for server endpoints with a wildcard interface
                         // address.
-                        proxyCompatible = false;
                         multicastInterface = null;
                     }
                 }
@@ -330,8 +330,7 @@ namespace IceRpc
             return new UdpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseCompress(options, endpointString),
                                    ttl,
-                                   multicastInterface,
-                                   proxyCompatible);
+                                   multicastInterface);
         }
 
         private static IPAddress GetIPv4InterfaceAddress(string iface)
@@ -399,18 +398,18 @@ namespace IceRpc
 
         // Constructor for ice1 unmarshaling
         private UdpEndpoint(EndpointData data, bool compress)
-            : base(data, Protocol.Ice1, proxyCompatible: true) =>
+            : base(data, Protocol.Ice1) =>
             _hasCompressionFlag = compress;
 
         // Constructor for unmarshaling with the 2.0 encoding.
         private UdpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol, proxyCompatible: true)
+            : base(data, protocol)
         {
         }
 
         // Constructor for ice1 parsing
-        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface, bool proxyCompatible)
-            : base(data, Protocol.Ice1, proxyCompatible)
+        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface)
+            : base(data, Protocol.Ice1)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;

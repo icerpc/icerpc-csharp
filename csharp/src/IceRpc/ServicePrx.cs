@@ -75,12 +75,6 @@ namespace IceRpc
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
                                                     nameof(Endpoints));
                     }
-
-                    if (endpoints.FirstOrDefault(e => !e.IsProxyCompatible) is Endpoint badEndpoint)
-                    {
-                        throw new ArgumentException($"cannot use endpoint `{badEndpoint}' as a proxy endpoint",
-                                                    nameof(Endpoints));
-                    }
                 }
                 else if (Protocol == Protocol.Ice1)
                 {

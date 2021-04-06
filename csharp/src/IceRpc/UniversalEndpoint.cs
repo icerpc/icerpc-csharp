@@ -18,9 +18,6 @@ namespace IceRpc
     internal sealed class UniversalEndpoint : Endpoint
     {
         /// <inherit-doc/>
-        public override bool IsServerCompatible => false;
-
-        /// <inherit-doc/>
         public override string? this[string option] =>
             option switch
             {
@@ -38,14 +35,14 @@ namespace IceRpc
         internal const ushort DefaultUniversalPort = 0;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept connections");
 
         // There is no Equals as it's identical to the base.
 
         public override bool IsLocal(Endpoint endpoint) => false;
 
         public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
@@ -64,10 +61,10 @@ namespace IceRpc
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
-            throw new NotSupportedException("cannot create a connection to an universal endpoint");
+            throw new NotSupportedException($"cannot establish a connection to endpoint `{this}'");
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException("cannot create published endpoint for universal endpoint");
+            throw new NotSupportedException($"cannot get the published endpoint for endpoint `{this}'");
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // WriteOptions is only for ice1.

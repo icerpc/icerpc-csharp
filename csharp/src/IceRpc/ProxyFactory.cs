@@ -106,11 +106,6 @@ namespace IceRpc
             ProxyOptions options = UriParser.IsProxyUri(proxyString) ?
                 UriParser.ParseProxy(proxyString, proxyOptions) : Ice1Parser.ParseProxy(proxyString, proxyOptions);
 
-            if (options.Endpoints.FirstOrDefault(e => !e.IsProxyCompatible) is Endpoint badEndpoint)
-            {
-                throw new FormatException($"cannot use endpoint `{badEndpoint}' as a proxy endpoint");
-            }
-
             return factory.Create(options);
         }
 

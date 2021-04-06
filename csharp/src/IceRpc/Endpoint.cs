@@ -46,14 +46,6 @@ namespace IceRpc
         /// single datagram-based transport: UDP.</value>
         public virtual bool IsDatagram => false;
 
-        /// <summary>Returns whether or not this endpoint can be used as a proxy endpoint.</summary>
-        /// <value>True when the endpoint can be used for a proxy; false when it cannot.</value>
-        public virtual bool IsProxyCompatible => true;
-
-        /// <summary>Returns whether or not this endpoint can be used as a server endpoint.</summary>
-        /// <value>True when the endpoint can be used for a server; false when it cannot.</value>
-        public virtual bool IsServerCompatible => true;
-
         /// <summary>Gets an option of the endpoint.</summary>
         /// <param name="option">The name of the option to retrieve.</param>
         /// <value>The value of this option, or null if this option is unknown, not set or set to its default value.
