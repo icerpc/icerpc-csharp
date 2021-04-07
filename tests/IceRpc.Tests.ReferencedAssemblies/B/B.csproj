@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\A\A.csproj" />
   </ItemGroup>
 
