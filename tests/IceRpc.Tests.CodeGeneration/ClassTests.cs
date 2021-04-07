@@ -29,7 +29,6 @@ namespace IceRpc.Tests.CodeGeneration
         partial void Initialize() => Called = true;
     }
 
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
