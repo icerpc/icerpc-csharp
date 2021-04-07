@@ -18,8 +18,7 @@ namespace IceRpc
         /// <summary>The communicator (temporary). This property is inherited when unmarshaling a proxy.</summary>
         public Communicator? Communicator { get; set; }
 
-        /// <summary>The connection cached by the proxy. Cannot be null when <see cref="IsFixed"/> is true. This
-        /// property is not inherited when unmarshaling a proxy.</summary>
+        /// <summary>The connection of the proxy. This property is not inherited when unmarshaling a proxy.</summary>
         public Connection? Connection { get; set; }
 
         /// <summary>The context of the proxy. This property is inherited when unmarshaling a proxy.</summary>
@@ -51,10 +50,6 @@ namespace IceRpc
             set => _invocationTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
         }
-
-        /// <summary>When true, the proxy is a "fixed" proxy bound to its connection. This property is not inherited
-        /// when unmarshaling a proxy.</summary>
-        public bool IsFixed { get; set; }
 
         /// <summary>When true, a void-returning operation on the proxy is invoked "oneway" even when no oneway metadata
         /// is specified. This property is inherited when unmarshaling a proxy.</summary>
@@ -99,7 +94,6 @@ namespace IceRpc
                 Endpoints = endpoints,
                 InvocationInterceptors = InvocationInterceptors,
                 InvocationTimeout = InvocationTimeout,
-                // IsFixed remains false
                 IsOneway = IsOneway,
                 LocationResolver = LocationResolver,
                 NonSecure = NonSecure,
@@ -121,7 +115,6 @@ namespace IceRpc
                 Endpoints = ImmutableList<Endpoint>.Empty,
                 InvocationInterceptors = InvocationInterceptors,
                 InvocationTimeout = InvocationTimeout,
-                IsFixed = true,
                 IsOneway = IsOneway,
                 LocationResolver = LocationResolver,
                 NonSecure = NonSecure,

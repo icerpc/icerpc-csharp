@@ -643,7 +643,8 @@ namespace IceRpc.Test.AMI
                     await using var connection = await Connection.CreateAsync(p.Endpoints[0], p.Communicator);
                     var cb = new CallbackBase();
                     var fixedPrx = p.Clone();
-                    p.FixedConnection = connection;
+                    fixedPrx.Connection = connection;
+                    fixedPrx.Endpoints = ImmutableList<Endpoint>.Empty;
 
                     Task t = fixedPrx.StartDispatchAsync(progress: new Progress(sentSynchronously => cb.Called()));
                     cb.Check(); // Ensure the request was sent before we close the connection.

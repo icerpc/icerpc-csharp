@@ -93,14 +93,14 @@ namespace IceRpc.Test.Proxy
             {
                 output.Write("testing relative proxies... ");
                 {
-                    await using Server oa = new Server(communicator);
-                    (await cl.GetConnectionAsync()).Server = oa;
+                    await using Server server = new Server(communicator);
+                    (await cl.GetConnectionAsync()).Server = server;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
-                    ICallbackPrx callback = oa.AddWithUUID(
+                    ICallbackPrx callback = server.AddWithUUID(
                         new Callback((relativeTest, current, cancel) =>
                                      {
-                                         TestHelper.Assert(relativeTest.FixedConnection != null);
+                                         TestHelper.Assert(relativeTest.Connection != null);
                                          return relativeTest.DoIt(cancel: cancel);
                                     }),
                         ICallbackPrx.Factory);
@@ -108,30 +108,12 @@ namespace IceRpc.Test.Proxy
                     await callback.IcePingAsync(); // colocated call
 
                     IRelativeTestPrx relativeTest = cl.OpRelative(callback);
+
                     TestHelper.Assert(relativeTest.Endpoints == cl.Endpoints); // reference equality
                     TestHelper.Assert(relativeTest.DoIt() == 2);
                 }
                 output.WriteLine("ok");
             }
-
-            output.Write("testing ice_fixed... ");
-            output.Flush();
-            {
-                if (await cl.GetConnectionAsync() is Connection connection2)
-                {
-                    TestHelper.Assert(cl.FixedConnection == null);
-                    IMyClassPrx prx = cl.Clone();
-                    prx.FixedConnection = connection2;
-                    TestHelper.Assert(prx.FixedConnection != null);
-                    await prx.IcePingAsync();
-
-                    if (ice1)
-                    {
-                        TestHelper.Assert(cl.WithFacet<IServicePrx>("facet").GetFacet() == "facet");
-                    }
-                }
-            }
-            output.WriteLine("ok");
 
             output.Write("testing encoding versioning... ");
             string ref13 = helper.GetTestProxy("test", 0);

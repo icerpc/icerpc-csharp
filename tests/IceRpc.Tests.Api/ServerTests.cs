@@ -186,7 +186,6 @@ namespace IceRpc.Tests.Api
                 // no need to set Communicator
                 Context = new Dictionary<string, string>() { ["speed"] = "fast" },
                 InvocationTimeout = TimeSpan.FromSeconds(10),
-                IsFixed = true, // ignored
                 Path = "xxxxxxx" // ignored
             };
 
@@ -199,7 +198,7 @@ namespace IceRpc.Tests.Api
 
             var service = new ProxyTest();
             IProxyTestPrx? proxy = server.Add("foo/bar", service, IProxyTestPrx.Factory);
-            CheckProxy(proxy, isFixed: false);
+            CheckProxy(proxy);
 
             // change some properties
             proxy.Context = new Dictionary<string, string>();
@@ -209,7 +208,7 @@ namespace IceRpc.Tests.Api
             await proxy.SendProxyAsync(proxy);
             // The server always unmarshals the proxy as a fixed proxy
             Assert.IsNotNull(service.Proxy);
-            CheckProxy(service.Proxy!, isFixed: true);
+            CheckProxy(service.Proxy!);
 
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
@@ -217,22 +216,13 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(received.CacheConnection, proxy.CacheConnection);
             CollectionAssert.IsEmpty(received.Context);
             Assert.AreEqual(received.InvocationTimeout, proxy.InvocationTimeout);
-            Assert.IsNull(received.FixedConnection);
             Assert.AreEqual(received.IsOneway, proxy.IsOneway);
 
-            static void CheckProxy(IProxyTestPrx proxy, bool isFixed)
+            static void CheckProxy(IProxyTestPrx proxy)
             {
                 Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual("fast", proxy.Context["speed"]);
                 Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
-                if (isFixed)
-                {
-                    Assert.IsNotNull(proxy.FixedConnection);
-                }
-                else
-                {
-                    Assert.IsNull(proxy.FixedConnection);
-                }
                 Assert.AreEqual("/foo/bar", proxy.Path);
             }
         }

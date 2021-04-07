@@ -319,7 +319,6 @@ namespace IceRpc
 
                     options.Connection = proxyOptions.Connection;
                     options.Endpoints = proxyOptions.Endpoints;
-                    options.IsFixed = proxyOptions.IsFixed;
                 }
                 return factory.Create(options);
             }
@@ -336,7 +335,6 @@ namespace IceRpc
 
                     options.Connection = proxyOptions.Connection;
                     options.Endpoints = proxyOptions.Endpoints;
-                    options.IsFixed = proxyOptions.IsFixed;
                 }
                 return factory.Create(options);
             }
