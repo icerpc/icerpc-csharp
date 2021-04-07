@@ -48,12 +48,6 @@ namespace IceRpc
                     $"endpoint `{this}' cannot accept datagram connections because it has a DNS name");
             }
 
-            if (MulticastInterface != null && MulticastInterface != "*")
-            {
-                throw new NotSupportedException(
-                    $"endpoint `{this}' cannot accept datagram connections because of its interface option");
-            }
-
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
