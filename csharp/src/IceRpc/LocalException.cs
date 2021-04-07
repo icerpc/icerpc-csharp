@@ -26,28 +26,6 @@ namespace IceRpc
         }
     }
 
-    /// <summary>This exception provides context for an exception thrown while attempting to load a class or create a
-    /// class instance at runtime.</summary>
-    public class LoadException : Exception
-    {
-        /// <summary>Constructs a new instance of the <see cref="LoadException"/> class with a specified error message.
-        /// </summary>
-        /// <param name="message">The message that describes the error.</param>
-        public LoadException(string message)
-            : base(message)
-        {
-        }
-
-        /// <summary>Constructs a new instance of the <see cref="LoadException"/> class with a specified error message
-        /// and a reference to the inner exception that is the cause of this exception.</summary>
-        /// <param name="message">The message that describes the error.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public LoadException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-    }
-
     /// <summary>This exception reports an attempt to use a destroyed communicator.</summary>
     public class CommunicatorDisposedException : ObjectDisposedException
     {
@@ -107,7 +85,7 @@ namespace IceRpc
         public TransportException(Exception innerException, RetryPolicy retryPolicy = default)
             : base("", innerException) => RetryPolicy = retryPolicy;
 
-        /// <summary>Constructs a new instance of the <see cref="LoadException"/> class with a specified error message
+        /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error message
         /// and a reference to the inner exception that is the cause of this exception.</summary>
         /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
