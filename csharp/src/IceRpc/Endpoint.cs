@@ -17,6 +17,15 @@ namespace IceRpc
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
+        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <param name="s">The string representation of the endpoint.</param>
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// </exception>
+        public static Endpoint Parse(string s) =>
+            // TODO: better implementation!
+            UriParser.IsEndpointUri(s) ? UriParser.ParseEndpoints(s)[0] : Ice1Parser.ParseEndpoint(s);
+
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this
         /// external representation.</summary>
@@ -150,13 +159,6 @@ namespace IceRpc
                 return sb.ToString();
             }
         }
-
-        /// <summary>Checks whether this endpoint and the given endpoint point to the same local peer. This is used for
-        /// the colocation optimization check to figure out whether or not a proxy endpoint points to a local server.
-        /// </summary>
-        /// <param name="endpoint">The other endpoint.</param>
-        /// <returns><c>True</c> if the other endpoint point to the same local peer, <c>False</c> otherwise.</returns>
-        public abstract bool IsLocal(Endpoint endpoint);
 
         /// <summary>Appends the options of this endpoint with non default values to the string builder.</summary>
         /// <param name="sb">The string builder.</param>

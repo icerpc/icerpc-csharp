@@ -19,6 +19,7 @@ namespace IceRpc
     /// </summary>
     internal sealed class OpaqueEndpoint : Endpoint
     {
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option switch
             {
@@ -38,7 +39,7 @@ namespace IceRpc
         internal Encoding ValueEncoding { get; }
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept connections");
 
         public override bool Equals(Endpoint? other)
         {
@@ -52,8 +53,6 @@ namespace IceRpc
                 base.Equals(other);
         }
 
-        public override bool IsLocal(Endpoint endpoint) => false;
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(false);
@@ -61,7 +60,7 @@ namespace IceRpc
         }
 
         public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
@@ -81,10 +80,10 @@ namespace IceRpc
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
-            throw new NotSupportedException("cannot create a connection to an opaque endpoint");
+            throw new NotSupportedException($"cannot establish a connection to endpoint `{this}'");
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException("cannot create published endpoint for opaque endpoint");
+            throw new NotSupportedException($"cannot get the published endpoint for endpoint `{this}'");
 
         internal static OpaqueEndpoint Create(
             Transport transport,

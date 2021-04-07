@@ -24,9 +24,6 @@ namespace IceRpc
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
-        // TODO: can we remove this override?
-        public override bool IsLocal(Endpoint endpoint) => endpoint is WSEndpoint && base.IsLocal(endpoint);
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
@@ -94,10 +91,9 @@ namespace IceRpc
         internal static new WSEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
-            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
             string resource = "/";
 
@@ -113,16 +109,14 @@ namespace IceRpc
 
             return new WSEndpoint(new EndpointData(transport, host, port, endpointDataOptions),
                                   ParseTimeout(options, endpointString),
-                                  ParseCompress(options, endpointString),
-                                  serverEndpoint);
+                                  ParseCompress(options, endpointString));
         }
 
         internal static new WSEndpoint ParseIce2Endpoint(
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
+            Dictionary<string, string> options)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
 
@@ -152,7 +146,7 @@ namespace IceRpc
                                         port,
                                         resource == null ? Array.Empty<string>() : new string[] { resource });
 
-            return new WSEndpoint(data, serverEndpoint);
+            return new WSEndpoint(data);
         }
 
         internal override SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
@@ -168,18 +162,12 @@ namespace IceRpc
             new WSConnection(this, socket, options, server);
 
         // Constructor used for ice2 parsing.
-        private WSEndpoint(EndpointData data, bool serverEndpoint)
-            : base(data, serverEndpoint)
+        private WSEndpoint(EndpointData data)
+            : base(data)
         {
         }
 
-        // Constructor for ice1 parsing
-        private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress, bool serverEndpoint)
-            : base(data, timeout, compress, serverEndpoint)
-        {
-        }
-
-        // Constructor for ice1 unmarshaling
+        // Constructor for ice1 parsing and ummarshaling
         private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress)
             : base(data, timeout, compress)
         {

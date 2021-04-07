@@ -38,7 +38,11 @@ namespace IceRpc
         // TODO: should not be public
         public override IAcceptor Acceptor(Server server)
         {
-            Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint `{this}' cannot accept connections because it has a DNS name");
+            }
 
             var address = new IPEndPoint(Address, Port);
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -144,26 +148,23 @@ namespace IceRpc
         internal static TcpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseTimeout(options, endpointString),
-                                   ParseCompress(options, endpointString),
-                                   serverEndpoint);
+                                   ParseCompress(options, endpointString));
         }
 
         internal static TcpEndpoint ParseIce2Endpoint(
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> _,
-            bool serverEndpoint)
+            Dictionary<string, string> _)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()), serverEndpoint);
+            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()));
         }
 
         protected internal override async Task<Connection> ConnectAsync(
@@ -244,7 +245,7 @@ namespace IceRpc
             return timeout;
         }
 
-        // Constructor for ice1 unmarshaling.
+        // Constructor for ice1 unmarshaling and parsing
         private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
             : base(data, Protocol.Ice1)
         {
@@ -258,17 +259,9 @@ namespace IceRpc
         {
         }
 
-        // Constructor for ice1 parsing.
-        private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress, bool serverEndpoint)
-            : base(data, serverEndpoint, Protocol.Ice1)
-        {
-            Timeout = timeout;
-            HasCompressionFlag = compress;
-        }
-
         // Constructor for ice2 parsing.
-        private protected TcpEndpoint(EndpointData data, bool serverEndpoint)
-            : base(data, serverEndpoint, Protocol.Ice2)
+        private protected TcpEndpoint(EndpointData data)
+            : base(data, Protocol.Ice2)
         {
         }
 

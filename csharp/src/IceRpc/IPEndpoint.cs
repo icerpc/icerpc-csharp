@@ -33,8 +33,7 @@ namespace IceRpc
                 {
                     if (!IPAddress.TryParse(Host, out _address))
                     {
-                        // Assume it's a DNS name
-                        _address = IPAddress.None;
+                        _address = IPAddress.None; // assume it's a DNS name
                     }
                 }
                 return _address;
@@ -44,34 +43,6 @@ namespace IceRpc
         private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
-
-        public override bool IsLocal(Endpoint endpoint)
-        {
-            // TODO: revisit, is connection ID gone?
-
-            if (endpoint is IPEndpoint ipEndpoint)
-            {
-                // Same as Equals except we don't consider the connection ID
-
-                if (Transport != ipEndpoint.Transport)
-                {
-                    return false;
-                }
-                if (Host != ipEndpoint.Host)
-                {
-                    return false;
-                }
-                if (Port != ipEndpoint.Port)
-                {
-                    return false;
-                }
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
 
         protected internal override void WriteOptions11(OutputStream ostr)
         {
@@ -99,7 +70,6 @@ namespace IceRpc
 
                 sb.Append(" -p ");
                 sb.Append(Port.ToString(CultureInfo.InvariantCulture));
-
             }
         }
 
@@ -115,7 +85,6 @@ namespace IceRpc
             else
             {
                 IPEndpoint clone = Clone(Host, port);
-                clone._address = _address;
                 return clone;
             }
         }
@@ -140,7 +109,6 @@ namespace IceRpc
         // Parse host and port from ice1 endpoint string.
         private protected static (string Host, ushort Port) ParseHostAndPort(
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
             string host;
@@ -155,8 +123,7 @@ namespace IceRpc
                 {
                     // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
                     // ::0 just bind to the IPv4 addresses in this case?
-                    host = serverEndpoint ? "::0" :
-                        throw new FormatException($"`-h *' not valid for proxy endpoint `{endpointString}'");
+                    host = "::0";
                 }
 
                 options.Remove("-h");
@@ -199,7 +166,7 @@ namespace IceRpc
             return port;
         }
 
-        // Constructor for ice1/ice2 unmarshaling.
+        // Main constructor
         private protected IPEndpoint(EndpointData data, Protocol protocol)
             : base(data, protocol)
         {
@@ -209,27 +176,10 @@ namespace IceRpc
             }
         }
 
-        private protected IPEndpoint(EndpointData data, bool serverEndpoint, Protocol protocol)
-            : base(data, protocol)
-        {
-            if (serverEndpoint)
-            {
-                if (!IPAddress.TryParse(data.Host, out IPAddress? _))
-                {
-                    throw new ArgumentException($"invalid IP address `{data.Host}'", nameof(data));
-                }
-            }
-
-            if (!serverEndpoint && IPAddress.TryParse(data.Host, out IPAddress? address) &&
-                (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)))
-            {
-                throw new ArgumentException("0.0.0.0 or [::0] is not a valid host in a proxy endpoint", nameof(data));
-            }
-        }
-
         // Constructor for Clone
         private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : base(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
+            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
+                   endpoint.Protocol)
         {
         }
 

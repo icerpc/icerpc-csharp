@@ -82,15 +82,10 @@ namespace IceRpc
             return path.Length > 0 && path[0] == '/' ? path : $"/{path}";
         }
 
-        /// <summary>Parses an ice+transport URI string that represents one or more server endpoints.</summary>
+        /// <summary>Parses an ice+transport URI string that represents one or more endpoints.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
-        /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
-        internal static IReadOnlyList<Endpoint> ParseEndpoints(
-            string uriString,
-            bool serverEndpoints = true) =>
-            Parse(uriString, serverEndpoints).Endpoints;
+        internal static IReadOnlyList<Endpoint> ParseEndpoints(string uriString) => Parse(uriString).Endpoints;
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
@@ -98,8 +93,7 @@ namespace IceRpc
         /// <returns>A new proxy options instance.</returns>
         internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
         {
-            (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) =
-                Parse(uriString, serverEndpoints: false);
+            (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) = Parse(uriString);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
@@ -139,7 +133,6 @@ namespace IceRpc
             System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
 
         private static Endpoint CreateEndpoint(
-            bool serverEndpoint,
             Dictionary<string, string> options,
             Protocol protocol,
             Uri uri)
@@ -157,11 +150,6 @@ namespace IceRpc
             Transport transport;
             if (transportName == "universal")
             {
-                if (serverEndpoint)
-                {
-                    throw new FormatException("ice+universal cannot specify a server endpoint");
-                }
-
                 // Enumerator names can only be used for "well-known" transports.
                 transport = Enum.Parse<Transport>(options["transport"], ignoreCase: true);
                 options.Remove("transport");
@@ -193,8 +181,7 @@ namespace IceRpc
             Endpoint endpoint = parser?.Invoke(transport,
                                                uri.DnsSafeHost,
                                                port,
-                                               options,
-                                               serverEndpoint) ??
+                                               options) ??
                 UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, protocol);
 
             if (options.Count > 0)
@@ -377,27 +364,22 @@ namespace IceRpc
 
         /// <summary>Parses an ice or ice+transport URI string.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="serverEndpoints">True when parsing the endpoints of a server; false when parsing a proxy.
-        /// </param>
         /// <returns>The Uri and endpoints of the ice or ice+transport URI.</returns>
-        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(
-            string uriString,
-            bool serverEndpoints)
+        private static (Uri Uri, IReadOnlyList<Endpoint> Endpoints, ParsedOptions ParsedOptions) Parse(string uriString)
         {
             Debug.Assert(IsProxyUri(uriString));
 
             try
             {
                 bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
-                if (iceScheme && serverEndpoints)
-                {
-                    throw new FormatException("a server endpoint supports only ice+transport URIs");
-                }
-
                 Dictionary<string, string>? endpointOptions = iceScheme ? null : new Dictionary<string, string>();
 
+                // TODO: pureEndpoints below is not correct. The difficulty is currently we have two parsings, one
+                // for proxies (pure endpoints = false, meaning we can have proxy options in the URI) and one for
+                // published endpoints (pure endpoints = true). We should replace published endpoints by a proxy URI to
+                // fix it.
                 (Uri uri, string? altEndpoint, ParsedOptions parsedOptions) =
-                    InitialParse(uriString, pureEndpoints: serverEndpoints, endpointOptions);
+                    InitialParse(uriString, pureEndpoints: false, endpointOptions);
 
                 Protocol protocol = parsedOptions.Protocol ?? Protocol.Ice2;
 
@@ -405,8 +387,7 @@ namespace IceRpc
 
                 if (endpointOptions != null) // i.e. not ice scheme
                 {
-                    endpoints = ImmutableList.Create(
-                        CreateEndpoint(serverEndpoints, endpointOptions, protocol, uri));
+                    endpoints = ImmutableList.Create(CreateEndpoint(endpointOptions, protocol, uri));
 
                     if (altEndpoint != null)
                     {
@@ -441,10 +422,7 @@ namespace IceRpc
                                     $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
                             }
 
-                            endpoints = endpoints.Add(CreateEndpoint(serverEndpoints,
-                                                                     endpointOptions,
-                                                                     protocol,
-                                                                     endpointUri));
+                            endpoints = endpoints.Add(CreateEndpoint(endpointOptions, protocol, endpointUri));
                         }
                     }
                 }

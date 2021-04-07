@@ -38,11 +38,15 @@ namespace IceRpc
         private readonly bool _hasCompressionFlag;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"endpoint `{this}' does not accept connections");
 
         public override Connection CreateDatagramServerConnection(Server server)
         {
-            Debug.Assert(Address != IPAddress.None); // i.e. not a DNS name
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint `{this}' cannot accept datagram connections because it has a DNS name");
+            }
 
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
@@ -164,6 +168,11 @@ namespace IceRpc
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
+            if (MulticastInterface == "*")
+            {
+                throw new NotSupportedException($"endpoint `{this}' cannot use interface `*' to send datagrams");
+            }
+
             Socket socket = HasDnsHost ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -254,12 +263,11 @@ namespace IceRpc
         internal static UdpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
-            bool serverEndpoint,
             string endpointString)
         {
             Debug.Assert(transport == Transport.UDP);
 
-            (string host, ushort port) = ParseHostAndPort(options, serverEndpoint, endpointString);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
             int ttl = -1;
 
@@ -292,78 +300,55 @@ namespace IceRpc
                 multicastInterface = argument ?? throw new FormatException(
                     $"no argument provided for --interface option in endpoint `{endpointString}'");
 
-                if (multicastInterface == "*")
+                if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
                 {
-                    if (!serverEndpoint)
-                    {
-                        throw new FormatException($"`--interface *' not valid for proxy endpoint `{endpointString}'");
-                    }
+                    throw new FormatException(@$"--interface option in endpoint `{endpointString
+                        }' must be for a host with a multicast address");
+                }
 
-                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
-                    multicastInterface = null;
-                }
-                else if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
-                {
-                    throw new FormatException(
-                        $@"`--interface' option is only valid for proxy endpoint using a multicast address `{
-                        endpointString}'");
-                }
-                else if (IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
+                if (multicastInterface != "*" &&
+                    IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
                 {
                     if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
                     {
                         throw new FormatException(
-                            $@"`--interface' option address family is different from the multicast address family `{
-                            endpointString}'");
+                            $@"the address family of the interface in `{endpointString
+                            }' is not the multicast address family");
                     }
 
-                    // The MulticastInterface property is null for server endpoints with a wildcard interface address.
-                    if (multicastInterfaceAddr == IPAddress.Any)
+                    if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
                     {
-                        if (!serverEndpoint)
-                        {
-                            throw new FormatException(
-                                $"`--interface 0.0.0.0' is not valid for proxy endpoint `{endpointString}'");
-                        }
-                        multicastInterface = null;
-                    }
-                    else if(multicastInterfaceAddr == IPAddress.IPv6Any)
-                    {
-                        if (!serverEndpoint)
-                        {
-                            throw new FormatException(
-                                $"`--interface \"::0\" is not valid for proxy endpoint `{endpointString}'");
-                        }
-                        multicastInterface = null;
+                        multicastInterface = "*";
                     }
                 }
+                // else keep argument such as eth0
+
                 options.Remove("--interface");
             }
 
             return new UdpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
                                    ParseCompress(options, endpointString),
                                    ttl,
-                                   multicastInterface,
-                                   serverEndpoint);
+                                   multicastInterface);
         }
 
-        private static IPAddress GetIPv4InterfaceAddress(string iface)
+        private static IPAddress GetIPv4InterfaceAddress(string @interface)
         {
-            // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
-            // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
-            // name we search an interface with this name.
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
 
-            if (IPAddress.TryParse(iface, out IPAddress? address))
+            if (IPAddress.TryParse(@interface, out IPAddress? address))
             {
                 return address;
             }
 
-            bool isIndex = int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
+            bool isIndex = int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
             foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
                 IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
                 IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == iface)
+                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == @interface)
                 {
                     foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
@@ -373,20 +358,20 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException($"couldn't find interface `{iface}'");
+            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
         }
 
-        private static int GetIPv6InterfaceIndex(string iface)
+        private static int GetIPv6InterfaceIndex(string @interface)
         {
-            // The iface parameter must either be an IP address, an index or the name of an interface. If it's an index
-            // we just return it. If it's an IP address we search for an interface which has this IP address. If it's a
-            // name we search an interface with this name.
-            if (int.TryParse(iface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
+            if (int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
             {
                 return index;
             }
 
-            bool isAddress = IPAddress.TryParse(iface, out IPAddress? address);
+            bool isAddress = IPAddress.TryParse(@interface, out IPAddress? address);
             foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
                 IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
@@ -395,7 +380,7 @@ namespace IceRpc
                 {
                     foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
                     {
-                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == iface)
+                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == @interface)
                         {
                             return ipv6Props.Index;
                         }
@@ -403,7 +388,7 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException("couldn't find interface `" + iface + "'");
+            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
         }
 
         private static bool IsMulticast(IPAddress addr) =>
@@ -422,8 +407,8 @@ namespace IceRpc
         }
 
         // Constructor for ice1 parsing
-        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface, bool serverEndpoint)
-            : base(data, serverEndpoint, Protocol.Ice1)
+        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface)
+            : base(data, Protocol.Ice1)
         {
             _hasCompressionFlag = compress;
             MulticastTtl = ttl;
@@ -441,7 +426,7 @@ namespace IceRpc
 
         private void SetMulticastGroup(Socket socket, IPAddress group)
         {
-            if (MulticastInterface == null) // Wildcard
+            if (MulticastInterface == null || MulticastInterface == "*")
             {
                 // Get all the interfaces that support multicast and add each interface to the multicast group.
                 var indexes = new HashSet<int>();

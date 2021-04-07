@@ -14,8 +14,6 @@ namespace IceRpc
         internal abstract Endpoint Endpoint { get; }
         internal abstract void Activate();
 
-        internal bool IsLocal(Endpoint endpoint) => endpoint.IsLocal(Endpoint);
-
         internal abstract Task ShutdownAsync();
     }
 

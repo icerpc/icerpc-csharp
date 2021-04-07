@@ -15,10 +15,8 @@ namespace IceRpc
     {
         /// <summary>Parses a string that represents one or more endpoints.</summary>
         /// <param name="endpointString">The string to parse.</param>
-        /// <param name="serverEndpoints">When true (the default), endpointString corresponds to the Endpoints property of
-        /// a server. Otherwise, false.</param>
         /// <returns>The list of endpoints.</returns>
-        internal static IReadOnlyList<Endpoint> ParseEndpoints(string endpointString, bool serverEndpoints = true)
+        internal static IReadOnlyList<Endpoint> ParseEndpoints(string endpointString)
         {
             int beg;
             int end = 0;
@@ -89,7 +87,7 @@ namespace IceRpc
                 string s = endpointString[beg..end];
                 try
                 {
-                    endpoints.Add(CreateEndpoint(s, serverEndpoints));
+                    endpoints.Add(ParseEndpoint(s));
                 }
                 catch (Exception ex)
                 {
@@ -363,7 +361,7 @@ namespace IceRpc
                     string es = s[beg..end];
                     try
                     {
-                        endpoints = endpoints.Add(CreateEndpoint(es, false));
+                        endpoints = endpoints.Add(ParseEndpoint(es));
                     }
                     catch (Exception ex)
                     {
@@ -434,13 +432,9 @@ namespace IceRpc
 
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
         /// <param name="endpointString">The string parsed by this method.</param>
-        /// <param name="serverEndpoint">When true, endpointString represents a server's endpoint configuration;
-        /// when false, endpointString represents a proxy endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
-        /// <exception cref="NotSupportedException">Thrown when the transport specified in endpointString does not
-        /// the ice1 protocol.</exception>
-        private static Endpoint CreateEndpoint(string endpointString, bool serverEndpoint)
+        internal static Endpoint ParseEndpoint(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -490,7 +484,7 @@ namespace IceRpc
 
             if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
             {
-                Endpoint endpoint = parser(transport, options, serverEndpoint, endpointString);
+                Endpoint endpoint = parser(transport, options, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(
@@ -501,7 +495,7 @@ namespace IceRpc
 
             // If the stringified endpoint is opaque, create an unknown endpoint, then see whether the type matches one
             // of the known endpoints.
-            if (!serverEndpoint && transportName == "opaque")
+            if (transportName == "opaque")
             {
                 var opaqueEndpoint = OpaqueEndpoint.Parse(options, endpointString);
                 if (options.Count > 0)

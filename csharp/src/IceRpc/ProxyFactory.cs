@@ -100,11 +100,13 @@ namespace IceRpc
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
             {
-                throw new FormatException("empty string is invalid");
+                throw new FormatException("an empty string does not represent a proxy");
             }
 
-            return factory.Create(UriParser.IsProxyUri(proxyString) ?
-                UriParser.ParseProxy(proxyString, proxyOptions) : Ice1Parser.ParseProxy(proxyString, proxyOptions));
+            ProxyOptions options = UriParser.IsProxyUri(proxyString) ?
+                UriParser.ParseProxy(proxyString, proxyOptions) : Ice1Parser.ParseProxy(proxyString, proxyOptions);
+
+            return factory.Create(options);
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>

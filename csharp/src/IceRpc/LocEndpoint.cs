@@ -14,6 +14,7 @@ namespace IceRpc
     /// <see cref="ILocationResolver"/>.</summary>
     internal sealed class LocEndpoint : Endpoint
     {
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option == "category" && Protocol == Protocol.Ice1 ?
                 (Data.Options.Length > 0 ? Data.Options[0] : null) : base[option];
@@ -24,27 +25,25 @@ namespace IceRpc
         internal const ushort DefaultLocPort = 0;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept connections");
 
         // There is no Equals as it's identical to the base.
 
-        // There is currently no support for server-side loc endpoints
-        public override bool IsLocal(Endpoint endpoint) => false;
-
         public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new InvalidOperationException();
+            throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator) =>
             Debug.Assert(false);
 
+        // InvalidOperationException because this method should never get called.
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
-            throw new NotSupportedException("cannot create a connection to a loc endpoint");
+            throw new InvalidOperationException($"cannot establish a connection to endpoint `{this}'");
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException("cannot create published endpoint for a loc endpoint");
+            throw new NotSupportedException($"cannot get the published endpoint for endpoint `{this}'");
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
@@ -74,24 +73,13 @@ namespace IceRpc
 
         // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Microsoft.Performance",
-            "CA1801: Review unused parameters",
-            Justification = "Must match signature of Ice2EndpointParser")]
         internal static LocEndpoint ParseIce2Endpoint(
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> options,
-            bool serverEndpoint)
+            Dictionary<string, string> _)
         {
             Debug.Assert(transport == Transport.Loc);
-
-            if (serverEndpoint)
-            {
-                throw new NotSupportedException("cannot create a server-side loc endpoint");
-            }
-
             return new(new EndpointData(transport, host, port, Array.Empty<string>()), Protocol.Ice2);
         }
 
