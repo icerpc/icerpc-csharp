@@ -1,2 +1,0 @@
-DictionaryRedefinition.ice:11: redefinition of dictionary `foo'
-DictionaryRedefinition.ice:10: note: dictionary `foo' was originally defined here
