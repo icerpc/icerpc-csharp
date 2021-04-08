@@ -185,8 +185,7 @@ namespace IceRpc.Tests.Api
                 CacheConnection = false,
                 // no need to set Communicator
                 Context = new Dictionary<string, string>() { ["speed"] = "fast" },
-                InvocationTimeout = TimeSpan.FromSeconds(10),
-                Path = "xxxxxxx" // ignored
+                InvocationTimeout = TimeSpan.FromSeconds(10)
             };
 
             await using var server = new Server(communicator,

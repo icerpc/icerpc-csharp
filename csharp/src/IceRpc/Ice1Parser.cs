@@ -103,8 +103,10 @@ namespace IceRpc
         /// <summary>Parses a proxy string in the ice1 format.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="proxyOptions">The proxy options.</param>
-        /// <returns>The corresponding (interop) service proxy options.</returns>
-        internal static InteropProxyOptions ParseProxy(string s, ProxyOptions proxyOptions)
+        /// <returns>The arguments to create the proxy.</returns>
+        internal static (Identity Identity, string Facet, Encoding Encoding, IEnumerable<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+            string s,
+            ProxyOptions proxyOptions)
         {
             // TODO: rework this implementation
 
@@ -142,11 +144,11 @@ namespace IceRpc
             }
 
             // Parsing the identity may throw FormatException.
-            InteropProxyOptions result = proxyOptions.With(Ice1Definitions.Encoding,
-                                                           ImmutableList<Endpoint>.Empty,
-                                                           facet: "",
-                                                           identity: Identity.Parse(identityString),
-                                                           oneway: proxyOptions.IsOneway);
+            var identity = Identity.Parse(identityString);
+            string facet = "";
+            Encoding encoding = Ice1Definitions.Encoding;
+            ImmutableList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+            proxyOptions = proxyOptions.Clone();
 
             while (true)
             {
@@ -218,7 +220,7 @@ namespace IceRpc
                         {
                             throw new FormatException($"no argument provided for -f option in `{s}'");
                         }
-                        result.Facet = StringUtil.UnescapeString(argument, 0, argument.Length, "");
+                        facet = StringUtil.UnescapeString(argument, 0, argument.Length, "");
                         break;
 
                     case 't':
@@ -235,7 +237,7 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -o option in `{s}'");
                         }
-                        result.IsOneway = true;
+                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'O':
@@ -245,7 +247,7 @@ namespace IceRpc
                                 $"unexpected argument `{argument}' provided for -O option in `{s}'");
                         }
 
-                        result.IsOneway = true;
+                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'd':
@@ -254,7 +256,7 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -d option in `{s}'");
                         }
-                        result.IsOneway = true;
+                        proxyOptions.IsOneway = true;;
                         break;
 
                     case 'D':
@@ -263,7 +265,7 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument `{argument}' provided for -D option in `{s}'");
                         }
-                        result.IsOneway = true;
+                        proxyOptions.IsOneway = true;;
                         break;
 
                     case 's':
@@ -279,7 +281,7 @@ namespace IceRpc
                         {
                             throw new FormatException($"no argument provided for -e option in `{s}'");
                         }
-                        result.Encoding = Encoding.Parse(argument);
+                        encoding = Encoding.Parse(argument);
                         break;
 
                     case 'p':
@@ -301,11 +303,9 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                result.Endpoints = ImmutableList.Create(LocEndpoint.Create(result.Identity));
-                return result;
+                endpoints = ImmutableList.Create(LocEndpoint.Create(identity) as Endpoint);
+                return (identity, facet, encoding, endpoints, proxyOptions);
             }
-
-            var endpoints = ImmutableList<Endpoint>.Empty;
 
             if (s[beg] == ':')
             {
@@ -371,14 +371,13 @@ namespace IceRpc
                 }
 
                 Debug.Assert(endpoints.Count > 0);
-                result.Endpoints = endpoints;
 
                 if (endpoints.All(e => e.IsDatagram))
                 {
-                    result.IsOneway = true;
+                    proxyOptions.IsOneway = true;
                 }
 
-                return result;
+                return (identity, facet, encoding, endpoints, proxyOptions);
             }
             else if (s[beg] == '@')
             {
@@ -423,8 +422,8 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy `{s}'");
                 }
 
-                result.Endpoints = ImmutableList.Create<Endpoint>(LocEndpoint.Create(adapterId, Protocol.Ice1));
-                return result;
+                endpoints = ImmutableList.Create<Endpoint>(LocEndpoint.Create(adapterId, Protocol.Ice1));
+                return (identity, facet, encoding, endpoints, proxyOptions);
             }
 
             throw new FormatException($"malformed proxy `{s}'");

@@ -61,7 +61,7 @@ namespace IceRpc
             }
 
             return ResultType == ResultType.Success ?
-                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, proxy.GetOptions()) :
+                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, source: proxy) :
                 throw ReadException(proxy);
         }
 
@@ -89,7 +89,7 @@ namespace IceRpc
 
                 var istr = new InputStream(Payload.AsReadOnlyMemory(1),
                                            Protocol.GetEncoding(),
-                                           proxyOptions: proxy.Impl.GetOptions(),
+                                           source: proxy,
                                            startEncapsulation: true);
                 T value = reader(istr, SocketStream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
@@ -289,7 +289,7 @@ namespace IceRpc
             {
                 istr = new InputStream(Payload.Slice(1),
                                        Protocol.GetEncoding(),
-                                       proxyOptions: proxy.Impl.GetOptions(),
+                                       source: proxy,
                                        startEncapsulation: true);
 
                 if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)

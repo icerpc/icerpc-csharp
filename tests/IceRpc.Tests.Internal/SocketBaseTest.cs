@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net.Security;
@@ -219,11 +220,13 @@ namespace IceRpc.Tests.Internal
             var options = new ProxyOptions()
             {
                 Communicator = Communicator,
-                Connection = connection,
-                Path = "dummy",
-                Protocol = ClientEndpoint.Protocol
             };
-            return (connection.Socket, IServicePrx.Factory.Create(options));
+            return (connection.Socket, IServicePrx.Factory.Create("dummy",
+                                                                  ClientEndpoint.Protocol,
+                                                                  ClientEndpoint.Protocol.GetEncoding(),
+                                                                  endpoints: ImmutableList<Endpoint>.Empty,
+                                                                  connection,
+                                                                  options));
         }
 
         protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);

@@ -16,8 +16,27 @@ namespace IceRpc
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>
         /// <returns>A proxy with the desired type.</returns>
-        public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx =>
-            GetFactory<T>().Create(proxy.Impl.GetOptions());
+        public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
+        {
+            if (proxy.Protocol == Protocol.Ice1)
+            {
+                return GetFactory<T>().Create(proxy.GetIdentity(),
+                                              proxy.GetFacet(),
+                                              proxy.Encoding,
+                                              proxy.Endpoints,
+                                              proxy.Connection,
+                                              proxy.GetOptions());
+            }
+            else
+            {
+                return GetFactory<T>().Create(proxy.Path,
+                                              proxy.Protocol,
+                                              proxy.Encoding,
+                                              proxy.Endpoints,
+                                              proxy.Connection,
+                                              proxy.GetOptions());
+            }
+        }
 
         /// <summary>Tests whether a proxy points to a remote service whose associated proxy interface is T or an
         /// interface type derived from T. If so, returns a proxy of type, otherwise returns null. This is a convenience
@@ -137,24 +156,35 @@ namespace IceRpc
             {
                 return t;
             }
-            else
+            else if (proxy.Protocol == Protocol.Ice1)
             {
-                ProxyOptions options = proxy.Impl.GetOptions();
-                options.Path = path;
+                var identity = Identity.FromPath(path);
 
-                if (options is InteropProxyOptions interopOptions)
+                IEnumerable<Endpoint> endpoints = proxy.Endpoints;
+                Connection? connection = proxy.Connection;
+
+                if (proxy.Impl.IsWellKnown)
                 {
-                    interopOptions.Identity = Identity.Empty;
-
-                    if (proxy.Impl.IsWellKnown) // well-known implies not fixed
-                    {
-                        // Need to replace Loc endpoint since we're changing the identity.
-                        options.Endpoints = ImmutableList.Create(LocEndpoint.Create(Identity.FromPath(path)));
-                        options.Connection = null; // clear cached connection since we're changing the endpoint
-                    }
+                    // Need to replace Loc endpoint since we're changing the identity.
+                    endpoints = ImmutableList.Create(LocEndpoint.Create(identity));
+                    connection = null; // clear cached connection since we're changing the endpoint
                 }
 
-                return GetFactory<T>().Create(options);
+                return GetFactory<T>().Create(identity,
+                                              proxy.GetFacet(),
+                                              proxy.Encoding,
+                                              endpoints,
+                                              connection,
+                                              proxy.GetOptions());
+            }
+            else
+            {
+                return GetFactory<T>().Create(path,
+                                              proxy.Protocol,
+                                              proxy.Encoding,
+                                              proxy.Endpoints,
+                                              proxy.Connection,
+                                              proxy.GetOptions());
             }
         }
     }

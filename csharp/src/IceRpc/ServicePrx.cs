@@ -545,66 +545,48 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a new proxy class instance with the specified options.</summary>
-        protected internal ServicePrx(ProxyOptions options)
+        protected internal ServicePrx(
+            string path,
+            Protocol protocol,
+            Encoding encoding,
+            IEnumerable<Endpoint> endpoints,
+            Connection? connection,
+            ProxyOptions options)
+            : this(protocol, encoding, endpoints, connection, options)
         {
-            CacheConnection = options.CacheConnection;
-            Communicator = options.Communicator!;
-            _connection = options.Connection;
-            _context = options.Context.ToImmutableSortedDictionary();
-            Encoding = options.Encoding;
-            _invocationInterceptors = options.InvocationInterceptors.ToImmutableList();
-            _invocationTimeout = options.InvocationTimeout;
-            IsOneway = options.IsOneway;
-            LocationResolver = options.LocationResolver;
-            NonSecure = options.NonSecure;
-            PreferExistingConnection = options.PreferExistingConnection;
-            Protocol = options.Protocol;
-
-            _endpoints = ImmutableList<Endpoint>.Empty;
-            var endpoints = options.Endpoints.ToImmutableList();
-            if (endpoints.Count > 0)
-            {
-                Endpoints = endpoints; // use Endpoints set validation, which uses Protocol
-            }
+            Path = UriParser.NormalizePath(path);
 
             if (Protocol == Protocol.Ice1)
             {
-                if (options is InteropProxyOptions interopOptions)
+                Identity = Identity.FromPath(Path);
+                if (Identity.Name.Length == 0)
                 {
-                    Facet = interopOptions.Facet;
-                    Identity = interopOptions.Identity;
+                    throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
+                                                 nameof(path));
                 }
-
-                if (options.Path.Length > 0)
-                {
-                    if (Identity != Identity.Empty)
-                    {
-                        throw new ArgumentException("cannot specify both path and identity", nameof(options));
-                    }
-
-                    Path = UriParser.NormalizePath(options.Path);
-                    Identity = Identity.FromPath(Path);
-
-                    if (Identity.Name.Length == 0)
-                    {
-                        throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options));
-                    }
-                }
-                else
-                {
-                    if (Identity.Name.Length == 0)
-                    {
-                        throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                    nameof(options));
-                    }
-                    Path = Identity.ToPath();
-                }
+                // and keep facet empty
             }
-            else
+        }
+
+        /// <summary>Constructs a new proxy class instance with the specified options.</summary>
+        protected internal ServicePrx(
+            Identity identity,
+            string facet,
+            Encoding encoding,
+            IEnumerable<Endpoint> endpoints,
+            Connection? connection,
+            ProxyOptions options)
+            : this(Protocol.Ice1, encoding, endpoints, connection, options)
+        {
+            if (identity.Name.Length == 0)
             {
-                Path = UriParser.NormalizePath(options.Path);
+                throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
+                                             nameof(identity));
             }
+
+            Identity = identity;
+            Facet = facet;
+            Path = identity.ToPath();
         }
 
         internal static Task<IncomingResponseFrame> InvokeAsync(
@@ -690,51 +672,19 @@ namespace IceRpc
         internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
 
         /// <summary>Returns a new copy of the underlying options.</summary>
-        internal ProxyOptions GetOptions()
-        {
-            if (Protocol == Protocol.Ice1)
-            {
-                return new InteropProxyOptions()
-                {
-                    CacheConnection = CacheConnection,
-                    Communicator = Communicator,
-                    Connection = _connection,
-                    Context = _context,
-                    Encoding = Encoding,
-                    Endpoints = _endpoints,
-                    Facet = Facet,
-                    Identity = Identity,
-                    InvocationInterceptors = _invocationInterceptors,
-                    InvocationTimeout = _invocationTimeout,
-                    IsOneway = IsOneway,
-                    LocationResolver = LocationResolver,
-                    NonSecure = NonSecure,
-                    Path = "",
-                    PreferExistingConnection = PreferExistingConnection,
-                    Protocol = Protocol.Ice1
-                };
-            }
-            else
-            {
-                return new()
-                {
-                    CacheConnection = CacheConnection,
-                    Communicator = Communicator,
-                    Connection = _connection,
-                    Context = _context,
-                    Encoding = Encoding,
-                    Endpoints = _endpoints,
-                    InvocationInterceptors = _invocationInterceptors,
-                    InvocationTimeout = _invocationTimeout,
-                    IsOneway = IsOneway,
-                    LocationResolver = LocationResolver,
-                    NonSecure = NonSecure,
-                    Path = Path,
-                    PreferExistingConnection = PreferExistingConnection,
-                    Protocol = Protocol
-                };
-            }
-        }
+        internal ProxyOptions GetOptions() =>
+             new()
+             {
+                CacheConnection = CacheConnection,
+                Communicator = Communicator,
+                Context = _context,
+                InvocationInterceptors = _invocationInterceptors,
+                InvocationTimeout = _invocationTimeout,
+                IsOneway = IsOneway,
+                LocationResolver = LocationResolver,
+                NonSecure = NonSecure,
+                PreferExistingConnection = PreferExistingConnection
+            };
 
         /// <summary>Provides the implementation of <see cref="Proxy.GetConnectionAsync"/>.</summary>
         internal async ValueTask<Connection> GetConnectionAsync(CancellationToken cancel)
@@ -846,6 +796,35 @@ namespace IceRpc
             // else, only a single property in the dictionary
 
             return properties;
+        }
+
+        // Helper constructor
+        private ServicePrx(
+            Protocol protocol,
+            Encoding encoding,
+            IEnumerable<Endpoint> endpoints,
+            Connection? connection,
+            ProxyOptions options)
+        {
+            CacheConnection = options.CacheConnection;
+            Communicator = options.Communicator!;
+            _connection = connection;
+            _context = options.Context.ToImmutableSortedDictionary();
+            Encoding = encoding;
+            _invocationInterceptors = options.InvocationInterceptors.ToImmutableList();
+            _invocationTimeout = options.InvocationTimeout;
+            IsOneway = options.IsOneway;
+            LocationResolver = options.LocationResolver;
+            NonSecure = options.NonSecure;
+            PreferExistingConnection = options.PreferExistingConnection;
+            Protocol = protocol;
+
+            _endpoints = ImmutableList<Endpoint>.Empty;
+            var endpointList = endpoints.ToImmutableList();
+            if (endpointList.Count > 0)
+            {
+                Endpoints = endpointList; // use Endpoints set validation, which uses Protocol
+            }
         }
 
         private void ClearConnection(Connection connection)

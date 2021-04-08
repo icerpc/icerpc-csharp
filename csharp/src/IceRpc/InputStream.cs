@@ -105,16 +105,18 @@ namespace IceRpc
 
         /// <summary>The Communicator associated with this stream. It cannot be null when reading a proxy, class, or
         /// exception.</summary>
-        public Communicator? Communicator => ProxyOptions?.Communicator;
+        public Communicator? Communicator => Source?.Communicator ?? Connection?.Communicator;
 
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
+        internal Connection? Connection { get; }
+
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private set; }
 
-        /// <summary>Proxy options used when unmarshaling proxies.</summary>
+        /// <summary>Proxy options used when unmarshaling proxies using Connection.</summary>
         internal ProxyOptions? ProxyOptions { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
@@ -133,6 +135,8 @@ namespace IceRpc
                 }
             }
         }
+
+        internal IServicePrx? Source { get; }
 
         private bool OldEncoding => Encoding == Encoding.V11;
 
@@ -951,15 +955,21 @@ namespace IceRpc
         /// <summary>Constructs a new InputStream over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="proxyOptions">Options used when unmarshaling proxies (optional).</param>
+        /// <param name="source">The source proxy (optional).</param>
+        /// <param name="connection">The connection (optional).</param>
+        /// <param name="proxyOptions">The proxy options, used when connection is not null.</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
+            IServicePrx? source = null,
+            Connection? connection = null,
             ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false)
         {
+            Source = source;
+            Connection = connection;
             ProxyOptions = proxyOptions;
 
             Pos = 0;

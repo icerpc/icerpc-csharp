@@ -96,10 +96,10 @@ namespace IceRpc
                 throw new InvalidDataException("stream data available for operation without stream parameter");
             }
 
-            ProxyOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
-            proxyOptions.Connection = connection;
-
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(), reader, proxyOptions);
+            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
+                                                                reader,
+                                                                connection: connection,
+                                                                proxyOptions: connection.Server!.ProxyOptions);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -142,12 +142,10 @@ namespace IceRpc
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
             }
 
-            ProxyOptions proxyOptions = connection.Server!.ProxyOptions.Clone();
-            proxyOptions.Connection = connection;
-
             var istr = new InputStream(Payload.AsReadOnlyMemory(),
                                        Protocol.GetEncoding(),
-                                       proxyOptions: proxyOptions,
+                                       connection: connection,
+                                       proxyOptions: connection.Server!.ProxyOptions,
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the

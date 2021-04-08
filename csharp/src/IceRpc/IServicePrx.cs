@@ -408,7 +408,23 @@ namespace IceRpc
 
         private class ServicePrxFactory : IProxyFactory<IServicePrx>
         {
-            public IServicePrx Create(ProxyOptions options) => new ServicePrx(options);
+            public IServicePrx Create(
+                string path,
+                Protocol protocol,
+                Encoding encoding,
+                IEnumerable<Endpoint> endpoints,
+                Connection? connection,
+                ProxyOptions options) =>
+                new ServicePrx(path, protocol, encoding, endpoints, connection, options);
+
+            public IServicePrx Create(
+                Identity identity,
+                string facet,
+                Encoding encoding,
+                IEnumerable<Endpoint> endpoints,
+                Connection? connection,
+                ProxyOptions options) =>
+                new ServicePrx(identity, facet, encoding, endpoints, connection, options);
         }
     }
 }
