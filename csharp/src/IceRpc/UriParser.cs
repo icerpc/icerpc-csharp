@@ -73,14 +73,15 @@ namespace IceRpc
             return true;
         }
 
-        /// <summary>Makes sure path is valid.</summary>
-        internal static void CheckPath(string path)
+        /// <summary>Makes sure path is valid and throws ArgumentException if it is not.</summary>
+        internal static void CheckPath(string path, string paramName)
         {
             if (!IsValidPath(path))
             {
-                throw new FormatException(
+                throw new ArgumentException(
                     @$"invalid path '{path
-                    }'; a valid path must start with '/' and can only contain unreserved characters, '%' and reserved characters other than '?'");
+                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?'",
+                    paramName);
             }
         }
 

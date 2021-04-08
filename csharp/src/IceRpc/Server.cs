@@ -255,7 +255,7 @@ namespace IceRpc
             IService service,
             IProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
-            UriParser.CheckPath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -288,7 +288,7 @@ namespace IceRpc
         /// <param name="service">The service to add.</param>
         public void Add(string path, string facet, IService service)
         {
-            UriParser.CheckPath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -378,7 +378,7 @@ namespace IceRpc
         /// <returns>The corresponding service in the ASM, or null if the service was not found.</returns>
         public IService? Find(string path, string facet = "")
         {
-            UriParser.CheckPath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (!_serviceMap.TryGetValue((path, facet), out IService? service))
@@ -408,7 +408,7 @@ namespace IceRpc
         /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
         public IService? Remove(string path, string facet = "")
         {
-            UriParser.CheckPath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_serviceMap.TryGetValue((path, facet), out IService? service))
