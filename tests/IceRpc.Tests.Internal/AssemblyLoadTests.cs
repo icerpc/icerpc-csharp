@@ -22,8 +22,8 @@ namespace IceRpc.Tests.Internal
             // B, is not loaded because it is not referenced anywhere
             Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
 
-            //Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
-            //Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));
+            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
+            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));
 
             var path = Path.Combine(Directory.GetCurrentDirectory(), "D.dll");
             // Load assembly D
@@ -31,10 +31,9 @@ namespace IceRpc.Tests.Internal
             Assert.IsNotNull(assembly);
             Runtime.RegisterFactoriesFromAssembly(assembly);
 
-            // After loading D MyClassD is found, MyClassC too because C is a direct
-            // dependency of D, and MyClassB cannot be load because the previous failure laoding
-            // MyClassB causes a null factory to be cached.
-            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
+            // After loading D MyClassD is found, MyClassC too because C is a direct dependency of D and MyClassB too
+            // because B is a transitive dependency of D.
+            Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
             Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
             Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));
         }

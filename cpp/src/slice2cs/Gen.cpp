@@ -530,6 +530,13 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 }
 
 void
+Slice::CsVisitor::emitClassAttribute(const string& typeId, int compactTypeId, const string& className)
+{
+    _out << nl << "[assembly:IceRpc.ClassAttribute(\"" << typeId << "\", " << compactTypeId
+         << ", typeof(" << className << "))]";
+}
+
+void
 Slice::CsVisitor::emitTypeIdAttribute(const string& typeId)
 {
     _out << nl << "[IceRpc.TypeId(\"" << typeId << "\")]";
@@ -1111,10 +1118,10 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#pragma warning disable CA1033 // Interface methods should be callable by child types";
     _out << nl << "#pragma warning disable CA1707 // Remove the underscores from member name";
     _out << nl << "#pragma warning disable CA1711 // Identifiers should not have incorrect suffix";
-
-    _out << sp << nl << "#pragma warning disable 1591"; // See bug 3654
+    _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
     if(impl)
     {
+        _out << sp;
         IceUtilInternal::structstat st;
         if(!IceUtilInternal::stat(fileImpl, &st))
         {
@@ -1155,6 +1162,9 @@ Slice::Gen::generate(const UnitPtr& p)
     UnitVisitor unitVisitor(_out);
     p->visit(&unitVisitor, false);
 
+    ClassAttributeVisitor classAttributeVisitor(_out);
+    p->visit(&classAttributeVisitor, false);
+
     TypesVisitor typesVisitor(_out);
     p->visit(&typesVisitor, false);
 
@@ -1166,15 +1176,6 @@ Slice::Gen::generate(const UnitPtr& p)
 
     DispatcherVisitor asyncDispatcherVisitor(_out, true);
     p->visit(&asyncDispatcherVisitor, false);
-
-    ClassFactoryVisitor classFactoryVisitor(_out);
-    p->visit(&classFactoryVisitor, false);
-
-    CompactIdVisitor compactIdVisitor(_out);
-    p->visit(&compactIdVisitor, false);
-
-    RemoteExceptionFactoryVisitor remoteExceptionFactoryVisitor(_out);
-    p->visit(&remoteExceptionFactoryVisitor, false);
 }
 
 void
@@ -3244,121 +3245,17 @@ Slice::Gen::ImplVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
     _out << eb;
 }
 
-Slice::Gen::ClassFactoryVisitor::ClassFactoryVisitor(IceUtilInternal::Output& out) :
+Slice::Gen::ClassAttributeVisitor::ClassAttributeVisitor(IceUtilInternal::Output& out) :
     CsVisitor(out)
 {
 }
 
 bool
-Slice::Gen::ClassFactoryVisitor::visitModuleStart(const ModulePtr& p)
+Slice::Gen::ClassAttributeVisitor::visitUnitStart(const UnitPtr& p)
 {
-    if (p->hasClassDefs())
-    {
-        string prefix;
-        // We are generating code for a top-level module
-        if (!ContainedPtr::dynamicCast(p->container()))
-        {
-            prefix = "IceRpc.ClassFactory";
-        }
-        openNamespace(p, prefix);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void
-Slice::Gen::ClassFactoryVisitor::visitModuleEnd(const ModulePtr&)
-{
-    closeNamespace();
-}
-
-bool
-Slice::Gen::ClassFactoryVisitor::visitClassDefStart(const ClassDefPtr& p)
-{
-    string name = fixId(p->name());
-    _out << sp;
-    emitCommonAttributes();
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static class " << name;
-    _out << sb;
-
-    string ns = getNamespace(p);
-
-    _out << nl << "public static global::IceRpc.AnyClass Create() =>";
-    _out.inc();
-    _out << nl << "new global::" << ns << "." << name << "((global::IceRpc.InputStream?)null);";
-    _out.dec();
-    _out << eb;
-
-    return false;
-}
-
-Slice::Gen::CompactIdVisitor::CompactIdVisitor(IceUtilInternal::Output& out) :
-    CsVisitor(out)
-{
-}
-
-bool
-Slice::Gen::CompactIdVisitor::visitUnitStart(const UnitPtr& p)
-{
-    // The CompactIdVisitor does not visit modules, only the unit.
-    if (p->hasCompactTypeId())
-    {
-        _out << sp << nl << "namespace IceRpc.ClassFactory";
-        _out << sb;
-        return true;
-    }
-    return false;
-}
-
-void
-Slice::Gen::CompactIdVisitor::visitUnitEnd(const UnitPtr&)
-{
-    _out << eb;
-}
-
-bool
-Slice::Gen::CompactIdVisitor::visitClassDefStart(const ClassDefPtr& p)
-{
-    if (p->compactId() >= 0)
+    if(p->hasClassDefs() || p->hasExceptions())
     {
         _out << sp;
-        emitCommonAttributes();
-        emitEditorBrowsableNeverAttribute();
-
-        string ns = getNamespace(p);
-
-        _out << nl << "public static class CompactId_" << p->compactId();
-        _out << sb;
-        _out << nl << "public static global::IceRpc.AnyClass Create() =>";
-        _out.inc();
-        _out << nl << "new global::" << ns << "." << fixId(p->name()) << "((global::IceRpc.InputStream?)null);";
-        _out.dec();
-        _out << eb;
-    }
-    return false;
-}
-
-Slice::Gen::RemoteExceptionFactoryVisitor::RemoteExceptionFactoryVisitor(IceUtilInternal::Output& out) :
-    CsVisitor(out)
-{
-}
-
-bool
-Slice::Gen::RemoteExceptionFactoryVisitor::visitModuleStart(const ModulePtr& p)
-{
-    if (p->hasExceptions())
-    {
-        string prefix;
-        // We are generating code for a top-level module
-        if (!ContainedPtr::dynamicCast(p->container()))
-        {
-            prefix = "IceRpc.RemoteExceptionFactory";
-        }
-        openNamespace(p, prefix);
         return true;
     }
     else
@@ -3368,28 +3265,21 @@ Slice::Gen::RemoteExceptionFactoryVisitor::visitModuleStart(const ModulePtr& p)
 }
 
 void
-Slice::Gen::RemoteExceptionFactoryVisitor::visitModuleEnd(const ModulePtr&)
+Slice::Gen::ClassAttributeVisitor::visitUnitEnd(const UnitPtr&)
 {
-    closeNamespace();
+    _out << sp;
 }
 
 bool
-Slice::Gen::RemoteExceptionFactoryVisitor::visitExceptionStart(const ExceptionPtr& p)
+Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
 {
-    string name = fixId(p->name());
-    _out << sp;
-    emitCommonAttributes();
-    emitEditorBrowsableNeverAttribute();
+    emitClassAttribute(p->scoped(), p->compactId(), getNamespace(p) + "." + fixId(p->name()));
+    return false;
+}
 
-    string ns = getNamespace(p);
-
-    _out << nl << "public static class " << name;
-    _out << sb;
-    _out << nl << "public static global::IceRpc.RemoteException Create(string? message, "
-         << "global::IceRpc.RemoteExceptionOrigin origin) =>";
-    _out.inc();
-    _out << nl << "new global::" << ns << "." << name << "(message, origin);";
-    _out.dec();
-    _out << eb;
+bool
+Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
+{
+    emitClassAttribute(p->scoped(), 0, getNamespace(p) + "." + fixId(p->name()));
     return false;
 }
