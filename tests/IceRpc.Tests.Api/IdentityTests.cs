@@ -44,7 +44,6 @@ namespace IceRpc.Tests.Api
         /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath
         /// when the leading / is removed for Parse.</summary>
         [TestCase("/foo", "foo", "")]
-        [TestCase("/foo", "foo", "")]
         [TestCase("/foo/bar", "bar", "foo")]
         [TestCase("/foo/bar+", "bar+", "foo")]
         public void Identity_FromSimpleString(string str, string name, string category)
