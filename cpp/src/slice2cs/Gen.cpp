@@ -3253,7 +3253,7 @@ Slice::Gen::ClassAttributeVisitor::ClassAttributeVisitor(IceUtilInternal::Output
 bool
 Slice::Gen::ClassAttributeVisitor::visitUnitStart(const UnitPtr& p)
 {
-    if(p->hasClassDefs() || p->hasExceptions())
+    if (p->hasClassDefs() || p->hasExceptions())
     {
         _out << sp;
         return true;

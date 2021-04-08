@@ -7,25 +7,16 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>A delegate used to create class instances during unmarshaling.</summary>
-    /// <returns>A new class instance.</returns>
-    public delegate AnyClass ClassFactory();
-
-    /// <summary>A delegate used to create remote exception instances during unmarshaling.</summary>
-    /// <returns>A new remote exception instance.</returns>
-    public delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
-
     /// <summary>This attribute class is used by the generated code to map type IDs to C# classes
     /// and exceptions.</summary>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class ClassAttribute : Attribute
     {
-        /// <summary>The compact type ID assigned to this class or 0 if the class does not use compact type IDs.
-        /// </summary>
+        /// <summary>The compact type ID assigned to the type or 0 if the type does not use compact type IDs.</summary>
         public int CompactTypeID { get; }
-        /// <summary>The type ID assigned to this class.</summary>
+        /// <summary>The type ID assigned to the type.</summary>
         public string TypeID { get; }
-        /// <summary>The class type associated to the type ID</summary>
+        /// <summary>The type associated to the type ID</summary>
         public Type Type { get; }
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
@@ -48,16 +39,16 @@ namespace IceRpc
                         return null; // TODO throw InvalidMethodException and make this property non nullable?
                     }
 
-                    NewExpression newExp = Expression.New(constructor, Expression.Constant(null, typeof(InputStream)));
-                    LambdaExpression lambda = Expression.Lambda(typeof(ClassFactory), newExp);
-                    _classFactory = (ClassFactory)lambda.Compile();
+                    _classFactory = (ClassFactory)Expression.Lambda(
+                        typeof(ClassFactory),
+                        Expression.New(constructor, Expression.Constant(null, typeof(InputStream)))).Compile();
                 }
                 return _classFactory;
             }
         }
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
-        /// type doesn't implements <see cref="AnyClass"/>."</summary>
+        /// type doesn't implements <see cref="RemoteException"/>."</summary>
         public RemoteExceptionFactory? ExceptionFactory
         {
             get
@@ -79,9 +70,11 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    NewExpression newExp = Expression.New(constructor, messageParam, originParam);
-                    LambdaExpression lambda = Expression.Lambda(typeof(RemoteExceptionFactory), newExp, messageParam, originParam);
-                    _exceptionFactory = (RemoteExceptionFactory)lambda.Compile();
+                    _exceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
+                        typeof(RemoteExceptionFactory),
+                        Expression.New(constructor, messageParam, originParam),
+                        messageParam,
+                        originParam).Compile();
                 }
                 return _exceptionFactory;
             }

@@ -8,6 +8,14 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
+    /// <summary>A delegate used to create class instances during unmarshaling.</summary>
+    /// <returns>A new class instance.</returns>
+    public delegate AnyClass ClassFactory();
+
+    /// <summary>A delegate used to create remote exception instances during unmarshaling.</summary>
+    /// <returns>A new remote exception instance.</returns>
+    public delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
+
     // This partial class provides the class/exception unmarshaling logic.
     public sealed partial class InputStream
     {
