@@ -36,7 +36,7 @@ namespace IceRpc
                     if (constructor == null)
                     {
                         Debug.Assert(false);
-                        return null; // TODO throw InvalidMethodException and make this property non nullable?
+                        return null; // TODO throw InvalidMethodException?
                     }
 
                     _classFactory = (ClassFactory)Expression.Lambda(
@@ -64,7 +64,7 @@ namespace IceRpc
                     if (constructor == null)
                     {
                         Debug.Assert(false);
-                        return null; // TODO throw InvalidMethodException and make this property non nullable?
+                        return null; // TODO throw InvalidMethodException?
                     }
 
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
