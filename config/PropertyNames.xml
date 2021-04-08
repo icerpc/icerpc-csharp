@@ -77,7 +77,7 @@ This definition is equivalent to the following:
     </section>
 
 The benefit is that several categories have the same properties because
-they are the same `type' of property. Without a property class, changes
+they are the same 'type' of property. Without a property class, changes
 to a supported type of property require modifying the file in several
 locations, e.g.:
 
@@ -86,11 +86,11 @@ locations, e.g.:
         <property name="Default.Locator" class="proxy" />
     </section>
 
-Notice the `prefix-only' attribute on the property class node. If
+Notice the 'prefix-only' attribute on the property class node. If
 prefix-only is set to true the property containing the property class
 works as a prefix and place holder; code isn't actually generated for
 the property itself. When set to false, properties are expanded as
-described above `in addition to' the property containing the property
+described above 'in addition to' the property containing the property
 class.
 
 Property elements may also include the deprecated and deprecatedBy

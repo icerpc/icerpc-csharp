@@ -56,9 +56,9 @@ ICE_API std::string trim(const std::string&);
 ICE_API std::string::size_type checkQuote(const std::string&, std::string::size_type = 0);
 
 //
-// Match `s' against the pattern `pat'. A * in the pattern acts
+// Match 's' against the pattern 'pat'. A * in the pattern acts
 // as a wildcard: it matches any non-empty sequence of characters
-// other than a period (`.'). We match by hand here because
+// other than a period ('.'). We match by hand here because
 // it's portable across platforms (whereas regex() isn't).
 //
 ICE_API bool match(const std::string&, const std::string&, bool = false);

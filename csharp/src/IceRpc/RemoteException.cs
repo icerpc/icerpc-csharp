@@ -176,16 +176,16 @@ namespace IceRpc
             {
                 if (Origin != RemoteExceptionOrigin.Unknown)
                 {
-                    var sb = new StringBuilder("could not find service `");
+                    var sb = new StringBuilder("could not find service '");
                     sb.Append(Origin.Path);
                     sb.Append('\'');
                     if (Facet.Length > 0)
                     {
-                        sb.Append(" with facet `");
+                        sb.Append(" with facet '");
                         sb.Append(Facet);
                         sb.Append('\'');
                     }
-                    sb.Append(" while attempting to dispatch operation `");
+                    sb.Append(" while attempting to dispatch operation '");
                     sb.Append(Origin.Operation);
                     sb.Append('\'');
                     return sb.ToString();
@@ -209,14 +209,14 @@ namespace IceRpc
             {
                 if (Origin != RemoteExceptionOrigin.Unknown)
                 {
-                    var sb = new StringBuilder("could not find operation `");
+                    var sb = new StringBuilder("could not find operation '");
                     sb.Append(Origin.Operation);
-                    sb.Append("' for service `");
+                    sb.Append("' for service '");
                     sb.Append(Origin.Path);
                     sb.Append('\'');
                     if (Facet.Length > 0)
                     {
-                        sb.Append(" with facet `");
+                        sb.Append(" with facet '");
                         sb.Append(Facet);
                         sb.Append('\'');
                     }
@@ -246,7 +246,7 @@ namespace IceRpc
                 string message = "unhandled exception";
                 if (Origin != RemoteExceptionOrigin.Unknown)
                 {
-                    message += $" while dispatching `{Origin.Operation}' on service `{Origin.Path}'";
+                    message += $" while dispatching '{Origin.Operation}' on service '{Origin.Path}'";
                 }
 #if DEBUG
                 message += $":\n{InnerException}\n---";

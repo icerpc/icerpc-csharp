@@ -98,7 +98,7 @@ namespace IceRpc
                 if (argument != null)
                 {
                     throw new FormatException(
-                        $"unexpected argument `{argument}' provided for -z option in `{endpointString}'");
+                        $"unexpected argument '{argument}' provided for -z option in '{endpointString}'");
                 }
                 compress = true;
                 options.Remove("-z");
@@ -117,7 +117,7 @@ namespace IceRpc
             if (options.TryGetValue("-h", out string? argument))
             {
                 host = argument ??
-                    throw new FormatException($"no argument provided for -h option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
 
                 if (host == "*")
                 {
@@ -130,14 +130,14 @@ namespace IceRpc
             }
             else
             {
-                throw new FormatException($"no -h option in endpoint `{endpointString}'");
+                throw new FormatException($"no -h option in endpoint '{endpointString}'");
             }
 
             if (options.TryGetValue("-p", out argument))
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for -p option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
                 }
 
                 try
@@ -146,7 +146,7 @@ namespace IceRpc
                 }
                 catch (FormatException ex)
                 {
-                    throw new FormatException($"invalid port value `{argument}' in endpoint `{endpointString}'", ex);
+                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
                 }
                 options.Remove("-p");
             }

@@ -1,4 +1,4 @@
-IllegalIdentifier.ice:17: Identifier cannot be scoped: `scoped::name'
+IllegalIdentifier.ice:17: Identifier cannot be scoped: 'scoped::name'
 IllegalIdentifier.ice:20: illegal input character: '\305'
 IllegalIdentifier.ice:20: syntax error
 IllegalIdentifier.ice:20: illegal input character: '\222'

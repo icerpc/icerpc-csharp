@@ -8,7 +8,7 @@ import os, sys, socket, getopt
 try:
     import IceCertUtils
 except Exception as ex:
-    print("couldn't load IceCertUtils, did you install the `zeroc-icecertutils'\n"
+    print("couldn't load IceCertUtils, did you install the 'zeroc-icecertutils'\n"
           "package from the Python package repository?\nerror: " + str(ex))
     sys.exit(1)
 

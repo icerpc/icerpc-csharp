@@ -282,7 +282,7 @@ namespace IceRpc
         {
             if (!typeId.StartsWith("::", StringComparison.Ordinal))
             {
-                throw new InvalidDataException($"`{typeId}' is not a valid Ice type ID");
+                throw new InvalidDataException($"'{typeId}' is not a valid Ice type ID");
             }
             return typeId[2..].Replace("::", ".");
         }

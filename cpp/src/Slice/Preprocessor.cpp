@@ -747,14 +747,14 @@ Slice::Preprocessor::checkInputFile()
     }
     if(suffix != ".ice")
     {
-        consoleErr << _path << ": error: input files must end with `.ice'" << endl;
+        consoleErr << _path << ": error: input files must end with '.ice'" << endl;
         return false;
     }
 
     ifstream test(IceUtilInternal::streamFilename(_fileName).c_str());
     if(!test)
     {
-        consoleErr << _path << ": error: cannot open `" << _fileName << "' for reading" << endl;
+        consoleErr << _path << ": error: cannot open '" << _fileName << "' for reading" << endl;
         return false;
     }
     test.close();

@@ -1290,7 +1290,7 @@ namespace IceRpc
         {
             if (value < EncodingDefinitions.VarLongMinValue || value > EncodingDefinitions.VarLongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varlong value `{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
             }
 
             return (value << 2) switch
@@ -1310,7 +1310,7 @@ namespace IceRpc
         {
             if (value > EncodingDefinitions.VarULongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varulong value `{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
             }
 
             return (value << 2) switch

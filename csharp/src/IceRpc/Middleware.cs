@@ -18,7 +18,7 @@ namespace IceRpc
             return next => new InlineDispatcher(
                 async (current, cancel) =>
                 {
-                    // TODO: log "`scope` dispatching request ..."
+                    // TODO: log "'scope' dispatching request ..."
                     try
                     {
                         // TODO: check result and log

@@ -388,7 +388,7 @@ class LocalDriver(Driver):
         if self.cross:
             self.cross = Mapping.getByName(self.cross)
             if not self.cross:
-                raise RuntimeError("unknown mapping `{0}' for --cross option".format(self.cross))
+                raise RuntimeError("unknown mapping '{0}' for --cross option".format(self.cross))
 
         self.results = []
         self.threadlocal = threading.local()

@@ -75,8 +75,8 @@ namespace IceRpc
             if (!IsValidPath(path))
             {
                 throw new FormatException(
-                    @$"invalid path `{path
-                    }'; a valid path can only contain unreserved characters, `%' and reserved characters other than `?'");
+                    @$"invalid path '{path
+                    }'; a valid path can only contain unreserved characters, '%' and reserved characters other than '?'");
             }
 
             return path.Length > 0 && path[0] == '/' ? path : $"/{path}";
@@ -169,14 +169,14 @@ namespace IceRpc
                 if (protocol != Protocol.Ice2)
                 {
                     throw new FormatException(
-                        $"cannot create an `{uri.Scheme}' endpoint for protocol `{protocol.GetName()}'");
+                        $"cannot create an '{uri.Scheme}' endpoint for protocol '{protocol.GetName()}'");
                 }
                 parser = p;
                 transport = t;
             }
             else
             {
-                throw new FormatException($"unknown transport `{transportName}'");
+                throw new FormatException($"unknown transport '{transportName}'");
             }
 
             // parser can be non-null only when the protocol is ice2.
@@ -189,7 +189,7 @@ namespace IceRpc
 
             if (options.Count > 0)
             {
-                throw new FormatException($"unknown option `{options.First().Key}' for transport `{transportName}'");
+                throw new FormatException($"unknown option '{options.First().Key}' for transport '{transportName}'");
             }
             return endpoint;
         }
@@ -235,7 +235,7 @@ namespace IceRpc
                 Debug.Assert(uri.AbsolutePath[0] == '/'); // there is always a first segment
                 if (uri.AbsolutePath.Length > 1 || uri.Fragment.Length > 0)
                 {
-                    throw new FormatException($"endpoint `{uriString}' must not specify a path or fragment");
+                    throw new FormatException($"endpoint '{uriString}' must not specify a path or fragment");
                 }
             }
 
@@ -249,7 +249,7 @@ namespace IceRpc
                 int equalPos = p.IndexOf('=');
                 if (equalPos <= 0 || equalPos == p.Length - 1)
                 {
-                    throw new FormatException($"invalid option `{p}'");
+                    throw new FormatException($"invalid option '{p}'");
                 }
                 string name = p[..equalPos];
                 string value = p[(equalPos + 1)..];
@@ -258,7 +258,7 @@ namespace IceRpc
                 {
                     if (pureEndpoints)
                     {
-                        throw new FormatException($"{name} is not a valid option for endpoint `{uriString}'");
+                        throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
                     }
 
                     // We can have multiple context options: context=key1=value1,key2=value2 etc.
@@ -267,7 +267,7 @@ namespace IceRpc
                         equalPos = e.IndexOf('=');
                         if (equalPos <= 0)
                         {
-                            throw new FormatException($"invalid option `{p}'");
+                            throw new FormatException($"invalid option '{p}'");
                         }
                         string contextKey = Uri.UnescapeDataString(e[..equalPos]);
                         string contextValue =
@@ -293,7 +293,7 @@ namespace IceRpc
                     proxyOptions.InvocationTimeout = TimeSpanExtensions.Parse(value);
                     if (proxyOptions.InvocationTimeout.Value == TimeSpan.Zero)
                     {
-                        throw new FormatException($"0 is not a valid value for the {name} option in `{uriString}'");
+                        throw new FormatException($"0 is not a valid value for the {name} option in '{uriString}'");
                     }
                 }
                 else if (name == "non-secure")
@@ -332,7 +332,7 @@ namespace IceRpc
                 {
                     // We've parsed all known proxy options so the remaining options must be endpoint options or
                     // alt-endpoint, which applies only to a direct proxy.
-                    throw new FormatException($"the ice URI scheme does not support option `{name}'");
+                    throw new FormatException($"the ice URI scheme does not support option '{name}'");
                 }
                 else if (name == "alt-endpoint")
                 {
@@ -356,11 +356,11 @@ namespace IceRpc
             {
                 if (pureEndpoints)
                 {
-                    throw new FormatException($"{name} is not a valid option for endpoint `{uriString}'");
+                    throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
                 }
                 if (alreadySet)
                 {
-                    throw new FormatException($"multiple {name} options in `{uriString}'");
+                    throw new FormatException($"multiple {name} options in '{uriString}'");
                 }
             }
         }
@@ -399,7 +399,7 @@ namespace IceRpc
                             if (endpointStr.StartsWith("ice:", StringComparison.Ordinal))
                             {
                                 throw new FormatException(
-                                    $"invalid URI scheme for endpoint `{endpointStr}': must be empty or ice+transport");
+                                    $"invalid URI scheme for endpoint '{endpointStr}': must be empty or ice+transport");
                             }
 
                             string altUriString = endpointStr;
@@ -422,7 +422,7 @@ namespace IceRpc
                             if (endpointAltEndpoint != null)
                             {
                                 throw new FormatException(
-                                    $"invalid option `alt-endpoint' in endpoint `{endpointStr}'");
+                                    $"invalid option 'alt-endpoint' in endpoint '{endpointStr}'");
                             }
 
                             endpoints = endpoints.Add(CreateEndpoint(endpointOptions, protocol, endpointUri));
@@ -434,7 +434,7 @@ namespace IceRpc
             catch (Exception ex)
             {
                 // Give context to the exception.
-                throw new FormatException($"failed to parse URI `{uriString}'", ex);
+                throw new FormatException($"failed to parse URI '{uriString}'", ex);
             }
         }
     }
