@@ -532,7 +532,7 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 void
 Slice::CsVisitor::emitClassAttribute(const string& typeId, int compactTypeId, const string& className)
 {
-    _out << nl << "[assembly:IceRpc.ClassAttribute(\"" << typeId << "\", " << compactTypeId
+    _out << nl << "[assembly:IceRpc.Class(\"" << typeId << "\", " << compactTypeId
          << ", typeof(" << className << "))]";
 }
 
