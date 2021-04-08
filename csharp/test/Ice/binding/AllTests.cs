@@ -65,7 +65,7 @@ namespace IceRpc.Test.Binding
                 com.DeactivateServer(server);
 
                 var test3 = test1.As<ITestIntfPrx>();
-                TestHelper.Assert(test3.CachedConnection == test1.CachedConnection);
+                TestHelper.Assert(test3.Connection == test1.Connection);
 
                 try
                 {

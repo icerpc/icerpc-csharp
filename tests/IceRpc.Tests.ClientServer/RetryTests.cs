@@ -87,9 +87,10 @@ namespace IceRpc.Tests.ClientServer
             Connection connection = await proxy.GetConnectionAsync();
             connection.Server = server;
             var bidir = proxy.Clone();
-            bidir.FixedConnection = connection;
+            bidir.Connection = connection;
+            bidir.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
 
-            Assert.ThrowsAsync< ServiceNotFoundException>(
+            Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
 
             // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
@@ -347,13 +348,15 @@ namespace IceRpc.Tests.ClientServer
                     await using var connection2 = await Connection.CreateAsync(retry.Endpoints[0], retry.Communicator);
 
                     var retry1 = retry.Clone();
-                    retry1.FixedConnection = connection1;
+                    retry1.Connection = connection1;
+                    retry1.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
 
                     Task t1 = retry1.OpWithDataAsync(2, 5000, data);
                     await Task.Delay(1000); // Ensure the first request is sent before the second request
 
                     var retry2 = retry.Clone();
-                    retry2.FixedConnection = connection2;
+                    retry2.Connection = connection2;
+                    retry2.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
                     Task t2 = retry2.OpWithDataAsync(2, 0, data);
 
                     Assert.DoesNotThrowAsync(async () => await t1);

@@ -90,27 +90,30 @@ namespace IceRpc
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
-        /// <returns>A new proxy options instance.</returns>
-        internal static ProxyOptions ParseProxy(string uriString, ProxyOptions proxyOptions)
+        /// <returns>The arguments to create a proxy.</returns>
+        internal static (string Path, Protocol Protocol, Encoding Encoding, IEnumerable<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+            string uriString,
+            ProxyOptions proxyOptions)
         {
             (Uri uri, IReadOnlyList<Endpoint> endpoints, ParsedOptions parsedOptions) = Parse(uriString);
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            ProxyOptions result = proxyOptions.With(parsedOptions.Encoding ?? Encoding.V20,
-                                                    endpoints,
-                                                    uri.AbsolutePath,
-                                                    parsedOptions.Protocol ?? Protocol.Ice2);
+            proxyOptions = proxyOptions.Clone();
 
-            // Also update other properties from parsed options
-            result.CacheConnection = parsedOptions.CacheConnection ?? result.CacheConnection;
-            result.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? result.Context;
-            result.IsOneway = parsedOptions.IsOneway ?? result.IsOneway;
-            result.InvocationTimeout = parsedOptions.InvocationTimeout ?? result.InvocationTimeout;
-            result.PreferExistingConnection = parsedOptions.PreferExistingConnection ?? result.PreferExistingConnection;
-            result.NonSecure = parsedOptions.NonSecure ?? result.NonSecure;
+            proxyOptions.CacheConnection = parsedOptions.CacheConnection ?? proxyOptions.CacheConnection;
+            proxyOptions.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? proxyOptions.Context;
+            proxyOptions.IsOneway = parsedOptions.IsOneway ?? proxyOptions.IsOneway;
+            proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
+            proxyOptions.PreferExistingConnection =
+                parsedOptions.PreferExistingConnection ?? proxyOptions.PreferExistingConnection;
+            proxyOptions.NonSecure = parsedOptions.NonSecure ?? proxyOptions.NonSecure;
 
-            return result;
+            return (uri.AbsolutePath,
+                    parsedOptions.Protocol ?? Protocol.Ice2,
+                    parsedOptions.Encoding ?? Encoding.V20,
+                    endpoints,
+                    proxyOptions);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>

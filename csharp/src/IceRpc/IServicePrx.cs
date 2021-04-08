@@ -121,19 +121,20 @@ namespace IceRpc
         public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
 
-        /// <summary>Indicates whether or not this proxy caches its connection.</summary>
-        /// <value>True when the proxy caches its connection; otherwise, false. Setting this value to false also clears
-        /// the cached connection.</value>
+        /// <summary>Indicates whether or not this proxy caches its connection. Setting this value does not clear
+        /// <see cref="Connection"/></summary>
+        /// <value>True when the proxy caches its connection; otherwise, false.</value>
         public bool CacheConnection { get; set; }
-
-        /// <summary>Returns the cached connection of this proxy.</summary>
-        /// <value>The cached connection for this proxy, or null if the proxy does not cache connections, does not have
-        /// a connection yet or is a fixed proxy.</value>
-        public Connection? CachedConnection { get; }
 
         /// <summary>Returns the communicator that created this proxy.</summary>
         /// <returns>The communicator that created this proxy.</returns>
         public Communicator Communicator { get; }
+
+        /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
+        /// endpoints (if any); in particular, set does check the new connection is compatible with these endpoints.
+        /// </summary>
+        /// <value>The connection for this proxy, or null if the proxy does not have a connection.</value>
+        public Connection? Connection { get; set; }
 
         /// <summary>The context of this proxy, which will be sent with each invocation made using this proxy.
         /// </summary>
@@ -142,15 +143,10 @@ namespace IceRpc
         /// <summary>The encoding used to marshal request parameters.</summary>
         public Encoding Encoding { get; set; }
 
-        /// <summary>The endpoints of this proxy. A proxy with a non-empty endpoint list is a direct proxy.</summary>
+        /// <summary>Gets or sets the endpoints of this proxy. Setting the endpoints does not affect the value of
+        /// <see cref="Connection"/>.</summary>
+        /// <value>The endpoints of this proxy.</value>
         public IReadOnlyList<Endpoint> Endpoints { get; set; }
-
-        /// <summary>A proxy bound to a connection is called a fixed proxy. This property gets or sets the fixed
-        /// connection of a proxy. Setting this property to null converts a fixed proxy into a relative proxy or into a
-        /// well known proxy. Setting this property to a non-null value clears the endpoints of this proxy since a fixed
-        /// proxy has no endpoint.</summary>
-        /// <value>The fixed connection of this proxy, or null.</value>
-        public Connection? FixedConnection { get; set; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; set; }
@@ -412,7 +408,23 @@ namespace IceRpc
 
         private class ServicePrxFactory : IProxyFactory<IServicePrx>
         {
-            public IServicePrx Create(ProxyOptions options) => new ServicePrx(options);
+            public IServicePrx Create(
+                string path,
+                Protocol protocol,
+                Encoding encoding,
+                IEnumerable<Endpoint> endpoints,
+                Connection? connection,
+                ProxyOptions options) =>
+                new ServicePrx(path, protocol, encoding, endpoints, connection, options);
+
+            public IServicePrx Create(
+                Identity identity,
+                string facet,
+                Encoding encoding,
+                IEnumerable<Endpoint> endpoints,
+                Connection? connection,
+                ProxyOptions options) =>
+                new ServicePrx(identity, facet, encoding, endpoints, connection, options);
         }
     }
 }

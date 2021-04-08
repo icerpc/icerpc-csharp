@@ -65,8 +65,6 @@ namespace IceRpc.Tests.Api
                                     });
             prx = server.Add("test", new GreeterService(), IGreeterServicePrx.Factory);
             var connection = await prx.GetConnectionAsync();
-            prx.FixedConnection = connection;
-            Assert.IsNull(prx.CachedConnection);
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 
@@ -116,7 +114,7 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task Proxy_SetProperty_ArgumentException()
+        public void Proxy_SetProperty_ArgumentException()
         {
             var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000", Communicator);
             Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
@@ -129,30 +127,6 @@ namespace IceRpc.Tests.Api
 
             // Zero is not a valid invocation timeout
             Assert.Throws<ArgumentException>(() => prxIce2.InvocationTimeout = TimeSpan.Zero);
-
-            await using var serverIce1 = new Server(Communicator, new()
-            {
-                Protocol = Protocol.Ice1,
-                ColocationScope = ColocationScope.Communicator
-            });
-            var fixedPrxIce1 = serverIce1.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
-            var connectionIce1 = await fixedPrxIce1.GetConnectionAsync();
-            fixedPrxIce1.FixedConnection = connectionIce1;
-            Assert.IsNotNull(fixedPrxIce1.FixedConnection);
-            Assert.AreEqual(Protocol.Ice1, fixedPrxIce1.Protocol);
-
-            await using var serverIce2 = new Server(Communicator, new()
-            {
-                ColocationScope = ColocationScope.Communicator
-            });
-            var fixedPrxIce2 = serverIce2.Add("hello", new GreeterService(), IGreeterServicePrx.Factory);
-            var connectionIce2 = await fixedPrxIce2.GetConnectionAsync();
-            fixedPrxIce2.FixedConnection = connectionIce2;
-            Assert.IsNotNull(fixedPrxIce2.FixedConnection);
-            Assert.AreEqual(Protocol.Ice2, fixedPrxIce2.Protocol);
-
-            // Cannot change the endpoints of a fixed proxy
-            Assert.Throws<ArgumentException>(() => fixedPrxIce2.Endpoints = prxIce2.Endpoints);
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
@@ -350,20 +324,23 @@ namespace IceRpc.Tests.Api
 
         [TestCase(Protocol.Ice1, "fixed -t -e 1.1")]
         [TestCase(Protocol.Ice2, "ice:/fixed?fixed=true")]
-        public async Task Proxy_Fixed(Protocol protocol, string expected)
+        public async Task Proxy_Fixed(Protocol protocol, string _)
         {
             await using var communicator = new Communicator();
             await using var server = new Server(
                 communicator,
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
             var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
-            Connection connection = await prx.GetConnectionAsync();
 
-            prx.FixedConnection = connection;
-            Assert.AreEqual(expected, prx.WithPath<IGreeterServicePrx>("fixed").ToString());
+            // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
+
+            // Connection connection = await prx.GetConnectionAsync();
+
+            // prx.FixedConnection = connection;
+            // Assert.AreEqual(expected, prx.WithPath<IGreeterServicePrx>("fixed").ToString());
         }
 
-         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
+        /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
         [TestCase("ice+tcp://localhost/path?invocation-timeout=10s&cache-connection=false&alt-endpoint=ice+ws://[::1]")]
         public void Proxy_HashCode(string proxyString)

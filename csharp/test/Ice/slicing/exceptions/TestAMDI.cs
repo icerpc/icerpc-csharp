@@ -68,7 +68,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         {
             TestHelper.Assert(r != null);
             IRelayPrx p = r.Clone();
-            p.FixedConnection = current.Connection;
+            p.Connection = current.Connection;
 
             try
             {
@@ -87,7 +87,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         {
             TestHelper.Assert(r != null);
             IRelayPrx p = r.Clone();
-            p.FixedConnection = current.Connection;
+            p.Connection = current.Connection;
 
             try
             {
@@ -118,7 +118,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         {
             TestHelper.Assert(r != null);
             IRelayPrx p = r.Clone();
-            p.FixedConnection = current.Connection;
+            p.Connection = current.Connection;
 
             try
             {
@@ -137,7 +137,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         {
             TestHelper.Assert(r != null);
             IRelayPrx p = r.Clone();
-            p.FixedConnection = current.Connection;
+            p.Connection = current.Connection;
             try
             {
                 await p.UnknownPreservedAsKnownPreservedAsync(cancel: cancel);
@@ -155,7 +155,7 @@ namespace IceRpc.Test.Slicing.Exceptions
         {
             TestHelper.Assert(r != null);
             IRelayPrx p = r.Clone();
-            p.FixedConnection = current.Connection;
+            p.Connection = current.Connection;
 
             try
             {

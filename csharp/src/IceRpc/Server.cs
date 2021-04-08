@@ -93,13 +93,6 @@ namespace IceRpc
 
             ProxyOptions = options.ProxyOptions.Clone();
             ProxyOptions.Communicator = communicator;
-
-            // When unmarshaling a relative proxy, we create a fixed proxy with no endpoints bound to the "receiving"
-            // connection. For non-relative proxies, IsFixed, Endpoints and all other non-inheritable properties are
-            // ignored.
-            ProxyOptions.IsFixed = true;
-            ProxyOptions.Endpoints = ImmutableList<Endpoint>.Empty;
-
             ConnectionOptions = options.ConnectionOptions.Clone();
 
             if (ConnectionOptions.AcceptNonSecure == NonSecure.Never && ConnectionOptions.AuthenticationOptions == null)
