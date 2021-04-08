@@ -3280,6 +3280,6 @@ Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
 bool
 Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
 {
-    emitClassAttribute(p->scoped(), 0, getNamespace(p) + "." + fixId(p->name()));
+    emitClassAttribute(p->scoped(), -1, getNamespace(p) + "." + fixId(p->name()));
     return false;
 }

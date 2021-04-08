@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
             // Load assembly D
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
             Assert.IsNotNull(assembly);
-            Runtime.RegisterFactoriesFromAssembly(assembly);
+            Runtime.RegisterClassFactoriesFromAssembly(assembly);
 
             // After loading D MyClassD is found, MyClassC too because C is a direct dependency of D and MyClassB too
             // because B is a transitive dependency of D.
