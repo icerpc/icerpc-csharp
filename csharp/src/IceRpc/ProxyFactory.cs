@@ -333,7 +333,7 @@ namespace IceRpc
                 if (wellKnown && options.LocationResolver == null)
                 {
                     // The protocol of the source proxy/connection prevails.
-                    Protocol protocol = (connection?.Protocol ?? source?.Protocol)!.Value;
+                    Protocol protocol = connection?.Protocol ?? source!.Protocol;
                     endpoints = source?.Endpoints ?? endpoints; // overwrite endpoints
 
                     if (protocol != Protocol.Ice1)
@@ -364,7 +364,7 @@ namespace IceRpc
                 if (endpoints.Count == 0) // relative proxy
                 {
                     // The protocol of the source proxy/connection prevails. It could be for example ice1.
-                    protocol = (connection?.Protocol ?? source?.Protocol)!.Value;
+                    protocol = connection?.Protocol ?? source!.Protocol;
                     endpoints = source?.Endpoints ?? endpoints; // overwrite endpoints
                     return factory.Create(path, protocol, encoding, endpoints, connection, proxyOptions);
                 }
