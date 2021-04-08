@@ -24,7 +24,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     ColocationScope = ColocationScope.Communicator
                 });
-            _prx = _server.Add("test", new TaggedOperations(), ITaggedOperationsPrx.Factory);
+            _prx = _server.Add("/test", new TaggedOperations(), ITaggedOperationsPrx.Factory);
         }
 
         [OneTimeTearDown]

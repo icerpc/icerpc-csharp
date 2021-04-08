@@ -131,7 +131,7 @@ namespace IceRpc.Tests.CodeGeneration
                     Protocol = protocol,
                     ColocationScope = ColocationScope.Communicator
                 });
-            IEnumOperationsPrx? prx = server.Add("test", new EnumOperations(), IEnumOperationsPrx.Factory);
+            IEnumOperationsPrx? prx = server.Add("/test", new EnumOperations(), IEnumOperationsPrx.Factory);
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);
         }

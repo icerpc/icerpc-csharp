@@ -49,8 +49,8 @@ namespace IceRpc.Tests.CodeGeneration
                     Protocol = protocol,
                     ColocationScope = ColocationScope.Communicator
                 });
-            _prx = _server.Add("test", new ClassOperations(), IClassOperationsPrx.Factory);
-            _prxUnexpectedClass = _server.Add("test1",
+            _prx = _server.Add("/test", new ClassOperations(), IClassOperationsPrx.Factory);
+            _prxUnexpectedClass = _server.Add("/test1",
                                                new ClassOperationsUnexpectedClass(),
                                                IClassOperationsUnexpectedClassPrx.Factory);
         }

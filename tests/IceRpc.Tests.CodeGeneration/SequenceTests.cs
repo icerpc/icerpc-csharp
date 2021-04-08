@@ -29,7 +29,7 @@ namespace IceRpc.Tests.CodeGeneration
                     Protocol = protocol,
                     ColocationScope = ColocationScope.Communicator
                 });
-            _prx = _server.Add("test", new SequenceOperations(), ISequenceOperationsPrx.Factory);
+            _prx = _server.Add("/test", new SequenceOperations(), ISequenceOperationsPrx.Factory);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

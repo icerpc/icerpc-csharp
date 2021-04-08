@@ -221,7 +221,7 @@ namespace IceRpc.Tests.Internal
             {
                 Communicator = Communicator,
             };
-            return (connection.Socket, IServicePrx.Factory.Create("dummy",
+            return (connection.Socket, IServicePrx.Factory.Create("/dummy",
                                                                   ClientEndpoint.Protocol,
                                                                   ClientEndpoint.Protocol.GetEncoding(),
                                                                   endpoints: ImmutableList<Endpoint>.Empty,
