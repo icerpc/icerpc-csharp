@@ -50,13 +50,18 @@ namespace IceRpc
         internal static bool IsProxyUri(string s) =>
             s.StartsWith("ice:", StringComparison.Ordinal) || IsEndpointUri(s);
 
-        /// <summary>Checks if <c>path</c> contains only unreserved characters, %, or reserved characters other than ?.
-        /// </summary>
+        /// <summary>Checks if <c>path</c> starts with <c>/</c> and contains only unreserved characters, <c>%</c>, or
+        /// reserved characters other than <c>?</c>.</summary>
         /// <param name="path">The path to check.</param>
         /// <returns>True if <c>path</c> is a valid path; otherwise, false.</returns>
         internal static bool IsValidPath(string path)
         {
             const string invalidChars = "\"<>?\\^`{|}";
+
+            if (path.Length == 0 || path[0] != '/')
+            {
+                return false;
+            }
 
             foreach (char c in path)
             {
@@ -68,18 +73,15 @@ namespace IceRpc
             return true;
         }
 
-        /// <summary>Makes sure path is valid and adds a leading slash to path if it does not have one already.
-        /// </summary>
-        internal static string NormalizePath(string path)
+        /// <summary>Makes sure path is valid.</summary>
+        internal static void CheckPath(string path)
         {
             if (!IsValidPath(path))
             {
                 throw new FormatException(
-                    @$"invalid path `{path
-                    }'; a valid path can only contain unreserved characters, `%' and reserved characters other than `?'");
+                    @$"invalid path '{path
+                    }'; a valid path must start with '/' and can only contain unreserved characters, '%' and reserved characters other than '?'");
             }
-
-            return path.Length > 0 && path[0] == '/' ? path : $"/{path}";
         }
 
         /// <summary>Parses an ice+transport URI string that represents one or more endpoints.</summary>

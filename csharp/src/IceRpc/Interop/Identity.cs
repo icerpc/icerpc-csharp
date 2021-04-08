@@ -16,12 +16,8 @@ namespace IceRpc.Interop
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            if (path.Length == 0)
-            {
-                return Empty;
-            }
-
-            string workingPath = UriParser.NormalizePath(path)[1..]; // checks path and removes leading /.
+            UriParser.CheckPath(path);
+            string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/');
             if (firstSlash != workingPath.LastIndexOf('/'))

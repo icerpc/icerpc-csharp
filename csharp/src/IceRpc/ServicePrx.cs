@@ -554,7 +554,8 @@ namespace IceRpc
             ProxyOptions options)
             : this(protocol, encoding, endpoints, connection, options)
         {
-            Path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path);
+            Path = path;
 
             if (Protocol == Protocol.Ice1)
             {
