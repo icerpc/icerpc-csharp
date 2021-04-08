@@ -262,8 +262,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(name);
-                        LoadReferencedAssemblies(assembly, seenAssembly);
+                        LoadReferencedAssemblies(AssemblyLoadContext.Default.LoadFromAssemblyName(name), seenAssembly);
                     }
                     catch
                     {

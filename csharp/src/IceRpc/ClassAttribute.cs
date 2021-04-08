@@ -7,8 +7,8 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>This attribute class is used by the generated code to map type IDs to C# classes
-    /// and exceptions.</summary>
+    /// <summary>This attribute class is used by the generated code to map type IDs to C# classes and exceptions.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class ClassAttribute : Attribute
     {
@@ -25,7 +25,7 @@ namespace IceRpc
         {
             get
             {
-                if (typeof(AnyClass).IsAssignableFrom(Type) && _classFactory == null)
+                if (typeof(AnyClass).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.NonPublic,
@@ -39,21 +39,21 @@ namespace IceRpc
                         return null; // TODO throw InvalidMethodException?
                     }
 
-                    _classFactory = (ClassFactory)Expression.Lambda(
+                    return (ClassFactory)Expression.Lambda(
                         typeof(ClassFactory),
                         Expression.New(constructor, Expression.Constant(null, typeof(InputStream)))).Compile();
                 }
-                return _classFactory;
+                return null;
             }
         }
 
-        /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
+        /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type doesn't implements <see cref="RemoteException"/>."</summary>
         public RemoteExceptionFactory? ExceptionFactory
         {
             get
             {
-                if (typeof(RemoteException).IsAssignableFrom(Type) && _exceptionFactory == null)
+                if (typeof(RemoteException).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.NonPublic,
@@ -70,18 +70,15 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    _exceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
+                    return (RemoteExceptionFactory)Expression.Lambda(
                         typeof(RemoteExceptionFactory),
                         Expression.New(constructor, messageParam, originParam),
                         messageParam,
                         originParam).Compile();
                 }
-                return _exceptionFactory;
+                return null;
             }
         }
-
-        private ClassFactory? _classFactory;
-        private RemoteExceptionFactory? _exceptionFactory;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
         /// <param name="typeID">The type ID.</param>
