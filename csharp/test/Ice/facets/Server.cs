@@ -13,12 +13,12 @@ namespace IceRpc.Test.Facets
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             var d = new D();
-            server.Add("d", d);
-            server.Add("d", "facetABCD", d);
+            server.Add("/d", d);
+            server.Add("/d", "facetABCD", d);
             var f = new F();
-            server.Add("d", "facetEF", f);
+            server.Add("/d", "facetEF", f);
             var h = new H();
-            server.Add("d", "facetGH", h);
+            server.Add("/d", "facetGH", h);
             server.Activate();
 
             ServerReady();

@@ -13,7 +13,7 @@ namespace IceRpc.Test.Inheritance
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
             var initial = new InitialI(server);
-            server.Add("initial", initial);
+            server.Add("/initial", initial);
             server.Activate();
 
             ServerReady();

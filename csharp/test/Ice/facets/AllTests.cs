@@ -42,18 +42,18 @@ namespace IceRpc.Test.Facets
 
             var obj = new Empty();
 
-            server.Add("d", obj);
-            server.Add("d#facetABCD", obj);
+            server.Add("/d", obj);
+            server.Add("/d#facetABCD", obj);
             try
             {
-                server.Add("d#facetABCD", obj);
+                server.Add("/d#facetABCD", obj);
                 TestHelper.Assert(false);
             }
             catch (ArgumentException)
             {
             }
-            server.Remove("d#facetABCD");
-            server.Remove("d#facetABCD"); // multiple Remove are fine as of Ice 4.0
+            server.Remove("/d#facetABCD");
+            server.Remove("/d#facetABCD"); // multiple Remove are fine as of Ice 4.0
             output.WriteLine("ok");
 
             await server.DisposeAsync();

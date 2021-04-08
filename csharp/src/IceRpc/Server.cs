@@ -356,7 +356,7 @@ namespace IceRpc
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T AddWithUUID<T>(string facet, IService service, IProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
-            Add(Guid.NewGuid().ToString(), facet, service, proxyFactory);
+            Add($"/{Guid.NewGuid().ToString()}", facet, service, proxyFactory);
 
         /// <summary>Adds a service to this server's Active Service Map (ASM), using as key a unique identity
         /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty

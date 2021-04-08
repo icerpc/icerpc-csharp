@@ -14,7 +14,7 @@ namespace IceRpc.Test.Binding
         public RemoteServer(Server server)
         {
             _server = server;
-            _testIntf = _server.Add("test", new TestIntf(), ITestIntfPrx.Factory);
+            _testIntf = _server.Add("/test", new TestIntf(), ITestIntfPrx.Factory);
         }
 
         public ValueTask<ITestIntfPrx> GetTestIntfAsync(Current current, CancellationToken cancel) =>

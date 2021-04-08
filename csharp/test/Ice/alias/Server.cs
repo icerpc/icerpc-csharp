@@ -12,7 +12,7 @@ namespace IceRpc.Test.Alias
             await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("test", new Interface2());
+            server.Add("/test", new Interface2());
             server.Activate();
 
             ServerReady();

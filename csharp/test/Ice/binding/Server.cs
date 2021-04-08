@@ -18,7 +18,7 @@ namespace IceRpc.Test.Binding
                     PublishedHost = TestHelper.GetTestHost(Communicator.GetProperties())
                 });
 
-            server.Add("communicator", new RemoteCommunicator());
+            server.Add("/communicator", new RemoteCommunicator());
             server.Activate();
 
             ServerReady();
