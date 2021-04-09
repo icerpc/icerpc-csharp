@@ -166,7 +166,7 @@ namespace IceRpc
             }
         }
 
-        // Returns the ClassFactory associated with this Slice type ID, not null if not found.
+        // Returns the ClassFactory associated with this Slice type ID, null if not found.
         internal static ClassFactory? FindClassFactory(string typeId)
         {
             if (_typeIdClassFactoryCache == null)
