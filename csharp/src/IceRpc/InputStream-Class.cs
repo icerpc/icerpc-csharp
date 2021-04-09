@@ -167,7 +167,7 @@ namespace IceRpc
             }
             else
             {
-                throw new InvalidDataException(@$"read instance of type'{obj.GetType().FullName
+                throw new InvalidDataException(@$"read instance of type '{obj.GetType().FullName
                     }' but expected instance of type '{typeof(T).FullName}'");
             }
         }
