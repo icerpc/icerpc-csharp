@@ -379,7 +379,7 @@ namespace IceRpc
 
                 default:
                 {
-                    throw new InvalidDataException($"received ice1 frame with unknown frame type `{frameType}'");
+                    throw new InvalidDataException($"received ice1 frame with unknown frame type '{frameType}'");
                 }
             }
         }

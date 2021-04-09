@@ -1125,8 +1125,8 @@ namespace IceRpc
             {
                 string transportName = transport.ToString().ToLowerInvariant();
                 throw new InvalidDataException(
-                    @$"cannot read endpoint for protocol `{protocol.GetName()}' and transport `{transportName
-                    }' with endpoint encapsulation encoded with encoding `{encoding}'");
+                    @$"cannot read endpoint for protocol '{protocol.GetName()}' and transport '{transportName
+                    }' with endpoint encapsulation encoded with encoding '{encoding}'");
             }
 
             return endpoint;
@@ -1335,7 +1335,7 @@ namespace IceRpc
                     if (format != expectedFormat && (expectedFormat != EncodingDefinitions.TagFormat.VInt ||
                             (int)format > (int)EncodingDefinitions.TagFormat.F8))
                     {
-                        throw new InvalidDataException($"invalid tagged parameter `{tag}': unexpected format");
+                        throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
                     }
                     return true;
                 }
@@ -1407,7 +1407,7 @@ namespace IceRpc
                     break;
                 default:
                     throw new InvalidDataException(
-                        $"cannot skip tagged parameter or data member with tag format `{format}'");
+                        $"cannot skip tagged parameter or data member with tag format '{format}'");
             }
         }
 

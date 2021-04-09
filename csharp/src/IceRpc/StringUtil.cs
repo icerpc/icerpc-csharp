@@ -242,7 +242,7 @@ namespace IceRpc
                 string msg;
                 if (pos > 0)
                 {
-                    msg = "character after `" + s.Substring(0, pos) + "'";
+                    msg = "character after '" + s.Substring(0, pos) + "'";
                 }
                 else
                 {

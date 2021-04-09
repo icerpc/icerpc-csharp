@@ -228,7 +228,7 @@ Slice::DefinitionContext::initSuppressedWarnings()
                 }
                 else
                 {
-                    warning(InvalidMetadata, "", -1, string("invalid category `") + s +
+                    warning(InvalidMetadata, "", -1, string("invalid category '") + s +
                             "' in file metadata suppress-warning");
                 }
             }
@@ -1064,15 +1064,15 @@ Slice::Container::lookupTypeNoBuiltin(const string& scoped, bool printError, boo
 
         if (printError && match->scoped() != (thisScope() + sc))
         {
-            errors.push_back(match->kindOf() + " `" + scoped
-                             + "' is capitalized inconsistently with its previous name: `" + match->scoped() + "'");
+            errors.push_back(match->kindOf() + " '" + scoped
+                             + "' is capitalized inconsistently with its previous name: '" + match->scoped() + "'");
         }
 
         if (ExceptionPtr ex = ExceptionPtr::dynamicCast(match))
         {
             if (printError)
             {
-                _unit->error("`" + sc + "' is an exception, which cannot be used as a type");
+                _unit->error("'" + sc + "' is an exception, which cannot be used as a type");
             }
             return TypeList();
         }
@@ -1083,7 +1083,7 @@ Slice::Container::lookupTypeNoBuiltin(const string& scoped, bool printError, boo
             typeError = true;
             if (printError)
             {
-                errors.push_back("`" + sc + "' is not a type");
+                errors.push_back("'" + sc + "' is not a type");
             }
             break; // Possible that correct match is higher in scope
         }
@@ -1100,7 +1100,7 @@ Slice::Container::lookupTypeNoBuiltin(const string& scoped, bool printError, boo
         {
             if (printError && !ignoreUndefined)
             {
-                _unit->error("type `" + sc + "' is not defined");
+                _unit->error("type '" + sc + "' is not defined");
             }
             return TypeList();
         }
@@ -1146,16 +1146,16 @@ Slice::Container::lookupContained(const string& scoped, bool printError)
             string containerName;
             if (ContainedPtr container = ContainedPtr::dynamicCast(match->container()))
             {
-                containerName = "in " + container->kindOf() + " `" + container->scoped() + "'";
+                containerName = "in " + container->kindOf() + " '" + container->scoped() + "'";
             }
             else
             {
                 containerName = "at global scope";
             }
 
-            _unit->error(match->kindOf() + " `" + scoped + "' is capitalized inconsistently with its previous name: `"
+            _unit->error(match->kindOf() + " '" + scoped + "' is capitalized inconsistently with its previous name: '"
                          + match->scoped() + "'");
-            _unit->note(match, match->kindOf() + " `" + match->name() + "' is defined " + containerName);
+            _unit->note(match, match->kindOf() + " '" + match->name() + "' is defined " + containerName);
         }
     }
 
@@ -1166,7 +1166,7 @@ Slice::Container::lookupContained(const string& scoped, bool printError)
         {
             if (printError)
             {
-                _unit->error("`" + sc + "' is not defined");
+                _unit->error("'" + sc + "' is not defined");
             }
             return ContainedList();
         }
@@ -1195,7 +1195,7 @@ Slice::Container::lookupException(const string& scoped, bool printError)
         {
             if (printError)
             {
-                _unit->error("`" + scoped + "' is not an exception");
+                _unit->error("'" + scoped + "' is not an exception");
             }
             return nullptr;
         }
@@ -1364,7 +1364,7 @@ Slice::Container::checkIntroduced(const string& scoped, ContainedPtr namedThing)
                 return true;
             }
 
-            _unit->error("`" + firstComponent + "' has changed meaning");
+            _unit->error("'" + firstComponent + "' has changed meaning");
             return false;
         }
     }
@@ -1406,11 +1406,11 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
         {
             if (isConstant)
             {
-                _unit->error("constant `" + name + "' has illegal type: `" + b->kindAsString() + "'");
+                _unit->error("constant '" + name + "' has illegal type: '" + b->kindAsString() + "'");
             }
             else
             {
-                _unit->error("default value not allowed for data member `" + name + "' of type `" +
+                _unit->error("default value not allowed for data member '" + name + "' of type '" +
                              b->kindAsString() + "'");
             }
             return false;
@@ -1420,11 +1420,11 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
     {
         if (isConstant)
         {
-            _unit->error("constant `" + name + "' has illegal type");
+            _unit->error("constant '" + name + "' has illegal type");
         }
         else
         {
-            _unit->error("default value not allowed for data member `" + name + "'");
+            _unit->error("default value not allowed for data member '" + name + "'");
         }
         return false;
     }
@@ -1466,15 +1466,15 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
 
             if (!ok)
             {
-                _unit->error("initializer of type `" + lt->kindAsString() + "' is incompatible with the type `" +
-                             b->kindAsString() + "' of " + desc + " `" + name + "'");
+                _unit->error("initializer of type '" + lt->kindAsString() + "' is incompatible with the type '" +
+                             b->kindAsString() + "' of " + desc + " '" + name + "'");
                 return false;
             }
         }
         else
         {
-            _unit->error("type of initializer is incompatible with the type `" + b->kindAsString() + "' of " + desc +
-                         " `" + name + "'");
+            _unit->error("type of initializer is incompatible with the type '" + b->kindAsString() + "' of " + desc +
+                         " '" + name + "'");
             return false;
         }
 
@@ -1501,7 +1501,7 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
             {
                 ostringstream oss;
                 oss.imbue(underscoreSeparatorLocale);
-                oss << "initializer `" << value << "' for " << desc << " " << name << " is outside the range of "
+                oss << "initializer '" << value << "' for " << desc << " " << name << " is outside the range of "
                     << b->kindAsString() << ": [" << min << ".." << max << "]";
                 _unit->error(oss.str());
                 return false;
@@ -1515,7 +1515,7 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
         {
             if (e != EnumPtr::dynamicCast(constant->type()))
             {
-                _unit->error("type of initializer is incompatible with the type of " + desc + " `" + name + "'");
+                _unit->error("type of initializer is incompatible with the type of " + desc + " '" + name + "'");
                 return false;
             }
         }
@@ -1526,13 +1526,13 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
                 EnumeratorPtr lte = EnumeratorPtr::dynamicCast(valueType);
                 if (!lte)
                 {
-                    _unit->error("type of initializer is incompatible with the type of " + desc + " `" + name + "'");
+                    _unit->error("type of initializer is incompatible with the type of " + desc + " '" + name + "'");
                     return false;
                 }
                 EnumeratorList elist = e->enumerators();
                 if (find(elist.begin(), elist.end(), lte) == elist.end())
                 {
-                    _unit->error("enumerator `" + value + "' is not defined in enumeration `" + e->scoped() + "'");
+                    _unit->error("enumerator '" + value + "' is not defined in enumeration '" + e->scoped() + "'");
                     return false;
                 }
             }
@@ -1549,7 +1549,7 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
                 ContainedList clist = e->lookupContained(newVal, false);
                 if (clist.empty())
                 {
-                    _unit->error("`" + value + "' does not designate an enumerator of `" + e->scoped() + "'");
+                    _unit->error("'" + value + "' does not designate an enumerator of '" + e->scoped() + "'");
                     return false;
                 }
 
@@ -1558,13 +1558,13 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
                     valueType = lte;
                     if (lastColon != string::npos)
                     {
-                        _unit->warning(Deprecated, string("referencing enumerator `") + lte->name() +
+                        _unit->warning(Deprecated, string("referencing enumerator '") + lte->name() +
                                        "' in its enumeration's enclosing scope is deprecated");
                     }
                 }
                 else
                 {
-                    _unit->error("type of initializer is incompatible with the type of " + desc + " `" + name + "'");
+                    _unit->error("type of initializer is incompatible with the type of " + desc + " '" + name + "'");
                     return false;
                 }
             }
@@ -1599,16 +1599,16 @@ Slice::DataMemberContainer::createDataMember(const string& name, const TypePtr& 
     const string typeName = this->kindOf();
     if (name == this->name())
     {
-        _unit->error("data member `" + name + "' cannot have the same name as its enclosing " + typeName);
-        _unit->note(this, typeName + " `" + this->name() + "' is defined here");
+        _unit->error("data member '" + name + "' cannot have the same name as its enclosing " + typeName);
+        _unit->note(this, typeName + " '" + this->name() + "' is defined here");
         return nullptr;
     }
 
     if (ciequals(name, this->name()))
     {
-        _unit->error("data member `" + name + "' differs only in capitalization from its enclosing " + typeName +
-                     " named `" + this->name() + "'");
-        _unit->note(this, typeName + " `" + this->name() + "' is defined here");
+        _unit->error("data member '" + name + "' differs only in capitalization from its enclosing " + typeName +
+                     " named '" + this->name() + "'");
+        _unit->note(this, typeName + " '" + this->name() + "' is defined here");
         return nullptr;
     }
 
@@ -1635,7 +1635,7 @@ Slice::DataMemberContainer::createDataMember(const string& name, const TypePtr& 
         {
             if (member->tagged() && tag == member->tag())
             {
-                _unit->error("tag for data member `" + name + "' is already in use");
+                _unit->error("tag for data member '" + name + "' is already in use");
                 break;
             }
         }
@@ -1771,28 +1771,28 @@ Slice::Module::createClassDef(const string& name, int id, const ClassDefPtr& bas
         {
             if (differsOnlyInCase)
             {
-                _unit->error("class definition `" + name
-                             + "' is capitalized inconsistently with its previous name: `" + match->name() + "'");
-                _unit->note(match, "class `" + match->name() + "' was originally defined here");
+                _unit->error("class definition '" + name
+                             + "' is capitalized inconsistently with its previous name: '" + match->name() + "'");
+                _unit->note(match, "class '" + match->name() + "' was originally defined here");
             }
             else
             {
-                _unit->error("redefinition of class `" + name + "'");
-                _unit->note(match, "class `" + name + "' was originally defined here");
+                _unit->error("redefinition of class '" + name + "'");
+                _unit->note(match, "class '" + name + "' was originally defined here");
             }
         }
         else if (differsOnlyInCase)
         {
-            _unit->error("class definition `" + name + "' differs only in capitalization from the "
-                        + match->kindOf() + " named `" + match->name() + "'");
-            _unit->note(match, match->kindOf() + " `" + match->name() + "' is defined here");
+            _unit->error("class definition '" + name + "' differs only in capitalization from the "
+                        + match->kindOf() + " named '" + match->name() + "'");
+            _unit->note(match, match->kindOf() + " '" + match->name() + "' is defined here");
         }
         else
         {
             bool declared = InterfaceDeclPtr::dynamicCast(match);
-            _unit->error("class `" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
+            _unit->error("class '" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
                         + prependA(match->kindOf()));
-            _unit->note(match, match->kindOf() + " `" + name + "' was originally defined here");
+            _unit->note(match, match->kindOf() + " '" + name + "' was originally defined here");
         }
         return nullptr;
     }
@@ -1803,7 +1803,7 @@ Slice::Module::createClassDef(const string& name, int id, const ClassDefPtr& bas
     }
     if (_name == "")
     {
-        _unit->error("`" + name + "': a class can only be defined at module scope");
+        _unit->error("'" + name + "': a class can only be defined at module scope");
     }
 
     ClassDefPtr def = new ClassDef(this, name, id, base);
@@ -1838,16 +1838,16 @@ Slice::Module::createClassDecl(const string& name)
 
         if (match->name() != name)
         {
-            _unit->error("class declaration `" + name + "' differs only in capitalization from the " + match->kindOf()
-                        + " named `" + match->name() + "'");
-            _unit->note(match, match->kindOf() + " `" + match->name() + "' is defined here");
+            _unit->error("class declaration '" + name + "' differs only in capitalization from the " + match->kindOf()
+                        + " named '" + match->name() + "'");
+            _unit->note(match, match->kindOf() + " '" + match->name() + "' is defined here");
         }
         else
         {
             bool declared = InterfaceDeclPtr::dynamicCast(match);
-            _unit->error("class `" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
+            _unit->error("class '" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
                         + prependA(match->kindOf()));
-            _unit->note(match, match->kindOf() + " `" + name + "' was originally defined here");
+            _unit->note(match, match->kindOf() + " '" + name + "' was originally defined here");
         }
         return nullptr;
     }
@@ -1858,7 +1858,7 @@ Slice::Module::createClassDecl(const string& name)
     }
     if (_name == "")
     {
-        _unit->error("`" + name + "': a class can only be defined at module scope");
+        _unit->error("'" + name + "': a class can only be defined at module scope");
     }
 
     // Multiple declarations are permissible. But if we do already
@@ -1906,28 +1906,28 @@ Slice::Module::createInterfaceDef(const string& name, const InterfaceList& bases
         {
             if (differsOnlyInCase)
             {
-                _unit->error("interface definition `" + name
-                             + "' is capitalized inconsistently with its previous name: `" + match->name() + "'");
-                _unit->note(match, "interface `" + match->name() + "' was originally defined here");
+                _unit->error("interface definition '" + name
+                             + "' is capitalized inconsistently with its previous name: '" + match->name() + "'");
+                _unit->note(match, "interface '" + match->name() + "' was originally defined here");
             }
             else
             {
-                _unit->error("redefinition of interface `" + name + "'");
-                _unit->note(match, "interface `" + name + "' was originally defined here");
+                _unit->error("redefinition of interface '" + name + "'");
+                _unit->note(match, "interface '" + name + "' was originally defined here");
             }
         }
         else if (differsOnlyInCase)
         {
-            _unit->error("interface definition `" + name + "' differs only in capitalization from the "
-                        + match->kindOf() + " named `" + match->name() + "'");
-            _unit->note(match, match->kindOf() + " `" + match->name() + "' is defined here");
+            _unit->error("interface definition '" + name + "' differs only in capitalization from the "
+                        + match->kindOf() + " named '" + match->name() + "'");
+            _unit->note(match, match->kindOf() + " '" + match->name() + "' is defined here");
         }
         else
         {
             bool declared = ClassDeclPtr::dynamicCast(match);
-            _unit->error("interface `" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
+            _unit->error("interface '" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
                         + prependA(match->kindOf()));
-            _unit->note(match, match->kindOf() + " `" + name + "' was originally defined here");
+            _unit->note(match, match->kindOf() + " '" + name + "' was originally defined here");
         }
         return nullptr;
     }
@@ -1938,7 +1938,7 @@ Slice::Module::createInterfaceDef(const string& name, const InterfaceList& bases
     }
     if (_name == "")
     {
-        _unit->error("`" + name + "': an interface can only be defined at module scope");
+        _unit->error("'" + name + "': an interface can only be defined at module scope");
     }
 
     InterfaceDecl::checkBasesAreLegal(name, bases, _unit);
@@ -1975,16 +1975,16 @@ Slice::Module::createInterfaceDecl(const string& name)
 
         if (match->name() != name)
         {
-            _unit->error("interface declaration `" + name + "' differs only in capitalization from the "
-                        + match->kindOf() + " named `" + match->name() + "'");
-            _unit->note(match, match->kindOf() + " `" + match->name() + "' is defined here");
+            _unit->error("interface declaration '" + name + "' differs only in capitalization from the "
+                        + match->kindOf() + " named '" + match->name() + "'");
+            _unit->note(match, match->kindOf() + " '" + match->name() + "' is defined here");
         }
         else
         {
             bool declared = ClassDeclPtr::dynamicCast(match);
-            _unit->error("interface `" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
+            _unit->error("interface '" + name + "' was previously " + (declared ? "declared" : "defined") + " as "
                         + prependA(match->kindOf()));
-            _unit->note(match, match->kindOf() + " `" + name + "' was originally defined here");
+            _unit->note(match, match->kindOf() + " '" + name + "' was originally defined here");
         }
         return nullptr;
     }
@@ -1995,7 +1995,7 @@ Slice::Module::createInterfaceDecl(const string& name)
     }
     if (_name == "")
     {
-        _unit->error("`" + name + "': an interface can only be defined at module scope");
+        _unit->error("'" + name + "': an interface can only be defined at module scope");
     }
 
     // Multiple declarations are permissible. But if we do already have a declaration for the interface in this
@@ -2037,7 +2037,7 @@ Slice::Module::createException(const string& name, const ExceptionPtr& base, Nod
     checkIdentifier(name); // Don't return here -- we create the exception anyway.
     if (nt == Real && _name == "")
     {
-        _unit->error("`" + name + "': an exception can only be defined at module scope");
+        _unit->error("'" + name + "': an exception can only be defined at module scope");
     }
 
     ExceptionPtr p = new Exception(this, name, base);
@@ -2056,7 +2056,7 @@ Slice::Module::createStruct(const string& name, NodeType nt)
     checkIdentifier(name); // Don't return here -- we create the struct anyway.
     if (nt == Real && _name == "")
     {
-        _unit->error("`" + name + "': a structure can only be defined at module scope");
+        _unit->error("'" + name + "': a structure can only be defined at module scope");
     }
 
     StructPtr p = new Struct(this, name);
@@ -2075,7 +2075,7 @@ Slice::Module::createTypeAlias(const string& name, const TypePtr& type, const St
     checkIdentifier(name); // Don't return here -- we create the alias anyway.
     if (_name == "")
     {
-        _unit->error("`" + name + "': a typealias can only be defined at module scope");
+        _unit->error("'" + name + "': a typealias can only be defined at module scope");
     }
 
     // Ensure the type isn't an alias itself. These should already be unwrapped by the grammar.
@@ -2086,11 +2086,11 @@ Slice::Module::createTypeAlias(const string& name, const TypePtr& type, const St
     {
         if (ClassDeclPtr::dynamicCast(type))
         {
-            _unit->error("illegal metadata on `" + name + "': metadata cannot be specified on aliases of classes");
+            _unit->error("illegal metadata on '" + name + "': metadata cannot be specified on aliases of classes");
         }
         else if (InterfaceDeclPtr::dynamicCast(type))
         {
-            _unit->error("illegal metadata on `" + name + "': metadata cannot be specified on aliases of interfaces");
+            _unit->error("illegal metadata on '" + name + "': metadata cannot be specified on aliases of interfaces");
         }
     }
 
@@ -2111,7 +2111,7 @@ Slice::Module::createSequence(const string& name, const TypePtr& type, const Str
     checkIdentifier(name); // Don't return here -- we create the sequence anyway.
     if (_name == "")
     {
-        _unit->error("`" + name + "': a sequence can only be defined at module scope");
+        _unit->error("'" + name + "': a sequence can only be defined at module scope");
     }
 
     SequencePtr p = new Sequence(this, name, type, metadata);
@@ -2133,13 +2133,13 @@ Slice::Module::createDictionary(const string& name, const TypePtr& keyType, cons
     checkIdentifier(name); // Don't return here -- we create the dictionary anyway.
     if (_name == "")
     {
-        _unit->error("`" + name + "': a dictionary can only be defined at module scope");
+        _unit->error("'" + name + "': a dictionary can only be defined at module scope");
     }
 
     bool containsSequence = false;
     if (!Dictionary::legalKeyType(keyType, containsSequence))
     {
-        _unit->error("dictionary `" + name + "' uses an illegal key type");
+        _unit->error("dictionary '" + name + "' uses an illegal key type");
         return nullptr;
     }
     if (containsSequence)
@@ -2163,7 +2163,7 @@ Slice::Module::createEnum(const string& name, bool unchecked, NodeType nt)
     checkIdentifier(name); // Don't return here -- we create the enumeration anyway.
     if (nt == Real && _name == "")
     {
-        _unit->error("`" + name + "': an enumeration can only be defined at module scope");
+        _unit->error("'" + name + "': an enumeration can only be defined at module scope");
     }
 
     EnumPtr p = new Enum(this, name, unchecked);
@@ -2184,7 +2184,7 @@ Slice::Module::createConst(const string name, const TypePtr& constType, const St
     checkIdentifier(name); // Don't return here -- we create the constant anyway.
     if (nt == Real && _name == "")
     {
-        _unit->error("`" + name + "': a constant can only be defined at module scope");
+        _unit->error("'" + name + "': a constant can only be defined at module scope");
     }
 
     // Validate the constant and its value; for enums, find enumerator
@@ -2561,8 +2561,8 @@ Slice::ClassDef::createDataMember(const string& name, const TypePtr& type, bool 
             if (member->name() == name)
             {
                 ClassDefPtr container = ClassDefPtr::dynamicCast(member->container());
-                _unit->error("data member `" + name + "' is already defined in a base class");
-                _unit->note(member, "data member `" + name + "' was originally defined in class `" + container->name()
+                _unit->error("data member '" + name + "' is already defined in a base class");
+                _unit->note(member, "data member '" + name + "' was originally defined in class '" + container->name()
                             + "'");
                 return nullptr;
             }
@@ -2570,9 +2570,9 @@ Slice::ClassDef::createDataMember(const string& name, const TypePtr& type, bool 
             if (ciequals(member->name(), name))
             {
                 ClassDefPtr container = ClassDefPtr::dynamicCast(member->container());
-                _unit->error("data member `" + name + "' differs only in capitalization from the data member named `"
+                _unit->error("data member '" + name + "' differs only in capitalization from the data member named '"
                              + member->name() + "', which is defined in a base class");
-                _unit->note(member, "data member `" + member->name() + "' is defined in the class `" + container->name()
+                _unit->note(member, "data member '" + member->name() + "' is defined in the class '" + container->name()
                             + "'");
             }
         }
@@ -2891,14 +2891,14 @@ Slice::InterfaceDecl::checkPairIntersections(const StringPartitionList& l, const
                 {
                     if (s1 == s2 && reported.find(s1) == reported.end())
                     {
-                        ut->error("ambiguous multiple inheritance: `" + name + "' inherits operation `" + s1
+                        ut->error("ambiguous multiple inheritance: '" + name + "' inherits operation '" + s1
                                   + "' from two or more unrelated base interfaces");
                         reported.insert(s1);
                     }
                     else if (ciequals(s1, s2) && reported.find(s1) == reported.end()
                             && reported.find(s2) == reported.end())
                     {
-                        ut->error("ambiguous multiple inheritance: `" + name + "' inherits operations `" + s1 + "' and `"
+                        ut->error("ambiguous multiple inheritance: '" + name + "' inherits operations '" + s1 + "' and '"
                                   + s2 + "', which differ only in capitalization, from unrelated base interfaces");
                         reported.insert(s1);
                         reported.insert(s2);
@@ -2934,13 +2934,13 @@ Slice::InterfaceDef::createOperation(const string& name,
     // Check whether enclosing interface has the same name.
     if (name == this->name())
     {
-        _unit->error("interface name `" + name + "' cannot be used as operation name");
+        _unit->error("interface name '" + name + "' cannot be used as operation name");
         return nullptr;
     }
 
     if (ciequals(name, this->name()))
     {
-        _unit->error("operation `" + name + "' differs only in capitalization from enclosing interface name `"
+        _unit->error("operation '" + name + "' differs only in capitalization from enclosing interface name '"
                      + this->name() + "'");
         return nullptr;
     }
@@ -2953,8 +2953,8 @@ Slice::InterfaceDef::createOperation(const string& name,
             if (operation->name() == name)
             {
                 InterfaceDefPtr container = InterfaceDefPtr::dynamicCast(operation->container());
-                _unit->error("operation `" + name + "' is already defined in a base interface");
-                _unit->note(operation, "operation `" + name + "' was originally defined in interface `"
+                _unit->error("operation '" + name + "' is already defined in a base interface");
+                _unit->note(operation, "operation '" + name + "' was originally defined in interface '"
                             + container->name() + "'");
                 return nullptr;
             }
@@ -2962,9 +2962,9 @@ Slice::InterfaceDef::createOperation(const string& name,
             if (ciequals(operation->name(), name))
             {
                 InterfaceDefPtr container = InterfaceDefPtr::dynamicCast(operation->container());
-                _unit->error("operation `" + name + "' differs only in capitalization from the operation named `"
+                _unit->error("operation '" + name + "' differs only in capitalization from the operation named '"
                              + operation->name() + "', which is defined in a base interface");
-                _unit->note(operation, "operation `" + operation->name() + "' is defined in the interface `"
+                _unit->note(operation, "operation '" + operation->name() + "' is defined in the interface '"
                             + container->name() + "'");
             }
         }
@@ -3211,8 +3211,8 @@ Slice::Exception::createDataMember(const string& name, const TypePtr& type, bool
             if (member->name() == name)
             {
                 ExceptionPtr container = ExceptionPtr::dynamicCast(member->container());
-                _unit->error("data member `" + name + "' is already defined in a base exception");
-                _unit->note(member, "data member `" + name + "' was originally defined in exception `"
+                _unit->error("data member '" + name + "' is already defined in a base exception");
+                _unit->note(member, "data member '" + name + "' was originally defined in exception '"
                             + container->name() + "'");
                 return nullptr;
             }
@@ -3220,9 +3220,9 @@ Slice::Exception::createDataMember(const string& name, const TypePtr& type, bool
             if (ciequals(member->name(), name))
             {
                 ExceptionPtr container = ExceptionPtr::dynamicCast(member->container());
-                _unit->error("data member `" + name + "' differs only in capitalization from the data member named `"
+                _unit->error("data member '" + name + "' differs only in capitalization from the data member named '"
                                 + member->name() + "', which is defined in a base exception");
-                _unit->note(member, "data member `" + member->name() + "' is defined in the exception `"
+                _unit->note(member, "data member '" + member->name() + "' is defined in the exception '"
                             + container->name() + "'");
             }
         }
@@ -3350,7 +3350,7 @@ Slice::Struct::createDataMember(const string& name, const TypePtr& type, bool ta
     // Structs cannot contain themselves.
     if (type.get() == this)
     {
-        _unit->error("struct `" + this->name() + "' cannot contain itself");
+        _unit->error("struct '" + this->name() + "' cannot contain itself");
         return nullptr;
     }
 
@@ -3526,7 +3526,7 @@ Slice::TypeAlias::TypeAlias(const ContainerPtr& container, const string& name, c
 {
     if (auto optional = OptionalPtr::dynamicCast(_underlying))
     {
-        _unit->error("`" + name + "': optional types cannot be type-aliased");
+        _unit->error("'" + name + "': optional types cannot be type-aliased");
         _underlying = optional->underlying();
     }
 }
@@ -3951,7 +3951,7 @@ Slice::Enum::newEnumerator(const EnumeratorPtr& enumerator)
     {
         ostringstream oss;
         oss.imbue(underscoreSeparatorLocale);
-        oss << "value " << _lastValue << " for enumerator `" << enumerator->name() << "'";
+        oss << "value " << _lastValue << " for enumerator '" << enumerator->name() << "'";
 
         oss << " is outside the range of " << (_underlying ? _underlying->kindAsString() : "its enum") << ": ["
             << rangeMin << ".." << rangeMax << "]";
@@ -3976,7 +3976,7 @@ Slice::Enum::newEnumerator(const EnumeratorPtr& enumerator)
         {
             if (en != enumerator && en->value() == _lastValue)
             {
-                _unit->error("enumerator `" + enumerator->name() + "' has the same value as enumerator `" +
+                _unit->error("enumerator '" + enumerator->name() + "' has the same value as enumerator '" +
                              en->name() + "'");
             }
         }
@@ -4225,14 +4225,14 @@ Slice::Operation::createParameter(const string& name, const TypePtr& type, bool 
         // Check if the out parameter conflicts with a single return value (which is implicitely named 'returnValue').
         if (hasSingleReturnType() && ciequals(name, "returnValue"))
         {
-            _unit->error("the identifier `" + name + "' cannot be used for out parameters of non-void operations");
+            _unit->error("the identifier '" + name + "' cannot be used for out parameters of non-void operations");
             return nullptr;
         }
     }
     else if (_usesOutParams)
     {
         // In parameters must be declared before out parameters.
-        _unit->error("`" + name + "': in parameters cannot follow out parameters");
+        _unit->error("'" + name + "': in parameters cannot follow out parameters");
     }
 
     if (!checkForRedefinition(this, name, "parameter"))
@@ -4245,7 +4245,7 @@ Slice::Operation::createParameter(const string& name, const TypePtr& type, bool 
     if (!params.empty() && params.back()->stream())
     {
         _unit->error(stream ? "operations can have a single stream parameter as the last parameter" :
-                              ("stream parameter `" + params.back()->name() + "' must be the last parameter"));
+                              ("stream parameter '" + params.back()->name() + "' must be the last parameter"));
     }
 
     if (tagged && tag > -1)
@@ -4255,7 +4255,7 @@ Slice::Operation::createParameter(const string& name, const TypePtr& type, bool 
         {
             if (param->tagged() && param->tag() == tag)
             {
-                _unit->error("tag for parameter `" + name + "' is already in use");
+                _unit->error("tag for parameter '" + name + "' is already in use");
             }
         }
     }
@@ -4278,14 +4278,14 @@ Slice::Operation::createReturnMember(const std::string& name, const TypePtr& typ
         {
             if (param->tagged() && param->tag() == tag)
             {
-                _unit->error("tag for return value `" + name + "' is already in use");
+                _unit->error("tag for return value '" + name + "' is already in use");
             }
         }
     }
 
     if (!_returnType.empty() && _returnType.back()->stream())
     {
-        _unit->error("stream return value `" + _returnType.back()->name() + "' must be the last return value");
+        _unit->error("stream return value '" + _returnType.back()->name() + "' must be the last return value");
     }
 
     if (!checkForRedefinition(this, name, "parameter"))
@@ -4365,7 +4365,7 @@ Slice::Operation::setExceptionList(const ExceptionList& el)
         set_difference(tmp.begin(), tmp.end(),
                        uniqueExceptions.begin(), uniqueExceptions.end(),
                        back_inserter(duplicates));
-        string msg = "operation `" + name() + "' has a throws clause with ";
+        string msg = "operation '" + name() + "' has a throws clause with ";
         if (duplicates.size() == 1)
         {
             msg += "a ";
@@ -4376,10 +4376,10 @@ Slice::Operation::setExceptionList(const ExceptionList& el)
             msg += "s";
         }
         ExceptionList::const_iterator i = duplicates.begin();
-        msg += ": `" + (*i)->name() + "'";
+        msg += ": '" + (*i)->name() + "'";
         for (i = ++i; i != duplicates.end(); ++i)
         {
-            msg += ", `" + (*i)->name() + "'";
+            msg += ", '" + (*i)->name() + "'";
         }
         _unit->error(msg);
     }

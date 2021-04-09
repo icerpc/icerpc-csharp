@@ -146,7 +146,7 @@ namespace IceRpc.Test.AMI
         {
             if (_value != previousValue)
             {
-                System.Console.Error.WriteLine($"previous value `{_value}' is not the expected value `{previousValue}'");
+                System.Console.Error.WriteLine($"previous value '{_value}' is not the expected value '{previousValue}'");
             }
             TestHelper.Assert(_value == previousValue);
             _value = newValue;

@@ -289,7 +289,7 @@ opt_semicolon
 ';'
 | class_decl
 {
-    unit->error("`;' missing after class forward declaration");
+    unit->error("';' missing after class forward declaration");
 }
 | class_def
 {
@@ -303,7 +303,7 @@ opt_semicolon
 ';'
 | interface_decl
 {
-    unit->error("`;' missing after interface forward declaration");
+    unit->error("';' missing after interface forward declaration");
 }
 | interface_def
 {
@@ -317,7 +317,7 @@ opt_semicolon
 ';'
 | exception_decl
 {
-    unit->error("`;' missing after exception forward declaration");
+    unit->error("';' missing after exception forward declaration");
 }
 | exception_def
 {
@@ -331,7 +331,7 @@ opt_semicolon
 ';'
 | struct_decl
 {
-    unit->error("`;' missing after struct forward declaration");
+    unit->error("';' missing after struct forward declaration");
 }
 | struct_def
 {
@@ -345,7 +345,7 @@ opt_semicolon
 ';'
 | sequence_def
 {
-    unit->error("`;' missing after sequence definition");
+    unit->error("';' missing after sequence definition");
 }
 | type_alias_def
 {
@@ -354,7 +354,7 @@ opt_semicolon
 ';'
 | type_alias_def
 {
-    unit->error("`;' missing after type-alias");
+    unit->error("';' missing after type-alias");
 }
 | dictionary_def
 {
@@ -363,7 +363,7 @@ opt_semicolon
 ';'
 | dictionary_def
 {
-    unit->error("`;' missing after dictionary definition");
+    unit->error("';' missing after dictionary definition");
 }
 | enum_def
 {
@@ -377,7 +377,7 @@ opt_semicolon
 ';'
 | const_def
 {
-    unit->error("`;' missing after const definition");
+    unit->error("';' missing after const definition");
 }
 | error ';'
 {
@@ -513,7 +513,7 @@ exception_id
 | ICE_EXCEPTION keyword
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("keyword `" + ident->v + "' cannot be used as exception name");
+    unit->error("keyword '" + ident->v + "' cannot be used as exception name");
     $$ = $2; // Dummy
 }
 ;
@@ -607,13 +607,13 @@ tag
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(const auto& p : enumerators)
             {
@@ -626,13 +626,13 @@ tag
                     os << " or";
                 }
 
-                os << " `" << p->scoped() << "'";
+                os << " '" << p->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -660,7 +660,7 @@ tag
 
     if (tag < 0 || tag > INT32_MAX)
     {
-        unit->error("cannot use value of `" + scoped->v + "' as a tag");
+        unit->error("cannot use value of '" + scoped->v + "' as a tag");
     }
 
     TaggedDefTokPtr m = new TaggedDefTok(static_cast<int>(tag));
@@ -688,7 +688,7 @@ optional
     IntegerTokPtr i = IntegerTokPtr::dynamicCast($3);
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
 
     int tag;
@@ -710,7 +710,7 @@ optional
     StringTokPtr scoped = StringTokPtr::dynamicCast($3);
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
 
     ContainerPtr cont = unit->currentContainer();
@@ -724,13 +724,13 @@ optional
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(const auto& p : enumerators)
             {
@@ -743,13 +743,13 @@ optional
                     os << " or";
                 }
 
-                os << " `" << p->scoped() << "'";
+                os << " '" << p->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -777,7 +777,7 @@ optional
 
     if (tag < 0 || tag > INT32_MAX)
     {
-        unit->error("cannot use value of `" + scoped->v + "' as a tag");
+        unit->error("cannot use value of '" + scoped->v + "' as a tag");
     }
 
     TaggedDefTokPtr m = new TaggedDefTok(static_cast<int>(tag));
@@ -787,7 +787,7 @@ optional
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
     unit->error("missing tag");
     TaggedDefTokPtr m = new TaggedDefTok; // Dummy
@@ -797,7 +797,7 @@ optional
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
     unit->error("missing tag");
     TaggedDefTokPtr m = new TaggedDefTok; // Dummy
@@ -815,7 +815,7 @@ struct_id
 | ICE_STRUCT keyword
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("keyword `" + ident->v + "' cannot be used as struct name");
+    unit->error("keyword '" + ident->v + "' cannot be used as struct name");
     $$ = $2; // Dummy
 }
 ;
@@ -866,7 +866,7 @@ struct_def
     assert(st);
     if (!st->hasDataMembers())
     {
-        unit->error("struct `" + st->name() + "' must have at least one member"); // $$ is a dummy
+        unit->error("struct '" + st->name() + "' must have at least one member"); // $$ is a dummy
     }
 }
 ;
@@ -881,7 +881,7 @@ class_name
 | ICE_CLASS keyword
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("keyword `" + ident->v + "' cannot be used as class name");
+    unit->error("keyword '" + ident->v + "' cannot be used as class name");
     $$ = $2; // Dummy
 }
 ;
@@ -905,7 +905,7 @@ class_id
         string typeId = unit->getTypeId(static_cast<int>(id));
         if(!typeId.empty())
         {
-            unit->error("invalid compact id for class: already assigned to class `" + typeId + "'");
+            unit->error("invalid compact id for class: already assigned to class '" + typeId + "'");
         }
     }
 
@@ -929,13 +929,13 @@ class_id
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(EnumeratorList::iterator p = enumerators.begin(); p != enumerators.end(); ++p)
             {
@@ -948,13 +948,13 @@ class_id
                     os << " or";
                 }
 
-                os << " `" << (*p)->scoped() << "'";
+                os << " '" << (*p)->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -994,7 +994,7 @@ class_id
         string typeId = unit->getTypeId(id);
         if(!typeId.empty())
         {
-            unit->error("invalid compact id for class: already assigned to class `" + typeId + "'");
+            unit->error("invalid compact id for class: already assigned to class '" + typeId + "'");
         }
     }
 
@@ -1084,7 +1084,7 @@ class_extends
             ClassDefPtr def = cl->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined");
+                unit->error("'" + scoped->v + "' has been declared but not defined");
             }
             else
             {
@@ -1094,7 +1094,7 @@ class_extends
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not a class");
+            unit->error("'" + scoped->v + "' is not a class");
         }
     }
 }
@@ -1155,7 +1155,7 @@ data_member_list
 | error ';'
 | data_member
 {
-    unit->error("`;' missing after definition");
+    unit->error("';' missing after definition");
 }
 | data_member_list data_member_list
 ;
@@ -1180,7 +1180,7 @@ return_tuple
     bool isOutParam = qualifier->v & QUALIFIER_OUT;
     if (isOutParam)
     {
-        unit->error("`" + returnMember->name + "': return members cannot be marked as out");
+        unit->error("'" + returnMember->name + "': return members cannot be marked as out");
     }
 
     TaggedDefListTokPtr returnMembers = new TaggedDefListTok();
@@ -1197,7 +1197,7 @@ return_tuple
     bool isOutParam = qualifier->v & QUALIFIER_OUT;
     if (isOutParam)
     {
-        unit->error("`" + returnMember->name + "': return members cannot be marked as out");
+        unit->error("'" + returnMember->name + "': return members cannot be marked as out");
     }
 
     TaggedDefListTokPtr returnMembers = TaggedDefListTokPtr::dynamicCast($1);
@@ -1347,7 +1347,7 @@ operation_preamble
                 }
             }
 
-            unit->error("keyword `" + name + "' cannot be used as operation name");
+            unit->error("keyword '" + name + "' cannot be used as operation name");
             $$ = op; // Dummy
         }
         else
@@ -1381,7 +1381,7 @@ operation_preamble
                 }
             }
 
-            unit->error("keyword `" + name + "' cannot be used as operation name");
+            unit->error("keyword '" + name + "' cannot be used as operation name");
             $$ = op; // Dummy
         }
         else
@@ -1468,7 +1468,7 @@ operation_list
 }
 | local_metadata operation
 {
-    unit->error("`;' missing after definition");
+    unit->error("';' missing after definition");
 }
 | error ';' operation_list
 | %empty
@@ -1484,7 +1484,7 @@ interface_id
 | ICE_INTERFACE keyword
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("keyword `" + ident->v + "' cannot be used as interface name");
+    unit->error("keyword '" + ident->v + "' cannot be used as interface name");
     $$ = $2; // Dummy
 }
 ;
@@ -1561,7 +1561,7 @@ interface_list
             InterfaceDefPtr def = interface->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined");
+                unit->error("'" + scoped->v + "' has been declared but not defined");
             }
             else
             {
@@ -1571,7 +1571,7 @@ interface_list
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not an interface");
+            unit->error("'" + scoped->v + "' is not an interface");
         }
     }
     $$ = intfs;
@@ -1598,7 +1598,7 @@ interface_list
             InterfaceDefPtr def = interface->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined"); // $$ is a dummy
+                unit->error("'" + scoped->v + "' has been declared but not defined"); // $$ is a dummy
             }
             else
             {
@@ -1608,7 +1608,7 @@ interface_list
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not an interface"); // $$ is a dummy
+            unit->error("'" + scoped->v + "' is not an interface"); // $$ is a dummy
         }
     }
     $$ = intfs;
@@ -1627,7 +1627,7 @@ interface_list
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
     }
     unit->error("illegal inheritance from type Value");
     $$ = new ClassListTok; // Dummy
@@ -1684,7 +1684,7 @@ exception
 | keyword
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($1);
-    unit->error("keyword `" + ident->v + "' cannot be used as exception name");
+    unit->error("keyword '" + ident->v + "' cannot be used as exception name");
     $$ = unit->currentModule()->createException(IceUtil::generateUUID(), 0, Dummy); // Dummy
 }
 ;
@@ -1716,7 +1716,7 @@ type_alias_def
 | ICE_USING ICE_IDENTIFIER
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("missing underlying type for typealias `" + ident->v + "'");
+    unit->error("missing underlying type for typealias '" + ident->v + "'");
     $$ = nullptr;
 }
 | ICE_USING error
@@ -1749,7 +1749,7 @@ sequence_def
 
     ModulePtr cont = unit->currentModule();
     $$ = cont->createSequence(ident->v, type, metadata->v); // Dummy
-    unit->error("keyword `" + ident->v + "' cannot be used as sequence name");
+    unit->error("keyword '" + ident->v + "' cannot be used as sequence name");
 }
 ;
 
@@ -1783,7 +1783,7 @@ dictionary_def
 
     ModulePtr cont = unit->currentModule();
     $$ = cont->createDictionary(ident->v, keyType, keyMetadata->v, valueType, valueMetadata->v); // Dummy
-    unit->error("keyword `" + ident->v + "' cannot be used as dictionary name");
+    unit->error("keyword '" + ident->v + "' cannot be used as dictionary name");
 }
 ;
 
@@ -1824,7 +1824,7 @@ enum_id
     bool unchecked = BoolTokPtr::dynamicCast($1)->v;
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
     ModulePtr cont = unit->currentModule();
-    unit->error("keyword `" + ident->v + "' cannot be used as enumeration name");
+    unit->error("keyword '" + ident->v + "' cannot be used as enumeration name");
     $$ = cont->createEnum(IceUtil::generateUUID(), unchecked, Dummy);
 }
 ;
@@ -1841,7 +1841,7 @@ enum_def
     {
         if (!alias->typeMetadata().empty())
         {
-            unit->error("illegal metadata: typealias metadata `" + alias->typeMetadata().front() +
+            unit->error("illegal metadata: typealias metadata '" + alias->typeMetadata().front() +
                         "' cannot be used in enum declarations");
         }
         underlying = alias->underlying();
@@ -1858,7 +1858,7 @@ enum_def
         EnumeratorListTokPtr enumerators = EnumeratorListTokPtr::dynamicCast($5);
         if (enumerators->v.empty() && (!en->underlying() || !en->isUnchecked()))
         {
-            unit->error("enum `" + en->name() + "' must have at least one enumerator");
+            unit->error("enum '" + en->name() + "' must have at least one enumerator");
         }
         unit->popContainer();
     }
@@ -1963,7 +1963,7 @@ enumerator
 {
     StringListTokPtr metadata = StringListTokPtr::dynamicCast($1);
     StringTokPtr ident = StringTokPtr::dynamicCast($2);
-    unit->error("keyword `" + ident->v + "' cannot be used as enumerator");
+    unit->error("keyword '" + ident->v + "' cannot be used as enumerator");
 
     EnumPtr cont = EnumPtr::dynamicCast(unit->currentContainer());
     EnumeratorPtr en = cont->createEnumerator(ident->v);
@@ -2010,7 +2010,7 @@ enumerator_initializer
 
     if(!tok)
     {
-        string msg = "illegal initializer: `" + scoped->v + "' is not an integer constant";
+        string msg = "illegal initializer: '" + scoped->v + "' is not an integer constant";
         unit->error(msg); // $$ is dummy
     }
 
@@ -2059,7 +2059,7 @@ parameter
         bool isStreamParam = qualifier->v & QUALIFIER_STREAM;
         if (isOutParam && isStreamParam)
         {
-            unit->error("`" + def->name + "': stream parameter cannot be marked as out");
+            unit->error("'" + def->name + "': stream parameter cannot be marked as out");
         }
 
         MemberPtr param = op->createParameter(def->name, def->type, isOutParam, def->isTagged, def->tag, isStreamParam);
@@ -2112,7 +2112,7 @@ unscoped_name
 | ICE_SCOPED_IDENTIFIER
 {
     StringTokPtr ident = StringTokPtr::dynamicCast($1);
-    unit->error("Identifier cannot be scoped: `" + (ident->v) + "'");
+    unit->error("Identifier cannot be scoped: '" + (ident->v) + "'");
     $$ = $1;
 }
 ;
@@ -2155,7 +2155,7 @@ type
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
     }
     $$ = unit->optionalBuiltin(Builtin::KindAnyClass);
 }
@@ -2187,7 +2187,7 @@ type
     }
     else
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
         $$ = unit->builtin(Builtin::KindAnyClass);
     }
 }
@@ -2238,7 +2238,7 @@ type
             InterfaceDeclPtr interface = InterfaceDeclPtr::dynamicCast(*p);
             if(!interface)
             {
-                string msg = "`";
+                string msg = "'";
                 msg += scoped->v;
                 msg += "' must be an interface";
                 unit->error(msg);
@@ -2353,7 +2353,7 @@ member
     {
         checkForTaggableType(def->type, def->name);
     }
-    unit->error("keyword `" + def->name + "' cannot be used as an identifier");
+    unit->error("keyword '" + def->name + "' cannot be used as an identifier");
     $$ = def;
 }
 | tagged_type
@@ -2455,7 +2455,7 @@ const_initializer
         else
         {
             def = new ConstDefTok;
-            string msg = "illegal initializer: `" + scoped->v + "' is a";
+            string msg = "illegal initializer: '" + scoped->v + "' is a";
             static const string vowels = "aeiou";
             string kindOf = cl.front()->kindOf();
             if(vowels.find_first_of(kindOf[0]) != string::npos)

@@ -39,7 +39,7 @@ namespace IceRpc
         internal Encoding ValueEncoding { get; }
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new NotSupportedException($"endpoint `{this}' cannot accept connections");
+            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
 
         public override bool Equals(Endpoint? other)
         {
@@ -60,7 +60,7 @@ namespace IceRpc
         }
 
         public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
+            throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
@@ -80,10 +80,10 @@ namespace IceRpc
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
-            throw new NotSupportedException($"cannot establish a connection to endpoint `{this}'");
+            throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException($"cannot get the published endpoint for endpoint `{this}'");
+            throw new NotSupportedException($"cannot get the published endpoint for endpoint '{this}'");
 
         internal static OpaqueEndpoint Create(
             Transport transport,
@@ -99,7 +99,7 @@ namespace IceRpc
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for -t option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
                 }
                 short t;
                 try
@@ -109,13 +109,13 @@ namespace IceRpc
                 catch (FormatException ex)
                 {
                     throw new FormatException(
-                        $"invalid transport value `{argument}' in endpoint `{endpointString}'", ex);
+                        $"invalid transport value '{argument}' in endpoint '{endpointString}'", ex);
                 }
 
                 if (t < 0)
                 {
                     throw new FormatException(
-                        $"transport value `{argument}' out of range in endpoint `{endpointString}'");
+                        $"transport value '{argument}' out of range in endpoint '{endpointString}'");
                 }
 
                 transport = (Transport)t;
@@ -123,7 +123,7 @@ namespace IceRpc
             }
             else
             {
-                throw new FormatException($"no -t option in endpoint `{endpointString}'");
+                throw new FormatException($"no -t option in endpoint '{endpointString}'");
             }
 
             Encoding valueEncoding;
@@ -132,7 +132,7 @@ namespace IceRpc
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for -e option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -e option in endpoint '{endpointString}'");
                 }
                 try
                 {
@@ -140,7 +140,7 @@ namespace IceRpc
                 }
                 catch (FormatException ex)
                 {
-                    throw new FormatException($"invalid encoding version `{argument}' in endpoint `{endpointString}'",
+                    throw new FormatException($"invalid encoding version '{argument}' in endpoint '{endpointString}'",
                         ex);
                 }
                 options.Remove("-e");
@@ -156,7 +156,7 @@ namespace IceRpc
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for -v option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -v option in endpoint '{endpointString}'");
                 }
 
                 try
@@ -165,13 +165,13 @@ namespace IceRpc
                 }
                 catch (FormatException ex)
                 {
-                    throw new FormatException($"invalid Base64 input in endpoint `{endpointString}'", ex);
+                    throw new FormatException($"invalid Base64 input in endpoint '{endpointString}'", ex);
                 }
                 options.Remove("-v");
             }
             else
             {
-                throw new FormatException($"no -v option in endpoint `{endpointString}'");
+                throw new FormatException($"no -v option in endpoint '{endpointString}'");
             }
 
             return Create(transport, valueEncoding, value);

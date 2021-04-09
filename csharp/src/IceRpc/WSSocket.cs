@@ -465,7 +465,7 @@ namespace IceRpc
             }
             else if (value != "websocket")
             {
-                throw new InvalidDataException($"invalid value `{value}' for Upgrade field");
+                throw new InvalidDataException($"invalid value '{value}' for Upgrade field");
             }
 
             // "A |Connection| header field that includes the token 'Upgrade', treated as an ASCII case-insensitive
@@ -477,7 +477,7 @@ namespace IceRpc
             }
             else if (!value.Contains("upgrade"))
             {
-                throw new InvalidDataException($"invalid value `{value}' for Connection field");
+                throw new InvalidDataException($"invalid value '{value}' for Connection field");
             }
 
             // "A |Sec-WebSocket-Version| header field, with a value of 13."
@@ -488,7 +488,7 @@ namespace IceRpc
             }
             else if (value != "13")
             {
-                throw new InvalidDataException($"unsupported WebSocket version `{value}'");
+                throw new InvalidDataException($"unsupported WebSocket version '{value}'");
             }
 
             // "Optionally, a |Sec-WebSocket-Protocol| header field, with a list of values indicating which protocols
@@ -500,14 +500,14 @@ namespace IceRpc
                 string[]? protocols = StringUtil.SplitString(value, ",");
                 if (protocols == null)
                 {
-                    throw new InvalidDataException($"invalid value `{value}' for WebSocket protocol");
+                    throw new InvalidDataException($"invalid value '{value}' for WebSocket protocol");
                 }
 
                 foreach (string protocol in protocols)
                 {
                     if (protocol.Trim() != IceProtocol)
                     {
-                        throw new InvalidDataException($"unknown value `{protocol}' for WebSocket protocol");
+                        throw new InvalidDataException($"unknown value '{protocol}' for WebSocket protocol");
                     }
                     addProtocol = true;
                 }
@@ -524,7 +524,7 @@ namespace IceRpc
             byte[] decodedKey = Convert.FromBase64String(key);
             if (decodedKey.Length != 16)
             {
-                throw new InvalidDataException($"invalid value `{key}' for WebSocket key");
+                throw new InvalidDataException($"invalid value '{key}' for WebSocket key");
             }
 
             return (addProtocol, key);
@@ -562,7 +562,7 @@ namespace IceRpc
             }
             else if (value != "websocket")
             {
-                throw new InvalidDataException($"invalid value `{value}' for Upgrade field");
+                throw new InvalidDataException($"invalid value '{value}' for Upgrade field");
             }
 
             // "If the response lacks a |Connection| header field or the |Connection| header field doesn't contain a
@@ -575,7 +575,7 @@ namespace IceRpc
             }
             else if (!value.Contains("upgrade"))
             {
-                throw new InvalidDataException($"invalid value `{value}' for Connection field");
+                throw new InvalidDataException($"invalid value '{value}' for Connection field");
             }
 
             // "If the response includes a |Sec-WebSocket-Protocol| header field and this header field indicates the
@@ -584,7 +584,7 @@ namespace IceRpc
             value = _parser.GetHeader("Sec-WebSocket-Protocol", true);
             if (value != null && value != IceProtocol)
             {
-                throw new InvalidDataException($"invalid value `{value}' for WebSocket protocol");
+                throw new InvalidDataException($"invalid value '{value}' for WebSocket protocol");
             }
 
             // "If the response lacks a |Sec-WebSocket-Accept| header field or the |Sec-WebSocket-Accept| contains a
@@ -604,7 +604,7 @@ namespace IceRpc
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
             if (value != Convert.ToBase64String(hash))
             {
-                throw new InvalidDataException($"invalid value `{value}' for Sec-WebSocket-Accept");
+                throw new InvalidDataException($"invalid value '{value}' for Sec-WebSocket-Accept");
             }
         }
 

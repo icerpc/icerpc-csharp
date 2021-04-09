@@ -110,7 +110,7 @@ namespace IceRpc
                 }
                 else if (format != CompressionFormat.GZip)
                 {
-                    throw new NotSupportedException($"cannot compress with compression format `{format}'");
+                    throw new NotSupportedException($"cannot compress with compression format '{format}'");
                 }
 
                 int encapsulationOffset = this is OutgoingResponseFrame ? 1 : 0;

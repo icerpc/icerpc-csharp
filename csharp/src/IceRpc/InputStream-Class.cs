@@ -173,8 +173,8 @@ namespace IceRpc
             }
             else
             {
-                throw new InvalidDataException(@$"read instance of type `{obj.GetType().FullName
-                    }' but expected instance of type `{typeof(T).FullName}'");
+                throw new InvalidDataException(@$"read instance of type '{obj.GetType().FullName
+                    }' but expected instance of type '{typeof(T).FullName}'");
             }
         }
 
@@ -507,7 +507,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        throw new ArgumentException($"cannot find class factory for `{formalTypeId}'",
+                        throw new ArgumentException($"cannot find class factory for '{formalTypeId}'",
                             nameof(formalTypeId));
                     }
                 }
@@ -542,7 +542,7 @@ namespace IceRpc
                 if (_current.SliceFlags.GetTypeIdKind() != EncodingDefinitions.TypeIdKind.None)
                 {
                     throw new InvalidDataException(
-                        $"invalid type ID kind `{_current.SliceFlags.GetTypeIdKind()}' for next slice");
+                        $"invalid type ID kind '{_current.SliceFlags.GetTypeIdKind()}' for next slice");
                 }
 
                 // Read the slice size if available.
@@ -737,7 +737,7 @@ namespace IceRpc
             {
                 string printableId = typeId ?? compactId?.ToString() ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                throw new InvalidDataException(@$"no {kind} found for type ID `{printableId
+                throw new InvalidDataException(@$"no {kind} found for type ID '{printableId
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 

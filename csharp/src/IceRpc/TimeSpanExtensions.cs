@@ -65,7 +65,7 @@ namespace IceRpc
 
             if (!match.Success)
             {
-                throw new FormatException($"the value `{s}' is not a TimeSpan");
+                throw new FormatException($"the value '{s}' is not a TimeSpan");
             }
 
             int value = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
@@ -77,7 +77,7 @@ namespace IceRpc
                 "m" => TimeSpan.FromMinutes(value),
                 "h" => TimeSpan.FromHours(value),
                 "d" => TimeSpan.FromDays(value),
-                _ => throw new FormatException($"unknown time unit `{unit}'"),
+                _ => throw new FormatException($"unknown time unit '{unit}'"),
             };
         }
     }

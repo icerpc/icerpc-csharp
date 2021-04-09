@@ -27,7 +27,7 @@ namespace IceRpc
             LoggerMessage.Define<string, string>(
                 LogLevel.Warning,
                 new EventId(SlicingUnknownType, nameof(SlicingUnknownType)),
-                "slicing unknown {Kind} type `{PrintableId}'");
+                "slicing unknown {Kind} type '{PrintableId}'");
 
         private static readonly Action<ILogger, string, Exception> _unknownProperty =
             LoggerMessage.Define<string>(

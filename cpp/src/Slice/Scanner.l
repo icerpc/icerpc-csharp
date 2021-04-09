@@ -185,7 +185,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
     auto value = strtoull((yytext + 1), 0, 8);
     if(value > 255)
     {
-        unit->error("octal escape sequence out of range: `\\" + string(yytext + 1) + "'");
+        unit->error("octal escape sequence out of range: '\\" + string(yytext + 1) + "'");
     }
 
     StringTokPtr str = StringTokPtr::dynamicCast(*yylval);
@@ -216,7 +216,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
     auto codePoint = strtoull((yytext + 2), 0, 16);
     if(codePoint <= 0xdfff && codePoint >= 0xd800)
     {
-        unit->error("a universal character name cannot designate a surrogate: `" + string(yytext) + "'");
+        unit->error("a universal character name cannot designate a surrogate: '" + string(yytext) + "'");
     }
     StringTokPtr str = StringTokPtr::dynamicCast(*yylval);
     str->literal += yytext;
@@ -226,7 +226,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
   /* Matches a universal character code that isn't the correct size, or uses incorrect characters. */
 <STRING_LITERAL>"\\u"{hex}{0,3}[g-zG-Z]* |
 <STRING_LITERAL>"\\U"{hex}{0,7}[g-zG-Z]* {
-    unit->error("unknown escape sequence in string literal: `" + string(yytext) + "'");
+    unit->error("unknown escape sequence in string literal: '" + string(yytext) + "'");
     StringTokPtr str = StringTokPtr::dynamicCast(*yylval);
     str->literal += yytext;
     str->v += yytext;
@@ -245,7 +245,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
   /* Matches an unknown escape value. This rule has a lower priority than all the other escape rules because
    * it only matches 2 characters (the lowest any match), and it's beneath the others. */
 <STRING_LITERAL>"\\". {
-    unit->warning(All, "unknown escape sequence in string literal: `" + string(yytext) + "'");
+    unit->warning(All, "unknown escape sequence in string literal: '" + string(yytext) + "'");
 
     StringTokPtr str = StringTokPtr::dynamicCast(*yylval);
     // Escape the entire sequence.
@@ -289,7 +289,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
     if(!IceUtilInternal::stringToInt64(string(yytext), itp->v))
     {
         assert(itp->v != 0);
-        unit->error("integer constant `" + string(yytext) + "' out of range");
+        unit->error("integer constant '" + string(yytext) + "' out of range");
     }
     return ICE_INTEGER_LITERAL;
 }
@@ -310,11 +310,11 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
     ftp->v = strtod(literal.c_str(), 0);
     if((ftp->v == HUGE_VAL || ftp->v == -HUGE_VAL) && errno == ERANGE)
     {
-        unit->error("floating-point constant `" + string(yytext) + "' too large (overflow)");
+        unit->error("floating-point constant '" + string(yytext) + "' too large (overflow)");
     }
     else if(ftp->v == 0 && errno == ERANGE)
     {
-        unit->error("floating-point constant `" + string(yytext) + "' too small (underflow)");
+        unit->error("floating-point constant '" + string(yytext) + "' too small (underflow)");
     }
     return ICE_FLOATING_POINT_LITERAL;
 }
@@ -395,7 +395,7 @@ floating_literal    (({fractional_constant}{exponent_part}?)|((\+|-)?{dec}+{expo
   /* Matches any non white-space character. This is a catch-all to report any invalid characters
    * found while scanning a preprocessor directive. */
 <PREPROCESS>[^[:space:]]+ {
-    unit->error("encountered unexpected token while scanning preprocessor directive: `" + string(yytext) + "'");
+    unit->error("encountered unexpected token while scanning preprocessor directive: '" + string(yytext) + "'");
 }
 
   /* Matches a new-line character or EOF. This signals the end of the preprocessor statement. */
@@ -546,7 +546,7 @@ int checkKeyword(string& id)
     {
         if(pos->first != id)
         {
-            unit->error("illegal identifier: `" + id + "' differs from keyword `" + pos->first +
+            unit->error("illegal identifier: '" + id + "' differs from keyword '" + pos->first +
                         "' only in capitalization");
             id = pos->first;
         }
@@ -703,8 +703,8 @@ void preAction()
 void yynoreturn fatalError(const char* msg)
 {
     cerr << *yyfilename << ":" << yylineno << ":" << yycolno << ": fatal  error: " << msg << endl
-         << "\tlast matched text: `" << yytext << "'" << endl
-         << "\tlast scanner state: `" << YY_START << "'" << endl;
+         << "\tlast matched text: '" << yytext << "'" << endl
+         << "\tlast scanner state: '" << YY_START << "'" << endl;
     exit(YY_EXIT_FAILURE);
 }
 
