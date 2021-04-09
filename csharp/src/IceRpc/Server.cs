@@ -240,10 +240,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts listening on the configured endpoint (if any) and serving clients (dispatching requests).
-        /// If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the
-        /// actual port selected by the operating system. This method throws start-up exceptions synchronously; for
-        /// example, if another server is already listening on the configured endpoint, it throws a
+        /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
+        /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
+        /// include the actual port selected by the operating system. This method throws start-up exceptions
+        /// synchronously; for  example, if another server is already listening on the configured endpoint, it throws a
         /// <see cref="TransportException"/> synchronously.</summary>
         /// <param name="cancel">The cancellation token. If the caller cancels this token, the server calls
         /// <see cref="ShutdownAsync"/> with this cancellation token.</param>

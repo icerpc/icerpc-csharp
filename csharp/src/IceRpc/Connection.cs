@@ -606,7 +606,7 @@ namespace IceRpc
                     // Be notified if the peer resets the stream to cancel the dispatch.
                     //
                     // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
-                    // could consider setting the error code into Ice.Current to allow the user to figure out the
+                    // could consider setting the error code into Current to allow the user to figure out the
                     // reason of the stream reset.
                     stream.Reset += (long errorCode) => cancelSource.Cancel();
                 }
@@ -617,7 +617,7 @@ namespace IceRpc
 
                 Socket.Logger.LogReceivedRequest(request);
 
-                // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
+                // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
                 Server? server = _server;
                 if (server == null)
