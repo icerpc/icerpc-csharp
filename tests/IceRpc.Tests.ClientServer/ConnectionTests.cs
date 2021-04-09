@@ -332,12 +332,10 @@ namespace IceRpc.Tests.ClientServer
             await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
             {
                 ProgressCallback cb;
-                // Remote case.
+                // Remote case: send multiple opWithPayload, followed by a close and followed by multiple opWithPaylod.
+                // The goal is to make sure that none of the opWithPayload fail even if the server closes the
+                // connection gracefully in between.
                 byte[] seq = new byte[1024 * 10];
-
-                // Send multiple opWithPayload, followed by a close and followed by multiple opWithPaylod. The goal
-                // is to make sure that none of the opWithPayload fail even if the server closes the connection
-                // gracefully in between.
                 int maxQueue = 2;
                 bool done = false;
                 while (!done && maxQueue < 50)
@@ -376,17 +374,17 @@ namespace IceRpc.Tests.ClientServer
                     await Task.WhenAll(results);
                 }
 
-                // Local case: start an operation and then close the connection gracefully on the client side
-                // without waiting for the pending invocation to complete. There will be no retry and we expect the
-                // invocation to fail with ConnectionClosedException.
+                // Local case: start an operation and then close the connection gracefully on the client side without
+                // waiting for the pending invocation to complete. There will be no retry and we expect the invocation
+                // to fail with ConnectionClosedException.
                 await using var connection = await Connection.CreateAsync(prx.Endpoints[0], prx.Communicator);
                 cb = new ProgressCallback();
-                var fixedPrx = prx.Clone();
+                IConnectionTestPrx fixedPrx = prx.Clone();
                 fixedPrx.Connection = connection;
                 fixedPrx.Endpoints = ImmutableList<Endpoint>.Empty;
 
                 Task t = fixedPrx.StartDispatchAsync(progress: cb);
-                await cb.Completed.Task; // Ensure the request was sent before we close the connection.
+                await cb.Completed.Task; // Ensure the request was sent before closing the connection.
                 _ = connection.GoAwayAsync();
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
                 await prx.FinishDispatchAsync();
@@ -410,7 +408,7 @@ namespace IceRpc.Tests.ClientServer
             await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
             {
                 // Local case: start an operation and then close the connection forcefully on the client side.
-                // There will be no retry and we expect the invocation to fail with ConnectionClosedLocallyException.
+                // There will be no retry and we expect the invocation to fail with ConnectionClosedException.
                 await prx.IcePingAsync();
                 Connection con = await prx.GetConnectionAsync();
                 var cb = new ProgressCallback();
