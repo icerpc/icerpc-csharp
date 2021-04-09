@@ -631,15 +631,17 @@ namespace IceRpc
                 {
                     // Dispatch the request and get the response
                     var current = new Current(server, request, stream, this);
+                    IDispatcher dispatcher = server;
+
                     if (server.TaskScheduler != null)
                     {
-                        response = await TaskRun(() => server.DispatchAsync(current, cancel),
+                        response = await TaskRun(() => dispatcher.DispatchAsync(current, cancel),
                                                  cancel,
                                                  server.TaskScheduler).ConfigureAwait(false);
                     }
                     else
                     {
-                        response = await server.DispatchAsync(current, cancel).ConfigureAwait(false);
+                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
                 }
 

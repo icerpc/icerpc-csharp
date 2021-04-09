@@ -48,7 +48,7 @@ namespace IceRpc
             }
         }
 
-        public ILoggerFactory LoggerFactory
+        public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
             set
@@ -78,7 +78,7 @@ namespace IceRpc
         /// <summary>Gets or sets the TaskScheduler used to dispatch requests.</summary>
         public TaskScheduler? TaskScheduler { get; set; }
 
-        internal ILogger Logger => _logger ??= LoggerFactory.CreateLogger("IceRpc");
+        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
@@ -88,13 +88,13 @@ namespace IceRpc
         private Endpoint? _endpoint;
 
         private ILogger? _logger;
-        private ILoggerFactory _loggerFactory = Runtime.DefaultLoggerFactory;
+        private ILoggerFactory? _loggerFactory;
 
         private Endpoint? _proxyEndpoint;
 
         private IncomingConnectionFactory? _incomingConnectionFactory;
 
-        // protects _serviceMap,
+        // protects _serviceMap
         private readonly object _mutex = new();
 
         private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
@@ -122,13 +122,19 @@ namespace IceRpc
                 });
         }
 
-        public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx =>
-            Proxy.GetFactory<T>().Create(path,
-                                         Protocol,
-                                         Protocol.GetEncoding(),
-                                         ImmutableList<Endpoint>.Empty,
-                                         GetColocatedConnection(),
-                                         ProxyOptions);
+        public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx
+        {
+            // temporary
+            ProxyOptions.Communicator ??= Communicator;
+
+            return Proxy.GetFactory<T>().Create(path,
+                                                Protocol,
+                                                Protocol.GetEncoding(),
+                                                ImmutableList<Endpoint>.Empty,
+                                                GetColocatedConnection(),
+                                                ProxyOptions);
+        }
+
         public T CreateProxy<T>(string path) where T : class, IServicePrx
         {
             if (_proxyEndpoint == null)
@@ -137,6 +143,8 @@ namespace IceRpc
             }
 
             ProxyOptions options = ProxyOptions;
+            options.Communicator ??= Communicator;
+
             if (_proxyEndpoint.IsDatagram && !options.IsOneway)
             {
                 options = options.Clone();
@@ -155,6 +163,9 @@ namespace IceRpc
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
             // TODO: throw InvalidOperationException when _serving is false, which can occur with coloc invocations.
+
+            // temporary
+            ProxyOptions.Communicator ??= Communicator;
 
             if (Dispatcher is IDispatcher dispatcher)
             {
@@ -192,9 +203,9 @@ namespace IceRpc
             }
         }
 
-        public async Task ListenAndServeAsync(CancellationToken cancel = default)
+        // Not async because we want to throw exceptions synchronously
+        public Task ListenAndServeAsync(CancellationToken cancel = default)
         {
-            // Calling listen and serve twice is incorrect.
             if (_serving)
             {
                 throw new InvalidOperationException(
@@ -216,7 +227,7 @@ namespace IceRpc
                         new AcceptorIncomingConnectionFactory(this, endpoint);
 
                     _endpoint = _incomingConnectionFactory.Endpoint;
-                    _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
+                    _proxyEndpoint = _endpoint.GetPublishedEndpoint(ProxyHost);
 
                     _incomingConnectionFactory.Activate();
                 }
@@ -227,14 +238,24 @@ namespace IceRpc
                 }
             }
 
-            try
+            if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
             {
-                await ShutdownComplete.WaitAsync(cancel).ConfigureAwait(false);
+                Console.Out.WriteLine($"{this} ready");
             }
-            catch (OperationCanceledException)
+
+            return WaitForShutdownAsync(cancel);
+
+            async Task WaitForShutdownAsync(CancellationToken cancel)
             {
-                // Request "quick" shutdown that completes as soon as possible by cancelling everything it can.
-                await ShutdownAsync(cancel).ConfigureAwait(false);
+                try
+                {
+                    await ShutdownComplete.WaitAsync(cancel).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Request "quick" shutdown that completes as soon as possible by cancelling everything it can.
+                    await ShutdownAsync(cancel).ConfigureAwait(false);
+                }
             }
         }
 
@@ -341,7 +362,7 @@ namespace IceRpc
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
                 _serviceMap.Add((path, facet), service);
             }
@@ -359,7 +380,7 @@ namespace IceRpc
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
                 _defaultServiceMap.Add(facet, service);
             }
@@ -381,7 +402,7 @@ namespace IceRpc
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
                 _categoryServiceMap.Add((category, facet), service);
             }

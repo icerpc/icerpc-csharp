@@ -264,7 +264,7 @@ namespace IceRpc
                             socket.Endpoint.TransportName,
                             socket.Endpoint.Protocol,
                             colocatedSocket.Id,
-                            ((ColocatedEndpoint)socket.Endpoint).Server.Name);
+                            ((ColocatedEndpoint)socket.Endpoint).Server.ToString());
                     }
                 }
                 else if(socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
@@ -278,7 +278,7 @@ namespace IceRpc
                                 logger,
                                 socket.Endpoint.TransportName,
                                 socket.Endpoint.Protocol,
-                                server.Name,
+                                server.ToString(),
                                 dotnetsocket.LocalEndPoint?.ToString() ?? "undefined");
                         }
                         catch (System.Net.Sockets.SocketException)
@@ -287,7 +287,7 @@ namespace IceRpc
                                 logger,
                                 socket.Endpoint.TransportName,
                                 socket.Endpoint.Protocol,
-                                server.Name,
+                                server.ToString(),
                                 "not connected");
                         }
                     }
@@ -336,7 +336,7 @@ namespace IceRpc
                             logger,
                             socket.Endpoint.TransportName,
                             socket.Endpoint.Protocol,
-                            server.Name,
+                            server.ToString(),
                             socket.ToString()!);
                     }
                     else if(socket.IsIncoming)
@@ -390,7 +390,7 @@ namespace IceRpc
                     logger,
                     acceptor.Endpoint.TransportName,
                     acceptor.Endpoint.Protocol,
-                    server.Name,
+                    server.ToString(),
                     tcpAcceptor.IPEndPoint);
             }
             else if (acceptor is ColocatedAcceptor)
@@ -399,7 +399,7 @@ namespace IceRpc
                     logger,
                     acceptor.Endpoint.TransportName,
                     acceptor.Endpoint.Protocol,
-                    server.Name);
+                    server.ToString());
             }
             else
             {
@@ -407,7 +407,7 @@ namespace IceRpc
                     logger,
                     acceptor.Endpoint.TransportName,
                     acceptor.Endpoint.Protocol,
-                    server.Name,
+                    server.ToString(),
                     acceptor.ToString()!);
             }
         }

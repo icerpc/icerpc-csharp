@@ -40,7 +40,7 @@ namespace IceRpc
 
         public void Dispose() => _writer.Complete();
 
-        public override string ToString() => _server.Name;
+        public override string ToString() => _server.ToString();
 
         internal ColocatedAcceptor(
             ColocatedEndpoint endpoint,

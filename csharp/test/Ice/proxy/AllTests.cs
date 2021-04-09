@@ -93,7 +93,12 @@ namespace IceRpc.Test.Proxy
             {
                 output.Write("testing relative proxies... ");
                 {
-                    await using Server server = new Server(communicator);
+                    await using Server server = new Server
+                    {
+                        Communicator = communicator
+                    };
+                    _ = server.ListenAndServeAsync();
+
                     (await cl.GetConnectionAsync()).Server = server;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
