@@ -28,12 +28,12 @@ namespace IceRpc
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        private static Dictionary<int, ClassAttribute>? _compactIdClassFactoryCache;
+        private static IReadOnlyDictionary<int, ClassAttribute>? _compactIdClassFactoryCache;
 
         // The mutex protects assignment to class and exception factory caches
         private static readonly object _mutex = new();
-        private static Dictionary<string, ClassAttribute>? _typeIdClassFactoryCache;
-        private static Dictionary<string, ClassAttribute>? _typeIdRemoteExceptionFactoryCache;
+        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdClassFactoryCache;
+        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdRemoteExceptionFactoryCache;
 
         private static readonly IDictionary<string, (Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser, Transport Transport)> _transportNameRegistry =
             new ConcurrentDictionary<string, (Ice1EndpointParser?, Ice2EndpointParser?, Transport)>();
