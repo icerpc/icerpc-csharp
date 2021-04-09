@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Loader;
 
 namespace IceRpc.Tests.Internal
@@ -25,17 +26,30 @@ namespace IceRpc.Tests.Internal
             Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
             Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));
 
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "D.dll");
-            // Load assembly D
-            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
-            Assert.IsNotNull(assembly);
-            Runtime.RegisterClassFactoriesFromAssembly(assembly);
-
-            // After loading D MyClassD is found, MyClassC too because C is a direct dependency of D and MyClassB too
-            // because B is a transitive dependency of D.
-            Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
-            Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
+            RegisterClassFactoriesFromAssembly("D.dll");
+            // After loading D MyClassD is found, MyClassC and MyClassB are still not found because
+            // RegisterClassFactoriesFromAssembly only load factories from the specified assembly and not from its
+            // referenced assemblies.
             Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassD"));
+            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
+            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
+
+            // Now load B and C
+            RegisterClassFactoriesFromAssembly("B.dll");
+            Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassB"));
+            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
+
+            RegisterClassFactoriesFromAssembly("C.dll");
+            Assert.IsNotNull(Runtime.FindClassFactory("::IceRpc::Tests::Internal::MyClassC"));
+
+            static void RegisterClassFactoriesFromAssembly(string name)
+            {
+                string path = Path.Combine(Directory.GetCurrentDirectory(), name);
+                // Load assembly D
+                Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+                Assert.IsNotNull(assembly);
+                Runtime.RegisterClassFactoriesFromAssembly(assembly);
+            }
         }
     }
 }
