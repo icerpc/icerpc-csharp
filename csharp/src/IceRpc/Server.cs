@@ -179,36 +179,10 @@ namespace IceRpc
 
                         return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                     }
-<<<<<<< HEAD
-
-                    // When the server is configured to only accept secure connections ensure that all
-                    // configured endpoints only accept secure connections.
-                    if (ConnectionOptions.AcceptNonSecure == NonSecure.Never &&
-                        Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
-                    {
-                        throw new ArgumentException(
-                            $@"server '{Name
-                            }' is configured to only accept secure connections but endpoint '{endpoint
-                            }' accepts non-secure connections",
-                            nameof(options));
-                    }
-                }
-                Debug.Assert(Endpoints.Count > 0);
-
-                if (Endpoints.Any(endpoint => endpoint is IPEndpoint ipEndpoint && ipEndpoint.Port == 0))
-                {
-                    if (Endpoints.Count > 1)
-                    {
-                        throw new ArgumentException(
-                            @$"server '{Name
-                            }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
-                            nameof(options));
-=======
                     else
                     {
                         Logger.LogDispatchException(current.IncomingRequestFrame, ex);
                         return OutgoingResponseFrame.WithVoidReturnValue(current);
->>>>>>> new-server
                     }
                 }
             }

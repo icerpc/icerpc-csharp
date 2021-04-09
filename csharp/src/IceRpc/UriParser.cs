@@ -78,16 +78,10 @@ namespace IceRpc
         {
             if (!IsValidPath(path))
             {
-<<<<<<< HEAD
-                throw new FormatException(
-                    @$"invalid path '{path
-                    }'; a valid path can only contain unreserved characters, '%' and reserved characters other than '?'");
-=======
                 throw new ArgumentException(
                     @$"invalid path '{path
                     }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?'",
                     paramName);
->>>>>>> new-server
             }
         }
 
