@@ -229,7 +229,7 @@ namespace IceRpc.Test
             }
             catch (Exception ex)
             {
-                throw new InvalidConfigurationException($"invalid value for for Test.Protocol: `{value}'", ex);
+                throw new InvalidConfigurationException($"invalid value for for Test.Protocol: '{value}'", ex);
             }
         }
 

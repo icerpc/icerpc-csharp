@@ -46,7 +46,7 @@ OPTIMIZE                ?= yes
 # Define PLATFORMS to the list of platforms to build. This defaults
 # to the first supported platform for this system.
 #
-# Run `make print V=supported-platforms' to see the list of supported
+# Run 'make print V=supported-platforms' to see the list of supported
 # platforms on this system.
 #
 PLATFORMS               ?= $(firstword $(supported-platforms))

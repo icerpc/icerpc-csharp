@@ -100,7 +100,7 @@ namespace IceRpc
             if (options.TryGetValue("-r", out string? argument))
             {
                 resource = argument ??
-                    throw new FormatException($"no argument provided for -r option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -r option in endpoint '{endpointString}'");
 
                 options.Remove("-r");
             }

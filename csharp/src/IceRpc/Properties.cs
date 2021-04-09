@@ -34,7 +34,7 @@ namespace IceRpc
                 catch (Exception ex)
                 {
                     throw new InvalidConfigurationException(
-                        $"the value `{value}' of property `{name}' is not a bool", ex);
+                        $"the value '{value}' of property '{name}' is not a bool", ex);
                 }
             }
             return null;
@@ -59,7 +59,7 @@ namespace IceRpc
                         if (!match.Success)
                         {
                             throw new InvalidConfigurationException(
-                                $"the value `{value}' of property `{name}' is not a byte size");
+                                $"the value '{value}' of property '{name}' is not a byte size");
                         }
 
                         int intValue = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
@@ -74,7 +74,7 @@ namespace IceRpc
                                     "K" => 1024 * intValue,
                                     "M" => 1024 * 1024 * intValue,
                                     "G" => 1024 * 1024 * 1024 * intValue,
-                                    _ => throw new FormatException($"unknown size unit `{unit}'"),
+                                    _ => throw new FormatException($"unknown size unit '{unit}'"),
                                 };
                             }
                             catch (OverflowException)
@@ -86,7 +86,7 @@ namespace IceRpc
                     catch (Exception ex)
                     {
                         throw new InvalidConfigurationException(
-                            $"the value `{value}' of property `{name}' is not a byte size", ex);
+                            $"the value '{value}' of property '{name}' is not a byte size", ex);
                     }
                 }
                 return size;
@@ -121,7 +121,7 @@ namespace IceRpc
                 catch (Exception ex)
                 {
                     throw new InvalidConfigurationException(
-                        $"the value `{value}' of property `{name}' does not match any enumerator of {typeof(TEnum)}",
+                        $"the value '{value}' of property '{name}' does not match any enumerator of {typeof(TEnum)}",
                         ex);
                 }
             }
@@ -143,7 +143,7 @@ namespace IceRpc
                 catch (Exception ex)
                 {
                     throw new InvalidConfigurationException(
-                        $"the value `{value}' of property `{name}' is not a 32-bit integer", ex);
+                        $"the value '{value}' of property '{name}' is not a 32-bit integer", ex);
                 }
             }
             return null;
@@ -185,7 +185,7 @@ namespace IceRpc
                 }
                 catch (FormatException ex)
                 {
-                    throw new InvalidConfigurationException($"the value of property `{name}' is not a proxy", ex);
+                    throw new InvalidConfigurationException($"the value of property '{name}' is not a proxy", ex);
                 }
             }
             return null;
@@ -209,7 +209,7 @@ namespace IceRpc
                 catch (Exception ex)
                 {
                     throw new InvalidConfigurationException(
-                        $"the value `{value}' of property `{name}' is not a TimeSpan",
+                        $"the value '{value}' of property '{name}' is not a TimeSpan",
                         ex);
                 }
             }

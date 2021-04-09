@@ -290,7 +290,7 @@ namespace IceRpc
                 if (data.Count > 0)
                 {
                     throw new InvalidDataException(
-                        @$"received an ice1 frame with validate connection type and a size of `{data.Count}' bytes");
+                        @$"received an ice1 frame with validate connection type and a size of '{data.Count}' bytes");
                 }
             }
             else

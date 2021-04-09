@@ -41,7 +41,7 @@ namespace IceRpc
             if (Address == IPAddress.None)
             {
                 throw new NotSupportedException(
-                    $"endpoint `{this}' cannot accept connections because it has a DNS name");
+                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
             }
 
             var address = new IPEndPoint(Address, Port);
@@ -217,7 +217,7 @@ namespace IceRpc
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for -t option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
                 }
                 if (argument == "infinite")
                 {
@@ -232,12 +232,12 @@ namespace IceRpc
                     catch (FormatException ex)
                     {
                         throw new FormatException(
-                            $"invalid timeout value `{argument}' in endpoint `{endpointString}'",
+                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'",
                             ex);
                     }
                     if (timeout <= TimeSpan.Zero)
                     {
-                        throw new FormatException($"invalid timeout value `{argument}' in endpoint `{endpointString}'");
+                        throw new FormatException($"invalid timeout value '{argument}' in endpoint '{endpointString}'");
                     }
                 }
                 options.Remove("-t");

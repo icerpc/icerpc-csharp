@@ -282,12 +282,12 @@ namespace IceRpc
                     catch (FormatException ex)
                     {
                         throw new InvalidOperationException(
-                            @$"cannot marshal proxy with path `{Path}' using encoding 1.1", ex);
+                            @$"cannot marshal proxy with path '{Path}' using encoding 1.1", ex);
                     }
                     if (identity.Name.Length == 0)
                     {
                         throw new InvalidOperationException(
-                            @$"cannot marshal proxy with path `{Path}' using encoding 1.1");
+                            @$"cannot marshal proxy with path '{Path}' using encoding 1.1");
                     }
 
                     identity.IceWrite(ostr);

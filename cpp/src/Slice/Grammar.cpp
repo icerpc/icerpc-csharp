@@ -1955,7 +1955,7 @@ yyreduce:
   case 16: /* definition: class_decl  */
 #line 291 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after class forward declaration");
+    unit->error("';' missing after class forward declaration");
 }
 #line 1961 "src/Slice/Grammar.cpp"
     break;
@@ -1979,7 +1979,7 @@ yyreduce:
   case 21: /* definition: interface_decl  */
 #line 305 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after interface forward declaration");
+    unit->error("';' missing after interface forward declaration");
 }
 #line 1985 "src/Slice/Grammar.cpp"
     break;
@@ -2003,7 +2003,7 @@ yyreduce:
   case 26: /* definition: exception_decl  */
 #line 319 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after exception forward declaration");
+    unit->error("';' missing after exception forward declaration");
 }
 #line 2009 "src/Slice/Grammar.cpp"
     break;
@@ -2027,7 +2027,7 @@ yyreduce:
   case 31: /* definition: struct_decl  */
 #line 333 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after struct forward declaration");
+    unit->error("';' missing after struct forward declaration");
 }
 #line 2033 "src/Slice/Grammar.cpp"
     break;
@@ -2051,7 +2051,7 @@ yyreduce:
   case 36: /* definition: sequence_def  */
 #line 347 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after sequence definition");
+    unit->error("';' missing after sequence definition");
 }
 #line 2057 "src/Slice/Grammar.cpp"
     break;
@@ -2067,7 +2067,7 @@ yyreduce:
   case 39: /* definition: type_alias_def  */
 #line 356 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after type-alias");
+    unit->error("';' missing after type-alias");
 }
 #line 2073 "src/Slice/Grammar.cpp"
     break;
@@ -2083,7 +2083,7 @@ yyreduce:
   case 42: /* definition: dictionary_def  */
 #line 365 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after dictionary definition");
+    unit->error("';' missing after dictionary definition");
 }
 #line 2089 "src/Slice/Grammar.cpp"
     break;
@@ -2107,7 +2107,7 @@ yyreduce:
   case 47: /* definition: const_def  */
 #line 379 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after const definition");
+    unit->error("';' missing after const definition");
 }
 #line 2113 "src/Slice/Grammar.cpp"
     break;
@@ -2261,7 +2261,7 @@ yyreduce:
 #line 514 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as exception name");
+    unit->error("keyword '" + ident->v + "' cannot be used as exception name");
     yyval = yyvsp[0]; // Dummy
 }
 #line 2268 "src/Slice/Grammar.cpp"
@@ -2363,13 +2363,13 @@ yyreduce:
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(const auto& p : enumerators)
             {
@@ -2382,13 +2382,13 @@ yyreduce:
                     os << " or";
                 }
 
-                os << " `" << p->scoped() << "'";
+                os << " '" << p->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -2416,7 +2416,7 @@ yyreduce:
 
     if (tag < 0 || tag > INT32_MAX)
     {
-        unit->error("cannot use value of `" + scoped->v + "' as a tag");
+        unit->error("cannot use value of '" + scoped->v + "' as a tag");
     }
 
     TaggedDefTokPtr m = new TaggedDefTok(static_cast<int>(tag));
@@ -2451,7 +2451,7 @@ yyreduce:
     IntegerTokPtr i = IntegerTokPtr::dynamicCast(yyvsp[-1]);
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
 
     int tag;
@@ -2477,7 +2477,7 @@ yyreduce:
     StringTokPtr scoped = StringTokPtr::dynamicCast(yyvsp[-1]);
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
 
     ContainerPtr cont = unit->currentContainer();
@@ -2491,13 +2491,13 @@ yyreduce:
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(const auto& p : enumerators)
             {
@@ -2510,13 +2510,13 @@ yyreduce:
                     os << " or";
                 }
 
-                os << " `" << p->scoped() << "'";
+                os << " '" << p->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -2544,7 +2544,7 @@ yyreduce:
 
     if (tag < 0 || tag > INT32_MAX)
     {
-        unit->error("cannot use value of `" + scoped->v + "' as a tag");
+        unit->error("cannot use value of '" + scoped->v + "' as a tag");
     }
 
     TaggedDefTokPtr m = new TaggedDefTok(static_cast<int>(tag));
@@ -2558,7 +2558,7 @@ yyreduce:
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
     unit->error("missing tag");
     TaggedDefTokPtr m = new TaggedDefTok; // Dummy
@@ -2572,7 +2572,7 @@ yyreduce:
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, string("The `optional' keyword is deprecated, use `tag' instead"));
+        unit->warning(Deprecated, string("The 'optional' keyword is deprecated, use 'tag' instead"));
     }
     unit->error("missing tag");
     TaggedDefTokPtr m = new TaggedDefTok; // Dummy
@@ -2593,7 +2593,7 @@ yyreduce:
 #line 816 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as struct name");
+    unit->error("keyword '" + ident->v + "' cannot be used as struct name");
     yyval = yyvsp[0]; // Dummy
 }
 #line 2600 "src/Slice/Grammar.cpp"
@@ -2646,7 +2646,7 @@ yyreduce:
     assert(st);
     if (!st->hasDataMembers())
     {
-        unit->error("struct `" + st->name() + "' must have at least one member"); // $$ is a dummy
+        unit->error("struct '" + st->name() + "' must have at least one member"); // $$ is a dummy
     }
 }
 #line 2653 "src/Slice/Grammar.cpp"
@@ -2664,7 +2664,7 @@ yyreduce:
 #line 882 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as class name");
+    unit->error("keyword '" + ident->v + "' cannot be used as class name");
     yyval = yyvsp[0]; // Dummy
 }
 #line 2671 "src/Slice/Grammar.cpp"
@@ -2687,7 +2687,7 @@ yyreduce:
         string typeId = unit->getTypeId(static_cast<int>(id));
         if(!typeId.empty())
         {
-            unit->error("invalid compact id for class: already assigned to class `" + typeId + "'");
+            unit->error("invalid compact id for class: already assigned to class '" + typeId + "'");
         }
     }
 
@@ -2715,13 +2715,13 @@ yyreduce:
             // Found
             cl.push_back(enumerators.front());
             scoped->v = enumerators.front()->scoped();
-            unit->warning(Deprecated, string("referencing enumerator `") + scoped->v
+            unit->warning(Deprecated, string("referencing enumerator '") + scoped->v
                           + "' without its enumeration's scope is deprecated");
         }
         else if(enumerators.size() > 1)
         {
             ostringstream os;
-            os << "enumerator `" << scoped->v << "' could designate";
+            os << "enumerator '" << scoped->v << "' could designate";
             bool first = true;
             for(EnumeratorList::iterator p = enumerators.begin(); p != enumerators.end(); ++p)
             {
@@ -2734,13 +2734,13 @@ yyreduce:
                     os << " or";
                 }
 
-                os << " `" << (*p)->scoped() << "'";
+                os << " '" << (*p)->scoped() << "'";
             }
             unit->error(os.str());
         }
         else
         {
-            unit->error(string("`") + scoped->v + "' is not defined");
+            unit->error(string("'") + scoped->v + "' is not defined");
         }
     }
 
@@ -2780,7 +2780,7 @@ yyreduce:
         string typeId = unit->getTypeId(id);
         if(!typeId.empty())
         {
-            unit->error("invalid compact id for class: already assigned to class `" + typeId + "'");
+            unit->error("invalid compact id for class: already assigned to class '" + typeId + "'");
         }
     }
 
@@ -2875,7 +2875,7 @@ yyreduce:
             ClassDefPtr def = cl->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined");
+                unit->error("'" + scoped->v + "' has been declared but not defined");
             }
             else
             {
@@ -2885,7 +2885,7 @@ yyreduce:
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not a class");
+            unit->error("'" + scoped->v + "' is not a class");
         }
     }
 }
@@ -2943,7 +2943,7 @@ yyreduce:
   case 89: /* data_member_list: data_member  */
 #line 1157 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after definition");
+    unit->error("';' missing after definition");
 }
 #line 2949 "src/Slice/Grammar.cpp"
     break;
@@ -2959,7 +2959,7 @@ yyreduce:
     bool isOutParam = qualifier->v & QUALIFIER_OUT;
     if (isOutParam)
     {
-        unit->error("`" + returnMember->name + "': return members cannot be marked as out");
+        unit->error("'" + returnMember->name + "': return members cannot be marked as out");
     }
 
     TaggedDefListTokPtr returnMembers = new TaggedDefListTok();
@@ -2980,7 +2980,7 @@ yyreduce:
     bool isOutParam = qualifier->v & QUALIFIER_OUT;
     if (isOutParam)
     {
-        unit->error("`" + returnMember->name + "': return members cannot be marked as out");
+        unit->error("'" + returnMember->name + "': return members cannot be marked as out");
     }
 
     TaggedDefListTokPtr returnMembers = TaggedDefListTokPtr::dynamicCast(yyvsp[-3]);
@@ -3149,7 +3149,7 @@ yyreduce:
                 }
             }
 
-            unit->error("keyword `" + name + "' cannot be used as operation name");
+            unit->error("keyword '" + name + "' cannot be used as operation name");
             yyval = op; // Dummy
         }
         else
@@ -3187,7 +3187,7 @@ yyreduce:
                 }
             }
 
-            unit->error("keyword `" + name + "' cannot be used as operation name");
+            unit->error("keyword '" + name + "' cannot be used as operation name");
             yyval = op; // Dummy
         }
         else
@@ -3288,7 +3288,7 @@ yyreduce:
   case 108: /* operation_list: local_metadata operation  */
 #line 1470 "src/Slice/Grammar.y"
 {
-    unit->error("`;' missing after definition");
+    unit->error("';' missing after definition");
 }
 #line 3294 "src/Slice/Grammar.cpp"
     break;
@@ -3305,7 +3305,7 @@ yyreduce:
 #line 1485 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as interface name");
+    unit->error("keyword '" + ident->v + "' cannot be used as interface name");
     yyval = yyvsp[0]; // Dummy
 }
 #line 3312 "src/Slice/Grammar.cpp"
@@ -3383,7 +3383,7 @@ yyreduce:
             InterfaceDefPtr def = interface->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined");
+                unit->error("'" + scoped->v + "' has been declared but not defined");
             }
             else
             {
@@ -3393,7 +3393,7 @@ yyreduce:
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not an interface");
+            unit->error("'" + scoped->v + "' is not an interface");
         }
     }
     yyval = intfs;
@@ -3424,7 +3424,7 @@ yyreduce:
             InterfaceDefPtr def = interface->definition();
             if (!def)
             {
-                unit->error("`" + scoped->v + "' has been declared but not defined"); // $$ is a dummy
+                unit->error("'" + scoped->v + "' has been declared but not defined"); // $$ is a dummy
             }
             else
             {
@@ -3434,7 +3434,7 @@ yyreduce:
         }
         else
         {
-            unit->error("`" + scoped->v + "' is not an interface"); // $$ is a dummy
+            unit->error("'" + scoped->v + "' is not an interface"); // $$ is a dummy
         }
     }
     yyval = intfs;
@@ -3465,7 +3465,7 @@ yyreduce:
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
     }
     unit->error("illegal inheritance from type Value");
     yyval = new ClassListTok; // Dummy
@@ -3531,7 +3531,7 @@ yyreduce:
 #line 1685 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as exception name");
+    unit->error("keyword '" + ident->v + "' cannot be used as exception name");
     yyval = unit->currentModule()->createException(IceUtil::generateUUID(), 0, Dummy); // Dummy
 }
 #line 3538 "src/Slice/Grammar.cpp"
@@ -3566,7 +3566,7 @@ yyreduce:
 #line 1717 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("missing underlying type for typealias `" + ident->v + "'");
+    unit->error("missing underlying type for typealias '" + ident->v + "'");
     yyval = nullptr;
 }
 #line 3573 "src/Slice/Grammar.cpp"
@@ -3607,7 +3607,7 @@ yyreduce:
 
     ModulePtr cont = unit->currentModule();
     yyval = cont->createSequence(ident->v, type, metadata->v); // Dummy
-    unit->error("keyword `" + ident->v + "' cannot be used as sequence name");
+    unit->error("keyword '" + ident->v + "' cannot be used as sequence name");
 }
 #line 3613 "src/Slice/Grammar.cpp"
     break;
@@ -3644,7 +3644,7 @@ yyreduce:
 
     ModulePtr cont = unit->currentModule();
     yyval = cont->createDictionary(ident->v, keyType, keyMetadata->v, valueType, valueMetadata->v); // Dummy
-    unit->error("keyword `" + ident->v + "' cannot be used as dictionary name");
+    unit->error("keyword '" + ident->v + "' cannot be used as dictionary name");
 }
 #line 3650 "src/Slice/Grammar.cpp"
     break;
@@ -3691,7 +3691,7 @@ yyreduce:
     bool unchecked = BoolTokPtr::dynamicCast(yyvsp[-1])->v;
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
     ModulePtr cont = unit->currentModule();
-    unit->error("keyword `" + ident->v + "' cannot be used as enumeration name");
+    unit->error("keyword '" + ident->v + "' cannot be used as enumeration name");
     yyval = cont->createEnum(IceUtil::generateUUID(), unchecked, Dummy);
 }
 #line 3698 "src/Slice/Grammar.cpp"
@@ -3707,7 +3707,7 @@ yyreduce:
     {
         if (!alias->typeMetadata().empty())
         {
-            unit->error("illegal metadata: typealias metadata `" + alias->typeMetadata().front() +
+            unit->error("illegal metadata: typealias metadata '" + alias->typeMetadata().front() +
                         "' cannot be used in enum declarations");
         }
         underlying = alias->underlying();
@@ -3728,7 +3728,7 @@ yyreduce:
         EnumeratorListTokPtr enumerators = EnumeratorListTokPtr::dynamicCast(yyvsp[-1]);
         if (enumerators->v.empty() && (!en->underlying() || !en->isUnchecked()))
         {
-            unit->error("enum `" + en->name() + "' must have at least one enumerator");
+            unit->error("enum '" + en->name() + "' must have at least one enumerator");
         }
         unit->popContainer();
     }
@@ -3851,7 +3851,7 @@ yyreduce:
 {
     StringListTokPtr metadata = StringListTokPtr::dynamicCast(yyvsp[-1]);
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("keyword `" + ident->v + "' cannot be used as enumerator");
+    unit->error("keyword '" + ident->v + "' cannot be used as enumerator");
 
     EnumPtr cont = EnumPtr::dynamicCast(unit->currentContainer());
     EnumeratorPtr en = cont->createEnumerator(ident->v);
@@ -3901,7 +3901,7 @@ yyreduce:
 
     if(!tok)
     {
-        string msg = "illegal initializer: `" + scoped->v + "' is not an integer constant";
+        string msg = "illegal initializer: '" + scoped->v + "' is not an integer constant";
         unit->error(msg); // $$ is dummy
     }
 
@@ -3964,7 +3964,7 @@ yyreduce:
         bool isStreamParam = qualifier->v & QUALIFIER_STREAM;
         if (isOutParam && isStreamParam)
         {
-            unit->error("`" + def->name + "': stream parameter cannot be marked as out");
+            unit->error("'" + def->name + "': stream parameter cannot be marked as out");
         }
 
         MemberPtr param = op->createParameter(def->name, def->type, isOutParam, def->isTagged, def->tag, isStreamParam);
@@ -3998,7 +3998,7 @@ yyreduce:
 #line 2113 "src/Slice/Grammar.y"
 {
     StringTokPtr ident = StringTokPtr::dynamicCast(yyvsp[0]);
-    unit->error("Identifier cannot be scoped: `" + (ident->v) + "'");
+    unit->error("Identifier cannot be scoped: '" + (ident->v) + "'");
     yyval = yyvsp[0];
 }
 #line 4005 "src/Slice/Grammar.cpp"
@@ -4123,7 +4123,7 @@ yyreduce:
 {
     if (!unit->compatMode())
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
     }
     yyval = unit->optionalBuiltin(Builtin::KindAnyClass);
 }
@@ -4171,7 +4171,7 @@ yyreduce:
     }
     else
     {
-        unit->warning(Deprecated, "the `Value' keyword is deprecated, use `AnyClass' instead");
+        unit->warning(Deprecated, "the 'Value' keyword is deprecated, use 'AnyClass' instead");
         yyval = unit->builtin(Builtin::KindAnyClass);
     }
 }
@@ -4234,7 +4234,7 @@ yyreduce:
             InterfaceDeclPtr interface = InterfaceDeclPtr::dynamicCast(*p);
             if(!interface)
             {
-                string msg = "`";
+                string msg = "'";
                 msg += scoped->v;
                 msg += "' must be an interface";
                 unit->error(msg);
@@ -4363,7 +4363,7 @@ yyreduce:
     {
         checkForTaggableType(def->type, def->name);
     }
-    unit->error("keyword `" + def->name + "' cannot be used as an identifier");
+    unit->error("keyword '" + def->name + "' cannot be used as an identifier");
     yyval = def;
 }
 #line 4370 "src/Slice/Grammar.cpp"
@@ -4481,7 +4481,7 @@ yyreduce:
         else
         {
             def = new ConstDefTok;
-            string msg = "illegal initializer: `" + scoped->v + "' is a";
+            string msg = "illegal initializer: '" + scoped->v + "' is a";
             static const string vowels = "aeiou";
             string kindOf = cl.front()->kindOf();
             if(vowels.find_first_of(kindOf[0]) != string::npos)
@@ -4991,4 +4991,3 @@ yyreturn:
 }
 
 #line 2566 "src/Slice/Grammar.y"
-

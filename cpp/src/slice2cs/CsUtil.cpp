@@ -1484,7 +1484,7 @@ Slice::CsGenerator::MetadataVisitor::visitUnitStart(const UnitPtr& p)
                 static const string csAttributePrefix = csPrefix + "attribute:";
                 if(!(s.find(csAttributePrefix) == 0 && s.size() > csAttributePrefix.size()))
                 {
-                    dc->warning(InvalidMetadata, file, -1, "ignoring invalid global metadata `" + oldS + "'");
+                    dc->warning(InvalidMetadata, file, -1, "ignoring invalid global metadata '" + oldS + "'");
                     continue;
                 }
             }
@@ -1675,7 +1675,7 @@ Slice::CsGenerator::MetadataVisitor::validate(const ContainedPtr& cont)
                 continue;
             }
 
-            dc->warning(InvalidMetadata, cont->file(), cont->line(), msg + " `" + oldS + "'");
+            dc->warning(InvalidMetadata, cont->file(), cont->line(), msg + " '" + oldS + "'");
             continue;
         }
         newLocalMetadata.push_back(s);

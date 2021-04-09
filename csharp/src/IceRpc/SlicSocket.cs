@@ -244,7 +244,7 @@ namespace IceRpc
                     }
                     default:
                     {
-                        throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
+                        throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                     }
                 }
             }
@@ -272,7 +272,7 @@ namespace IceRpc
 
                 if (type != SlicDefinitions.FrameType.Initialize)
                 {
-                    throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
+                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                 }
 
                 // Check that the Slic version is supported (we only support version 1 for now)
@@ -294,14 +294,14 @@ namespace IceRpc
                     (type, data) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
                     if (type != SlicDefinitions.FrameType.Initialize)
                     {
-                        throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
+                        throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                     }
 
                     istr = new InputStream(data, SlicDefinitions.Encoding);
                     version = istr.ReadVarUInt();
                     if (version != 1)
                     {
-                        throw new InvalidDataException($"unsupported Slic version `{version}'");
+                        throw new InvalidDataException($"unsupported Slic version '{version}'");
                     }
                 }
 
@@ -316,13 +316,13 @@ namespace IceRpc
                     if (ProtocolExtensions.Parse(initializeBody.ApplicationProtocolName) != Protocol.Ice2)
                     {
                         throw new NotSupportedException(
-                            $"application protocol `{initializeBody.ApplicationProtocolName}' is not supported");
+                            $"application protocol '{initializeBody.ApplicationProtocolName}' is not supported");
                     }
                 }
                 catch (FormatException ex)
                 {
                     throw new NotSupportedException(
-                        $"unknown application protocol `{initializeBody.ApplicationProtocolName}'", ex);
+                        $"unknown application protocol '{initializeBody.ApplicationProtocolName}'", ex);
                 }
                 SetParameters(parameters);
 
@@ -366,11 +366,11 @@ namespace IceRpc
                     Logger.LogReceivedSlicVersionFrame(data.Count, versionBody);
 
                     throw new InvalidDataException(
-                        $"unsupported Slic version, server supports Slic `{string.Join(", ", versionBody.Versions)}'");
+                        $"unsupported Slic version, server supports Slic '{string.Join(", ", versionBody.Versions)}'");
                 }
                 else if (type != SlicDefinitions.FrameType.InitializeAck)
                 {
-                    throw new InvalidDataException($"unexpected Slic frame with frame type `{type}'");
+                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                 }
                 else
                 {

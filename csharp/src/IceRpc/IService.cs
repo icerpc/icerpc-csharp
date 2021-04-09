@@ -116,7 +116,7 @@ namespace IceRpc
             if (current.IsIdempotent)
             {
                 throw new InvalidDataException(
-                        $@"idempotent mismatch for operation `{current.Operation
+                        $@"idempotent mismatch for operation '{current.Operation
                         }': received request marked idempotent for a non-idempotent operation");
             }
         }

@@ -67,7 +67,7 @@ def main():
             if a in digestAlgorithms:
                 digest = a
             else:
-                print("Unknown digest algorithm `" + a + "'")
+                print("Unknown digest algorithm '" + a + "'")
                 return 2
         elif o in ("-s", "--salt"):
             try:

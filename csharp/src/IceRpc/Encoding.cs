@@ -29,7 +29,7 @@ namespace IceRpc
             int pos = str.IndexOf('.');
             if (pos == -1)
             {
-                throw new FormatException($"malformed encoding string `{str}'");
+                throw new FormatException($"malformed encoding string '{str}'");
             }
 
             string majStr = str[..pos];
@@ -42,7 +42,7 @@ namespace IceRpc
             }
             catch (FormatException)
             {
-                throw new FormatException($"malformed encoding string `{str}'");
+                throw new FormatException($"malformed encoding string '{str}'");
             }
         }
 
@@ -72,7 +72,7 @@ namespace IceRpc
             if (!IsSupported)
             {
                 throw new NotSupportedException(
-                    $"Ice encoding `{this}' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
+                    $"Ice encoding '{this}' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
             }
         }
     }
