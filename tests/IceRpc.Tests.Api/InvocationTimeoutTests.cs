@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Api
         public InvocationTimeoutTests()
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator, new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+            _server = new Server { Communicator = _communicator };
         }
 
         [OneTimeTearDown]
@@ -47,7 +47,8 @@ namespace IceRpc.Tests.Api
                     }));
 
             router.Map("/test", new TestService());
-            _server.Activate(router);
+            _server.Dispatcher = router;
+            _ = _server.ListenAndServeAsync();
 
             var prx = IServicePrx.Factory.Create(_server, "/test");
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);

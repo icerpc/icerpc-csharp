@@ -151,21 +151,12 @@ namespace IceRpc
                 Endpoint[] endpoints =
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint11(proxyData.Protocol));
 
-                bool wellKnown = false;
-
                 if (endpoints.Length == 0)
                 {
                     string adapterId = istr.ReadString();
-
-                    // Well-known proxies are ice1-only.
-                    if (proxyData.Protocol == Protocol.Ice1 || adapterId.Length > 0)
+                    if (adapterId.Length > 0)
                     {
-                        var locEndpoint = adapterId.Length > 0 ? LocEndpoint.Create(adapterId, proxyData.Protocol) :
-                            LocEndpoint.Create(identity);
-
-                        endpoints = new Endpoint[] { locEndpoint };
-
-                        wellKnown = adapterId.Length == 0;
+                        endpoints = new Endpoint[] { LocEndpoint.Create(adapterId, proxyData.Protocol) };
                     }
                 }
                 else if (endpoints.Length > 1 && endpoints.Any(endpoint => endpoint.Transport == Transport.Loc))
@@ -175,8 +166,6 @@ namespace IceRpc
 
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(endpoints.Length > 0);
-
                     if (proxyData.FacetPath.Length > 1)
                     {
                         throw new InvalidDataException(
@@ -187,8 +176,7 @@ namespace IceRpc
                                            endpoints,
                                            proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
                                            identity,
-                                           proxyData.InvocationMode,
-                                           wellKnown);
+                                           proxyData.InvocationMode);
                 }
                 else
                 {
@@ -252,16 +240,11 @@ namespace IceRpc
                         throw new InvalidDataException($"received invalid ice1 identity '{proxyData.Path}'");
                     }
 
-                    bool wellKnown = endpoints.Count == 1 &&
-                                     endpoints[0].Transport == Transport.Loc &&
-                                     endpoints[0]["category"] != null;
-
                     return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V20,
                                            endpoints,
                                            facet,
                                            identity,
-                                           invocationMode,
-                                           wellKnown);
+                                           invocationMode);
                 }
                 else
                 {
@@ -275,8 +258,7 @@ namespace IceRpc
                 IReadOnlyList<Endpoint> endpoints,
                 string facet,
                 Identity identity,
-                InvocationMode invocationMode,
-                bool wellKnown)
+                InvocationMode invocationMode)
             {
                 ProxyOptions options = proxyOptions;
                 if (options.IsOneway != (invocationMode != InvocationMode.Twoway))
@@ -285,9 +267,8 @@ namespace IceRpc
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
-                // A well-known proxy with no location resolver is unmarshaled as a relative proxy. This makes various
-                // coloc situations work.
-                if (wellKnown && options.LocationResolver == null)
+                // If there is a location resolver, it's a well-known proxy.
+                if (endpoints.Count == 0 && options.LocationResolver == null)
                 {
                     // The protocol of the source proxy/connection prevails.
                     Protocol protocol = connection?.Protocol ?? source!.Protocol;
@@ -311,6 +292,10 @@ namespace IceRpc
                 }
                 else
                 {
+                    if (endpoints.Count == 0)
+                    {
+                        endpoints = new Endpoint[] { LocEndpoint.Create(identity) }; // well-known proxy
+                    }
                     return factory.Create(identity, facet, encoding, endpoints, connection: null, options);
                 }
             }

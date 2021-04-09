@@ -15,65 +15,26 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
 
-            // A DNS name cannot be used with a server endpoint
-            Assert.Throws<NotSupportedException>(
-                () => new Server(new Communicator(), new ServerOptions() { Endpoints = "tcp -h foo -p 10000" }));
+            {
+                await using var server = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = "tcp -h foo -p 10000"
+                };
 
-            // Server can only accept secure connections
-            Assert.Throws<ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     ConnectionOptions = new()
-                                     {
-                                         AcceptNonSecure = NonSecure.Never
-                                     },
-                                     Endpoints = "tcp -h 127.0.0.1 -p 10000"
-                                 }));
-
-            // only one endpoint is allowed when a dynamic IP port (:0) is configured
-            Assert.Throws<ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     ConnectionOptions = new()
-                                     {
-                                         AcceptNonSecure = NonSecure.Never
-                                     },
-                                     Endpoints = "ice+tcp://127.0.0.1:0?alt-endpoint=127.0.0.2:10000"
-                                 }));
-
-            // both PublishedHost and PublishedEndpoints are empty
-            Assert.Throws<ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     PublishedEndpoints = "",
-                                     PublishedHost = "",
-                                     Endpoints = "ice+tcp://127.0.0.1:10000"
-                                 }));
-
-            // Accept only secure connections require tls configuration
-            Assert.Throws<ArgumentException>(
-                () => new Server(communicator,
-                                 new ServerOptions()
-                                 {
-                                     ConnectionOptions = new()
-                                     {
-                                         AcceptNonSecure = NonSecure.Never
-                                     },
-                                 }));
+                // A DNS name cannot be used with a server endpoint
+                Assert.Throws<NotSupportedException>(() => _ = server.ListenAndServeAsync());
+            }
 
             {
-                // Activating twice the server is incorrect
-                await using var server = new Server(communicator);
-                server.Activate();
-                Assert.Throws<InvalidOperationException>(() => server.Activate());
+                // Async twice is incorrect
+                await using var server = new Server { Communicator = communicator };
+                _ = server.ListenAndServeAsync();
+                Assert.Throws<InvalidOperationException>(() => _ = server.ListenAndServeAsync());
             }
 
             {
                 // cannot add a middleware to a router after adding a route
-                await using var server = new Server(communicator);
                 var router = new Router();
                 router.Map("/test", new ProxyTest());
 
@@ -81,31 +42,38 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                await using var server1 = new Server(
-                    communicator,
-                    new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                await using var server1 = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = "ice+tcp://127.0.0.1:15001"
+                };
+                _ = server1.ListenAndServeAsync();
 
                 Assert.ThrowsAsync<TransportException>(async () =>
                     {
-                        await using var server2 = new Server(
-                            communicator,
-                            new ServerOptions() { Endpoints = "ice+tcp://127.0.0.1:15001" });
+                        await using var server2 = new Server
+                        {
+                            Communicator = communicator,
+                            Endpoint = "ice+tcp://127.0.0.1:15001"
+                        };
+                        _ = server2.ListenAndServeAsync();
+
                     });
             }
 
             {
-                 await using var server1 = new Server(
-                    communicator,
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.Communicator,
-                        Endpoints = "ice+tcp://127.0.0.1:15001"
-                    });
+                await using var server1 = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = "ice+tcp://127.0.0.1:15001"
+                };
+
+                _ = server1.ListenAndServeAsync();
 
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
-                await using var server2 = new Server(communicator);
+                await using var server2 = new Server { Communicator = communicator };
                 Assert.DoesNotThrow(() => connection.Server = server2);
                 Assert.DoesNotThrow(() => connection.Server = null);
                 await server2.DisposeAsync();
@@ -118,61 +86,31 @@ namespace IceRpc.Tests.Api
         public async Task Server_EndpointInformation()
         {
             await using var communicator = new Communicator();
-            var server = new Server(
-                communicator,
-                new()
-                {
-                    ConnectionOptions = new()
-                    {
-                        AcceptNonSecure = NonSecure.Always
-                    },
-                    Endpoints = $"tcp -h 127.0.0.1 -p 0 -t 15000",
-                    PublishedHost = "localhost"
-                });
-
-            Assert.AreEqual(1, server.Endpoints.Count);
-
-            CollectionAssert.AreEquivalent(server.PublishedEndpoints, server.PublishedEndpoints);
-
-            Assert.IsNotNull(server.Endpoints[0]);
-            Assert.AreEqual(Transport.TCP, server.Endpoints[0].Transport);
-            Assert.AreEqual("127.0.0.1", server.Endpoints[0].Host);
-            Assert.IsTrue(server.Endpoints[0].Port > 0);
-            Assert.AreEqual("15000", server.Endpoints[0]["timeout"]);
-
-            Assert.IsNotNull(server.PublishedEndpoints[0]);
-            Assert.AreEqual(Transport.TCP, server.PublishedEndpoints[0].Transport);
-            Assert.AreEqual("localhost", server.PublishedEndpoints[0].Host);
-            Assert.IsTrue(server.PublishedEndpoints[0].Port > 0);
-            Assert.AreEqual("15000", server.PublishedEndpoints[0]["timeout"]);
-
-            await server.DisposeAsync();
-
-            await CheckServerEndpoint(communicator, "tcp -h {0} -p {1}", 10001);
-            await CheckServerEndpoint(communicator, "ice+tcp://{0}:{1}", 10001);
-
-            static async Task CheckServerEndpoint(Communicator communicator, string endpoint, int port)
+            await using var server = new Server
             {
-                await using var server = new Server(
-                    communicator,
-                    new()
-                    {
-                        Endpoints = string.Format(endpoint, "0.0.0.0", port),
-                        PublishedEndpoints = string.Format(endpoint, "127.0.0.1", port)
-
-                    });
-
-                Assert.IsTrue(server.Endpoints.Count >= 1);
-                Assert.IsTrue(server.PublishedEndpoints.Count == 1);
-
-                foreach (Endpoint e in server.Endpoints)
+                Communicator = communicator,
+                ConnectionOptions = new()
                 {
-                    Assert.AreEqual(port, e.Port);
-                }
+                    AcceptNonSecure = NonSecure.Always
+                },
+                Endpoint = $"tcp -h 127.0.0.1 -p 0 -t 15000",
+                ProxyHost = "localhost"
+            };
 
-                Assert.AreEqual("127.0.0.1", server.PublishedEndpoints[0].Host);
-                Assert.AreEqual(port, server.PublishedEndpoints[0].Port);
-            }
+            _ = server.ListenAndServeAsync();
+
+            Endpoint serverEndpoint = Endpoint.Parse(server.Endpoint);
+            Endpoint proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
+
+            Assert.AreEqual(Transport.TCP, serverEndpoint.Transport);
+            Assert.AreEqual("127.0.0.1", serverEndpoint.Host);
+            Assert.IsTrue(serverEndpoint.Port > 0);
+            Assert.AreEqual("15000", serverEndpoint["timeout"]);
+
+            Assert.AreEqual(Transport.TCP, proxyEndpoint.Transport);
+            Assert.AreEqual("localhost", proxyEndpoint.Host);
+            Assert.AreEqual(serverEndpoint.Port, proxyEndpoint.Port);
+            Assert.AreEqual("15000", proxyEndpoint["timeout"]);
         }
 
         [Test]
@@ -188,12 +126,11 @@ namespace IceRpc.Tests.Api
                 InvocationTimeout = TimeSpan.FromSeconds(10)
             };
 
-            await using var server = new Server(communicator,
-                                                new ServerOptions()
-                                                {
-                                                    ColocationScope = ColocationScope.Communicator,
-                                                    ProxyOptions = proxyOptions
-                                                });
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                ProxyOptions = proxyOptions
+            };
 
             var service = new ProxyTest();
             IProxyTestPrx? proxy = server.Add("/foo/bar", service, IProxyTestPrx.Factory);
@@ -203,7 +140,7 @@ namespace IceRpc.Tests.Api
             proxy.Context = new Dictionary<string, string>();
             proxy.InvocationTimeout = TimeSpan.FromSeconds(20);
 
-            server.Activate();
+            _ = server.ListenAndServeAsync();
             await proxy.SendProxyAsync(proxy);
             // The server always unmarshals the proxy as a fixed proxy
             Assert.IsNotNull(service.Proxy);
@@ -226,26 +163,13 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        [TestCase("tcp -h localhost -p 12345 -t 30000")]
-        [TestCase("ice+tcp://localhost:12345")]
-        public async Task Server_PublishedEndpoints(string endpoint)
-        {
-            await using var communicator = new Communicator();
-            await using var server = new Server(communicator, new ServerOptions() { PublishedEndpoints = endpoint });
-
-            Assert.AreEqual(1, server.PublishedEndpoints.Count);
-            Assert.IsNotNull(server.PublishedEndpoints[0]);
-            Assert.AreEqual(endpoint, server.PublishedEndpoints[0].ToString());
-        }
-
         [TestCase(" :" )]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
         public async Task Server_InvalidEndpoints(string endpoint)
         {
             await using var communicator = new Communicator();
-            Assert.Throws<FormatException>(
-                () => new Server(communicator, new ServerOptions() { Endpoints = endpoint }));
+            Assert.Throws<FormatException>(() => new Server { Communicator = communicator, Endpoint = endpoint });
         }
 
         private class ProxyTest : IAsyncProxyTest

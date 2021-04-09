@@ -22,15 +22,17 @@ namespace IceRpc.Tests.ClientServer
         public InteropLocatorClientTests()
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator,
-                                 new ServerOptions()
-                                 {
-                                    ColocationScope = ColocationScope.None,
-                                    Endpoints = "tcp -h 127.0.0.1 -p 0"
-                                 });
+            _server = new Server
+            {
+                Communicator = _communicator,
+                ColocationScope = ColocationScope.None,
+                Endpoint = "tcp -h 127.0.0.1 -p 0"
+            };
 
+            _ = _server.ListenAndServeAsync();
+
+            // Must be created after ListenAndServeAsync to get the port number.
             _greeter = _server.AddWithUUID(new GreeterTestService(), IGreeterTestServicePrx.Factory);
-            _server.Activate();
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]

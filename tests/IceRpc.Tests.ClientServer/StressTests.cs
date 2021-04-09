@@ -29,16 +29,15 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Communicator = new Communicator();
-            Server = new Server(
-                Communicator,
-                new ServerOptions()
-                {
-                    Endpoints = GetTestEndpoint(protocol: Protocol, transport: Transport),
-                    ColocationScope = ColocationScope.None
-                });
+            Server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
+                ColocationScope = ColocationScope.None
+            };
             Servant = new TestService();
             Prx = Server.AddWithUUID(Servant, IStressTestServicePrx.Factory);
-            Server.Activate();
+            _ = Server.ListenAndServeAsync();
         }
 
         [TearDown]

@@ -101,11 +101,12 @@ namespace IceRpc.Tests.Internal
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                 }
             };
-            Server = new Server(Communicator, new ServerOptions
+            Server = new Server
             {
+                Communicator = Communicator,
                 ConnectionOptions = serverConnectionOptions,
                 LoggerFactory = _loggerFactory
-            });
+            };
 
             if (transport == "colocated")
             {
