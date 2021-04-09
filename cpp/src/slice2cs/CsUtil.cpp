@@ -735,7 +735,27 @@ Slice::CsGenerator::writeMarshalCode(
         else
         {
             assert(bitSequenceIndex >= 0);
-            out << nl << "if (" << param << " != null)";
+            SequencePtr seq = SequencePtr::dynamicCast(underlying);
+            bool readOnlyMemory = false;
+            if (seq)
+            {
+                auto elementType = seq->type();
+                string customType = seq->findMetadataWithPrefix("cs:generic:");
+                if (isFixedSizeNumericSequence(seq) && customType.empty() && !forNestedType)
+                {
+                    readOnlyMemory = true;
+                }
+            }
+            out << nl << "if (" << param;
+            if (readOnlyMemory)
+            {
+                // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
+                // ReadOnlySpan<T>. Furthermore, the span of a default ReadOnlyMemory<T> is a default ReadOnlySpan<T>,
+                // which is distinct from the span of an empty sequence. This is why the "value.Span != null" below
+                // works correctly.
+                out << ".Span";
+            }
+            out << " != null)";
             out << sb;
             string nonNullParam = param + (isReferenceType(underlying) ? "" : ".Value");
             writeMarshalCode(out, underlying, bitSequenceIndex, forNestedType, scope, nonNullParam);
