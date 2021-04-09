@@ -50,9 +50,9 @@ namespace IceRpc
             RegisterClassFactories(assembly.GetCustomAttributes<ClassAttribute>());
         }
 
-        /// <summary>Registers class and exceptions factories found in the current executing assembly and in all
+        /// <summary>Registers class and exception factories found in the current executing assembly and in all
         /// assemblies referenced by it. If this method is not explicitly called an no class factories where previously
-        /// register by calling <see cref="RegisterClassFactoriesFromAssembly(Assembly)"/> it is called implicitly the
+        /// registered by calling <see cref="RegisterClassFactoriesFromAssembly(Assembly)"/> it is called implicitly the
         /// first time IceRPC looks up a class or exception factory.</summary>
         public static void RegisterClassFactoriesFromAllAssemblies()
         {
