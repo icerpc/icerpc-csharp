@@ -1442,7 +1442,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         }
     }
 
-    // protected internal constructor used for unmarshaling (always generated).
+    // public constructor used for unmarshaling (always generated).
     // the factory parameter is used to distinguish this ctor from the parameterless ctor that users may want to add to
     // the partial class; it's not used otherwise.
     _out << sp;
@@ -1456,6 +1456,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         _out.dec();
     }
     _out << nl << "/// <inherit-doc/>";
+    emitEditorBrowsableNeverAttribute();
     _out << nl << "public " << name << "(IceRpc.InputStream? istr)";
     if (hasBaseClass)
     {
@@ -1714,6 +1715,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // public constructor used for unmarshaling (always generated).
     _out << sp;
     _out << nl << "/// <inherit-doc/>";
+    emitEditorBrowsableNeverAttribute();
     _out << nl << "public " << name << "(string? message, IceRpc.RemoteExceptionOrigin origin)";
     // We call the base class constructor to initialize the base class fields.
     _out.inc();
