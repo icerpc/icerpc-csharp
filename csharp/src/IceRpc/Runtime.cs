@@ -41,14 +41,13 @@ namespace IceRpc
         private static readonly IDictionary<Transport, (EndpointFactory Factory, Ice1EndpointFactory? Ice1Factory, Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser)> _transportRegistry =
             new ConcurrentDictionary<Transport, (EndpointFactory, Ice1EndpointFactory?, Ice1EndpointParser?, Ice2EndpointParser?)>();
 
-        /// <summary>Register class and exceptions factories found in the given assembly and in all assemblies
-        /// referenced by it.</summary>
+        /// <summary>Register class and exceptions factories found in the given assembly.
+        /// <seealso cref="RegisterClassFactoriesFromAllAssemblies"/>.</summary>
         public static void RegisterClassFactoriesFromAssembly(Assembly assembly)
         {
             var loadedAssemblies = new HashSet<Assembly>();
             LoadReferencedAssemblies(assembly, loadedAssemblies);
-            RegisterClassFactories(
-                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()));
+            RegisterClassFactories(assembly.GetCustomAttributes<ClassAttribute>());
         }
 
         /// <summary>Registers class and exceptions factories found in the current executing assembly and in all
