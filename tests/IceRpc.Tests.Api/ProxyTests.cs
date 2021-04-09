@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Api
                                     {
                                         ColocationScope = ColocationScope.Communicator
                                     });
-            prx = server.Add("test", new GreeterService(), IGreeterServicePrx.Factory);
+            prx = server.Add("/test", new GreeterService(), IGreeterServicePrx.Factory);
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -90,18 +90,18 @@ namespace IceRpc.Tests.Api
             if (prx.Protocol == Protocol.Ice1)
             {
                 IGreeterServicePrx other =
-                    prx.WithPath<IGreeterServicePrx>("test").WithFacet<IGreeterServicePrx>("facet");
+                    prx.WithPath<IGreeterServicePrx>("/test").WithFacet<IGreeterServicePrx>("facet");
 
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
 
-                other = other.WithPath<IGreeterServicePrx>("category/test");
+                other = other.WithPath<IGreeterServicePrx>("/category/test");
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("category", other.GetIdentity().Category);
 
-                other = prx.WithPath<IGreeterServicePrx>("foo").WithFacet<IGreeterServicePrx>("facet1");
+                other = prx.WithPath<IGreeterServicePrx>("/foo").WithFacet<IGreeterServicePrx>("facet1");
                 Assert.AreEqual("facet1", other.GetFacet());
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
@@ -330,7 +330,7 @@ namespace IceRpc.Tests.Api
             await using var server = new Server(
                 communicator,
                 new ServerOptions() { Protocol = protocol, ColocationScope = ColocationScope.Communicator });
-            var prx = server.Add("greeter", new GreeterService(), IGreeterServicePrx.Factory);
+            var prx = server.Add("/greeter", new GreeterService(), IGreeterServicePrx.Factory);
 
             // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
 

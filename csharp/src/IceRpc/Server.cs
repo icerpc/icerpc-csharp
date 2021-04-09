@@ -13,32 +13,61 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The server provides an up-call interface from the Ice run time to the implementation of Ice
-    /// objects. The server is responsible for receiving requests from endpoints, and for mapping between
-    /// services, identities, and proxies.</summary>
-    public sealed class Server : IAsyncDisposable
+    public enum ColocationScope
     {
-        public ColocationScope ColocationScope { get; }
+        Process,
+        Communicator,
+        None
+    }
 
-        /// <summary>Returns the communicator of this server. It is used when unmarshaling proxies.</summary>
-        /// <value>The communicator.</value>
-        public Communicator Communicator { get; }
+    /// <summary>TODO.</summary>
+    public sealed class Server : IDispatcher, IAsyncDisposable
+    {
+        // temporary
+        public ColocationScope ColocationScope { get; set; } = ColocationScope.Communicator;
 
-        /// <summary>Returns the endpoints this server is listening on.</summary>
-        /// <value>The endpoints configured on the server; for IP endpoints, port 0 is substituted by the
-        /// actual port selected by the operating system.</value>
-        public IReadOnlyList<Endpoint> Endpoints { get; } = ImmutableList<Endpoint>.Empty;
+        // temporary
+        public Communicator? Communicator { get; set; }
 
-        /// <summary>Returns the name of this server. This name is used for logging.</summary>
-        /// <value>The server's name.</value>
-        public string Name { get; }
+        public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
 
-        /// <summary>Gets the protocol of this server. The format of this server's Endpoints property
-        /// determines this protocol.</summary>
-        public Protocol Protocol { get; }
+        public IDispatcher? Dispatcher { get; set; }
 
-        /// <summary>Returns the endpoints listed in a direct proxy created by this server.</summary>
-        public IReadOnlyList<Endpoint> PublishedEndpoints { get; private set; } = ImmutableList<Endpoint>.Empty;
+        /// <summary>Gets or sets the endpoint of this server.</summary>
+        /// <value>The endpoint of this server. It cannot use a DNS name. If it's an IP endpoint with port 0
+        /// <see cref="ListenAndServeAsync"/> replaces port 0 by the actual port selected by the operating system.
+        /// </value>
+        public string Endpoint
+        {
+            get => _endpoint?.ToString() ?? "";
+            set
+            {
+                _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
+                _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
+                Protocol = _endpoint?.Protocol ?? Protocol.Ice2;
+            }
+        }
+
+        public ILoggerFactory LoggerFactory
+        {
+            get => _loggerFactory;
+            set
+            {
+                _loggerFactory = value;
+                _logger = null; // clears existing logger, if there is one
+            }
+        }
+
+        /// <summary>Gets of sets the Ice protocol used by this server. Setting <see cref="Endpoint"/> sets this value
+        /// as well.</summary>
+        public Protocol Protocol { get; set; } = Protocol.Ice2;
+
+        public string ProxyEndpoint => _proxyEndpoint?.ToString() ?? "";
+
+        public string ProxyHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
+
+        /// <summary>The local options of proxies received in requests or created using this server.</summary>
+        public ProxyOptions ProxyOptions { get; set; } = new();
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
@@ -46,79 +75,111 @@ namespace IceRpc
         /// from exiting immediately.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        /// <summary>Returns the TaskScheduler used to dispatch requests.</summary>
-        public TaskScheduler? TaskScheduler { get; }
+        /// <summary>Gets or sets the TaskScheduler used to dispatch requests.</summary>
+        public TaskScheduler? TaskScheduler { get; set; }
 
-        internal IncomingConnectionOptions ConnectionOptions { get; }
-        internal bool IsDatagramOnly { get; }
-        internal ILogger Logger { get; }
-        internal ProxyOptions ProxyOptions { get; }
-
-        private static ulong _counter; // used to generate names for nameless servers.
+        internal ILogger Logger => _logger ??= LoggerFactory.CreateLogger("IceRpc");
 
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
 
         private readonly Dictionary<string, IService> _defaultServiceMap = new();
 
-        private IDispatcher? _dispatcher;
+        private Endpoint? _endpoint;
 
-        private readonly List<IncomingConnectionFactory> _incomingConnectionFactories = new();
+        private ILogger? _logger;
+        private ILoggerFactory _loggerFactory = Runtime.DefaultLoggerFactory;
 
-        // protects _activated, _dispatchInterceptorList, _serviceMap,
+        private Endpoint? _proxyEndpoint;
+
+        private IncomingConnectionFactory? _incomingConnectionFactory;
+
+        // protects _serviceMap,
         private readonly object _mutex = new();
 
         private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
+
+        private bool _serving;
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private Lazy<Task>? _shutdownTask;
 
-        /// <summary>Constructs a server.</summary>
-        public Server(Communicator communicator)
-            : this(communicator, new())
+        public Server()
         {
+            // Temporary: creates a dispatcher that wraps the ASM held by this server.
+            Dispatcher = new InlineDispatcher(
+                (current, cancel) =>
+                {
+                    Debug.Assert(current.Server == this);
+                    IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
+                    if (service == null)
+                    {
+                        throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                    }
+                    return service.DispatchAsync(current, cancel);
+                });
         }
 
-        /// <summary>Constructs a server.</summary>
-        public Server(Communicator communicator, ServerOptions options)
+        public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx =>
+            Proxy.GetFactory<T>().Create(path,
+                                         Protocol,
+                                         Protocol.GetEncoding(),
+                                         ImmutableList<Endpoint>.Empty,
+                                         GetColocatedConnection(),
+                                         ProxyOptions);
+        public T CreateProxy<T>(string path) where T : class, IServicePrx
         {
-            Communicator = communicator;
-
-            ColocationScope = options.ColocationScope;
-            Name = options.Name.Length > 0 ? options.Name : $"server-{Interlocked.Increment(ref _counter)}";
-            TaskScheduler = options.TaskScheduler;
-            Logger = options.LoggerFactory.CreateLogger("IceRpc");
-
-            ProxyOptions = options.ProxyOptions.Clone();
-            ProxyOptions.Communicator = communicator;
-            ConnectionOptions = options.ConnectionOptions.Clone();
-
-            if (ConnectionOptions.AcceptNonSecure == NonSecure.Never && ConnectionOptions.AuthenticationOptions == null)
+            if (_proxyEndpoint == null)
             {
-                throw new ArgumentException(
-                    "server is configured to only accept secure connections but authentication options are not set",
-                    nameof(options));
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
             }
 
-            if (options.Endpoints.Length > 0)
+            ProxyOptions options = ProxyOptions;
+            if (_proxyEndpoint.IsDatagram && !options.IsOneway)
             {
-                if (UriParser.IsEndpointUri(options.Endpoints))
-                {
-                    Protocol = Protocol.Ice2;
-                    Endpoints = UriParser.ParseEndpoints(options.Endpoints);
-                }
-                else
-                {
-                    Protocol = Protocol.Ice1;
-                    Endpoints = Ice1Parser.ParseEndpoints(options.Endpoints);
+                options = options.Clone();
+                options.IsOneway = true;
+            }
 
-                    if (Endpoints.Count > 0 && Endpoints.All(e => e.IsDatagram))
+            return Proxy.GetFactory<T>().Create(path,
+                                                Protocol,
+                                                Protocol.GetEncoding(),
+                                                ImmutableList.Create(_proxyEndpoint),
+                                                connection: null, // TODO: give it a coloc connection except for UDP?
+                                                options);
+        }
+
+        /// <summary>Runs the dispatcher in a try/catch block</summary>
+        async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
+        {
+            // TODO: throw InvalidOperationException when _serving is false, which can occur with coloc invocations.
+
+            if (Dispatcher is IDispatcher dispatcher)
+            {
+                try
+                {
+                    return await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    if (!current.IsOneway)
                     {
-                        IsDatagramOnly = true;
-                        ColocationScope = ColocationScope.None;
+                        RemoteException actualEx;
+                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
+                        {
+                            actualEx = remoteEx;
+                        }
+                        else
+                        {
+                            actualEx = new UnhandledException(ex);
+                            Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                        }
+
+                        return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                     }
+<<<<<<< HEAD
 
                     // When the server is configured to only accept secure connections ensure that all
                     // configured endpoints only accept secure connections.
@@ -142,105 +203,118 @@ namespace IceRpc
                             @$"server '{Name
                             }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
                             nameof(options));
+=======
+                    else
+                    {
+                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                        return OutgoingResponseFrame.WithVoidReturnValue(current);
+>>>>>>> new-server
                     }
                 }
-
-                // Create the incoming factories immediately. This is needed to resolve dynamic ports.
-                _incomingConnectionFactories.AddRange(Endpoints.Select<Endpoint, IncomingConnectionFactory>(
-                    endpoint => endpoint.IsDatagram ?
-                        new DatagramIncomingConnectionFactory(this, endpoint) :
-                        new AcceptorIncomingConnectionFactory(this, endpoint)));
-
-                // Replace Endpoints using the factories.
-                Endpoints = _incomingConnectionFactories.Select(factory => factory.Endpoint).ToImmutableList();
             }
             else
             {
-                Protocol = options.Protocol;
-            }
-
-            if (options.PublishedEndpoints.Length > 0)
-            {
-                PublishedEndpoints = UriParser.IsEndpointUri(options.PublishedEndpoints) ?
-                    UriParser.ParseEndpoints(options.PublishedEndpoints) :
-                    Ice1Parser.ParseEndpoints(options.PublishedEndpoints);
-            }
-
-            if (PublishedEndpoints.Count == 0)
-            {
-                // If the PublishedEndpoints config property isn't set, we compute the published endpoints from
-                // the endpoints.
-
-                if (options.PublishedHost.Length == 0)
-                {
-                    throw new ArgumentException(
-                        "both options.PublishedHost and options.PublishedEndpoints are empty",
-                        nameof(options));
-                }
-
-                PublishedEndpoints = Endpoints.Select(endpoint => endpoint.GetPublishedEndpoint(options.PublishedHost)).
-                    Distinct().ToImmutableList();
-            }
-
-            if (ColocationScope != ColocationScope.None)
-            {
-                LocalServerRegistry.RegisterServer(this);
-            }
-
-            if (PublishedEndpoints.Count > 0)
-            {
-                Logger.LogServerPublishedEndpoints(Name, PublishedEndpoints);
+                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
             }
         }
 
-        // Temporary: creates a dispatcher that wraps the ASM held by this server.
-        public void Activate()
+        public async Task ListenAndServeAsync(CancellationToken cancel = default)
         {
-            var dispatcher = new InlineDispatcher(
-                (current, cancel) =>
-                {
-                    Debug.Assert(current.Server == this);
-                    IService? service = Find(current.Path, current.IncomingRequestFrame.Facet);
-                    if (service == null)
-                    {
-                        throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
-                    }
-                    return service.DispatchAsync(current, cancel);
-                 });
+            // Calling listen and serve twice is incorrect.
+            if (_serving)
+            {
+                throw new InvalidOperationException(
+                    $"'{nameof(ListenAndServeAsync)}' was already called on server '{this}'");
+            }
+            _serving = true;
 
-            Activate(dispatcher);
-        }
-
-        /// <summary>Activates this server. After activation, the server can dispatch requests received through its
-        /// endpoints.</summary>
-        public void Activate(IDispatcher dispatcher)
-        {
             lock (_mutex)
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                // Activating twice the server is incorrect
-                if (_dispatcher != null)
+                if (_endpoint is Endpoint endpoint)
                 {
-                    throw new InvalidOperationException($"server {Name} already activated");
-                }
-                _dispatcher = dispatcher;
+                    _incomingConnectionFactory = endpoint.IsDatagram ?
+                        new DatagramIncomingConnectionFactory(this, endpoint) :
+                        new AcceptorIncomingConnectionFactory(this, endpoint);
 
-                // Activate the incoming connection factories to start accepting connections
-                foreach (IncomingConnectionFactory factory in _incomingConnectionFactories)
+                    _endpoint = _incomingConnectionFactory.Endpoint;
+                    _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
+
+                    _incomingConnectionFactory.Activate();
+                }
+
+                if (ColocationScope != ColocationScope.None)
                 {
-                    factory.Activate();
+                    LocalServerRegistry.RegisterServer(this);
                 }
             }
 
-            if ((Communicator.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false) && Name.Length > 0)
+            try
             {
-                Console.Out.WriteLine($"{Name} ready");
+                await ShutdownComplete.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Request "quick" shutdown that completes as soon as possible by cancelling everything it can.
+                await ShutdownAsync(cancel).ConfigureAwait(false);
             }
         }
+
+        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
+        /// used. This method can be safely called multiple times and always returns the same task.</summary>
+        public Task ShutdownAsync(CancellationToken _ = default)
+        {
+            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
+            // synchronously) after releasing the lock.
+            lock (_mutex)
+            {
+                _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
+            }
+            return _shutdownTask.Value;
+
+            async Task PerformShutdownAsync()
+            {
+                try
+                {
+                    if (ColocationScope != ColocationScope.None)
+                    {
+                        // no longer available for coloc connections.
+                        LocalServerRegistry.UnregisterServer(this);
+                    }
+
+                    // Shuts down the incoming connection factory to stop accepting new incoming requests or
+                    // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
+                    // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
+                    // _mutex.
+                    Task? colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync();
+                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
+
+                    if (colocShutdownTask != null && incomingShutdownTask != null)
+                    {
+                        await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
+                    }
+                    else if (colocShutdownTask != null || incomingShutdownTask != null)
+                    {
+                        await (colocShutdownTask ?? incomingShutdownTask)!.ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
+                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
+                    // using Result or Wait()), ShutdownAsync will complete.
+                    _shutdownCompleteSource.TrySetResult(null);
+                }
+            }
+        }
+
+        public override string ToString() => _endpoint?.ToString() ?? "coloc";
+
+        // Below is the old ASM to be removed.
 
         /// <summary>Adds a service to this server's Active Service Map (ASM).</summary>
         /// <param name="path">The path of the service.</param>
@@ -255,12 +329,12 @@ namespace IceRpc
             IService service,
             IProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{Name}");
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
                 _serviceMap.Add((path, facet), service);
             }
@@ -288,7 +362,7 @@ namespace IceRpc
         /// <param name="service">The service to add.</param>
         public void Add(string path, string facet, IService service)
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -356,7 +430,7 @@ namespace IceRpc
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T AddWithUUID<T>(string facet, IService service, IProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
-            Add(Guid.NewGuid().ToString(), facet, service, proxyFactory);
+            Add($"/{Guid.NewGuid().ToString()}", facet, service, proxyFactory);
 
         /// <summary>Adds a service to this server's Active Service Map (ASM), using as key a unique identity
         /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
@@ -378,7 +452,7 @@ namespace IceRpc
         /// <returns>The corresponding service in the ASM, or null if the service was not found.</returns>
         public IService? Find(string path, string facet = "")
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (!_serviceMap.TryGetValue((path, facet), out IService? service))
@@ -408,7 +482,7 @@ namespace IceRpc
         /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
         public IService? Remove(string path, string facet = "")
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_serviceMap.TryGetValue((path, facet), out IService? service))
@@ -452,124 +526,24 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
-        /// used. This method can be safely called multiple times and always returns the same task.</summary>
-        public Task ShutdownAsync()
+        internal Endpoint GetColocatedEndpoint()
         {
-            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
-            // synchronously) after releasing the lock.
-            lock (_mutex)
-            {
-                _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
-            }
-            return _shutdownTask.Value;
-
-            async Task PerformShutdownAsync()
-            {
-                try
-                {
-                    if (ColocationScope != ColocationScope.None)
-                    {
-                        // no longer available for coloc connections.
-                        LocalServerRegistry.UnregisterServer(this);
-                    }
-
-                    // Synchronously shuts down the incoming connection factories to stop accepting new incoming
-                    // requests or connections. This ensures that once ShutdownAsync returns, no new requests will be
-                    // dispatched. Calling ToArray is important here to ensure that all the ShutdownAsync calls are
-                    // executed before we eventually hit an await (we want to make that once ShutdownAsync returns a
-                    // Task, all the connections started closing).
-                    // Once _shutdownTask is non null, _incomingConnectionfactories cannot change, so no need to lock
-                    // _mutex.
-                    Task[] tasks = _incomingConnectionFactories.Select(factory => factory.ShutdownAsync()).ToArray();
-
-                    if (_colocatedConnectionFactory != null)
-                    {
-                        await _colocatedConnectionFactory.ShutdownAsync().ConfigureAwait(false);
-                    }
-
-                    // Wait for the incoming connection factories to be shut down.
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
-                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
-                    // using Result or Wait()), ShutdownAsync will complete.
-                    _shutdownCompleteSource.TrySetResult(null);
-                }
-            }
-        }
-
-        /// <summary>Runs the dispatcher in a try/catch block</summary>
-        internal async ValueTask<OutgoingResponseFrame> DispatchAsync(
-            Current current,
-            CancellationToken cancel)
-        {
-            // TODO: temporary work-around
-            if (_dispatcher == null)
-            {
-                lock(_mutex)
-                {
-                    if (_dispatcher == null)
-                    {
-                        Activate();
-                    }
-                }
-            }
-
-            // Dispatch works only once the server is activated, which sets _dispatcher.
-            Debug.Assert(_dispatcher != null);
-
-            try
-            {
-                return await _dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                if (!current.IsOneway)
-                {
-                    RemoteException actualEx;
-                    if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                    {
-                        actualEx = remoteEx;
-                    }
-                    else
-                    {
-                        actualEx = new UnhandledException(ex);
-                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
-                    }
-
-                    return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
-                }
-                else
-                {
-                    Logger.LogDispatchException(current.IncomingRequestFrame, ex);
-                    return OutgoingResponseFrame.WithVoidReturnValue(current);
-                }
-            }
-        }
-
-        internal Endpoint? GetColocatedEndpoint()
-        {
+            // Lazy initialized because it needs a fully configured server, in particular Protocol.
             lock (_mutex)
             {
                 if (_shutdownTask != null)
                 {
-                    return null;
+                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
                 if (_colocatedConnectionFactory == null)
                 {
-                    _colocatedConnectionFactory =
-                        new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
-
-                    // It's safe to start the connection within the synchronization, this isn't supposed to block
-                    // for colocated connections.
+                    _colocatedConnectionFactory
+                        = new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
                     _colocatedConnectionFactory.Activate();
                 }
-                return _colocatedConnectionFactory.Endpoint;
             }
+            return _colocatedConnectionFactory.Endpoint;
         }
 
         internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
@@ -598,13 +572,19 @@ namespace IceRpc
                 {
                     // Proxies which have at least one endpoint in common with the endpoints used by this object
                     // server's incoming connection factories are considered local.
-                    isLocal = _shutdownTask == null && proxy.Endpoints.Any(endpoint =>
-                        PublishedEndpoints.Any(publishedEndpoint => endpoint == publishedEndpoint) ||
-                        _incomingConnectionFactories.Any(factory => endpoint == factory.Endpoint));
+                    isLocal = _shutdownTask == null &&
+                        proxy.Endpoints.Any(endpoint => endpoint == _endpoint || endpoint == _proxyEndpoint);
                 }
             }
 
             return isLocal ? GetColocatedEndpoint() : null;
+        }
+
+        private Connection GetColocatedConnection()
+        {
+            // TODO: very temporary code
+            var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), new(), default);
+            return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
         }
     }
 }

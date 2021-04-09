@@ -11,7 +11,7 @@ namespace IceRpc.Test.Inheritance
         {
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("initial", new InitialI(server));
+            server.Add("/initial", new InitialI(server));
 
             await AllTests.RunAsync(this);
         }

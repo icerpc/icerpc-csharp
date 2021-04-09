@@ -479,7 +479,7 @@ namespace IceRpc.Test.Binding
                     await using var oa = new Server(serverCommunicator, p);
                     oa.Activate();
 
-                    IServicePrx prx = IServicePrx.Factory.Create(oa, "dummy");
+                    IServicePrx prx = IServicePrx.Factory.Create(oa, "/dummy");
                     try
                     {
                         await using var clientCommunicator = new Communicator();

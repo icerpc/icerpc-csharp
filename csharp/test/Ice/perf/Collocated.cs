@@ -12,7 +12,7 @@ namespace IceRpc.Test.Perf
             await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("perf", new PerformanceI());
+            server.Add("/perf", new PerformanceI());
             // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this);

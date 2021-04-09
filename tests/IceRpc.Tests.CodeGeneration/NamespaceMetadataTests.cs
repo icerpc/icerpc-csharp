@@ -24,7 +24,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     ColocationScope = ColocationScope.Communicator
                 });
-            _prx = _server.Add("test", new NamespaceMDOperations(), INamespaceMDOperationsPrx.Factory);
+            _prx = _server.Add("/test", new NamespaceMDOperations(), INamespaceMDOperationsPrx.Factory);
         }
 
         [Test]

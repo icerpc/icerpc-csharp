@@ -20,53 +20,10 @@ namespace IceRpc
         /// <param name="server">The server hosting this service.</param>
         /// <param name="path">The path of the service.</param>
         /// <returns>A new service proxy.</returns>
+        // TODO: eliminate this method
         public static T Create<T>(this IProxyFactory<T> factory, Server server, string path)
-            where T : class, IServicePrx
-        {
-            Protocol protocol =
-                server.PublishedEndpoints.Count > 0 ? server.PublishedEndpoints[0].Protocol : server.Protocol;
-
-            ProxyOptions options = server.ProxyOptions;
-            if (server.IsDatagramOnly && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
-
-            Connection? connection = null;
-
-            // Give the new proxy a colocated connection if it has no endpoint or is "well-known".
-            // TODO: why not give it a coloc connection all the time?
-            if (server.PublishedEndpoints.Count == 0 && server.GetColocatedEndpoint() is Endpoint colocatedEndpoint)
-            {
-                // TODO: fix!
-                var vt = server.Communicator.ConnectAsync(colocatedEndpoint, new(), default);
-                connection = vt.IsCompleted ? vt.Result : vt.AsTask().Result;
-            }
-
-            if (protocol == Protocol.Ice1 && server.PublishedEndpoints.Count == 0)
-            {
-                // Well-known proxy.
-                var identity = Identity.FromPath(path);
-
-                return factory.Create(identity,
-                                      facet: "",
-                                      protocol.GetEncoding(),
-                                      endpoints: ImmutableList.Create(LocEndpoint.Create(identity)),
-                                      connection,
-                                      options);
-            }
-            else
-            {
-                return factory.Create(path,
-                                      protocol,
-                                      protocol.GetEncoding(),
-                                      endpoints: server.PublishedEndpoints,
-                                      connection,
-                                      options);
-
-            }
-        }
+            where T : class, IServicePrx =>
+            server.Endpoint.Length == 0 ? server.CreateRelativeProxy<T>(path) : server.CreateProxy<T>(path);
 
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>

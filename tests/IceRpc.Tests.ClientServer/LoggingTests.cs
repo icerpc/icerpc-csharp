@@ -96,7 +96,7 @@ namespace IceRpc.Tests.ClientServer
             await using var adapter = CreateServer(communicator, colocated, portNumber: 1);
             adapter.Activate();
 
-            var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
+            var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
             await using var adapter = CreateServer(communicator, colocated, portNumber: 2);
             adapter.Activate();
 
-            var service = adapter.Add("hello", new TestService(), IServicePrx.Factory);
+            var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();

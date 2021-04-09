@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
                         Protocol = protocol
                     });
 
-                server.Add("retry", new RetryService());
+                server.Add("/retry", new RetryService());
                 server.Activate();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
             }
@@ -82,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint()
                 });
             server.Activate();
-            var proxy = server.Add("bidir", new Bidir(), IRetryBidirServicePrx.Factory);
+            var proxy = server.Add("/bidir", new Bidir(), IRetryBidirServicePrx.Factory);
 
             Connection connection = await proxy.GetConnectionAsync();
             connection.Server = server;

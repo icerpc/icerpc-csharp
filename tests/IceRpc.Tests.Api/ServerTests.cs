@@ -196,7 +196,7 @@ namespace IceRpc.Tests.Api
                                                 });
 
             var service = new ProxyTest();
-            IProxyTestPrx? proxy = server.Add("foo/bar", service, IProxyTestPrx.Factory);
+            IProxyTestPrx? proxy = server.Add("/foo/bar", service, IProxyTestPrx.Factory);
             CheckProxy(proxy);
 
             // change some properties

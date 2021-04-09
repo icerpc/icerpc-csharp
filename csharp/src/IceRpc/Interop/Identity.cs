@@ -12,16 +12,12 @@ namespace IceRpc.Interop
 
         /// <summary>Creates an Identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
-        /// <exception cref="FormatException">path cannot be converted into an identity.</exception>
+        /// <exception cref="ArgumentException">path is not a valid path.</exception>
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            if (path.Length == 0)
-            {
-                return Empty;
-            }
-
-            string workingPath = UriParser.NormalizePath(path)[1..]; // checks path and removes leading /.
+            UriParser.CheckPath(path, nameof(path));
+            string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/');
             if (firstSlash != workingPath.LastIndexOf('/'))

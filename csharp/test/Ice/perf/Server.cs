@@ -12,7 +12,7 @@ namespace IceRpc.Test.Perf
             await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("perf", new PerformanceI());
+            server.Add("/perf", new PerformanceI());
             server.Activate();
 
             ServerReady();

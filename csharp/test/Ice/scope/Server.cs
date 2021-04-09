@@ -113,10 +113,10 @@ namespace IceRpc.Test.Scope
         {
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("i1", new I1());
-            server.Add("i2", new I2());
-            server.Add("i3", new I3());
-            server.Add("i4", new I4());
+            server.Add("/i1", new I1());
+            server.Add("/i2", new I2());
+            server.Add("/i3", new I3());
+            server.Add("/i4", new I4());
             server.Activate();
 
             ServerReady();
