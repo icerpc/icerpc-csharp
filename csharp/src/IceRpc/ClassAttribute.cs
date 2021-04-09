@@ -12,7 +12,7 @@ namespace IceRpc
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class ClassAttribute : Attribute
     {
-        /// <summary>The compact type ID assigned to the type or 0 if the type does not use compact type IDs.</summary>
+        /// <summary>The compact type ID assigned to the type or -1 if the type does not use compact type IDs.</summary>
         public int CompactTypeId { get; }
 
         /// <summary>The type ID assigned to the type.</summary>
