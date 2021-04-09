@@ -22,7 +22,7 @@ namespace IceRpc.Interop
             int firstSlash = workingPath.IndexOf('/');
             if (firstSlash != workingPath.LastIndexOf('/'))
             {
-                throw new FormatException($"too many slashes in path `{path}'");
+                throw new FormatException($"too many slashes in path '{path}'");
             }
 
             if (firstSlash == -1)
@@ -63,7 +63,7 @@ namespace IceRpc.Interop
                     else
                     {
                         // Extra unescaped slash found.
-                        throw new FormatException($"unescaped backslash in identity `{s}'");
+                        throw new FormatException($"unescaped backslash in identity '{s}'");
                     }
                 }
                 pos++;
@@ -79,7 +79,7 @@ namespace IceRpc.Interop
                 }
                 catch (ArgumentException ex)
                 {
-                    throw new FormatException($"invalid name in identity `{s}'", ex);
+                    throw new FormatException($"invalid name in identity '{s}'", ex);
                 }
                 category = "";
             }
@@ -91,7 +91,7 @@ namespace IceRpc.Interop
                 }
                 catch (ArgumentException ex)
                 {
-                    throw new FormatException($"invalid category in identity `{s}'", ex);
+                    throw new FormatException($"invalid category in identity '{s}'", ex);
                 }
 
                 if (slash + 1 < s.Length)
@@ -102,13 +102,13 @@ namespace IceRpc.Interop
                     }
                     catch (ArgumentException ex)
                     {
-                        throw new FormatException($"invalid name in identity `{s}'", ex);
+                        throw new FormatException($"invalid name in identity '{s}'", ex);
                     }
                 }
             }
 
             return name?.Length > 0 ? new Identity(name, category) :
-                throw new FormatException($"invalid empty name in identity `{s}'");
+                throw new FormatException($"invalid empty name in identity '{s}'");
         }
 
         /// <summary>Attempts to create an Identity from string in the ice1 format.</summary>

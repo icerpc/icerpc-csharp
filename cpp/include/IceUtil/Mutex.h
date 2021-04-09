@@ -26,7 +26,7 @@ class Cond;
 //
 // In file included from Connection.cpp:20:
 // ../../include/Ice/Outgoing.h:88: warning: direct base
-// `IceUtil::noncopyable' inaccessible in `IceInternal::Outgoing' due
+// 'IceUtil::noncopyable' inaccessible in 'IceInternal::Outgoing' due
 // to ambiguity
 //
 class ICE_API Mutex

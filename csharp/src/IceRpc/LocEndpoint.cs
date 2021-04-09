@@ -25,12 +25,12 @@ namespace IceRpc
         internal const ushort DefaultLocPort = 0;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new NotSupportedException($"endpoint `{this}' cannot accept connections");
+            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
 
         // There is no Equals as it's identical to the base.
 
         public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new NotSupportedException($"endpoint `{this}' cannot accept datagram connections");
+            throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator) =>
             Debug.Assert(false);
@@ -40,10 +40,10 @@ namespace IceRpc
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
-            throw new InvalidOperationException($"cannot establish a connection to endpoint `{this}'");
+            throw new InvalidOperationException($"cannot establish a connection to endpoint '{this}'");
 
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException($"cannot get the published endpoint for endpoint `{this}'");
+            throw new NotSupportedException($"cannot get the published endpoint for endpoint '{this}'");
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1

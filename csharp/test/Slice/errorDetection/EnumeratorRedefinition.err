@@ -1,2 +1,2 @@
-EnumeratorRedefinition.ice:10: redefinition of enumerator `A'
-EnumeratorRedefinition.ice:10: note: enumerator `A' was originally defined here
+EnumeratorRedefinition.ice:10: redefinition of enumerator 'A'
+EnumeratorRedefinition.ice:10: note: enumerator 'A' was originally defined here

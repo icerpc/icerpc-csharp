@@ -228,7 +228,7 @@ namespace IceRpc
 
             return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
                 throw new NotSupportedException(
-                    $"cannot create endpoint for ice1 protocol and transport `{data.Transport}'");
+                    $"cannot create endpoint for ice1 protocol and transport '{data.Transport}'");
         }
 
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI

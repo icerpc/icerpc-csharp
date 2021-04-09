@@ -126,8 +126,8 @@ namespace IceRpc
                         Endpoints.FirstOrDefault(endpoint => !endpoint.IsAlwaysSecure) is Endpoint endpoint)
                     {
                         throw new ArgumentException(
-                            $@"server `{Name
-                            }' is configured to only accept secure connections but endpoint `{endpoint
+                            $@"server '{Name
+                            }' is configured to only accept secure connections but endpoint '{endpoint
                             }' accepts non-secure connections",
                             nameof(options));
                     }
@@ -139,7 +139,7 @@ namespace IceRpc
                     if (Endpoints.Count > 1)
                     {
                         throw new ArgumentException(
-                            @$"server `{Name
+                            @$"server '{Name
                             }': only one endpoint is allowed when a dynamic IP port (:0) is configured",
                             nameof(options));
                     }

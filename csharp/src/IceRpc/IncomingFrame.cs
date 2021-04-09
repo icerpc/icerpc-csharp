@@ -47,7 +47,7 @@ namespace IceRpc
             }
             else if (PayloadCompressionFormat != CompressionFormat.GZip)
             {
-                throw new NotSupportedException($"cannot decompress compression format `{PayloadCompressionFormat}'");
+                throw new NotSupportedException($"cannot decompress compression format '{PayloadCompressionFormat}'");
             }
             else
             {

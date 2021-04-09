@@ -1092,7 +1092,7 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     if(!_out)
     {
         ostringstream os;
-        os << "cannot open `" << file << "': " << IceUtilInternal::errorToString(errno);
+        os << "cannot open '" << file << "': " << IceUtilInternal::errorToString(errno);
         throw FileException(__FILE__, __LINE__, os.str());
     }
     FileTracker::instance()->addFile(file);
@@ -1119,7 +1119,7 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
         if(!IceUtilInternal::stat(fileImpl, &st))
         {
             ostringstream os;
-            os << "`" << fileImpl << "' already exists - will not overwrite";
+            os << "'" << fileImpl << "' already exists - will not overwrite";
             throw FileException(__FILE__, __LINE__, os.str());
         }
 
@@ -1127,7 +1127,7 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
         if(!_impl)
         {
             ostringstream os;
-            os << ": cannot open `" << fileImpl << "': " << IceUtilInternal::errorToString(errno);
+            os << ": cannot open '" << fileImpl << "': " << IceUtilInternal::errorToString(errno);
             throw FileException(__FILE__, __LINE__, os.str());
         }
 
@@ -2100,7 +2100,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
             _out << nl << p->minValue() << " <= value && value <= " << p->maxValue();
         }
         _out << " ? (" << name
-             << ")value : throw new IceRpc.InvalidDataException($\"invalid enumerator value `{value}' for "
+             << ")value : throw new IceRpc.InvalidDataException($\"invalid enumerator value '{value}' for "
              << fixId(p->scoped()) << "\");";
         _out.dec();
     }

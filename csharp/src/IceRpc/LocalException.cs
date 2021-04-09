@@ -55,7 +55,7 @@ namespace IceRpc
         /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
         /// <param name="stringifiedProxy">The stringified proxy that was the cause of this exception.</param>
         public NoEndpointException(string stringifiedProxy)
-            : base($"could not find the endpoints for proxy `{stringifiedProxy}'")
+            : base($"could not find the endpoints for proxy '{stringifiedProxy}'")
         {
         }
     }

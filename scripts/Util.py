@@ -123,7 +123,7 @@ class Component(object):
                     if m:
                         self.nugetVersion[mapping] = m.group(1)
         if not mapping in self.nugetVersion:
-            raise RuntimeError("couldn't figure out the nuget version from `{0}'".format(file))
+            raise RuntimeError("couldn't figure out the nuget version from '{0}'".format(file))
         return self.nugetVersion[mapping]
 
     def getNugetPackageVersionFile(self, mapping):
@@ -192,7 +192,7 @@ class Component(object):
                 if envHomeName and not os.path.exists(packageDir):
                     home = os.environ.get(envHomeName, "")
                     if not home or not os.path.exists(home):
-                        raise RuntimeError("Cannot detect a valid distribution in `" + envHomeName + "'")
+                        raise RuntimeError("Cannot detect a valid distribution in '" + envHomeName + "'")
                     return home
                 else:
                     return packageDir
@@ -800,7 +800,7 @@ class Mapping(object):
     @classmethod
     def getByName(self, name):
         if not name in self.mappings:
-            raise RuntimeError("unknown mapping `{0}'".format(name))
+            raise RuntimeError("unknown mapping '{0}'".format(name))
         return self.mappings.get(name)
 
     @classmethod
@@ -2268,7 +2268,7 @@ class RemoteProcessController(ProcessController):
                 self.restartControllerApp(current, ident)
                 print("ok")
 
-        raise RuntimeError("couldn't reach the remote controller `{0}'".format(ident))
+        raise RuntimeError("couldn't reach the remote controller '{0}'".format(ident))
 
     def setProcessController(self, proxy):
         with self.cond:
@@ -2322,7 +2322,7 @@ class RemoteProcessController(ProcessController):
         exe = process.getExe(current)
         args = ["--{0}={1}".format(k, val(v, quoteValue=False)) for k,v in props.items()] + [val(a) for a in args]
         if current.driver.debug:
-            current.writeln("(executing `{0}/{1}' on `{2}' args = {3})".format(current.testsuite, exe, self, args))
+            current.writeln("(executing '{0}/{1}' on '{2}' args = {3})".format(current.testsuite, exe, self, args))
         prx = processController.start(str(current.testsuite), exe, args)
 
         # Create bi-dir proxy in case we're talking to a bi-bir process controller.
@@ -2374,7 +2374,7 @@ class AndroidProcessController(RemoteProcessController):
         print("starting the emulator... ")
         out = run("emulator -list-avds")
         if avd not in out:
-            raise RuntimeError("couldn't find AVD `{}'".format(avd))
+            raise RuntimeError("couldn't find AVD '{}'".format(avd))
 
         #
         # Find and unused port to run android emulator, between 5554 and 5584
@@ -2393,7 +2393,7 @@ class AndroidProcessController(RemoteProcessController):
         self.emulator = subprocess.Popen(cmd, shell=True)
 
         if self.emulator.poll():
-            raise RuntimeError("failed to start the Android emulator `{}' on port {}".format(avd, port))
+            raise RuntimeError("failed to start the Android emulator '{}' on port {}".format(avd, port))
 
         self.avd = avd
 
@@ -2412,7 +2412,7 @@ class AndroidProcessController(RemoteProcessController):
             # If the emulator doesn't complete boot in 300 seconds give up
             #
             if (time.time() - t) > 300:
-                raise RuntimeError("couldn't start the Android emulator `{}'".format(avd))
+                raise RuntimeError("couldn't start the Android emulator '{}'".format(avd))
             time.sleep(2)
 
     def startControllerApp(self, current, ident):
@@ -2728,7 +2728,7 @@ class BrowserProcessController(RemoteProcessController):
                     (driver, port) = (current.config.browser, 0)
 
                 if not hasattr(webdriver, driver):
-                    raise RuntimeError("unknown browser `{0}'".format(driver))
+                    raise RuntimeError("unknown browser '{0}'".format(driver))
 
                 if driver == "Firefox":
                     if isinstance(platform, Linux) and os.environ.get("DISPLAY", "") != ":1" and os.environ.get("USER", "") == "ubuntu":
@@ -2948,7 +2948,7 @@ class Driver:
         parseOptions(self, options)
         driver = self.drivers.get(self.driver)
         if not driver:
-            raise RuntimeError("unknown driver `{0}'".format(self.driver))
+            raise RuntimeError("unknown driver '{0}'".format(self.driver))
         return driver(options, component)
 
     @classmethod
@@ -3890,7 +3890,7 @@ elif sys.platform.startswith("linux") or sys.platform.startswith("gnukfreebsd"):
 elif sys.platform == "win32" or sys.platform[:6] == "cygwin":
     platform = Windows()
 if not platform:
-    print("can't run on unknown platform `{0}'".format(sys.platform))
+    print("can't run on unknown platform '{0}'".format(sys.platform))
     sys.exit(1)
 
 #
@@ -3912,7 +3912,7 @@ def runTestsWithPath(path):
     mappings = Mapping.getAllByPath(path)
     if not mappings:
         dirname = os.path.basename(os.path.dirname(os.path.abspath(path)))
-        print("couldn't find mapping for `{0}' (is this mapping supported on this platform?)".format(dirname))
+        print("couldn't find mapping for '{0}' (is this mapping supported on this platform?)".format(dirname))
         sys.exit(0)
     runTests(mappings)
 

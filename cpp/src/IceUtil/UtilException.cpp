@@ -712,7 +712,7 @@ void
 IceUtil::FileLockException::ice_print(ostream& os) const
 {
     Exception::ice_print(os);
-    os << ":\ncould not lock file: `" << _path << "'";
+    os << ":\ncould not lock file: '" << _path << "'";
     if(_error != 0)
     {
         os << "\nsyscall exception: " << IceUtilInternal::errorToString(_error);

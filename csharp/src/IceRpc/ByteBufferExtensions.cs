@@ -223,7 +223,7 @@ namespace IceRpc
             if (size < 0 || size > maxSize)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"size `{size}' cannot be encoded on {sizeLength} bytes",
+                    $"size '{size}' cannot be encoded on {sizeLength} bytes",
                     nameof(size));
             }
 

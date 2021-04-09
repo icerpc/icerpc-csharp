@@ -292,7 +292,7 @@ namespace IceRpc
 
                     if (identity.Name.Length == 0)
                     {
-                        throw new InvalidDataException($"received invalid ice1 identity `{proxyData.Path}'");
+                        throw new InvalidDataException($"received invalid ice1 identity '{proxyData.Path}'");
                     }
 
                     bool wellKnown = endpoints.Count == 1 &&

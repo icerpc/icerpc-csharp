@@ -92,7 +92,7 @@ namespace IceRpc
                 catch (Exception ex)
                 {
                     // Give context to the exception.
-                    throw new FormatException($"failed to parse endpoint `{s}'", ex);
+                    throw new FormatException($"failed to parse endpoint '{s}'", ex);
                 }
                 ++end;
             }
@@ -120,7 +120,7 @@ namespace IceRpc
             end = StringUtil.CheckQuote(s, beg);
             if (end == -1)
             {
-                throw new FormatException($"mismatched quotes around identity in `{s}'");
+                throw new FormatException($"mismatched quotes around identity in '{s}'");
             }
             else if (end == 0)
             {
@@ -140,7 +140,7 @@ namespace IceRpc
 
             if (beg == end)
             {
-                throw new FormatException($"no identity in `{s}'");
+                throw new FormatException($"no identity in '{s}'");
             }
 
             // Parsing the identity may throw FormatException.
@@ -177,7 +177,7 @@ namespace IceRpc
                 string option = s[beg..end];
                 if (option.Length != 2 || option[0] != '-')
                 {
-                    throw new FormatException($"expected a proxy option but found `{option}' in `{s}'");
+                    throw new FormatException($"expected a proxy option but found '{option}' in '{s}'");
                 }
 
                 // Check for the presence of an option argument. The argument may be enclosed in single or double
@@ -193,7 +193,7 @@ namespace IceRpc
                         end = StringUtil.CheckQuote(s, beg);
                         if (end == -1)
                         {
-                            throw new FormatException($"mismatched quotes around value for {option} option in `{s}'");
+                            throw new FormatException($"mismatched quotes around value for {option} option in '{s}'");
                         }
                         else if (end == 0)
                         {
@@ -218,7 +218,7 @@ namespace IceRpc
                     case 'f':
                         if (argument == null)
                         {
-                            throw new FormatException($"no argument provided for -f option in `{s}'");
+                            throw new FormatException($"no argument provided for -f option in '{s}'");
                         }
                         facet = StringUtil.UnescapeString(argument, 0, argument.Length, "");
                         break;
@@ -227,7 +227,7 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -t option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -t option in '{s}'");
                         }
                         break;
 
@@ -235,7 +235,7 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -o option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -o option in '{s}'");
                         }
                         proxyOptions.IsOneway = true;
                         break;
@@ -244,7 +244,7 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -O option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -O option in '{s}'");
                         }
 
                         proxyOptions.IsOneway = true;
@@ -254,7 +254,7 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -d option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -d option in '{s}'");
                         }
                         proxyOptions.IsOneway = true;;
                         break;
@@ -263,7 +263,7 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -D option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -D option in '{s}'");
                         }
                         proxyOptions.IsOneway = true;;
                         break;
@@ -272,14 +272,14 @@ namespace IceRpc
                         if (argument != null)
                         {
                             throw new FormatException(
-                                $"unexpected argument `{argument}' provided for -s option in `{s}'");
+                                $"unexpected argument '{argument}' provided for -s option in '{s}'");
                         }
                         break;
 
                     case 'e':
                         if (argument == null)
                         {
-                            throw new FormatException($"no argument provided for -e option in `{s}'");
+                            throw new FormatException($"no argument provided for -e option in '{s}'");
                         }
                         encoding = Encoding.Parse(argument);
                         break;
@@ -287,16 +287,16 @@ namespace IceRpc
                     case 'p':
                         if (argument == null)
                         {
-                            throw new FormatException($"no argument provided for -p option in `{s}'");
+                            throw new FormatException($"no argument provided for -p option in '{s}'");
                         }
                         if (argument != "1.0")
                         {
-                            throw new FormatException($"invalid value for -p option in `{s}'");
+                            throw new FormatException($"invalid value for -p option in '{s}'");
                         }
                         break;
 
                     default:
-                        throw new FormatException($"unknown option `{option}' in `{s}'");
+                        throw new FormatException($"unknown option '{option}' in '{s}'");
                 }
             }
 
@@ -366,7 +366,7 @@ namespace IceRpc
                     catch (Exception ex)
                     {
                         // Give context to the exception.
-                        throw new FormatException($"failed to parse endpoint `{es}'", ex);
+                        throw new FormatException($"failed to parse endpoint '{es}'", ex);
                     }
                 }
 
@@ -384,14 +384,14 @@ namespace IceRpc
                 beg = StringUtil.FindFirstNotOf(s, delim, beg + 1);
                 if (beg == -1)
                 {
-                    throw new FormatException($"missing adapter ID in `{s}'");
+                    throw new FormatException($"missing adapter ID in '{s}'");
                 }
 
                 string adapterIdStr;
                 end = StringUtil.CheckQuote(s, beg);
                 if (end == -1)
                 {
-                    throw new FormatException($"mismatched quotes around adapter ID in `{s}'");
+                    throw new FormatException($"mismatched quotes around adapter ID in '{s}'");
                 }
                 else if (end == 0)
                 {
@@ -412,21 +412,21 @@ namespace IceRpc
                 if (end != s.Length && StringUtil.FindFirstNotOf(s, delim, end) != -1)
                 {
                     throw new FormatException(
-                        $"invalid trailing characters after `{s.Substring(0, end + 1)}' in `{s}'");
+                        $"invalid trailing characters after '{s.Substring(0, end + 1)}' in '{s}'");
                 }
 
                 string adapterId = StringUtil.UnescapeString(adapterIdStr, 0, adapterIdStr.Length, "");
 
                 if (adapterId.Length == 0)
                 {
-                    throw new FormatException($"empty adapter ID in proxy `{s}'");
+                    throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
                 endpoints = ImmutableList.Create<Endpoint>(LocEndpoint.Create(adapterId, Protocol.Ice1));
                 return (identity, facet, encoding, endpoints, proxyOptions);
             }
 
-            throw new FormatException($"malformed proxy `{s}'");
+            throw new FormatException($"malformed proxy '{s}'");
         }
 
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
@@ -438,7 +438,7 @@ namespace IceRpc
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
             {
-                throw new FormatException($"mismatched quote in endpoint `{endpointString}'");
+                throw new FormatException($"mismatched quote in endpoint '{endpointString}'");
             }
 
             if (args.Length == 0)
@@ -461,7 +461,7 @@ namespace IceRpc
                 string option = args[n];
                 if (option.Length < 2 || option[0] != '-')
                 {
-                    throw new FormatException($"invalid option `{option}' in endpoint `{endpointString}'");
+                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
                 }
 
                 // Extract the argument given to the current option, if any
@@ -477,7 +477,7 @@ namespace IceRpc
                 }
                 catch (ArgumentException)
                 {
-                    throw new FormatException($"duplicate option `{option}' in endpoint `{endpointString}'");
+                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
                 }
             }
 
@@ -487,7 +487,7 @@ namespace IceRpc
                 if (options.Count > 0)
                 {
                     throw new FormatException(
-                        $"unrecognized option(s) `{ToString(options)}' in endpoint `{endpointString}'");
+                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
                 }
                 return endpoint;
             }
@@ -500,7 +500,7 @@ namespace IceRpc
                 if (options.Count > 0)
                 {
                     throw new FormatException(
-                        $"unrecognized option(s) `{ToString(options)}' in endpoint `{endpointString}'");
+                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
@@ -528,7 +528,7 @@ namespace IceRpc
                 }
             }
 
-            throw new FormatException($"unknown transport `{transportName}' in endpoint `{endpointString}'");
+            throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");
         }
 
         // Stringify the options of an endpoint

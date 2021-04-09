@@ -280,7 +280,7 @@ checkChar(const string& s, string::size_type pos)
         ostringstream ostr;
         if(pos > 0)
         {
-            ostr << "character after `" << s.substr(0, pos) << "'";
+            ostr << "character after '" << s.substr(0, pos) << "'";
         }
         else
         {
@@ -751,7 +751,7 @@ IceUtilInternal::checkQuote(const string& s, string::size_type start)
 }
 
 //
-// Match `s' against the pattern `pat'. A * in the pattern acts
+// Match 's' against the pattern 'pat'. A * in the pattern acts
 // as a wildcard: it matches any non-empty sequence of characters.
 // We match by hand here because it's portable across platforms
 // (whereas regex() isn't). Only one * per pattern is supported.
@@ -1052,7 +1052,7 @@ IceUtilInternal::errorToString(int error)
         else
         {
             ostringstream os;
-            os << "Unknown error `" << error << "'";
+            os << "Unknown error '" << error << "'";
             return os.str();
         }
     }

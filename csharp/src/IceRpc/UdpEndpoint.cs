@@ -38,14 +38,14 @@ namespace IceRpc
         private readonly bool _hasCompressionFlag;
 
         public override IAcceptor Acceptor(Server server) =>
-            throw new InvalidOperationException($"endpoint `{this}' does not accept connections");
+            throw new InvalidOperationException($"endpoint '{this}' does not accept connections");
 
         public override Connection CreateDatagramServerConnection(Server server)
         {
             if (Address == IPAddress.None)
             {
                 throw new NotSupportedException(
-                    $"endpoint `{this}' cannot accept datagram connections because it has a DNS name");
+                    $"endpoint '{this}' cannot accept datagram connections because it has a DNS name");
             }
 
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -170,7 +170,7 @@ namespace IceRpc
 
             if (MulticastInterface == "*")
             {
-                throw new NotSupportedException($"endpoint `{this}' cannot use interface `*' to send datagrams");
+                throw new NotSupportedException($"endpoint '{this}' cannot use interface '*' to send datagrams");
             }
 
             Socket socket = HasDnsHost ?
@@ -275,7 +275,7 @@ namespace IceRpc
             {
                 if (argument == null)
                 {
-                    throw new FormatException($"no argument provided for --ttl option in endpoint `{endpointString}'");
+                    throw new FormatException($"no argument provided for --ttl option in endpoint '{endpointString}'");
                 }
                 try
                 {
@@ -283,12 +283,12 @@ namespace IceRpc
                 }
                 catch (FormatException ex)
                 {
-                    throw new FormatException($"invalid TTL value `{argument}' in endpoint `{endpointString}'", ex);
+                    throw new FormatException($"invalid TTL value '{argument}' in endpoint '{endpointString}'", ex);
                 }
 
                 if (ttl < 0)
                 {
-                    throw new FormatException($"TTL value `{argument}' out of range in endpoint `{endpointString}'");
+                    throw new FormatException($"TTL value '{argument}' out of range in endpoint '{endpointString}'");
                 }
                 options.Remove("--ttl");
             }
@@ -298,11 +298,11 @@ namespace IceRpc
             if (options.TryGetValue("--interface", out argument))
             {
                 multicastInterface = argument ?? throw new FormatException(
-                    $"no argument provided for --interface option in endpoint `{endpointString}'");
+                    $"no argument provided for --interface option in endpoint '{endpointString}'");
 
                 if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
                 {
-                    throw new FormatException(@$"--interface option in endpoint `{endpointString
+                    throw new FormatException(@$"--interface option in endpoint '{endpointString
                         }' must be for a host with a multicast address");
                 }
 
@@ -312,7 +312,7 @@ namespace IceRpc
                     if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
                     {
                         throw new FormatException(
-                            $@"the address family of the interface in `{endpointString
+                            $@"the address family of the interface in '{endpointString
                             }' is not the multicast address family");
                     }
 
@@ -358,7 +358,7 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
+            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
         }
 
         private static int GetIPv6InterfaceIndex(string @interface)
@@ -388,7 +388,7 @@ namespace IceRpc
                 }
             }
 
-            throw new ArgumentException($"could not find interface `{@interface}'", nameof(@interface));
+            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
         }
 
         private static bool IsMulticast(IPAddress addr) =>

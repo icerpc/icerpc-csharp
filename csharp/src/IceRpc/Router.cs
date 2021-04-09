@@ -160,7 +160,7 @@ namespace IceRpc
                         else
                         {
                             throw new InvalidOperationException(
-                                $"received request for path `{path}' in router mounted at `{_fullPrefix}'");
+                                $"received request for path '{path}' in router mounted at '{_fullPrefix}'");
                         }
                     }
                     // else _fullPrefix is null or "/" and there is nothing to remove

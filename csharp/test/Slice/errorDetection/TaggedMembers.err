@@ -1,37 +1,37 @@
-TaggedMembers.ice:8: value 4_294_967_296 for enumerator `e4' is outside the range of uint: [0..4_294_967_295]
+TaggedMembers.ice:8: value 4_294_967_296 for enumerator 'e4' is outside the range of uint: [0..4_294_967_295]
 TaggedMembers.ice:14: missing tag
 TaggedMembers.ice:15: missing tag
-TaggedMembers.ice:16: `abc' is not defined
+TaggedMembers.ice:16: 'abc' is not defined
 TaggedMembers.ice:17: tag is out of range
 TaggedMembers.ice:18: tag is out of range
 TaggedMembers.ice:19: tag is out of range
-TaggedMembers.ice:21: tag for data member `m8' is already in use
+TaggedMembers.ice:21: tag for data member 'm8' is already in use
 TaggedMembers.ice:22: tag is out of range
 TaggedMembers.ice:23: tag is out of range
 TaggedMembers.ice:24: syntax error
-TaggedMembers.ice:26: tag for data member `m13' is already in use
-TaggedMembers.ice:27: enumerator `e2' could designate `::Test::E::e2' or `::Test::Ebis::e2' or `::Test::Eter::e2'
-TaggedMembers.ice:29: tag for data member `m16' is already in use
-TaggedMembers.ice:30: warning: The `optional' keyword is deprecated, use `tag' instead
-TaggedMembers.ice:31: cannot use value of `E::e4' as a tag
-TaggedMembers.ice:31: tag for data member `m18' is already in use
-TaggedMembers.ice:32: cannot use value of `EBis::e3' as a tag
+TaggedMembers.ice:26: tag for data member 'm13' is already in use
+TaggedMembers.ice:27: enumerator 'e2' could designate '::Test::E::e2' or '::Test::Ebis::e2' or '::Test::Eter::e2'
+TaggedMembers.ice:29: tag for data member 'm16' is already in use
+TaggedMembers.ice:30: warning: The 'optional' keyword is deprecated, use 'tag' instead
+TaggedMembers.ice:31: cannot use value of 'E::e4' as a tag
+TaggedMembers.ice:31: tag for data member 'm18' is already in use
+TaggedMembers.ice:32: cannot use value of 'EBis::e3' as a tag
 TaggedMembers.ice:47: missing tag
 TaggedMembers.ice:48: missing tag
-TaggedMembers.ice:49: `abc' is not defined
+TaggedMembers.ice:49: 'abc' is not defined
 TaggedMembers.ice:50: tag is out of range
 TaggedMembers.ice:51: tag is out of range
 TaggedMembers.ice:52: tag is out of range
-TaggedMembers.ice:54: tag for data member `m8' is already in use
+TaggedMembers.ice:54: tag for data member 'm8' is already in use
 TaggedMembers.ice:55: tag is out of range
 TaggedMembers.ice:56: tag is out of range
 TaggedMembers.ice:57: syntax error
-TaggedMembers.ice:59: tag for data member `m13' is already in use
-TaggedMembers.ice:62: tag for data member `m16' is already in use
-TaggedMembers.ice:63: warning: The `optional' keyword is deprecated, use `tag' instead
-TaggedMembers.ice:64: cannot use value of `E::e4' as a tag
-TaggedMembers.ice:64: tag for data member `m18' is already in use
-TaggedMembers.ice:65: cannot use value of `EBis::e3' as a tag
+TaggedMembers.ice:59: tag for data member 'm13' is already in use
+TaggedMembers.ice:62: tag for data member 'm16' is already in use
+TaggedMembers.ice:63: warning: The 'optional' keyword is deprecated, use 'tag' instead
+TaggedMembers.ice:64: cannot use value of 'E::e4' as a tag
+TaggedMembers.ice:64: tag for data member 'm18' is already in use
+TaggedMembers.ice:65: cannot use value of 'EBis::e3' as a tag
 TaggedMembers.ice:80: tagged data members are not supported in structs
 TaggedMembers.ice:81: tagged data members are not supported in structs
 TaggedMembers.ice:101: data member 'm3' cannot be tagged, since its type '::Test::C' is a class
