@@ -48,7 +48,7 @@ namespace IceRpc
             var loadedAssemblies = new HashSet<Assembly>();
             LoadReferencedAssemblies(assembly, loadedAssemblies);
             RegisterClassFactories(
-                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()).ToArray());
+                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()));
         }
 
         /// <summary>Registers class and exceptions factories found in the current executing assembly and in all
@@ -63,7 +63,7 @@ namespace IceRpc
                 LoadReferencedAssemblies(assembly, loadedAssemblies);
             }
             RegisterClassFactories(
-                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()).ToArray());
+                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()));
         }
 
         /// <summary>Registers a new transport.</summary>
@@ -230,7 +230,7 @@ namespace IceRpc
             return null;
         }
 
-        private static void RegisterClassFactories(ClassAttribute[] attributes)
+        private static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
         {
             lock (_mutex)
             {
