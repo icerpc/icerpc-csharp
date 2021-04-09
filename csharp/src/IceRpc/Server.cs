@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    // temporary
     public enum ColocationScope
     {
         Process,
@@ -29,14 +30,18 @@ namespace IceRpc
         // temporary
         public Communicator? Communicator { get; set; }
 
+        /// <summary>Gets or sets the options of incoming connections created by this server.</summary>
         public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
 
+        /// <summary>Gets or sets the dispatcher of this server.</summary>
+        /// <value>The dispatcher of this server.</value>
+        /// <seealso cref="IDispatcher"/>
+        /// <seealso cref="Router"/>
         public IDispatcher? Dispatcher { get; set; }
 
-        /// <summary>Gets or sets the endpoint of this server.</summary>
-        /// <value>The endpoint of this server. It cannot use a DNS name. If it's an IP endpoint with port 0
-        /// <see cref="ListenAndServeAsync"/> replaces port 0 by the actual port selected by the operating system.
-        /// </value>
+        /// <summary>Gets or sets the endpoint of this server. Setting this property also sets <see cref="Protocol"/>.
+        /// </summary>
+        /// <value>The endpoint of this server. It cannot use a DNS name.</value>
         public string Endpoint
         {
             get => _endpoint?.ToString() ?? "";
@@ -48,6 +53,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
+        /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// <value>The logger factory of this server.</value>
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
@@ -58,21 +66,25 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets of sets the Ice protocol used by this server. Setting <see cref="Endpoint"/> sets this value
-        /// as well.</summary>
+        /// <summary>Gets of sets the Ice protocol used by this server.</summary>
+        /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol { get; set; } = Protocol.Ice2;
 
+        /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
+        /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
+        /// <value>An endpoint string when <see cref="Endpoint"/> is not empty; otherwise, an empty string.</value>
         public string ProxyEndpoint => _proxyEndpoint?.ToString() ?? "";
 
+        /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
+        /// address.</summary>
+        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>.</value>
         public string ProxyHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
 
-        /// <summary>The local options of proxies received in requests or created using this server.</summary>
+        /// <summary>The options of proxies received in requests or created using this server.</summary>
         public ProxyOptions ProxyOptions { get; set; } = new();
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
-        /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated. A typical use-case
-        /// is to call <c>await server.ShutdownComplete;</c> in the Main method of a server to prevent the server
-        /// from exiting immediately.</summary>
+        /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         /// <summary>Gets or sets the TaskScheduler used to dispatch requests.</summary>
@@ -80,8 +92,11 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
+        private static ulong _counter; // used to generate names for servers without endpoints
+
         private readonly Dictionary<(string Category, string Facet), IService> _categoryServiceMap = new();
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
+        private readonly string _colocatedName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private readonly Dictionary<string, IService> _defaultServiceMap = new();
 
@@ -122,6 +137,11 @@ namespace IceRpc
                 });
         }
 
+        /// <summary>Creates a relative proxy for a service hosted by this server. This relative proxy holds a colocated
+        /// connection to this server.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="path">The path of the service.</param>
+        /// <returns>A new relative proxy.</returns>
         public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx
         {
             // temporary
@@ -135,6 +155,10 @@ namespace IceRpc
                                                 ProxyOptions);
         }
 
+        /// <summary>Creates a proxy for a service hosted by this server.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="path">The path of the service.</param>
+        /// <returns>A new proxy with a single endpoint, <see cref="ProxyEndpoint"/>.</returns>
         public T CreateProxy<T>(string path) where T : class, IServicePrx
         {
             if (_proxyEndpoint == null)
@@ -159,7 +183,15 @@ namespace IceRpc
                                                 options);
         }
 
-        /// <summary>Runs the dispatcher in a try/catch block</summary>
+        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
+        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
+        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into a
+        /// <see cref="UnhandledException"/>. If <see cref="Dispatcher"/> is null, this method throws a
+        /// <see cref="ServiceNotFoundException"/> asynchronously.</summary>
+        /// <param name="current">The request being dispatched.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
+        /// <remarks>This method is called by the IceRPC transport code when it receives a request.</remarks>
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
             // TODO: throw InvalidOperationException when _serving is false, which can occur with coloc invocations.
@@ -175,7 +207,15 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    if (!current.IsOneway)
+                    if (current.IsOneway)
+                    {
+                        // We log this exception, since otherwise it would be lost.
+                        // TODO: use a server event for this logging?
+                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+
+                        return OutgoingResponseFrame.WithVoidReturnValue(current);
+                    }
+                    else
                     {
                         RemoteException actualEx;
                         if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
@@ -185,15 +225,12 @@ namespace IceRpc
                         else
                         {
                             actualEx = new UnhandledException(ex);
+
+                            // We log the "source" exception as UnhandledException may not include all details.
+                            // TODO: use a server event for this logging?
                             Logger.LogDispatchException(current.IncomingRequestFrame, ex);
                         }
-
                         return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
-                    }
-                    else
-                    {
-                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
-                        return OutgoingResponseFrame.WithVoidReturnValue(current);
                     }
                 }
             }
@@ -203,7 +240,14 @@ namespace IceRpc
             }
         }
 
-        // Not async because we want to throw exceptions synchronously
+        /// <summary>Starts listening on the configured endpoint (if any) and serving clients (dispatching requests).
+        /// If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the
+        /// actual port selected by the operating system. This method throws start-up exceptions synchronously; for
+        /// example, if another server is already listening on the configured endpoint, it throws a
+        /// <see cref="TransportException"/> synchronously.</summary>
+        /// <param name="cancel">The cancellation token. If the caller cancels this token, the server calls
+        /// <see cref="ShutdownAsync"/> with this cancellation token.</param>
+        /// <return>A task that completes once <see cref="ShutdownComplete"/> is complete.</return>
         public Task ListenAndServeAsync(CancellationToken cancel = default)
         {
             if (_serving)
@@ -243,6 +287,8 @@ namespace IceRpc
                 Console.Out.WriteLine($"{this} ready");
             }
 
+            Logger.LogServerListeningAndServing(this);
+
             return WaitForShutdownAsync(cancel);
 
             async Task WaitForShutdownAsync(CancellationToken cancel)
@@ -254,13 +300,18 @@ namespace IceRpc
                 catch (OperationCanceledException)
                 {
                     // Request "quick" shutdown that completes as soon as possible by cancelling everything it can.
-                    await ShutdownAsync(cancel).ConfigureAwait(false);
+                    _ = ShutdownAsync(cancel);
+                    await ShutdownComplete.ConfigureAwait(false);
                 }
             }
         }
 
         /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
         /// used. This method can be safely called multiple times and always returns the same task.</summary>
+        /// <param name="_">The cancellation token. If the caller cancels this token, this method completes as
+        /// quickly as possible by cancelling outstanding requests and closing connections without waiting.</param>
+        /// <return>A task that completes once the shutdown is complete.</return>
+        // TODO: implement cancellation
         public Task ShutdownAsync(CancellationToken _ = default)
         {
             // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
@@ -275,6 +326,8 @@ namespace IceRpc
             {
                 try
                 {
+                    Logger.LogServerShuttingDown(this);
+
                     if (ColocationScope != ColocationScope.None)
                     {
                         // no longer available for coloc connections.
@@ -299,6 +352,8 @@ namespace IceRpc
                 }
                 finally
                 {
+                    Logger.LogServerShutdownComplete(this);
+
                     // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
                     // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
                     // using Result or Wait()), ShutdownAsync will complete.
@@ -307,7 +362,8 @@ namespace IceRpc
             }
         }
 
-        public override string ToString() => _endpoint?.ToString() ?? "coloc";
+        /// <inherit-doc/>
+        public override string ToString() => _endpoint?.ToString() ?? _colocatedName;
 
         // Below is the old ASM to be removed.
 

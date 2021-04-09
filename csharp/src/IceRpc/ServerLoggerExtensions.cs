@@ -10,18 +10,35 @@ namespace IceRpc
     internal static class ServerLoggerExtensions
     {
         private const int BaseEventId = LoggerExtensions.ServerBaseEventId;
-        private const int ServerPublishedEndpoints = BaseEventId + 0;
+        private const int ServerListeningAndServing = BaseEventId + 0;
+        private const int ServerShuttingDown = BaseEventId + 1;
+        private const int ServerShutdownComplete = BaseEventId + 2;
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _serverPublishedEndpoints =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, Server, Exception> _serverListeningAndServing =
+            LoggerMessage.Define<Server>(
                 LogLevel.Information,
-                new EventId(ServerPublishedEndpoints, nameof(ServerPublishedEndpoints)),
-                "published endpoints for server {Name}: {Endpoints}");
+                new EventId(ServerListeningAndServing, nameof(ServerListeningAndServing)),
+                "server '{Name}' is now listening and serving clients");
 
-        internal static void LogServerPublishedEndpoints(
-            this ILogger logger,
-            string name,
-            IReadOnlyList<Endpoint> endpoints) =>
-            _serverPublishedEndpoints(logger, name, endpoints, null!);
+        private static readonly Action<ILogger, Server, Exception> _serverShuttingDown =
+            LoggerMessage.Define<Server>(
+                LogLevel.Debug,
+                new EventId(ServerShuttingDown, nameof(ServerShuttingDown)),
+                "server '{Name}' is shutting down");
+
+        private static readonly Action<ILogger, Server, Exception> _serverShutdownComplete =
+            LoggerMessage.Define<Server>(
+                LogLevel.Debug,
+                new EventId(ServerShutdownComplete, nameof(ServerShutdownComplete)),
+                "server '{Name}' completed its shutdown");
+
+        internal static void LogServerListeningAndServing(this ILogger logger, Server server) =>
+            _serverListeningAndServing(logger, server, null!);
+
+        internal static void LogServerShuttingDown(this ILogger logger, Server server) =>
+            _serverShuttingDown(logger, server, null!);
+
+        internal static void LogServerShutdownComplete(this ILogger logger, Server server) =>
+            _serverShutdownComplete(logger, server, null!);
     }
 }
