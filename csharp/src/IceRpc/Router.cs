@@ -49,7 +49,7 @@ namespace IceRpc
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
-            Check(path, nameof(path));
+            UriParser.CheckPath(path, nameof(path));
             _pipeline ??= CreatePipeline();
             _exactMatchRoutes[path] = dispatcher;
         }
@@ -63,7 +63,7 @@ namespace IceRpc
         /// <seealso cref="Map"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
-            Check(prefix, nameof(prefix));
+            UriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
 
             _pipeline ??= CreatePipeline();
@@ -78,7 +78,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
-            Check(prefix, nameof(prefix));
+            UriParser.CheckPath(prefix, nameof(prefix));
             var subRouter = new Router(this, prefix);
             configure(subRouter);
             Mount(prefix, subRouter);
@@ -91,7 +91,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
         public bool Unmap(string path)
         {
-            Check(path, nameof(path));
+            UriParser.CheckPath(path, nameof(path));
             return _exactMatchRoutes.Remove(path);
         }
 
@@ -101,7 +101,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public bool Unmount(string prefix)
         {
-            Check(prefix, nameof(prefix));
+            UriParser.CheckPath(prefix, nameof(prefix));
             return _prefixMatchRoutes.Remove(prefix);
         }
 
@@ -120,14 +120,6 @@ namespace IceRpc
         }
 
         public override string ToString() => _fullPrefix is string fullPrefix ? $"router({fullPrefix})" : "router";
-
-        private static void Check(string s, string paramName)
-        {
-            if (s.Length == 0 || s[0] != '/')
-            {
-                throw new ArgumentException($"{paramName} must start with a /", paramName);
-            }
-        }
 
         // Trim trailing slashes but keep the leading slash.
         private static string NormalizePrefix(string prefix)

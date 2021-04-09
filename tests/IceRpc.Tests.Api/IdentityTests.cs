@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Api
         /// <summary>Verifies that a URI path can be converted to an identity.</summary>
         /// <param name="path">The path to check.</param>
         /// <param name="normalizedPath">The path returned by ToPath if different than path.</param>
-        [TestCase("foo/bar", "/foo/bar")]
+        [TestCase("/foo/bar")]
         [TestCase("/foo/bar")]
         [TestCase("/foo:foo/bar$bar", "/foo%3Afoo/bar%24bar")]
         [TestCase("/")]
@@ -25,25 +25,31 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(normalizedPath ?? path, identity.ToPath());
         }
 
-        /// <summary>Identity.FromPath for some path throws FormatException.</summary>
+        /// <summary>Identity.FromPath for an invalid path throws ArgumentException.</summary>
+        [TestCase("foo/bar/abc")] // does not start with a slash
+        public void Identity_FromPath_ArgumentException(string path)
+        {
+            Assert.Throws<ArgumentException>(() => Identity.FromPath(path));
+        }
+
+        /// <summary>Identity.FromPath for a valid path that can't be converted to an identity throws FormatException.
+        /// </summary>
         [TestCase("/foo/bar/abc")] // too many slashes
-        [TestCase("foo/bar/abc")] // too many slashes
         [TestCase("///")] // too many slashes
-        public void Identity_FromPath_InvalidInput(string path)
+        public void Identity_FromPath_FormatException(string path)
         {
             Assert.Throws<FormatException>(() => Identity.FromPath(path));
         }
 
-        /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath.
-        /// </summary>
-        [TestCase("foo", "foo", "")]
+        /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath
+        /// when the leading / is removed for Parse.</summary>
         [TestCase("/foo", "foo", "")]
-        [TestCase("foo/bar", "bar", "foo")]
-        [TestCase("foo/bar+", "bar+", "foo")]
+        [TestCase("/foo/bar", "bar", "foo")]
+        [TestCase("/foo/bar+", "bar+", "foo")]
         public void Identity_FromSimpleString(string str, string name, string category)
         {
             var identity = new Identity(name, category);
-            Assert.AreEqual(identity, Identity.Parse(str));
+            Assert.AreEqual(identity, Identity.Parse(str[1..]));
             Assert.AreEqual(identity, Identity.FromPath(str));
         }
 

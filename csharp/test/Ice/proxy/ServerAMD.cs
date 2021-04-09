@@ -11,7 +11,7 @@ namespace IceRpc.Test.Proxy
         {
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("test", new AsyncMyDerivedClass());
+            server.Add("/test", new AsyncMyDerivedClass());
             server.Activate();
 
             ServerReady();

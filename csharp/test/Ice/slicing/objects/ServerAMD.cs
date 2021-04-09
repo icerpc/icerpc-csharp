@@ -13,7 +13,7 @@ namespace IceRpc.Test.Slicing.Objects
             await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("Test", new AsyncTestIntf());
+            server.Add("/Test", new AsyncTestIntf());
             server.Activate();
 
             ServerReady();

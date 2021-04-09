@@ -98,25 +98,25 @@ public class Client : TestHelper
     public override async Task RunAsync(string[] args)
     {
         await using var server = new IceRpc.Server(Communicator);
-        server.Add("test", new Decimal());
-        server.Add("test1", new Test1I());
-        server.Add("test2", new Test2I());
+        server.Add("/test", new Decimal());
+        server.Add("/test1", new Test1I());
+        server.Add("/test2", new Test2I());
         server.Activate();
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = IdecimalPrx.Factory.Create(server, "test");
+        IdecimalPrx p = IdecimalPrx.Factory.Create(server, "/test");
         p.@default();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "test1");
+            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "/test1");
         t1.op();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            IceRpc.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "test2");
+            IceRpc.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "/test2");
         t2.op();
         Output.WriteLine("ok");
 

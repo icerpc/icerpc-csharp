@@ -12,8 +12,8 @@ namespace IceRpc.Test.AMI
         {
             await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("test", new TestIntf());
-            server.Add("test2", new TestIntf2());
+            server.Add("/test", new TestIntf());
+            server.Add("/test2", new TestIntf2());
             // Don't activate Server to ensure collocation is used.
 
             await AllTests.RunAsync(this, true);

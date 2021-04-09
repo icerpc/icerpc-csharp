@@ -12,7 +12,7 @@ namespace IceRpc.Test.Optional
             await using var server = new Server(Communicator,
                                                         new() { Endpoints = GetTestEndpoint(0) });
 
-            server.Add("test", new Test());
+            server.Add("/test", new Test());
             server.Activate();
 
             ServerReady();

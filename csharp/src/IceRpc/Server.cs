@@ -255,7 +255,7 @@ namespace IceRpc
             IService service,
             IProxyFactory<T> proxyFactory) where T : class, IServicePrx
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -288,7 +288,7 @@ namespace IceRpc
         /// <param name="service">The service to add.</param>
         public void Add(string path, string facet, IService service)
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -356,7 +356,7 @@ namespace IceRpc
         /// <returns>A proxy associated with this server, object identity and facet.</returns>
         public T AddWithUUID<T>(string facet, IService service, IProxyFactory<T> proxyFactory)
             where T : class, IServicePrx =>
-            Add(Guid.NewGuid().ToString(), facet, service, proxyFactory);
+            Add($"/{Guid.NewGuid().ToString()}", facet, service, proxyFactory);
 
         /// <summary>Adds a service to this server's Active Service Map (ASM), using as key a unique identity
         /// and the default (empty) facet. This method creates the unique identity with a UUID name and an empty
@@ -378,7 +378,7 @@ namespace IceRpc
         /// <returns>The corresponding service in the ASM, or null if the service was not found.</returns>
         public IService? Find(string path, string facet = "")
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (!_serviceMap.TryGetValue((path, facet), out IService? service))
@@ -408,7 +408,7 @@ namespace IceRpc
         /// <returns>The service that was just removed from the ASM, or null if the service was not found.</returns>
         public IService? Remove(string path, string facet = "")
         {
-            path = UriParser.NormalizePath(path);
+            UriParser.CheckPath(path, nameof(path));
             lock (_mutex)
             {
                 if (_serviceMap.TryGetValue((path, facet), out IService? service))

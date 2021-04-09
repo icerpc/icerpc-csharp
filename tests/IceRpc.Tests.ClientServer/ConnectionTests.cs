@@ -103,7 +103,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                 });
 
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
@@ -135,7 +135,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint(protocol: protocol)
                 });
 
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
 
             await using var clientCommunicator = new Communicator(
@@ -173,7 +173,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                 });
 
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
@@ -221,7 +221,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoints = GetTestEndpoint()
                 });
 
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
 
             await using var communicator = new Communicator(
@@ -258,7 +258,7 @@ namespace IceRpc.Tests.ClientServer
                                                     Endpoints = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
             _ = Task.Factory.StartNew(async () => await semaphore.WaitAsync(),
                                       default,
@@ -292,7 +292,7 @@ namespace IceRpc.Tests.ClientServer
                                                     Endpoints = GetTestEndpoint(),
                                                     TaskScheduler = schedulerPair.ExclusiveScheduler
                                                 });
-            server.Add("test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTestService());
             server.Activate();
 
             var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator1);
@@ -337,7 +337,7 @@ namespace IceRpc.Tests.ClientServer
                     ColocationScope = ColocationScope.None,
                     Endpoints = GetTestEndpoint(protocol: protocol)
                 });
-            var prx = server.Add("test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
+            var prx = server.Add("/test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
             server.Activate();
             await closure(server, prx);
         }
