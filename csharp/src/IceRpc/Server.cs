@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,7 +20,9 @@ namespace IceRpc
         None
     }
 
-    /// <summary>TODO.</summary>
+    /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
+    /// the corresponding responses. A server should be first configured through its properties, then activated with
+    /// <see cref="ListenAndServeAsync"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IDispatcher, IAsyncDisposable
     {
         // temporary
@@ -41,7 +42,8 @@ namespace IceRpc
 
         /// <summary>Gets or sets the endpoint of this server. Setting this property also sets <see cref="Protocol"/>.
         /// </summary>
-        /// <value>The endpoint of this server. It cannot use a DNS name.</value>
+        /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
+        /// IP address, and it cannot be a DNS name.</value>
         public string Endpoint
         {
             get => _endpoint?.ToString() ?? "";
@@ -105,12 +107,12 @@ namespace IceRpc
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
-        private Endpoint? _proxyEndpoint;
-
         private IncomingConnectionFactory? _incomingConnectionFactory;
 
-        // protects _serviceMap
+        // protects _serviceMap and _shutdownTask
         private readonly object _mutex = new();
+
+        private Endpoint? _proxyEndpoint;
 
         private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
 
@@ -194,10 +196,13 @@ namespace IceRpc
         /// <remarks>This method is called by the IceRPC transport code when it receives a request.</remarks>
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
-            // TODO: throw InvalidOperationException when _serving is false, which can occur with coloc invocations.
-
             // temporary
             ProxyOptions.Communicator ??= Communicator;
+
+            if (!_serving)
+            {
+                throw new InvalidOperationException($"call {nameof(ListenAndServeAsync)} before dispatching requests");
+            }
 
             if (Dispatcher is IDispatcher dispatcher)
             {

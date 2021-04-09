@@ -20,7 +20,7 @@ namespace IceRpc
         /// <param name="server">The server hosting this service.</param>
         /// <param name="path">The path of the service.</param>
         /// <returns>A new service proxy.</returns>
-        // TODO: eliminate this method
+        // TODO: eliminate this method together with the ASM
         public static T Create<T>(this IProxyFactory<T> factory, Server server, string path)
             where T : class, IServicePrx =>
             server.Endpoint.Length == 0 ? server.CreateRelativeProxy<T>(path) : server.CreateProxy<T>(path);
