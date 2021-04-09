@@ -55,7 +55,7 @@ module Ice
         /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
         /// operation is for object adapters using the ice1 protocol.
         /// @param id The adapter ID.
-        /// @return An ice1 proxy with the adapter's endpoint(s), or null if an object adapter with adapter ID `id' was
+        /// @return An ice1 proxy with the adapter's endpoint(s), or null if an object adapter with adapter ID 'id' was
         /// not found.
         /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
         /// should treat this exception like a null return value.
@@ -104,7 +104,7 @@ module Ice
     }
 
     /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as an Ice
-    /// object with the identity `Ice/LocatorFinder'. This allows clients to retrieve the locator proxy with just the
+    /// object with the identity 'Ice/LocatorFinder'. This allows clients to retrieve the locator proxy with just the
     /// endpoint information of the service.
     interface LocatorFinder
     {
