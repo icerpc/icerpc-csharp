@@ -27,8 +27,8 @@ namespace IceRpc
         {
             get
             {
-                // The delegate is lazily initialized the first time is used, this avoid creating delegates that are
-                // never used and avoid doing all work upfront when the attributes are loaded.
+                // The delegate is lazily initialized the first time is used. This is to avoid creating delegates that are
+                // never used and avoid doing all the work upfront when the attributes are loaded.
                 if (_classFactory == null && typeof(AnyClass).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
