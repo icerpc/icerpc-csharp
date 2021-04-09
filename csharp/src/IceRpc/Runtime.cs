@@ -24,20 +24,16 @@ namespace IceRpc
         /// <summary>The IceRPC version in semver format.</summary>
         public const string StringVersion = "0.0.1-alpha";
 
-        /// <summary>Gets or sets the logger factory used by IceRpc classes when no logger factory is explicitely
+        /// <summary>Gets or sets the logger factory used by IceRpc classes when no logger factory is explicitly
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        private static readonly ConcurrentDictionary<string, Func<AnyClass>?> _classFactoryCache = new();
-        private static readonly ConcurrentDictionary<int, Func<AnyClass>?> _compactIdCache = new();
+        private static IReadOnlyDictionary<int, ClassAttribute>? _compactIdClassFactoryCache;
 
-        private static HashSet<Assembly> _loadedAssemblies = new();
-
-        // The mutex protects _loadedAssemblies
+        // The mutex protects assignment to class and exception factory caches
         private static readonly object _mutex = new();
-
-        private static readonly ConcurrentDictionary<string, Func<string?, RemoteExceptionOrigin, RemoteException>?> _remoteExceptionFactoryCache =
-            new();
+        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdClassFactoryCache;
+        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdRemoteExceptionFactoryCache;
 
         private static readonly IDictionary<string, (Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser, Transport Transport)> _transportNameRegistry =
             new ConcurrentDictionary<string, (Ice1EndpointParser?, Ice2EndpointParser?, Transport)>();
@@ -45,37 +41,28 @@ namespace IceRpc
         private static readonly IDictionary<Transport, (EndpointFactory Factory, Ice1EndpointFactory? Ice1Factory, Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser)> _transportRegistry =
             new ConcurrentDictionary<Transport, (EndpointFactory, Ice1EndpointFactory?, Ice1EndpointParser?, Ice2EndpointParser?)>();
 
-        /// <summary>Register an assembly containing class or exception factories. If no assemblies are
-        /// registered explicitly with this method, all the assemblies referenced from the executing assembly
-        /// will be registered the first time IceRPC looks up a factory.</summary>
-        public static void RegisterFactoriesFromAssembly(Assembly assembly)
-        {
-            HashSet<Assembly> loadedAssemblies;
-            lock (_mutex)
-            {
-                loadedAssemblies = new HashSet<Assembly>(_loadedAssemblies);
-            }
-            LoadReferencedAssemblies(assembly, loadedAssemblies);
-            lock (_mutex)
-            {
-                _loadedAssemblies = loadedAssemblies;
-            }
-        }
-
-        /// <summary>Registers all the assemblies referenced by the executing assembly. If this method is not called
-        /// an no application assemblies are registered through <see cref="RegisterFactoriesFromAssembly"/>, this method
-        /// is called implicitly when IceRPC looks up a class or exception factory.</summary>
-        public static void RegisterFactoriesFromAllAssemblies()
+        /// <summary>Register class and exceptions factories found in the given assembly.
+        /// <seealso cref="RegisterClassFactoriesFromAllAssemblies"/>.</summary>
+        public static void RegisterClassFactoriesFromAssembly(Assembly assembly)
         {
             var loadedAssemblies = new HashSet<Assembly>();
-            foreach (var assembly in AssemblyLoadContext.Default.Assemblies)
+            LoadReferencedAssemblies(assembly, loadedAssemblies);
+            RegisterClassFactories(assembly.GetCustomAttributes<ClassAttribute>());
+        }
+
+        /// <summary>Registers class and exception factories found in the current executing assembly and in all
+        /// assemblies referenced by it. If this method is not explicitly called an no class factories where previously
+        /// registered by calling <see cref="RegisterClassFactoriesFromAssembly(Assembly)"/> it is called implicitly the
+        /// first time IceRPC looks up a class or exception factory.</summary>
+        public static void RegisterClassFactoriesFromAllAssemblies()
+        {
+            var loadedAssemblies = new HashSet<Assembly>();
+            foreach (Assembly assembly in AssemblyLoadContext.Default.Assemblies)
             {
                 LoadReferencedAssemblies(assembly, loadedAssemblies);
             }
-            lock (_mutex)
-            {
-                _loadedAssemblies = loadedAssemblies;
-            }
+            RegisterClassFactories(
+                loadedAssemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>()));
         }
 
         /// <summary>Registers a new transport.</summary>
@@ -179,33 +166,36 @@ namespace IceRpc
             }
         }
 
-        // Returns the IClassFactory associated with this Slice type ID, not null if not found.
-        internal static Func<AnyClass>? FindClassFactory(string typeId) =>
-            _classFactoryCache.GetOrAdd(typeId, typeId =>
+        // Returns the ClassFactory associated with this Slice type ID, null if not found.
+        internal static ClassFactory? FindClassFactory(string typeId)
+        {
+            if (_typeIdClassFactoryCache == null)
             {
-                string className = TypeIdToClassName(typeId);
-                Type? factoryClass = FindType($"IceRpc.ClassFactory.{className}");
-                if (factoryClass != null)
-                {
-                    MethodInfo? method = factoryClass.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-                    Debug.Assert(method != null);
-                    return (Func<AnyClass>)Delegate.CreateDelegate(typeof(Func<AnyClass>), method);
-                }
-                return null;
-            });
+                RegisterClassFactoriesFromAllAssemblies();
+            }
+            Debug.Assert(_typeIdClassFactoryCache != null);
+            if (_typeIdClassFactoryCache.TryGetValue(typeId, out var classAttribute))
+            {
+                Debug.Assert(classAttribute.ClassFactory != null);
+                return classAttribute.ClassFactory;
+            }
+            return null;
+        }
 
-        internal static Func<AnyClass>? FindClassFactory(int compactId) =>
-           _compactIdCache.GetOrAdd(compactId, compactId =>
-           {
-               Type? factoryClass = FindType($"IceRpc.ClassFactory.CompactId_{compactId}");
-               if (factoryClass != null)
-               {
-                   MethodInfo? method = factoryClass.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
-                   Debug.Assert(method != null);
-                   return (Func<AnyClass>)Delegate.CreateDelegate(typeof(Func<AnyClass>), method);
-               }
-               return null;
-           });
+        internal static ClassFactory? FindClassFactory(int compactId)
+        {
+            if (_compactIdClassFactoryCache == null)
+            {
+                RegisterClassFactoriesFromAllAssemblies();
+            }
+            Debug.Assert(_compactIdClassFactoryCache != null);
+            if (_compactIdClassFactoryCache.TryGetValue(compactId, out var classAttribute))
+            {
+                Debug.Assert(classAttribute.ClassFactory != null);
+                return classAttribute.ClassFactory;
+            }
+            return null;
+        }
 
         internal static EndpointFactory? FindEndpointFactory(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Factory : null;
@@ -224,41 +214,60 @@ namespace IceRpc
         internal static Ice2EndpointParser? FindIce2EndpointParser(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Ice2Parser : null;
 
-        internal static Func<string?, RemoteExceptionOrigin, RemoteException>? FindRemoteExceptionFactory(string typeId) =>
-            _remoteExceptionFactoryCache.GetOrAdd(typeId, typeId =>
+        internal static RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
+        {
+            if (_typeIdRemoteExceptionFactoryCache == null)
             {
-                string className = TypeIdToClassName(typeId);
-                Type? factoryClass = FindType($"IceRpc.RemoteExceptionFactory.{className}");
-                if (factoryClass != null)
-                {
-                    MethodInfo? method = factoryClass.GetMethod(
-                        "Create",
-                        BindingFlags.Public | BindingFlags.Static,
-                        null,
-                        CallingConventions.Any,
-                        new Type[] { typeof(string), typeof(RemoteExceptionOrigin) },
-                        null);
-                    Debug.Assert(method != null);
-                    return (Func<string?, RemoteExceptionOrigin, RemoteException>)Delegate.CreateDelegate(
-                        typeof(Func<string?, RemoteExceptionOrigin, RemoteException>), method);
-                }
-                return null;
-            });
+                RegisterClassFactoriesFromAllAssemblies();
+            }
+            Debug.Assert(_typeIdRemoteExceptionFactoryCache != null);
+            if (_typeIdRemoteExceptionFactoryCache.TryGetValue(typeId, out var classAttribute))
+            {
+                Debug.Assert(classAttribute.ExceptionFactory != null);
+                return classAttribute.ExceptionFactory;
+            }
+            return null;
+        }
 
-        private static Type? FindType(string className)
+        private static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
         {
             lock (_mutex)
             {
-                if (_loadedAssemblies.Count == 0)
-                {
-                    // Lazzy initialization
-                    RegisterFactoriesFromAllAssemblies();
-                }
-            }
-            return _loadedAssemblies.Select(
-                assembly => assembly.GetType(className)).FirstOrDefault(type => type != null);
-        }
+                Dictionary<string, ClassAttribute> typeIdClassFactoryCache = _typeIdClassFactoryCache == null ?
+                    new Dictionary<string, ClassAttribute>() :
+                    new Dictionary<string, ClassAttribute>(_typeIdClassFactoryCache);
 
+                Dictionary<int, ClassAttribute> compactIdClassFactoryCache = _compactIdClassFactoryCache == null ?
+                    new Dictionary<int, ClassAttribute>() :
+                    new Dictionary<int, ClassAttribute>(_compactIdClassFactoryCache);
+
+                Dictionary<string, ClassAttribute>? typeIdRemoteExceptionFactoryCache =
+                    _typeIdRemoteExceptionFactoryCache == null ?
+                        new Dictionary<string, ClassAttribute>() :
+                        new Dictionary<string, ClassAttribute>(_typeIdRemoteExceptionFactoryCache);
+
+                foreach (ClassAttribute attribute in attributes)
+                {
+                    if (typeof(AnyClass).IsAssignableFrom(attribute.Type))
+                    {
+                        if (attribute.CompactTypeId >= 0)
+                        {
+                            compactIdClassFactoryCache[attribute.CompactTypeId] = attribute;
+                        }
+                        typeIdClassFactoryCache[attribute.TypeId] = attribute;
+                    }
+                    else
+                    {
+                        Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
+                        typeIdRemoteExceptionFactoryCache[attribute.TypeId] = attribute;
+                    }
+                }
+
+                _typeIdClassFactoryCache = typeIdClassFactoryCache;
+                _compactIdClassFactoryCache = compactIdClassFactoryCache;
+                _typeIdRemoteExceptionFactoryCache = typeIdRemoteExceptionFactoryCache;
+            }
+        }
         private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
         {
             if (seenAssembly.Add(entryAssembly))
@@ -267,8 +276,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(name);
-                        LoadReferencedAssemblies(assembly, seenAssembly);
+                        LoadReferencedAssemblies(AssemblyLoadContext.Default.LoadFromAssemblyName(name), seenAssembly);
                     }
                     catch
                     {
@@ -276,15 +284,6 @@ namespace IceRpc
                     }
                 }
             }
-        }
-
-        private static string TypeIdToClassName(string typeId)
-        {
-            if (!typeId.StartsWith("::", StringComparison.Ordinal))
-            {
-                throw new InvalidDataException($"'{typeId}' is not a valid Ice type ID");
-            }
-            return typeId[2..].Replace("::", ".");
         }
     }
 }
