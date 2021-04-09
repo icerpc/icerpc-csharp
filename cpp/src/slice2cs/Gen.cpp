@@ -1455,7 +1455,8 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
             << nl << "Justification=\"Special constructor used for Ice unmarshaling\")]";
         _out.dec();
     }
-    _out << nl << "protected internal " << name << "(IceRpc.InputStream? istr)";
+    _out << nl << "/// <inherit-doc/>";
+    _out << nl << "public " << name << "(IceRpc.InputStream? istr)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
@@ -1710,9 +1711,10 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << eb;
     }
 
-    // protected internal constructor used for unmarshaling (always generated).
+    // public constructor used for unmarshaling (always generated).
     _out << sp;
-    _out << nl << "protected internal " << name << "(string? message, IceRpc.RemoteExceptionOrigin origin)";
+    _out << nl << "/// <inherit-doc/>";
+    _out << nl << "public " << name << "(string? message, IceRpc.RemoteExceptionOrigin origin)";
     // We call the base class constructor to initialize the base class fields.
     _out.inc();
     _out << nl << ": base(message, origin)";

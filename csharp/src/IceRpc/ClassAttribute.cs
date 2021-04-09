@@ -32,7 +32,7 @@ namespace IceRpc
                 if (_classFactory == null && typeof(AnyClass).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
-                        BindingFlags.Instance | BindingFlags.NonPublic,
+                        BindingFlags.Instance | BindingFlags.Public,
                         null,
                         new Type[] { typeof(InputStream) },
                         null);
@@ -60,7 +60,7 @@ namespace IceRpc
                 if (_remoteExceptionFactory == null && typeof(RemoteException).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
-                        BindingFlags.Instance | BindingFlags.NonPublic,
+                        BindingFlags.Instance | BindingFlags.Public,
                         null,
                         new Type[] { typeof(string), typeof(RemoteExceptionOrigin) },
                         null);
