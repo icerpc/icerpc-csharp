@@ -50,8 +50,8 @@ namespace IceRpc
             set
             {
                 _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
-                _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
                 Protocol = _endpoint?.Protocol ?? Protocol.Ice2;
+                UpdateProxyEndpoint();
             }
         }
 
@@ -80,7 +80,20 @@ namespace IceRpc
         /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
         /// address.</summary>
         /// <value>The host or IP address of <see cref="ProxyEndpoint"/>.</value>
-        public string ProxyHost { get; set; } = "localhost"; // System.Net.Dns.GetHostName();
+        public string ProxyHost
+        {
+            get => _proxyHost;
+            set
+            {
+                if (value.Length == 0)
+                {
+                    throw new ArgumentException($"{nameof(ProxyHost)} must have at least one character",
+                                                nameof(ProxyHost));
+                }
+                _proxyHost = value;
+                UpdateProxyEndpoint();
+            }
+        }
 
         /// <summary>The options of proxies received in requests or created using this server.</summary>
         public ProxyOptions ProxyOptions { get; set; } = new();
@@ -113,6 +126,8 @@ namespace IceRpc
         private readonly object _mutex = new();
 
         private Endpoint? _proxyEndpoint;
+
+        private string _proxyHost = "localhost"; // temporary default
 
         private readonly Dictionary<(string Path, string Facet), IService> _serviceMap = new();
 
@@ -188,12 +203,13 @@ namespace IceRpc
         /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
         /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
         /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into a
-        /// <see cref="UnhandledException"/>. If <see cref="Dispatcher"/> is null, this method throws a
-        /// <see cref="ServiceNotFoundException"/> asynchronously.</summary>
+        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
+        /// <see cref="ServiceNotFoundException"/> response.</summary>
         /// <param name="current">The request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        /// <remarks>This method is called by the IceRPC transport code when it receives a request.</remarks>
+        /// <remarks>This method is called by the IceRPC transport code when it receives a request. It does not throw
+        /// any exception, synchronously or asynchronously.</remarks>
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
             // temporary
@@ -201,7 +217,11 @@ namespace IceRpc
 
             if (!_serving)
             {
-                throw new InvalidOperationException($"call {nameof(ListenAndServeAsync)} before dispatching requests");
+                var ex = new UnhandledException(
+                    new InvalidOperationException(
+                        $"call {nameof(ListenAndServeAsync)} before dispatching colocated requests"));
+
+                return new OutgoingResponseFrame(current.IncomingRequestFrame, ex);
             }
 
             if (Dispatcher is IDispatcher dispatcher)
@@ -241,7 +261,8 @@ namespace IceRpc
             }
             else
             {
-                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                return new OutgoingResponseFrame(current.IncomingRequestFrame,
+                                                 new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 
@@ -276,7 +297,7 @@ namespace IceRpc
                         new AcceptorIncomingConnectionFactory(this, endpoint);
 
                     _endpoint = _incomingConnectionFactory.Endpoint;
-                    _proxyEndpoint = _endpoint.GetPublishedEndpoint(ProxyHost);
+                    UpdateProxyEndpoint();
 
                     _incomingConnectionFactory.Activate();
                 }
@@ -642,5 +663,7 @@ namespace IceRpc
             var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), new(), default);
             return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
         }
+
+        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
     }
 }

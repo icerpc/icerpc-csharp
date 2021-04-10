@@ -24,17 +24,38 @@ namespace IceRpc.Tests.Api
 
                 // A DNS name cannot be used with a server endpoint
                 Assert.Throws<NotSupportedException>(() => _ = server.ListenAndServeAsync());
+
+                // ProxyHost can't be empty
+                Assert.Throws<ArgumentException>(() => server.ProxyHost = "");
+
+                Assert.DoesNotThrow(() => _ = server.CreateProxy<IServicePrx>("/foo"));
+                server.Endpoint = "";
+                Assert.Throws<InvalidOperationException>(() => _ = server.CreateProxy<IServicePrx>("/foo"));
             }
 
             {
-                // Async twice is incorrect
+                // ListenAndServeAsync twice is incorrect
                 await using var server = new Server { Communicator = communicator };
                 _ = server.ListenAndServeAsync();
                 Assert.Throws<InvalidOperationException>(() => _ = server.ListenAndServeAsync());
             }
 
             {
-                // cannot add a middleware to a router after adding a route
+                // Can't call a colocated service before calling ListenAndServeAsync
+                await using var server = new Server { Communicator = communicator, Dispatcher = new ProxyTest() };
+                var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/foo");
+
+                Assert.ThrowsAsync<UnhandledException>(async () => await proxy.IcePingAsync());
+                _ = server.ListenAndServeAsync();
+                Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+
+                // Throws ServiceNotFoundException when Dispatcher is null
+                server.Dispatcher = null;
+                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await proxy.IcePingAsync());
+            }
+
+            {
+                // Cannot add a middleware to a router after adding a route
                 var router = new Router();
                 router.Map("/test", new ProxyTest());
 
@@ -93,7 +114,7 @@ namespace IceRpc.Tests.Api
                 {
                     AcceptNonSecure = NonSecure.Always
                 },
-                Endpoint = $"tcp -h 127.0.0.1 -p 0 -t 15000",
+                Endpoint = "tcp -h 127.0.0.1 -p 0 -t 15000",
                 ProxyHost = "localhost"
             };
 
@@ -111,6 +132,28 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("localhost", proxyEndpoint.Host);
             Assert.AreEqual(serverEndpoint.Port, proxyEndpoint.Port);
             Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+        }
+
+        [Test]
+        public async Task Server_EndpointAsync()
+        {
+            // Verifies that changing Endpoint or ProxyHost updates ProxyEndpoint.
+
+            await using var communicator = new Communicator();
+            await using var server = new Server { Communicator = communicator };
+
+            Assert.IsEmpty(server.ProxyEndpoint);
+            server.Endpoint = "ice+tcp://127.0.0.1";
+            Assert.AreEqual(server.Endpoint.Replace("127.0.0.1", server.ProxyHost), server.ProxyEndpoint);
+            server.ProxyHost = "foobar";
+            Assert.AreEqual(server.Endpoint.Replace("127.0.0.1", server.ProxyHost), server.ProxyEndpoint);
+
+            // Verifies that changing Endpoint updates Protocol
+            Assert.AreEqual(Protocol.Ice2, server.Protocol);
+            server.Endpoint = "tcp -h 127.0.0.1 -p 0";
+            Assert.AreEqual(Protocol.Ice1, server.Protocol);
+            server.Endpoint = "";
+            Assert.AreEqual(Protocol.Ice2, server.Protocol);
         }
 
         [Test]
