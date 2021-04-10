@@ -42,6 +42,7 @@ protected:
     void emitEqualityOperators(const std::string&);
     void emitCustomAttributes(const ContainedPtr&); // attributes specified through metadata
     void emitTypeIdAttribute(const std::string&); // the Ice type ID attribute
+    void emitClassAttribute(const std::string&, int, const std::string&);
 
     std::string writeValue(const TypePtr&, const std::string&);
 
@@ -179,33 +180,14 @@ private:
         void visitOperation(const OperationPtr&) override;
     };
 
-    class ClassFactoryVisitor : public CsVisitor
+    class ClassAttributeVisitor : public CsVisitor
     {
     public:
 
-        ClassFactoryVisitor(IceUtilInternal::Output&);
-        bool visitModuleStart(const ModulePtr&) override;
-        void visitModuleEnd(const ModulePtr&) override;
-        bool visitClassDefStart(const ClassDefPtr&) override;
-    };
-
-    class CompactIdVisitor : public CsVisitor
-    {
-    public:
-
-        CompactIdVisitor(IceUtilInternal::Output&);
+        ClassAttributeVisitor(IceUtilInternal::Output&);
         bool visitUnitStart(const UnitPtr&) override;
         void visitUnitEnd(const UnitPtr&) override;
         bool visitClassDefStart(const ClassDefPtr&) override;
-    };
-
-    class RemoteExceptionFactoryVisitor : public CsVisitor
-    {
-    public:
-
-        RemoteExceptionFactoryVisitor(IceUtilInternal::Output&);
-        bool visitModuleStart(const ModulePtr&) override;
-        void visitModuleEnd(const ModulePtr&) override;
         bool visitExceptionStart(const ExceptionPtr&) override;
     };
 };

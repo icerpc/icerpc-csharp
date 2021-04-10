@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             server.Add("/test", new ConnectionTestService());
-            _  = server.ListenAndServeAsync();
+            _ = server.ListenAndServeAsync();
 
             var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             server.Add("/test", new ConnectionTestService());
-            _  = server.ListenAndServeAsync();
+            _ = server.ListenAndServeAsync();
 
             await using var clientCommunicator = new Communicator(
                 connectionOptions: new()
@@ -183,7 +183,6 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
         public async Task Connection_HeartbeatManual(Protocol protocol)
         {
             await WithServerAsync(async (server, prx) =>

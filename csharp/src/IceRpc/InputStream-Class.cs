@@ -8,6 +8,14 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
+    /// <summary>A delegate used to create class instances during unmarshaling.</summary>
+    /// <returns>A new class instance.</returns>
+    internal delegate AnyClass ClassFactory();
+
+    /// <summary>A delegate used to create remote exception instances during unmarshaling.</summary>
+    /// <returns>A new remote exception instance.</returns>
+    internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
+
     // This partial class provides the class/exception unmarshaling logic.
     public sealed partial class InputStream
     {
@@ -93,8 +101,7 @@ namespace IceRpc
 
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    if (Runtime.FindRemoteExceptionFactory(typeId) is
-                        Func<string?, RemoteExceptionOrigin, RemoteException> factory)
+                    if (Runtime.FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
                     {
                         // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
                         // and origin is always Unknown.
@@ -127,8 +134,7 @@ namespace IceRpc
                     }
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    Func<string?, RemoteExceptionOrigin, RemoteException>? factory =
-                        Runtime.FindRemoteExceptionFactory(typeId);
+                    RemoteExceptionFactory? factory = Runtime.FindRemoteExceptionFactory(typeId);
                     if (factory != null)
                     {
                         remoteEx = factory(errorMessage, origin);
@@ -391,7 +397,7 @@ namespace IceRpc
                     // We cannot read the indirection table at this point as it may reference the new instance that is
                     // not created yet.
 
-                    Func<AnyClass>? factory = null;
+                    ClassFactory? factory = null;
                     if (typeId != null)
                     {
                         factory = Runtime.FindClassFactory(typeId);
@@ -454,7 +460,7 @@ namespace IceRpc
                     int skipCount = 0;
                     foreach (string typeId in allTypeIds)
                     {
-                        if (Runtime.FindClassFactory(typeId) is Func<AnyClass> factory)
+                        if (Runtime.FindClassFactory(typeId) is ClassFactory factory)
                         {
                             instance = factory();
                             break; // foreach
@@ -492,7 +498,7 @@ namespace IceRpc
                 else if (formalTypeId != null)
                 {
                     // received null and formalTypeId is not null, apply formal type optimization.
-                    if (Runtime.FindClassFactory(formalTypeId) is Func<AnyClass> factory)
+                    if (Runtime.FindClassFactory(formalTypeId) is ClassFactory factory)
                     {
                         instance = factory();
                         _instanceMap.Add(instance);
