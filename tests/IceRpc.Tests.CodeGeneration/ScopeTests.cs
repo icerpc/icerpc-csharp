@@ -1,16 +1,12 @@
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
     public class ScopeTests
     {
         private readonly Communicator _communicator;
@@ -20,15 +16,14 @@ namespace IceRpc.Tests.CodeGeneration
         private readonly Scope.Inner.Inner2.IOperationsPrx _prx3;
         private readonly Scope.Inner.Test.Inner2.IOperationsPrx _prx4;
 
-        public ScopeTests(Protocol protocol)
+        public ScopeTests()
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator,
-                new ServerOptions()
-                {
-                    Protocol = protocol,
-                    ColocationScope = ColocationScope.Communicator
-                });
+            _server = new Server()
+            {
+                Communicator = _communicator,
+                ColocationScope = ColocationScope.Communicator
+            };
             _prx1 = _server.Add("/test1", new Scope.Operations(), Scope.IOperationsPrx.Factory);
             _prx2 = _server.Add("/test2", new Scope.Inner.Operations(), Scope.Inner.IOperationsPrx.Factory);
             _prx3 = _server.Add("/test3",
@@ -37,10 +32,11 @@ namespace IceRpc.Tests.CodeGeneration
             _prx4 = _server.Add("/test4",
                                 new Scope.Inner.Test.Inner2.Operations(),
                                 Scope.Inner.Test.Inner2.IOperationsPrx.Factory);
-            Assert.AreEqual(protocol, _prx1.Protocol);
+            _ = _server.ListenAndServeAsync();
+
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();

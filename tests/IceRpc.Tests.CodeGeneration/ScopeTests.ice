@@ -4,6 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+// Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Tests::CodeGeneration::Scope
 {
 	struct S
