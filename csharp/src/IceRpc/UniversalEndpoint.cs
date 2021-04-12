@@ -76,10 +76,7 @@ namespace IceRpc
 
         internal static UniversalEndpoint Create(EndpointData data, Protocol protocol) => new(data, protocol);
 
-        internal static UniversalEndpoint Parse(
-            string host,
-            ushort port,
-            Dictionary<string, string> options)
+        internal static UniversalEndpoint Parse(string host, ushort port, Dictionary<string, string> options)
         {
             Transport transport;
             if (options.TryGetValue("transport", out string? value))
