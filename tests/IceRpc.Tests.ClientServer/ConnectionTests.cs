@@ -250,8 +250,8 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 ColocationScope = ColocationScope.None,
-                Endpoint = GetTestEndpoint(),
-                TaskScheduler = schedulerPair.ExclusiveScheduler
+                Endpoint = GetTestEndpoint()
+                //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
             server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
@@ -285,7 +285,7 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator1,
                 ColocationScope = ColocationScope.None,
                 Endpoint = GetTestEndpoint(),
-                TaskScheduler = schedulerPair.ExclusiveScheduler
+                //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
             server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
