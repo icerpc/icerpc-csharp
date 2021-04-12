@@ -6,6 +6,10 @@ namespace IceRpc.Test.Binding
 {
     public class TestIntf : ITestIntf
     {
-        public string GetAdapterName(Current current, CancellationToken cancel) => current.Server.Name;
+        private string _serverName;
+
+        public string GetAdapterName(Current current, CancellationToken cancel) => _serverName;
+
+        internal TestIntf(string serverName) => _serverName = serverName;
     }
 }

@@ -421,6 +421,9 @@ namespace IceRpc.Test.Binding
                         2,
                         "tcp");
 
+                /*
+                This sounds like a totally pointeless test.
+
                 var anyipv4 = new ServerOptions
                 {
                     ColocationScope = ColocationScope.None,
@@ -477,7 +480,7 @@ namespace IceRpc.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     await using var oa = new Server(serverCommunicator, p);
-                    oa.Activate();
+                    oa.ListenAndServeAsync();
 
                     IServicePrx prx = IServicePrx.Factory.Create(oa, "/dummy");
                     try
@@ -493,25 +496,31 @@ namespace IceRpc.Test.Binding
                     }
                 }
 
+                */
+
                 // Test IPv6 dual mode socket
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0");
-                    await using var oa = new Server(
-                        serverCommunicator,
-                        new() {
-                            ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint });
-                    oa.Activate();
+                    await using var oa = new Server
+                    {
+                        ColocationScope = ColocationScope.None,
+                        Communicator = serverCommunicator,
+                        Endpoint = endpoint
+                    };
+                    _ = oa.ListenAndServeAsync();
 
                     Console.Out.Flush();
 
                     try
                     {
-                        await using var ipv4Server = new Server(
-                            serverCommunicator,
-                            new() { Endpoints = getEndpoint("0.0.0.0") });
-                        ipv4Server.Activate();
+                        await using var ipv4Server = new Server
+                        {
+                            Communicator = serverCommunicator,
+                            Endpoint = getEndpoint("0.0.0.0")
+                        };
+
+                        _ = ipv4Server.ListenAndServeAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -535,31 +544,33 @@ namespace IceRpc.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::0");
-                    await using var oa = new Server(
-                        serverCommunicator,
-                        new()
+                    await using var oa = new Server
+                    {
+                        ColocationScope = ColocationScope.None,
+                        Communicator = serverCommunicator,
+                        Endpoint = endpoint,
+                        ConnectionOptions = new()
                         {
-                            ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint,
-                            ConnectionOptions = new()
+                            TransportOptions = new TcpOptions()
                             {
-                                TransportOptions = new TcpOptions()
-                                {
-                                    IsIPv6Only = true
-                                }
+                                IsIPv6Only = true
                             }
-                        });
-                    oa.Activate();
+                        }
+                    };
+
+                    _ = oa.ListenAndServeAsync();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
-                        await using var ipv4Server = new Server(
-                                serverCommunicator,
-                                new() {
-                                    ColocationScope = ColocationScope.None,
-                                    Endpoints = ipv4Endpoint });
-                        ipv4Server.Activate();
+                        await using var ipv4Server = new Server
+                        {
+                            ColocationScope = ColocationScope.None,
+                            Communicator = serverCommunicator,
+                            Endpoint = ipv4Endpoint
+                        };
+
+                        _ = ipv4Server.ListenAndServeAsync();
                     }
 
                     try
@@ -579,22 +590,24 @@ namespace IceRpc.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
-                    await using var oa = new Server(
-                        serverCommunicator,
-                        new() {
-                            ColocationScope = ColocationScope.None,
-                            Endpoints = endpoint });
-                    oa.Activate();
+                    await using var oa = new Server
+                    {
+                        ColocationScope = ColocationScope.None,
+                        Communicator = serverCommunicator,
+                        Endpoint = endpoint
+                    };
+                    _ = oa.ListenAndServeAsync();
 
                     try
                     {
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
-                        await using var ipv4Server = new Server(
-                            serverCommunicator,
-                            new() {
-                                ColocationScope = ColocationScope.None,
-                                Endpoints = ipv4Endpoint });
-                        ipv4Server.Activate();
+                        await using var ipv4Server = new Server
+                        {
+                            ColocationScope = ColocationScope.None,
+                            Communicator = serverCommunicator,
+                            Endpoint = ipv4Endpoint
+                        };
+                        _ = ipv4Server.ListenAndServeAsync();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

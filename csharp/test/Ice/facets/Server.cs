@@ -9,8 +9,11 @@ namespace IceRpc.Test.Facets
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0)
+            };
 
             var d = new D();
             server.Add("/d", d);
@@ -19,10 +22,10 @@ namespace IceRpc.Test.Facets
             server.Add("/d", "facetEF", f);
             var h = new H();
             server.Add("/d", "facetGH", h);
-            server.Activate();
 
+            Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();
-            await server.ShutdownComplete;
+            await shutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

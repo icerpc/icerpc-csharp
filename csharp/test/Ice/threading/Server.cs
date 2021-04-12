@@ -10,23 +10,36 @@ namespace IceRpc.Test.Threading
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0)
+            };
+
             server.Add("/test", new TestIntf(TaskScheduler.Default));
-            server.Activate();
+            _ = server.ListenAndServeAsync();
 
             var schedulerPair = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, 5);
 
-            await using var server2 = new Server(
-                Communicator,
-                new() { Endpoints = GetTestEndpoint(1), TaskScheduler = schedulerPair.ExclusiveScheduler });
-            server2.Add("/test", new TestIntf(schedulerPair.ExclusiveScheduler));
-            server2.Activate();
+            await using var server2 = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(1),
+                TaskScheduler = schedulerPair.ExclusiveScheduler
+            };
 
-            await using var server3 = new Server(
-                Communicator,
-                new() { Endpoints = GetTestEndpoint(2), TaskScheduler = schedulerPair.ConcurrentScheduler });
+            server2.Add("/test", new TestIntf(schedulerPair.ExclusiveScheduler));
+            _ = server2.ListenAndServeAsync();
+
+            await using var server3 = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(2),
+                TaskScheduler = schedulerPair.ConcurrentScheduler
+            };
+
             server3.Add("/test", new TestIntf(schedulerPair.ConcurrentScheduler));
-            server3.Activate();
+            _ = server3.ListenAndServeAsync();
 
             // Setup 20 worker threads for the .NET thread pool (we setup the minimum to avoid delays from the
             // thread pool thread creation).

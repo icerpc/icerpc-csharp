@@ -10,11 +10,14 @@ namespace IceRpc.Test.Proxy
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0)
+            };
 
             server.Add("/test", new MyDerivedClass());
-            // Don't activate Server to ensure collocation is used.
+            _ = server.ListenAndServeAsync();
 
             await AllTests.RunAsync(this);
         }

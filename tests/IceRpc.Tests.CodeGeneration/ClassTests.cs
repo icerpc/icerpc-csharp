@@ -43,12 +43,8 @@ namespace IceRpc.Tests.CodeGeneration
         public ClassTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator,
-                new ServerOptions()
-                {
-                    Protocol = protocol,
-                    ColocationScope = ColocationScope.Communicator
-                });
+            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            _ = _server.ListenAndServeAsync();
             _prx = _server.Add("/test", new ClassOperations(), IClassOperationsPrx.Factory);
             _prxUnexpectedClass = _server.Add("/test1",
                                                new ClassOperationsUnexpectedClass(),

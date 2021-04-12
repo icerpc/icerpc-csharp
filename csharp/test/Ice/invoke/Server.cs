@@ -9,14 +9,16 @@ namespace IceRpc.Test.Invoke
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Dispatcher = new BlobjectI(),
+                Endpoint = GetTestEndpoint(0)
+            };
 
-            server.AddDefault(new BlobjectI());
-            server.Activate();
-
+            Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();
-            await server.ShutdownComplete;
+            await shutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

@@ -111,16 +111,20 @@ namespace IceRpc.Test.Scope
 
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator, new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server()
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0)
+            };
 
             server.Add("/i1", new I1());
             server.Add("/i2", new I2());
             server.Add("/i3", new I3());
             server.Add("/i4", new I4());
-            server.Activate();
 
+            Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();
-            await server.ShutdownComplete;
+            await shutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

@@ -125,12 +125,8 @@ namespace IceRpc.Tests.CodeGeneration
             Func<IEnumOperationsPrx, Task> closure)
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator,
-                new ServerOptions()
-                {
-                    Protocol = protocol,
-                    ColocationScope = ColocationScope.Communicator
-                });
+            await using var server = new Server { Communicator = communicator, Protocol = protocol };
+            _ = server.ListenAndServeAsync();
             IEnumOperationsPrx? prx = server.Add("/test", new EnumOperations(), IEnumOperationsPrx.Factory);
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);

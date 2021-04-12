@@ -2,6 +2,8 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <IceRpc/BuiltinSequences.ice>
+
 module IceRpc::Tests::ClientServer
 {
     // TODO: eliminate Service suffix?
@@ -16,18 +18,9 @@ module IceRpc::Tests::ClientServer
         void op();
     }
 
-    sequence<byte> StressByteSeq;
-
     interface StressTestService
     {
-        void opSendByteSeq(StressByteSeq data);
-        StressByteSeq opReceiveByteSeq(int size);
-    }
-
-    interface ConnectionTestService
-    {
-        void enter();
-        void release();
-        void initiatePing();
+        void opSendByteSeq(IceRpc::ByteSeq data);
+        IceRpc::ByteSeq opReceiveByteSeq(int size);
     }
 }

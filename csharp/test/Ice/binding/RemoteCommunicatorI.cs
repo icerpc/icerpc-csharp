@@ -21,26 +21,24 @@ namespace IceRpc.Test.Binding
             {
                 try
                 {
-                    string endpoints =
+                    string endpoint =
                         TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
 
-                    var server = new Server(
-                        current.Communicator,
-                        new()
+                    var server = new Server
+                    {
+                        Communicator = current.Communicator,
+                        ConnectionOptions = new()
                         {
-                            ConnectionOptions = new()
-                            {
-                                AcceptNonSecure = transport == "udp" ? NonSecure.Always :
-                                    current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ??
-                                        NonSecure.Always,
-                            },
-                            Endpoints = endpoints,
-                            Name = name,
-                            PublishedHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
-                        });
-                    server.Activate();
+                            AcceptNonSecure = transport == "udp" ? NonSecure.Always :
+                                current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
+                        },
+                        Endpoint = endpoint,
+                        ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
+                    };
 
-                    return new(current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory));
+                    _ = server.ListenAndServeAsync();
+
+                    return new(current.Server.AddWithUUID(new RemoteServer(server, name), IRemoteServerPrx.Factory));
                 }
                 catch (TransportException)
                 {
@@ -58,12 +56,14 @@ namespace IceRpc.Test.Binding
             Current current,
             CancellationToken cancel)
         {
-            var server = new Server(
-                current.Communicator,
-                new ServerOptions { Endpoints = endpoints, Name = name });
-            server.Activate();
+            var server = new Server
+            {
+                Communicator = current.Communicator,
+                Endpoint = endpoints
+            };
 
-            return new(current.Server.AddWithUUID(new RemoteServer(server), IRemoteServerPrx.Factory));
+            _ = server.ListenAndServeAsync();
+            return new(current.Server.AddWithUUID(new RemoteServer(server, name), IRemoteServerPrx.Factory));
         }
 
         // Colocated call.

@@ -15,7 +15,7 @@ namespace IceRpc.Tests
         public ColocatedTest()
         {
             Communicator = new Communicator();
-            Server = new Server(Communicator, new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+            Server = new Server { Communicator = Communicator };
         }
 
         [OneTimeTearDown]

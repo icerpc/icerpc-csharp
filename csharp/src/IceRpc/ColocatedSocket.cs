@@ -153,7 +153,7 @@ namespace IceRpc
         }
 
         public override string ToString() =>
-            $"{base.ToString()} (ID={Id}, Server={((ColocatedEndpoint)Endpoint).Server.Name}, Incoming={IsIncoming})";
+            $"{base.ToString()} (ID={Id}, Server={((ColocatedEndpoint)Endpoint).Server}, Incoming={IsIncoming})";
 
         internal ColocatedSocket(
             ColocatedEndpoint endpoint,

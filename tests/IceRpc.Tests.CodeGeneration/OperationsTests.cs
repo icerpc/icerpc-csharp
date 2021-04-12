@@ -22,12 +22,8 @@ namespace IceRpc.Tests.CodeGeneration
         public OperationsTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator,
-                new ServerOptions()
-                {
-                    Protocol = protocol,
-                    ColocationScope = ColocationScope.Communicator
-                });
+            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            _ = _server.ListenAndServeAsync();
             _prx = _server.Add("/test", new Operations(), IOperationsPrx.Factory);
             _derivedPrx = _prx.WithPath<IDerivedOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
