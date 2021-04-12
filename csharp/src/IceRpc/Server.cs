@@ -202,7 +202,7 @@ namespace IceRpc
 
         /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
         /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
-        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into a
+        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
         /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
         /// <see cref="ServiceNotFoundException"/> response.</summary>
         /// <param name="current">The request being dispatched.</param>
@@ -281,8 +281,8 @@ namespace IceRpc
                 throw new InvalidOperationException(
                     $"'{nameof(ListenAndServeAsync)}' was already called on server '{this}'");
             }
-            _serving = true;
 
+            // We lock the mutex because it's ok for ShutdownAsync to be called concurrently.
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -300,6 +300,7 @@ namespace IceRpc
                     UpdateProxyEndpoint();
 
                     _incomingConnectionFactory.Activate();
+                    _serving = true;
                 }
 
                 if (ColocationScope != ColocationScope.None)
@@ -307,6 +308,8 @@ namespace IceRpc
                     LocalServerRegistry.RegisterServer(this);
                 }
             }
+
+            _serving = true;
 
             if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
             {
@@ -325,15 +328,16 @@ namespace IceRpc
                 }
                 catch (OperationCanceledException)
                 {
-                    // Request "quick" shutdown that completes as soon as possible by cancelling everything it can.
+                    // Request "quick" shutdown that completes as soon as possible by canceling everything it can.
                     _ = ShutdownAsync(cancel);
                     await ShutdownComplete.ConfigureAwait(false);
                 }
             }
         }
 
-        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be
-        /// used. This method can be safely called multiple times and always returns the same task.</summary>
+        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be used. This method
+        /// can be safely called multiple times, including from multiple threads, and always returns the same task.
+        /// </summary>
         /// <param name="_">The cancellation token. If the caller cancels this token, this method completes as
         /// quickly as possible by cancelling outstanding requests and closing connections without waiting.</param>
         /// <return>A task that completes once the shutdown is complete.</return>

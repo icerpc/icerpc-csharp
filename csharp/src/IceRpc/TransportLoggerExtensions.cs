@@ -41,7 +41,7 @@ namespace IceRpc
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _acceptorScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, Description={Description})");
+                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
 
         private static readonly Func<ILogger, string, Protocol, string, IDisposable> _clientSocketScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
@@ -49,14 +49,14 @@ namespace IceRpc
 
         private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocatedAcceptorScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName})");
+                "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
 
         private static readonly Func<ILogger, long, IDisposable> _colocatedServerSocketScope =
             LoggerMessage.DefineScope<long>("socket(ID={ID})");
 
         private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocatedClientSocketScope =
             LoggerMessage.DefineScope<string, Protocol, long, string>(
-                "socket(Transport={Transport}, Protocol={Protocol}, ID={ID}, ServerName={ServerName})");
+                "socket(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
 
         private static readonly Action<ILogger, Exception> _connectionAccepted =
             LoggerMessage.Define(
@@ -84,12 +84,12 @@ namespace IceRpc
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverSocketServerSocketScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramServerSocketScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "Description={Description})");
 
         private static readonly Func<ILogger, string, IDisposable> _overSocketServerSocketScope =
@@ -168,7 +168,7 @@ namespace IceRpc
 
         private static readonly Func<ILogger, string, Protocol, string, EndPoint, IDisposable> _tcpAcceptorScope =
             LoggerMessage.DefineScope<string, Protocol, string, EndPoint>(
-                "server(Transport={Transport}, Protocol={Protocol}, ServerName={ServerName}, " +
+                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
 
         internal static void LogAcceptingConnections(this ILogger logger) =>
