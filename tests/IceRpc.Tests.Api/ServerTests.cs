@@ -125,7 +125,7 @@ namespace IceRpc.Tests.Api
 
             Assert.AreEqual(Transport.TCP, serverEndpoint.Transport);
             Assert.AreEqual("127.0.0.1", serverEndpoint.Host);
-            Assert.IsTrue(serverEndpoint.Port > 0);
+            Assert.That(serverEndpoint.Port, Is.GreaterThan(0));
             Assert.AreEqual("15000", serverEndpoint["timeout"]);
 
             Assert.AreEqual(Transport.TCP, proxyEndpoint.Transport);

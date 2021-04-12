@@ -267,7 +267,7 @@ namespace IceRpc
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
-                // If there is a location resolver, it's a well-known proxy.
+                // If there is no location resolver, it's a relative proxy.
                 if (endpoints.Count == 0 && options.LocationResolver == null)
                 {
                     // The protocol of the source proxy/connection prevails.
