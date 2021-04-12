@@ -9,8 +9,13 @@ namespace IceRpc.Test.Facets
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(Communicator,
-                                                        new() { Endpoints = GetTestEndpoint(0) });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0)
+            };
+
+            _ = server.ListenAndServeAsync();
 
             var d = new D();
             server.Add("/d", d);

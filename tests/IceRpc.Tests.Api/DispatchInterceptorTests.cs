@@ -18,15 +18,16 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator,
-                                                new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+            await using var server = new Server { Communicator = communicator };
 
             var router = new Router();
             router.Use(next => new InlineDispatcher((current, cancel) => throw new ArgumentException("message")));
             var service = new TestService();
             router.Map("/test", service);
             var prx = IDispatchInterceptorTestServicePrx.Factory.Create(server, "/test");
-            server.Activate(router);
+
+            server.Dispatcher = router;
+            _ = server.ListenAndServeAsync();
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -37,8 +38,8 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_CallOrder()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator,
-                                                new ServerOptions() { ColocationScope = ColocationScope.Communicator });
+            await using var server = new Server { Communicator = communicator };
+
             var interceptorCalls = new List<string>();
 
             var router = new Router();
@@ -64,8 +65,8 @@ namespace IceRpc.Tests.Api
             router.Map("/test", new TestService());
             var prx = IServicePrx.Factory.Create(server, "/test");
 
-            server.Activate(router);
-
+            server.Dispatcher = router;
+            _ = server.ListenAndServeAsync();
             await prx.IcePingAsync();
 
             Assert.AreEqual("DispatchInterceptors -> 0", interceptorCalls[0]);

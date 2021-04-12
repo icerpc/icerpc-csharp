@@ -13,7 +13,7 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequestFrame.BinaryContext;
 
         /// <summary>The communicator.</summary>
-        public Communicator Communicator => Server.Communicator;
+        public Communicator Communicator => Server.Communicator!;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection { get; }

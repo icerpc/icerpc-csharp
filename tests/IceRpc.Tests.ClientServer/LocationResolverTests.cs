@@ -60,20 +60,21 @@ namespace IceRpc.Tests.ClientServer
         {
             Assert.IsTrue(protocol == Protocol.Ice1 || category == null);
 
-            _server = new Server(_communicator,
-                                 new ServerOptions()
-                                 {
-                                    ColocationScope = ColocationScope.None,
-                                    // TODO: should GetTestEndpoint be capable of returning port 0?
-                                    Endpoints =
-                                        protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
-                                 });
+            _server = new Server
+            {
+                Communicator = _communicator,
+                ColocationScope = ColocationScope.None,
+                // TODO: should GetTestEndpoint be capable of returning port 0?
+                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
+            };
 
-            // direct proxy
+            _ = _server.ListenAndServeAsync();
+
+            // Need to create proxy after calling ListenAndServeAsync; otherwise, the port number is still 0.
             IGreeterTestServicePrx greeter =
                 _server.Add(path, new GreeterTestService(), IGreeterTestServicePrx.Factory);
 
-            _server.Activate();
+            Assert.AreNotEqual(0, greeter.Endpoints[0].Port);
 
             return new LocationResolver(protocol, location, category, greeter.Endpoints);
         }

@@ -38,7 +38,7 @@ namespace IceRpc.Test.Facets
             output.WriteLine("ok");
 
             output.Write("testing facet registration exceptions... ");
-            var server = new Server(communicator);
+            var server = new Server { Communicator = communicator };
 
             var obj = new Empty();
 

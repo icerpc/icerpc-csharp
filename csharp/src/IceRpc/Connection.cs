@@ -606,7 +606,7 @@ namespace IceRpc
                     // Be notified if the peer resets the stream to cancel the dispatch.
                     //
                     // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
-                    // could consider setting the error code into Ice.Current to allow the user to figure out the
+                    // could consider setting the error code into Current to allow the user to figure out the
                     // reason of the stream reset.
                     stream.Reset += (long errorCode) => cancelSource.Cancel();
                 }
@@ -617,7 +617,7 @@ namespace IceRpc
 
                 Socket.Logger.LogReceivedRequest(request);
 
-                // If no server is configure to dispatch the request, return an ObjectNotExistException to the caller.
+                // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
                 Server? server = _server;
                 if (server == null)
@@ -631,15 +631,17 @@ namespace IceRpc
                 {
                     // Dispatch the request and get the response
                     var current = new Current(server, request, stream, this);
+                    IDispatcher dispatcher = server;
+
                     if (server.TaskScheduler != null)
                     {
-                        response = await TaskRun(() => server.DispatchAsync(current, cancel),
+                        response = await TaskRun(() => dispatcher.DispatchAsync(current, cancel),
                                                  cancel,
                                                  server.TaskScheduler).ConfigureAwait(false);
                     }
                     else
                     {
-                        response = await server.DispatchAsync(current, cancel).ConfigureAwait(false);
+                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
                 }
 

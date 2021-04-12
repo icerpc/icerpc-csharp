@@ -55,17 +55,16 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(3, prx1.Endpoints.Count);
             foreach (int port in new int[] { 0, 1, 2 })
             {
-                await using var server = new Server(
-                    communicator,
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: port, protocol: protocol),
-                        Protocol = protocol
-                    });
+                await using var server = new Server
+                {
+                    Communicator = communicator,
+                    ColocationScope = ColocationScope.None,
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
+                    Protocol = protocol
+                };
 
                 server.Add("/retry", new RetryService());
-                server.Activate();
+                _ = server.ListenAndServeAsync();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
             }
         }
@@ -74,14 +73,14 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_FixedReference()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server(communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Protocol = Protocol.Ice2,
-                    Endpoints = GetTestEndpoint()
-                });
-            server.Activate();
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                ColocationScope = ColocationScope.None,
+                Protocol = Protocol.Ice2,
+                Endpoint = GetTestEndpoint()
+            };
+            _ = server.ListenAndServeAsync();
             var proxy = server.Add("/bidir", new Bidir(), IRetryBidirServicePrx.Factory);
 
             Connection connection = await proxy.GetConnectionAsync();
@@ -243,10 +242,11 @@ namespace IceRpc.Tests.ClientServer
                         routers[i].Use(next => new InlineDispatcher(
                             async (current, cancel) =>
                             {
-                                calls.Add(current.Server.Name);
+                                calls.Add(current.Server.ToString());
                                 return await next.DispatchAsync(current, cancel);
                             }));
-                        servers[i].Activate(routers[i]);
+                        servers[i].Dispatcher = routers[i];
+                        _ = servers[i].ListenAndServeAsync();
                     }
 
                     routers[0].Map("/replicated", new Replicated(fail: true));
@@ -260,8 +260,8 @@ namespace IceRpc.Tests.ClientServer
                     calls.Clear();
                     prx1.Endpoints = prx1.Endpoints.Concat(prx2.Endpoints).ToImmutableList();
                     Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
-                    Assert.AreEqual(servers[0].Name, calls[0]);
-                    Assert.AreEqual(servers[1].Name, calls[1]);
+                    Assert.AreEqual(servers[0].ToString(), calls[0]);
+                    Assert.AreEqual(servers[1].ToString(), calls[1]);
                     Assert.AreEqual(2, calls.Count);
                 });
         }
@@ -281,7 +281,7 @@ namespace IceRpc.Tests.ClientServer
                         router.Use(next => new InlineDispatcher(
                             async (current, cancel) =>
                             {
-                                calls.Add(current.Server.Name);
+                                calls.Add(current.Server.ToString());
                                 return await next.DispatchAsync(current, cancel);
                             }));
                     }
@@ -295,7 +295,8 @@ namespace IceRpc.Tests.ClientServer
 
                     for (int i = 0; i < servers.Length; ++i)
                     {
-                        servers[i].Activate(routers[i]);
+                        servers[i].Dispatcher = routers[i];
+                        _ = servers[i].ListenAndServeAsync();
                     }
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
@@ -307,8 +308,8 @@ namespace IceRpc.Tests.ClientServer
                     var prx = prx1.Clone();
                     prx.Endpoints = prx1.Endpoints.Concat(prx2.Endpoints).ToImmutableList();
                     Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx.OtherReplicaAsync());
-                    Assert.AreEqual(servers[0].Name, calls[0]);
-                    Assert.AreEqual(servers[1].Name, calls[1]);
+                    Assert.AreEqual(servers[0].ToString(), calls[0]);
+                    Assert.AreEqual(servers[1].ToString(), calls[1]);
                     Assert.AreEqual(2, calls.Count);
 
                     // The first replica fails with ServiceNotFoundException exception the second replica fails with
@@ -318,15 +319,15 @@ namespace IceRpc.Tests.ClientServer
                     prx = prx1.Clone();
                     prx.Endpoints = prx1.Endpoints.Concat(prx3.Endpoints).Concat(prx2.Endpoints).ToImmutableList();
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
-                    Assert.AreEqual(servers[0].Name, calls[0]);
-                    Assert.AreEqual(servers[2].Name, calls[1]);
+                    Assert.AreEqual(servers[0].ToString(), calls[0]);
+                    Assert.AreEqual(servers[2].ToString(), calls[1]);
                     Assert.AreEqual(2, calls.Count);
 
                     // The first replica fails with ServiceNotFoundException exception and there is no additional
                     // replicas.
                     calls.Clear();
                     Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx1.OtherReplicaAsync());
-                    Assert.AreEqual(servers[0].Name, calls[0]);
+                    Assert.AreEqual(servers[0].ToString(), calls[0]);
                 });
         }
 
@@ -395,12 +396,12 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var servers = Enumerable.Range(0, replicas).Select(
-                i => new Server(communicator,
-                                new ServerOptions()
-                                {
-                                    ColocationScope = ColocationScope.None,
-                                    Endpoints = GetTestEndpoint(port: i)
-                                })).ToArray();
+                i => new Server
+                     {
+                        Communicator = communicator,
+                        ColocationScope = ColocationScope.None,
+                        Endpoint = GetTestEndpoint(port: i)
+                     }).ToArray();
 
             var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
 
@@ -415,13 +416,13 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator(properties);
             var service = new RetryService();
-            var server = new Server(communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(protocol: protocol),
-                    Protocol = protocol
-                });
+            var server = new Server
+            {
+                Communicator = communicator,
+                ColocationScope = ColocationScope.None,
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                Protocol = protocol
+            };
 
             var router = new Router();
             router.Use(next => new InlineDispatcher(
@@ -431,7 +432,8 @@ namespace IceRpc.Tests.ClientServer
                     return await next.DispatchAsync(current, cancel);
                 }));
             router.Map("/retry", service);
-            server.Activate(router);
+            server.Dispatcher = router;
+            _  = server.ListenAndServeAsync();
             var retry = IRetryServicePrx.Parse(GetTestProxy("retry", protocol: protocol), communicator);
             await closure(service, retry);
         }

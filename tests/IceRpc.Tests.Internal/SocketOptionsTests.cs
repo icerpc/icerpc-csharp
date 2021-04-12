@@ -156,10 +156,11 @@ namespace IceRpc.Tests.Internal
                 {
                     IsIPv6Only = ipv6Only
                 };
-                await using var server = new Server(Communicator, new ServerOptions()
+                await using var server = new Server
                 {
+                    Communicator = Communicator,
                     ConnectionOptions = connectionOptions
-                });
+                };
 
                 var serverData = new EndpointData(
                     ServerEndpoint.Transport,
@@ -249,10 +250,11 @@ namespace IceRpc.Tests.Internal
         {
             IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
-            var server = new Server(Communicator, new ServerOptions()
+            var server = new Server
             {
+                Communicator = Communicator,
                 ConnectionOptions = connectionOptions
-            });
+            };
             return (server, ServerEndpoint.Acceptor(server));
         }
 

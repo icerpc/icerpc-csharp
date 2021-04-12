@@ -10,19 +10,18 @@ namespace IceRpc.Test.Binding
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server(
-                Communicator,
-                new()
-                {
-                    Endpoints = GetTestEndpoint(0),
-                    PublishedHost = TestHelper.GetTestHost(Communicator.GetProperties())
-                });
+            await using var server = new Server
+            {
+                Communicator = Communicator,
+                Endpoint = GetTestEndpoint(0),
+                ProxyHost = TestHelper.GetTestHost(Communicator.GetProperties())
+            };
 
             server.Add("/communicator", new RemoteCommunicator());
-            server.Activate();
 
+            Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();
-            await server.ShutdownComplete;
+            await shutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

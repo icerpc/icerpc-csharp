@@ -97,11 +97,11 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        await using var server = new IceRpc.Server(Communicator);
+        await using var server = new IceRpc.Server { Communicator = Communicator };
         server.Add("/test", new Decimal());
         server.Add("/test1", new Test1I());
         server.Add("/test2", new Test2I());
-        server.Activate();
+        _ = server.ListenAndServeAsync();
 
         Output.Write("testing operation name... ");
         Output.Flush();
