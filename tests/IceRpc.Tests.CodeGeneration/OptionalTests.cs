@@ -19,11 +19,12 @@ namespace IceRpc.Tests.CodeGeneration
         public OptionalTests()
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.Communicator
-                });
+            _server = new Server()
+            {
+                Communicator = _communicator,
+                ColocationScope = ColocationScope.Communicator
+            };
+            _ = _server.ListenAndServeAsync();
             _prx = _server.Add("/test", new OptionalOperations(), IOptionalOperationsPrx.Factory);
         }
 
