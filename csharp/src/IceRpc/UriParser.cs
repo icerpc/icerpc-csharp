@@ -71,9 +71,8 @@ namespace IceRpc
 
         /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="protocol">The protocol of this endpoint, if known.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static Endpoint ParseEndpoint(string uriString, Protocol? protocol = null)
+        internal static Endpoint ParseEndpoint(string uriString)
         {
             Debug.Assert(uriString.StartsWith("ice+", StringComparison.Ordinal));
 
@@ -84,18 +83,17 @@ namespace IceRpc
                 throw new FormatException($"endpoint '{uriString}' cannot define a path");
             }
 
-            ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: false, protocol, uriString);
+            ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: false, uriString);
             parsedOptions.EndpointOptions ??= new Dictionary<string, string>();
-            parsedOptions.Protocol ??= Protocol.Ice2;
 
-            return CreateEndpoint(parsedOptions.EndpointOptions, parsedOptions.Protocol.Value, uri);
+            return CreateEndpoint(parsedOptions.EndpointOptions, uri);
         }
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Protocol Protocol, Encoding Encoding, IEnumerable<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+        internal static (string Path, Encoding Encoding, IReadOnlyList<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
             string uriString,
             ProxyOptions proxyOptions)
         {
@@ -115,15 +113,13 @@ namespace IceRpc
             Runtime.UriInitialize();
             var uri = new Uri(uriString);
 
-            ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, protocol: null, uriString);
-            parsedOptions.Protocol ??= Protocol.Ice2;
+            ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, uriString);
 
             ImmutableList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
                 parsedOptions.EndpointOptions ??= new Dictionary<string, string>();
-                endpoints = ImmutableList.Create(
-                    CreateEndpoint(parsedOptions.EndpointOptions, parsedOptions.Protocol.Value, uri));
+                endpoints = ImmutableList.Create(CreateEndpoint(parsedOptions.EndpointOptions, uri));
 
                 if (parsedOptions.AltEndpoint is string altEndpoint)
                 {
@@ -146,7 +142,14 @@ namespace IceRpc
                         // before sending the string to ParseEndpoint which uses & as separator.
                         altUriString = altUriString.Replace('$', '&');
 
-                        endpoints = endpoints.Add(ParseEndpoint(altUriString, parsedOptions.Protocol));
+                        Endpoint parsedEndpoint = ParseEndpoint(altUriString);
+
+                        if (parsedEndpoint.Protocol != endpoints[0].Protocol)
+                        {
+                            throw new FormatException(
+                                $"the protocol of all endpoints in '{uriString}' must be the same");
+                        }
+                        endpoints = endpoints.Add(parsedEndpoint);
                     }
                 }
             }
@@ -164,7 +167,6 @@ namespace IceRpc
             proxyOptions.NonSecure = parsedOptions.NonSecure ?? proxyOptions.NonSecure;
 
             return (uri.AbsolutePath,
-                    parsedOptions.Protocol.Value,
                     parsedOptions.Encoding ?? Encoding.V20,
                     endpoints,
                     proxyOptions);
@@ -189,10 +191,7 @@ namespace IceRpc
         internal static void RegisterTransport(string transportName, ushort defaultPort) =>
             System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
 
-        private static Endpoint CreateEndpoint(
-            Dictionary<string, string> options,
-            Protocol protocol,
-            Uri uri)
+        private static Endpoint CreateEndpoint(Dictionary<string, string> options, Uri uri)
         {
             Debug.Assert(uri.Scheme.StartsWith("ice+", StringComparison.Ordinal));
             string transportName = uri.Scheme[4..]; // i.e. chop-off "ice+"
@@ -204,34 +203,25 @@ namespace IceRpc
             }
 
             Ice2EndpointParser? parser = null;
-            Transport transport;
+            Transport transport = default;
+            Endpoint? endpoint = null;
+
             if (transportName == "universal")
             {
-                if (options.TryGetValue("transport", out string? actualTransportName))
-                {
-                    // Enumerator names can only be used for "well-known" transports.
-                    transport = Enum.Parse<Transport>(actualTransportName, ignoreCase: true);
-                    options.Remove("transport");
+                endpoint = UniversalEndpoint.Parse(uri.DnsSafeHost, port, options);
 
-                    if (protocol == Protocol.Ice2)
-                    {
-                        // It's possible we have a factory for this transport, and we check it only when the protocol is
-                        // ice2 (otherwise, we want to create a UniversalEndpoint).
-                        parser = Runtime.FindIce2EndpointParser(transport);
-                    }
-                }
-                else
+                if (endpoint.Protocol == Protocol.Ice2)
                 {
-                    throw new FormatException("ice+universal endpoint does not have required 'transport' option");
+                    // It's possible we have a factory for this transport, and we check it only when the protocol is
+                    // ice2 (otherwise, we return this UniversalEndpoint).
+                    // Since all options have been consumed by Parse above, this works only for endpoints with no
+                    // options.
+                    parser = Runtime.FindIce2EndpointParser(endpoint.Transport);
+                    transport = endpoint.Transport;
                 }
             }
             else if (Runtime.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
             {
-                if (protocol != Protocol.Ice2)
-                {
-                    throw new FormatException(
-                        $"cannot create an '{uri.Scheme}' endpoint for protocol '{protocol.GetName()}'");
-                }
                 parser = p;
                 transport = t;
             }
@@ -240,12 +230,14 @@ namespace IceRpc
                 throw new FormatException($"unknown transport '{transportName}'");
             }
 
-            // parser can be non-null only when the protocol is ice2.
-            Endpoint endpoint = parser?.Invoke(transport,
-                                               uri.DnsSafeHost,
-                                               port,
-                                               options) ??
-                UniversalEndpoint.Parse(transport, uri.DnsSafeHost, port, options, protocol);
+            if (parser != null)
+            {
+                endpoint = parser.Invoke(transport, uri.DnsSafeHost, port, options);
+            }
+            else
+            {
+                endpoint ??= UniversalEndpoint.Parse(uri.DnsSafeHost, port, options);
+            }
 
             if (options.Count > 0)
             {
@@ -254,14 +246,13 @@ namespace IceRpc
             return endpoint;
         }
 
-        private static ParsedOptions ParseQuery(string query, bool parseProxy, Protocol? protocol, string uriString)
+        private static ParsedOptions ParseQuery(string query, bool parseProxy, string uriString)
         {
             bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
 
             string[] nvPairs = query.Length >= 2 ? query.TrimStart('?').Split('&') : Array.Empty<string>();
 
             ParsedOptions parsedOptions = default;
-            parsedOptions.Protocol = protocol; // when parsing the endpoint of a proxy, the protocol cannot change
 
             foreach (string p in nvPairs)
             {
@@ -334,19 +325,6 @@ namespace IceRpc
                     CheckProxyOption(name, parsedOptions.PreferExistingConnection != null);
                     parsedOptions.PreferExistingConnection = bool.Parse(value);
                 }
-                else if (name == "protocol")
-                {
-                    // protocol is a valid option for a proxy URI and an endpoint URI/
-                    if (parsedOptions.Protocol != null)
-                    {
-                        throw new FormatException($"multiple {name} options in '{uriString}'");
-                    }
-                    parsedOptions.Protocol = ProtocolExtensions.Parse(value);
-                    if (parsedOptions.Protocol == Protocol.Ice1)
-                    {
-                        throw new FormatException("the URI format does not support protocol ice1");
-                    }
-                }
                 else if (name == "fixed")
                 {
                     throw new FormatException("cannot create or recreate a fixed proxy from a URI");
@@ -359,6 +337,11 @@ namespace IceRpc
                 }
                 else if (name == "alt-endpoint")
                 {
+                    if (!parseProxy)
+                    {
+                        throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
+                    }
+
                     parsedOptions.AltEndpoint =
                         parsedOptions.AltEndpoint == null ? value : $"{parsedOptions.AltEndpoint},{value}";
                 }
@@ -408,7 +391,6 @@ namespace IceRpc
             internal bool? IsOneway;
             internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
-            internal Protocol? Protocol;
         }
     }
 }
