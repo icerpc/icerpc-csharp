@@ -28,12 +28,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await using var communicator = new Communicator(properties);
-            await using var server = new Server(
-                communicator,
-                new ServerOptions()
-                {
-                    ColocationScope = ColocationScope.Communicator,
-                });
+            await using var server = new Server { Communicator = communicator };
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
@@ -61,7 +56,8 @@ namespace IceRpc.Tests.ClientServer
                     }
                 }));
 
-            server.Activate(router);
+            server.Dispatcher = router;
+            _ = server.ListenAndServeAsync();
 
             router.Map("/compress", new CompressService());
             var prx = ICompressServicePrx.Factory.Create(server, "/compress");

@@ -37,7 +37,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice1, Protocol.Ice2, true)]
         [TestCase(Protocol.Ice2, Protocol.Ice1, false)]
         [TestCase(Protocol.Ice1, Protocol.Ice2, false)]
-
         public async Task ProtocolBridging_Forward(Protocol forwarderProtocol, Protocol targetProtocol, bool colocated)
         {
             // TODO: add context testing
@@ -47,7 +46,8 @@ namespace IceRpc.Tests.ClientServer
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
 
-            Assert.AreEqual(newPrx.Protocol, colocated ? forwarderProtocol : targetProtocol);
+            // When colocated, the proxy is a relative proxy and inherits the forwarder's proxy protocol.
+            Assert.AreEqual(colocated ? forwarderProtocol : targetProtocol, newPrx.Protocol);
 
             _ = await TestProxyAsync(newPrx, direct: true);
 
@@ -84,32 +84,28 @@ namespace IceRpc.Tests.ClientServer
             Protocol targetProtocol,
             bool colocated)
         {
-            _targetServer = new Server(_communicator, CreateServerOptions(targetProtocol, port: 0, colocated));
+            _targetServer = CreateServer(targetProtocol, port: 0, colocated);
 
             _router.Map("/target", new ProtocolBridgingService());
             var targetService = IProtocolBridgingServicePrx.Factory.Create(_targetServer, "/target");
+            _targetServer.Dispatcher = _router;
+            _ = _targetServer.ListenAndServeAsync();
 
-            _targetServer.Activate(_router);
-
-            _forwarderServer = new Server(_communicator, CreateServerOptions(forwarderProtocol, port: 1, colocated));
+            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
             var forwardService = IProtocolBridgingServicePrx.Factory.Create(_forwarderServer, "/forward");
-            _forwarderServer.Activate(_router);
+            _forwarderServer.Dispatcher = _router;
+            _ = _forwarderServer.ListenAndServeAsync();
             return forwardService;
 
-            ServerOptions CreateServerOptions(Protocol protocol, int port, bool colocated) =>
-                colocated ?
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.Communicator,
-                        Protocol = protocol
-                    }
-                    :
-                    new ServerOptions()
-                    {
-                        ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: port, protocol: protocol)
-                    };
+            Server CreateServer(Protocol protocol, int port, bool colocated) =>
+                new Server
+                {
+                    Communicator = _communicator,
+                    ColocationScope = colocated ? ColocationScope.Communicator : ColocationScope.None,
+                    Endpoint = colocated ? "" : GetTestEndpoint(port: port, protocol: protocol),
+                    Protocol = protocol
+                };
         }
 
         internal class ProtocolBridgingService : IAsyncProtocolBridgingService

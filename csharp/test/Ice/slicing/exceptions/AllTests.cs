@@ -768,9 +768,14 @@ namespace IceRpc.Test.Slicing.Exceptions
                     TestHelper.Assert(slices[0].TypeId!.Equals("::IceRpc::Test::Slicing::Exceptions::SPreserved2"));
                 }
 
-                await using var server = new Server(communicator, new() { Protocol = helper.Protocol });
+                await using var server = new Server
+                {
+                    Communicator = communicator,
+                    Protocol = helper.Protocol
+                };
+
                 IRelayPrx relay = server.AddWithUUID(new Relay(), IRelayPrx.Factory);
-                server.Activate();
+                _ = server.ListenAndServeAsync();
                 (await testPrx.GetConnectionAsync()).Server = server;
 
                 try

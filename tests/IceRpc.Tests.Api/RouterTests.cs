@@ -29,8 +29,8 @@ namespace IceRpc.Tests.Api
         public RouterTests()
         {
             _communicator = new Communicator();
-            _server = new Server(_communicator);
-            _server.Activate(_router);
+            _server = new Server { Communicator = _communicator, Dispatcher = _router };
+            _ = _server.ListenAndServeAsync();
         }
 
         [Test]

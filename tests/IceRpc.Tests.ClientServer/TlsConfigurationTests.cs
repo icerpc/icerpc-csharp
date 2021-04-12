@@ -409,20 +409,20 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await using var serverCommunicator = new Communicator(); ;
-            await using var server = new Server(serverCommunicator,
-                new ServerOptions()
+            await using var server = new Server
+            {
+                Communicator = serverCommunicator,
+                ColocationScope = ColocationScope.None,
+                Endpoint = GetTestEndpoint(serverHost),
+                ConnectionOptions = new()
                 {
-                    ColocationScope = ColocationScope.None,
-                    Endpoints = GetTestEndpoint(serverHost),
-                    ConnectionOptions = new()
-                    {
-                        AcceptNonSecure = NonSecure.Never,
-                        AuthenticationOptions = tlsServerOptions
-                    }
-                });
+                    AcceptNonSecure = NonSecure.Never,
+                    AuthenticationOptions = tlsServerOptions
+                }
+            };
 
             server.Add("/hello", new GreeterTestService());
-            server.Activate();
+            _ = server.ListenAndServeAsync();
 
             var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator);
             prx.NonSecure = NonSecure.Never;

@@ -94,7 +94,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
             await using var adapter = CreateServer(communicator, colocated, portNumber: 1);
-            adapter.Activate();
+            _ = adapter.ListenAndServeAsync();
 
             var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
 
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.ClientServer
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using var adapter = CreateServer(communicator, colocated, portNumber: 2);
-            adapter.Activate();
+            _ = adapter.ListenAndServeAsync();
 
             var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
 
@@ -241,21 +241,12 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private Server CreateServer(Communicator communicator, bool colocated, int portNumber) =>
-            new(communicator,
-                colocated switch
-                {
-                    false => new ServerOptions
-                    {
-                        Name = "LoggingService",
-                        ColocationScope = ColocationScope.None,
-                        Endpoints = GetTestEndpoint(port: portNumber)
-                    },
-                    true => new ServerOptions
-                    {
-                        Name = "LoggingService",
-                        ColocationScope = ColocationScope.Communicator,
-                    }
-                });
+            new Server
+            {
+                ColocationScope = ColocationScope.None,
+                Communicator = communicator,
+                Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)
+            };
 
         private static string GetCategory(JsonDocument document) =>
             GetPropertyAsString(document.RootElement, "Category");

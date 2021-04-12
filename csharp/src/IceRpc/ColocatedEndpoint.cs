@@ -80,7 +80,7 @@ namespace IceRpc
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
         internal ColocatedEndpoint(Server server)
-            : base(new EndpointData(Transport.Colocated, host: server.Name, port: 0, Array.Empty<string>()),
+            : base(new EndpointData(Transport.Colocated, host: server.ToString(), port: 0, Array.Empty<string>()),
                    server.Protocol)
         {
             Server = server;
