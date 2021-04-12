@@ -51,10 +51,7 @@ namespace IceRpc
             lock (_mutex)
             {
                 Debug.Assert(!_shutdown);
-                _acceptTask = Task.Factory.StartNew(AcceptAsync,
-                                                    default,
-                                                    TaskCreationOptions.None,
-                                                    _server.TaskScheduler ?? TaskScheduler.Default);
+                _acceptTask = Task.Run(AcceptAsync);
             }
         }
 

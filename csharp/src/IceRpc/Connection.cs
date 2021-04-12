@@ -633,16 +633,7 @@ namespace IceRpc
                     var current = new Current(server, request, stream, this);
                     IDispatcher dispatcher = server;
 
-                    if (server.TaskScheduler != null)
-                    {
-                        response = await TaskRun(() => dispatcher.DispatchAsync(current, cancel),
-                                                 cancel,
-                                                 server.TaskScheduler).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
-                    }
+                    response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
                 }
 
                 // No need to send the response if the dispatch is canceled.
@@ -683,19 +674,6 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
-            }
-
-            static async ValueTask<OutgoingResponseFrame> TaskRun(
-                Func<ValueTask<OutgoingResponseFrame>> func,
-                CancellationToken cancel,
-                TaskScheduler scheduler)
-            {
-                // First await for the dispatch to be ran on the task scheduler.
-                ValueTask<OutgoingResponseFrame> task =
-                    await Task.Factory.StartNew(func, cancel, TaskCreationOptions.None, scheduler).ConfigureAwait(false);
-
-                // Now wait for the async dispatch to complete.
-                return await task.ConfigureAwait(false);
             }
         }
 

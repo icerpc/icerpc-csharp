@@ -102,9 +102,6 @@ namespace IceRpc
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        /// <summary>Gets or sets the TaskScheduler used to dispatch requests.</summary>
-        public TaskScheduler? TaskScheduler { get; set; }
-
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private static ulong _counter; // used to generate names for servers without endpoints
