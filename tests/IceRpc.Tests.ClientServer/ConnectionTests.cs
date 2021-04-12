@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Connection_ClosedEvent()
         {
-            await WithServerAsync(async (Server server, IConnectionTestServicePrx prx) =>
+            await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
             {
                 var connection = (await prx.GetConnectionAsync()) as IPConnection;
                 Assert.IsNotNull(connection);
@@ -45,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
             };
             _ = server.ListenAndServeAsync();
 
-            var prx = IConnectionTestServicePrx.Parse(
+            var prx = IConnectionTestPrx.Parse(
                 GetTestProxy("test", transport: transport, protocol: protocol),
                 communicator);
 
@@ -101,10 +102,10 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
+            var prx = IConnectionTestPrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             var semaphore = new SemaphoreSlim(0);
@@ -132,7 +133,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };
 
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
 
             await using var clientCommunicator = new Communicator(
@@ -142,7 +143,7 @@ namespace IceRpc.Tests.ClientServer
                     KeepAlive = false
                 });
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), clientCommunicator);
+            var prx = IConnectionTestPrx.Parse(GetTestProxy("test", protocol: protocol), clientCommunicator);
             Connection connection = await prx.GetConnectionAsync();
 
             var semaphore = new SemaphoreSlim(0);
@@ -169,10 +170,10 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
 
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
+            var prx = IConnectionTestPrx.Parse(GetTestProxy("test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
 
             var semaphore = new SemaphoreSlim(0);
@@ -215,7 +216,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint()
             };
 
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
 
             await using var communicator = new Communicator(
@@ -225,7 +226,7 @@ namespace IceRpc.Tests.ClientServer
                     KeepAlive = keepAlive,
                 });
 
-            var proxy = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
+            var proxy = IConnectionTestPrx.Parse(GetTestProxy("test"), communicator);
             Connection connection = await proxy.GetConnectionAsync();
             Assert.AreEqual(TimeSpan.FromSeconds(idleTimeout), connection.IdleTimeout);
             Assert.AreEqual(keepAlive, connection.KeepAlive);
@@ -252,14 +253,14 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint(),
                 TaskScheduler = schedulerPair.ExclusiveScheduler
             };
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
             _ = Task.Factory.StartNew(async () => await semaphore.WaitAsync(),
                                       default,
                                       TaskCreationOptions.None,
                                       schedulerPair.ExclusiveScheduler);
             await Task.Delay(500); // Give time to the previous task to put the server on hold
-            var prx = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator);
+            var prx = IConnectionTestPrx.Parse(GetTestProxy("test"), communicator);
             Assert.ThrowsAsync<ConnectTimeoutException>(async () => await prx.IcePingAsync());
             semaphore.Release();
         }
@@ -286,12 +287,12 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint(),
                 TaskScheduler = schedulerPair.ExclusiveScheduler
             };
-            server.Add("/test", new ConnectionTestService());
+            server.Add("/test", new ConnectionTest());
             _ = server.ListenAndServeAsync();
 
-            var prx1 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator1);
+            var prx1 = IConnectionTestPrx.Parse(GetTestProxy("test"), communicator1);
             // No close timeout
-            var prx2 = IConnectionTestServicePrx.Parse(GetTestProxy("test"), communicator2);
+            var prx2 = IConnectionTestPrx.Parse(GetTestProxy("test"), communicator2);
             Assert.AreEqual(Protocol.Ice2, prx1.Protocol);
             Connection connection1 = await prx1.GetConnectionAsync();
             Connection connection2 = await prx2.GetConnectionAsync();
@@ -319,8 +320,108 @@ namespace IceRpc.Tests.ClientServer
             serverSemaphore.Release();
         }
 
+        [Test]
+        public async Task Connection_GracefullyClose()
+        {
+            await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
+            {
+                ProgressCallback cb;
+                // Remote case: send multiple opWithPayload, followed by a close and followed by multiple opWithPaylod.
+                // The goal is to make sure that none of the opWithPayload fail even if the server closes the
+                // connection gracefully in between.
+                byte[] seq = new byte[1024 * 10];
+                int maxQueue = 2;
+                bool done = false;
+                while (!done && maxQueue < 50)
+                {
+                    done = true;
+                    await prx.IcePingAsync();
+                    var results = new List<Task>();
+                    for (int i = 0; i < maxQueue; ++i)
+                    {
+                        results.Add(prx.OpWithPayloadAsync(seq));
+                    }
+
+                    cb = new ProgressCallback();
+                    _ = prx.CloseAsync(CloseMode.Gracefully, progress: cb);
+
+                    if (!cb.Sent)
+                    {
+                        for (int i = 0; i < maxQueue; i++)
+                        {
+                            cb = new ProgressCallback();
+                            results.Add(prx.OpWithPayloadAsync(seq, progress: cb));
+                            if (cb.Sent)
+                            {
+                                done = false;
+                                maxQueue *= 2;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        maxQueue *= 2;
+                        done = false;
+                    }
+
+                    await Task.WhenAll(results);
+                }
+
+                // Local case: start an operation and then close the connection gracefully on the client side without
+                // waiting for the pending invocation to complete. There will be no retry and we expect the invocation
+                // to fail with ConnectionClosedException.
+                await using var connection = await Connection.CreateAsync(prx.Endpoints[0], prx.Communicator);
+                cb = new ProgressCallback();
+                IConnectionTestPrx fixedPrx = prx.Clone();
+                fixedPrx.Connection = connection;
+                fixedPrx.Endpoints = ImmutableList<Endpoint>.Empty;
+
+                Task t = fixedPrx.StartDispatchAsync(progress: cb);
+                await cb.Completed.Task; // Ensure the request was sent before closing the connection.
+                _ = connection.GoAwayAsync();
+                Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
+                await prx.FinishDispatchAsync();
+
+                // Remote case: the server closes the connection gracefully, which means the connection will not
+                // be closed until all pending dispatched requests have completed.
+                Connection con = await prx.GetConnectionAsync();
+                cb = new ProgressCallback();
+                var closed = new TaskCompletionSource<object?>();
+                con.Closed += (sender, args) => closed.SetResult(null);
+                t = prx.SleepAsync(100);
+                _ = prx.CloseAsync(CloseMode.Gracefully); // Close is delayed until sleep completes.
+                await t;
+                await closed.Task;
+            });
+        }
+
+        [Test]
+        public async Task Connection_ForcefullyClose()
+        {
+            await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
+            {
+                // Local case: start an operation and then close the connection forcefully on the client side.
+                // There will be no retry and we expect the invocation to fail with ConnectionClosedException.
+                await prx.IcePingAsync();
+                Connection con = await prx.GetConnectionAsync();
+                var cb = new ProgressCallback();
+                Task t = prx.StartDispatchAsync(progress: cb);
+                await cb.Completed.Task; // Ensure the request was sent before we close the connection.
+                _ = con.AbortAsync();
+
+                Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
+                prx.FinishDispatch();
+
+                // Remote case: the server closes the connection forcefully. This causes the request to fail with
+                // a ConnectionLostException. Since the close() operation is not idempotent, the client will not
+                // retry.
+                Assert.ThrowsAsync< ConnectionLostException>(async () => await prx.CloseAsync(CloseMode.Forcefully));
+            });
+        }
+
         private async Task WithServerAsync(
-            Func<Server, IConnectionTestServicePrx, Task> closure,
+            Func<Server, IConnectionTestPrx, Task> closure,
             Protocol protocol = Protocol.Ice2)
         {
             await using var communicator = new Communicator();
@@ -330,25 +431,116 @@ namespace IceRpc.Tests.ClientServer
                 ColocationScope = ColocationScope.None,
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };
-            var prx = server.Add("/test", new ConnectionTestService(), IConnectionTestServicePrx.Factory);
+            var prx = server.Add("/test", new ConnectionTest(), IConnectionTestPrx.Factory);
             _ = server.ListenAndServeAsync();
             await closure(server, prx);
         }
 
-        class ConnectionTestService : IAsyncConnectionTestService
+        class ConnectionTest : IAsyncConnectionTest
         {
             private readonly SemaphoreSlim _semaphore = new(0);
+            private TaskCompletionSource<object?>? _pending;
+
+            public ValueTask CloseAsync(CloseMode mode, Current current, CancellationToken cancel)
+            {
+                if (mode == CloseMode.Gracefully)
+                {
+                    current.Connection.GoAwayAsync(cancel: cancel);
+                }
+                else
+                {
+                    current.Connection.AbortAsync();
+                }
+                return default;
+            }
+
+            public async ValueTask EnterAsync(Current _, CancellationToken cancel) =>
+                await _semaphore.WaitAsync(cancel);
+
+            public ValueTask FinishDispatchAsync(Current current, CancellationToken cancel)
+            {
+                if (_pending != null) // Pending might not be set yet if startDispatch is dispatch out-of-order
+                {
+                    _pending.SetResult(null);
+                    _pending = null;
+                }
+                return default;
+            }
 
             public async ValueTask InitiatePingAsync(Current current, CancellationToken cancel) =>
                 await current.Connection.PingAsync(cancel: cancel);
 
-            public async ValueTask EnterAsync(Current _, CancellationToken cancel) =>
-                await _semaphore.WaitAsync(cancel);
+            public ValueTask OpWithPayloadAsync(byte[] seq, Current current, CancellationToken cancel) => default;
 
             public ValueTask ReleaseAsync(Current current, CancellationToken cancel)
             {
                 _semaphore.Release();
                 return default;
+            }
+
+            public async ValueTask SleepAsync(int ms, Current current, CancellationToken cancel) =>
+                await Task.Delay(TimeSpan.FromMilliseconds(ms), cancel);
+
+            public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
+            {
+                if (_pending != null)
+                {
+                    _pending.SetResult(null);
+                }
+                _pending = new TaskCompletionSource<object?>();
+                return new ValueTask(_pending.Task);
+            }
+        }
+
+        public class ProgressCallback : IProgress<bool>
+        {
+            public bool Sent
+            {
+                get
+                {
+                    lock (_mutex)
+                    {
+                        return _sent;
+                    }
+                }
+                set
+                {
+                    lock (_mutex)
+                    {
+                        _sent = value;
+                    }
+                }
+            }
+
+            public bool SentSynchronously
+            {
+                get
+                {
+                    lock (_mutex)
+                    {
+                        return _sentSynchronously;
+                    }
+                }
+                set
+                {
+                    lock (_mutex)
+                    {
+                        Completed.SetResult(null);
+                        _sentSynchronously = value;
+                    }
+                }
+            }
+
+            public TaskCompletionSource<object?> Completed { get; } = new();
+
+            private readonly object _mutex = new();
+            private bool _sent;
+            private bool _sentSynchronously;
+
+            public void Report(bool value)
+            {
+                SentSynchronously = value;
+                Sent = true;
             }
         }
     }
