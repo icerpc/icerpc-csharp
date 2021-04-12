@@ -110,6 +110,20 @@ namespace IceRpc.Tests.CodeGeneration
             await _mostDerivedPrx.OpMostDerivedAsync();
         }
 
+        [Test]
+        public void InterfaceInheritance_Types()
+        {
+            Assert.That(typeof(IMyInterfaceBasePrx).IsAssignableFrom(typeof(IMyInterfaceDerivedPrx)), Is.True);
+            Assert.That(typeof(IMyInterfaceBasePrx).IsAssignableFrom(typeof(IMyInterfaceMostDerivedPrx)), Is.True);
+            Assert.That(typeof(IMyInterfaceDerivedPrx).IsAssignableFrom(typeof(IMyInterfaceMostDerivedPrx)),
+                        Is.True);
+
+            Assert.That(typeof(IAsyncMyInterfaceBase).IsAssignableFrom(typeof(IAsyncMyInterfaceDerived)), Is.True);
+            Assert.That(typeof(IAsyncMyInterfaceBase).IsAssignableFrom(typeof(IAsyncMyInterfaceMostDerived)), Is.True);
+            Assert.That(typeof(IAsyncMyInterfaceDerived).IsAssignableFrom(typeof(IAsyncMyInterfaceMostDerived)),
+                        Is.True);
+        }
+
         public class Base : IAsyncMyInterfaceBase
         {
             public ValueTask OpBaseAsync(Current current, CancellationToken cancel) => default;
