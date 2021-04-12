@@ -7,7 +7,7 @@
 // Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Tests::CodeGeneration::Scope
 {
-	struct S
+    struct S
     {
         int v;
     }
