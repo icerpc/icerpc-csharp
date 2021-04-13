@@ -1,0 +1,38 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
+using System;
+
+namespace IceRpc.Tests.Api
+{
+    [Parallelizable(scope: ParallelScope.All)]
+    public class EndpointTests
+    {
+        [TestCase("ice+tcp://host:10000")]
+        [TestCase("ice+tcp://host")]
+        [TestCase("ice+tcp://[::0]")]
+        [TestCase("ice+universal://host:10000?transport=tcp&protocol=ice2")]
+        [TestCase("ice+universal://host:10000?transport=tcp&protocol=3")]
+        [TestCase("tcp -h host -p 10000")]
+        [TestCase("tcp -h \"::0\" -p 10000")]
+        public void Endpoint_Parse_ValidInput(string str)
+        {
+            var endpoint = Endpoint.Parse(str);
+            var endpoint2 = Endpoint.Parse(endpoint.ToString());
+            Assert.AreEqual(endpoint, endpoint2); // round trip works
+        }
+
+        [TestCase("ice+tcp://host:10000/category/name")]
+        [TestCase("ice+tcp://host:10000?protocol=ice2")]
+        [TestCase("ice+tcp://host:10000?encoding=1.1")]
+        [TestCase("ice+tcp://host:10000?alt-endpoint=host2")]
+        [TestCase("ice+universal://host:10000?transport=tcp&protocol=ice1")]
+        [TestCase("category/name:tcp -h host -p 10000")]
+        [TestCase("tcp -h host -p 10000 -e 1.1")]
+        public void Endpoint_Parse_InvalidInput(string str)
+        {
+            Assert.Throws<FormatException>(() => Endpoint.Parse(str));
+            Assert.IsFalse(Endpoint.TryParse(str, out _));
+        }
+    }
+}

@@ -505,13 +505,6 @@ namespace IceRpc
                     sb.Append("prefer-existing-connection=false");
                 }
 
-                if (Protocol != Protocol.Ice2) // i.e. > ice2
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("protocol=");
-                    sb.Append(Protocol.GetName());
-                }
-
                 if (Endpoints.Count > 1)
                 {
                     Transport mainTransport = Endpoints[0].Transport;
