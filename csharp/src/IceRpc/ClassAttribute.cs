@@ -10,7 +10,11 @@ namespace IceRpc
     /// <summary>This attribute class is used by the generated code to map type IDs to C# classes and exceptions
     /// </summary>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public sealed class ClassAttribute : Attribute
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1813:Avoid unsealed attributes",
+        Justification = "Slicing tests use a derived attribute to register a null factory.")]
+    public class ClassAttribute : Attribute
     {
         /// <summary>The compact type ID assigned to the type or -1 if the type does not use compact type IDs.</summary>
         public int CompactTypeId { get; }
@@ -23,7 +27,7 @@ namespace IceRpc
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="AnyClass"/>."</summary>
-        internal ClassFactory? ClassFactory
+        internal virtual ClassFactory? ClassFactory
         {
             get
             {
@@ -51,7 +55,7 @@ namespace IceRpc
 
         /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="RemoteException"/>."</summary>
-        internal RemoteExceptionFactory? ExceptionFactory
+        internal virtual RemoteExceptionFactory? ExceptionFactory
         {
             get
             {

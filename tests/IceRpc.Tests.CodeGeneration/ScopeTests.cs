@@ -225,7 +225,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         public class Operations : IAsyncOperations
         {
-            public ValueTask<C> OpCAsync(C p1, Current current, CancellationToken cancel) => new(p1);
+            public ValueTask<C> OpCAsync(C c1, Current current, CancellationToken cancel) => new(c1);
 
             public ValueTask<IReadOnlyDictionary<string, C>> OpCMapAsync(
                 Dictionary<string, C> p1,

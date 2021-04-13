@@ -176,7 +176,6 @@ namespace IceRpc
             Debug.Assert(_typeIdClassFactoryCache != null);
             if (_typeIdClassFactoryCache.TryGetValue(typeId, out var classAttribute))
             {
-                Debug.Assert(classAttribute.ClassFactory != null);
                 return classAttribute.ClassFactory;
             }
             return null;
@@ -191,7 +190,6 @@ namespace IceRpc
             Debug.Assert(_compactIdClassFactoryCache != null);
             if (_compactIdClassFactoryCache.TryGetValue(compactId, out var classAttribute))
             {
-                Debug.Assert(classAttribute.ClassFactory != null);
                 return classAttribute.ClassFactory;
             }
             return null;
@@ -223,13 +221,14 @@ namespace IceRpc
             Debug.Assert(_typeIdRemoteExceptionFactoryCache != null);
             if (_typeIdRemoteExceptionFactoryCache.TryGetValue(typeId, out var classAttribute))
             {
-                Debug.Assert(classAttribute.ExceptionFactory != null);
                 return classAttribute.ExceptionFactory;
             }
             return null;
         }
 
-        private static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
+        // This method is marked internal for testing purposes, to allow register null factories for type-ids and
+        // force Slicing.
+        internal static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
         {
             lock (_mutex)
             {

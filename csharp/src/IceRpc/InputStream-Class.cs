@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -71,11 +72,6 @@ namespace IceRpc
             if (!_inEncapsulation)
             {
                 throw new InvalidOperationException("cannot read an exception outside an encapsulation");
-            }
-            if (Communicator == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot read an exception from an InputStream with a null communicator");
             }
 
             Debug.Assert(_current.InstanceType == InstanceType.None);
@@ -187,11 +183,6 @@ namespace IceRpc
             if (!_inEncapsulation)
             {
                 throw new InvalidOperationException("cannot read a class outside an encapsulation");
-            }
-            if (Communicator == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot read a class from an InputStream with a null communicator");
             }
 
             int index = ReadSize();
@@ -361,7 +352,6 @@ namespace IceRpc
         /// </param>
         private AnyClass ReadInstance(int index, string? formalTypeId)
         {
-            Debug.Assert(Communicator != null);
             Debug.Assert(index > 0);
 
             if (index > 1)
@@ -373,7 +363,8 @@ namespace IceRpc
                 throw new InvalidDataException($"could not find index {index} in {nameof(_instanceMap)}");
             }
 
-            if (++_classGraphDepth > Communicator.ClassGraphMaxDepth)
+            // TODO temporary code until Communicator is removed
+            if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
             {
                 throw new InvalidDataException("maximum class graph depth reached");
             }
@@ -664,7 +655,6 @@ namespace IceRpc
         /// SkipIndirectionTable11 itself.</summary>
         private void SkipIndirectionTable11()
         {
-            Debug.Assert(Communicator != null);
             // We should never skip an exception's indirection table
             Debug.Assert(_current.InstanceType == InstanceType.Class);
 
@@ -681,7 +671,8 @@ namespace IceRpc
                 }
                 if (index == 1)
                 {
-                    if (++_classGraphDepth > Communicator.ClassGraphMaxDepth)
+                    // TODO temporary code until Communicator is removed
+                    if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
                     {
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
@@ -722,8 +713,6 @@ namespace IceRpc
         /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
         private bool SkipSlice(string? typeId, int? compactId = null)
         {
-            Debug.Assert(Communicator != null);
-
             // With the 2.0 encoding, typeId is not null and compactId is always null.
             // With the 1.1 encoding, they are potentially both null (but this will result in an exception below).
             Debug.Assert(OldEncoding || (typeId != null && compactId == null));
@@ -741,11 +730,11 @@ namespace IceRpc
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            if (Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (Communicator?.Logger is ILogger logger && logger.IsEnabled(LogLevel.Debug))
             {
                 string printableId = typeId ?? compactId?.ToString() ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                Communicator.Logger.LogSlicingUnknownType(kind, printableId);
+                logger.LogSlicingUnknownType(kind, printableId);
             }
 
             bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;
