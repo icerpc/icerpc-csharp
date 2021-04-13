@@ -91,7 +91,7 @@ namespace IceRpc
         public Router Route(string prefix, Action<Router> configure)
         {
             UriParser.CheckPath(prefix, nameof(prefix));
-            var subRouter = new Router(this, prefix);
+            var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);
             return subRouter;
@@ -145,16 +145,6 @@ namespace IceRpc
                 }
             }
             return prefix;
-        }
-
-        private Router(Router parent, string prefix)
-        {
-            prefix = NormalizePrefix(prefix);
-            AbsolutePrefix = $"{parent.AbsolutePrefix}{prefix}";
-            if (AbsolutePrefix.Length == 1) // i.e. only leading /
-            {
-                AbsolutePrefix = "";
-            }
         }
 
         private IDispatcher CreatePipeline()
