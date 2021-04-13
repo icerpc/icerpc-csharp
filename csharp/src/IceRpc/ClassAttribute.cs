@@ -13,10 +13,10 @@ namespace IceRpc
     public sealed class ClassAttribute : Attribute
     {
         /// <summary>The compact type ID assigned to the type or -1 if the type does not use compact type IDs.</summary>
-        public int CompactTypeId { get; }
+        public int? CompactTypeId => Type.GetIceCompactTypeId();
 
         /// <summary>The type ID assigned to the type.</summary>
-        public new string TypeId { get; }
+        public new string? TypeId => Type.GetIceTypeId();
 
         /// <summary>The type associated to the type ID</summary>
         public Type Type { get; }
@@ -27,9 +27,7 @@ namespace IceRpc
         {
             get
             {
-                // The delegate is lazily initialized the first time is used. This is to avoid creating delegates that are
-                // never used and avoid doing all the work upfront when the attributes are loaded.
-                if (_classFactory == null && typeof(AnyClass).IsAssignableFrom(Type))
+                if (typeof(AnyClass).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
@@ -41,11 +39,11 @@ namespace IceRpc
                         throw new InvalidOperationException($"cannot get unmarshal constructor for '{Type.FullName}'");
                     }
 
-                    _classFactory = (ClassFactory)Expression.Lambda(
+                    return (ClassFactory)Expression.Lambda(
                         typeof(ClassFactory),
                         Expression.New(constructor, Expression.Constant(null, typeof(InputStream)))).Compile();
                 }
-                return _classFactory;
+                return null;
             }
         }
 
@@ -55,9 +53,7 @@ namespace IceRpc
         {
             get
             {
-                // The delegate is lazily initialized the first time is used, this avoid creating delegates that are
-                // never used and avoid doing all work upfront when the attributes are loaded
-                if (_remoteExceptionFactory == null && typeof(RemoteException).IsAssignableFrom(Type))
+                if (typeof(RemoteException).IsAssignableFrom(Type))
                 {
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
@@ -73,30 +69,22 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    _remoteExceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
+                    return (RemoteExceptionFactory)Expression.Lambda(
                         typeof(RemoteExceptionFactory),
                         Expression.New(constructor, messageParam, originParam),
                         messageParam,
                         originParam).Compile();
                 }
-                return _remoteExceptionFactory;
+                return null;
             }
         }
 
-        private ClassFactory? _classFactory;
-        private RemoteExceptionFactory? _remoteExceptionFactory;
-
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
-        /// <param name="typeId">The type ID.</param>
-        /// <param name="compactTypeId">The compact type ID.</param>
-        /// <param name="type">The type of the concrete class associated with this Ice type ID.</param>
-        public ClassAttribute(string typeId, int compactTypeId, Type type)
+        /// <param name="type">The type of the concrete class to register.</param>
+        public ClassAttribute(Type type)
         {
-            TypeId = typeId;
-            CompactTypeId = compactTypeId;
             Type = type;
-            Debug.Assert(typeof(AnyClass).IsAssignableFrom(type) ||
-                         (typeof(RemoteException).IsAssignableFrom(type) && compactTypeId == -1));
+            Debug.Assert(typeof(AnyClass).IsAssignableFrom(type) || typeof(RemoteException).IsAssignableFrom(type));
         }
     }
 }

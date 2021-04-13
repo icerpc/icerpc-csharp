@@ -28,12 +28,12 @@ namespace IceRpc
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        private static IReadOnlyDictionary<int, ClassAttribute>? _compactIdClassFactoryCache;
+        private static IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactIdClassFactoryCache;
 
         // The mutex protects assignment to class and exception factory caches
         private static readonly object _mutex = new();
-        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdClassFactoryCache;
-        private static IReadOnlyDictionary<string, ClassAttribute>? _typeIdRemoteExceptionFactoryCache;
+        private static IReadOnlyDictionary<string, Lazy<ClassFactory>>? _typeIdClassFactoryCache;
+        private static IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? _typeIdRemoteExceptionFactoryCache;
 
         private static readonly IDictionary<string, (Ice1EndpointParser? Ice1Parser, Ice2EndpointParser? Ice2Parser, Transport Transport)> _transportNameRegistry =
             new ConcurrentDictionary<string, (Ice1EndpointParser?, Ice2EndpointParser?, Transport)>();
@@ -174,10 +174,9 @@ namespace IceRpc
                 RegisterClassFactoriesFromAllAssemblies();
             }
             Debug.Assert(_typeIdClassFactoryCache != null);
-            if (_typeIdClassFactoryCache.TryGetValue(typeId, out var classAttribute))
+            if (_typeIdClassFactoryCache.TryGetValue(typeId, out var classFactory))
             {
-                Debug.Assert(classAttribute.ClassFactory != null);
-                return classAttribute.ClassFactory;
+                return classFactory.Value;
             }
             return null;
         }
@@ -189,10 +188,9 @@ namespace IceRpc
                 RegisterClassFactoriesFromAllAssemblies();
             }
             Debug.Assert(_compactIdClassFactoryCache != null);
-            if (_compactIdClassFactoryCache.TryGetValue(compactId, out var classAttribute))
+            if (_compactIdClassFactoryCache.TryGetValue(compactId, out var classFactory))
             {
-                Debug.Assert(classAttribute.ClassFactory != null);
-                return classAttribute.ClassFactory;
+                return classFactory.Value;
             }
             return null;
         }
@@ -221,10 +219,9 @@ namespace IceRpc
                 RegisterClassFactoriesFromAllAssemblies();
             }
             Debug.Assert(_typeIdRemoteExceptionFactoryCache != null);
-            if (_typeIdRemoteExceptionFactoryCache.TryGetValue(typeId, out var classAttribute))
+            if (_typeIdRemoteExceptionFactoryCache.TryGetValue(typeId, out var remoteExceptionFactory))
             {
-                Debug.Assert(classAttribute.ExceptionFactory != null);
-                return classAttribute.ExceptionFactory;
+                return remoteExceptionFactory.Value;
             }
             return null;
         }
@@ -233,33 +230,38 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                Dictionary<string, ClassAttribute> typeIdClassFactoryCache = _typeIdClassFactoryCache == null ?
-                    new Dictionary<string, ClassAttribute>() :
-                    new Dictionary<string, ClassAttribute>(_typeIdClassFactoryCache);
+                Dictionary<string, Lazy<ClassFactory>> typeIdClassFactoryCache = _typeIdClassFactoryCache == null ?
+                    new Dictionary<string, Lazy<ClassFactory>>() :
+                    new Dictionary<string, Lazy<ClassFactory>>(_typeIdClassFactoryCache);
 
-                Dictionary<int, ClassAttribute> compactIdClassFactoryCache = _compactIdClassFactoryCache == null ?
-                    new Dictionary<int, ClassAttribute>() :
-                    new Dictionary<int, ClassAttribute>(_compactIdClassFactoryCache);
+                Dictionary<int, Lazy<ClassFactory>> compactIdClassFactoryCache = _compactIdClassFactoryCache == null ?
+                    new Dictionary<int, Lazy<ClassFactory>>() :
+                    new Dictionary<int, Lazy<ClassFactory>>(_compactIdClassFactoryCache);
 
-                Dictionary<string, ClassAttribute>? typeIdRemoteExceptionFactoryCache =
+                Dictionary<string, Lazy<RemoteExceptionFactory>>? typeIdRemoteExceptionFactoryCache =
                     _typeIdRemoteExceptionFactoryCache == null ?
-                        new Dictionary<string, ClassAttribute>() :
-                        new Dictionary<string, ClassAttribute>(_typeIdRemoteExceptionFactoryCache);
+                        new Dictionary<string, Lazy<RemoteExceptionFactory>>() :
+                        new Dictionary<string, Lazy<RemoteExceptionFactory>>(_typeIdRemoteExceptionFactoryCache);
 
                 foreach (ClassAttribute attribute in attributes)
                 {
                     if (typeof(AnyClass).IsAssignableFrom(attribute.Type))
                     {
-                        if (attribute.CompactTypeId >= 0)
+                        ClassFactory? factory = attribute.ClassFactory;
+                        Debug.Assert(factory != null);
+                        if (attribute.CompactTypeId is int compactTypeId)
                         {
-                            compactIdClassFactoryCache[attribute.CompactTypeId] = attribute;
+                            compactIdClassFactoryCache[compactTypeId] = new Lazy<ClassFactory>(() => factory);
                         }
-                        typeIdClassFactoryCache[attribute.TypeId] = attribute;
+                        typeIdClassFactoryCache[attribute.TypeId!] = new Lazy<ClassFactory>(() => factory);
                     }
                     else
                     {
                         Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
-                        typeIdRemoteExceptionFactoryCache[attribute.TypeId] = attribute;
+                        RemoteExceptionFactory? factory = attribute.ExceptionFactory;
+                        Debug.Assert(factory != null);
+                        typeIdRemoteExceptionFactoryCache[attribute.TypeId!] =
+                            new Lazy<RemoteExceptionFactory>(() => factory);
                     }
                 }
 

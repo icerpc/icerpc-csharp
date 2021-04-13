@@ -530,10 +530,15 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 }
 
 void
-Slice::CsVisitor::emitClassAttribute(const string& typeId, int compactTypeId, const string& className)
+Slice::CsVisitor::emitClassAttribute(const string& className)
 {
-    _out << nl << "[assembly:IceRpc.Class(\"" << typeId << "\", " << compactTypeId
-         << ", typeof(" << className << "))]";
+    _out << nl << "[assembly:IceRpc.Class(typeof(" << className << "))]";
+}
+
+void
+Slice::CsVisitor::emitCompactTypeIdAttribute(int compactTypeId)
+{
+    _out << nl << "[IceRpc.CompactTypeId(" << compactTypeId << ")]";
 }
 
 void
@@ -1268,6 +1273,10 @@ Slice::Gen::TypesVisitor::visitClassDefStart(const ClassDefPtr& p)
 
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
+    if (p->compactId() >= 0)
+    {
+        emitCompactTypeIdAttribute(p->compactId());
+    }
     emitCustomAttributes(p);
     _out << nl << "public partial class " << fixId(name) << " : "
          << (p->base() ? getUnqualified(p->base(), ns) : "IceRpc.AnyClass")
@@ -3277,13 +3286,13 @@ Slice::Gen::ClassAttributeVisitor::visitUnitEnd(const UnitPtr&)
 bool
 Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
 {
-    emitClassAttribute(p->scoped(), p->compactId(), getNamespace(p) + "." + fixId(p->name()));
+    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
     return false;
 }
 
 bool
 Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
 {
-    emitClassAttribute(p->scoped(), -1, getNamespace(p) + "." + fixId(p->name()));
+    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
     return false;
 }
