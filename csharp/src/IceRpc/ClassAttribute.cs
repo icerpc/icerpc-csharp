@@ -12,11 +12,20 @@ namespace IceRpc
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class ClassAttribute : Attribute
     {
-        /// <summary>The compact type ID assigned to the type or -1 if the type does not use compact type IDs.</summary>
+        /// <summary>The compact type ID assigned to the type or null if the type does not use compact type IDs.</summary>
         public int? CompactTypeId => Type.GetIceCompactTypeId();
 
         /// <summary>The type ID assigned to the type.</summary>
-        public new string? TypeId => Type.GetIceTypeId();
+        public new string TypeId
+        {
+            get
+            {
+                string? typeId = Type.GetIceTypeId();
+                // Using the ClassAttribute with a type without associated TypeId indicate a bug in the generated code.
+                Debug.Assert(typeId != null);
+                return typeId;
+            }
+        }
 
         /// <summary>The class type associated with this class attribute, which designates the generated class for a
         /// Slice class or exception.</summary>

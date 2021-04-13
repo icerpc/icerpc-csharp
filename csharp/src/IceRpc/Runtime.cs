@@ -243,14 +243,14 @@ namespace IceRpc
                         compactIdClassFactories ??= new Dictionary<int, Lazy<ClassFactory>>();
                         compactIdClassFactories[compactTypeId] = factory;
                     }
-                    typeIdClassFactories[attribute.TypeId!] = factory;
+                    typeIdClassFactories[attribute.TypeId] = factory;
                 }
                 else
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
                     var factory = new Lazy<RemoteExceptionFactory>(() => attribute.ExceptionFactory!);
                     typeIdRemoteExceptionFactories ??= new Dictionary<string, Lazy<RemoteExceptionFactory>>();
-                    typeIdRemoteExceptionFactories[attribute.TypeId!] = factory;
+                    typeIdRemoteExceptionFactories[attribute.TypeId] = factory;
                 }
             }
 
