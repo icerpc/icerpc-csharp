@@ -16,7 +16,8 @@ namespace IceRpc
         /// <summary>Returns the absolute path-prefix of this router. The absolute path of a service added to this
         /// Router is <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
         /// <see cref="Map"/>.</summary>
-        /// <value>The absolute prefix of this router. It is the empty string for a top-level router.</value>
+        /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
+        /// characters starting with a <c>/</c>.</value>
         public string AbsolutePrefix { get; } = "";
 
         // When searching in the prefixMatchRoutes, we search up to MaxSegments before giving up. This prevents a
@@ -39,8 +40,8 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Constructs a router with the specified absolute prefix.</summary>
-        /// <param name="absolutePrefix">The absolute prefix of the new router.</param>
+        /// <summary>Constructs a router with an absolute prefix.</summary>
+        /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
         public Router(string absolutePrefix)
         {
             UriParser.CheckPath(absolutePrefix, nameof(absolutePrefix));
