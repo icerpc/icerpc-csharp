@@ -18,7 +18,8 @@ namespace IceRpc
         /// <summary>The type ID assigned to the type.</summary>
         public new string? TypeId => Type.GetIceTypeId();
 
-        /// <summary>The type associated to the type ID</summary>
+        /// <summary>The class type associated with this class attribute, which designates the generated class for a
+        /// Slice class or exception.</summary>
         public Type Type { get; }
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the

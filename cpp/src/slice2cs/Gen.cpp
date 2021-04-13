@@ -1325,6 +1325,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     _out << nl << "(ostr, value) => ostr.WriteNullableClass(value, IceTypeId);";
     _out.dec();
 
+    if (p->compactId() >= 0)
+    {
+        _out << sp;
+        _out << nl << "private static readonly int _compactTypeId  = IceRpc.TypeExtensions.GetIceCompactTypeId(typeof("
+             << name << "))!.Value;";
+    }
+
+
     _out << sp;
     _out << nl << "private static readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
          << name << "));";
@@ -1515,7 +1523,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
     if (p->compactId() >= 0)
     {
-        _out << ", compactId: " << p->compactId();
+        _out << ", compactId: _compactTypeId";
     }
     _out << ");";
     _out << eb;
