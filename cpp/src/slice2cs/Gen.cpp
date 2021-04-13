@@ -1328,7 +1328,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     if (p->compactId() >= 0)
     {
         _out << sp;
-        _out << nl << "private static readonly int _compactTypeId  = IceRpc.TypeExtensions.GetIceCompactTypeId(typeof("
+        _out << nl << "private static readonly int _compactTypeId = IceRpc.TypeExtensions.GetIceCompactTypeId(typeof("
              << name << "))!.Value;";
     }
 
@@ -1523,7 +1523,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
     if (p->compactId() >= 0)
     {
-        _out << ", compactId: _compactTypeId";
+        _out << ", compactTypeId: _compactTypeId";
     }
     _out << ");";
     _out << eb;

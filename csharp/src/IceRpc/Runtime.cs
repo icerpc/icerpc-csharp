@@ -237,7 +237,7 @@ namespace IceRpc
                 if (typeof(AnyClass).IsAssignableFrom(attribute.Type))
                 {
                     typeIdClassFactories ??= new Dictionary<string, Lazy<ClassFactory>>();
-                    var factory = new Lazy<ClassFactory>(() => attribute.ClassFactory!);
+                    var factory = new Lazy<ClassFactory>(() => attribute.ClassFactory);
                     if (attribute.CompactTypeId is int compactTypeId)
                     {
                         compactIdClassFactories ??= new Dictionary<int, Lazy<ClassFactory>>();
@@ -248,7 +248,7 @@ namespace IceRpc
                 else
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
-                    var factory = new Lazy<RemoteExceptionFactory>(() => attribute.ExceptionFactory!);
+                    var factory = new Lazy<RemoteExceptionFactory>(() => attribute.ExceptionFactory);
                     typeIdRemoteExceptionFactories ??= new Dictionary<string, Lazy<RemoteExceptionFactory>>();
                     typeIdRemoteExceptionFactories[attribute.TypeId] = factory;
                 }

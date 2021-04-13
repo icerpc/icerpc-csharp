@@ -12,7 +12,8 @@ namespace IceRpc
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class ClassAttribute : Attribute
     {
-        /// <summary>The compact type ID assigned to the type or null if the type does not use compact type IDs.</summary>
+        /// <summary>The compact type ID assigned to the type or null if the type does not have a compact type ID.
+        /// </summary>
         public int? CompactTypeId => Type.GetIceCompactTypeId();
 
         /// <summary>The type ID assigned to the type.</summary>
@@ -33,12 +34,14 @@ namespace IceRpc
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="AnyClass"/>."</summary>
-        internal ClassFactory? ClassFactory
+        internal ClassFactory ClassFactory
         {
             get
             {
-                if (typeof(AnyClass).IsAssignableFrom(Type))
+                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
+                if (_classFactory == null)
                 {
+                    Debug.Assert(typeof(AnyClass).IsAssignableFrom(Type));
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
@@ -49,22 +52,25 @@ namespace IceRpc
                         throw new InvalidOperationException($"cannot get unmarshal constructor for '{Type.FullName}'");
                     }
 
-                    return (ClassFactory)Expression.Lambda(
+                    _classFactory = (ClassFactory)Expression.Lambda(
                         typeof(ClassFactory),
                         Expression.New(constructor, Expression.Constant(null, typeof(InputStream)))).Compile();
                 }
-                return null;
+                return _classFactory;
             }
         }
 
         /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="RemoteException"/>."</summary>
-        internal RemoteExceptionFactory? ExceptionFactory
+        internal RemoteExceptionFactory ExceptionFactory
         {
             get
             {
-                if (typeof(RemoteException).IsAssignableFrom(Type))
+                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
+                if (_exceptionFactory == null)
                 {
+                    Debug.Assert(typeof(RemoteException).IsAssignableFrom(Type));
+
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
@@ -79,15 +85,18 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    return (RemoteExceptionFactory)Expression.Lambda(
+                    _exceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
                         typeof(RemoteExceptionFactory),
                         Expression.New(constructor, messageParam, originParam),
                         messageParam,
                         originParam).Compile();
                 }
-                return null;
+                return _exceptionFactory;
             }
         }
+
+        private ClassFactory? _classFactory;
+        private RemoteExceptionFactory? _exceptionFactory;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
         /// <param name="type">The type of the concrete class to register.</param>

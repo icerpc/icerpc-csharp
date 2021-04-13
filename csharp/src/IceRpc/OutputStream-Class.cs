@@ -76,14 +76,14 @@ namespace IceRpc
         /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
         /// <param name="errorMessage">The exception error message (provided only by exceptions).</param>
         /// <param name="origin">The exception origin (provided only by exceptions).</param>
-        /// <param name="compactId">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
+        /// <param name="compactTypeId ">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartFirstSlice(
             string[] allTypeIds,
             SlicedData? slicedData = null,
             string? errorMessage = null,
             RemoteExceptionOrigin? origin = null,
-            int? compactId = null)
+            int? compactTypeId = null)
         {
             Debug.Assert(InEncapsulation && _current.InstanceType != InstanceType.None);
 
@@ -102,7 +102,7 @@ namespace IceRpc
                 }
                 if (firstSliceWritten)
                 {
-                    IceStartNextSlice(allTypeIds[0], compactId);
+                    IceStartNextSlice(allTypeIds[0], compactTypeId);
                     return;
                 }
                 // else keep going, we're still writing the first slice and we're ignoring slicedData.
@@ -111,7 +111,7 @@ namespace IceRpc
             if (OldEncoding && _format == FormatType.Sliced)
             {
                 // With the 1.1 encoding in sliced format, all the slice headers are the same.
-                IceStartNextSlice(allTypeIds[0], compactId);
+                IceStartNextSlice(allTypeIds[0], compactTypeId);
             }
             else
             {
@@ -121,7 +121,7 @@ namespace IceRpc
 
                 if (OldEncoding)
                 {
-                    WriteTypeId11(allTypeIds[0], compactId);
+                    WriteTypeId11(allTypeIds[0], compactTypeId);
                 }
                 else
                 {
