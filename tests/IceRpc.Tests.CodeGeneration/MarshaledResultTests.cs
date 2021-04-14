@@ -23,9 +23,14 @@ namespace IceRpc.Tests.CodeGeneration
         public MarshaledResultTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = new MarshaledResultOperations(),
+                Protocol = protocol
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new MarshaledResultOperations(), IMarshaledResultOperationsPrx.Factory);
+            _prx = _server.CreateRelativeProxy<IMarshaledResultOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

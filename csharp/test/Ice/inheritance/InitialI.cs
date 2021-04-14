@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading;
 using IceRpc.Test.Inheritance.MA;
 using IceRpc.Test.Inheritance.MB;
+using System.Threading;
 
 namespace IceRpc.Test.Inheritance
 {
@@ -15,10 +15,10 @@ namespace IceRpc.Test.Inheritance
 
         public InitialI(Server server)
         {
-            _ia = server.AddWithUUID(new A(), IAPrx.Factory);
-            _ib1 = server.AddWithUUID(new B1(), IB1Prx.Factory);
-            _ib2 = server.AddWithUUID(new B2(), IB2Prx.Factory);
-            _ic = server.AddWithUUID(new C(), ICPrx.Factory);
+            _ia = TestHelper.AddWithGuid<IAPrx>(server, new A());
+            _ib1 = TestHelper.AddWithGuid<IB1Prx>(server, new B1());
+            _ib2 = TestHelper.AddWithGuid<IB2Prx>(server, new B2());
+            _ic = TestHelper.AddWithGuid<ICPrx>(server, new C());
         }
 
         public IAPrx Iaop(Current current, CancellationToken cancel) => _ia;

@@ -19,19 +19,25 @@ namespace IceRpc.Tests.CodeGeneration
         public ScopeTests()
         {
             _communicator = new Communicator();
+
+            var router = new Router();
+            router.Map("/test1", new Scope.Operations());
+            router.Map("/test2", new Scope.Inner.Operations());
+            router.Map("/test3", new Scope.Inner.Inner2.Operations());
+            router.Map("/test4", new Scope.Inner.Test.Inner2.Operations());
+
             _server = new Server()
             {
                 Communicator = _communicator,
-                ColocationScope = ColocationScope.Communicator
+                ColocationScope = ColocationScope.Communicator,
+                Dispatcher = router
             };
-            _prx1 = _server.Add("/test1", new Scope.Operations(), Scope.IOperationsPrx.Factory);
-            _prx2 = _server.Add("/test2", new Scope.Inner.Operations(), Scope.Inner.IOperationsPrx.Factory);
-            _prx3 = _server.Add("/test3",
-                                new Scope.Inner.Inner2.Operations(),
-                                Scope.Inner.Inner2.IOperationsPrx.Factory);
-            _prx4 = _server.Add("/test4",
-                                new Scope.Inner.Test.Inner2.Operations(),
-                                Scope.Inner.Test.Inner2.IOperationsPrx.Factory);
+
+            _prx1 = _server.CreateRelativeProxy<Scope.IOperationsPrx>("/test1");
+            _prx2 = _server.CreateRelativeProxy<Scope.Inner.IOperationsPrx>("/test2");
+            _prx3 = _server.CreateRelativeProxy<Scope.Inner.Inner2.IOperationsPrx>("/test3");
+            _prx4 = _server.CreateRelativeProxy<Scope.Inner.Test.Inner2.IOperationsPrx>("/test4");
+
             _ = _server.ListenAndServeAsync();
 
         }
@@ -53,7 +59,7 @@ namespace IceRpc.Tests.CodeGeneration
                 var sseq = new Scope.S[] { s };
                 CollectionAssert.AreEqual(sseq, await _prx1.OpSSeqAsync(sseq));
 
-                var smap = new Dictionary<string, Scope.S>() { { "a", s} };
+                var smap = new Dictionary<string, Scope.S>() { { "a", s } };
                 CollectionAssert.AreEqual(smap, await _prx1.OpSMapAsync(smap));
 
                 var c = new Scope.C(s);
@@ -214,7 +220,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Current current,
                 CancellationToken cancel) => new(p1);
 
-            public ValueTask<IEnumerable< Inner2.S>> OpSSeqAsync(
+            public ValueTask<IEnumerable<Inner2.S>> OpSSeqAsync(
                 Inner2.S[] p1,
                 Current current,
                 CancellationToken cancel) => new(p1);
@@ -225,7 +231,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         public class Operations : IAsyncOperations
         {
-            public ValueTask<C> OpCAsync(C p1, Current current, CancellationToken cancel) => new(p1);
+            public ValueTask<C> OpCAsync(C c1, Current current, CancellationToken cancel) => new(c1);
 
             public ValueTask<IReadOnlyDictionary<string, C>> OpCMapAsync(
                 Dictionary<string, C> p1,

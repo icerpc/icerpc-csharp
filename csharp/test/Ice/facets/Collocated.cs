@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading.Tasks;
 using IceRpc.Test;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Facets
 {
@@ -9,19 +9,35 @@ namespace IceRpc.Test.Facets
     {
         public override async Task RunAsync(string[] args)
         {
+            IDispatcher d = new D();
+            IDispatcher f = new F();
+            IDispatcher h = new H();
+
+            var dispatcher = new InlineDispatcher((current, cancel) =>
+            {
+                if (current.Path != "/d")
+                {
+                    throw new ServiceNotFoundException();
+                }
+
+                return current.IncomingRequestFrame.Facet switch
+                {
+                    "" => d.DispatchAsync(current, cancel),
+                    "facetABCD" => d.DispatchAsync(current, cancel),
+                    "facetEF" => f.DispatchAsync(current, cancel),
+                    "facetGH" => h.DispatchAsync(current, cancel),
+                    _ => throw new ServiceNotFoundException()
+                };
+            });
+
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = dispatcher,
                 Endpoint = GetTestEndpoint(0)
             };
 
             _ = server.ListenAndServeAsync();
-
-            var d = new D();
-            server.Add("/d", d);
-            server.Add("/d", "facetABCD", d);
-            server.Add("/d", "facetEF", new F());
-            server.Add("/d", "facetGH", new H());
 
             await AllTests.RunAsync(this);
         }

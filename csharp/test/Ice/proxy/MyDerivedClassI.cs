@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-using IceRpc.Test;
 
 namespace IceRpc.Test.Proxy
 {
@@ -30,10 +29,10 @@ namespace IceRpc.Test.Proxy
         public IRelativeTestPrx OpRelative(ICallbackPrx callback, Current current, CancellationToken cancel)
         {
             TestHelper.Assert(callback.Connection != null);
+            var path = $"/{System.Guid.NewGuid()}";
 
-            // TODO: need better way to create a relative proxy on the server-side.
             IRelativeTestPrx relativeTest =
-                current.Server.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory);
+                TestHelper.AddWithGuid<IRelativeTestPrx>(current.Server, new RelativeTest());
 
             relativeTest.Connection = null;
             relativeTest.Endpoints = ImmutableList<Endpoint>.Empty;

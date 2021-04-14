@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Slicing.Exceptions
 {
@@ -771,10 +771,11 @@ namespace IceRpc.Test.Slicing.Exceptions
                 await using var server = new Server
                 {
                     Communicator = communicator,
+                    Dispatcher = new Relay(),
                     Protocol = helper.Protocol
                 };
 
-                IRelayPrx relay = server.AddWithUUID(new Relay(), IRelayPrx.Factory);
+                IRelayPrx relay = server.CreateRelativeProxy<IRelayPrx>("/relay");
                 _ = server.ListenAndServeAsync();
                 (await testPrx.GetConnectionAsync()).Server = server;
 

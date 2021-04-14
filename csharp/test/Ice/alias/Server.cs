@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading.Tasks;
 using IceRpc.Test;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Alias
 {
@@ -12,10 +12,9 @@ namespace IceRpc.Test.Alias
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = new Interface2(),
                 Endpoint = GetTestEndpoint(0)
             };
-
-            server.Add("/test", new Interface2());
 
             Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();

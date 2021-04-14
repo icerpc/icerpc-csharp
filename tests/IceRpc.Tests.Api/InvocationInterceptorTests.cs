@@ -16,7 +16,8 @@ namespace IceRpc.Tests.Api
 
         public InvocationInterceptorTests()
         {
-            Prx = Server.AddWithUUID(new TestService(), IInvocationInterceptorTestServicePrx.Factory);
+            Server.Dispatcher = new TestService();
+            Prx = Server.CreateRelativeProxy<IInvocationInterceptorTestServicePrx>("/");
             _ = Server.ListenAndServeAsync();
         }
 

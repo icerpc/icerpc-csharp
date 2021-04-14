@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading.Tasks;
 using IceRpc.Test;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Inheritance
 {
@@ -9,13 +9,16 @@ namespace IceRpc.Test.Inheritance
     {
         public override async Task RunAsync(string[] args)
         {
+            var router = new Router();
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = router,
                 Endpoint = GetTestEndpoint(0)
             };
 
-            server.Add("/initial", new InitialI(server));
+            router.Map("/initial", new InitialI(server));
+
             _ = server.ListenAndServeAsync();
 
             await AllTests.RunAsync(this);
