@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
@@ -408,17 +406,18 @@ namespace IceRpc
                 return null;
             }
 
-            bool isLocal = false;
-
             lock (_mutex)
             {
-                // Proxies which have at least one endpoint in common with the endpoints used by this object
-                // server's incoming connection factories are considered local.
-                isLocal = _shutdownTask == null &&
-                    proxy.Endpoints.Any(endpoint => endpoint == _endpoint || endpoint == _proxyEndpoint);
+                if (_shutdownTask == null)
+                {
+                    return null;
+                }
             }
 
-            return isLocal ? GetColocatedEndpoint() : null;
+            // Proxies which have at least one endpoint in common with the endpoints used by this object
+            // server's incoming connection factories are considered local.
+            return proxy.Endpoints.Any(
+                endpoint => endpoint == _endpoint || endpoint == _proxyEndpoint) ? GetColocatedEndpoint() : null;
         }
 
         private Connection GetColocatedConnection()
