@@ -130,19 +130,21 @@ namespace IceRpc.Tests.Api
 
         [TestCase("/foo", "/foo/bar", "/bar")]
         [TestCase("/foo/", "/foo/bar", "/bar")]
-        [TestCase("/foo/bar///", "/foo/bar", "/")]
+        [TestCase("/foo/bar///", "/foo/bar/", "/")]
         [TestCase("/foo///bar/a", "/foo///bar/a/b/c/d", "/b/c/d")]
         public async Task Router_RouteAsync(string prefix, string path, string subpath)
         {
+            Assert.IsEmpty(_router.AbsolutePrefix);
             bool called = false;
             _router.Route(prefix, r =>
                 {
+                    Assert.AreEqual(prefix.TrimEnd('/'), r.AbsolutePrefix);
                     r.Map(subpath, new InlineDispatcher(
                         async (current, cancel) =>
                         {
                             called = true;
                             Assert.AreEqual(path, current.Path);
-                            Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/')));
+                            Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", current.Path);
                             return await _service.DispatchAsync(current, cancel);
                         }));
                 });
@@ -156,9 +158,11 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
         public async Task Router_RouteNestedAsync(string prefix, string subprefix, string path, string subpath)
         {
+            Assert.IsEmpty(_router.AbsolutePrefix);
             bool called = false;
             _router.Route(prefix, r =>
                 {
+                    Assert.AreEqual(prefix.TrimEnd('/'), r.AbsolutePrefix);
                     r.Route(subprefix, r =>
                     {
                         r.Map(subpath, new InlineDispatcher(
@@ -166,7 +170,7 @@ namespace IceRpc.Tests.Api
                             {
                                 called = true;
                                 Assert.AreEqual(path, current.Path);
-                                Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/') + subprefix.TrimEnd('/')));
+                                Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", current.Path);
                                 return await _service.DispatchAsync(current, cancel);
                             }));
                     });

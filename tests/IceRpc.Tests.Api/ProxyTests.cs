@@ -187,9 +187,9 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice+tcp:identity?protocol=invalid")] // invalid protocol
+        [TestCase("ice:identity?protocol=ice2")] // invalid protocol
         [TestCase("ice+universal://host.zeroc.com")] // missing transport
-        [TestCase("ice+universal://host.zeroc.com?transport=100&protocol=ice1")] // invalid protocol
+        [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
         [TestCase("ice://host:1000/identity")] // host not allowed
         [TestCase("ice+universal:/identity")] // missing host
         [TestCase("ice+tcp://host.zeroc.com/identity?protocol=3")] // unknown protocol (must use universal)
@@ -197,6 +197,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
         [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
         [TestCase("ice+tcp://host.zeroc.com/identity?invocation-timeout=0s")] // 0 is not a valid invocation timeout
+        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("ice:foo?fixed=true")] // cannot create fixed proxy from URI
         [TestCase("")]
         [TestCase("\"\"")]
