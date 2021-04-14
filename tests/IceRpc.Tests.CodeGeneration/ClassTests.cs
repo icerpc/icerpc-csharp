@@ -43,12 +43,21 @@ namespace IceRpc.Tests.CodeGeneration
         public ClassTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Protocol = protocol };
+
+            var router = new Router();
+            router.Map("/test", new ClassOperations());
+            router.Map("/test1", new ClassOperationsUnexpectedClass());
+
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = router,
+                Protocol = protocol
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new ClassOperations(), IClassOperationsPrx.Factory);
-            _prxUnexpectedClass = _server.Add("/test1",
-                                               new ClassOperationsUnexpectedClass(),
-                                               IClassOperationsUnexpectedClassPrx.Factory);
+
+            _prx = _server.CreateRelativeProxy<IClassOperationsPrx>("/test");
+            _prxUnexpectedClass = _server.CreateRelativeProxy<IClassOperationsUnexpectedClassPrx>("/test1");
         }
 
         [OneTimeTearDown]
@@ -295,7 +304,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<MyClassK> GetKAsync(Current current, CancellationToken cancel) =>
                 new(new MyClassK(new MyClassL("l")));
             public ValueTask<MyClass2> GetMyClass2Async(Current current, CancellationToken cancel) =>
-                new (new MyClass2());
+                new(new MyClass2());
             public ValueTask<MyDerivedClass1> GetMyDerivedClass1Async(Current current, CancellationToken cancel)
             {
                 // We don't pass the values in the constructor because the partial initialize implementation overrides them
@@ -335,7 +344,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(MyClassM R1, MyClassM R2)> OpMAsync(
                 MyClassM p1,
                 Current current,
-                CancellationToken cancel) => new ((p1, p1));
+                CancellationToken cancel) => new((p1, p1));
 
             public ValueTask OpRecursiveAsync(MyClassRecursive? p1, Current current, CancellationToken cancel) =>
                 default;
@@ -350,7 +359,7 @@ namespace IceRpc.Tests.CodeGeneration
         public class ClassOperationsUnexpectedClass : IService
         {
             public ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel) =>
-                new (OutgoingResponseFrame.WithReturnValue(current,
+                new(OutgoingResponseFrame.WithReturnValue(current,
                                                            compress: false,
                                                            format: default,
                                                            new MyClassAlsoEmpty(),

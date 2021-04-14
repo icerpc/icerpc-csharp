@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Api
                                 Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/') + subprefix.TrimEnd('/')));
                                 return await _service.DispatchAsync(current, cancel);
                             }));
-                     });
+                    });
                 });
 
             await GetGreeter(path).IcePingAsync();
@@ -183,7 +183,8 @@ namespace IceRpc.Tests.Api
             await _communicator.ShutdownAsync();
         }
 
-        private IGreeterServicePrx GetGreeter(string path) => IGreeterServicePrx.Factory.Create(_server, path);
+        private IGreeterServicePrx GetGreeter(string path) =>
+            _server.CreateRelativeProxy<IGreeterServicePrx>(path);
 
         public class GreeterService : IAsyncGreeterService
         {

@@ -13,18 +13,6 @@ namespace IceRpc
 {
     public static class ProxyFactory
     {
-        /// <summary>Creates a proxy for a service hosted by <c>server</c>.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
-        /// proxy type.</param>
-        /// <param name="server">The server hosting this service.</param>
-        /// <param name="path">The path of the service.</param>
-        /// <returns>A new service proxy.</returns>
-        // TODO: eliminate this method together with the ASM
-        public static T Create<T>(this IProxyFactory<T> factory, Server server, string path)
-            where T : class, IServicePrx =>
-            server.Endpoint.Length == 0 ? server.CreateRelativeProxy<T>(path) : server.CreateProxy<T>(path);
-
         /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the

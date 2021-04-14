@@ -87,13 +87,13 @@ namespace IceRpc.Tests.ClientServer
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
 
             _router.Map("/target", new ProtocolBridgingService());
-            var targetService = IProtocolBridgingServicePrx.Factory.Create(_targetServer, "/target");
+            var targetService = CreateProxy<IProtocolBridgingServicePrx>(_targetServer, "/target");
             _targetServer.Dispatcher = _router;
             _ = _targetServer.ListenAndServeAsync();
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
-            var forwardService = IProtocolBridgingServicePrx.Factory.Create(_forwarderServer, "/forward");
+            var forwardService = CreateProxy<IProtocolBridgingServicePrx>(_forwarderServer, "/forward");
             _forwarderServer.Dispatcher = _router;
             _ = _forwarderServer.ListenAndServeAsync();
             return forwardService;
@@ -111,14 +111,14 @@ namespace IceRpc.Tests.ClientServer
         internal class ProtocolBridgingService : IAsyncProtocolBridgingService
         {
             public ValueTask<int> OpAsync(int x, Current current, CancellationToken cancel) =>
-                new (x);
+                new(x);
 
             public ValueTask OpExceptionAsync(Current current, CancellationToken cancel) =>
                 throw new ProtocolBridgingException(42);
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel)
             {
-                var proxy = IProtocolBridgingServicePrx.Factory.Create(current.Server, current.Path);
+                var proxy = CreateProxy<IProtocolBridgingServicePrx>(current.Server, current.Path);
                 proxy.Encoding = current.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }
@@ -129,7 +129,7 @@ namespace IceRpc.Tests.ClientServer
                 int x,
                 Current current,
                 CancellationToken cancel) =>
-                new ((x, $"value={x}"));
+                new((x, $"value={x}"));
 
             public ValueTask OpServiceNotFoundExceptionAsync(Current current, CancellationToken cancel) =>
                 throw new ServiceNotFoundException();
@@ -149,5 +149,8 @@ namespace IceRpc.Tests.ClientServer
 
             internal Forwarder(IServicePrx target) => _target = target;
         }
+
+        private static T CreateProxy<T>(Server server, string path) where T : class, IServicePrx =>
+            server.Endpoint.Length == 0 ? server.CreateRelativeProxy<T>(path) : server.CreateProxy<T>(path);
     }
 }

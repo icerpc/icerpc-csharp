@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
@@ -20,14 +20,16 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server { Communicator = communicator };
 
+            var service = new TestService();
+
             var router = new Router();
             router.Use(next => new InlineDispatcher((current, cancel) => throw new ArgumentException("message")));
-            var service = new TestService();
             router.Map("/test", service);
-            var prx = IDispatchInterceptorTestServicePrx.Factory.Create(server, "/test");
 
             server.Dispatcher = router;
             _ = server.ListenAndServeAsync();
+
+            var prx = server.CreateRelativeProxy<IDispatchInterceptorTestServicePrx>("/test");
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -63,7 +65,7 @@ namespace IceRpc.Tests.Api
                 }));
 
             router.Map("/test", new TestService());
-            var prx = IServicePrx.Factory.Create(server, "/test");
+            var prx = server.CreateRelativeProxy<IServicePrx>("/test");
 
             server.Dispatcher = router;
             _ = server.ListenAndServeAsync();

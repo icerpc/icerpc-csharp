@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
+using IceRpc.Test;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Proxy
 {
@@ -37,18 +37,6 @@ namespace IceRpc.Test.Proxy
             TestHelper.Assert(cl.Equals(baseProxy));
             TestHelper.Assert(derived.Equals(baseProxy));
             TestHelper.Assert(cl.Equals(derived));
-
-            if (ice1)
-            {
-                try
-                {
-                    await cl.WithFacet<IMyDerivedClassPrx>("facet").IcePingAsync();
-                    TestHelper.Assert(false);
-                }
-                catch (ServiceNotFoundException)
-                {
-                }
-            }
             output.WriteLine("ok");
 
             output.Write("testing checked cast with context... ");
@@ -93,22 +81,24 @@ namespace IceRpc.Test.Proxy
             {
                 output.Write("testing relative proxies... ");
                 {
+                    var dispatcher = new Callback((relativeTest, current, cancel) =>
+                    {
+                        TestHelper.Assert(relativeTest.Connection != null);
+                        TestHelper.Assert(current.Path == "/foo/bar");
+                        return relativeTest.DoIt(cancel: cancel);
+                    });
+
                     await using Server server = new Server
                     {
-                        Communicator = communicator
+                        Communicator = communicator,
+                        Dispatcher = dispatcher,
                     };
                     _ = server.ListenAndServeAsync();
 
                     (await cl.GetConnectionAsync()).Server = server;
 
                     // It's a non-fixed ice2 proxy with no endpoints, i.e. a relative proxy
-                    ICallbackPrx callback = server.AddWithUUID(
-                        new Callback((relativeTest, current, cancel) =>
-                                     {
-                                         TestHelper.Assert(relativeTest.Connection != null);
-                                         return relativeTest.DoIt(cancel: cancel);
-                                    }),
-                        ICallbackPrx.Factory);
+                    ICallbackPrx callback = server.CreateRelativeProxy<ICallbackPrx>("/foo/bar");
 
                     await callback.IcePingAsync(); // colocated call
 

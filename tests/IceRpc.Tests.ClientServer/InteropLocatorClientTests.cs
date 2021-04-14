@@ -22,17 +22,21 @@ namespace IceRpc.Tests.ClientServer
         public InteropLocatorClientTests()
         {
             _communicator = new Communicator();
+            var router = new Router();
+            string path = $"/{System.Guid.NewGuid()}";
+            router.Map(path, new GreeterTestService());
             _server = new Server
             {
                 Communicator = _communicator,
                 ColocationScope = ColocationScope.None,
+                Dispatcher = router,
                 Endpoint = "tcp -h 127.0.0.1 -p 0"
             };
 
             _ = _server.ListenAndServeAsync();
 
             // Must be created after ListenAndServeAsync to get the port number.
-            _greeter = _server.AddWithUUID(new GreeterTestService(), IGreeterTestServicePrx.Factory);
+            _greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -121,7 +125,7 @@ namespace IceRpc.Tests.ClientServer
             if (cacheMaxSize > 1)
             {
                 // We still find it in the cache and can still call it.
-                endpoints  = await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0],
+                endpoints = await locationResolver.ResolveAsync(wellKnownGreeter.Endpoints[0],
                                                                  refreshCache: false,
                                                                  default);
                 CollectionAssert.AreEqual(endpoints, _greeter.Endpoints);
@@ -143,7 +147,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task InteropLocatorClient_WellKnownProxyResolveAsync(string proxy)
         {
             ISimpleLocatorTestPrx locator = CreateLocator();
-            ILocationResolver locationResolver  = new LocatorClient(locator);
+            ILocationResolver locationResolver = new LocatorClient(locator);
 
             // There is no corresponding service, we're just testing the endpoints.
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
@@ -190,8 +194,12 @@ namespace IceRpc.Tests.ClientServer
             await _communicator.ShutdownAsync();
         }
 
-        private ISimpleLocatorTestPrx CreateLocator() =>
-            _server.AddWithUUID(new Locator(), ISimpleLocatorTestPrx.Factory);
+        private ISimpleLocatorTestPrx CreateLocator()
+        {
+            string path = $"/{System.Guid.NewGuid()}";
+            (_server.Dispatcher as Router)!.Map(path, new Locator());
+            return _server.CreateProxy<ISimpleLocatorTestPrx>(path);
+        }
 
         private class Locator : IAsyncSimpleLocatorTest
         {

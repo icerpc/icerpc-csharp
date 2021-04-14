@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Binding
 {
@@ -32,13 +32,14 @@ namespace IceRpc.Test.Binding
                             AcceptNonSecure = transport == "udp" ? NonSecure.Always :
                                 current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
                         },
+                        Dispatcher = new TestIntf(name),
                         Endpoint = endpoint,
                         ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
                     };
 
                     _ = server.ListenAndServeAsync();
 
-                    return new(current.Server.AddWithUUID(new RemoteServer(server, name), IRemoteServerPrx.Factory));
+                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
                 }
                 catch (TransportException)
                 {
@@ -59,11 +60,12 @@ namespace IceRpc.Test.Binding
             var server = new Server
             {
                 Communicator = current.Communicator,
+                Dispatcher = new TestIntf(name),
                 Endpoint = endpoints
             };
 
             _ = server.ListenAndServeAsync();
-            return new(current.Server.AddWithUUID(new RemoteServer(server, name), IRemoteServerPrx.Factory));
+            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
         }
 
         // Colocated call.

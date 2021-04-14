@@ -1,13 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc;
+using IceRpc.Slice.Test.Escape.@abstract;
+using IceRpc.Test;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc;
-using IceRpc.Slice.Test.Escape.@abstract;
-using IceRpc.Test;
 
 public class Client : TestHelper
 {
@@ -97,26 +97,33 @@ public class Client : TestHelper
 
     public override async Task RunAsync(string[] args)
     {
-        await using var server = new IceRpc.Server { Communicator = Communicator };
-        server.Add("/test", new Decimal());
-        server.Add("/test1", new Test1I());
-        server.Add("/test2", new Test2I());
+        var router = new Router();
+        router.Map("/test", new Decimal());
+        router.Map("/test1", new Test1I());
+        router.Map("/test2", new Test2I());
+
+        await using var server = new IceRpc.Server
+        {
+            Communicator = Communicator,
+            Dispatcher = router
+        };
+
         _ = server.ListenAndServeAsync();
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = IdecimalPrx.Factory.Create(server, "/test");
+        IdecimalPrx p = server.CreateRelativeProxy<IdecimalPrx>("/test");
         p.@default();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.Factory.Create(server, "/test1");
+            server.CreateRelativeProxy<IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx>("/test1");
         t1.op();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            IceRpc.Slice.Test.Escape.System.ITestPrx.Factory.Create(server, "/test2");
+            server.CreateRelativeProxy<IceRpc.Slice.Test.Escape.System.ITestPrx>("/test2");
         t2.op();
         Output.WriteLine("ok");
 

@@ -22,10 +22,17 @@ namespace IceRpc.Tests.CodeGeneration
         public OperationsTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = new Operations(),
+                Protocol = protocol
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new Operations(), IOperationsPrx.Factory);
-            _derivedPrx = _prx.WithPath<IDerivedOperationsPrx>("/test");
+
+            _prx = _server.CreateRelativeProxy<IOperationsPrx>("/test");
+            _derivedPrx = _prx.As<IDerivedOperationsPrx>();
+
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 
@@ -57,7 +64,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             async Task TestAsync<T>(Func<IOperationsPrx, T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
-                foreach (IOperationsPrx prx in new IOperationsPrx[] { _prx, _derivedPrx})
+                foreach (IOperationsPrx prx in new IOperationsPrx[] { _prx, _derivedPrx })
                 {
                     (T r1, T r2) = await invoker(prx, p1, p2);
                     Assert.AreEqual(p1, r1);

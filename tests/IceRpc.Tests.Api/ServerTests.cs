@@ -169,14 +169,16 @@ namespace IceRpc.Tests.Api
                 InvocationTimeout = TimeSpan.FromSeconds(10)
             };
 
+            var service = new ProxyTest();
+
             await using var server = new Server
             {
                 Communicator = communicator,
-                ProxyOptions = proxyOptions
+                ProxyOptions = proxyOptions,
+                Dispatcher = service,
             };
 
-            var service = new ProxyTest();
-            IProxyTestPrx? proxy = server.Add("/foo/bar", service, IProxyTestPrx.Factory);
+            IProxyTestPrx? proxy = server.CreateRelativeProxy<IProxyTestPrx>("/foo/bar");
             CheckProxy(proxy);
 
             // change some properties
@@ -206,7 +208,7 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        [TestCase(" :" )]
+        [TestCase(" :")]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
         public async Task Server_InvalidEndpoints(string endpoint)
@@ -226,7 +228,7 @@ namespace IceRpc.Tests.Api
             }
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(IProxyTestPrx.Factory.Create(current.Server, current.Path));
+                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
         }
     }
 }
