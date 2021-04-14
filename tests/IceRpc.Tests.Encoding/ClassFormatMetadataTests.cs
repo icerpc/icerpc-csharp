@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Encoding
 {
     [Timeout(30000)]
-    [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
     public class ClassFormatTests
@@ -22,11 +21,21 @@ namespace IceRpc.Tests.Encoding
         public ClassFormatTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            var router = new Router();
+            router.Map("/sliced", new SlicedFormatOperatinos());
+            router.Map("/compact", new CompactFormatOperations());
+            router.Map("/classformat", new ClassFormatOperations());
+
+            _server = new Server
+            {
+                Dispatcher = router,
+                Communicator = _communicator,
+                Protocol = protocol
+            };
             _ = _server.ListenAndServeAsync();
-            _prx1 = _server.Add("/sliced", new SlicedFormatOperatinos(), ISlicedFormatOperationsPrx.Factory);
-            _prx2 = _server.Add("/compact", new CompactFormatOperations(), ICompactFormatOperationsPrx.Factory);
-            _prx3 = _server.Add("/classformat", new ClassFormatOperations(), IClassFormatOperationsPrx.Factory);
+            _prx1 = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
+            _prx2 = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
+            _prx3 = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
         }
 
         [OneTimeTearDown]
