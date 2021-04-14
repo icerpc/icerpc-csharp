@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,8 +9,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -93,10 +93,11 @@ namespace IceRpc.Tests.ClientServer
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
-            await using var adapter = CreateServer(communicator, colocated, portNumber: 1);
-            _ = adapter.ListenAndServeAsync();
+            await using var server = CreateServer(communicator, colocated, portNumber: 1);
+            _ = server.ListenAndServeAsync();
 
-            var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
+            IServicePrx service = colocated ?
+                server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -114,10 +115,11 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
-            await using var adapter = CreateServer(communicator, colocated, portNumber: 2);
-            _ = adapter.ListenAndServeAsync();
+            await using Server server = CreateServer(communicator, colocated, portNumber: 2);
+            _ = server.ListenAndServeAsync();
 
-            var service = adapter.Add("/hello", new TestService(), IServicePrx.Factory);
+            IServicePrx service = colocated ?
+                server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();
@@ -239,12 +241,13 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("Client", scope.GetProperty("InitiatedBy").GetString());
             Assert.AreEqual("Bidirectional", scope.GetProperty("Kind").GetString());
         }
-
         private Server CreateServer(Communicator communicator, bool colocated, int portNumber) =>
+
             new Server
             {
                 ColocationScope = ColocationScope.None,
                 Communicator = communicator,
+                Dispatcher = new TestService(),
                 Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)
             };
 

@@ -19,9 +19,14 @@ namespace IceRpc.Tests.CodeGeneration
         public NamespaceMetadataTests()
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = new NamespaceMDOperations()
+
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new NamespaceMDOperations(), INamespaceMDOperationsPrx.Factory);
+            _prx = _server.CreateRelativeProxy<INamespaceMDOperationsPrx>("/");
         }
 
         [Test]

@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.AMI
 {
@@ -10,14 +10,17 @@ namespace IceRpc.Test.AMI
     {
         public override async Task RunAsync(string[] args)
         {
+            var router = new Router();
+            router.Map("/test", new TestIntf());
+            router.Map("/test2", new TestIntf2());
+
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = router,
                 Endpoint = GetTestEndpoint(0)
             };
 
-            server.Add("/test", new TestIntf());
-            server.Add("/test2", new TestIntf2());
             _ = server.ListenAndServeAsync();
 
             await AllTests.RunAsync(this, true);

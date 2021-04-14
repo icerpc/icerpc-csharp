@@ -37,27 +37,6 @@ namespace IceRpc.Test.Facets
             communicator.SetProperty("Ice.Admin.Facets", "");
             output.WriteLine("ok");
 
-            output.Write("testing facet registration exceptions... ");
-            var server = new Server { Communicator = communicator };
-
-            var obj = new Empty();
-
-            server.Add("/d", obj);
-            server.Add("/d#facetABCD", obj);
-            try
-            {
-                server.Add("/d#facetABCD", obj);
-                TestHelper.Assert(false);
-            }
-            catch (ArgumentException)
-            {
-            }
-            server.Remove("/d#facetABCD");
-            server.Remove("/d#facetABCD"); // multiple Remove are fine as of Ice 4.0
-            output.WriteLine("ok");
-
-            await server.DisposeAsync();
-
             var prx = IServicePrx.Parse(helper.GetTestProxy("d", 0), communicator);
             IDPrx? d;
             IDPrx? df2;

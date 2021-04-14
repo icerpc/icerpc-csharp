@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Binding
 {
@@ -10,14 +10,16 @@ namespace IceRpc.Test.Binding
     {
         public override async Task RunAsync(string[] args)
         {
+            var router = new Router();
+            router.Map("/communicator", new RemoteCommunicator());
+
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = router,
                 Endpoint = GetTestEndpoint(0),
                 ProxyHost = TestHelper.GetTestHost(Communicator.GetProperties())
             };
-
-            server.Add("/communicator", new RemoteCommunicator());
 
             Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();

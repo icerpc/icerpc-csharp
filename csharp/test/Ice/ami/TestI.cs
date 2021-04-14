@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.AMI
 {
@@ -96,7 +96,7 @@ namespace IceRpc.Test.AMI
         }
 
         private static ITestIntfPrx Self(Current current) =>
-            ITestIntfPrx.Factory.Create(current.Server, current.Path);
+            current.Server.CreateProxy<ITestIntfPrx>(current.Path);
 
         public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
         {

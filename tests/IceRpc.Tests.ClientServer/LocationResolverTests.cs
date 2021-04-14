@@ -64,6 +64,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = _communicator,
                 ColocationScope = ColocationScope.None,
+                Dispatcher = new GreeterTestService(),
                 // TODO: should GetTestEndpoint be capable of returning port 0?
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
             };
@@ -71,8 +72,7 @@ namespace IceRpc.Tests.ClientServer
             _ = _server.ListenAndServeAsync();
 
             // Need to create proxy after calling ListenAndServeAsync; otherwise, the port number is still 0.
-            IGreeterTestServicePrx greeter =
-                _server.Add(path, new GreeterTestService(), IGreeterTestServicePrx.Factory);
+            IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
 
             Assert.AreNotEqual(0, greeter.Endpoints[0].Port);
 

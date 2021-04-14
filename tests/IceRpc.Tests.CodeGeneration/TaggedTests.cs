@@ -19,9 +19,13 @@ namespace IceRpc.Tests.CodeGeneration
         public TaggedTests()
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = new TaggedOperations(),
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new TaggedOperations(), ITaggedOperationsPrx.Factory);
+            _prx = _server.CreateRelativeProxy<ITaggedOperationsPrx>("/");
         }
 
         [OneTimeTearDown]
@@ -52,7 +56,7 @@ namespace IceRpc.Tests.CodeGeneration
             oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged(16));
             Assert.AreEqual(16, oneTagged.A);
 
-            var multiTagged = (MultiTagged) await _prx.PingPongAsync(new MultiTagged());
+            var multiTagged = (MultiTagged)await _prx.PingPongAsync(new MultiTagged());
             CheckMultiTaggedHasNoValue(multiTagged);
 
             multiTagged.MByte = 1;
@@ -138,7 +142,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiTagged.MShortSeq = new short[] { 1 };
             multiTagged.MMyStructSeq = new MyStruct[] { new MyStruct(1, 1) };
 
-            multiTagged.MIntDict = new Dictionary<int, int> { { 1, 1} };
+            multiTagged.MIntDict = new Dictionary<int, int> { { 1, 1 } };
             multiTagged.MUShortSeq = new ushort[] { 1 };
             multiTagged.MVarIntSeq = new int[] { 1 };
             multiTagged.MMyStructDict = new Dictionary<MyStruct, MyStruct>()
