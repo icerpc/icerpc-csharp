@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Encoding
 {
+    [Parallelizable(scope: ParallelScope.All)]
     public class SlicingTests
     {
         [TestCase((byte)1, (byte)1)]
         [TestCase((byte)2, (byte)0)]
         public async Task Slicing_Classes(byte encodingMajor, byte encodingMinor)
         {
-            Runtime.RegisterClassFactoriesFromAllAssemblies();
             await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
@@ -28,56 +28,111 @@ namespace IceRpc.Tests.Encoding
             ostr.WriteClass(p1, null);
             ostr.Finish();
 
+            // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var istr = new InputStream(data[0], encoding, startEncapsulation: true);
-
             MyMostDerivedClass r = istr.ReadClass<MyMostDerivedClass>(null);
-
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
             Assert.AreEqual(p1.M3, r.M3);
 
-            // Register a null class factory for MyMostDerivedClass to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute(MyMostDerivedClass.IceTypeId, -1, typeof(MyMostDerivedClass))
-                });
-
-            Assert.IsNull(Runtime.FindClassFactory(MyMostDerivedClass.IceTypeId));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshal
+            // as 'MyDerivedClass' which is the base type and still know by input stream.
+            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+            classFactories.Remove(MyMostDerivedClass.IceTypeId);
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyMostDerivedClass>(null));
-
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
-            MyDerivedClass r1 = istr.ReadClass< MyDerivedClass>(null); // No formal type id optimization
-
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            MyDerivedClass r1 = istr.ReadClass<MyDerivedClass>(null);
+            Assert.IsNull(r1.SlicedData);
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
 
-            // Register a null class factory for MyDerivedClass to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute(MyDerivedClass.IceTypeId, -1, typeof(MyDerivedClass))
-                });
-
-            Assert.IsNull(Runtime.FindClassFactory(MyDerivedClass.IceTypeId));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            // Repeat removing the factory for 'MyDerivedClass'
+            classFactories.Remove(MyDerivedClass.IceTypeId);
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyDerivedClass>(null));
-
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
             MyBaseClass r2 = istr.ReadClass<MyBaseClass>(null);
-
+            Assert.IsNull(r2.SlicedData);
             Assert.AreEqual(p1.M1, r2.M1);
 
-            // Register a null class factory for MyBaseClass to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute(MyBaseClass.IceTypeId, -1, typeof(MyBaseClass))
-                });
+            // Repeat removing the factory for 'MyBaseClass'
+            classFactories.Remove(MyBaseClass.IceTypeId);
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyBaseClass>(null));
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            Assert.DoesNotThrow(() => istr.ReadClass<AnyClass>(null));
+        }
 
-            Assert.IsNull(Runtime.FindClassFactory(MyBaseClass.IceTypeId));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
-            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyDerivedClass>(null));
+        [TestCase((byte)1, (byte)1)]
+        public async Task Slicing_Classes_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        {
+            await using var communicator = new Communicator();
+            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            byte[] buffer = new byte[1024 * 1024];
+            var data = new List<ArraySegment<byte>>() { buffer };
+            var ostr = new OutputStream(encoding,
+                                        data,
+                                        startAt: default,
+                                        payloadEncoding: encoding,
+                                        format: FormatType.Sliced);
 
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
+            ostr.WriteClass(p1, null);
+            ostr.Finish();
+
+            // First we unmarshal the class using the default factories, no Slicing should occur in this case.
+            var istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            MyCompactMostDerivedClass r = istr.ReadClass<MyCompactMostDerivedClass>(null);
+            Assert.AreEqual(p1.M1, r.M1);
+            Assert.AreEqual(p1.M2, r.M2);
+            Assert.AreEqual(p1.M3, r.M3);
+
+            // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshal
+            // as 'MyCompactDerivedClass' which is the base type and still know by input stream.
+            var classFactories = new Dictionary<int, Lazy<ClassFactory>>(
+                Runtime.CompactTypeIdClassFactoryCache);
+            classFactories.Remove(3);
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactMostDerivedClass>(null));
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            MyCompactDerivedClass r1 = istr.ReadClass<MyCompactDerivedClass>(null);
+            Assert.IsNull(r1.SlicedData);
+            Assert.AreEqual(p1.M1, r1.M1);
+            Assert.AreEqual(p1.M2, r1.M2);
+
+            // Repeat removing the factory for 'MyCompactDerivedClass'
+            classFactories.Remove(2);
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactDerivedClass>(null));
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            MyCompactBaseClass r2 = istr.ReadClass<MyCompactBaseClass>(null);
+            Assert.IsNull(r2.SlicedData);
+            Assert.AreEqual(p1.M1, r2.M1);
+
+            // Repeat removing the factory for 'MyCompactBaseClass'
+            classFactories.Remove(1);
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactBaseClass>(null));
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
             Assert.DoesNotThrow(() => istr.ReadClass<AnyClass>(null));
         }
 
@@ -85,7 +140,6 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)2, (byte)0)]
         public async Task Slicing_Exceptions(byte encodingMajor, byte encodingMinor)
         {
-            Runtime.RegisterClassFactoriesFromAllAssemblies();
             await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
@@ -100,71 +154,198 @@ namespace IceRpc.Tests.Encoding
             ostr.WriteException(p1);
             ostr.Finish();
 
+            // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
             var istr = new InputStream(data[0], encoding, startEncapsulation: true);
-
             RemoteException r = istr.ReadException();
-
+            Assert.IsNull(r.SlicedData);
             Assert.IsInstanceOf<MyMostDerivedException>(r);
-
             MyMostDerivedException r1 = (MyMostDerivedException)r;
-
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
             Assert.AreEqual(p1.M3, r1.M3);
 
-            // Register a null class factory for MyMostDerivedException to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute("::IceRpc::Tests::Encoding::MyMostDerivedException", -1, typeof(MyMostDerivedException))
-                });
-
-            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Encoding::MyMostDerivedException"));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshal
+            // as 'MyDerivedException' which is the base type and still know by input stream.
+            var exceptionFactories = new Dictionary<string, Lazy<RemoteExceptionFactory>>(
+                Runtime.TypeIdRemoteExceptionFactoryCache);
+            exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   typeIdExceptionFactories: exceptionFactories);
 
             r = istr.ReadException();
+            Assert.IsNotNull(r.SlicedData);
             Assert.IsInstanceOf<MyDerivedException>(r);
             Assert.IsNotInstanceOf<MyMostDerivedException>(r);
             MyDerivedException r2 = (MyDerivedException)r;
             Assert.AreEqual(p1.M1, r2.M1);
             Assert.AreEqual(p1.M2, r2.M2);
 
-            // Register a null class factory for MyDerivedException to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute("::IceRpc::Tests::Encoding::MyDerivedException", -1, typeof(MyDerivedException))
-                });
-
-            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Encoding::MyDerivedException"));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
-
+            // Repeat removing the factory for 'MyDerivedException'
+            exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyDerivedException");
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   typeIdExceptionFactories: exceptionFactories);
             r = istr.ReadException();
+            Assert.IsNotNull(r.SlicedData);
             Assert.IsNotInstanceOf<MyDerivedException>(r);
             Assert.IsInstanceOf<MyBaseException>(r);
             MyBaseException r3 = (MyBaseException)r;
-
             Assert.AreEqual(p1.M1, r2.M1);
 
-            // Register a null class factory for MyBaseClass to force Slicing
-            Runtime.RegisterClassFactories(new IceRpc.ClassAttribute[]
-                {
-                    new ClassAttribute("::IceRpc::Tests::Encoding::MyBaseException", -1, typeof(MyBaseException))
-                });
+            // Repeat removing the factory for 'MyBaseException'
+            exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyBaseException");
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   typeIdExceptionFactories: exceptionFactories);
+            r = istr.ReadException();
+            Assert.IsNotNull(r.SlicedData);
+            Assert.IsNotInstanceOf<MyBaseException>(r);
 
-            Assert.IsNull(Runtime.FindClassFactory("::IceRpc::Tests::Encoding::MyBaseException"));
+            // Marshal the exception again to ensure all Slices are correctly preserved
+            ostr = new OutputStream(encoding,
+                                    data,
+                                    startAt: default,
+                                    payloadEncoding: encoding,
+                                    format: FormatType.Sliced);
+            ostr.WriteException(r);
+            ostr.Finish();
+
             istr = new InputStream(data[0], encoding, startEncapsulation: true);
             r = istr.ReadException();
-            Assert.IsNotInstanceOf<MyBaseException>(r);
+            Assert.IsNull(r.SlicedData);
+            Assert.IsInstanceOf<MyMostDerivedException>(r);
+            r1 = (MyMostDerivedException)r;
+            Assert.AreEqual(p1.M1, r1.M1);
+            Assert.AreEqual(p1.M2, r1.M2);
+            Assert.AreEqual(p1.M3, r1.M3);
         }
-    }
 
-    public sealed class ClassAttribute : IceRpc.ClassAttribute
-    {
-        internal override ClassFactory? ClassFactory => null;
-        internal override RemoteExceptionFactory? ExceptionFactory => null;
-
-        public ClassAttribute(string typeId, int compactTypeId, Type type)
-            : base(typeId, compactTypeId, type)
+        [TestCase((byte)1, (byte)1)]
+        [TestCase((byte)2, (byte)0)]
+        public async Task Slicing_PreservedClasses(byte encodingMajor, byte encodingMinor)
         {
+            await using var communicator = new Communicator();
+            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            byte[] buffer = new byte[1024 * 1024];
+            var data = new List<ArraySegment<byte>>() { buffer };
+            var ostr = new OutputStream(encoding,
+                                        data,
+                                        startAt: default,
+                                        payloadEncoding: encoding,
+                                        format: FormatType.Sliced);
+
+            var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
+            var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
+            ostr.WriteClass(p1, null);
+            ostr.Finish();
+
+            // Unmarshal the 'MyPreservedDerivedClass1' class without its factory ensure the class is Sliced
+            // and the Slices are preserved.
+            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+            var factory = classFactories.Remove(MyPreservedDerivedClass1.IceTypeId);
+            var istr = new InputStream(data[0],
+                                       encoding,
+                                       startEncapsulation: true,
+                                       typeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyPreservedDerivedClass1>(null));
+
+            istr = new InputStream(data[0],
+                                       encoding,
+                                       startEncapsulation: true,
+                                       typeIdClassFactories: classFactories);
+            var r1 = istr.ReadClass<MyBaseClass>(null);
+            Assert.IsNotNull(r1.SlicedData);
+
+            // Marshal the sliced class
+            buffer = new byte[1024 * 1024];
+            data = new List<ArraySegment<byte>>() { buffer };
+            ostr = new OutputStream(encoding,
+                                    data,
+                                    startAt: default,
+                                    payloadEncoding: encoding,
+                                    format: FormatType.Sliced);
+            ostr.WriteClass(r1, null);
+            ostr.Finish();
+
+            // now add back the factory and read a unmarshal again, the unmarshaled class should contain the preserved
+            // Slices.
+            classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+
+            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            var r2 = istr.ReadClass<MyPreservedDerivedClass1>(null);
+            Assert.IsNull(r2.SlicedData);
+            Assert.AreEqual("p1-m1", r2.M1);
+            Assert.AreEqual("p1-m2", r2.M2);
+            Assert.IsInstanceOf<MyPreservedDerivedClass1>(r2.M3);
+            var r3 = (MyPreservedDerivedClass1)r2.M3;
+            Assert.AreEqual("p2-m1", r3.M1);
+            Assert.AreEqual("p2-m2", r3.M2);
+            Assert.AreEqual("base", r3.M3.M1);
+        }
+
+        [TestCase((byte)1, (byte)1)]
+        public async Task Slicing_PreservedClasses_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        {
+            await using var communicator = new Communicator();
+            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            byte[] buffer = new byte[1024 * 1024];
+            var data = new List<ArraySegment<byte>>() { buffer };
+            var ostr = new OutputStream(encoding,
+                                        data,
+                                        startAt: default,
+                                        payloadEncoding: encoding,
+                                        format: FormatType.Sliced);
+
+            var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
+            var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
+            ostr.WriteClass(p1, null);
+            ostr.Finish();
+
+            // Unmarshal the 'MyPreservedDerivedClass2' class without its factory to ensure that the class is Sliced
+            // and the Slices are preserved.
+            var classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryCache);
+            var factory = classFactories.Remove(56);
+            var istr = new InputStream(data[0],
+                                       encoding,
+                                       startEncapsulation: true,
+                                       compactTypeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyPreservedDerivedClass2>(null));
+            istr = new InputStream(data[0],
+                                       encoding,
+                                       startEncapsulation: true,
+                                       compactTypeIdClassFactories: classFactories);
+            var r1 = istr.ReadClass<MyBaseClass>(null);
+
+            // Marshal the sliced class
+            buffer = new byte[1024 * 1024];
+            data = new List<ArraySegment<byte>>() { buffer };
+            ostr = new OutputStream(encoding,
+                                    data,
+                                    startAt: default,
+                                    payloadEncoding: encoding,
+                                    format: FormatType.Sliced);
+            ostr.WriteClass(r1, null);
+            ostr.Finish();
+
+            // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved
+            // Slices.
+            classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryCache);
+            istr = new InputStream(data[0],
+                                   encoding,
+                                   startEncapsulation: true,
+                                   compactTypeIdClassFactories: classFactories);
+            var r2 = istr.ReadClass<MyPreservedDerivedClass2>(null);
+            Assert.AreEqual("p1-m1", r2.M1);
+            Assert.AreEqual("p1-m2", r2.M2);
+            Assert.IsInstanceOf<MyPreservedDerivedClass2>(r2.M3);
+            var r3 = (MyPreservedDerivedClass2)r2.M3;
+            Assert.AreEqual("p2-m1", r3.M1);
+            Assert.AreEqual("p2-m2", r3.M2);
+            Assert.AreEqual("base", r3.M3.M1);
         }
     }
 }

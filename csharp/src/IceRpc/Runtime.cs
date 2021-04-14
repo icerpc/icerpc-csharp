@@ -28,7 +28,46 @@ namespace IceRpc
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        private static IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactIdClassFactoryCache;
+        internal static IReadOnlyDictionary<int, Lazy<ClassFactory>> CompactTypeIdClassFactoryCache
+        {
+            get
+            {
+                if (_compactTypeIdClassFactoryCache == null)
+                {
+                    RegisterClassFactoriesFromAllAssemblies();
+                }
+                Debug.Assert(_compactTypeIdClassFactoryCache != null);
+                return _compactTypeIdClassFactoryCache;
+            }
+        }
+
+        internal static IReadOnlyDictionary<string, Lazy<ClassFactory>> TypeIdClassFactoryCache
+        {
+            get
+            {
+                if (_typeIdClassFactoryCache == null)
+                {
+                    RegisterClassFactoriesFromAllAssemblies();
+                }
+                Debug.Assert(_typeIdClassFactoryCache != null);
+                return _typeIdClassFactoryCache;
+            }
+        }
+
+        internal static IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>> TypeIdRemoteExceptionFactoryCache
+        {
+            get
+            {
+                if (_typeIdRemoteExceptionFactoryCache == null)
+                {
+                    RegisterClassFactoriesFromAllAssemblies();
+                }
+                Debug.Assert(_typeIdRemoteExceptionFactoryCache != null);
+                return _typeIdRemoteExceptionFactoryCache;
+            }
+        }
+
+        private static IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactTypeIdClassFactoryCache;
 
         // The mutex protects assignment to class and exception factory caches
         private static readonly object _mutex = new();
@@ -166,35 +205,6 @@ namespace IceRpc
             }
         }
 
-        // Returns the ClassFactory associated with this Slice type ID, null if not found.
-        internal static ClassFactory? FindClassFactory(string typeId)
-        {
-            if (_typeIdClassFactoryCache == null)
-            {
-                RegisterClassFactoriesFromAllAssemblies();
-            }
-            Debug.Assert(_typeIdClassFactoryCache != null);
-            if (_typeIdClassFactoryCache.TryGetValue(typeId, out var classFactory))
-            {
-                return classFactory.Value;
-            }
-            return null;
-        }
-
-        internal static ClassFactory? FindClassFactory(int compactId)
-        {
-            if (_compactIdClassFactoryCache == null)
-            {
-                RegisterClassFactoriesFromAllAssemblies();
-            }
-            Debug.Assert(_compactIdClassFactoryCache != null);
-            if (_compactIdClassFactoryCache.TryGetValue(compactId, out var classFactory))
-            {
-                return classFactory.Value;
-            }
-            return null;
-        }
-
         internal static EndpointFactory? FindEndpointFactory(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Factory : null;
 
@@ -212,23 +222,25 @@ namespace IceRpc
         internal static Ice2EndpointParser? FindIce2EndpointParser(Transport transport) =>
             _transportRegistry.TryGetValue(transport, out var value) ? value.Ice2Parser : null;
 
-        internal static RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
+        private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
         {
-            if (_typeIdRemoteExceptionFactoryCache == null)
+            if (seenAssembly.Add(entryAssembly))
             {
-                RegisterClassFactoriesFromAllAssemblies();
+                foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
+                {
+                    try
+                    {
+                        LoadReferencedAssemblies(AssemblyLoadContext.Default.LoadFromAssemblyName(name), seenAssembly);
+                    }
+                    catch
+                    {
+                        // Ignore assemblies that cannot be loaded.
+                    }
+                }
             }
-            Debug.Assert(_typeIdRemoteExceptionFactoryCache != null);
-            if (_typeIdRemoteExceptionFactoryCache.TryGetValue(typeId, out var remoteExceptionFactory))
-            {
-                return remoteExceptionFactory.Value;
-            }
-            return null;
         }
 
-        // This method is marked internal for testing purposes, to allow register null factories for type-ids and
-        // force Slicing.
-        internal static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
+        private static void RegisterClassFactories(IEnumerable<ClassAttribute> attributes)
         {
             Dictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null;
             Dictionary<int, Lazy<ClassFactory>>? compactIdClassFactories = null;
@@ -256,16 +268,6 @@ namespace IceRpc
                 }
             }
 
-            RegisterClassFactories(typeIdClassFactories,
-                                   compactIdClassFactories,
-                                   typeIdRemoteExceptionFactories);
-        }
-
-        internal static void RegisterClassFactories(
-            Dictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
-            Dictionary<int, Lazy<ClassFactory>>? compactIdClassFactories = null,
-            Dictionary<string, Lazy<RemoteExceptionFactory>>? typeIdRemoteExceptionFactories = null)
-        {
             lock (_mutex)
             {
                 if (typeIdClassFactories != null)
@@ -283,14 +285,14 @@ namespace IceRpc
                 if (compactIdClassFactories != null)
                 {
                     Dictionary<int, Lazy<ClassFactory>> compactIdClassFactoryCache =
-                        _compactIdClassFactoryCache == null ?
+                        _compactTypeIdClassFactoryCache == null ?
                             new Dictionary<int, Lazy<ClassFactory>>() :
-                            new Dictionary<int, Lazy<ClassFactory>>(_compactIdClassFactoryCache);
+                            new Dictionary<int, Lazy<ClassFactory>>(_compactTypeIdClassFactoryCache);
                     foreach ((int type, Lazy<ClassFactory> factory) in compactIdClassFactories)
                     {
                         compactIdClassFactoryCache[type] = factory;
                     }
-                    _compactIdClassFactoryCache = compactIdClassFactoryCache;
+                    _compactTypeIdClassFactoryCache = compactIdClassFactoryCache;
                 }
 
                 if (typeIdRemoteExceptionFactories != null)
@@ -305,24 +307,6 @@ namespace IceRpc
                         typeIdRemoteExceptionFactoryCache[type] = factory;
                     }
                     _typeIdRemoteExceptionFactoryCache = typeIdRemoteExceptionFactoryCache;
-                }
-            }
-        }
-
-        private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)
-        {
-            if (seenAssembly.Add(entryAssembly))
-            {
-                foreach (AssemblyName name in entryAssembly.GetReferencedAssemblies())
-                {
-                    try
-                    {
-                        LoadReferencedAssemblies(AssemblyLoadContext.Default.LoadFromAssemblyName(name), seenAssembly);
-                    }
-                    catch
-                    {
-                        // Ignore assemblies that cannot be loaded.
-                    }
                 }
             }
         }

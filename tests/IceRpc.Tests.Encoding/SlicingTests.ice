@@ -19,6 +19,21 @@ module IceRpc::Tests::Encoding
 		string m3;
 	}
 
+	class MyCompactBaseClass(1)
+	{
+		string m1;
+	}
+
+	class MyCompactDerivedClass(2) : MyCompactBaseClass
+	{
+		string m2;
+	}
+
+	class MyCompactMostDerivedClass(3) : MyCompactDerivedClass
+	{
+		string m3;
+	}
+
 	exception MyBaseException
 	{
 		string m1;
@@ -32,5 +47,21 @@ module IceRpc::Tests::Encoding
 	exception MyMostDerivedException : MyDerivedException
 	{
 		string m3;
+	}
+
+	[preserve-slice]
+	class MyPreservedClass : MyBaseClass
+	{
+		string m2;
+	}
+
+	class MyPreservedDerivedClass1 : MyPreservedClass
+	{
+		MyBaseClass m3;
+	}
+
+	class MyPreservedDerivedClass2(56) : MyPreservedClass
+	{
+		MyBaseClass m3;
 	}
 }

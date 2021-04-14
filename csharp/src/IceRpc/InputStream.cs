@@ -143,6 +143,8 @@ namespace IceRpc
         // The byte buffer we are reading.
         private readonly ReadOnlyMemory<byte> _buffer;
 
+        private IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactTypeIdClassFactories;
+
         // Data for the class or exception instance that is currently getting unmarshaled.
         private InstanceData _current;
 
@@ -166,6 +168,9 @@ namespace IceRpc
 
         // See ReadTypeId11.
         private int _posAfterLatestInsertedTypeId11;
+
+        IReadOnlyDictionary<string, Lazy<ClassFactory>>? _typeIdClassFactories;
+        IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? _typeIdRemoteExceptionFactories;
 
         // Map of type ID index to type ID sequence, used only for classes.
         // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we read, in order.
@@ -960,13 +965,22 @@ namespace IceRpc
         /// <param name="proxyOptions">The proxy options, used when connection is not null.</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
+        /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
+        /// <see cref="Runtime.TypeIdClassFactoryCache"/> will be used.</param>
+        /// <param name="typeIdExceptionFactories">Optional dictionary used to map Slice type Ids to exceptions, if
+        /// null <see cref="Runtime.TypeIdRemoteExceptionFactoryCache"/> will be used.</param>
+        /// <param name="compactTypeIdClassFactories">Optional dictionary used to map Slice compact type Ids to
+        /// classes, if null <see cref="Runtime.CompactTypeIdClassFactoryCache"/> will be used.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             IServicePrx? source = null,
             Connection? connection = null,
             ProxyOptions? proxyOptions = null,
-            bool startEncapsulation = false)
+            bool startEncapsulation = false,
+            IReadOnlyDictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
+            IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
+            IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
         {
             Source = source;
             Connection = connection;
@@ -976,6 +990,10 @@ namespace IceRpc
             _buffer = buffer;
             Encoding = encoding;
             Encoding.CheckSupported();
+
+            _typeIdClassFactories = typeIdClassFactories;
+            _typeIdRemoteExceptionFactories = typeIdExceptionFactories;
+            _compactTypeIdClassFactories = compactTypeIdClassFactories;
 
             if (startEncapsulation)
             {

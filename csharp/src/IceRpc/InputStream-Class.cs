@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -97,7 +96,7 @@ namespace IceRpc
 
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    if (Runtime.FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
+                    if (FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
                     {
                         // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
                         // and origin is always Unknown.
@@ -130,7 +129,7 @@ namespace IceRpc
                     }
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    RemoteExceptionFactory? factory = Runtime.FindRemoteExceptionFactory(typeId);
+                    RemoteExceptionFactory? factory = FindRemoteExceptionFactory(typeId);
                     if (factory != null)
                     {
                         remoteEx = factory(errorMessage, origin);
@@ -172,6 +171,53 @@ namespace IceRpc
                 throw new InvalidDataException(@$"read instance of type '{obj.GetType().FullName
                     }' but expected instance of type '{typeof(T).FullName}'");
             }
+        }
+
+        // Returns the ClassFactory associated with this Slice type ID, null if not found.
+        private ClassFactory? FindClassFactory(string typeId)
+        {
+            if (_typeIdClassFactories == null)
+            {
+                _typeIdClassFactories = Runtime.TypeIdClassFactoryCache;
+            }
+            Debug.Assert(_typeIdClassFactories != null);
+            if (_typeIdClassFactories.TryGetValue(typeId, out Lazy<ClassFactory>? classFactory))
+            {
+                return classFactory.Value;
+            }
+            return null;
+        }
+
+        // Returns the ClassFactory associated with this Slice compact type ID, null if not found.
+        private ClassFactory? FindClassFactory(int compactId)
+        {
+            if (_compactTypeIdClassFactories == null)
+            {
+                _compactTypeIdClassFactories = Runtime.CompactTypeIdClassFactoryCache;
+            }
+            Debug.Assert(_compactTypeIdClassFactories != null);
+            if (_compactTypeIdClassFactories.TryGetValue(compactId, out Lazy<ClassFactory>? classFactory))
+            {
+                return classFactory.Value;
+            }
+            return null;
+        }
+
+        // Returns the RemoteExceptionFactory associated with this Slice type ID, null if not found.
+        private RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
+        {
+            if (_typeIdRemoteExceptionFactories == null)
+            {
+                _typeIdRemoteExceptionFactories = Runtime.TypeIdRemoteExceptionFactoryCache;
+            }
+            Debug.Assert(_typeIdRemoteExceptionFactories != null);
+            if (_typeIdRemoteExceptionFactories.TryGetValue(
+                typeId,
+                out Lazy<RemoteExceptionFactory>? remoteExceptionFactory))
+            {
+                return remoteExceptionFactory.Value;
+            }
+            return null;
         }
 
         /// <summary>Reads a class instance from the stream.</summary>
@@ -391,11 +437,11 @@ namespace IceRpc
                     ClassFactory? factory = null;
                     if (typeId != null)
                     {
-                        factory = Runtime.FindClassFactory(typeId);
+                        factory = FindClassFactory(typeId);
                     }
                     else if (compactId is int compactIdValue)
                     {
-                        factory = Runtime.FindClassFactory(compactIdValue);
+                        factory = FindClassFactory(compactIdValue);
                     }
 
                     if (factory != null)
@@ -451,7 +497,7 @@ namespace IceRpc
                     int skipCount = 0;
                     foreach (string typeId in allTypeIds)
                     {
-                        if (Runtime.FindClassFactory(typeId) is ClassFactory factory)
+                        if (FindClassFactory(typeId) is ClassFactory factory)
                         {
                             instance = factory();
                             break; // foreach
@@ -489,7 +535,7 @@ namespace IceRpc
                 else if (formalTypeId != null)
                 {
                     // received null and formalTypeId is not null, apply formal type optimization.
-                    if (Runtime.FindClassFactory(formalTypeId) is ClassFactory factory)
+                    if (FindClassFactory(formalTypeId) is ClassFactory factory)
                     {
                         instance = factory();
                         _instanceMap.Add(instance);

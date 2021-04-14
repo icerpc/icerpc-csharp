@@ -10,11 +10,7 @@ namespace IceRpc
     /// <summary>This attribute class is used by the generated code to map type IDs to C# classes and exceptions
     /// </summary>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1813:Avoid unsealed attributes",
-        Justification = "Slicing tests use a derived attribute to register a null factory.")]
-    public class ClassAttribute : Attribute
+    public sealed class ClassAttribute : Attribute
     {
         /// <summary>The compact type ID assigned to the type or null if the type does not have a compact type ID.
         /// </summary>
