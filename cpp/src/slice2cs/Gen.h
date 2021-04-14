@@ -41,8 +41,9 @@ protected:
     void emitEditorBrowsableNeverAttribute();
     void emitEqualityOperators(const std::string&);
     void emitCustomAttributes(const ContainedPtr&); // attributes specified through metadata
+    void emitCompactTypeIdAttribute(int);
     void emitTypeIdAttribute(const std::string&); // the Ice type ID attribute
-    void emitClassAttribute(const std::string&, int, const std::string&);
+    void emitClassAttribute(const std::string&);
 
     std::string writeValue(const TypePtr&, const std::string&);
 
