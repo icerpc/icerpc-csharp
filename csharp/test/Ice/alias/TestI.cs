@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Threading;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Alias
 {

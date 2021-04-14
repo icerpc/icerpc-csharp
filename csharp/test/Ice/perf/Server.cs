@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading.Tasks;
 using IceRpc.Test;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Perf
 {
@@ -12,10 +12,9 @@ namespace IceRpc.Test.Perf
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = new PerformanceI(),
                 Endpoint = GetTestEndpoint(0)
             };
-
-            server.Add("/perf", new PerformanceI());
 
             Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();

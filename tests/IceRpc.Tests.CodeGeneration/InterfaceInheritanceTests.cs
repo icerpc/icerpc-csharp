@@ -18,11 +18,22 @@ namespace IceRpc.Tests.CodeGeneration
         public InterfaceInheritanceTests()
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator};
+
+            var router = new Router();
+            router.Map("/base", new Base());
+            router.Map("/derived", new Derived());
+            router.Map("/mostderived", new MostDerived());
+
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = router
+            };
             _ = _server.ListenAndServeAsync();
-            _basePrx = _server.Add("/base", new Base(), IMyInterfaceBasePrx.Factory);
-            _derivedPrx = _server.Add("/derived", new Derived(), IMyInterfaceDerivedPrx.Factory);
-            _mostDerivedPrx = _server.Add("/mostderived", new MostDerived(), IMyInterfaceMostDerivedPrx.Factory);
+
+            _basePrx = _server.CreateRelativeProxy<IMyInterfaceBasePrx>("/base");
+            _derivedPrx = _server.CreateRelativeProxy<IMyInterfaceDerivedPrx>("/derived");
+            _mostDerivedPrx = _server.CreateRelativeProxy<IMyInterfaceMostDerivedPrx>("/mostderived");
         }
 
         [OneTimeTearDown]

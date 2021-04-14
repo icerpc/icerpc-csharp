@@ -58,8 +58,8 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
-            var server = new Server { Communicator = communicator };
-            prx = server.Add("/test", new GreeterService(), IGreeterServicePrx.Factory);
+            var server = new Server { Communicator = communicator, Dispatcher = new GreeterService() };
+            prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -324,8 +324,14 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_Fixed(Protocol protocol, string _)
         {
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator, Protocol = protocol };
-            var prx = server.Add("/greeter", new GreeterService(), IGreeterServicePrx.Factory);
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new GreeterService(),
+                Protocol = protocol
+            };
+
+            var prx = server.CreateRelativeProxy<IGreeterServicePrx>("/greeter");
 
             // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
 

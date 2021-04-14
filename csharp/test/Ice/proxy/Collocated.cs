@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Proxy
 {
@@ -10,13 +10,15 @@ namespace IceRpc.Test.Proxy
     {
         public override async Task RunAsync(string[] args)
         {
-            await using var server = new Server
+            var router = new Router();
+            router.Map("/test", new MyDerivedClass());
+
+            await using var server = new Server()
             {
                 Communicator = Communicator,
+                Dispatcher = router,
                 Endpoint = GetTestEndpoint(0)
             };
-
-            server.Add("/test", new MyDerivedClass());
             _ = server.ListenAndServeAsync();
 
             await AllTests.RunAsync(this);

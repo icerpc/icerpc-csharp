@@ -413,6 +413,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = serverCommunicator,
                 ColocationScope = ColocationScope.None,
+                Dispatcher = new GreeterTestService(),
                 Endpoint = GetTestEndpoint(serverHost),
                 ConnectionOptions = new()
                 {
@@ -421,10 +422,9 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            server.Add("/hello", new GreeterTestService());
             _ = server.ListenAndServeAsync();
 
-            var prx = IServicePrx.Parse(GetTestProxy("hello", hostname ?? "::1"), clientCommunicator);
+            var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1"), clientCommunicator);
             prx.NonSecure = NonSecure.Never;
             closure(server, prx);
         }

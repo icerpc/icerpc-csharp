@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Proxy
 {
@@ -39,7 +39,8 @@ namespace IceRpc.Test.Proxy
             CancellationToken cancel)
         {
             TestHelper.Assert(callback.Connection != null);
-            IRelativeTestPrx relativeTest = current.Server.AddWithUUID(new RelativeTest(), IRelativeTestPrx.Factory);
+            IRelativeTestPrx relativeTest =
+                TestHelper.AddWithGuid<IRelativeTestPrx>(current.Server, new RelativeTest());
             relativeTest.Endpoints = ImmutableList<Endpoint>.Empty;
 
             TestHelper.Assert(await callback.OpAsync(relativeTest, cancel: cancel) == 1);
