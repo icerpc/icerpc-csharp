@@ -5,7 +5,6 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -486,11 +485,24 @@ namespace IceRpc.Tests.Api
             Assert.IsTrue(prx.IsOneway);
         }
 
-        public async Task Proxy_Encoding()
+        [TestCase("1.3")]
+        [TestCase("2.1")]
+        public async Task Proxy_UsupportedEncoding(string encoding)
         {
             await using var communicator = new Communicator();
-            var server = new Server { Communicator = communicator };
-            var prx = server.Add("/test", new GreeterService(), IGreeterServicePrx.Factory);
+            var prx = IGreeterServicePrx.Parse("/test", communicator);
+            prx.Encoding = Encoding.Parse(encoding);
+            Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
+        }
+
+        [TestCase("3")]
+        [TestCase("4")]
+        public async Task Proxy_UsupportedProtocol(string protocol)
+        {
+            await using var communicator = new Communicator();
+            var prx = IGreeterServicePrx.Parse($"ice+universal://localhost/test?transport=tcp&protocol={protocol}",
+                                               communicator);
+            Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
 
         public class GreeterService : IAsyncGreeterService

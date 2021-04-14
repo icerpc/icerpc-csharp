@@ -110,44 +110,6 @@ namespace IceRpc.Test.Proxy
                 output.WriteLine("ok");
             }
 
-            output.Write("testing encoding versioning... ");
-            string ref13 = helper.GetTestProxy("test", 0);
-            IMyClassPrx cl13 = IMyClassPrx.Parse(ref13, communicator);
-            cl13.Encoding = new Encoding(1, 3);
-            try
-            {
-                await cl13.IcePingAsync();
-                TestHelper.Assert(false);
-            }
-            catch (NotSupportedException)
-            {
-                // expected
-            }
-            output.WriteLine("ok");
-
-            if (helper.Protocol == Protocol.Ice2)
-            {
-                output.Write("testing protocol versioning... ");
-                output.Flush();
-                string ref3 = helper.GetTestProxy("test", 0);
-                ref3 += "?protocol=3";
-
-                string transport = helper.Transport;
-                ref3 = ref3.Replace($"ice+{transport}", "ice+universal");
-                ref3 += $"&transport={transport}";
-                var cl3 = IMyClassPrx.Parse(ref3, communicator);
-                try
-                {
-                    await cl3.IcePingAsync();
-                    TestHelper.Assert(false);
-                }
-                catch (NotSupportedException)
-                {
-                    // expected
-                }
-                output.WriteLine("ok");
-            }
-
             // TODO test communicator destroy in its own test
             output.Write("testing communicator shutdown... ");
             output.Flush();
@@ -169,21 +131,6 @@ namespace IceRpc.Test.Proxy
 
                 TestHelper.Assert(IServicePrx.Parse("identity -t:tcp -h localhost", communicator).InvocationTimeout ==
                                   TimeSpan.FromSeconds(60));
-            }
-            output.WriteLine("ok");
-
-            output.Write("testing invalid invocation timeout... ");
-            output.Flush();
-            {
-                try
-                {
-                    var prx = IServicePrx.Parse("ice+tcp://localhost/identity", communicator);
-                    prx.InvocationTimeout = TimeSpan.Zero;
-                    TestHelper.Assert(false);
-                }
-                catch (ArgumentException)
-                {
-                }
             }
             output.WriteLine("ok");
 
