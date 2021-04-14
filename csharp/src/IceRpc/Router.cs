@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,13 @@ namespace IceRpc
     /// <summary>A router routes incoming requests to dispatchers.</summary>
     public sealed class Router : IDispatcher
     {
+        /// <summary>Returns the absolute path-prefix of this router. The absolute path of a service added to this
+        /// Router is <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
+        /// <see cref="Map"/>.</summary>
+        /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
+        /// characters starting with a <c>/</c>.</value>
+        public string AbsolutePrefix { get; } = "";
+
         // When searching in the prefixMatchRoutes, we search up to MaxSegments before giving up. This prevents a
         // a malicious client from sending a request with a huge number of segments (/a/a/a/a/a/a/a/a/a/a...) that
         // results in numerous unsuccessful lookups.
@@ -19,10 +27,6 @@ namespace IceRpc
 
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
-
-        // The full prefix of this router, which includes its parent's full prefix. When null, this router is a
-        // top-level router.
-        private readonly string? _fullPrefix;
 
         private readonly List<Func<IDispatcher, IDispatcher>> _middlewareList = new();
 
@@ -34,6 +38,15 @@ namespace IceRpc
         /// <summary>Constructs a top-level router.</summary>
         public Router()
         {
+        }
+
+        /// <summary>Constructs a router with an absolute prefix.</summary>
+        /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
+        public Router(string absolutePrefix)
+        {
+            UriParser.CheckPath(absolutePrefix, nameof(absolutePrefix));
+            absolutePrefix = NormalizePrefix(absolutePrefix);
+            AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
 
         /// <inherit-doc/>
@@ -79,7 +92,7 @@ namespace IceRpc
         public Router Route(string prefix, Action<Router> configure)
         {
             UriParser.CheckPath(prefix, nameof(prefix));
-            var subRouter = new Router(this, prefix);
+            var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);
             return subRouter;
@@ -119,7 +132,7 @@ namespace IceRpc
             _middlewareList.AddRange(middleware);
         }
 
-        public override string ToString() => _fullPrefix is string fullPrefix ? $"router({fullPrefix})" : "router";
+        public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
 
         // Trim trailing slashes but keep the leading slash.
         private static string NormalizePrefix(string prefix)
@@ -135,12 +148,6 @@ namespace IceRpc
             return prefix;
         }
 
-        private Router(Router parent, string prefix)
-        {
-            prefix = NormalizePrefix(prefix);
-            _fullPrefix = (parent._fullPrefix is string parentFullPrefix) ? parentFullPrefix + prefix : prefix;
-        }
-
         private IDispatcher CreatePipeline()
         {
             // The last dispatcher of the pipeline:
@@ -149,21 +156,31 @@ namespace IceRpc
                 {
                     string path = current.Path;
 
-                    if (_fullPrefix?.Length > 1)
+                    if (AbsolutePrefix.Length > 0)
                     {
-                        // Remove _fullPrefix from path
+                        // Remove AbsolutePrefix from path
 
-                        if (path.StartsWith(_fullPrefix, StringComparison.Ordinal))
+                        if (path.StartsWith(AbsolutePrefix, StringComparison.Ordinal))
                         {
-                            path = path.Length == _fullPrefix.Length ? "/" : path[_fullPrefix.Length..];
+                            if (path.Length == AbsolutePrefix.Length)
+                            {
+                                // We consume everything so there is nothing left to match.
+                                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                            }
+                            else
+                            {
+                                path = path[AbsolutePrefix.Length..];
+                            }
                         }
                         else
                         {
                             throw new InvalidOperationException(
-                                $"received request for path '{path}' in router mounted at '{_fullPrefix}'");
+                                $"received request for path '{path}' in router mounted at '{AbsolutePrefix}'");
                         }
                     }
-                    // else _fullPrefix is null or "/" and there is nothing to remove
+                    // else there is nothing to remove
+
+                    Debug.Assert(path.Length > 0);
 
                     // First check for an exact match
                     if (_exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))

@@ -158,50 +158,6 @@ namespace IceRpc.Test.Proxy
                 output.WriteLine("ok");
             }
 
-            output.Write("testing ice2 universal endpoints... ");
-            output.Flush();
-
-            var p1 = IServicePrx.Parse("ice+universal://127.0.0.1:4062/test?transport=tcp", communicator);
-            TestHelper.Assert(p1.ToString() == "ice+tcp://127.0.0.1/test"); // uses default port
-
-            p1 = IServicePrx.Parse(
-                "ice+universal://127.0.0.1:4062/test?transport=tcp&alt-endpoint=host2:10000?transport=tcp",
-                communicator);
-            TestHelper.Assert(p1.ToString() == "ice+tcp://127.0.0.1/test?alt-endpoint=host2:10000");
-
-            p1 = IServicePrx.Parse(
-                "ice+universal://127.0.0.1:4062/test?transport=tcp&alt-endpoint=host2:10000?transport=99$option=a",
-                communicator);
-
-            TestHelper.Assert(p1.ToString() ==
-                "ice+tcp://127.0.0.1/test?alt-endpoint=ice+universal://host2:10000?transport=99$option=a");
-
-            output.WriteLine("ok");
-
-            output.Write("testing ice1 opaque endpoints... ");
-            output.Flush();
-
-            // Legal TCP endpoint expressed as opaque endpoint
-            p1 = IServicePrx.Parse("test:opaque -e 1.1 -t 1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
-                                      communicator);
-            TestHelper.Assert(p1.ToString() == "test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 10000");
-
-            // Two legal TCP endpoints expressed as opaque endpoints
-            p1 = IServicePrx.Parse(@"test:opaque -e 1.1 -t 1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==:
-                opaque -e 1.1 -t 1 -v CTEyNy4wLjAuMusuAAAQJwAAAA==", communicator);
-            TestHelper.Assert(p1.ToString() ==
-                "test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 10000:tcp -h 127.0.0.2 -p 12011 -t 10000");
-
-            // Test that an SSL endpoint and an unknown-transport endpoint get written back out as an opaque
-            // endpoint.
-            p1 = IServicePrx.Parse(
-                "test:opaque -e 1.1 -t 2 -v CTEyNy4wLjAuMREnAAD/////AA==:opaque -e 1.1 -t 99 -v abch",
-                communicator);
-            TestHelper.Assert(p1.ToString() ==
-                "test -t -e 1.1:ssl -h 127.0.0.1 -p 10001 -t -1:opaque -t 99 -e 1.1 -v abch");
-
-            output.WriteLine("ok");
-
             // TODO test communicator destroy in its own test
             output.Write("testing communicator shutdown... ");
             output.Flush();

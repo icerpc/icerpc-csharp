@@ -16,25 +16,36 @@ namespace IceRpc
         Justification = "Slicing tests use a derived attribute to register a null factory.")]
     public class ClassAttribute : Attribute
     {
-        /// <summary>The compact type ID assigned to the type or -1 if the type does not use compact type IDs.</summary>
-        public int CompactTypeId { get; }
+        /// <summary>The compact type ID assigned to the type or null if the type does not have a compact type ID.
+        /// </summary>
+        public int? CompactTypeId => Type.GetIceCompactTypeId();
 
         /// <summary>The type ID assigned to the type.</summary>
-        public new string TypeId { get; }
+        public new string TypeId
+        {
+            get
+            {
+                string? typeId = Type.GetIceTypeId();
+                // Using the ClassAttribute with a type without associated TypeId indicate a bug in the generated code.
+                Debug.Assert(typeId != null);
+                return typeId;
+            }
+        }
 
-        /// <summary>The type associated to the type ID</summary>
+        /// <summary>The class type associated with this class attribute, which designates the generated class for a
+        /// Slice class or exception.</summary>
         public Type Type { get; }
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="AnyClass"/>."</summary>
-        internal virtual ClassFactory? ClassFactory
+        internal ClassFactory ClassFactory
         {
             get
             {
-                // The delegate is lazily initialized the first time is used. This is to avoid creating delegates that are
-                // never used and avoid doing all the work upfront when the attributes are loaded.
-                if (_classFactory == null && typeof(AnyClass).IsAssignableFrom(Type))
+                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
+                if (_classFactory == null)
                 {
+                    Debug.Assert(typeof(AnyClass).IsAssignableFrom(Type));
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
@@ -55,14 +66,15 @@ namespace IceRpc
 
         /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/> or null if the
         /// type does not implement <see cref="RemoteException"/>."</summary>
-        internal virtual RemoteExceptionFactory? ExceptionFactory
+        internal RemoteExceptionFactory ExceptionFactory
         {
             get
             {
-                // The delegate is lazily initialized the first time is used, this avoid creating delegates that are
-                // never used and avoid doing all work upfront when the attributes are loaded
-                if (_remoteExceptionFactory == null && typeof(RemoteException).IsAssignableFrom(Type))
+                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
+                if (_exceptionFactory == null)
                 {
+                    Debug.Assert(typeof(RemoteException).IsAssignableFrom(Type));
+
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
@@ -77,30 +89,25 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    _remoteExceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
+                    _exceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
                         typeof(RemoteExceptionFactory),
                         Expression.New(constructor, messageParam, originParam),
                         messageParam,
                         originParam).Compile();
                 }
-                return _remoteExceptionFactory;
+                return _exceptionFactory;
             }
         }
 
         private ClassFactory? _classFactory;
-        private RemoteExceptionFactory? _remoteExceptionFactory;
+        private RemoteExceptionFactory? _exceptionFactory;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
-        /// <param name="typeId">The type ID.</param>
-        /// <param name="compactTypeId">The compact type ID.</param>
-        /// <param name="type">The type of the concrete class associated with this Ice type ID.</param>
-        public ClassAttribute(string typeId, int compactTypeId, Type type)
+        /// <param name="type">The type of the concrete class to register.</param>
+        public ClassAttribute(Type type)
         {
-            TypeId = typeId;
-            CompactTypeId = compactTypeId;
             Type = type;
-            Debug.Assert(typeof(AnyClass).IsAssignableFrom(type) ||
-                         (typeof(RemoteException).IsAssignableFrom(type) && compactTypeId == -1));
+            Debug.Assert(typeof(AnyClass).IsAssignableFrom(type) || typeof(RemoteException).IsAssignableFrom(type));
         }
     }
 }

@@ -73,8 +73,9 @@ namespace IceRpc
             if (UriParser.IsProxyUri(proxyString))
             {
                 var args = UriParser.ParseProxy(proxyString, proxyOptions);
+                Protocol protocol = args.Endpoints.Count > 0 ? args.Endpoints[0].Protocol : Protocol.Ice2;
                 return factory.Create(args.Path,
-                                      args.Protocol,
+                                      protocol,
                                       args.Encoding,
                                       args.Endpoints,
                                       connection: null,

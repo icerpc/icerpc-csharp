@@ -19,12 +19,30 @@ namespace IceRpc
     {
         /// <summary>Creates an endpoint from its string representation.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
-        /// <returns>The new endpoint.</returns>
+        /// <returns>The parsed endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static Endpoint Parse(string s) =>
-            // TODO: better implementation!
-            UriParser.IsEndpointUri(s) ? UriParser.ParseEndpoints(s)[0] : Ice1Parser.ParseEndpoint(s);
+            UriParser.IsEndpointUri(s) ? UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
+
+        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <param name="s">The string representation of the endpoint.</param>
+        /// <param name="endpoint">The parsed endpoint.</param>
+        /// <returns>True when <c>s</c> is a valid endpoint string and endpoint is not null; otherwise, false.
+        /// </returns>
+        public static bool TryParse(string s, out Endpoint? endpoint)
+        {
+            try
+            {
+                endpoint = Parse(s);
+                return true;
+            }
+            catch (FormatException)
+            {
+                endpoint = null;
+                return false;
+            }
+        }
 
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this

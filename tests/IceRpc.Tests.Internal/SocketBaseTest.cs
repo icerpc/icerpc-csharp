@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
-    // Server and setup client/server endpoints for a configurable protocol/transport/security.<summary>
+    /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
     public class SocketBaseTest
     {
         private protected Communicator Communicator { get; }
@@ -119,17 +119,17 @@ namespace IceRpc.Tests.Internal
                 {
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
-                    ServerEndpoint = UriParser.ParseEndpoints(endpoint)[0];
+                    ServerEndpoint = Endpoint.Parse(endpoint);
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
-                    ClientEndpoint = UriParser.ParseEndpoints(endpoint)[0];
+                    ClientEndpoint = Endpoint.Parse(endpoint);
                 }
                 else
                 {
                     string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = Ice1Parser.ParseEndpoints(endpoint)[0];
+                    ServerEndpoint = Endpoint.Parse(endpoint);
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = Ice1Parser.ParseEndpoints(endpoint)[0];
+                    ClientEndpoint = Endpoint.Parse(endpoint);
                 }
             }
         }
