@@ -480,6 +480,13 @@ namespace IceRpc.Tests.Api
             Assert.IsTrue(prx.IsOneway);
         }
 
+        public async Task Proxy_Encoding()
+        {
+            await using var communicator = new Communicator();
+            var server = new Server { Communicator = communicator };
+            var prx = server.Add("/test", new GreeterService(), IGreeterServicePrx.Factory);
+        }
+
         public class GreeterService : IAsyncGreeterService
         {
             public ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
