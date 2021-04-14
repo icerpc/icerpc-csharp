@@ -12,10 +12,10 @@ namespace IceRpc.Test.Binding
 
         private readonly ITestIntfPrx _testIntf;
 
-        public RemoteServer(Server server, string serverName)
+        public RemoteServer(Server server)
         {
             _server = server;
-            _testIntf = _server.Add("/test", new TestIntf(serverName), ITestIntfPrx.Factory);
+            _testIntf = _server.CreateProxy<ITestIntfPrx>("/test");
         }
 
         public ValueTask<ITestIntfPrx> GetTestIntfAsync(Current current, CancellationToken cancel) =>

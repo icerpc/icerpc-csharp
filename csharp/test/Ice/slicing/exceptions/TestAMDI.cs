@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Slicing.Exceptions
 {

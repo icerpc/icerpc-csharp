@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -60,7 +60,7 @@ namespace IceRpc.Tests.ClientServer
             _ = server.ListenAndServeAsync();
 
             router.Map("/compress", new CompressService());
-            var prx = ICompressServicePrx.Factory.Create(server, "/compress");
+            ICompressServicePrx prx = server.CreateRelativeProxy<ICompressServicePrx>("/compress");
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);

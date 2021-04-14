@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests
 {
-    /// <summary>Test fixture for tests that need to create a colocated server. The constructor initialize
-    /// a communicator and an Server.</summary>
+    /// <summary>Test fixture for tests that need to create a colocated server. The constructor initializes
+    /// a communicator and a Server.</summary>
     public class ColocatedTest
     {
         private protected Communicator Communicator { get; }
@@ -15,7 +15,10 @@ namespace IceRpc.Tests
         public ColocatedTest()
         {
             Communicator = new Communicator();
-            Server = new Server { Communicator = Communicator };
+            Server = new Server
+            {
+                Communicator = Communicator
+            };
         }
 
         [OneTimeTearDown]

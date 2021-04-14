@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Test;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using IceRpc.Test;
 
 namespace IceRpc.Test.Slicing.Objects
 {
@@ -13,10 +13,9 @@ namespace IceRpc.Test.Slicing.Objects
             await using var server = new Server
             {
                 Communicator = Communicator,
+                Dispatcher = new AsyncTestIntf(),
                 Endpoint = GetTestEndpoint(0)
             };
-
-            server.Add("/Test", new AsyncTestIntf());
 
             Task shutdownComplete = server.ListenAndServeAsync();
             ServerReady();

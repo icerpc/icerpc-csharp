@@ -23,9 +23,14 @@ namespace IceRpc.Tests.CodeGeneration
         public SequenceTests(Protocol protocol)
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Protocol = protocol };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = new SequenceOperations(),
+                Protocol = protocol
+            };
             _ = _server.ListenAndServeAsync();
-            _prx = _server.Add("/test", new SequenceOperations(), ISequenceOperationsPrx.Factory);
+            _prx = _server.CreateRelativeProxy<ISequenceOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 
