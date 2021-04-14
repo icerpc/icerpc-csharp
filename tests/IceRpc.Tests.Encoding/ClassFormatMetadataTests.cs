@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Encoding
             router.Map("/compact", new CompactFormatOperations());
             router.Map("/classformat", new ClassFormatOperations());
 
-            _server = new Server
+            _server = new Server()
             {
                 Dispatcher = router,
                 Communicator = _communicator,
