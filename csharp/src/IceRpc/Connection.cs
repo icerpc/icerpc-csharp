@@ -637,6 +637,7 @@ namespace IceRpc
                 }
 
                 // No need to send the response if the dispatch is canceled.
+                // TODO: what about a log that is specific to this situation and does not involve any throwing?
                 if (cancel.IsCancellationRequested)
                 {
                     try
