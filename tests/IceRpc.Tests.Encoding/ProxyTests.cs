@@ -8,73 +8,81 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Encoding
 {
     [Parallelizable(scope: ParallelScope.All)]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class ProxyTests
     {
+        private Communicator _communicator;
+        private Server _server;
+        private List<ArraySegment<byte>> _data;
+
+        public ProxyTests()
+        {
+            _communicator = new Communicator();
+            _data = new List<ArraySegment<byte>>() { new byte[256] };
+            _server = new Server
+            {
+                Communicator = _communicator
+            };
+            _ = _server.ListenAndServeAsync();
+        }
+
+        [TearDown]
+        public async Task TearDownAsync()
+        {
+            await _server.ShutdownAsync();
+            await _communicator.ShutdownAsync();
+        }
+
         [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
         [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
         [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public async Task Proxy_Enconding(byte encodingMajor, byte encodingMinor, string str)
+        public void Proxy_EncondingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var data = new List<ArraySegment<byte>>() { new byte[256] };
-            var ostr = new OutputStream(encoding, data, startAt: default, payloadEncoding: encoding, default);
+            var ostr = new OutputStream(encoding, _data, startAt: default);
 
-            IServicePrx prx = IServicePrx.Parse(str, communicator);
+            var prx = IServicePrx.Parse(str, _communicator);
             ostr.WriteProxy(prx);
             ostr.Finish();
 
-            var istr = new InputStream(data[0], encoding, source: prx, startEncapsulation: true);
-            var prx2 = IServicePrx.IceReader(istr);
+            var prx2 = _data[0].AsReadOnlyMemory().Read(encoding, IServicePrx.IceReader, source: prx);
             Assert.AreEqual(prx, prx2);
         }
 
         [TestCase(2, 0)]
         [TestCase(1, 1)]
-        public async Task Proxy_Relative(byte encodingMajor, byte encodingMinor)
+        public void Proxy_Relative(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var data = new List<ArraySegment<byte>>() { new byte[256] };
-            var ostr = new OutputStream(encoding, data, startAt: default, payloadEncoding: encoding, default);
+            // Create a relative proxy an clear is colocated connection.
+            IServicePrx prx = _server.CreateRelativeProxy<IServicePrx>("/foo");
+            var connection = prx.Connection;
+            prx.Connection = null;
 
-            await using var server = new Server
-            {
-                Endpoint = "ice+tcp://[::1]:0",
-                Communicator = communicator
-            };
-            _ = server.ListenAndServeAsync();
-            IServicePrx prx1 = server.CreateRelativeProxy<IServicePrx>("/foo");
-            IServicePrx prx2 = server.CreateProxy<IServicePrx>("/bar");
-            var connection = await prx2.GetConnectionAsync();
-            ostr.WriteProxy(prx1);
+            // Marshal the relative proxy
+            var ostr = new OutputStream(encoding, _data, startAt: default);
+            ostr.WriteProxy(prx);
             ostr.Finish();
 
-            var istr = new InputStream(
-                data[0],
-                encoding,
-                connection: connection,
-                proxyOptions: new ProxyOptions(),
-                startEncapsulation: true);
-            prx1 = IServicePrx.IceReader(istr);
-            // Reference equality
+            // Unmarshals the relative proxy using a connection, we should get back a fixed
+            // proxy tied to this connection.
+            IServicePrx? prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
+                                                                IServicePrx.IceReader,
+                                                                connection: connection,
+                                                                proxyOptions: new ProxyOptions());
             Assert.That(connection == prx1.Connection, Is.True);
             CollectionAssert.IsEmpty(prx1.Endpoints);
+            Assert.That(connection == prx1.Connection, Is.True);
 
-            prx1 = server.CreateRelativeProxy<IServicePrx>("/foo");
-            ostr = new OutputStream(encoding, data, startAt: default, payloadEncoding: encoding, default);
-            ostr.WriteProxy(prx1);
-            ostr.Finish();
+            // Create a direct proxy and give it a connection
+            var prx2 = IServicePrx.Parse("ice+tcp://localhost/bar", _communicator);
+            prx2.Connection = connection;
 
-            istr = new InputStream(
-                data[0],
-                encoding,
-                source: prx2,
-                startEncapsulation: true);
-            prx1 = IServicePrx.IceReader(istr);
-            // Reference equality
-            Assert.IsNotNull(prx1.Connection);
+            // Unmarshals the relative proxy using the direct proxy we just created, we should get back
+            // a direct proxy that has the same connection and endpoints as the source proxy.
+            prx1 = _data[0].AsReadOnlyMemory().Read(encoding, IServicePrx.IceReader, source: prx2);
+            Assert.That(prx1.Connection, Is.Not.Null);
             CollectionAssert.IsNotEmpty(prx1.Endpoints);
             Assert.That(prx2.Connection == prx1.Connection, Is.True);
             Assert.That(prx2.Endpoints == prx1.Endpoints, Is.True);
