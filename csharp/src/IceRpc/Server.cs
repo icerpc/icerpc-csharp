@@ -103,6 +103,13 @@ namespace IceRpc
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private static ulong _counter; // used to generate names for servers without endpoints
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Reliability",
+            "CA2213: IDisposable field is never disposed",
+            Justification = "Disposed in ShutdownAsync")]
+        private readonly CancellationTokenSource _cancelDispatchSource = new();
+
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
         private readonly string _colocatedName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
@@ -119,12 +126,6 @@ namespace IceRpc
         private Endpoint? _proxyEndpoint;
 
         private string _proxyHost = "localhost"; // temporary default
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Reliability",
-            "CA2213: IDisposable field is never disposed",
-            Justification = "Disposed in ShutdownAsync")]
-        private readonly CancellationTokenSource _quickShutdownSource = new();
 
         private bool _serving;
 
@@ -205,9 +206,9 @@ namespace IceRpc
             if (Dispatcher is IDispatcher dispatcher)
             {
                 // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
-                // source/token that combines cancel and the server "quick shutdown" cancellation token.
+                // source/token that combines cancel and the server's own cancellation token.
                 using var combinedSource =
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, _quickShutdownSource.Token);
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancelDispatchSource.Token);
 
                 try
                 {
@@ -220,7 +221,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    if (ex is OperationCanceledException && _quickShutdownSource.Token.IsCancellationRequested)
+                    if (ex is OperationCanceledException && _cancelDispatchSource.Token.IsCancellationRequested)
                     {
                         // Replace exception
                         ex = new ServerException("dispatch canceled by server shutdown");
@@ -366,14 +367,14 @@ namespace IceRpc
                         catch (OperationCanceledException)
                         {
                             // Cancel all outstanding dispatches
-                            _quickShutdownSource.Cancel();
+                            _cancelDispatchSource.Cancel();
                             await task.ConfigureAwait(false);
                         }
                     }
                 }
                 finally
                 {
-                    _quickShutdownSource.Dispose();
+                    _cancelDispatchSource.Dispose();
 
                     Logger.LogServerShutdownComplete(this);
 
