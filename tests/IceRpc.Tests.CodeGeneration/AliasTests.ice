@@ -32,7 +32,7 @@ module IceRpc::Tests::CodeGeneration
     using MyClassAA = MyClassA;
 
     using ByteSeqA = ByteSeq;
-    using StringListA = [cs:generic(List)] StringSeq;
+    using StringListA = StringList;
     using MyEnumDictA = MyEnumDict;
     dictionary<MyEnumA, MyEnumA> MyEnumDict2;
 
