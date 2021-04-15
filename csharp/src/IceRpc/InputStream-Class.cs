@@ -72,11 +72,6 @@ namespace IceRpc
             {
                 throw new InvalidOperationException("cannot read an exception outside an encapsulation");
             }
-            if (Communicator == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot read an exception from an InputStream with a null communicator");
-            }
 
             Debug.Assert(_current.InstanceType == InstanceType.None);
             _current.InstanceType = InstanceType.Exception;
@@ -101,7 +96,7 @@ namespace IceRpc
 
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    if (Runtime.FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
+                    if (FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
                     {
                         // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
                         // and origin is always Unknown.
@@ -134,7 +129,7 @@ namespace IceRpc
                     }
                     ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
 
-                    RemoteExceptionFactory? factory = Runtime.FindRemoteExceptionFactory(typeId);
+                    RemoteExceptionFactory? factory = FindRemoteExceptionFactory(typeId);
                     if (factory != null)
                     {
                         remoteEx = factory(errorMessage, origin);
@@ -178,6 +173,48 @@ namespace IceRpc
             }
         }
 
+        // Returns the ClassFactory associated with this Slice type ID, null if not found.
+        private ClassFactory? FindClassFactory(string typeId)
+        {
+            // We delay calling Runtime.TypeIdClassFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _typeIdClassFactories ??= Runtime.TypeIdClassFactoryDictionary;
+            Debug.Assert(_typeIdClassFactories != null);
+            if (_typeIdClassFactories.TryGetValue(typeId, out Lazy<ClassFactory>? classFactory))
+            {
+                return classFactory.Value;
+            }
+            return null;
+        }
+
+        // Returns the ClassFactory associated with this Slice compact type ID, null if not found.
+        private ClassFactory? FindClassFactory(int compactId)
+        {
+            // We delay calling Runtime.CompactTypeIdClassFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _compactTypeIdClassFactories ??= Runtime.CompactTypeIdClassFactoryDictionary;
+            if (_compactTypeIdClassFactories.TryGetValue(compactId, out Lazy<ClassFactory>? classFactory))
+            {
+                return classFactory.Value;
+            }
+            return null;
+        }
+
+        // Returns the RemoteExceptionFactory associated with this Slice type ID, null if not found.
+        private RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
+        {
+            // We delay calling Runtime.TypeIdRemoteExceptionFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _typeIdRemoteExceptionFactories ??= Runtime.TypeIdRemoteExceptionFactoryDictionary;
+            if (_typeIdRemoteExceptionFactories.TryGetValue(
+                typeId,
+                out Lazy<RemoteExceptionFactory>? remoteExceptionFactory))
+            {
+                return remoteExceptionFactory.Value;
+            }
+            return null;
+        }
+
         /// <summary>Reads a class instance from the stream.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
         /// </param>
@@ -187,11 +224,6 @@ namespace IceRpc
             if (!_inEncapsulation)
             {
                 throw new InvalidOperationException("cannot read a class outside an encapsulation");
-            }
-            if (Communicator == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot read a class from an InputStream with a null communicator");
             }
 
             int index = ReadSize();
@@ -361,7 +393,6 @@ namespace IceRpc
         /// </param>
         private AnyClass ReadInstance(int index, string? formalTypeId)
         {
-            Debug.Assert(Communicator != null);
             Debug.Assert(index > 0);
 
             if (index > 1)
@@ -373,7 +404,8 @@ namespace IceRpc
                 throw new InvalidDataException($"could not find index {index} in {nameof(_instanceMap)}");
             }
 
-            if (++_classGraphDepth > Communicator.ClassGraphMaxDepth)
+            // TODO temporary code until Communicator is removed
+            if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
             {
                 throw new InvalidDataException("maximum class graph depth reached");
             }
@@ -400,11 +432,11 @@ namespace IceRpc
                     ClassFactory? factory = null;
                     if (typeId != null)
                     {
-                        factory = Runtime.FindClassFactory(typeId);
+                        factory = FindClassFactory(typeId);
                     }
                     else if (compactId is int compactIdValue)
                     {
-                        factory = Runtime.FindClassFactory(compactIdValue);
+                        factory = FindClassFactory(compactIdValue);
                     }
 
                     if (factory != null)
@@ -460,7 +492,7 @@ namespace IceRpc
                     int skipCount = 0;
                     foreach (string typeId in allTypeIds)
                     {
-                        if (Runtime.FindClassFactory(typeId) is ClassFactory factory)
+                        if (FindClassFactory(typeId) is ClassFactory factory)
                         {
                             instance = factory();
                             break; // foreach
@@ -498,7 +530,7 @@ namespace IceRpc
                 else if (formalTypeId != null)
                 {
                     // received null and formalTypeId is not null, apply formal type optimization.
-                    if (Runtime.FindClassFactory(formalTypeId) is ClassFactory factory)
+                    if (FindClassFactory(formalTypeId) is ClassFactory factory)
                     {
                         instance = factory();
                         _instanceMap.Add(instance);
@@ -664,7 +696,6 @@ namespace IceRpc
         /// SkipIndirectionTable11 itself.</summary>
         private void SkipIndirectionTable11()
         {
-            Debug.Assert(Communicator != null);
             // We should never skip an exception's indirection table
             Debug.Assert(_current.InstanceType == InstanceType.Class);
 
@@ -681,7 +712,8 @@ namespace IceRpc
                 }
                 if (index == 1)
                 {
-                    if (++_classGraphDepth > Communicator.ClassGraphMaxDepth)
+                    // TODO temporary code until Communicator is removed
+                    if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
                     {
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
@@ -722,8 +754,6 @@ namespace IceRpc
         /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
         private bool SkipSlice(string? typeId, int? compactId = null)
         {
-            Debug.Assert(Communicator != null);
-
             // With the 2.0 encoding, typeId is not null and compactId is always null.
             // With the 1.1 encoding, they are potentially both null (but this will result in an exception below).
             Debug.Assert(OldEncoding || (typeId != null && compactId == null));
@@ -741,11 +771,11 @@ namespace IceRpc
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            if (Communicator.Logger.IsEnabled(LogLevel.Debug))
+            if (Communicator?.Logger is ILogger logger && logger.IsEnabled(LogLevel.Debug))
             {
                 string printableId = typeId ?? compactId?.ToString() ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                Communicator.Logger.LogSlicingUnknownType(kind, printableId);
+                logger.LogSlicingUnknownType(kind, printableId);
             }
 
             bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;
