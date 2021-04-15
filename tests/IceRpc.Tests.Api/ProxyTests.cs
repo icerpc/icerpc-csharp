@@ -487,7 +487,7 @@ namespace IceRpc.Tests.Api
 
         [TestCase("1.3")]
         [TestCase("2.1")]
-        public async Task Proxy_UsupportedEncoding(string encoding)
+        public async Task Proxy_NotSupportedEncoding(string encoding)
         {
             await using var communicator = new Communicator();
             var prx = IGreeterServicePrx.Parse("/test", communicator);
@@ -497,7 +497,7 @@ namespace IceRpc.Tests.Api
 
         [TestCase("3")]
         [TestCase("4")]
-        public async Task Proxy_UsupportedProtocol(string protocol)
+        public async Task Proxy_NotSupportedProtocol(string protocol)
         {
             await using var communicator = new Communicator();
             var prx = IGreeterServicePrx.Parse($"ice+universal://localhost/test?transport=tcp&protocol={protocol}",
