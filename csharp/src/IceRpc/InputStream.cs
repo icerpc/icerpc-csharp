@@ -966,11 +966,11 @@ namespace IceRpc
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
-        /// <see cref="Runtime.TypeIdClassFactoryCache"/> will be used.</param>
+        /// <see cref="Runtime.TypeIdClassFactoryDictionary"/> will be used.</param>
         /// <param name="typeIdExceptionFactories">Optional dictionary used to map Slice type Ids to exceptions, if
-        /// null <see cref="Runtime.TypeIdRemoteExceptionFactoryCache"/> will be used.</param>
+        /// null <see cref="Runtime.TypeIdRemoteExceptionFactoryDictionary"/> will be used.</param>
         /// <param name="compactTypeIdClassFactories">Optional dictionary used to map Slice compact type Ids to
-        /// classes, if null <see cref="Runtime.CompactTypeIdClassFactoryCache"/> will be used.</param>
+        /// classes, if null <see cref="Runtime.CompactTypeIdClassFactoryDictionary"/> will be used.</param>
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,

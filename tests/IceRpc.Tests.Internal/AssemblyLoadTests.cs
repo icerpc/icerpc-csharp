@@ -18,34 +18,43 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual("aValue", a.AValue);
 
             // A.dll is already loaded because MyClassA type is used above
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassA"), Is.True);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassA"),
+                        Is.True);
 
             // B, is not loaded because it is not referenced anywhere
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassB"), Is.False);
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassC"), Is.False);
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassD"), Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassB"),
+                        Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassC"),
+                        Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassD"),
+                        Is.False);
 
             RegisterClassFactoriesFromAssembly("D.dll");
             // After loading D MyClassD is found, MyClassC and MyClassB are still not found because
             // RegisterClassFactoriesFromAssembly only load factories from the specified assembly and not from its
             // referenced assemblies.
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassD"), Is.True);
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassB"), Is.False);
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassC"), Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassD"),
+                        Is.True);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassB"),
+                        Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassC"),
+                        Is.False);
 
             // Now load B and C
             RegisterClassFactoriesFromAssembly("B.dll");
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassB"), Is.True);
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassC"), Is.False);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassB"),
+                        Is.True);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassC"),
+                        Is.False);
 
             RegisterClassFactoriesFromAssembly("C.dll");
-            Assert.That(Runtime.TypeIdClassFactoryCache.ContainsKey("::IceRpc::Tests::Internal::MyClassC"), Is.True);
+            Assert.That(Runtime.TypeIdClassFactoryDictionary.ContainsKey("::IceRpc::Tests::Internal::MyClassC"),
+                        Is.True);
 
             static void RegisterClassFactoriesFromAssembly(string name)
             {
-                string path = Path.Combine(Directory.GetCurrentDirectory(), name);
-                // Load assembly D
-                Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+                Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(
+                    Path.Combine(Directory.GetCurrentDirectory(), name));
                 Assert.IsNotNull(assembly);
                 Runtime.RegisterClassFactoriesFromAssembly(assembly);
             }

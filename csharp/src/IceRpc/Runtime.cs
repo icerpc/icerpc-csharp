@@ -28,7 +28,7 @@ namespace IceRpc
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
-        internal static IReadOnlyDictionary<int, Lazy<ClassFactory>> CompactTypeIdClassFactoryCache
+        internal static IReadOnlyDictionary<int, Lazy<ClassFactory>> CompactTypeIdClassFactoryDictionary
         {
             get
             {
@@ -41,7 +41,7 @@ namespace IceRpc
             }
         }
 
-        internal static IReadOnlyDictionary<string, Lazy<ClassFactory>> TypeIdClassFactoryCache
+        internal static IReadOnlyDictionary<string, Lazy<ClassFactory>> TypeIdClassFactoryDictionary
         {
             get
             {
@@ -54,7 +54,7 @@ namespace IceRpc
             }
         }
 
-        internal static IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>> TypeIdRemoteExceptionFactoryCache
+        internal static IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>> TypeIdRemoteExceptionFactoryDictionary
         {
             get
             {

@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Encoding
 
             // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshal
             // as 'MyDerivedClass' which is the base type and still know by input stream.
-            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             classFactories.Remove(MyMostDerivedClass.IceTypeId);
             istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyMostDerivedClass>(null));
@@ -91,7 +91,7 @@ namespace IceRpc.Tests.Encoding
             // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshal
             // as 'MyCompactDerivedClass' which is the base type and still know by input stream.
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(
-                Runtime.CompactTypeIdClassFactoryCache);
+                Runtime.CompactTypeIdClassFactoryDictionary);
             classFactories.Remove(3);
             istr = new InputStream(data[0],
                                    encoding,
@@ -167,7 +167,7 @@ namespace IceRpc.Tests.Encoding
             // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshal
             // as 'MyDerivedException' which is the base type and still know by input stream.
             var exceptionFactories = new Dictionary<string, Lazy<RemoteExceptionFactory>>(
-                Runtime.TypeIdRemoteExceptionFactoryCache);
+                Runtime.TypeIdRemoteExceptionFactoryDictionary);
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");
             istr = new InputStream(data[0],
                                    encoding,
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.Encoding
 
             // Unmarshal the 'MyPreservedDerivedClass1' class without its factory ensure the class is Sliced
             // and the Slices are preserved.
-            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+            var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             var factory = classFactories.Remove(MyPreservedDerivedClass1.IceTypeId);
             var istr = new InputStream(data[0],
                                        encoding,
@@ -273,7 +273,7 @@ namespace IceRpc.Tests.Encoding
 
             // now add back the factory and read a unmarshal again, the unmarshaled class should contain the preserved
             // Slices.
-            classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryCache);
+            classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
 
             istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
             var r2 = istr.ReadClass<MyPreservedDerivedClass1>(null);
@@ -307,7 +307,7 @@ namespace IceRpc.Tests.Encoding
 
             // Unmarshal the 'MyPreservedDerivedClass2' class without its factory to ensure that the class is Sliced
             // and the Slices are preserved.
-            var classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryCache);
+            var classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             var factory = classFactories.Remove(56);
             var istr = new InputStream(data[0],
                                        encoding,
@@ -333,7 +333,7 @@ namespace IceRpc.Tests.Encoding
 
             // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved
             // Slices.
-            classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryCache);
+            classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             istr = new InputStream(data[0],
                                    encoding,
                                    startEncapsulation: true,

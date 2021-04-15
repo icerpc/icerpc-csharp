@@ -176,10 +176,9 @@ namespace IceRpc
         // Returns the ClassFactory associated with this Slice type ID, null if not found.
         private ClassFactory? FindClassFactory(string typeId)
         {
-            if (_typeIdClassFactories == null)
-            {
-                _typeIdClassFactories = Runtime.TypeIdClassFactoryCache;
-            }
+            // We delay calling Runtime.TypeIdClassFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _typeIdClassFactories ??= Runtime.TypeIdClassFactoryDictionary;
             Debug.Assert(_typeIdClassFactories != null);
             if (_typeIdClassFactories.TryGetValue(typeId, out Lazy<ClassFactory>? classFactory))
             {
@@ -191,11 +190,9 @@ namespace IceRpc
         // Returns the ClassFactory associated with this Slice compact type ID, null if not found.
         private ClassFactory? FindClassFactory(int compactId)
         {
-            if (_compactTypeIdClassFactories == null)
-            {
-                _compactTypeIdClassFactories = Runtime.CompactTypeIdClassFactoryCache;
-            }
-            Debug.Assert(_compactTypeIdClassFactories != null);
+            // We delay calling Runtime.CompactTypeIdClassFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _compactTypeIdClassFactories ??= Runtime.CompactTypeIdClassFactoryDictionary;
             if (_compactTypeIdClassFactories.TryGetValue(compactId, out Lazy<ClassFactory>? classFactory))
             {
                 return classFactory.Value;
@@ -206,11 +203,9 @@ namespace IceRpc
         // Returns the RemoteExceptionFactory associated with this Slice type ID, null if not found.
         private RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
         {
-            if (_typeIdRemoteExceptionFactories == null)
-            {
-                _typeIdRemoteExceptionFactories = Runtime.TypeIdRemoteExceptionFactoryCache;
-            }
-            Debug.Assert(_typeIdRemoteExceptionFactories != null);
+            // We delay calling Runtime.TypeIdRemoteExceptionFactoryDictionary until required, this call can trigger
+            // the loading of all class factories.
+            _typeIdRemoteExceptionFactories ??= Runtime.TypeIdRemoteExceptionFactoryDictionary;
             if (_typeIdRemoteExceptionFactories.TryGetValue(
                 typeId,
                 out Lazy<RemoteExceptionFactory>? remoteExceptionFactory))
