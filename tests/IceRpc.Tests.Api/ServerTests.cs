@@ -278,6 +278,31 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
         }
 
+        [Test]
+        // Like Server_ShutdownCancelAsync, except ShutdownAsync with a canceled token is called by DisposeAsync.
+        public async Task Server_DisposeAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+
+            var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = service
+            };
+
+            _ = server.ListenAndServeAsync();
+
+            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+
+            Task task = proxy.WaitForCancelAsync();
+            await service.WaitForCancelInProgress;
+            Assert.IsFalse(task.IsCompleted);
+            ValueTask disposeTask = server.DisposeAsync();
+            Assert.ThrowsAsync<ServerException>(async () => await task);
+            Assert.DoesNotThrowAsync(async () => await disposeTask);
+        }
+
         private class ProxyTest : IAsyncProxyTest
         {
             internal IProxyTestPrx? Proxy { get; set; }
