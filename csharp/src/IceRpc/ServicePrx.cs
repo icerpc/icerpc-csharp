@@ -322,7 +322,7 @@ namespace IceRpc
                     path = $"{path}#{Uri.EscapeDataString(Facet)}";
                 }
 
-                var proxyData = new ProxyData20(Path,
+                var proxyData = new ProxyData20(path,
                                                 protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                                                 encoding: Encoding != Encoding.V20 ? Encoding : null,
                                                 Endpoints.Count == 0 ? null : Endpoints.Select(e => e.Data).ToArray());

@@ -12,8 +12,8 @@ namespace IceRpc.Tests.Encoding
     {
         [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
         [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
-        [TestCase(2, 0, "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        [TestCase(1, 1, "foo:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public async Task Proxy_Enconding(byte encodingMajor, byte encodingMinor, string str)
         {
             await using var communicator = new Communicator();
