@@ -1332,7 +1332,6 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
              << name << "))!.Value;";
     }
 
-
     _out << sp;
     _out << nl << "private static readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
          << name << "));";
@@ -1529,7 +1528,12 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "ostr.IceStartNextSlice(IceTypeId);";
+    _out << nl << "ostr.IceStartNextSlice(IceTypeId";
+    if (p->compactId() >= 0)
+    {
+        _out << ", _compactTypeId";
+    }
+    _out << ");";
     _out << eb;
 
     writeMarshalDataMembers(members, ns, 0);
