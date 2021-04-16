@@ -253,8 +253,8 @@ namespace IceRpc.Tests.ClientServer
                     routers[0].Map("/replicated", new Replicated(fail: true));
                     routers[1].Map("/replicated", new Replicated(fail: false));
 
-                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
-                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
+                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 0), communicator);
+                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 1), communicator);
 
                     // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
                     //  exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
@@ -299,9 +299,9 @@ namespace IceRpc.Tests.ClientServer
                         servers[i].Dispatcher = routers[i];
                         _ = servers[i].ListenAndServeAsync();
                     }
-                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 0), communicator);
-                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 1), communicator);
-                    var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("replicated", port: 2), communicator);
+                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 0), communicator);
+                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 1), communicator);
+                    var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 2), communicator);
 
                     // The first replica fails with ServiceNotFoundException exception the second replica fails with
                     // RetrySystemFailure the last failure should be reported.
@@ -435,7 +435,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/retry", service);
             server.Dispatcher = router;
             _ = server.ListenAndServeAsync();
-            var retry = IRetryServicePrx.Parse(GetTestProxy("retry", protocol: protocol), communicator);
+            var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), communicator);
             await closure(service, retry);
         }
 

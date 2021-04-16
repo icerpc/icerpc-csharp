@@ -14,13 +14,10 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly Communicator _communicator;
         private Server _forwarderServer = null!;
-        private Router _router = new(); // shared by both servers for coloc to work properly
+        private readonly Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
-        public ProtocolBridgingTests()
-        {
-            _communicator = new Communicator();
-        }
+        public ProtocolBridgingTests() => _communicator = new Communicator();
 
         [TearDown]
         public async Task TearDownAsync()
