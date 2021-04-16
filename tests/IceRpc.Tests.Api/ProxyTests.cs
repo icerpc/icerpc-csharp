@@ -13,6 +13,61 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class ProxyTests : ColocatedTest
     {
+        [Test]
+        public async Task Proxy_BuiltinOperationsAsync()
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                ColocationScope = ColocationScope.Communicator,
+                Dispatcher = new GreeterService()
+            };
+            _ = server.ListenAndServeAsync();
+            IGreeterServicePrx? prx = server.CreateRelativeProxy<IGreeterServicePrx>("/test");
+
+            await prx.IcePingAsync();
+
+            Assert.AreEqual("::IceRpc::Tests::Api::GreeterService", await prx.IceIdAsync());
+
+            string[] ids = new string[]
+            {
+                "::Ice::Object",
+                "::IceRpc::Tests::Api::GreeterService",
+            };
+            CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
+
+            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService"), Is.True);
+            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
+
+            Assert.IsNotNull(await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>());
+
+            // Test that builtin operation correctly forward the cancel param
+            var canceled = new CancellationToken(canceled: true);
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdAsync(cancel: canceled));
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
+            Assert.ThrowsAsync<OperationCanceledException>(
+                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", cancel: canceled));
+            Assert.ThrowsAsync<OperationCanceledException>(
+                async () => await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(cancel: canceled));
+
+            // Test that builtin operation correctly forward the context param
+            var context = new Dictionary<string, string> { { "foo", "bar" } };
+            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
+               async (target, request, next, cancel) =>
+               {
+                   Assert.AreEqual(request.Context, context);
+                   return await next(target, request, cancel);
+               });
+
+            await prx.IcePingAsync(context);
+            await prx.IceIdAsync(context);
+            await prx.IceIdsAsync(context);
+            await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", context);
+            await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(context);
+        }
+
         [TestCase("ice+tcp://localhost:10000/test")]
         [TestCase("test:tcp -h localhost -p 10000")]
         public async Task Proxy_SetProperty(string s)
