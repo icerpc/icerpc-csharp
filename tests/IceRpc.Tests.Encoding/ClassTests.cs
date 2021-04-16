@@ -191,7 +191,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDeph, int serverClassGraphMaxDeph)
         {
-            await using var communicator = new Communicator();
+            await using var communicator = new Communicator()
+            {
+                ConnectionOptions = new OutgoingConnectionOptions
+                {
+                    ClassGraphMaxDepth = clientClassGraphMaxDeph
+                }
+            };
             await using var server = new Server
             {
                 Communicator = communicator,
@@ -204,8 +210,7 @@ namespace IceRpc.Tests.Encoding
             _ = server.ListenAndServeAsync();
 
             var prx = server.CreateRelativeProxy<IClassGraphOperationsPrx>("/classgraph");
-            prx.Connection!.ClassGraphMaxDepth = clientClassGraphMaxDeph;
-
+            Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);
             if (graphSize > clientClassGraphMaxDeph)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));

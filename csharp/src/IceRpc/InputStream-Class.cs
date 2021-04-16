@@ -769,15 +769,7 @@ namespace IceRpc
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            if (Connection?.Socket.Logger is ILogger logger && logger.IsEnabled(LogLevel.Debug))
-            {
-                string printableId = typeId ?? compactId?.ToString() ?? "(none)";
-                string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                logger.LogSlicingUnknownType(kind, printableId);
-            }
-
             bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;
-
             byte[] bytes;
             int bytesCopied;
             if (hasTaggedMembers)

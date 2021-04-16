@@ -149,7 +149,7 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached, 
+        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
         /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
         /// <value>The maximum depth for a graph of Slice class instances to unmarshal</value>
         public int ClassGraphMaxDepth
