@@ -166,7 +166,7 @@ namespace IceRpc
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList.Create(_proxyEndpoint),
-                                                connection: null, // TODO: give it a coloc connection except for UDP?
+                                                connection: null,
                                                 options);
         }
 
@@ -201,11 +201,16 @@ namespace IceRpc
 
                 try
                 {
-                    return await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+                    OutgoingResponseFrame response =
+                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+
+                    cancel.ThrowIfCancellationRequested();
+                    return response;
                 }
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested)
                 {
-                    // the client requested the cancellation, we let it propagate and don't log it.
+                    // The client requested cancellation, we log it and let it propagate.
+                    Logger.LogServerDispatchCanceledByClient(current);
                     throw;
                 }
                 catch (Exception ex)
@@ -221,8 +226,7 @@ namespace IceRpc
                     if (current.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
-                        // TODO: use a server event for this logging?
-                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                        Logger.LogServerDispatchException(current, ex);
                         return OutgoingResponseFrame.WithVoidReturnValue(current);
                     }
                     else
@@ -237,8 +241,7 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                            // TODO: use a server event for this logging?
-                            Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                           Logger.LogServerDispatchException(current, ex);
                         }
                         return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                     }
@@ -283,14 +286,18 @@ namespace IceRpc
                     UpdateProxyEndpoint();
 
                     _incomingConnectionFactory.Activate();
+
+                    // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
+                    _listening = true;
+
+                    if (IsDiscoverable && _endpoint.IsDatagram)
+                    {
+                        ColocatedServerRegistry.RegisterServer(this);
+                    }
                 }
-
-                // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
-                _listening = true;
-
-                if (IsDiscoverable)
+                else
                 {
-                    ColocatedServerRegistry.RegisterServer(this);
+                    _listening = true;
                 }
 
                 // TODO: remove
@@ -344,7 +351,7 @@ namespace IceRpc
                 {
                     Logger.LogServerShuttingDown(this);
 
-                    // No longer available for coloc connections (may not be registered at all).
+                    // No longer available for coloc connections (may not be registered at all)
                     ColocatedServerRegistry.UnregisterServer(this);
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
