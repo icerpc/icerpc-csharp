@@ -373,15 +373,10 @@ namespace IceRpc.Tests.Api
             };
             _ = server.ListenAndServeAsync();
 
-            IGreeterServicePrx? prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            IGreeterServicePrx prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
             OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
-            IncomingResponseFrame? response = await prx.InvokeAsync(request);
+            IncomingResponseFrame response = await prx.InvokeAsync(request);
             Assert.AreEqual(ResultType.Success, response.ResultType);
-
-            request = IGreeterServicePrx.Request.SayHello(prx,
-                                                          context: null,
-                                                          cancel: new CancellationToken(canceled: true));
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.InvokeAsync(request));
         }
 
         [TestCase("ice+tcp://host/test")]
