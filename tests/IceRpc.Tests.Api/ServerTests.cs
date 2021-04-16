@@ -235,13 +235,14 @@ namespace IceRpc.Tests.Api
             var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
 
             using var cancellationSource = new CancellationTokenSource();
-            CancellationToken cancel = cancellationSource.Token;
-
-            Task task = proxy.WaitForCancelAsync(cancel: cancel);
+            Task task = proxy.WaitForCancelAsync(cancel: cancellationSource.Token);
             await service.WaitForCancelInProgress;
             Assert.IsFalse(task.IsCompleted);
             cancellationSource.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await task);
+
+            // Verify service still works
+            Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
             Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
         }
 
@@ -267,9 +268,7 @@ namespace IceRpc.Tests.Api
             await service.WaitForCancelInProgress;
 
             using var cancellationSource = new CancellationTokenSource();
-            CancellationToken cancel = cancellationSource.Token;
-
-            Task shutdownTask = server.ShutdownAsync(cancel);
+            Task shutdownTask = server.ShutdownAsync(cancellationSource.Token);
             Assert.IsFalse(task.IsCompleted);
             Assert.IsFalse(shutdownTask.IsCompleted);
 

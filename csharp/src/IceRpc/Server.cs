@@ -104,10 +104,6 @@ namespace IceRpc
 
         private static ulong _counter; // used to generate names for servers without endpoints
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Reliability",
-            "CA2213: IDisposable field is never disposed",
-            Justification = "Disposed in ShutdownAsync")]
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
@@ -188,7 +184,7 @@ namespace IceRpc
         /// <param name="current">The request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        /// <remarks>This method is called by the IceRPC transport code when it receives a request.</remarks>
+        /// <remarks>This method is called by the IceRPC connection code when it receives a request.</remarks>
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
             // temporary
@@ -351,31 +347,24 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task? colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync();
-                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
+                    Task colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
-                    Task? task = (colocShutdownTask != null && incomingShutdownTask != null) ?
-                        Task.WhenAll(colocShutdownTask, incomingShutdownTask) :
-                        colocShutdownTask ?? incomingShutdownTask;
+                    var task = Task.WhenAll(colocShutdownTask, incomingShutdownTask);
 
-                    if (task != null)
+                    try
                     {
-                        try
-                        {
-                            await task.WaitAsync(cancel).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Cancel all outstanding dispatches
-                            _cancelDispatchSource.Cancel();
-                            await task.ConfigureAwait(false);
-                        }
+                        await task.WaitAsync(cancel).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Cancel all outstanding dispatches
+                        _cancelDispatchSource.Cancel();
+                        await task.ConfigureAwait(false);
                     }
                 }
                 finally
                 {
-                    _cancelDispatchSource.Dispose();
-
                     Logger.LogServerShutdownComplete(this);
 
                     // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
@@ -390,7 +379,11 @@ namespace IceRpc
         public override string ToString() => _endpoint?.ToString() ?? _colocatedName;
 
         /// <inheritdoc/>
-        public ValueTask DisposeAsync() => new(ShutdownAsync(new CancellationToken(canceled: true)));
+        public async ValueTask DisposeAsync()
+        {
+            await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+            _cancelDispatchSource.Dispose();
+        }
 
         internal Endpoint GetColocatedEndpoint()
         {
