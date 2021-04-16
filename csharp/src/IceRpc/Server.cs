@@ -313,15 +313,12 @@ namespace IceRpc
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
         /// outstanding dispatches to complete and gracefully closes all its incoming connections. Once shut down, a
         /// server is disposed and can no longer be used. This method can be safely called multiple times, including
-        /// from multiple threads, and always returns the same task.</summary>
+        /// from multiple threads.</summary>
         /// <param name="cancel">The cancellation token. When this token is canceled, the cancellation token of all
         /// outstanding dispatches is canceled, which can speed up the shutdown provided the operation implementations
         /// check their cancellation tokens.</param>
         /// <return>A task that completes once the shutdown is complete.</return>
-        /// <remarks>When this method is called multiple times, only the first cancellation token has any effect.
-        /// Subsequent calls simply return the task created by the first call and their cancellation tokens are ignored.
-        /// </remarks>
-        public Task ShutdownAsync(CancellationToken cancel = default)
+        public async Task ShutdownAsync(CancellationToken cancel = default)
         {
             // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
             // synchronously) after releasing the lock.
@@ -329,7 +326,24 @@ namespace IceRpc
             {
                 _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
             }
-            return _shutdownTask.Value;
+
+            try
+            {
+                await _shutdownTask.Value.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    // When the caller requests cancellation, we signal _cancelDispatchSource.
+                    _cancelDispatchSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored, can occur with multiple / concurrent calls to ShutdownAsync/DisposeAsync
+                }
+                await _shutdownTask.Value.ConfigureAwait(false);
+            }
 
             async Task PerformShutdownAsync()
             {
@@ -350,18 +364,7 @@ namespace IceRpc
                     Task colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
-                    var task = Task.WhenAll(colocShutdownTask, incomingShutdownTask);
-
-                    try
-                    {
-                        await task.WaitAsync(cancel).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Cancel all outstanding dispatches
-                        _cancelDispatchSource.Cancel();
-                        await task.ConfigureAwait(false);
-                    }
+                    await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
                 }
                 finally
                 {
