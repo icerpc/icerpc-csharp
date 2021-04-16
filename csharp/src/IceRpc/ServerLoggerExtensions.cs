@@ -20,7 +20,7 @@ namespace IceRpc
             LoggerMessage.Define<Server>(
                 LogLevel.Information,
                 new EventId(ServerListening, nameof(ServerListening)),
-                "server '{Name}' is now listening and serving clients");
+                "server '{Name}' is listening");
 
         private static readonly Action<ILogger, Server, Exception> _serverShuttingDown =
             LoggerMessage.Define<Server>(
@@ -30,7 +30,7 @@ namespace IceRpc
 
         private static readonly Action<ILogger, Server, Exception> _serverShutdownComplete =
             LoggerMessage.Define<Server>(
-                LogLevel.Debug,
+                LogLevel.Information,
                 new EventId(ServerShutdownComplete, nameof(ServerShutdownComplete)),
                 "server '{Name}' completed its shutdown");
 
@@ -42,7 +42,7 @@ namespace IceRpc
 
         private static readonly Action<ILogger, Server, string, string, Exception> _serverDispatchCanceledByClient =
             LoggerMessage.Define<Server, string, string>(
-                LogLevel.Information,
+                LogLevel.Debug,
                 new EventId(ServerDispatchCanceledByClient, nameof(ServerDispatchCanceledByClient)),
                 "dispatch canceled by client (Server={Server}, Path={Path}, Operation={Operation})");
 

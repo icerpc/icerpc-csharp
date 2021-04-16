@@ -385,14 +385,35 @@ namespace IceRpc
             _cancelDispatchSource.Dispose();
         }
 
-        internal Endpoint GetColocatedEndpoint()
+        // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
+        // colocated. Called by ColocatedServerRegistry.
+        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy) =>
+            proxy.Endpoints.Any(endpoint => endpoint.IsEquivalent(_endpoint!) ||
+                                            endpoint.IsEquivalent(_proxyEndpoint!)) ?
+                GetColocatedEndpoint() : null;
+
+        private Connection? GetColocatedConnection()
+        {
+            if (GetColocatedEndpoint() is Endpoint endpoint)
+            {
+                // TODO: very temporary code
+                ValueTask<Connection> vt = Communicator!.ConnectAsync(endpoint, new(), default);
+                return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private Endpoint? GetColocatedEndpoint()
         {
             // Lazy initialized because it needs a fully configured server, in particular Protocol.
             lock (_mutex)
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
+                    return null;
                 }
 
                 if (_colocatedConnectionFactory == null)
@@ -403,34 +424,6 @@ namespace IceRpc
                 }
             }
             return _colocatedConnectionFactory.Endpoint;
-        }
-
-        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
-        {
-            if (proxy.Protocol != Protocol)
-            {
-                return null;
-            }
-
-            lock (_mutex)
-            {
-                if (_shutdownTask == null)
-                {
-                    return null;
-                }
-            }
-
-            // Proxies which have at least one endpoint in common with the endpoints used by this object
-            // server's incoming connection factories are considered local.
-            return proxy.Endpoints.Any(
-                endpoint => endpoint == _endpoint || endpoint == _proxyEndpoint) ? GetColocatedEndpoint() : null;
-        }
-
-        private Connection GetColocatedConnection()
-        {
-            // TODO: very temporary code
-            var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), new(), default);
-            return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
