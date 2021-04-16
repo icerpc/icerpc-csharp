@@ -5,9 +5,8 @@ using System.Linq;
 
 namespace IceRpc
 {
-    /// <summary>Keeps track of all servers in this process, in order to establish colocated connections.
-    /// </summary>
-    internal static class LocalServerRegistry
+    /// <summary>Keeps track of all servers in this process, in order to establish colocated connections.</summary>
+    internal static class ColocatedServerRegistry
     {
         private static readonly object _mutex = new();
         private static volatile ImmutableList<Server> _serverList = ImmutableList<Server>.Empty;

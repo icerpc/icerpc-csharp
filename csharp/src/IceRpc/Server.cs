@@ -290,7 +290,7 @@ namespace IceRpc
 
                 if (IsDiscoverable)
                 {
-                    LocalServerRegistry.RegisterServer(this);
+                    ColocatedServerRegistry.RegisterServer(this);
                 }
 
                 // TODO: remove
@@ -345,7 +345,7 @@ namespace IceRpc
                     Logger.LogServerShuttingDown(this);
 
                     // No longer available for coloc connections (may not be registered at all).
-                    LocalServerRegistry.UnregisterServer(this);
+                    ColocatedServerRegistry.UnregisterServer(this);
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
