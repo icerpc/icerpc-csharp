@@ -362,6 +362,23 @@ namespace IceRpc.Tests.Api
             }
         }
 
+        [Test]
+        public async Task Proxy_InvokeAsync()
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new GreeterService()
+            };
+            _ = server.ListenAndServeAsync();
+
+            IGreeterServicePrx prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
+            IncomingResponseFrame response = await prx.InvokeAsync(request);
+            Assert.AreEqual(ResultType.Success, response.ResultType);
+        }
+
         [TestCase("ice+tcp://host/test")]
         [TestCase("ice:test")]
         [TestCase("test:tcp -h host -p 10000")]
@@ -489,7 +506,7 @@ namespace IceRpc.Tests.Api
         public class GreeterService : IAsyncGreeterService
         {
             public ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
-                throw new NotImplementedException();
+                default;
         }
     }
 }
