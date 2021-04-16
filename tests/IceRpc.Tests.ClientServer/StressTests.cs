@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
             Server = new Server
             {
                 Communicator = Communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
             };

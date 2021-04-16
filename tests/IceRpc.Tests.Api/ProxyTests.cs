@@ -20,7 +20,6 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.Communicator,
                 Dispatcher = new GreeterService()
             };
             server.Listen();

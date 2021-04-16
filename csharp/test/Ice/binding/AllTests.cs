@@ -426,42 +426,42 @@ namespace IceRpc.Test.Binding
 
                 var anyipv4 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("0.0.0.0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
                 var anyipv6 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("::1")
                 };
 
                 var anyipv46 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
                 var anylocalhost = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("localhost")
                 };
 
                 var localipv4 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("127.0.0.1"),
                     PublishedHost = "127.0.0.1"
                 };
 
                 var localipv6 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::1"),
                     PublishedHost = "::1"
                 };
@@ -504,7 +504,7 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::0");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
@@ -546,7 +546,7 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::0");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint,
                         ConnectionOptions = new()
@@ -565,7 +565,7 @@ namespace IceRpc.Test.Binding
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
                         await using var ipv4Server = new Server
                         {
-                            ColocationScope = ColocationScope.None,
+                            IsDiscoverable = false,
                             Communicator = serverCommunicator,
                             Endpoint = ipv4Endpoint
                         };
@@ -592,7 +592,7 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
@@ -603,7 +603,7 @@ namespace IceRpc.Test.Binding
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
                         await using var ipv4Server = new Server
                         {
-                            ColocationScope = ColocationScope.None,
+                            IsDiscoverable = false,
                             Communicator = serverCommunicator,
                             Endpoint = ipv4Endpoint
                         };

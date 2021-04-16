@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     Communicator = communicator,
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Dispatcher = new RetryService(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
                     Protocol = protocol
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new Bidir(),
                 Protocol = Protocol.Ice2,
                 Endpoint = GetTestEndpoint()
@@ -400,7 +400,7 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Communicator = communicator,
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoint = GetTestEndpoint(port: i)
                 }).ToArray();
 
@@ -420,7 +420,7 @@ namespace IceRpc.Tests.ClientServer
             var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 Protocol = protocol
             };

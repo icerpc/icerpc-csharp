@@ -10,22 +10,11 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    // temporary
-    public enum ColocationScope
-    {
-        Process,
-        Communicator,
-        None
-    }
-
     /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
     /// the corresponding responses. A server should be first configured through its properties, then activated with
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IDispatcher, IAsyncDisposable
     {
-        // temporary
-        public ColocationScope ColocationScope { get; set; } = ColocationScope.Communicator;
-
         // temporary
         public Communicator? Communicator { get; set; }
 
@@ -52,6 +41,12 @@ namespace IceRpc
                 UpdateProxyEndpoint();
             }
         }
+
+        /// <summary>Gets or sets whether this server can be discovered for colocated calls. Changing this value after
+        /// calling <see cref="Listen"/> has no effect.</summary>
+        /// <value>True when the server can be discovered for colocated calls; otherwise, false. The default value is
+        /// true.</value>
+        public bool IsDiscoverable { get; set; }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -258,20 +253,21 @@ namespace IceRpc
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
-        /// include the actual port selected by the operating system. This method throws start-up exceptions
-        /// synchronously; for  example, if another server is already listening on the configured endpoint, it throws a
-        /// <see cref="TransportException"/> synchronously.</summary>
-        /// <return>The <see cref="ShutdownComplete"/> task.</return>
+        /// include the actual port selected by the operating system.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
+        /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
+        /// </exception>
         public void Listen()
         {
-            if (_listening)
-            {
-                throw new InvalidOperationException($"'{nameof(Listen)}' was already called on server '{this}'");
-            }
-
             // We lock the mutex because ShutdownAsync can run concurrently.
             lock (_mutex)
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException($"server '{this}' is already listening");
+                }
+
                 if (_shutdownTask != null)
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
@@ -292,18 +288,19 @@ namespace IceRpc
                 // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
                 _listening = true;
 
-                if (ColocationScope != ColocationScope.None)
+                if (IsDiscoverable)
                 {
                     LocalServerRegistry.RegisterServer(this);
                 }
-            }
 
-            if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
-            {
-                Console.Out.WriteLine($"{this} ready");
-            }
+                // TODO: remove
+                if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
+                {
+                    Console.Out.WriteLine($"{this} ready");
+                }
 
-            Logger.LogServerListening(this);
+                Logger.LogServerListening(this);
+            }
         }
 
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
@@ -347,11 +344,8 @@ namespace IceRpc
                 {
                     Logger.LogServerShuttingDown(this);
 
-                    if (ColocationScope != ColocationScope.None)
-                    {
-                        // no longer available for coloc connections.
-                        LocalServerRegistry.UnregisterServer(this);
-                    }
+                    // No longer available for coloc connections (may not be registered at all).
+                    LocalServerRegistry.UnregisterServer(this);
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
@@ -406,13 +400,6 @@ namespace IceRpc
 
         internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
         {
-            Debug.Assert(ColocationScope != ColocationScope.None);
-
-            if (ColocationScope == ColocationScope.Communicator && Communicator != proxy.Communicator)
-            {
-                return null;
-            }
-
             if (proxy.Protocol != Protocol)
             {
                 return null;

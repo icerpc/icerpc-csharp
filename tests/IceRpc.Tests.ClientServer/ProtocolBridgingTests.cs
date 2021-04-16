@@ -99,8 +99,8 @@ namespace IceRpc.Tests.ClientServer
                 new Server
                 {
                     Communicator = _communicator,
-                    ColocationScope = colocated ? ColocationScope.Communicator : ColocationScope.None,
                     Endpoint = colocated ? "" : GetTestEndpoint(port: port, protocol: protocol),
+                    IsDiscoverable = !colocated,
                     Protocol = protocol
                 };
         }

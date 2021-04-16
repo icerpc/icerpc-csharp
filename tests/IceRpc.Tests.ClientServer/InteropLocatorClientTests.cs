@@ -28,7 +28,7 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Communicator = _communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = router,
                 Endpoint = "tcp -h 127.0.0.1 -p 0"
             };

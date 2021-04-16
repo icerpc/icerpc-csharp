@@ -29,7 +29,6 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server()
             {
                 Communicator = _communicator,
-                ColocationScope = ColocationScope.Communicator,
                 Dispatcher = router
             };
 
