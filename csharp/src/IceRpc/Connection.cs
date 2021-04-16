@@ -620,36 +620,38 @@ namespace IceRpc
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
                 Server? server = _server;
-                if (server == null)
-                {
-                    if (stream.IsBidirectional)
-                    {
-                        response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
-                    }
-                }
-                else
-                {
-                    // Dispatch the request and get the response
-                    var current = new Current(server, request, stream, this);
-                    IDispatcher dispatcher = server;
 
-                    response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
+                try
+                {
+                    if (server == null)
+                    {
+                        if (stream.IsBidirectional)
+                        {
+                            response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
+                        }
+                    }
+                    else
+                    {
+                        // Dispatch the request and get the response
+                        var current = new Current(server, request, stream, this);
+                        IDispatcher dispatcher = server;
+
+                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
+                    }
+
+                    cancel.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException ex)
+                {
+                    // No need to send the response if the dispatch is canceled by the client.
+                    // TODO: add log specific to this situation
+
+                    Debug.Assert(cancel.IsCancellationRequested);
+                    Socket.Logger.LogDispatchException(request, ex);
+                    return;
                 }
 
-                // No need to send the response if the dispatch is canceled.
-                if (cancel.IsCancellationRequested)
-                {
-                    try
-                    {
-                        cancel.ThrowIfCancellationRequested();
-                    }
-                    catch (Exception ex)
-                    {
-                        Socket.Logger.LogDispatchException(request, ex);
-                        return;
-                    }
-                }
-                else if (stream.IsBidirectional)
+                if (stream.IsBidirectional)
                 {
                     Debug.Assert(response != null);
                     try

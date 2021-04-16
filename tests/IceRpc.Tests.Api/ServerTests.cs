@@ -217,9 +217,102 @@ namespace IceRpc.Tests.Api
             Assert.Throws<FormatException>(() => new Server { Communicator = communicator, Endpoint = endpoint });
         }
 
+        [Test]
+        // When a client cancels a request, the dispatch is canceled.
+        public async Task Server_RequestCancelAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = service
+            };
+
+            _ = server.ListenAndServeAsync();
+
+            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+
+            using var cancellationSource = new CancellationTokenSource();
+            Task task = proxy.WaitForCancelAsync(cancel: cancellationSource.Token);
+            await service.WaitForCancelInProgress;
+            Assert.IsFalse(task.IsCompleted);
+            cancellationSource.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(async () => await task);
+
+            // Verify service still works
+            Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
+        }
+
+        [Test]
+        // Canceling the cancellation token (source) of ShutdownAsync results in a ServerException when the operation
+        // completes with an OperationCanceledException.
+        public async Task Server_ShutdownCancelAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = service
+            };
+
+            _ = server.ListenAndServeAsync();
+
+            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+
+            Task task = proxy.WaitForCancelAsync();
+            await service.WaitForCancelInProgress;
+
+            using var cancellationSource = new CancellationTokenSource();
+            Task shutdownTask = server.ShutdownAsync(cancellationSource.Token);
+            Assert.IsFalse(task.IsCompleted);
+            Assert.IsFalse(shutdownTask.IsCompleted);
+
+            cancellationSource.Cancel();
+            Assert.ThrowsAsync<ServerException>(async () => await task);
+            Assert.DoesNotThrowAsync(async () => await shutdownTask);
+        }
+
+        [Test]
+        // Like Server_ShutdownCancelAsync, except ShutdownAsync with a canceled token is called by DisposeAsync.
+        public async Task Server_DisposeAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+
+            var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = service
+            };
+
+            _ = server.ListenAndServeAsync();
+
+            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+
+            Task task = proxy.WaitForCancelAsync();
+            await service.WaitForCancelInProgress;
+            Assert.IsFalse(task.IsCompleted);
+            ValueTask disposeTask = server.DisposeAsync();
+            Assert.ThrowsAsync<ServerException>(async () => await task);
+            Assert.DoesNotThrowAsync(async () => await disposeTask);
+        }
+
         private class ProxyTest : IAsyncProxyTest
         {
             internal IProxyTestPrx? Proxy { get; set; }
+
+            internal Task WaitForCancelInProgress => _waitForCancelInProgressSource.Task;
+
+            private TaskCompletionSource<object?> _waitForCancelInProgressSource =
+                new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
+                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
@@ -227,8 +320,16 @@ namespace IceRpc.Tests.Api
                 return default;
             }
 
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
+            public async ValueTask WaitForCancelAsync(Current current, CancellationToken cancel)
+            {
+                Assert.IsTrue(cancel.CanBeCanceled);
+                _waitForCancelInProgressSource.SetResult(null);
+                while (!cancel.IsCancellationRequested)
+                {
+                    await Task.Yield();
+                }
+                cancel.ThrowIfCancellationRequested(); // to make it typical
+            }
         }
     }
 }

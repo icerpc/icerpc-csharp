@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Api
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
         [TestCase(1000, 500)]
-        public async Task InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
+        public void InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
         {
             DateTime dispatchDeadline = DateTime.UtcNow;
             DateTime invocationDeadline = DateTime.UtcNow;
@@ -59,14 +59,10 @@ namespace IceRpc.Tests.Api
                         return await next(target, request, cancel);
                     });
 
-            // Establish a connection
-            var connection = await prx.GetConnectionAsync();
-
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.AreEqual(dispatchDeadline, invocationDeadline);
             Assert.IsTrue(dispatchDeadline >= expectedDeadline);
-            Assert.AreEqual(connection, await prx.GetConnectionAsync());
         }
 
         public class TestService : IAsyncGreeterService
