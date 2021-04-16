@@ -30,13 +30,13 @@ namespace IceRpc.Tests
                 $"{transport} -h {EscapeIPv6Address(host, protocol)} -p {port}";
 
         public static string GetTestProxy(
-            string identity,
+            string path,
             string host = "127.0.0.1",
             int port = 0,
             string transport = "tcp",
             Protocol protocol = Protocol.Ice2) =>
             protocol == Protocol.Ice2 ?
-                $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}/{identity}" :
-                $"{identity}:{transport} -h {EscapeIPv6Address(host, protocol)} -p {port}";
+                $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}{path}" :
+                $"{path}:{transport} -h {EscapeIPv6Address(host, protocol)} -p {port}";
     }
 }

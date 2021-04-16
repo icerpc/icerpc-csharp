@@ -104,6 +104,8 @@ namespace IceRpc
 
         private static ulong _counter; // used to generate names for servers without endpoints
 
+        private readonly CancellationTokenSource _cancelDispatchSource = new();
+
         private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
         private readonly string _colocatedName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
@@ -182,8 +184,7 @@ namespace IceRpc
         /// <param name="current">The request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        /// <remarks>This method is called by the IceRPC transport code when it receives a request. It does not throw
-        /// any exception, synchronously or asynchronously.</remarks>
+        /// <remarks>This method is called by the IceRPC connection code when it receives a request.</remarks>
         async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
         {
             // temporary
@@ -200,18 +201,35 @@ namespace IceRpc
 
             if (Dispatcher is IDispatcher dispatcher)
             {
+                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
+                // source/token that combines cancel and the server's own cancellation token.
+                using var combinedSource =
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancelDispatchSource.Token);
+
                 try
                 {
-                    return await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
+                    return await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+                {
+                    // the client requested the cancellation, we let it propagate and don't log it.
+                    throw;
                 }
                 catch (Exception ex)
                 {
+                    if (ex is OperationCanceledException && _cancelDispatchSource.Token.IsCancellationRequested)
+                    {
+                        // Replace exception
+                        ex = new ServerException("dispatch canceled by server shutdown");
+                    }
+                    // else it's another OperationCanceledException that the implementation should have caught, and it
+                    // will become an UnhandledException below.
+
                     if (current.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
                         // TODO: use a server event for this logging?
                         Logger.LogDispatchException(current.IncomingRequestFrame, ex);
-
                         return OutgoingResponseFrame.WithVoidReturnValue(current);
                     }
                     else
@@ -245,10 +263,8 @@ namespace IceRpc
         /// include the actual port selected by the operating system. This method throws start-up exceptions
         /// synchronously; for  example, if another server is already listening on the configured endpoint, it throws a
         /// <see cref="TransportException"/> synchronously.</summary>
-        /// <param name="cancel">The cancellation token. If the caller cancels this token, the server calls
-        /// <see cref="ShutdownAsync"/> with this cancellation token.</param>
-        /// <return>A task that completes once <see cref="ShutdownComplete"/> is complete.</return>
-        public Task ListenAndServeAsync(CancellationToken cancel = default)
+        /// <return>The <see cref="ShutdownComplete"/> task.</return>
+        public Task ListenAndServeAsync()
         {
             if (_serving)
             {
@@ -256,7 +272,7 @@ namespace IceRpc
                     $"'{nameof(ListenAndServeAsync)}' was already called on server '{this}'");
             }
 
-            // We lock the mutex because it's ok for ShutdownAsync to be called concurrently.
+            // We lock the mutex because ShutdownAsync can run concurrently.
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -291,32 +307,18 @@ namespace IceRpc
             }
 
             Logger.LogServerListeningAndServing(this);
-
-            return WaitForShutdownAsync(cancel);
-
-            async Task WaitForShutdownAsync(CancellationToken cancel)
-            {
-                try
-                {
-                    await ShutdownComplete.WaitAsync(cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Request "quick" shutdown that completes as soon as possible by canceling everything it can.
-                    _ = ShutdownAsync(cancel);
-                    await ShutdownComplete.ConfigureAwait(false);
-                }
-            }
+            return ShutdownComplete;
         }
 
-        /// <summary>Shuts down this server. Once shut down, a server is disposed and can no longer be used. This method
-        /// can be safely called multiple times, including from multiple threads, and always returns the same task.
-        /// </summary>
-        /// <param name="_">The cancellation token. If the caller cancels this token, this method completes as
-        /// quickly as possible by cancelling outstanding requests and closing connections without waiting.</param>
+        /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
+        /// outstanding dispatches to complete and gracefully closes all its incoming connections. Once shut down, a
+        /// server is disposed and can no longer be used. This method can be safely called multiple times, including
+        /// from multiple threads.</summary>
+        /// <param name="cancel">The cancellation token. When this token is canceled, the cancellation token of all
+        /// outstanding dispatches is canceled, which can speed up the shutdown provided the operation implementations
+        /// check their cancellation tokens.</param>
         /// <return>A task that completes once the shutdown is complete.</return>
-        // TODO: implement cancellation
-        public Task ShutdownAsync(CancellationToken _ = default)
+        public async Task ShutdownAsync(CancellationToken cancel = default)
         {
             // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
             // synchronously) after releasing the lock.
@@ -324,7 +326,24 @@ namespace IceRpc
             {
                 _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
             }
-            return _shutdownTask.Value;
+
+            try
+            {
+                await _shutdownTask.Value.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    // When the caller requests cancellation, we signal _cancelDispatchSource.
+                    _cancelDispatchSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignored, can occur with multiple / concurrent calls to ShutdownAsync/DisposeAsync
+                }
+                await _shutdownTask.Value.ConfigureAwait(false);
+            }
 
             async Task PerformShutdownAsync()
             {
@@ -342,17 +361,10 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task? colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync();
-                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
+                    Task colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
-                    if (colocShutdownTask != null && incomingShutdownTask != null)
-                    {
-                        await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
-                    }
-                    else if (colocShutdownTask != null || incomingShutdownTask != null)
-                    {
-                        await (colocShutdownTask ?? incomingShutdownTask)!.ConfigureAwait(false);
-                    }
+                    await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -370,7 +382,11 @@ namespace IceRpc
         public override string ToString() => _endpoint?.ToString() ?? _colocatedName;
 
         /// <inheritdoc/>
-        public ValueTask DisposeAsync() => new(ShutdownAsync());
+        public async ValueTask DisposeAsync()
+        {
+            await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+            _cancelDispatchSource.Dispose();
+        }
 
         internal Endpoint GetColocatedEndpoint()
         {

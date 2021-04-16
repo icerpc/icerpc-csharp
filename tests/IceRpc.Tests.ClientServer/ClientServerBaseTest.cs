@@ -30,11 +30,11 @@ namespace IceRpc.Tests.ClientServer
         public int GetTestPort(int num) => _basePort + num;
 
         public string GetTestProxy(
-            string identity,
+            string path,
             string host = "127.0.0.1",
             int port = 0,
             string transport = "tcp",
             Protocol protocol = Protocol.Ice2) =>
-            TestHelper.GetTestProxy(identity, host, GetTestPort(port), transport, protocol);
+            TestHelper.GetTestProxy(path, host, GetTestPort(port), transport, protocol);
     }
 }
