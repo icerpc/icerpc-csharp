@@ -422,7 +422,7 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1"), clientCommunicator);
             prx.NonSecure = NonSecure.Never;

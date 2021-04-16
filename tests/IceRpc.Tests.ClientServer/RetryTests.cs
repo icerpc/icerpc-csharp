@@ -63,7 +63,7 @@ namespace IceRpc.Tests.ClientServer
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
                     Protocol = protocol
                 };
-                _ = server.ListenAndServeAsync();
+                server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
             }
         }
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.ClientServer
                 Protocol = Protocol.Ice2,
                 Endpoint = GetTestEndpoint()
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
 
@@ -247,7 +247,7 @@ namespace IceRpc.Tests.ClientServer
                                 return await next.DispatchAsync(current, cancel);
                             }));
                         servers[i].Dispatcher = routers[i];
-                        _ = servers[i].ListenAndServeAsync();
+                        servers[i].Listen();
                     }
 
                     routers[0].Map("/replicated", new Replicated(fail: true));
@@ -297,7 +297,7 @@ namespace IceRpc.Tests.ClientServer
                     for (int i = 0; i < servers.Length; ++i)
                     {
                         servers[i].Dispatcher = routers[i];
-                        _ = servers[i].ListenAndServeAsync();
+                        servers[i].Listen();
                     }
                     var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 0), communicator);
                     var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 1), communicator);
@@ -434,7 +434,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
             router.Map("/retry", service);
             server.Dispatcher = router;
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), communicator);
             await closure(service, retry);
         }

@@ -38,7 +38,7 @@ namespace IceRpc.Tests.CodeGeneration
             _prx3 = _server.CreateRelativeProxy<Scope.Inner.Inner2.IOperationsPrx>("/test3");
             _prx4 = _server.CreateRelativeProxy<Scope.Inner.Test.Inner2.IOperationsPrx>("/test4");
 
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
         }
 

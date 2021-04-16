@@ -28,7 +28,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = new Operations(),
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
             _prx = _server.CreateRelativeProxy<IOperationsPrx>("/test");
             _derivedPrx = _prx.As<IDerivedOperationsPrx>();

@@ -33,9 +33,9 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = "tcp -h 127.0.0.1 -p 0"
             };
 
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
-            // Must be created after ListenAndServeAsync to get the port number.
+            // Must be created after Listen to get the port number.
             _greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
         }
 

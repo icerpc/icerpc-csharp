@@ -10,14 +10,14 @@ namespace IceRpc
     internal static class ServerLoggerExtensions
     {
         private const int BaseEventId = LoggerExtensions.ServerBaseEventId;
-        private const int ServerListeningAndServing = BaseEventId + 0;
+        private const int ServerListening = BaseEventId + 0;
         private const int ServerShuttingDown = BaseEventId + 1;
         private const int ServerShutdownComplete = BaseEventId + 2;
 
-        private static readonly Action<ILogger, Server, Exception> _serverListeningAndServing =
+        private static readonly Action<ILogger, Server, Exception> _serverListening =
             LoggerMessage.Define<Server>(
                 LogLevel.Information,
-                new EventId(ServerListeningAndServing, nameof(ServerListeningAndServing)),
+                new EventId(ServerListening, nameof(ServerListening)),
                 "server '{Name}' is now listening and serving clients");
 
         private static readonly Action<ILogger, Server, Exception> _serverShuttingDown =
@@ -32,8 +32,8 @@ namespace IceRpc
                 new EventId(ServerShutdownComplete, nameof(ServerShutdownComplete)),
                 "server '{Name}' completed its shutdown");
 
-        internal static void LogServerListeningAndServing(this ILogger logger, Server server) =>
-            _serverListeningAndServing(logger, server, null!);
+        internal static void LogServerListening(this ILogger logger, Server server) =>
+            _serverListening(logger, server, null!);
 
         internal static void LogServerShuttingDown(this ILogger logger, Server server) =>
             _serverShuttingDown(logger, server, null!);

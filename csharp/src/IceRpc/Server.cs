@@ -20,7 +20,7 @@ namespace IceRpc
 
     /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
     /// the corresponding responses. A server should be first configured through its properties, then activated with
-    /// <see cref="ListenAndServeAsync"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
+    /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IDispatcher, IAsyncDisposable
     {
         // temporary
@@ -115,6 +115,7 @@ namespace IceRpc
         private ILoggerFactory? _loggerFactory;
 
         private IncomingConnectionFactory? _incomingConnectionFactory;
+        private bool _listening;
 
         // protects _shutdownTask
         private readonly object _mutex = new();
@@ -122,8 +123,6 @@ namespace IceRpc
         private Endpoint? _proxyEndpoint;
 
         private string _proxyHost = "localhost"; // temporary default
-
-        private bool _serving;
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -190,11 +189,10 @@ namespace IceRpc
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
-            if (!_serving)
+            if (!_listening)
             {
                 var ex = new UnhandledException(
-                    new InvalidOperationException(
-                        $"call {nameof(ListenAndServeAsync)} before dispatching colocated requests"));
+                    new InvalidOperationException($"call {nameof(Listen)} before dispatching colocated requests"));
 
                 return new OutgoingResponseFrame(current.IncomingRequestFrame, ex);
             }
@@ -264,12 +262,11 @@ namespace IceRpc
         /// synchronously; for  example, if another server is already listening on the configured endpoint, it throws a
         /// <see cref="TransportException"/> synchronously.</summary>
         /// <return>The <see cref="ShutdownComplete"/> task.</return>
-        public Task ListenAndServeAsync()
+        public void Listen()
         {
-            if (_serving)
+            if (_listening)
             {
-                throw new InvalidOperationException(
-                    $"'{nameof(ListenAndServeAsync)}' was already called on server '{this}'");
+                throw new InvalidOperationException($"'{nameof(Listen)}' was already called on server '{this}'");
             }
 
             // We lock the mutex because ShutdownAsync can run concurrently.
@@ -290,8 +287,10 @@ namespace IceRpc
                     UpdateProxyEndpoint();
 
                     _incomingConnectionFactory.Activate();
-                    _serving = true;
                 }
+
+                // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
+                _listening = true;
 
                 if (ColocationScope != ColocationScope.None)
                 {
@@ -299,15 +298,12 @@ namespace IceRpc
                 }
             }
 
-            _serving = true;
-
             if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
             {
                 Console.Out.WriteLine($"{this} ready");
             }
 
-            Logger.LogServerListeningAndServing(this);
-            return ShutdownComplete;
+            Logger.LogServerListening(this);
         }
 
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all

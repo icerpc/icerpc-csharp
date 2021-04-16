@@ -29,7 +29,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = new DictionaryOperations(),
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _prx = _server.CreateRelativeProxy<IDictionaryOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }

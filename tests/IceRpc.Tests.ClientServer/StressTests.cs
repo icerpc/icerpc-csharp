@@ -38,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
             };
             Prx = Server.CreateRelativeProxy<IStressTestServicePrx>("/test");
-            _ = Server.ListenAndServeAsync();
+            Server.Listen();
         }
 
         [TearDown]

@@ -21,7 +21,7 @@ namespace IceRpc.Test.AMI
                 Endpoint = GetTestEndpoint(0)
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             await AllTests.RunAsync(this, true);
         }

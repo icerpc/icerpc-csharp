@@ -108,7 +108,7 @@ public class Client : TestHelper
             Dispatcher = router
         };
 
-        _ = server.ListenAndServeAsync();
+        server.Listen();
 
         Output.Write("testing operation name... ");
         Output.Flush();

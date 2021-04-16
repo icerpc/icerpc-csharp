@@ -69,9 +69,9 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
             };
 
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
-            // Need to create proxy after calling ListenAndServeAsync; otherwise, the port number is still 0.
+            // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
 
             Assert.AreNotEqual(0, greeter.Endpoints[0].Port);

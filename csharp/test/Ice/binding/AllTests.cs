@@ -480,7 +480,7 @@ namespace IceRpc.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     await using var oa = new Server(serverCommunicator, p);
-                    oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     IServicePrx prx = IServicePrx.Factory.Create(oa, "/dummy");
                     try
@@ -508,7 +508,7 @@ namespace IceRpc.Test.Binding
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     Console.Out.Flush();
 
@@ -520,7 +520,7 @@ namespace IceRpc.Test.Binding
                             Endpoint = getEndpoint("0.0.0.0")
                         };
 
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -558,7 +558,7 @@ namespace IceRpc.Test.Binding
                         }
                     };
 
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
@@ -570,7 +570,7 @@ namespace IceRpc.Test.Binding
                             Endpoint = ipv4Endpoint
                         };
 
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                     }
 
                     try
@@ -596,7 +596,7 @@ namespace IceRpc.Test.Binding
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     try
                     {
@@ -607,7 +607,7 @@ namespace IceRpc.Test.Binding
                             Communicator = serverCommunicator,
                             Endpoint = ipv4Endpoint
                         };
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

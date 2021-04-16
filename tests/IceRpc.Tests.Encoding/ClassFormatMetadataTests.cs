@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Encoding
                 Communicator = _communicator,
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _prx1 = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
             _prx2 = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
             _prx3 = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
