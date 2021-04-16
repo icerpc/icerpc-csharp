@@ -103,10 +103,6 @@ namespace IceRpc
         public static readonly InputStreamReader<ulong> IceReaderIntoVarULong =
             istr => istr.ReadVarULong();
 
-        /// <summary>The Communicator associated with this stream. It cannot be null when reading a proxy, class, or
-        /// exception.</summary>
-        public Communicator? Communicator => Source?.Communicator ?? Connection?.Communicator;
-
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
@@ -142,6 +138,8 @@ namespace IceRpc
 
         // The byte buffer we are reading.
         private readonly ReadOnlyMemory<byte> _buffer;
+
+        private readonly int _classGraphMaxDepth;
 
         private IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactTypeIdClassFactories;
 
@@ -985,6 +983,9 @@ namespace IceRpc
             Source = source;
             Connection = connection;
             ProxyOptions = proxyOptions;
+
+            // keeping ?? 100 here allows unmarshaling classes with a connection less InputStream
+            _classGraphMaxDepth = source?.Connection?.ClassGraphMaxDepth ?? connection?.ClassGraphMaxDepth ?? 100;
 
             Pos = 0;
             _buffer = buffer;
