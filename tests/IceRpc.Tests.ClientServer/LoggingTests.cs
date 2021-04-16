@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(10000)]
+    [Timeout(30000)]
     public class LoggingTests : ClientServerBaseTest
     {
         /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
