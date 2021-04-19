@@ -161,7 +161,7 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>The compression level used when compressing messages send over this connection. The default value
+        /// <summary>The compression level used when compressing messages sent over this connection. The default value
         /// is <see cref="CompressionLevel.Fastest"/>.</summary>
         public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
 
