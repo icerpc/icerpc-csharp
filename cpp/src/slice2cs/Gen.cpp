@@ -1082,7 +1082,7 @@ Slice::CsVisitor::closeNamespace()
     _namespaceStack.pop();
 }
 
-Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const string& dir, bool impl) :
+Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const string& dir) :
     _includePaths(includePaths)
 {
     string fileBase = base;
@@ -1092,12 +1092,10 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
         fileBase = base.substr(pos + 1);
     }
     string file = fileBase + ".cs";
-    string fileImpl = fileBase + "I.cs";
 
     if(!dir.empty())
     {
         file = dir + '/' + file;
-        fileImpl = dir + '/' + fileImpl;
     }
 
     _out.open(file.c_str());
@@ -1124,27 +1122,6 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#pragma warning disable CA1707 // Remove the underscores from member name";
     _out << nl << "#pragma warning disable CA1711 // Identifiers should not have incorrect suffix";
     _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
-    if(impl)
-    {
-        _out << sp;
-        IceUtilInternal::structstat st;
-        if(!IceUtilInternal::stat(fileImpl, &st))
-        {
-            ostringstream os;
-            os << "'" << fileImpl << "' already exists - will not overwrite";
-            throw FileException(__FILE__, __LINE__, os.str());
-        }
-
-        _impl.open(fileImpl.c_str());
-        if(!_impl)
-        {
-            ostringstream os;
-            os << ": cannot open '" << fileImpl << "': " << IceUtilInternal::errorToString(errno);
-            throw FileException(__FILE__, __LINE__, os.str());
-        }
-
-        FileTracker::instance()->addFile(fileImpl);
-    }
 }
 
 Slice::Gen::~Gen()
@@ -1152,10 +1129,6 @@ Slice::Gen::~Gen()
     if(_out.isOpen())
     {
         _out << '\n';
-    }
-    if(_impl.isOpen())
-    {
-        _impl << '\n';
     }
 }
 
@@ -1184,17 +1157,9 @@ Slice::Gen::generate(const UnitPtr& p)
 }
 
 void
-Slice::Gen::generateImpl(const UnitPtr& p)
-{
-    ImplVisitor implVisitor(_impl);
-    p->visit(&implVisitor, false);
-}
-
-void
 Slice::Gen::closeOutput()
 {
     _out.close();
-    _impl.close();
 }
 
 void
@@ -3162,112 +3127,6 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
         writeMarshal(operation, true);
         _out << eb;
     }
-}
-
-Slice::Gen::ImplVisitor::ImplVisitor(IceUtilInternal::Output& out) :
-    CsVisitor(out)
-{
-}
-
-bool
-Slice::Gen::ImplVisitor::visitModuleStart(const ModulePtr& p)
-{
-    if(!p->hasInterfaceDefs())
-    {
-        return false;
-    }
-
-    openNamespace(p);
-    return true;
-}
-
-void
-Slice::Gen::ImplVisitor::visitModuleEnd(const ModulePtr&)
-{
-    closeNamespace();
-}
-
-bool
-Slice::Gen::ImplVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
-{
-    _out << sp << nl << "public class " << p->name() << "I : " << fixId(p->name());
-    _out << sb;
-    return true;
-}
-
-void
-Slice::Gen::ImplVisitor::visitOperation(const OperationPtr& op)
-{
-    InterfaceDefPtr interface = op->interface();
-    string ns = getNamespace(interface);
-    string opName = operationName(op);
-
-    auto returnType = op->returnType();
-
-    _out << sp << nl;
-
-    if(interface->hasMetadata("amd") || op->hasMetadata("amd"))
-    {
-        _out << "public override " << returnTaskStr(op, ns, true) << " " << opName << "Async" << spar
-             << getNames(op->params())
-             << ("IceRpc.Current " + getEscapedParamName(op, "current"))
-             << epar;
-        _out << sb;
-
-        for(const auto& p : returnType)
-        {
-            _out << nl << paramTypeStr(p, true) << " " << paramName(p) << " = " << writeValue(p->type(), ns)
-                << ';';
-        }
-
-        if(returnType.size() == 0)
-        {
-            _out << nl << "global::System.Threading.Tasks.Task.CompletedTask;";
-        }
-        else if(op->hasMarshaledResult() || returnType.size() > 1)
-        {
-            _out << nl << "return new " << opName << (op->hasMarshaledResult() ? "MarshaledResult" : "Result")
-                 << spar << getNames(returnType);
-
-            if(op->hasMarshaledResult())
-            {
-                _out << ("IceRpc.Current " + getEscapedParamName(op, "current"));
-            }
-            _out << epar << ";";
-        }
-        else
-        {
-            _out << nl << "return " << paramName(returnType.front()) << ";";
-        }
-        _out << eb;
-    }
-    else
-    {
-        _out << "public override " << returnTypeStr(op, ns, true) << " " << opName << spar
-             << getNames(op->params())
-             << ("IceRpc.Current " + getEscapedParamName(op, "current"))
-             << epar;
-        _out << sb;
-
-        if(op->hasMarshaledResult())
-        {
-            _out << nl << "return new " << opName << "MarshaledResult"
-                 << spar << getNames(returnType)
-                 << ("IceRpc.Current " + getEscapedParamName(op, "current"))
-                 << epar << ";";
-        }
-        else
-        {
-            // TODO: return tuple!
-        }
-        _out << eb;
-    }
-}
-
-void
-Slice::Gen::ImplVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
-{
-    _out << eb;
 }
 
 Slice::Gen::ClassAttributeVisitor::ClassAttributeVisitor(IceUtilInternal::Output& out) :
