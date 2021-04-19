@@ -43,11 +43,11 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(5, logEntries.Count);
             foreach (JsonDocument entry in logEntries)
             {
-                Assert.AreEqual(GetEventId(entry) != 139 ? "Debug" : "Information", GetLogLevel(entry));
+                Assert.AreEqual(GetEventId(entry) != 138 ? "Debug" : "Information", GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 JsonElement[] scopes = GetScopes(entry);
                 Assert.That(scopes, Is.Empty);
-                Assert.That(GetEventId(entry) == 139 || GetEventId(entry) == 141, Is.True);
+                Assert.That(GetEventId(entry) == 138 || GetEventId(entry) == 140, Is.True);
             }
         }
 
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
             Assert.That(scopes, Is.Empty);
-            Assert.That(GetEventId(entry), Is.EqualTo(139));
+            Assert.That(GetEventId(entry), Is.EqualTo(138));
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -146,7 +146,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckStreamScope(scopes[2]);
                         break;
                     }
-                    case 146:
+                    case 145:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -165,10 +165,10 @@ namespace IceRpc.Tests.ClientServer
                         CheckClientSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
                         // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 146);
+                        CollectionAssert.Contains(events, 145);
                         break;
                     }
-                    case 147:
+                    case 146:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));

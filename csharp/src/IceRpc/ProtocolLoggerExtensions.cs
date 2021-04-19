@@ -9,8 +9,6 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
-        // TODO: eliminate gaps in event IDs below.
-
         private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
 
         private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
@@ -25,16 +23,16 @@ namespace IceRpc
         private const int ReceivedInitializeFrame = BaseEventId + 7;
         private const int ReceivedRequestFrame = BaseEventId + 8;
         private const int ReceivedResponseFrame = BaseEventId + 9;
-        private const int RequestException = BaseEventId + 11;
-        private const int RetryRequestRetryableException = BaseEventId + 12;
-        private const int RetryRetryConnectionException = BaseEventId + 13;
+        private const int RequestException = BaseEventId + 10;
+        private const int RetryRequestRetryableException = BaseEventId + 11;
+        private const int RetryRetryConnectionException = BaseEventId + 12;
 
-        private const int SentIce1ValidateConnectionFrame = BaseEventId + 14;
-        private const int SentIce1CloseConnectionFrame = BaseEventId + 15;
-        private const int SentGoAwayFrame = BaseEventId + 16;
-        private const int SentInitializeFrame = BaseEventId + 17;
-        private const int SentRequestFrame = BaseEventId + 18;
-        private const int SentResponseFrame = BaseEventId + 19;
+        private const int SentIce1ValidateConnectionFrame = BaseEventId + 13;
+        private const int SentIce1CloseConnectionFrame = BaseEventId + 14;
+        private const int SentGoAwayFrame = BaseEventId + 15;
+        private const int SentInitializeFrame = BaseEventId + 16;
+        private const int SentRequestFrame = BaseEventId + 17;
+        private const int SentResponseFrame = BaseEventId + 18;
 
         private static readonly Action<ILogger, int, Exception> _datagramMaximumSizeExceeded =
             LoggerMessage.Define<int>(
