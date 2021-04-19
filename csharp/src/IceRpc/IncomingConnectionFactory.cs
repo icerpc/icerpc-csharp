@@ -205,5 +205,5 @@ namespace IceRpc
         }
 
         internal override Task ShutdownAsync() => _connection.GoAwayAsync($"server shutdown");
-     }
+    }
 }

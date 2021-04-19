@@ -256,7 +256,7 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -d option in '{s}'");
                         }
-                        proxyOptions.IsOneway = true;;
+                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'D':
@@ -265,7 +265,7 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -D option in '{s}'");
                         }
-                        proxyOptions.IsOneway = true;;
+                        proxyOptions.IsOneway = true;
                         break;
 
                     case 's':

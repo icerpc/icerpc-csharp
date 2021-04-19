@@ -37,7 +37,7 @@ namespace IceRpc.Test.Binding
                         ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
                     };
 
-                    _ = server.ListenAndServeAsync();
+                    server.Listen();
 
                     return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
                 }
@@ -64,7 +64,7 @@ namespace IceRpc.Test.Binding
                 Endpoint = endpoints
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
         }
 

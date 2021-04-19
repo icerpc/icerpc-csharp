@@ -43,11 +43,11 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(5, logEntries.Count);
             foreach (JsonDocument entry in logEntries)
             {
-                Assert.AreEqual(GetEventId(entry) != 139 ? "Debug" : "Information", GetLogLevel(entry));
+                Assert.AreEqual(GetEventId(entry) != 138 ? "Debug" : "Information", GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 JsonElement[] scopes = GetScopes(entry);
                 Assert.That(scopes, Is.Empty);
-                Assert.That(GetEventId(entry) == 139 || GetEventId(entry) == 141, Is.True);
+                Assert.That(GetEventId(entry) == 138 || GetEventId(entry) == 140, Is.True);
             }
         }
 
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
             Assert.That(scopes, Is.Empty);
-            Assert.That(GetEventId(entry), Is.EqualTo(139));
+            Assert.That(GetEventId(entry), Is.EqualTo(138));
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
             await using var server = CreateServer(communicator, colocated, portNumber: 1);
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IServicePrx service = colocated ?
                 server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
@@ -116,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using Server server = CreateServer(communicator, colocated, portNumber: 2);
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IServicePrx service = colocated ?
                 server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
@@ -146,7 +146,7 @@ namespace IceRpc.Tests.ClientServer
                         CheckStreamScope(scopes[2]);
                         break;
                     }
-                    case 146:
+                    case 145:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -165,10 +165,10 @@ namespace IceRpc.Tests.ClientServer
                         CheckClientSocketScope(scopes[0], colocated);
                         CheckStreamScope(scopes[1]);
                         // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 146);
+                        CollectionAssert.Contains(events, 145);
                         break;
                     }
-                    case 147:
+                    case 146:
                     {
                         Assert.AreEqual("IceRpc", GetCategory(entry));
                         Assert.AreEqual("Information", GetLogLevel(entry));
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.ClientServer
 
             new Server
             {
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)

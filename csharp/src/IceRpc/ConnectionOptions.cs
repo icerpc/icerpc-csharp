@@ -149,6 +149,15 @@ namespace IceRpc
                     nameof(value));
         }
 
+        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
+        /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
+        /// <value>The maximum depth for a graph of Slice class instances to unmarshal.</value>
+        public int ClassGraphMaxDepth
+        {
+            get => _classGraphMaxDepth;
+            set => _classGraphMaxDepth = value < 1 ? int.MaxValue : value;
+        }
+
         /// <summary>The connection close timeout. This timeout is used when gracefully closing a connection to
         /// wait for the peer connection closure. If the peer doesn't close its side of the connection within the
         /// timeout timeframe, the connection is forcefully closed. It can't be 0 and the default value is 10s.
@@ -226,6 +235,7 @@ namespace IceRpc
         }
 
         private int _bidirectionalStreamMaxCount = 100;
+        private int _classGraphMaxDepth = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private int _compressionMinSize = 100;
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);

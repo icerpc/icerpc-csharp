@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Encoding
             {
                 Communicator = _communicator
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
         }
 
         [TearDown]

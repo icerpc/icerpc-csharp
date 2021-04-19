@@ -78,18 +78,15 @@ public:
 
     Gen(const std::string&,
         const std::vector<std::string>&,
-        const std::string&,
-        bool);
+        const std::string&);
     ~Gen();
 
     void generate(const UnitPtr&);
-    void generateImpl(const UnitPtr&);
     void closeOutput();
 
 private:
 
     IceUtilInternal::Output _out;
-    IceUtilInternal::Output _impl;
     std::vector<std::string> _includePaths;
 
     void printHeader();
@@ -166,19 +163,6 @@ private:
     private:
 
         const bool _generateAllAsync;
-    };
-
-    class ImplVisitor : public CsVisitor
-    {
-    public:
-
-        ImplVisitor(::IceUtilInternal::Output&);
-
-        bool visitModuleStart(const ModulePtr&) override;
-        void visitModuleEnd(const ModulePtr&) override;
-        bool visitInterfaceDefStart(const InterfaceDefPtr&) override;
-        void visitInterfaceDefEnd(const InterfaceDefPtr&) override;
-        void visitOperation(const OperationPtr&) override;
     };
 
     class ClassAttributeVisitor : public CsVisitor

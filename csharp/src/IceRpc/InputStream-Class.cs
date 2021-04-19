@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -404,8 +403,7 @@ namespace IceRpc
                 throw new InvalidDataException($"could not find index {index} in {nameof(_instanceMap)}");
             }
 
-            // TODO temporary code until Communicator is removed
-            if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
+            if (++_classGraphDepth > _classGraphMaxDepth)
             {
                 throw new InvalidDataException("maximum class graph depth reached");
             }
@@ -712,8 +710,7 @@ namespace IceRpc
                 }
                 if (index == 1)
                 {
-                    // TODO temporary code until Communicator is removed
-                    if (++_classGraphDepth > (Communicator?.ClassGraphMaxDepth ?? 100))
+                    if (++_classGraphDepth > _classGraphMaxDepth)
                     {
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
@@ -771,15 +768,7 @@ namespace IceRpc
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            if (Communicator?.Logger is ILogger logger && logger.IsEnabled(LogLevel.Debug))
-            {
-                string printableId = typeId ?? compactId?.ToString() ?? "(none)";
-                string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                logger.LogSlicingUnknownType(kind, printableId);
-            }
-
             bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;
-
             byte[] bytes;
             int bytesCopied;
             if (hasTaggedMembers)

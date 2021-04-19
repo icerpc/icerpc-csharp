@@ -20,10 +20,9 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.Communicator,
                 Dispatcher = new GreeterService()
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             IGreeterServicePrx? prx = server.CreateRelativeProxy<IGreeterServicePrx>("/test");
 
             await prx.IcePingAsync();
@@ -425,7 +424,7 @@ namespace IceRpc.Tests.Api
                 Communicator = communicator,
                 Dispatcher = new GreeterService()
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IGreeterServicePrx prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
             OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);

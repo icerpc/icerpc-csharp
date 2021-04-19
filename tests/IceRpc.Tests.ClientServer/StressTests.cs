@@ -33,12 +33,12 @@ namespace IceRpc.Tests.ClientServer
             Server = new Server
             {
                 Communicator = Communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
             };
             Prx = Server.CreateRelativeProxy<IStressTestServicePrx>("/test");
-            _ = Server.ListenAndServeAsync();
+            Server.Listen();
         }
 
         [TearDown]

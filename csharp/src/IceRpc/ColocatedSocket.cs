@@ -83,7 +83,7 @@ namespace IceRpc
                             stream.Release();
                         }
                     }
-                    else if(streamId == -1)
+                    else if (streamId == -1)
                     {
                         Debug.Assert(frame == _pingFrame);
                         ReceivedPing();

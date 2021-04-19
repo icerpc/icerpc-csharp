@@ -3,7 +3,6 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -151,7 +150,7 @@ namespace IceRpc.Tests.Internal
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
             int count = 5;
-            while(count-- > 0)
+            while (count-- > 0)
             {
                 try
                 {

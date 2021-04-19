@@ -10,15 +10,15 @@ namespace IceRpc.Tests.Encoding
     [Timeout(30000)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class ClassFormatTests
+    public class ClassTests
     {
         private readonly Communicator _communicator;
         private readonly Server _server;
-        private readonly ISlicedFormatOperationsPrx _prx1;
-        private readonly ICompactFormatOperationsPrx _prx2;
-        private readonly IClassFormatOperationsPrx _prx3;
+        private readonly ISlicedFormatOperationsPrx _sliced;
+        private readonly ICompactFormatOperationsPrx _compact;
+        private readonly IClassFormatOperationsPrx _classformat;
 
-        public ClassFormatTests(Protocol protocol)
+        public ClassTests(Protocol protocol)
         {
             _communicator = new Communicator();
             var router = new Router();
@@ -32,10 +32,10 @@ namespace IceRpc.Tests.Encoding
                 Communicator = _communicator,
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
-            _prx1 = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
-            _prx2 = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
-            _prx3 = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
+            _server.Listen();
+            _sliced = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
+            _compact = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
+            _classformat = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
         }
 
         [OneTimeTearDown]
@@ -46,9 +46,9 @@ namespace IceRpc.Tests.Encoding
         }
 
         [Test]
-        public async Task ClassFormat_Metadata()
+        public async Task Class_FormatMetadata()
         {
-            var prx1 = _prx1.Clone();
+            var prx1 = _sliced.Clone();
             prx1.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                 async (target, request, next, cancel) =>
                 {
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Encoding
                 });
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx2 = _prx2.Clone();
+            var prx2 = _compact.Clone();
             prx2.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                 async (target, request, next, cancel) =>
                 {
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.Encoding
                 });
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx3 = _prx3.Clone();
+            var prx3 = _classformat.Clone();
             prx3.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                 async (target, request, next, cancel) =>
                 {
@@ -185,6 +185,52 @@ namespace IceRpc.Tests.Encoding
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));
         }
 
+        [TestCase(10, 100, 100)]
+        [TestCase(100, 10, 10)]
+        [TestCase(50, 200, 10)]
+        [TestCase(50, 10, 200)]
+        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDeph, int serverClassGraphMaxDeph)
+        {
+            await using var communicator = new Communicator()
+            {
+                ConnectionOptions = new OutgoingConnectionOptions
+                {
+                    ClassGraphMaxDepth = clientClassGraphMaxDeph
+                }
+            };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                ConnectionOptions = new IncomingConnectionOptions()
+                {
+                    ClassGraphMaxDepth = serverClassGraphMaxDeph
+                },
+                Dispatcher = new ClassGraphOperations()
+            };
+            server.Listen();
+
+            var prx = server.CreateRelativeProxy<IClassGraphOperationsPrx>("/classgraph");
+            Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);
+            if (graphSize > clientClassGraphMaxDeph)
+            {
+                Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
+            }
+            else
+            {
+                Assert.DoesNotThrowAsync(async () => await prx.ReceiveClassGraphAsync(graphSize));
+            }
+
+            if (graphSize > serverClassGraphMaxDeph)
+            {
+                Assert.ThrowsAsync<UnhandledException>(
+                    async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));
+            }
+            else
+            {
+                Assert.DoesNotThrowAsync(async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));
+            }
+        }
+
         class CompactFormatOperations : IAsyncCompactFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
@@ -212,6 +258,25 @@ namespace IceRpc.Tests.Encoding
                 MyClassCustomFormat p1,
                 Current current,
                 CancellationToken cancel) => new(p1);
+        }
+
+        class ClassGraphOperations : IAsyncClassGraphOperations
+        {
+            public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Current current, CancellationToken cancel) =>
+                new(CreateClassGraph(size));
+            public ValueTask SendClassGraphAsync(Recursive p1, Current current, CancellationToken cancel) => default;
+        }
+
+        private static Recursive CreateClassGraph(int size)
+        {
+            var root = new Recursive();
+            Recursive next = root;
+            for (int i = 0; i < size; ++i)
+            {
+                next.V = new Recursive();
+                next = next.V;
+            }
+            return root;
         }
     }
 }

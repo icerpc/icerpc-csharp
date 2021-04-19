@@ -23,30 +23,30 @@ namespace IceRpc.Tests.Api
                 };
 
                 // A DNS name cannot be used with a server endpoint
-                Assert.Throws<NotSupportedException>(() => _ = server.ListenAndServeAsync());
+                Assert.Throws<NotSupportedException>(() => server.Listen());
 
                 // ProxyHost can't be empty
                 Assert.Throws<ArgumentException>(() => server.ProxyHost = "");
 
-                Assert.DoesNotThrow(() => _ = server.CreateProxy<IServicePrx>("/foo"));
+                Assert.DoesNotThrow(() => server.CreateProxy<IServicePrx>("/foo"));
                 server.Endpoint = "";
-                Assert.Throws<InvalidOperationException>(() => _ = server.CreateProxy<IServicePrx>("/foo"));
+                Assert.Throws<InvalidOperationException>(() => server.CreateProxy<IServicePrx>("/foo"));
             }
 
             {
-                // ListenAndServeAsync twice is incorrect
+                // Listen twice is incorrect
                 await using var server = new Server { Communicator = communicator };
-                _ = server.ListenAndServeAsync();
-                Assert.Throws<InvalidOperationException>(() => _ = server.ListenAndServeAsync());
+                server.Listen();
+                Assert.Throws<InvalidOperationException>(() => server.Listen());
             }
 
             {
-                // Can't call a colocated service before calling ListenAndServeAsync
+                // Can't call a colocated service before calling Listen
                 await using var server = new Server { Communicator = communicator, Dispatcher = new ProxyTest() };
                 var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/foo");
 
                 Assert.ThrowsAsync<UnhandledException>(async () => await proxy.IcePingAsync());
-                _ = server.ListenAndServeAsync();
+                server.Listen();
                 Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
 
                 // Throws ServiceNotFoundException when Dispatcher is null
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Api
                     Communicator = communicator,
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
-                _ = server1.ListenAndServeAsync();
+                server1.Listen();
 
                 Assert.ThrowsAsync<TransportException>(async () =>
                     {
@@ -77,8 +77,7 @@ namespace IceRpc.Tests.Api
                             Communicator = communicator,
                             Endpoint = "ice+tcp://127.0.0.1:15001"
                         };
-                        _ = server2.ListenAndServeAsync();
-
+                        server2.Listen();
                     });
             }
 
@@ -89,7 +88,7 @@ namespace IceRpc.Tests.Api
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
 
-                _ = server1.ListenAndServeAsync();
+                server1.Listen();
 
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
@@ -118,7 +117,7 @@ namespace IceRpc.Tests.Api
                 ProxyHost = "localhost"
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             Endpoint serverEndpoint = Endpoint.Parse(server.Endpoint);
             Endpoint proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
@@ -185,7 +184,7 @@ namespace IceRpc.Tests.Api
             proxy.Context = new Dictionary<string, string>();
             proxy.InvocationTimeout = TimeSpan.FromSeconds(20);
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             await proxy.SendProxyAsync(proxy);
             // The server always unmarshals the proxy as a fixed proxy
             Assert.IsNotNull(service.Proxy);
@@ -230,7 +229,7 @@ namespace IceRpc.Tests.Api
                 Dispatcher = service
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
 
@@ -260,7 +259,7 @@ namespace IceRpc.Tests.Api
                 Dispatcher = service
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
 
@@ -290,7 +289,7 @@ namespace IceRpc.Tests.Api
                 Dispatcher = service
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
 

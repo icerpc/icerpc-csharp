@@ -37,14 +37,14 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Endpoint = GetTestEndpoint(transport: transport, protocol: protocol),
                 ConnectionOptions = new()
                 {
                     AcceptNonSecure = NonSecure.Always
                 }
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = IConnectionTestPrx.Parse(
                 GetTestProxy("test", transport: transport, protocol: protocol),
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ConnectionOptions = new()
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = IConnectionTestPrx.Parse(GetTestProxy("/test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
@@ -129,12 +129,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             await using var clientCommunicator = new Communicator(
                 connectionOptions: new()
@@ -161,7 +161,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ConnectionOptions = new()
@@ -171,7 +171,7 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = IConnectionTestPrx.Parse(GetTestProxy("/test", protocol: protocol), communicator);
             Connection connection = await prx.GetConnectionAsync();
@@ -212,12 +212,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint()
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             await using var communicator = new Communicator(
                 connectionOptions: new()
@@ -249,13 +249,13 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint()
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             _ = Task.Factory.StartNew(async () => await semaphore.WaitAsync(),
                                       default,
                                       TaskCreationOptions.None,
@@ -284,12 +284,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator1,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(),
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx1 = IConnectionTestPrx.Parse(GetTestProxy("/"), communicator1);
             // No close timeout
@@ -429,12 +429,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             await closure(server, server.CreateProxy<IConnectionTestPrx>("/test"));
         }
 

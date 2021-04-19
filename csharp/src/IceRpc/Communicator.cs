@@ -21,43 +21,6 @@ namespace IceRpc
         /// <summary>The connection options.</summary>
         public OutgoingConnectionOptions ConnectionOptions;
 
-        /// <summary>Each time you send a request without an explicit context parameter, Ice sends automatically the
-        /// per-thread CurrentContext combined with the proxy's context.</summary>
-        public SortedDictionary<string, string> CurrentContext
-        {
-            get
-            {
-                try
-                {
-                    if (_currentContext.IsValueCreated)
-                    {
-                        Debug.Assert(_currentContext.Value != null);
-                        return _currentContext.Value;
-                    }
-                    else
-                    {
-                        _currentContext.Value = new SortedDictionary<string, string>();
-                        return _currentContext.Value;
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    return new SortedDictionary<string, string>();
-                }
-            }
-            set
-            {
-                try
-                {
-                    _currentContext.Value = value;
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    throw new CommunicatorDisposedException(ex);
-                }
-            }
-        }
-
         /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
         /// was not set during communicator construction.</summary>
         public Instrumentation.ICommunicatorObserver? Observer { get; }
@@ -80,7 +43,6 @@ namespace IceRpc
                 }
             }
         }
-        internal int ClassGraphMaxDepth { get; }
 
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
@@ -99,7 +61,6 @@ namespace IceRpc
         private static readonly object _staticMutex = new();
         private readonly CancellationTokenSource _cancellationTokenSource = new();
 
-        private readonly ThreadLocal<SortedDictionary<string, string>> _currentContext = new();
         private Task? _shutdownTask;
 
         private readonly object _mutex = new();
@@ -235,7 +196,7 @@ namespace IceRpc
                 udpOptions.SendBufferSize =
                     this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? udpOptions.SendBufferSize;
             }
-            else if(ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
+            else if (ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
             {
                 tcpOptions.ReceiveBufferSize =
                     this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? tcpOptions.ReceiveBufferSize;
@@ -255,9 +216,6 @@ namespace IceRpc
             InvocationMaxAttempts = Math.Min(InvocationMaxAttempts, 5);
             RetryBufferMaxSize = this.GetPropertyAsByteSize("Ice.RetryBufferMaxSize") ?? 1024 * 1024 * 100;
             RetryRequestMaxSize = this.GetPropertyAsByteSize("Ice.RetryRequestMaxSize") ?? 1024 * 1024;
-
-            int classGraphMaxDepth = this.GetPropertyAsInt("Ice.ClassGraphMaxDepth") ?? 100;
-            ClassGraphMaxDepth = classGraphMaxDepth < 1 ? int.MaxValue : classGraphMaxDepth;
 
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
 
@@ -313,7 +271,6 @@ namespace IceRpc
 
                 // Ensure all the outgoing connections were removed
                 Debug.Assert(_outgoingConnections.Count == 0);
-                _currentContext.Dispose();
                 _cancellationTokenSource.Dispose();
             }
         }

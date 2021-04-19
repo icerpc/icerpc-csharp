@@ -96,8 +96,9 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
-        internal CompressionLevel CompressionLevel;
-        internal int CompressionMinSize;
+        internal CompressionLevel CompressionLevel { get; }
+        internal int CompressionMinSize { get; }
+        internal int ClassGraphMaxDepth { get; }
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -253,6 +254,7 @@ namespace IceRpc
         {
             CompressionLevel = options.CompressionLevel;
             CompressionMinSize = options.CompressionMinSize;
+            ClassGraphMaxDepth = options.ClassGraphMaxDepth;
             Socket = socket;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
@@ -633,6 +635,7 @@ namespace IceRpc
                         if (stream.IsBidirectional)
                         {
                             response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
+                            cancel.ThrowIfCancellationRequested(); // a very rare situation
                         }
                     }
                     else
@@ -643,16 +646,11 @@ namespace IceRpc
 
                         response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
-
-                    cancel.ThrowIfCancellationRequested();
                 }
-                catch (OperationCanceledException ex)
+                catch (OperationCanceledException)
                 {
                     // No need to send the response if the dispatch is canceled by the client.
-                    // TODO: add log specific to this situation
-
                     Debug.Assert(cancel.IsCancellationRequested);
-                    Socket.Logger.LogDispatchException(request, ex);
                     return;
                 }
 

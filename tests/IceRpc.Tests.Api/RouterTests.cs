@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Api
         {
             _communicator = new Communicator();
             _server = new Server { Communicator = _communicator, Dispatcher = _router };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
         }
 
         [Test]

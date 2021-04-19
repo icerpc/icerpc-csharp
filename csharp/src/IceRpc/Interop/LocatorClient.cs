@@ -135,8 +135,8 @@ namespace IceRpc.Interop
 
             if (endpoints.Count == 0 || (!_background && expired) || (refreshCache && !justRefreshed))
             {
-               endpoints = await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
-               resolved = true;
+                endpoints = await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
+                resolved = true;
             }
             else if (_background && expired)
             {

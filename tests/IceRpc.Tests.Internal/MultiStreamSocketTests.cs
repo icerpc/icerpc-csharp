@@ -62,7 +62,8 @@ namespace IceRpc.Tests.Internal
             var clientStream = ClientSocket.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            (var clientBidirectional, var clientUnidirectional) = ClientSocket.AbortStreams(ex, stream => {
+            (var clientBidirectional, var clientUnidirectional) = ClientSocket.AbortStreams(ex, stream =>
+            {
                 Assert.AreEqual(stream, clientStream);
                 return true; // Abort the stream
             });
@@ -593,7 +594,8 @@ namespace IceRpc.Tests.Internal
                 Assert.AreEqual(expectedCount, peerSocket.IncomingStreamCount);
 
                 await task;
-                return () => {
+                return () =>
+                {
                     clientStream.Release();
                     Assert.AreEqual(expectedCount - 1, socket.OutgoingStreamCount);
 

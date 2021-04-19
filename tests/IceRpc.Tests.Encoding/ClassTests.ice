@@ -26,4 +26,15 @@ module IceRpc::Tests::Encoding
         MyClassCustomFormat OpMyClass(MyClassCustomFormat p1);
         [format(sliced)] MyClassCustomFormat OpMyClassSlicedFormat(MyClassCustomFormat p1);
     }
+
+    class Recursive
+    {
+        Recursive? v;
+    }
+
+    interface ClassGraphOperations
+    {
+        void sendClassGraph(Recursive p1);
+        Recursive receiveClassGraph(int size);
+    }
 }

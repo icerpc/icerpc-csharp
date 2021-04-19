@@ -70,7 +70,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_With_ValidationCallback(string clientCertFile, string serverCertFile)
         {
             bool clientValidationCallbackCalled = false;
-            await using var clientCommunicator = new Communicator(connectionOptions : new()
+            await using var clientCommunicator = new Communicator(connectionOptions: new()
             {
                 AuthenticationOptions = new()
                 {
@@ -412,7 +412,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Dispatcher = new GreeterTestService(),
                 Endpoint = GetTestEndpoint(serverHost),
                 ConnectionOptions = new()
@@ -422,7 +422,7 @@ namespace IceRpc.Tests.ClientServer
                 }
             };
 
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1"), clientCommunicator);
             prx.NonSecure = NonSecure.Never;

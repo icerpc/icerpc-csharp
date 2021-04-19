@@ -66,7 +66,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             server.Dispatcher = router;
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             router.Map("/compress", new CompressService());
             ICompressServicePrx prx = server.CreateRelativeProxy<ICompressServicePrx>("/compress");

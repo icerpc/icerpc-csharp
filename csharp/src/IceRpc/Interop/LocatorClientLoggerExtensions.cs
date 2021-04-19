@@ -133,7 +133,7 @@ namespace IceRpc.Interop
             string location,
             string? category,
             IReadOnlyList<Endpoint> endpoints)
-         {
+        {
             if (category == null)
             {
                 _foundAdapterEntryInCache(logger, location, endpoints, null!);
