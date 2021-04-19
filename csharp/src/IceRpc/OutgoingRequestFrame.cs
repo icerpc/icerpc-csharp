@@ -349,8 +349,9 @@ namespace IceRpc
             IReadOnlyDictionary<string, string>? context,
             CancellationToken cancel)
             : base(proxy.Protocol,
-                   proxy.Communicator.CompressionLevel,
-                   proxy.Communicator.CompressionMinSize)
+                   // TODO if Connection is null there should be a ConnectionPool to read the settings from
+                   proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
+                   proxy.Connection?.CompressionMinSize ?? 100)
         {
             if (Protocol == Protocol.Ice1)
             {

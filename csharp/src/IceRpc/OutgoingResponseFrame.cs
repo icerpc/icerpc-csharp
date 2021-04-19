@@ -404,8 +404,8 @@ namespace IceRpc
         {
             var response = new OutgoingResponseFrame(current.Protocol,
                                                      current.Encoding,
-                                                     current.Communicator.CompressionLevel,
-                                                     current.Communicator.CompressionMinSize);
+                                                     current.Connection.CompressionLevel,
+                                                     current.Connection.CompressionMinSize);
 
             // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
             byte[] buffer = new byte[256];

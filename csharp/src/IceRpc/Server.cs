@@ -439,7 +439,7 @@ namespace IceRpc
         private Connection GetColocatedConnection()
         {
             // TODO: very temporary code
-            var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), new(), default);
+            var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), Communicator.ConnectionOptions, default);
             return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
         }
 

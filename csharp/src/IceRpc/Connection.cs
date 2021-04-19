@@ -96,6 +96,9 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        internal CompressionLevel CompressionLevel;
+        internal int CompressionMinSize;
+
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
         {
@@ -248,6 +251,8 @@ namespace IceRpc
             ConnectionOptions options,
             Server? server)
         {
+            CompressionLevel = options.CompressionLevel;
+            CompressionMinSize = options.CompressionMinSize;
             Socket = socket;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;

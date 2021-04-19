@@ -81,8 +81,7 @@ namespace IceRpc
             }
         }
         internal int ClassGraphMaxDepth { get; }
-        internal CompressionLevel CompressionLevel { get; }
-        internal int CompressionMinSize { get; }
+
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
@@ -256,10 +255,6 @@ namespace IceRpc
             InvocationMaxAttempts = Math.Min(InvocationMaxAttempts, 5);
             RetryBufferMaxSize = this.GetPropertyAsByteSize("Ice.RetryBufferMaxSize") ?? 1024 * 1024 * 100;
             RetryRequestMaxSize = this.GetPropertyAsByteSize("Ice.RetryRequestMaxSize") ?? 1024 * 1024;
-
-            CompressionLevel =
-                this.GetPropertyAsEnum<CompressionLevel>("Ice.CompressionLevel") ?? CompressionLevel.Fastest;
-            CompressionMinSize = this.GetPropertyAsByteSize("Ice.CompressionMinSize") ?? 100;
 
             int classGraphMaxDepth = this.GetPropertyAsInt("Ice.ClassGraphMaxDepth") ?? 100;
             ClassGraphMaxDepth = classGraphMaxDepth < 1 ? int.MaxValue : classGraphMaxDepth;
