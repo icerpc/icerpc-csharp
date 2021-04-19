@@ -203,7 +203,7 @@ namespace IceRpc.Tests.ClientServer
         {
             if (colocated)
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=colocated", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=coloc", StringComparison.Ordinal));
             }
             else
             {
@@ -215,7 +215,7 @@ namespace IceRpc.Tests.ClientServer
         {
             if (colocated)
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=colocated", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=coloc", StringComparison.Ordinal));
             }
             else
             {
