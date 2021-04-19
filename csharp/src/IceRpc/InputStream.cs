@@ -984,6 +984,7 @@ namespace IceRpc
             Connection = connection;
             ProxyOptions = proxyOptions;
 
+            // TODO should we always pass a non-null connection to InputStream?
             // keeping ?? 100 here allows unmarshaling classes with a connection less InputStream
             _classGraphMaxDepth = source?.Connection?.ClassGraphMaxDepth ?? connection?.ClassGraphMaxDepth ?? 100;
 
