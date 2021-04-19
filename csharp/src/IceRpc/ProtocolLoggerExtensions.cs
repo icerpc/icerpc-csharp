@@ -9,6 +9,8 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
+        // TODO: eliminate gaps in event IDs below.
+
         private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
 
         private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
