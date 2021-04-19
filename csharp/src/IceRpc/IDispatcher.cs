@@ -21,7 +21,7 @@ namespace IceRpc
     /// <summary>Adapts a dispatcher delegate to the <see cref="IDispatcher"/> interface.</summary>
     public class InlineDispatcher : IDispatcher
     {
-        private readonly Func<Current, CancellationToken, ValueTask<OutgoingResponseFrame>>  _function;
+        private readonly Func<Current, CancellationToken, ValueTask<OutgoingResponseFrame>> _function;
 
         /// <summary>Constructs an InlineDispatcher using a delegate.</summary>
         /// <param name="function">The function that implements the dispatcher's DispatchAsync method.</param>

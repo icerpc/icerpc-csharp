@@ -70,7 +70,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_With_ValidationCallback(string clientCertFile, string serverCertFile)
         {
             bool clientValidationCallbackCalled = false;
-            await using var clientCommunicator = new Communicator(connectionOptions : new()
+            await using var clientCommunicator = new Communicator(connectionOptions: new()
             {
                 AuthenticationOptions = new()
                 {

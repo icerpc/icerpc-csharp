@@ -197,7 +197,7 @@ namespace IceRpc
                 udpOptions.SendBufferSize =
                     this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? udpOptions.SendBufferSize;
             }
-            else if(ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
+            else if (ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
             {
                 tcpOptions.ReceiveBufferSize =
                     this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? tcpOptions.ReceiveBufferSize;

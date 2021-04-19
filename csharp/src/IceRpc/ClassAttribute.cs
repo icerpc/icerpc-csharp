@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Reflection;
-using System.Linq.Expressions;
 using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace IceRpc
 {

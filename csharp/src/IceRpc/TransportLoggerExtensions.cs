@@ -267,7 +267,7 @@ namespace IceRpc
                             ((ColocatedEndpoint)socket.Endpoint).Server.ToString());
                     }
                 }
-                else if(socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
+                else if (socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
                         overSingleStreamSocket.Underlying.Socket is System.Net.Sockets.Socket dotnetsocket)
                 {
                     if (socket.Endpoint.IsDatagram && server != null)
@@ -339,7 +339,7 @@ namespace IceRpc
                             server.ToString(),
                             socket.ToString()!);
                     }
-                    else if(socket.IsIncoming)
+                    else if (socket.IsIncoming)
                     {
                         return _serverSocketScope(logger, socket.ToString()!);
                     }
@@ -366,7 +366,7 @@ namespace IceRpc
                 return null;
             }
 
-            (string initiatedBy, string kind)  = (stream.Id % 4) switch
+            (string initiatedBy, string kind) = (stream.Id % 4) switch
             {
                 0 => ("Client", "Bidirectional"),
                 1 => ("Server", "Bidirectional"),

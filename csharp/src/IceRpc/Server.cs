@@ -3,7 +3,6 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -241,7 +240,7 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                           Logger.LogServerDispatchException(current, ex);
+                            Logger.LogServerDispatchException(current, ex);
                         }
                         return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                     }

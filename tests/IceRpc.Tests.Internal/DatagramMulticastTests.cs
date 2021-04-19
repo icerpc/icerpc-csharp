@@ -3,7 +3,6 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,7 +36,7 @@ namespace IceRpc.Tests.Internal
         public async Task SetupAsync()
         {
             _serverSockets.Clear();
-            for(int i = 0; i < _incomingConnectionCount; ++i)
+            for (int i = 0; i < _incomingConnectionCount; ++i)
             {
                 _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying);
             }

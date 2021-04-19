@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading;
 using NUnit.Framework;
+using System.Threading;
 namespace IceRpc.Tests.ClientServer
 {
     public class ClientServerBaseTest

@@ -669,16 +669,16 @@ namespace IceRpc
         internal ProxyOptions GetOptions() =>
              new()
              {
-                CacheConnection = CacheConnection,
-                Communicator = Communicator,
-                Context = _context,
-                InvocationInterceptors = _invocationInterceptors,
-                InvocationTimeout = _invocationTimeout,
-                IsOneway = IsOneway,
-                LocationResolver = LocationResolver,
-                NonSecure = NonSecure,
-                PreferExistingConnection = PreferExistingConnection
-            };
+                 CacheConnection = CacheConnection,
+                 Communicator = Communicator,
+                 Context = _context,
+                 InvocationInterceptors = _invocationInterceptors,
+                 InvocationTimeout = _invocationTimeout,
+                 IsOneway = IsOneway,
+                 LocationResolver = LocationResolver,
+                 NonSecure = NonSecure,
+                 PreferExistingConnection = PreferExistingConnection
+             };
 
         /// <summary>Provides the implementation of <see cref="Proxy.GetConnectionAsync"/>.</summary>
         internal async ValueTask<Connection> GetConnectionAsync(CancellationToken cancel)

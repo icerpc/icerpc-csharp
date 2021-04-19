@@ -20,7 +20,7 @@ namespace IceRpc
                 {
                     if (networkInterface.OperationalStatus == OperationalStatus.Up)
                     {
-                        if(networkInterface.GetIPProperties().UnicastAddresses.Any(
+                        if (networkInterface.GetIPProperties().UnicastAddresses.Any(
                              address => address.Address.Equals(peer.Address)))
                         {
                             return true;
