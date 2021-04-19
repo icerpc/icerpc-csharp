@@ -377,36 +377,8 @@ namespace IceRpc
                 proxy.Communicator.CancellationToken,
                 cancel);
 
-            if (context != null)
-            {
-                // This makes a copy if context is not immutable.
-                _initialContext = context.ToImmutableSortedDictionary();
-            }
-            else
-            {
-                IReadOnlyDictionary<string, string> currentContext = proxy.Communicator.CurrentContext;
-
-                if (proxy.Context.Count == 0)
-                {
-                    _initialContext = currentContext;
-                }
-                else if (currentContext.Count == 0)
-                {
-                    _initialContext = proxy.Context;
-                }
-                else
-                {
-                    var combinedContext = new SortedDictionary<string, string>(
-                        (IDictionary<string, string>)currentContext);
-
-                    foreach ((string key, string value) in proxy.Context)
-                    {
-                        combinedContext[key] = value; // the proxy Context entry prevails.
-                    }
-                    _initialContext = combinedContext;
-                    _writableContext = combinedContext;
-                }
-            }
+            // This makes a copy if context is not immutable.
+            _initialContext = context?.ToImmutableSortedDictionary() ?? proxy.Context;
         }
     }
 }
