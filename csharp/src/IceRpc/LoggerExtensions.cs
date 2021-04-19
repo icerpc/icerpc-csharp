@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 
 namespace IceRpc
 {
@@ -19,15 +18,8 @@ namespace IceRpc
         internal const int LocatorClientBaseEventId = 7 * EventIdRange;
         private const int EventIdRange = 128;
 
-        private const int SlicingUnknownType = OtherBaseEventId + 0;
-        private const int UnknownProperty = OtherBaseEventId + 1;
-        private const int WarnDeprecatedProperty = OtherBaseEventId + 2;
-
-        private static readonly Action<ILogger, string, string, Exception> _slicingUnknowType =
-            LoggerMessage.Define<string, string>(
-                LogLevel.Warning,
-                new EventId(SlicingUnknownType, nameof(SlicingUnknownType)),
-                "slicing unknown {Kind} type '{PrintableId}'");
+        private const int UnknownProperty = OtherBaseEventId + 0;
+        private const int WarnDeprecatedProperty = OtherBaseEventId + 1;
 
         private static readonly Action<ILogger, string, Exception> _unknownProperty =
             LoggerMessage.Define<string>(
@@ -40,9 +32,6 @@ namespace IceRpc
                 LogLevel.Warning,
                 new EventId(WarnDeprecatedProperty, nameof(WarnDeprecatedProperty)),
                 "deprecated property {Property}");
-
-        internal static void LogSlicingUnknownType(this ILogger logger, string kind, string printableId) =>
-            _slicingUnknowType(logger, kind, printableId, null!);
 
         internal static void LogUnknownProperty(this ILogger logger, string property) =>
             _unknownProperty(logger, property, null!);

@@ -96,6 +96,8 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        internal int ClassGraphMaxDepth { get; }
+
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
         {
@@ -248,6 +250,7 @@ namespace IceRpc
             ConnectionOptions options,
             Server? server)
         {
+            ClassGraphMaxDepth = options.ClassGraphMaxDepth;
             Socket = socket;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;

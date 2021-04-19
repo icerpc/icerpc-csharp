@@ -78,7 +78,6 @@ namespace IceRpc.Tests.Api
                             Endpoint = "ice+tcp://127.0.0.1:15001"
                         };
                         server2.Listen();
-
                     });
             }
 

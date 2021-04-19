@@ -100,11 +100,6 @@ namespace IceRpc
         public static T? ReadNullable<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx
         {
-            if (istr.Communicator == null)
-            {
-                throw new InvalidOperationException("cannot read a proxy from an InputStream with a null communicator");
-            }
-
             IServicePrx? source = istr.Source;
             Connection? connection = istr.Connection ?? source?.Connection;
             ProxyOptions? proxyOptions = istr.ProxyOptions ?? source?.GetOptions();
