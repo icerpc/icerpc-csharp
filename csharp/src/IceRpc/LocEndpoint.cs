@@ -32,9 +32,6 @@ namespace IceRpc
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator) =>
-            Debug.Assert(false);
-
         // InvalidOperationException because this method should never get called.
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,

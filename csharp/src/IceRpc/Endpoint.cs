@@ -182,7 +182,28 @@ namespace IceRpc
         /// <param name="sb">The string builder.</param>
         /// <param name="optionSeparator">The character used to separate two options. This separator is not used for
         /// ice1 endpoints.</param>
-        protected internal abstract void AppendOptions(StringBuilder sb, char optionSeparator);
+        protected internal virtual void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            if (Protocol == Protocol.Ice1)
+            {
+                Debug.Assert(Host.Length > 0);
+                sb.Append(" -h ");
+                bool addQuote = Host.IndexOf(':') != -1;
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+                sb.Append(Host);
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+
+                sb.Append(" -p ");
+                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
+            }
+            // else by default, no option to append.
+        }
 
         /// <summary>Provides the same hash code for two equivalent endpoints. See <see cref="IsEquivalent"/>.</summary>
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();

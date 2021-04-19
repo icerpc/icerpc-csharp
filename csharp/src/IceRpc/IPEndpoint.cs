@@ -51,28 +51,6 @@ namespace IceRpc
             ostr.WriteInt(Port);
         }
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-            if (Protocol == Protocol.Ice1)
-            {
-                Debug.Assert(Host.Length > 0);
-                sb.Append(" -h ");
-                bool addQuote = Host.IndexOf(':') != -1;
-                if (addQuote)
-                {
-                    sb.Append('"');
-                }
-                sb.Append(Host);
-                if (addQuote)
-                {
-                    sb.Append('"');
-                }
-
-                sb.Append(" -p ");
-                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
-            }
-        }
-
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             publishedHost == Host ? this : Clone(publishedHost, Port);
 

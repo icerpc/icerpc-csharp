@@ -96,6 +96,7 @@ namespace IceRpc
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
             base.AppendOptions(sb, optionSeparator);
+
             if (Protocol == Protocol.Ice1)
             {
                 // InfiniteTimeSpan yields -1 and we use -1 instead of "infinite" for compatibility with Ice 3.5.

@@ -37,10 +37,6 @@ namespace IceRpc
 
         private long _nextId;
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-        }
-
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
             ILogger logger,
