@@ -34,27 +34,16 @@ class SliceUnicodePathsTestCase(ClientTestCase):
                             "interface Canvas{ void draw(Point p); };",
                             "};"], "utf-8")
 
-        tests = [
-            ("cpp", ["Test.cpp", "Test.h", "TestI.cpp", "TestI.h"], "--impl"),
-            ("cs", ["Test.cs", "TestI.cs"], "--impl"),
-            ("html", ["index.html"], ""),
-            ("java", ["Test/Point.java", "Test/CanvasI.java"], "--impl"),
-            ("js", ["Test.js"], ""),
-            ("objc", ["Test.m"], "")]
-
         try:
-            for language, generated, args in tests:
-                compiler = SliceTranslator('slice2%s' % language)
-                if not os.path.isfile(compiler.getCommandLine(current)):
-                    continue
+            compiler = SliceTranslator("slice2cs")
 
-                args = [srcPath + "/Test.ice", "--output-dir", srcPath] + args.split(" ")
-                compiler.run(current, args=args)
+            args = [srcPath + "/Test.ice", "--output-dir", srcPath]
+            compiler.run(current, args)
 
-                for f in generated:
-                    if not os.path.isfile(os.path.join(srcPath, f)):
-                        raise RuntimeError("failed! (can't find {0})".format(os.path.join(srcPath, f)))
-                    os.remove(os.path.join(srcPath, f))
+            generated = "Test.cs"
+            if not os.path.isfile(os.path.join(srcPath, generated)):
+                raise RuntimeError("failed! (can't find {0})".format(os.path.join(srcPath, generated)))
+            os.remove(os.path.join(srcPath, generated))
 
             current.writeln("ok")
 
