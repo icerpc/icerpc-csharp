@@ -165,8 +165,8 @@ namespace IceRpc
         /// is <see cref="CompressionLevel.Fastest"/>.</summary>
         public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
 
-        /// <summary>The minimum size in bytes for a message send over this connection to be compressed, if the size of
-        /// the messages is lower than this value it is never compressed.</summary>
+        /// <summary>The minimum size in bytes for a message sent over this connection to be compressed. If the size of
+        /// the messages is lower than this value it will not be compressed.</summary>
         public int CompressionMinSize
         {
             get => _compressionMinSize;
