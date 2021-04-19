@@ -2,17 +2,20 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Text;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
 using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
 
 namespace IceRpc
 {
     /// <summary>The Endpoint class for the colocated transport.</summary>
-    internal class ColocEndpoint : Endpoint
+    internal class ColocEndpoint : Endpoint, IDisposable
     {
         public override bool IsAlwaysSecure => true;
 
@@ -33,11 +36,18 @@ namespace IceRpc
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && Server == colocEndpoint.Server;
 
+        // Temporary
+        internal static IDictionary<(string Host, ushort Port, Protocol Protocol), ColocEndpoint> ColocEndpointRegistry { get; } =
+            new ConcurrentDictionary<(string, ushort, Protocol), ColocEndpoint>();
+
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new InvalidOperationException();
+
+        // Temporary. Disposed by the server that created this coloc endpoint.
+        public void Dispose() => ColocEndpointRegistry.Remove((Host, Port, Protocol));
 
         private long _nextId;
 
@@ -76,9 +86,48 @@ namespace IceRpc
                 server: null));
         }
 
-        internal ColocEndpoint(Server server)
-            : base(new EndpointData(Transport.Coloc, host: server.ToString(), port: 0, Array.Empty<string>()),
-                   server.Protocol)
+        internal static ColocEndpoint ParseIce1Endpoint(
+            Transport transport,
+            Dictionary<string, string?> options,
+            string endpointString)
+        {
+            Debug.Assert(transport == Transport.Coloc);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
+
+            // TODO: this is temporary. It should be possible to create a coloc endpoint before starting the coloc
+            // server.
+            if (ColocEndpointRegistry.TryGetValue((host, port, Protocol.Ice1), out ColocEndpoint? endpoint))
+            {
+                return endpoint;
+            }
+            else
+            {
+                throw new ArgumentException($"cannot find coloc server for '{endpointString}'");
+            }
+        }
+
+        internal static ColocEndpoint ParseIce2Endpoint(
+            Transport transport,
+            string host,
+            ushort port,
+            Dictionary<string, string> _)
+        {
+            Debug.Assert(transport == Transport.Coloc);
+
+            // TODO: this is temporary. It should be possible to create a coloc endpoint before starting the coloc
+            // server.
+            if (ColocEndpointRegistry.TryGetValue((host, port, Protocol.Ice2), out ColocEndpoint? endpoint))
+            {
+                return endpoint;
+            }
+            else
+            {
+                throw new ArgumentException($"cannot find coloc server for 'ice+coloc://{host}:{port}'");
+            }
+        }
+
+        internal ColocEndpoint(Server server, string host, ushort port)
+            : base(new EndpointData(Transport.Coloc, host, port, Array.Empty<string>()), server.Protocol)
         {
             Server = server;
             // There's always a single reader (the acceptor) but there might be several writers calling Write
@@ -90,6 +139,9 @@ namespace IceRpc
                 AllowSynchronousContinuations = true
             };
             _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(options);
+
+            // Temporary
+            ColocEndpointRegistry.Add((host, port, server.Protocol), this);
         }
     }
 }

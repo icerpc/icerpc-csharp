@@ -101,6 +101,8 @@ namespace IceRpc
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
         private AcceptorIncomingConnectionFactory? _colocConnectionFactory;
+        private ColocEndpoint? _colocEndpoint;
+
         private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
@@ -382,6 +384,7 @@ namespace IceRpc
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
+            _colocEndpoint?.Dispose();
         }
 
         // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
@@ -416,14 +419,21 @@ namespace IceRpc
                     return null;
                 }
 
-                if (_colocConnectionFactory == null)
+                if (_colocEndpoint == null)
                 {
-                    _colocConnectionFactory
-                        = new AcceptorIncomingConnectionFactory(this, new ColocEndpoint(this));
+                    string host = _colocName;
+                    ushort port = 4062;
+                    if (_endpoint is Endpoint endpoint)
+                    {
+                        host = endpoint.Host;
+                        port = endpoint.Port;
+                    }
+                    _colocEndpoint = new ColocEndpoint(this, host, port);
+                    _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
                     _colocConnectionFactory.Activate();
                 }
             }
-            return _colocConnectionFactory.Endpoint;
+            return _colocEndpoint;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
