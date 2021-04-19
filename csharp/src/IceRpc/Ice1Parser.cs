@@ -13,91 +13,106 @@ namespace IceRpc
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
-        /// <summary>Parses a string that represents one or more endpoints.</summary>
-        /// <param name="endpointString">The string to parse.</param>
-        /// <returns>The list of endpoints.</returns>
-        internal static IReadOnlyList<Endpoint> ParseEndpoints(string endpointString)
+        /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
+        /// <param name="endpointString">The string parsed by this method.</param>
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
+        internal static Endpoint ParseEndpoint(string endpointString)
         {
-            int beg;
-            int end = 0;
-
-            string delim = " \t\n\r";
-
-            var endpoints = new List<Endpoint>();
-            while (end < endpointString.Length)
+            string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
+            if (args == null)
             {
-                beg = StringUtil.FindFirstNotOf(endpointString, delim, end);
-                if (beg == -1)
-                {
-                    if (endpoints.Count != 0)
-                    {
-                        throw new FormatException("invalid empty server endpoint");
-                    }
-                    break;
-                }
-
-                end = beg;
-                while (true)
-                {
-                    end = endpointString.IndexOf(':', end);
-                    if (end == -1)
-                    {
-                        end = endpointString.Length;
-                        break;
-                    }
-                    else
-                    {
-                        bool quoted = false;
-                        int quote = beg;
-                        while (true)
-                        {
-                            quote = endpointString.IndexOf('\"', quote);
-                            if (quote == -1 || end < quote)
-                            {
-                                break;
-                            }
-                            else
-                            {
-                                quote = endpointString.IndexOf('\"', ++quote);
-                                if (quote == -1)
-                                {
-                                    break;
-                                }
-                                else if (end < quote)
-                                {
-                                    quoted = true;
-                                    break;
-                                }
-                                ++quote;
-                            }
-                        }
-                        if (!quoted)
-                        {
-                            break;
-                        }
-                        ++end;
-                    }
-                }
-
-                if (end == beg)
-                {
-                    throw new FormatException("invalid empty server endpoint");
-                }
-
-                string s = endpointString[beg..end];
-                try
-                {
-                    endpoints.Add(ParseEndpoint(s));
-                }
-                catch (Exception ex)
-                {
-                    // Give context to the exception.
-                    throw new FormatException($"failed to parse endpoint '{s}'", ex);
-                }
-                ++end;
+                throw new FormatException($"mismatched quote in endpoint '{endpointString}'");
             }
 
-            return endpoints;
+            if (args.Length == 0)
+            {
+                throw new FormatException("no non-whitespace character in endpoint string");
+            }
+
+            string transportName = args[0];
+            if (transportName == "default")
+            {
+                transportName = "tcp";
+            }
+
+            var options = new Dictionary<string, string?>();
+
+            // Parse args into options (and skip transportName at args[0])
+            for (int n = 1; n < args.Length; ++n)
+            {
+                // Any option with < 2 characters or that does not start with - is illegal
+                string option = args[n];
+                if (option.Length < 2 || option[0] != '-')
+                {
+                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
+                }
+
+                // Extract the argument given to the current option, if any
+                string? argument = null;
+                if (n + 1 < args.Length && args[n + 1][0] != '-')
+                {
+                    argument = args[++n];
+                }
+
+                try
+                {
+                    options.Add(option, argument);
+                }
+                catch (ArgumentException)
+                {
+                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
+                }
+            }
+
+            if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
+            {
+                Endpoint endpoint = parser(transport, options, endpointString);
+                if (options.Count > 0)
+                {
+                    throw new FormatException(
+                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
+                }
+                return endpoint;
+            }
+
+            // If the stringified endpoint is opaque, create an unknown endpoint, then see whether the type matches one
+            // of the known endpoints.
+            if (transportName == "opaque")
+            {
+                var opaqueEndpoint = OpaqueEndpoint.Parse(options, endpointString);
+                if (options.Count > 0)
+                {
+                    throw new FormatException(
+                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
+                }
+
+                if (opaqueEndpoint.ValueEncoding.IsSupported &&
+                    Runtime.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
+                {
+                    // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
+                    // unmarshal it from this buffer.
+                    var bufferList = new List<ArraySegment<byte>>
+                    {
+                        // 8 = size of short + size of encapsulation header with 1.1 encoding
+                        new byte[8 + opaqueEndpoint.Value.Length]
+                    };
+
+                    var ostr = new OutputStream(Ice1Definitions.Encoding, bufferList);
+                    ostr.WriteEndpoint11(opaqueEndpoint);
+                    ostr.Finish();
+                    Debug.Assert(bufferList.Count == 1);
+                    Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
+
+                    return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
+                }
+                else
+                {
+                    return opaqueEndpoint;
+                }
+            }
+
+            throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
@@ -427,108 +442,6 @@ namespace IceRpc
             }
 
             throw new FormatException($"malformed proxy '{s}'");
-        }
-
-        /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
-        /// <param name="endpointString">The string parsed by this method.</param>
-        /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
-        internal static Endpoint ParseEndpoint(string endpointString)
-        {
-            string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
-            if (args == null)
-            {
-                throw new FormatException($"mismatched quote in endpoint '{endpointString}'");
-            }
-
-            if (args.Length == 0)
-            {
-                throw new FormatException("no non-whitespace character in endpoint string");
-            }
-
-            string transportName = args[0];
-            if (transportName == "default")
-            {
-                transportName = "tcp";
-            }
-
-            var options = new Dictionary<string, string?>();
-
-            // Parse args into options (and skip transportName at args[0])
-            for (int n = 1; n < args.Length; ++n)
-            {
-                // Any option with < 2 characters or that does not start with - is illegal
-                string option = args[n];
-                if (option.Length < 2 || option[0] != '-')
-                {
-                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
-                }
-
-                // Extract the argument given to the current option, if any
-                string? argument = null;
-                if (n + 1 < args.Length && args[n + 1][0] != '-')
-                {
-                    argument = args[++n];
-                }
-
-                try
-                {
-                    options.Add(option, argument);
-                }
-                catch (ArgumentException)
-                {
-                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
-                }
-            }
-
-            if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
-            {
-                Endpoint endpoint = parser(transport, options, endpointString);
-                if (options.Count > 0)
-                {
-                    throw new FormatException(
-                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
-                }
-                return endpoint;
-            }
-
-            // If the stringified endpoint is opaque, create an unknown endpoint, then see whether the type matches one
-            // of the known endpoints.
-            if (transportName == "opaque")
-            {
-                var opaqueEndpoint = OpaqueEndpoint.Parse(options, endpointString);
-                if (options.Count > 0)
-                {
-                    throw new FormatException(
-                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
-                }
-
-                if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    Runtime.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
-                {
-                    // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
-                    // unmarshal it from this buffer.
-                    var bufferList = new List<ArraySegment<byte>>
-                    {
-                        // 8 = size of short + size of encapsulation header with 1.1 encoding
-                        new byte[8 + opaqueEndpoint.Value.Length]
-                    };
-
-                    var ostr = new OutputStream(Ice1Definitions.Encoding, bufferList);
-                    ostr.WriteEndpoint11(opaqueEndpoint);
-                    ostr.Finish();
-                    Debug.Assert(bufferList.Count == 1);
-                    Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
-
-                    return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
-                }
-                else
-                {
-                    return opaqueEndpoint;
-                }
-            }
-
-            throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");
         }
 
         // Stringify the options of an endpoint
