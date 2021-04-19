@@ -251,7 +251,7 @@ namespace IceRpc
 
             try
             {
-                if (socket is ColocatedSocket colocatedSocket)
+                if (socket is ColocSocket colocatedSocket)
                 {
                     if (socket.IsIncoming)
                     {
@@ -264,7 +264,7 @@ namespace IceRpc
                             socket.Endpoint.TransportName,
                             socket.Endpoint.Protocol,
                             colocatedSocket.Id,
-                            ((ColocatedEndpoint)socket.Endpoint).Server.ToString());
+                            ((ColocEndpoint)socket.Endpoint).Server.ToString());
                     }
                 }
                 else if (socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
@@ -393,7 +393,7 @@ namespace IceRpc
                     server.ToString(),
                     tcpAcceptor.IPEndPoint);
             }
-            else if (acceptor is ColocatedAcceptor)
+            else if (acceptor is ColocAcceptor)
             {
                 return _colocatedAcceptorScope(
                     logger,

@@ -6,13 +6,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using ColocatedChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
-using ColocatedChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
+using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
+using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
 
 namespace IceRpc
 {
     /// <summary>The Endpoint class for the colocated transport.</summary>
-    internal class ColocatedEndpoint : Endpoint
+    internal class ColocEndpoint : Endpoint
     {
         public override bool IsAlwaysSecure => true;
 
@@ -21,13 +21,13 @@ namespace IceRpc
 
         internal Server Server { get; }
 
-        private readonly Channel<(long, ColocatedChannelWriter, ColocatedChannelReader)> _channel;
+        private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
 
         public override IAcceptor Acceptor(Server server) =>
-            new ColocatedAcceptor(this, server, _channel.Writer, _channel.Reader);
+            new ColocAcceptor(this, server, _channel.Writer, _channel.Reader);
 
         public override bool Equals(Endpoint? other) =>
-            other is ColocatedEndpoint colocatedEndpoint && Server == colocatedEndpoint.Server;
+            other is ColocEndpoint colocatedEndpoint && Server == colocatedEndpoint.Server;
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
@@ -69,9 +69,9 @@ namespace IceRpc
                 throw new ConnectionRefusedException();
             }
 
-            return Task.FromResult<Connection>(new ColocatedConnection(
+            return Task.FromResult<Connection>(new ColocConnection(
                 this,
-                new ColocatedSocket(this, id, reader.Writer, writer.Reader, options, logger),
+                new ColocSocket(this, id, reader.Writer, writer.Reader, options, logger),
                 options,
                 server: null));
         }
@@ -79,8 +79,8 @@ namespace IceRpc
         protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
             throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
-        internal ColocatedEndpoint(Server server)
-            : base(new EndpointData(Transport.Colocated, host: server.ToString(), port: 0, Array.Empty<string>()),
+        internal ColocEndpoint(Server server)
+            : base(new EndpointData(Transport.Coloc, host: server.ToString(), port: 0, Array.Empty<string>()),
                    server.Protocol)
         {
             Server = server;
@@ -92,7 +92,7 @@ namespace IceRpc
                 SingleWriter = false,
                 AllowSynchronousContinuations = true
             };
-            _channel = Channel.CreateUnbounded<(long, ColocatedChannelWriter, ColocatedChannelReader)>(options);
+            _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(options);
         }
     }
 }

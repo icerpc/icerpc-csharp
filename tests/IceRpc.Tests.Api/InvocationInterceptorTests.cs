@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationInterceptorTests : ColocatedTest
+    public class InvocationInterceptorTests : ColocTest
     {
         private IInvocationInterceptorTestServicePrx Prx { get; }
 

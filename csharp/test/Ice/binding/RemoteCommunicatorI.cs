@@ -68,7 +68,7 @@ namespace IceRpc.Test.Binding
             return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
         }
 
-        // Colocated call.
+        // Coloc call.
         public ValueTask DeactivateServerAsync(
             IRemoteServerPrx server,
             Current current,

@@ -13,11 +13,11 @@ module IceRpc
     /// languages and for some version of the Ice protocol.
     unchecked enum Transport : short
     {
-        /// Loc transport, resolved by a location resolver.
+        /// Loc pseudo-transport.
         Loc = -1,
 
         /// Colocated transport.
-        Colocated = 0,
+        Coloc = 0,
 
         /// TCP transport.
         TCP = 1,

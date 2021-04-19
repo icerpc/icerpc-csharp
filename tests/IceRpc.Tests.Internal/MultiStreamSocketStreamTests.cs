@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
     [TestFixture(MultiStreamSocketType.Slic)]
-    [TestFixture(MultiStreamSocketType.Colocated)]
+    [TestFixture(MultiStreamSocketType.Coloc)]
     [TestFixture(MultiStreamSocketType.Ice1)]
     public class MultiStreamSocketStreamTests : MultiStreamSocketBaseTest
     {

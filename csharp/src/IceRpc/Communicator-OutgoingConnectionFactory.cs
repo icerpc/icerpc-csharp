@@ -48,10 +48,10 @@ namespace IceRpc
 
                         if (connection != null)
                         {
-                            // TODO should ColocatedConnection.IsSecure return always true?, currently IsSecure
+                            // TODO should ColocConnection.IsSecure return always true?, currently IsSecure
                             // is only true for SSL connections.
                             Debug.Assert(options.NonSecure != NonSecure.Never ||
-                                         connection is ColocatedConnection ||
+                                         connection is ColocConnection ||
                                          connection.IsSecure);
                             return connection;
                         }
@@ -81,7 +81,7 @@ namespace IceRpc
             }
             while (connection == null);
             Debug.Assert(options.NonSecure != NonSecure.Never ||
-                         connection is ColocatedConnection ||
+                         connection is ColocConnection ||
                          connection.IsSecure);
             return connection;
 

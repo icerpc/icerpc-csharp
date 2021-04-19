@@ -773,11 +773,11 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection to a colocated server.</summary>
-    public class ColocatedConnection : Connection
+    public class ColocConnection : Connection
     {
-        internal ColocatedConnection(
+        internal ColocConnection(
             Endpoint endpoint,
-            ColocatedSocket socket,
+            ColocSocket socket,
             ConnectionOptions options,
             Server? server)
             : base(endpoint, socket, options, server)

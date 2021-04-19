@@ -109,7 +109,7 @@ namespace IceRpc
         internal bool IsIndirect => Endpoints.Count == 1 && Endpoints[0].Transport == Transport.Loc;
         internal bool IsRelative =>
             Endpoints.Count == 0 &&
-            (_connection?.Endpoint.Transport ?? Transport.Colocated) == Transport.Colocated;
+            (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && Endpoints[0].HasOptions;
 
         private volatile Connection? _connection;
@@ -834,7 +834,7 @@ namespace IceRpc
         {
             Debug.Assert(!IsFixed);
 
-            if (ColocatedServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            if (ColocServerRegistry.GetColocEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return new List<Endpoint>() { colocatedEndpoint };
             }
