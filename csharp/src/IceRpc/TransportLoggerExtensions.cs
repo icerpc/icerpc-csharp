@@ -47,14 +47,14 @@ namespace IceRpc
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "socket(Transport={Transport}, Protocol={Protocol}, Description={Description})");
 
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocatedAcceptorScope =
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocAcceptorScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
 
-        private static readonly Func<ILogger, long, IDisposable> _colocatedServerSocketScope =
+        private static readonly Func<ILogger, long, IDisposable> _colocServerSocketScope =
             LoggerMessage.DefineScope<long>("socket(ID={ID})");
 
-        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocatedClientSocketScope =
+        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocClientSocketScope =
             LoggerMessage.DefineScope<string, Protocol, long, string>(
                 "socket(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
 
@@ -255,11 +255,11 @@ namespace IceRpc
                 {
                     if (socket.IsIncoming)
                     {
-                        return _colocatedServerSocketScope(logger, colocatedSocket.Id);
+                        return _colocServerSocketScope(logger, colocatedSocket.Id);
                     }
                     else
                     {
-                        return _colocatedClientSocketScope(
+                        return _colocClientSocketScope(
                             logger,
                             socket.Endpoint.TransportName,
                             socket.Endpoint.Protocol,
@@ -395,7 +395,7 @@ namespace IceRpc
             }
             else if (acceptor is ColocAcceptor)
             {
-                return _colocatedAcceptorScope(
+                return _colocAcceptorScope(
                     logger,
                     acceptor.Endpoint.TransportName,
                     acceptor.Endpoint.Protocol,

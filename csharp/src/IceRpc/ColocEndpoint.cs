@@ -27,7 +27,7 @@ namespace IceRpc
             new ColocAcceptor(this, server, _channel.Writer, _channel.Reader);
 
         public override bool Equals(Endpoint? other) =>
-            other is ColocEndpoint colocatedEndpoint && Server == colocatedEndpoint.Server;
+            other is ColocEndpoint colocEndpoint && Server == colocEndpoint.Server;
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");

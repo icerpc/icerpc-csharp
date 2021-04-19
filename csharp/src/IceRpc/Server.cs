@@ -100,8 +100,8 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
-        private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
-        private readonly string _colocatedName = $"colocated-{Interlocked.Increment(ref _counter)}";
+        private AcceptorIncomingConnectionFactory? _colocConnectionFactory;
+        private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
 
@@ -357,7 +357,7 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task colocShutdownTask = _colocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
                     await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
@@ -375,7 +375,7 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? _colocatedName;
+        public override string ToString() => _endpoint?.ToString() ?? _colocName;
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
@@ -416,14 +416,14 @@ namespace IceRpc
                     return null;
                 }
 
-                if (_colocatedConnectionFactory == null)
+                if (_colocConnectionFactory == null)
                 {
-                    _colocatedConnectionFactory
+                    _colocConnectionFactory
                         = new AcceptorIncomingConnectionFactory(this, new ColocEndpoint(this));
-                    _colocatedConnectionFactory.Activate();
+                    _colocConnectionFactory.Activate();
                 }
             }
-            return _colocatedConnectionFactory.Endpoint;
+            return _colocConnectionFactory.Endpoint;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);

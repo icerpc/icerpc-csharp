@@ -834,9 +834,9 @@ namespace IceRpc
         {
             Debug.Assert(!IsFixed);
 
-            if (ColocServerRegistry.GetColocEndpoint(this) is Endpoint colocatedEndpoint)
+            if (ColocServerRegistry.GetColocEndpoint(this) is Endpoint colocEndpoint)
             {
-                return new List<Endpoint>() { colocatedEndpoint };
+                return new List<Endpoint>() { colocEndpoint };
             }
 
             IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
