@@ -631,6 +631,7 @@ namespace IceRpc
                         if (stream.IsBidirectional)
                         {
                             response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
+                            cancel.ThrowIfCancellationRequested(); // a very rare situation
                         }
                     }
                     else
@@ -641,16 +642,11 @@ namespace IceRpc
 
                         response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
                     }
-
-                    cancel.ThrowIfCancellationRequested();
                 }
-                catch (OperationCanceledException ex)
+                catch (OperationCanceledException)
                 {
                     // No need to send the response if the dispatch is canceled by the client.
-                    // TODO: add log specific to this situation
-
                     Debug.Assert(cancel.IsCancellationRequested);
-                    Socket.Logger.LogDispatchException(request, ex);
                     return;
                 }
 

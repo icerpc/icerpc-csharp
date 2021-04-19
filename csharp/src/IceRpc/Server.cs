@@ -10,22 +10,11 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    // temporary
-    public enum ColocationScope
-    {
-        Process,
-        Communicator,
-        None
-    }
-
     /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
     /// the corresponding responses. A server should be first configured through its properties, then activated with
-    /// <see cref="ListenAndServeAsync"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
+    /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IDispatcher, IAsyncDisposable
     {
-        // temporary
-        public ColocationScope ColocationScope { get; set; } = ColocationScope.Communicator;
-
         // temporary
         public Communicator? Communicator { get; set; }
 
@@ -52,6 +41,12 @@ namespace IceRpc
                 UpdateProxyEndpoint();
             }
         }
+
+        /// <summary>Gets or sets whether this server can be discovered for colocated calls. Changing this value after
+        /// calling <see cref="Listen"/> has no effect.</summary>
+        /// <value>True when the server can be discovered for colocated calls; otherwise, false. The default value is
+        /// true.</value>
+        public bool IsDiscoverable { get; set; }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -115,6 +110,7 @@ namespace IceRpc
         private ILoggerFactory? _loggerFactory;
 
         private IncomingConnectionFactory? _incomingConnectionFactory;
+        private bool _listening;
 
         // protects _shutdownTask
         private readonly object _mutex = new();
@@ -122,8 +118,6 @@ namespace IceRpc
         private Endpoint? _proxyEndpoint;
 
         private string _proxyHost = "localhost"; // temporary default
-
-        private bool _serving;
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -172,7 +166,7 @@ namespace IceRpc
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList.Create(_proxyEndpoint),
-                                                connection: null, // TODO: give it a coloc connection except for UDP?
+                                                connection: null,
                                                 options);
         }
 
@@ -190,11 +184,10 @@ namespace IceRpc
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
-            if (!_serving)
+            if (!_listening)
             {
                 var ex = new UnhandledException(
-                    new InvalidOperationException(
-                        $"call {nameof(ListenAndServeAsync)} before dispatching colocated requests"));
+                    new InvalidOperationException($"call {nameof(Listen)} before dispatching colocated requests"));
 
                 return new OutgoingResponseFrame(current.IncomingRequestFrame, ex);
             }
@@ -208,11 +201,16 @@ namespace IceRpc
 
                 try
                 {
-                    return await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+                    OutgoingResponseFrame response =
+                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+
+                    cancel.ThrowIfCancellationRequested();
+                    return response;
                 }
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested)
                 {
-                    // the client requested the cancellation, we let it propagate and don't log it.
+                    // The client requested cancellation, we log it and let it propagate.
+                    Logger.LogServerDispatchCanceledByClient(current);
                     throw;
                 }
                 catch (Exception ex)
@@ -228,8 +226,7 @@ namespace IceRpc
                     if (current.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
-                        // TODO: use a server event for this logging?
-                        Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                        Logger.LogServerDispatchException(current, ex);
                         return OutgoingResponseFrame.WithVoidReturnValue(current);
                     }
                     else
@@ -244,8 +241,7 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                            // TODO: use a server event for this logging?
-                            Logger.LogDispatchException(current.IncomingRequestFrame, ex);
+                           Logger.LogServerDispatchException(current, ex);
                         }
                         return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
                     }
@@ -260,21 +256,21 @@ namespace IceRpc
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
-        /// include the actual port selected by the operating system. This method throws start-up exceptions
-        /// synchronously; for  example, if another server is already listening on the configured endpoint, it throws a
-        /// <see cref="TransportException"/> synchronously.</summary>
-        /// <return>The <see cref="ShutdownComplete"/> task.</return>
-        public Task ListenAndServeAsync()
+        /// include the actual port selected by the operating system.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
+        /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
+        /// </exception>
+        public void Listen()
         {
-            if (_serving)
-            {
-                throw new InvalidOperationException(
-                    $"'{nameof(ListenAndServeAsync)}' was already called on server '{this}'");
-            }
-
             // We lock the mutex because ShutdownAsync can run concurrently.
             lock (_mutex)
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException($"server '{this}' is already listening");
+                }
+
                 if (_shutdownTask != null)
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
@@ -290,24 +286,28 @@ namespace IceRpc
                     UpdateProxyEndpoint();
 
                     _incomingConnectionFactory.Activate();
-                    _serving = true;
-                }
 
-                if (ColocationScope != ColocationScope.None)
+                    // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
+                    _listening = true;
+
+                    if (IsDiscoverable && _endpoint.IsDatagram)
+                    {
+                        ColocatedServerRegistry.RegisterServer(this);
+                    }
+                }
+                else
                 {
-                    LocalServerRegistry.RegisterServer(this);
+                    _listening = true;
                 }
+
+                // TODO: remove
+                if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
+                {
+                    Console.Out.WriteLine($"{this} ready");
+                }
+
+                Logger.LogServerListening(this);
             }
-
-            _serving = true;
-
-            if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
-            {
-                Console.Out.WriteLine($"{this} ready");
-            }
-
-            Logger.LogServerListeningAndServing(this);
-            return ShutdownComplete;
         }
 
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
@@ -351,11 +351,8 @@ namespace IceRpc
                 {
                     Logger.LogServerShuttingDown(this);
 
-                    if (ColocationScope != ColocationScope.None)
-                    {
-                        // no longer available for coloc connections.
-                        LocalServerRegistry.UnregisterServer(this);
-                    }
+                    // No longer available for coloc connections (may not be registered at all)
+                    ColocatedServerRegistry.UnregisterServer(this);
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
@@ -388,14 +385,36 @@ namespace IceRpc
             _cancelDispatchSource.Dispose();
         }
 
-        internal Endpoint GetColocatedEndpoint()
+        // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
+        // colocated. Called by ColocatedServerRegistry.
+        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy) =>
+            proxy.Endpoints.Any(endpoint => endpoint.IsEquivalent(_endpoint!) ||
+                                            endpoint.IsEquivalent(_proxyEndpoint!)) ?
+                GetColocatedEndpoint() : null;
+
+        private Connection? GetColocatedConnection()
+        {
+            if (GetColocatedEndpoint() is Endpoint endpoint)
+            {
+                // TODO: very temporary code
+                ValueTask<Connection> vt =
+                    Communicator!.ConnectAsync(endpoint, Communicator.ConnectionOptions, default);
+                return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private Endpoint? GetColocatedEndpoint()
         {
             // Lazy initialized because it needs a fully configured server, in particular Protocol.
             lock (_mutex)
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
+                    return null;
                 }
 
                 if (_colocatedConnectionFactory == null)
@@ -406,41 +425,6 @@ namespace IceRpc
                 }
             }
             return _colocatedConnectionFactory.Endpoint;
-        }
-
-        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy)
-        {
-            Debug.Assert(ColocationScope != ColocationScope.None);
-
-            if (ColocationScope == ColocationScope.Communicator && Communicator != proxy.Communicator)
-            {
-                return null;
-            }
-
-            if (proxy.Protocol != Protocol)
-            {
-                return null;
-            }
-
-            lock (_mutex)
-            {
-                if (_shutdownTask == null)
-                {
-                    return null;
-                }
-            }
-
-            // Proxies which have at least one endpoint in common with the endpoints used by this object
-            // server's incoming connection factories are considered local.
-            return proxy.Endpoints.Any(
-                endpoint => endpoint == _endpoint || endpoint == _proxyEndpoint) ? GetColocatedEndpoint() : null;
-        }
-
-        private Connection GetColocatedConnection()
-        {
-            // TODO: very temporary code
-            var vt = Communicator!.ConnectAsync(GetColocatedEndpoint(), Communicator.ConnectionOptions, default);
-            return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);

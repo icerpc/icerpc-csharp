@@ -9,6 +9,8 @@ namespace IceRpc
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
+        // TODO: eliminate gaps in event IDs below.
+
         private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
 
         private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
@@ -23,10 +25,7 @@ namespace IceRpc
         private const int ReceivedInitializeFrame = BaseEventId + 7;
         private const int ReceivedRequestFrame = BaseEventId + 8;
         private const int ReceivedResponseFrame = BaseEventId + 9;
-
-        private const int DispatchException = BaseEventId + 10;
         private const int RequestException = BaseEventId + 11;
-
         private const int RetryRequestRetryableException = BaseEventId + 12;
         private const int RetryRetryConnectionException = BaseEventId + 13;
 
@@ -100,12 +99,6 @@ namespace IceRpc
                 LogLevel.Information,
                 new EventId(ReceivedResponseFrame, nameof(ReceivedResponseFrame)),
                 "received response (ResultType={ResultType})");
-
-        private static readonly Action<ILogger, string, string, Exception> _dispatchException =
-            LoggerMessage.Define<string, string>(
-                LogLevel.Information,
-                new EventId(DispatchException, nameof(DispatchException)),
-                "dispatch exception (Path={Path}, Operation={Operation})");
 
         private static readonly Action<ILogger, string, string, Exception> _requestException =
             LoggerMessage.Define<string, string>(
@@ -251,9 +244,6 @@ namespace IceRpc
                 attempt,
                 maxAttempts,
                 ex!);
-
-        internal static void LogDispatchException(this ILogger logger, IncomingRequestFrame request, Exception ex) =>
-            _dispatchException(logger, request.Path, request.Operation, ex);
 
         internal static void LogRequestException(this ILogger logger, OutgoingRequestFrame request, Exception ex) =>
             _requestException(logger, request.Path, request.Operation, ex);

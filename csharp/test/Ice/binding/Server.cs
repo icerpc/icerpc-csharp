@@ -21,9 +21,9 @@ namespace IceRpc.Test.Binding
                 ProxyHost = TestHelper.GetTestHost(Communicator.GetProperties())
             };
 
-            Task shutdownComplete = server.ListenAndServeAsync();
+            server.Listen();
             ServerReady();
-            await shutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

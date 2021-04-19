@@ -27,7 +27,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = new StructOperations(),
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _prx = _server.CreateRelativeProxy<IStructOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }

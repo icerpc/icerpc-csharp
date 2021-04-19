@@ -21,10 +21,10 @@ namespace IceRpc.Test.AMI
                 Endpoint = GetTestEndpoint(0)
             };
 
-            Task shutdownComplete = server.ListenAndServeAsync();
+            server.Listen();
 
             ServerReady();
-            await shutdownComplete;
+            await server.ShutdownComplete;
         }
 
         public static async Task<int> Main(string[] args)

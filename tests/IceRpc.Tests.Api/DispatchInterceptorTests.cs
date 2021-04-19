@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Api
             router.Map("/test", service);
 
             server.Dispatcher = router;
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = server.CreateRelativeProxy<IDispatchInterceptorTestServicePrx>("/test");
 
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Api
             var prx = server.CreateRelativeProxy<IServicePrx>("/test");
 
             server.Dispatcher = router;
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             await prx.IcePingAsync();
 
             Assert.AreEqual("DispatchInterceptors -> 0", interceptorCalls[0]);

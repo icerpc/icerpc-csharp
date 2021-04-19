@@ -22,10 +22,9 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server()
             {
                 Communicator = _communicator,
-                Dispatcher = new OptionalOperations(),
-                ColocationScope = ColocationScope.Communicator
+                Dispatcher = new OptionalOperations()
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _prx = _server.CreateRelativeProxy<IOptionalOperationsPrx>("/");
         }
 

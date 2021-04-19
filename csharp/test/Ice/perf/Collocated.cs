@@ -15,7 +15,7 @@ namespace IceRpc.Test.Perf
                 Dispatcher = new PerformanceI(),
                 Endpoint = GetTestEndpoint(0)
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             await AllTests.RunAsync(this);
         }

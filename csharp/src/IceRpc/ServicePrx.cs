@@ -834,7 +834,7 @@ namespace IceRpc
         {
             Debug.Assert(!IsFixed);
 
-            if (LocalServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            if (ColocatedServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
             {
                 return new List<Endpoint>() { colocatedEndpoint };
             }

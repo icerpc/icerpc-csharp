@@ -426,42 +426,42 @@ namespace IceRpc.Test.Binding
 
                 var anyipv4 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("0.0.0.0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
                 var anyipv6 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("::1")
                 };
 
                 var anyipv46 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("127.0.0.1")
                 };
 
                 var anylocalhost = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::0"),
                     PublishedEndpoints = getEndpoint("localhost")
                 };
 
                 var localipv4 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("127.0.0.1"),
                     PublishedHost = "127.0.0.1"
                 };
 
                 var localipv6 = new ServerOptions
                 {
-                    ColocationScope = ColocationScope.None,
+                    IsDiscoverable = false,
                     Endpoints = getEndpoint("::1"),
                     PublishedHost = "::1"
                 };
@@ -480,7 +480,7 @@ namespace IceRpc.Test.Binding
                 {
                     await using var serverCommunicator = new Communicator();
                     await using var oa = new Server(serverCommunicator, p);
-                    oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     IServicePrx prx = IServicePrx.Factory.Create(oa, "/dummy");
                     try
@@ -504,11 +504,11 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::0");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     Console.Out.Flush();
 
@@ -520,7 +520,7 @@ namespace IceRpc.Test.Binding
                             Endpoint = getEndpoint("0.0.0.0")
                         };
 
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)
@@ -546,7 +546,7 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::0");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint,
                         ConnectionOptions = new()
@@ -558,19 +558,19 @@ namespace IceRpc.Test.Binding
                         }
                     };
 
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     // 0.0.0.0 can still be bound if ::0 is IPv6 only
                     {
                         string ipv4Endpoint = getEndpoint("0.0.0.0");
                         await using var ipv4Server = new Server
                         {
-                            ColocationScope = ColocationScope.None,
+                            IsDiscoverable = false,
                             Communicator = serverCommunicator,
                             Endpoint = ipv4Endpoint
                         };
 
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                     }
 
                     try
@@ -592,22 +592,22 @@ namespace IceRpc.Test.Binding
                     string endpoint = getEndpoint("::ffff:127.0.0.1");
                     await using var oa = new Server
                     {
-                        ColocationScope = ColocationScope.None,
+                        IsDiscoverable = false,
                         Communicator = serverCommunicator,
                         Endpoint = endpoint
                     };
-                    _ = oa.ListenAndServeAsync();
+                    oa.Listen();
 
                     try
                     {
                         string ipv4Endpoint = getEndpoint("127.0.0.1");
                         await using var ipv4Server = new Server
                         {
-                            ColocationScope = ColocationScope.None,
+                            IsDiscoverable = false,
                             Communicator = serverCommunicator,
                             Endpoint = ipv4Endpoint
                         };
-                        _ = ipv4Server.ListenAndServeAsync();
+                        ipv4Server.Listen();
                         TestHelper.Assert(false);
                     }
                     catch (TransportException)

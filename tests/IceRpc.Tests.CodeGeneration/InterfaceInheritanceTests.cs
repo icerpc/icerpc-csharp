@@ -29,7 +29,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Communicator = _communicator,
                 Dispatcher = router
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
             _basePrx = _server.CreateRelativeProxy<IMyInterfaceBasePrx>("/base");
             _derivedPrx = _server.CreateRelativeProxy<IMyInterfaceDerivedPrx>("/derived");

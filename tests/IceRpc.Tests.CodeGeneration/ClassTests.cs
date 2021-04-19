@@ -54,7 +54,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = router,
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
             _prx = _server.CreateRelativeProxy<IClassOperationsPrx>("/test");
             _prxUnexpectedClass = _server.CreateRelativeProxy<IClassOperationsUnexpectedClassPrx>("/test1");

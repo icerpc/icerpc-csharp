@@ -86,21 +86,21 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingService());
             var targetService = CreateProxy<IProtocolBridgingServicePrx>(_targetServer, "/target");
             _targetServer.Dispatcher = _router;
-            _ = _targetServer.ListenAndServeAsync();
+            _targetServer.Listen();
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
             var forwardService = CreateProxy<IProtocolBridgingServicePrx>(_forwarderServer, "/forward");
             _forwarderServer.Dispatcher = _router;
-            _ = _forwarderServer.ListenAndServeAsync();
+            _forwarderServer.Listen();
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated) =>
                 new Server
                 {
                     Communicator = _communicator,
-                    ColocationScope = colocated ? ColocationScope.Communicator : ColocationScope.None,
                     Endpoint = colocated ? "" : GetTestEndpoint(port: port, protocol: protocol),
+                    IsDiscoverable = !colocated,
                     Protocol = protocol
                 };
         }

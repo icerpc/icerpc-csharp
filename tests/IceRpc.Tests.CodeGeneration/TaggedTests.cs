@@ -24,7 +24,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Communicator = _communicator,
                 Dispatcher = new TaggedOperations(),
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _prx = _server.CreateRelativeProxy<ITaggedOperationsPrx>("/");
         }
 

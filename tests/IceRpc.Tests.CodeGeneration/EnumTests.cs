@@ -131,7 +131,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = new EnumOperations(),
                 Protocol = protocol
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
             IEnumOperationsPrx? prx = server.CreateRelativeProxy<IEnumOperationsPrx>("/test");
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);

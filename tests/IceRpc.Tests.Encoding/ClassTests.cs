@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Encoding
                 Communicator = _communicator,
                 Protocol = protocol
             };
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
             _sliced = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
             _compact = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
             _classformat = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
@@ -207,7 +207,7 @@ namespace IceRpc.Tests.Encoding
                 },
                 Dispatcher = new ClassGraphOperations()
             };
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             var prx = server.CreateRelativeProxy<IClassGraphOperationsPrx>("/classgraph");
             Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);

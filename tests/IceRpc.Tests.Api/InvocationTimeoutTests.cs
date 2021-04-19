@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Api
 
             router.Map("/test", new TestService());
             _server.Dispatcher = router;
-            _ = _server.ListenAndServeAsync();
+            _server.Listen();
 
             var prx = _server.CreateRelativeProxy<IServicePrx>("/test");
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);

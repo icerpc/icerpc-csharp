@@ -94,7 +94,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
 
             await using var server = CreateServer(communicator, colocated, portNumber: 1);
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IServicePrx service = colocated ?
                 server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
@@ -116,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             await using var communicator = new Communicator(loggerFactory: loggerFactory);
             await using Server server = CreateServer(communicator, colocated, portNumber: 2);
-            _ = server.ListenAndServeAsync();
+            server.Listen();
 
             IServicePrx service = colocated ?
                 server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.ClientServer
 
             new Server
             {
-                ColocationScope = ColocationScope.None,
+                IsDiscoverable = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)
