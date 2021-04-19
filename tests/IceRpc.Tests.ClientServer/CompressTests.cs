@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,14 +20,24 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2048, 2048, "Fastest")]
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
-            var properties = new Dictionary<string, string>
+            await using var communicator = new Communicator
             {
-                { "Ice.CompressionMinSize", $"{compressionMinSize}" },
-                { "Ice.CompressionLevel", compressionLevel }
+                ConnectionOptions = new OutgoingConnectionOptions()
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }
             };
 
-            await using var communicator = new Communicator(properties);
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                ConnectionOptions = new IncomingConnectionOptions()
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }
+            };
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
@@ -45,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
                         compressedRequest = current.IncomingRequestFrame.HasCompressedPayload;
                         var response = await next.DispatchAsync(current, cancel);
                         compressedResponse = response.HasCompressedPayload;
-                        compressedRequestSize = response.PayloadSize;
+                        compressedResponseSize = response.PayloadSize;
                         return response;
                     }
                     catch
@@ -65,27 +74,50 @@ namespace IceRpc.Tests.ClientServer
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
 
-            // Assert the payload is compressed only when it is greater or equal to Ice.CompressionMinSize
+            // Assert the payload is compressed only when it is greater or equal to the connection CompressionMinSize
             // and the compressed payload size is less than the uncompressed size.
 
-            Assert.IsTrue(compressedRequest || size < compressionMinSize);
-            Assert.IsTrue(!compressedRequest || size > compressedRequestSize);
+            // The request is compressed and the response is not compressed
+            if (compressedRequest)
+            {
+                Assert.GreaterOrEqual(size, compressionMinSize);
+                Assert.Greater(size, compressedRequestSize);
+            }
+            else
+            {
+                Assert.IsTrue(size < compressionMinSize);
+            }
             Assert.IsFalse(compressedResponse);
 
+            // Both request and response payload should be compressed
             _ = await prx.OpCompressArgsAndReturnAsync(data);
+            if (compressedRequest)
+            {
+                Assert.IsTrue(compressedResponse);
+                Assert.GreaterOrEqual(size, compressionMinSize);
+                Assert.Greater(size, compressedRequestSize);
+                Assert.Greater(size, compressedResponseSize);
+            }
+            else
+            {
+                Assert.IsTrue(size < compressionMinSize);
+            }
 
-            Assert.IsTrue(compressedRequest || size < compressionMinSize);
-            Assert.IsTrue(!compressedRequest || size > compressedRequestSize);
-
-            Assert.IsTrue(compressedResponse || size < compressionMinSize);
-            Assert.IsTrue(!compressedResponse || size > compressedResponseSize);
-
+            // The request is not compressed and the response is compressed
             _ = await prx.OpCompressReturnAsync(size);
 
             Assert.IsFalse(compressedRequest);
-            Assert.IsTrue(compressedResponse || size < compressionMinSize);
-            Assert.IsTrue(compressedResponse || size > compressedResponseSize);
+            if(compressedResponse)
+            {
+                Assert.GreaterOrEqual(size, compressionMinSize);
+                Assert.Greater(size, compressedResponseSize);
+            }
+            else
+            {
+                Assert.IsTrue(size < compressionMinSize);
+            }
 
+            // The exceptions are never compressed
             Assert.ThrowsAsync<CompressMyException>(async () => await prx.OpWithUserExceptionAsync(size));
             Assert.IsFalse(compressedRequest);
             Assert.IsFalse(compressedResponse);

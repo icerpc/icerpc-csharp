@@ -96,6 +96,8 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        internal CompressionLevel CompressionLevel { get; }
+        internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
 
         // Delegate used to remove the connection once it has been closed.
@@ -250,6 +252,8 @@ namespace IceRpc
             ConnectionOptions options,
             Server? server)
         {
+            CompressionLevel = options.CompressionLevel;
+            CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
             Socket = socket;
             Endpoint = endpoint;
