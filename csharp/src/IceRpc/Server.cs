@@ -397,7 +397,8 @@ namespace IceRpc
             if (GetColocatedEndpoint() is Endpoint endpoint)
             {
                 // TODO: very temporary code
-                ValueTask<Connection> vt = Communicator!.ConnectAsync(endpoint, new(), default);
+                ValueTask<Connection> vt =
+                    Communicator!.ConnectAsync(endpoint, Communicator.ConnectionOptions, default);
                 return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
             }
             else
