@@ -51,8 +51,8 @@ namespace IceRpc
             ostr.WriteInt(Port);
         }
 
-        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            publishedHost == Host ? this : Clone(publishedHost, Port);
+        protected internal override Endpoint GetProxyEndpoint(string proxyHost) =>
+            proxyHost == Host ? this : Clone(proxyHost, Port);
 
         internal IPEndpoint Clone(ushort port)
         {

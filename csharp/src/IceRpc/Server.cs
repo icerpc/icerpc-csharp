@@ -426,6 +426,6 @@ namespace IceRpc
             return _colocConnectionFactory.Endpoint;
         }
 
-        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
+        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
     }
 }

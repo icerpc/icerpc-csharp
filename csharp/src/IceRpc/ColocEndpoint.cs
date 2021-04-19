@@ -16,8 +16,12 @@ namespace IceRpc
     {
         public override bool IsAlwaysSecure => true;
 
-        protected internal override bool HasOptions => false;
-        protected internal override ushort DefaultPort => 0;
+        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
+
+        // The default port with ice1 is 0, just like for IP endpoints.
+        protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultColocPort;
+
+        internal const ushort DefaultColocPort = 4062;
 
         internal Server Server { get; }
 
@@ -71,9 +75,6 @@ namespace IceRpc
                 options,
                 server: null));
         }
-
-        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException("cannot create published endpoint for colocated endpoint");
 
         internal ColocEndpoint(Server server)
             : base(new EndpointData(Transport.Coloc, host: server.ToString(), port: 0, Array.Empty<string>()),

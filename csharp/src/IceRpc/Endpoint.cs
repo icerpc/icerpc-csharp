@@ -233,11 +233,11 @@ namespace IceRpc
         /// <returns>The datagram server side connection.</returns>
         public abstract Connection CreateDatagramServerConnection(Server server);
 
-        /// <summary>Returns the published endpoint for this server endpoint.</summary>
-        /// <param name="publishedHost">The host portion of the published endpoint when the endpoint's type supports
-        /// DNS resolution of its hosts. Otherwise, <c>publishedHost</c> is not used.</param>
-        /// <returns>The published endpoint.</returns>
-        protected internal abstract Endpoint GetPublishedEndpoint(string publishedHost);
+        /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
+        /// <param name="proxyHost">The host portion of the proxy endpoint when the endpoint's type supports DNS
+        /// resolution of its hosts. Otherwise, <c>proxyHost</c> is not used.</param>
+        /// <returns>The proxy endpoint.</returns>
+        protected internal virtual Endpoint GetProxyEndpoint(string proxyHost) => this;
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>
