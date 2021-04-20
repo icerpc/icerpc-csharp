@@ -64,7 +64,7 @@ namespace IceRpc
             LoggerMessage.Define<int>(
                 LogLevel.Information,
                 new EventId(ReceivedIce1RequestBatchFrame, nameof(ReceivedIce1RequestBatchFrame)),
-                "received batch request (RequestCount={RequestCount}");
+                "received batch request (RequestCount={RequestCount})");
 
         private static readonly Action<ILogger, Exception> _receivedIce1ValidateConnectionFrame =
             LoggerMessage.Define(

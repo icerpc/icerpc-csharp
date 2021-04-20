@@ -155,13 +155,13 @@ namespace IceRpc
             LoggerMessage.Define(
                 LogLevel.Information,
                 new EventId(StopAcceptingConnections, nameof(StopAcceptingConnections)),
-                "stoping to accept connections");
+                "stopping to accept connections");
 
         private static readonly Action<ILogger, Exception> _stopReceivingDatagrams =
             LoggerMessage.Define(
                 LogLevel.Information,
                 new EventId(StopReceivingDatagrams, nameof(StopReceivingDatagrams)),
-                "stoping to receive datagrams");
+                "stopping to receive datagrams");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
