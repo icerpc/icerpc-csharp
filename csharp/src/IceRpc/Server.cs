@@ -421,12 +421,18 @@ namespace IceRpc
 
                 if (_colocEndpoint == null)
                 {
-                    string host = _colocName;
-                    ushort port = 4062;
+                    string host;
+                    ushort port;
+
                     if (_endpoint is Endpoint endpoint)
                     {
                         host = endpoint.Host;
                         port = endpoint.Port;
+                    }
+                    else
+                    {
+                        host = _colocName;
+                        port = 4062;
                     }
                     _colocEndpoint = new ColocEndpoint(this, host, port);
                     _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
