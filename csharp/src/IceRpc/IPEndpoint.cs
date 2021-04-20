@@ -51,30 +51,8 @@ namespace IceRpc
             ostr.WriteInt(Port);
         }
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-            if (Protocol == Protocol.Ice1)
-            {
-                Debug.Assert(Host.Length > 0);
-                sb.Append(" -h ");
-                bool addQuote = Host.IndexOf(':') != -1;
-                if (addQuote)
-                {
-                    sb.Append('"');
-                }
-                sb.Append(Host);
-                if (addQuote)
-                {
-                    sb.Append('"');
-                }
-
-                sb.Append(" -p ");
-                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
-            }
-        }
-
-        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            publishedHost == Host ? this : Clone(publishedHost, Port);
+        protected internal override Endpoint GetProxyEndpoint(string proxyHost) =>
+            proxyHost == Host ? this : Clone(proxyHost, Port);
 
         internal IPEndpoint Clone(ushort port)
         {
@@ -104,55 +82,6 @@ namespace IceRpc
                 options.Remove("-z");
             }
             return compress;
-        }
-
-        // Parse host and port from ice1 endpoint string.
-        private protected static (string Host, ushort Port) ParseHostAndPort(
-            Dictionary<string, string?> options,
-            string endpointString)
-        {
-            string host;
-            ushort port = 0;
-
-            if (options.TryGetValue("-h", out string? argument))
-            {
-                host = argument ??
-                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
-
-                if (host == "*")
-                {
-                    // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
-                    // ::0 just bind to the IPv4 addresses in this case?
-                    host = "::0";
-                }
-
-                options.Remove("-h");
-            }
-            else
-            {
-                throw new FormatException($"no -h option in endpoint '{endpointString}'");
-            }
-
-            if (options.TryGetValue("-p", out argument))
-            {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
-                }
-
-                try
-                {
-                    port = ushort.Parse(argument, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException ex)
-                {
-                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
-                }
-                options.Remove("-p");
-            }
-            // else port remains 0
-
-            return (host, port);
         }
 
         // Read port for an ice1 endpoint.

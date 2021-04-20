@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
-    internal class ColocatedSocket : MultiStreamSocket
+    internal class ColocSocket : MultiStreamSocket
     {
         public override TimeSpan IdleTimeout
         {
@@ -46,7 +46,7 @@ namespace IceRpc
                 try
                 {
                     (long streamId, object? frame, bool fin) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-                    if (TryGetStream(streamId, out ColocatedStream? stream))
+                    if (TryGetStream(streamId, out ColocStream? stream))
                     {
                         // If we received a frame for a known stream, signal the stream of the frame reception. A null
                         // frame indicates a stream reset so reset the stream in this case.
@@ -71,7 +71,7 @@ namespace IceRpc
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
                         Debug.Assert(frame != null);
-                        stream = new ColocatedStream(this, streamId);
+                        stream = new ColocStream(this, streamId);
                         try
                         {
                             stream.ReceivedFrame(frame, fin);
@@ -112,7 +112,7 @@ namespace IceRpc
 
         public override SocketStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
-            new ColocatedStream(
+            new ColocStream(
                 this,
                 bidirectional,
                 !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
@@ -126,7 +126,7 @@ namespace IceRpc
                 await _writer.WriteAsync((-1, this, false), cancel).ConfigureAwait(false);
                 (_, object? peer, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                var peerSocket = (ColocatedSocket)peer!;
+                var peerSocket = (ColocSocket)peer!;
 
                 // We're responsible for creating the peer's semaphores with our configured stream max count.
                 peerSocket._bidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount);
@@ -153,10 +153,10 @@ namespace IceRpc
         }
 
         public override string ToString() =>
-            $"{base.ToString()} (ID={Id}, Server={((ColocatedEndpoint)Endpoint).Server}, Incoming={IsIncoming})";
+            $"{base.ToString()} (ID={Id}, Server={((ColocEndpoint)Endpoint).Server}, Incoming={IsIncoming})";
 
-        internal ColocatedSocket(
-            ColocatedEndpoint endpoint,
+        internal ColocSocket(
+            ColocEndpoint endpoint,
             long id,
             ChannelWriter<(long, object?, bool)> writer,
             ChannelReader<(long, object?, bool)> reader,
@@ -197,7 +197,7 @@ namespace IceRpc
             return streamIds;
         }
 
-        internal void ReleaseStream(ColocatedStream stream)
+        internal void ReleaseStream(ColocStream stream)
         {
             if (stream.IsIncoming && !stream.IsBidirectional && !stream.IsControl)
             {
@@ -214,7 +214,7 @@ namespace IceRpc
         }
 
         internal async ValueTask SendFrameAsync(
-            ColocatedStream stream,
+            ColocStream stream,
             object? frame,
             bool fin,
             CancellationToken cancel)

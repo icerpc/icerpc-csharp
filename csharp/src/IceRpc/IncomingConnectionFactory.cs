@@ -38,7 +38,7 @@ namespace IceRpc
             Endpoint = _acceptor.Endpoint;
 
             using IDisposable? scope = _acceptor.StartScope(_server);
-            if (!(_acceptor is ColocatedAcceptor))
+            if (!(_acceptor is ColocAcceptor))
             {
                 server.Logger.LogAcceptingConnections();
             }

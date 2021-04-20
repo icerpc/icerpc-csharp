@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Internal
     // Test the varions multi-stream socket implementations.
     [Timeout(10000)]
     [TestFixture(MultiStreamSocketType.Slic)]
-    [TestFixture(MultiStreamSocketType.Colocated)]
+    [TestFixture(MultiStreamSocketType.Coloc)]
     [TestFixture(MultiStreamSocketType.Ice1)]
     public class MultiStreamSocketTests : MultiStreamSocketBaseTest
     {

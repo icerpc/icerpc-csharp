@@ -108,9 +108,9 @@ namespace IceRpc.Tests.Internal
                 LoggerFactory = _loggerFactory
             };
 
-            if (transport == "colocated")
+            if (transport == "coloc")
             {
-                ClientEndpoint = new ColocatedEndpoint(Server);
+                ClientEndpoint = new ColocEndpoint(Server, Guid.NewGuid().ToString(), 4062);
                 ServerEndpoint = ClientEndpoint;
             }
             else
@@ -215,8 +215,8 @@ namespace IceRpc.Tests.Internal
 
             if (connection.Endpoint.TransportName != TransportName)
             {
-                Debug.Assert(TransportName == "colocated");
-                Debug.Assert(connection.Socket is ColocatedSocket);
+                Debug.Assert(TransportName == "coloc");
+                Debug.Assert(connection.Socket is ColocSocket);
             }
             var options = new ProxyOptions()
             {

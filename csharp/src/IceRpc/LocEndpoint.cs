@@ -32,18 +32,12 @@ namespace IceRpc
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator) =>
-            Debug.Assert(false);
-
         // InvalidOperationException because this method should never get called.
         protected internal override Task<Connection> ConnectAsync(
             OutgoingConnectionOptions options,
             ILogger logger,
             CancellationToken cancel) =>
             throw new InvalidOperationException($"cannot establish a connection to endpoint '{this}'");
-
-        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException($"cannot get the published endpoint for endpoint '{this}'");
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1

@@ -81,9 +81,6 @@ namespace IceRpc
             CancellationToken cancel) =>
             throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
 
-        protected internal override Endpoint GetPublishedEndpoint(string publishedHost) =>
-            throw new NotSupportedException($"cannot get the published endpoint for endpoint '{this}'");
-
         internal static OpaqueEndpoint Create(
             Transport transport,
             Encoding valueEncoding,

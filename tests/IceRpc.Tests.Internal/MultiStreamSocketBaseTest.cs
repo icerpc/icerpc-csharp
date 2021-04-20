@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     public enum MultiStreamSocketType
     {
         Ice1,
-        Colocated,
+        Coloc,
         Slic
     }
 
@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Internal
 
         public MultiStreamSocketBaseTest(MultiStreamSocketType socketType)
             : base(socketType == MultiStreamSocketType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
-                   socketType == MultiStreamSocketType.Colocated ? "colocated" : "tcp",
+                   socketType == MultiStreamSocketType.Coloc ? "coloc" : "tcp",
                    NonSecure.Always) =>
             SocketType = socketType;
 

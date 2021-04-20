@@ -2,32 +2,32 @@
 
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using ColocatedChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
-using ColocatedChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
+using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
+using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
 
 namespace IceRpc
 {
     /// <summary>The IAcceptor implementation for the colocated transport.</summary>
-    internal class ColocatedAcceptor : IAcceptor
+    internal class ColocAcceptor : IAcceptor
     {
         public Endpoint Endpoint => _endpoint;
 
-        private readonly ColocatedEndpoint _endpoint;
+        private readonly ColocEndpoint _endpoint;
         private readonly Server _server;
-        private readonly ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> _reader;
-        private readonly ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> _writer;
+        private readonly ChannelReader<(long, ColocChannelWriter, ColocChannelReader)> _reader;
+        private readonly ChannelWriter<(long, ColocChannelWriter, ColocChannelReader)> _writer;
 
         public async ValueTask<Connection> AcceptAsync()
         {
-            (long id, ColocatedChannelWriter writer, ColocatedChannelReader reader) =
+            (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _reader.ReadAsync().ConfigureAwait(false);
 
             // For the server-side connection we pass the stream max count from the client since unlike Slic there's
             // no transport initialization to negotiate this configuration and the server-side must limit the number
             // of streams based on the stream max count from the client-side.
-            return new ColocatedConnection(
+            return new ColocConnection(
                 _endpoint,
-                new ColocatedSocket(
+                new ColocSocket(
                     _endpoint,
                     id,
                     writer,
@@ -42,11 +42,11 @@ namespace IceRpc
 
         public override string ToString() => _server.ToString();
 
-        internal ColocatedAcceptor(
-            ColocatedEndpoint endpoint,
+        internal ColocAcceptor(
+            ColocEndpoint endpoint,
             Server server,
-            ChannelWriter<(long, ColocatedChannelWriter, ColocatedChannelReader)> writer,
-            ChannelReader<(long, ColocatedChannelWriter, ColocatedChannelReader)> reader)
+            ChannelWriter<(long, ColocChannelWriter, ColocChannelReader)> writer,
+            ChannelReader<(long, ColocChannelWriter, ColocChannelReader)> reader)
         {
             _endpoint = endpoint;
             _server = server;

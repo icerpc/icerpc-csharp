@@ -109,7 +109,7 @@ namespace IceRpc
         internal bool IsIndirect => Endpoints.Count == 1 && Endpoints[0].Transport == Transport.Loc;
         internal bool IsRelative =>
             Endpoints.Count == 0 &&
-            (_connection?.Endpoint.Transport ?? Transport.Colocated) == Transport.Colocated;
+            (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && Endpoints[0].HasOptions;
 
         private volatile Connection? _connection;
@@ -308,7 +308,18 @@ namespace IceRpc
                 else
                 {
                     Debug.Assert(Endpoints.Count > 0);
-                    ostr.WriteSequence(Endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
+
+                    IEnumerable<Endpoint> endpoints = Endpoints.Where(e => e.Transport != Transport.Coloc);
+
+                    if (endpoints.Any())
+                    {
+                        ostr.WriteSequence(endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
+                    }
+                    else // marshaled as relative/well-known proxy
+                    {
+                        ostr.WriteSize(0); // 0 endpoints
+                        ostr.WriteString(""); // empty adapter ID
+                    }
                 }
             }
             else
@@ -322,10 +333,14 @@ namespace IceRpc
                     path = $"{path}#{Uri.EscapeDataString(Facet)}";
                 }
 
-                var proxyData = new ProxyData20(path,
-                                                protocol: Protocol != Protocol.Ice2 ? Protocol : null,
-                                                encoding: Encoding != Encoding.V20 ? Encoding : null,
-                                                Endpoints.Count == 0 ? null : Endpoints.Select(e => e.Data).ToArray());
+                IEnumerable<Endpoint> endpoints = Endpoints.Where(e => e.Transport != Transport.Coloc);
+
+                var proxyData = new ProxyData20(
+                    path,
+                    protocol: Protocol != Protocol.Ice2 ? Protocol : null,
+                    encoding: Encoding != Encoding.V20 ? Encoding : null,
+                    endpoints.Any() ? endpoints.Select(e => e.Data).ToArray() : null);
+
                 proxyData.IceWrite(ostr);
             }
         }
@@ -834,9 +849,9 @@ namespace IceRpc
         {
             Debug.Assert(!IsFixed);
 
-            if (ColocatedServerRegistry.GetColocatedEndpoint(this) is Endpoint colocatedEndpoint)
+            if (ColocServerRegistry.GetColocEndpoint(this) is Endpoint colocEndpoint)
             {
-                return new List<Endpoint>() { colocatedEndpoint };
+                return new List<Endpoint>() { colocEndpoint };
             }
 
             IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;

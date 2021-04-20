@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class ProxyTests : ColocatedTest
+    public class ProxyTests : ColocTest
     {
         [Test]
         public async Task Proxy_BuiltinOperationsAsync()

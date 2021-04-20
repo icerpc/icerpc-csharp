@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>The SocketStream class for the colocated transport.</summary>
-    internal class ColocatedStream : SignaledSocketStream<(object, bool)>
+    internal class ColocStream : SignaledSocketStream<(object, bool)>
     {
         protected override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
-        private readonly ColocatedSocket _socket;
+        private readonly ColocSocket _socket;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
@@ -140,11 +140,11 @@ namespace IceRpc
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
-        internal ColocatedStream(ColocatedSocket socket, long streamId)
+        internal ColocStream(ColocSocket socket, long streamId)
             : base(socket, streamId) => _socket = socket;
 
         /// <summary>Constructor for outgoing colocated stream</summary>
-        internal ColocatedStream(ColocatedSocket socket, bool bidirectional, bool control)
+        internal ColocStream(ColocSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
         internal void ReceivedFrame(object frame, bool fin) => QueueResult((frame, fin));

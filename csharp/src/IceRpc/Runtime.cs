@@ -159,6 +159,13 @@ namespace IceRpc
                               ice2Parser: LocEndpoint.ParseIce2Endpoint,
                               defaultUriPort: LocEndpoint.DefaultLocPort);
 
+            RegisterTransport(Transport.Coloc,
+                              "coloc",
+                              ColocEndpoint.CreateEndpoint,
+                              ice1Parser: ColocEndpoint.ParseIce1Endpoint,
+                              ice2Parser: ColocEndpoint.ParseIce2Endpoint,
+                              defaultUriPort: ColocEndpoint.DefaultColocPort);
+
             RegisterTransport(Transport.TCP,
                               "tcp",
                               TcpEndpoint.CreateEndpoint,

@@ -100,8 +100,10 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
-        private AcceptorIncomingConnectionFactory? _colocatedConnectionFactory;
-        private readonly string _colocatedName = $"colocated-{Interlocked.Increment(ref _counter)}";
+        private AcceptorIncomingConnectionFactory? _colocConnectionFactory;
+        private ColocEndpoint? _colocEndpoint;
+
+        private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
 
@@ -137,7 +139,7 @@ namespace IceRpc
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList<Endpoint>.Empty,
-                                                GetColocatedConnection(),
+                                                GetColocConnection(),
                                                 ProxyOptions);
         }
 
@@ -291,7 +293,7 @@ namespace IceRpc
 
                     if (IsDiscoverable && _endpoint.IsDatagram)
                     {
-                        ColocatedServerRegistry.RegisterServer(this);
+                        ColocServerRegistry.RegisterServer(this);
                     }
                 }
                 else
@@ -351,13 +353,13 @@ namespace IceRpc
                     Logger.LogServerShuttingDown(this);
 
                     // No longer available for coloc connections (may not be registered at all)
-                    ColocatedServerRegistry.UnregisterServer(this);
+                    ColocServerRegistry.UnregisterServer(this);
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _colocatedConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task colocShutdownTask = _colocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
                     await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
@@ -375,25 +377,26 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? _colocatedName;
+        public override string ToString() => _endpoint?.ToString() ?? _colocName;
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
+            _colocEndpoint?.Dispose();
         }
 
         // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
-        // colocated. Called by ColocatedServerRegistry.
-        internal Endpoint? GetColocatedEndpoint(ServicePrx proxy) =>
+        // colocated. Called by ColocServerRegistry.
+        internal Endpoint? GetColocEndpoint(ServicePrx proxy) =>
             proxy.Endpoints.Any(endpoint => endpoint.IsEquivalent(_endpoint!) ||
                                             endpoint.IsEquivalent(_proxyEndpoint!)) ?
-                GetColocatedEndpoint() : null;
+                GetColocEndpoint() : null;
 
-        private Connection? GetColocatedConnection()
+        private Connection? GetColocConnection()
         {
-            if (GetColocatedEndpoint() is Endpoint endpoint)
+            if (GetColocEndpoint() is Endpoint endpoint)
             {
                 // TODO: very temporary code
                 ValueTask<Connection> vt =
@@ -406,7 +409,7 @@ namespace IceRpc
             }
         }
 
-        private Endpoint? GetColocatedEndpoint()
+        private Endpoint? GetColocEndpoint()
         {
             // Lazy initialized because it needs a fully configured server, in particular Protocol.
             lock (_mutex)
@@ -416,16 +419,29 @@ namespace IceRpc
                     return null;
                 }
 
-                if (_colocatedConnectionFactory == null)
+                if (_colocEndpoint == null)
                 {
-                    _colocatedConnectionFactory
-                        = new AcceptorIncomingConnectionFactory(this, new ColocatedEndpoint(this));
-                    _colocatedConnectionFactory.Activate();
+                    string host;
+                    ushort port;
+
+                    if (_endpoint is Endpoint endpoint)
+                    {
+                        host = endpoint.Host;
+                        port = endpoint.Port;
+                    }
+                    else
+                    {
+                        host = _colocName;
+                        port = 4062;
+                    }
+                    _colocEndpoint = new ColocEndpoint(this, host, port);
+                    _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
+                    _colocConnectionFactory.Activate();
                 }
             }
-            return _colocatedConnectionFactory.Endpoint;
+            return _colocEndpoint;
         }
 
-        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetPublishedEndpoint(ProxyHost);
+        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
     }
 }

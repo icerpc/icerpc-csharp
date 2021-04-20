@@ -182,7 +182,28 @@ namespace IceRpc
         /// <param name="sb">The string builder.</param>
         /// <param name="optionSeparator">The character used to separate two options. This separator is not used for
         /// ice1 endpoints.</param>
-        protected internal abstract void AppendOptions(StringBuilder sb, char optionSeparator);
+        protected internal virtual void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            if (Protocol == Protocol.Ice1)
+            {
+                Debug.Assert(Host.Length > 0);
+                sb.Append(" -h ");
+                bool addQuote = Host.IndexOf(':') != -1;
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+                sb.Append(Host);
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+
+                sb.Append(" -p ");
+                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
+            }
+            // else by default, no option to append.
+        }
 
         /// <summary>Provides the same hash code for two equivalent endpoints. See <see cref="IsEquivalent"/>.</summary>
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();
@@ -212,11 +233,11 @@ namespace IceRpc
         /// <returns>The datagram server side connection.</returns>
         public abstract Connection CreateDatagramServerConnection(Server server);
 
-        /// <summary>Returns the published endpoint for this server endpoint.</summary>
-        /// <param name="publishedHost">The host portion of the published endpoint when the endpoint's type supports
-        /// DNS resolution of its hosts. Otherwise, <c>publishedHost</c> is not used.</param>
-        /// <returns>The published endpoint.</returns>
-        protected internal abstract Endpoint GetPublishedEndpoint(string publishedHost);
+        /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
+        /// <param name="proxyHost">The host portion of the proxy endpoint when the endpoint's type supports DNS
+        /// resolution of its hosts. Otherwise, <c>proxyHost</c> is not used.</param>
+        /// <returns>The proxy endpoint.</returns>
+        protected internal virtual Endpoint GetProxyEndpoint(string proxyHost) => this;
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>
@@ -225,6 +246,55 @@ namespace IceRpc
         {
             Data = data;
             Protocol = protocol;
+        }
+
+        /// <summary>Parses host and port from an ice1 endpoint string.</summary>
+        private protected static (string Host, ushort Port) ParseHostAndPort(
+            Dictionary<string, string?> options,
+            string endpointString)
+        {
+            string host;
+            ushort port = 0;
+
+            if (options.TryGetValue("-h", out string? argument))
+            {
+                host = argument ??
+                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
+
+                if (host == "*")
+                {
+                    // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
+                    // ::0 just bind to the IPv4 addresses in this case?
+                    host = "::0";
+                }
+
+                options.Remove("-h");
+            }
+            else
+            {
+                throw new FormatException($"no -h option in endpoint '{endpointString}'");
+            }
+
+            if (options.TryGetValue("-p", out argument))
+            {
+                if (argument == null)
+                {
+                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
+                }
+
+                try
+                {
+                    port = ushort.Parse(argument, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException ex)
+                {
+                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
+                }
+                options.Remove("-p");
+            }
+            // else port remains 0
+
+            return (host, port);
         }
     }
 
