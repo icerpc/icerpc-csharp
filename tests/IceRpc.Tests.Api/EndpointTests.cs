@@ -29,6 +29,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host:10000?transport=tcp&protocol=ice1")]
         [TestCase("category/name:tcp -h host -p 10000")]
         [TestCase("tcp -h host -p 10000 -e 1.1")]
+        [TestCase("ice+udp://localhost")]
         public void Endpoint_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Endpoint.Parse(str));
