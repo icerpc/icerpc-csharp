@@ -86,6 +86,10 @@ namespace IceRpc
                 server: null));
         }
 
+        // Unmarshaling constructor
+        internal static ColocEndpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
+            throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
+
         internal static ColocEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
