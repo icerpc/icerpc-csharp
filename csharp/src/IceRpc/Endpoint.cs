@@ -302,7 +302,7 @@ namespace IceRpc
     public static class EndpointExtensions
     {
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
-        static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
+        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
             new ConcurrentDictionary<Endpoint, ColocEndpoint>();
 
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
