@@ -297,7 +297,7 @@ namespace IceRpc
                 // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
                 _listening = true;
 
-                if (IsDiscoverable && _endpoint.IsDatagram)
+                if (IsDiscoverable && !_endpoint.IsDatagram)
                 {
                     ColocServerRegistry.RegisterServer(this);
                 }
