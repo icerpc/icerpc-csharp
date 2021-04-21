@@ -8,9 +8,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace IceRpc
 {
@@ -598,20 +600,35 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        internal static Task<IncomingResponseFrame> InvokeAsync(
+        internal static async Task<IncomingResponseFrame> InvokeAsync(
             IServicePrx proxy,
             OutgoingRequestFrame request,
             bool oneway,
             IProgress<bool>? progress = null)
         {
             IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.InvocationInterceptors;
-
-            return InvokeWithInterceptorsAsync(proxy,
-                                               request,
-                                               oneway,
-                                               0,
-                                               progress,
-                                               request.CancellationToken);
+            Activity? activiy = null;
+            if (proxy.Communicator.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null)
+            {
+                activiy = new Activity("IceRpc.Invocation");
+                activiy.Start();
+                activiy.AddTag("Operation", request.Operation);
+                activiy.AddTag("Path", request.Path);
+            }
+            
+            try
+            {
+                return await InvokeWithInterceptorsAsync(proxy,
+                                                         request,
+                                                         oneway,
+                                                         0,
+                                                         progress,
+                                                         request.CancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                activiy?.Stop();
+            }
 
             async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
                 IServicePrx proxy,
@@ -948,6 +965,28 @@ namespace IceRpc
             Exception? exception = null;
 
             bool tryAgain = false;
+
+            if (Activity.Current != null && Activity.Current.Id != null)
+            {
+                request.WritableContext["traceparent"] = Activity.Current.Id;
+                if (Activity.Current.TraceStateString != null)
+                {
+                    request.WritableContext["tracestate"] = Activity.Current.TraceStateString;
+                }
+
+                using IEnumerator<KeyValuePair<string, string?>> e = Activity.Current.Baggage.GetEnumerator();
+                if (e.MoveNext())
+                {
+                    var baggage = new List<string>();
+                    do
+                    {
+                        baggage.Add(new NameValueHeaderValue(HttpUtility.UrlEncode(e.Current.Key),
+                                                             HttpUtility.UrlEncode(e.Current.Value)).ToString());
+                    }
+                    while (e.MoveNext());
+                    request.WritableContext["baggage"] = string.Join(',', baggage);
+                }
+            }
 
             do
             {

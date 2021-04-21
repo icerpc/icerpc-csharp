@@ -16,6 +16,14 @@ try
         builder =>
         {
             builder.AddConfiguration(configuration.GetSection("Logging"));
+            builder.Configure(factoryOptions =>
+            {
+                factoryOptions.ActivityTrackingOptions = ActivityTrackingOptions.ParentId |
+                                                         ActivityTrackingOptions.SpanId |
+                                                         ActivityTrackingOptions.TraceFlags |
+                                                         ActivityTrackingOptions.TraceId |
+                                                         ActivityTrackingOptions.TraceState;
+            });
             builder.AddSimpleConsole(configure =>
                 {
                     configure.IncludeScopes = true;
@@ -32,13 +40,12 @@ try
             });*/
         });
 
-    await using var server = new Server(new Communicator(),
-        new ServerOptions()
-        {
-            Name = "Hello",
-            Endpoints = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints"),
-            LoggerFactory = loggerFactory
-        });
+    await using var server = new Server
+    {
+        Endpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints"),
+        LoggerFactory = loggerFactory,
+        Dispatcher = new Hello()
+    };
 
     // Destroy the server on Ctrl+C or Ctrl+Break
     Console.CancelKeyPress += (sender, eventArgs) =>
@@ -46,10 +53,7 @@ try
         eventArgs.Cancel = true;
         _ = server.ShutdownAsync();
     };
-
-    server.Add("hello", new Hello());
-    server.Activate();
-
+    server.Listen();
     await server.ShutdownComplete;
 }
 catch (Exception ex)
