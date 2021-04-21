@@ -102,8 +102,6 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
-        private AcceptorIncomingConnectionFactory? _colocIncomingConnectionFactory;
-
         private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
@@ -111,6 +109,7 @@ namespace IceRpc
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
+        private IncomingConnectionFactory? _incomingColocConnectionFactory;
         private IncomingConnectionFactory? _incomingConnectionFactory;
         private bool _listening;
 
@@ -302,8 +301,8 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocIncomingConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
-                    _colocIncomingConnectionFactory.Activate();
+                    _incomingColocConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
+                    _incomingColocConnectionFactory.Activate();
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
                 }
 
@@ -368,7 +367,7 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _colocIncomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
                     await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
