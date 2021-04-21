@@ -1,9 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
+using System.Threading;
 namespace IceRpc.Tests
 {
     public static class TestHelper
     {
+        private static ulong _counter;
+
         public static string EscapeIPv6Address(string address, Protocol protocol) =>
             protocol switch
             {
@@ -29,5 +33,9 @@ namespace IceRpc.Tests
             protocol == Protocol.Ice2 ?
                 $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}{path}" :
                 $"{path}:{transport} -h {EscapeIPv6Address(host, protocol)} -p {port}";
+
+        public static string GetUniqueTestServerColocEndpoint(Protocol protocol = Protocol.Ice2) =>
+            protocol == Protocol.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
+                $"coloc -h test.{Interlocked.Increment(ref _counter)}";
     }
 }

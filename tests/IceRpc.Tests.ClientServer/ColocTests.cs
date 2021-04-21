@@ -13,11 +13,12 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     public class ColocTests
     {
-        [Test]
-        public async Task Coloc_ConnectionRefusedAsync()
+        [TestCase("ice+coloc://coloc_connection_refused/foo")]
+        [TestCase("foo:coloc -h coloc_connection_refused")]
+        public async Task Coloc_ConnectionRefusedAsync(string colocProxy)
         {
             var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://coloc_connection_refused", communicator);
+            var greeter = IGreeterTestServicePrx.Parse(colocProxy, communicator);
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
 
@@ -25,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter(),
-                Endpoint = "ice+coloc://coloc_connection_refused"
+                Endpoint = greeter.Endpoints[0].ToString()
             };
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
@@ -33,22 +34,23 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
         }
 
-        [Test]
-        public async Task Coloc_DuplicateAsync()
+        [TestCase("ice+coloc://coloc_duplicate")]
+        [TestCase("coloc -h coloc_duplicate")]
+        public async Task Coloc_DuplicateAsync(string endpoint)
         {
             var communicator = new Communicator();
 
             await using var server = new Server
             {
                 Communicator = communicator,
-                Endpoint = "ice+coloc://coloc_duplicate"
+                Endpoint = endpoint
             };
             server.Listen();
 
             await using var duplicate = new Server
             {
                 Communicator = communicator,
-                Endpoint = "ice+coloc://coloc_duplicate"
+                Endpoint = endpoint
             };
 
             Assert.Throws<ArgumentException>(() => duplicate.Listen());

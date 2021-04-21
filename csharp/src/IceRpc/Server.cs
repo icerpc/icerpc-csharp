@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -277,28 +278,28 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint is Endpoint endpoint)
+                if (_endpoint == null)
                 {
-                    _incomingConnectionFactory = endpoint.IsDatagram ?
-                        new DatagramIncomingConnectionFactory(this, endpoint) :
-                        new AcceptorIncomingConnectionFactory(this, endpoint);
-
-                    _endpoint = _incomingConnectionFactory.Endpoint;
-                    UpdateProxyEndpoint();
-
-                    _incomingConnectionFactory.Activate();
-
-                    // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
-                    _listening = true;
-
-                    if (IsDiscoverable && _endpoint.IsDatagram)
-                    {
-                        ColocServerRegistry.RegisterServer(this);
-                    }
+                    // Temporary
+                    Endpoint = Protocol == Protocol.Ice2 ? $"ice+coloc://{_colocName}" : $"coloc -h {_colocName}";
                 }
-                else
+                Debug.Assert(_endpoint != null);
+
+                _incomingConnectionFactory = _endpoint.IsDatagram ?
+                    new DatagramIncomingConnectionFactory(this, _endpoint) :
+                    new AcceptorIncomingConnectionFactory(this, _endpoint);
+
+                _endpoint = _incomingConnectionFactory.Endpoint;
+                UpdateProxyEndpoint();
+
+                _incomingConnectionFactory.Activate();
+
+                // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
+                _listening = true;
+
+                if (IsDiscoverable && _endpoint.IsDatagram)
                 {
-                    _listening = true;
+                    ColocServerRegistry.RegisterServer(this);
                 }
 
                 // TODO: remove
