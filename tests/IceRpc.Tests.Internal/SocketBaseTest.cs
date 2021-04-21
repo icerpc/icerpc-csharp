@@ -110,7 +110,7 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "coloc")
             {
-                ClientEndpoint = new ColocEndpoint(Server, Guid.NewGuid().ToString(), 4062);
+                ClientEndpoint = new ColocEndpoint(Guid.NewGuid().ToString(), 4062, Server.Protocol);
                 ServerEndpoint = ClientEndpoint;
             }
             else

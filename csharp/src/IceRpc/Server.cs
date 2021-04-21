@@ -384,7 +384,6 @@ namespace IceRpc
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
-            _colocEndpoint?.Dispose();
         }
 
         // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
@@ -434,7 +433,7 @@ namespace IceRpc
                         host = _colocName;
                         port = 4062;
                     }
-                    _colocEndpoint = new ColocEndpoint(this, host, port);
+                    _colocEndpoint = new ColocEndpoint(host, port, Protocol);
                     _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
                     _colocConnectionFactory.Activate();
                 }
