@@ -96,11 +96,7 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        private static ulong _counter; // used to generate names for servers without endpoints
-
         private readonly CancellationTokenSource _cancelDispatchSource = new();
-
-        private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
 
@@ -381,7 +377,7 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? _colocName;
+        public override string ToString() => _endpoint?.ToString() ?? "";
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
