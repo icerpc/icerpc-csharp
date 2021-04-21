@@ -297,9 +297,19 @@ namespace IceRpc
                 // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
                 _listening = true;
 
-                if (IsDiscoverable && !_endpoint.IsDatagram)
+                if (IsDiscoverable && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
                 {
-                    ColocServerRegistry.RegisterServer(this);
+                    if (_colocEndpoint == null) // temporary check, we don't really need _colocEndpoint
+                    {
+                        _colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
+                                                           port: _endpoint.Port,
+                                                           protocol: _endpoint.Protocol);
+
+                        _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
+                        _colocConnectionFactory.Activate();
+                    }
+
+                    EndpointExtensions.RegisterColocEndpoint(_endpoint, _colocEndpoint);
                 }
 
                 // TODO: remove
@@ -354,7 +364,10 @@ namespace IceRpc
                     Logger.LogServerShuttingDown(this);
 
                     // No longer available for coloc connections (may not be registered at all)
-                    ColocServerRegistry.UnregisterServer(this);
+                    if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
+                    {
+                        EndpointExtensions.UnregisterColocEndpoint(endpoint);
+                    }
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
