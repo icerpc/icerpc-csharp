@@ -390,7 +390,8 @@ namespace IceRpc
             Debug.Assert(endpoint.Transport != Transport.Coloc);
             if (!_colocRegistry.TryAdd(endpoint, colocEndpoint))
             {
-                throw new TransportException($"endpoint {endpoint} is already registered for coloc");
+                // This should never happen.
+                throw new TransportException($"endpoint '{endpoint}' is already registered for coloc");
             }
         }
 
