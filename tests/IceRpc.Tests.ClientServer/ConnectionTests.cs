@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(transport: transport, protocol: protocol),
                 ConnectionOptions = new()
                 {
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ConnectionOptions = new()
@@ -129,7 +129,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };
@@ -161,7 +161,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ConnectionOptions = new()
@@ -212,7 +212,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = serverCommunicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint()
             };
@@ -249,7 +249,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint()
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
@@ -284,7 +284,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator1,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(),
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
@@ -429,7 +429,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(protocol: protocol)
             };

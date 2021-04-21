@@ -245,7 +245,7 @@ namespace IceRpc.Tests.ClientServer
 
             new Server
             {
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)

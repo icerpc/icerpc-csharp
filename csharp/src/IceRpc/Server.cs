@@ -42,11 +42,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets or sets whether this server can be discovered for colocated calls. Changing this value after
-        /// calling <see cref="Listen"/> has no effect.</summary>
-        /// <value>True when the server can be discovered for colocated calls; otherwise, false. The default value is
-        /// true.</value>
-        public bool IsDiscoverable { get; set; }
+        /// <summary>Gets or sets whether this server listens on an endpoint for the coloc transport in addition to its
+        /// regular endpoint. This property has no effect when <see cref="Endpoint"/>'s transport is coloc. Changing
+        /// this value after calling <see cref="Listen"/> has no effect as well.</summary>
+        /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
+        /// value is true.</value>
+        public bool HasColocEndpoint { get; set; }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -297,7 +298,7 @@ namespace IceRpc
                 // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
                 _listening = true;
 
-                if (IsDiscoverable && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
+                if (HasColocEndpoint && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
                 {
                     if (_colocEndpoint == null) // temporary check, we don't really need _colocEndpoint
                     {
@@ -399,13 +400,6 @@ namespace IceRpc
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
         }
-
-        // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
-        // colocated. Called by ColocServerRegistry.
-        internal Endpoint? GetColocEndpoint(ServicePrx proxy) =>
-            proxy.Endpoints.Any(endpoint => endpoint.IsEquivalent(_endpoint!) ||
-                                            endpoint.IsEquivalent(_proxyEndpoint!)) ?
-                GetColocEndpoint() : null;
 
         private Connection? GetColocConnection()
         {
