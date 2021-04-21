@@ -34,28 +34,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
         }
 
-        [TestCase("ice+coloc://coloc_duplicate")]
-        [TestCase("coloc -h coloc_duplicate")]
-        public async Task Coloc_DuplicateAsync(string endpoint)
-        {
-            var communicator = new Communicator();
-
-            await using var server = new Server
-            {
-                Communicator = communicator,
-                Endpoint = endpoint
-            };
-            server.Listen();
-
-            await using var duplicate = new Server
-            {
-                Communicator = communicator,
-                Endpoint = endpoint
-            };
-
-            Assert.Throws<ArgumentException>(() => duplicate.Listen());
-        }
-
         internal class Greeter : IAsyncGreeterTestService
         {
             public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;

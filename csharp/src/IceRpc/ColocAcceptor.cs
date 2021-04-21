@@ -78,7 +78,10 @@ namespace IceRpc
             };
             _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(options);
 
-            _colocAcceptorDictionary.Add(_endpoint, this);
+            if (!_colocAcceptorDictionary.TryAdd(_endpoint, this))
+            {
+                throw new TransportException($"endpoint '{endpoint}' is already in use");
+            }
         }
 
         internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()

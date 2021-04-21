@@ -98,8 +98,7 @@ namespace IceRpc.Tests.Api
                 };
                 server1.Listen();
 
-                // TODO: should throw TransportException
-                Assert.ThrowsAsync<ArgumentException>(async () =>
+                Assert.ThrowsAsync<TransportException>(async () =>
                     {
                         await using var server2 = new Server
                         {

@@ -129,6 +129,9 @@ namespace IceRpc
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
+            // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
+            // unless the user gives a connection to the new relative proxy.
+
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,
                                                 Protocol.GetEncoding(),

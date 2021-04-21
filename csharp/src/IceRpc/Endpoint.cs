@@ -301,7 +301,8 @@ namespace IceRpc
 
     public static class EndpointExtensions
     {
-        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
+        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
+        static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
             new ConcurrentDictionary<Endpoint, ColocEndpoint>();
 
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
@@ -384,40 +385,13 @@ namespace IceRpc
             return sb;
         }
 
-        internal static StringBuilder AppendEndpointList(
-            this StringBuilder sb,
-            IReadOnlyList<Endpoint> endpoints)
-        {
-            Debug.Assert(endpoints.Count > 0);
-
-            if (endpoints[0].Protocol == Protocol.Ice1)
-            {
-                sb.Append(string.Join(":", endpoints));
-            }
-            else
-            {
-                sb.AppendEndpoint(endpoints[0]);
-                if (endpoints.Count > 1)
-                {
-                    Transport mainTransport = endpoints[0].Transport;
-                    sb.Append("?alt-endpoint=");
-                    for (int i = 1; i < endpoints.Count; ++i)
-                    {
-                        if (i > 1)
-                        {
-                            sb.Append(',');
-                        }
-                        sb.AppendEndpoint(endpoints[i], "", mainTransport != endpoints[i].Transport, '$');
-                    }
-                }
-            }
-            return sb;
-        }
-
         internal static void RegisterColocEndpoint(Endpoint endpoint, ColocEndpoint colocEndpoint)
         {
             Debug.Assert(endpoint.Transport != Transport.Coloc);
-            _colocRegistry.Add(endpoint, colocEndpoint);
+            if (!_colocRegistry.TryAdd(endpoint, colocEndpoint))
+            {
+                throw new TransportException($"endpoint {endpoint} is already registered for coloc");
+            }
         }
 
         internal static void UnregisterColocEndpoint(Endpoint endpoint) =>
