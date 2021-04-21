@@ -217,6 +217,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
+        [TestCase("ice+coloc://host:10000")]
         // a valid URI
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
@@ -225,6 +226,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);

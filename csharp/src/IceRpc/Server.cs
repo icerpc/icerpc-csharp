@@ -425,12 +425,12 @@ namespace IceRpc
 
                     if (_endpoint is Endpoint endpoint)
                     {
-                        host = endpoint.Host;
+                        host = $"{endpoint.Host}.{endpoint.TransportName}";
                         port = endpoint.Port;
                     }
                     else
                     {
-                        host = _colocName;
+                        host = $"{_colocName}.coloc";
                         port = 4062;
                     }
                     _colocEndpoint = new ColocEndpoint(host, port, Protocol);

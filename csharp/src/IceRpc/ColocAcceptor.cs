@@ -17,12 +17,15 @@ namespace IceRpc
     {
         public Endpoint Endpoint => _endpoint;
 
+        /// <summary>A dictionary that keeps track of all coloc acceptors.</summary>
         private static readonly IDictionary<ColocEndpoint, ColocAcceptor> _colocAcceptorDictionary =
             new ConcurrentDictionary<ColocEndpoint, ColocAcceptor>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
 
         private readonly ColocEndpoint _endpoint;
+
+        // TODO: descriptive comment
         private long _nextId;
         private readonly Server _server;
 
