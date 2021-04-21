@@ -17,7 +17,8 @@ namespace IceRpc.Tests
             Communicator = new Communicator();
             Server = new Server
             {
-                Communicator = Communicator
+                Communicator = Communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
         }
 

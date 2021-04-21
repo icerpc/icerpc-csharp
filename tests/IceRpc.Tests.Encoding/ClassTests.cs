@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Encoding
             {
                 Dispatcher = router,
                 Communicator = _communicator,
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
             _sliced = _server.CreateProxy<ISlicedFormatOperationsPrx>("/sliced");
@@ -205,7 +205,8 @@ namespace IceRpc.Tests.Encoding
                 {
                     ClassGraphMaxDepth = serverClassGraphMaxDeph
                 },
-                Dispatcher = new ClassGraphOperations()
+                Dispatcher = new ClassGraphOperations(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 

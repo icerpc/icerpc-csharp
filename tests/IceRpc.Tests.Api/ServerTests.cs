@@ -35,7 +35,11 @@ namespace IceRpc.Tests.Api
 
             {
                 // Listen twice is incorrect
-                await using var server = new Server { Communicator = communicator };
+                await using var server = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
                 server.Listen();
                 Assert.Throws<InvalidOperationException>(() => server.Listen());
             }
@@ -45,7 +49,7 @@ namespace IceRpc.Tests.Api
                 {
                     Communicator = communicator,
                     Dispatcher = new ProxyTest(),
-                    Endpoint = TestHelper.GetUniqueTestServerColocEndpoint()
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
                 var proxy = server.CreateProxy<IProxyTestPrx>("/foo");
 
@@ -86,7 +90,7 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                string endpoint = TestHelper.GetUniqueTestServerColocEndpoint();
+                string endpoint = TestHelper.GetUniqueColocEndpoint();
                 await using var server1 = new Server
                 {
                     Communicator = communicator,
@@ -118,7 +122,12 @@ namespace IceRpc.Tests.Api
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
-                await using var server2 = new Server { Communicator = communicator };
+                await using var server2 = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+
                 Assert.DoesNotThrow(() => connection.Server = server2);
                 Assert.DoesNotThrow(() => connection.Server = null);
                 await server2.DisposeAsync();
@@ -164,7 +173,10 @@ namespace IceRpc.Tests.Api
             // Verifies that changing Endpoint or ProxyHost updates ProxyEndpoint.
 
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator
+            };
 
             Assert.IsEmpty(server.ProxyEndpoint);
             server.Endpoint = "ice+tcp://127.0.0.1";
@@ -200,7 +212,7 @@ namespace IceRpc.Tests.Api
                 Communicator = communicator,
                 ProxyOptions = proxyOptions,
                 Dispatcher = service,
-                Endpoint = TestHelper.GetUniqueTestServerColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             IProxyTestPrx? proxy = server.CreateProxy<IProxyTestPrx>("/foo/bar");
@@ -252,7 +264,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = service
+                Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             server.Listen();
@@ -282,7 +295,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = service
+                Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             server.Listen();
@@ -312,7 +326,8 @@ namespace IceRpc.Tests.Api
             var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = service
+                Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             server.Listen();

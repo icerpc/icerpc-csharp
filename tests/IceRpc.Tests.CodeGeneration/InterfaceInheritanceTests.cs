@@ -27,7 +27,8 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Communicator = _communicator,
-                Dispatcher = router
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
 

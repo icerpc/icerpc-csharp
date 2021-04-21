@@ -246,7 +246,7 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
-                Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)
+                Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber)
             };
 
         private static string GetCategory(JsonDocument document) =>

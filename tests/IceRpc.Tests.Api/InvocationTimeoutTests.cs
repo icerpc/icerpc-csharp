@@ -17,7 +17,11 @@ namespace IceRpc.Tests.Api
         public InvocationTimeoutTests()
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
         }
 
         [OneTimeTearDown]

@@ -21,7 +21,8 @@ namespace IceRpc.Tests.Encoding
             _data = new List<ArraySegment<byte>>() { new byte[256] };
             _server = new Server
             {
-                Communicator = _communicator
+                Communicator = _communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
         }
@@ -37,7 +38,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
         [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public void Proxy_EncondingVersioning(byte encodingMajor, byte encodingMinor, string str)
+        public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             var ostr = new OutputStream(encoding, _data, startAt: default);

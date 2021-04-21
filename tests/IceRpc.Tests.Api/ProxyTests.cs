@@ -20,7 +20,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = new GreeterService()
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
             IGreeterServicePrx? prx = server.CreateProxy<IGreeterServicePrx>("/test");
@@ -111,7 +112,12 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
-            var server = new Server { Communicator = communicator, Dispatcher = new GreeterService() };
+            var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
             server.Listen();
             prx = server.CreateProxy<IGreeterServicePrx>("/");
             var connection = await prx.GetConnectionAsync();
@@ -384,7 +390,7 @@ namespace IceRpc.Tests.Api
             {
                 Communicator = communicator,
                 Dispatcher = new GreeterService(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
             var prx = server.CreateProxy<IGreeterServicePrx>("/greeter");
@@ -425,7 +431,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = new GreeterService()
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 

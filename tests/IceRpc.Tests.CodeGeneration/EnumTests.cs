@@ -129,7 +129,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = communicator,
                 Dispatcher = new EnumOperations(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
             IEnumOperationsPrx? prx = server.CreateProxy<IEnumOperationsPrx>("/test");

@@ -99,9 +99,10 @@ namespace IceRpc.Tests.ClientServer
                 new Server
                 {
                     Communicator = _communicator,
-                    Endpoint = colocated ? "" : GetTestEndpoint(port: port, protocol: protocol),
-                    HasColocEndpoint = !colocated,
-                    Protocol = protocol
+                    Endpoint = colocated ?
+                        TestHelper.GetUniqueColocEndpoint(protocol) :
+                        GetTestEndpoint(port: port, protocol: protocol),
+                    HasColocEndpoint = false
                 };
         }
 

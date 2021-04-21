@@ -30,7 +30,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueTestServerColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             _prx1 = _server.CreateProxy<Scope.IOperationsPrx>("/test1");

@@ -60,8 +60,7 @@ namespace IceRpc.Tests.ClientServer
                     Communicator = communicator,
                     HasColocEndpoint = false,
                     Dispatcher = new RetryService(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    Protocol = protocol
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -77,7 +76,6 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
-                Protocol = Protocol.Ice2,
                 Endpoint = GetTestEndpoint()
             };
             server.Listen();
@@ -421,8 +419,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 HasColocEndpoint = false,
-                Endpoint = GetTestEndpoint(protocol: protocol),
-                Protocol = protocol
+                Endpoint = GetTestEndpoint(protocol: protocol)
             };
 
             var router = new Router();

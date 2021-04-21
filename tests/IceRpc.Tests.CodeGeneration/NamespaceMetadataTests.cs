@@ -22,7 +22,8 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Communicator = _communicator,
-                Dispatcher = new NamespaceMDOperations()
+                Dispatcher = new NamespaceMDOperations(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
 
             };
             _server.Listen();

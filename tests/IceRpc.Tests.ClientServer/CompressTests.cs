@@ -36,7 +36,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
-                }
+                },
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             int compressedRequestSize = 0;

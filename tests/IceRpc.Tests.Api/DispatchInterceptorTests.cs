@@ -18,7 +18,11 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
 
             var service = new TestService();
 
@@ -40,7 +44,11 @@ namespace IceRpc.Tests.Api
         public async Task DispatchInterceptor_CallOrder()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
 
             var interceptorCalls = new List<string>();
 

@@ -27,7 +27,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = new SequenceOperations(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
             _prx = _server.CreateProxy<ISequenceOperationsPrx>("/test");

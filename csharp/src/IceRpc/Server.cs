@@ -27,8 +27,7 @@ namespace IceRpc
         /// <seealso cref="Router"/>
         public IDispatcher? Dispatcher { get; set; }
 
-        /// <summary>Gets or sets the endpoint of this server. Setting this property also sets <see cref="Protocol"/>.
-        /// </summary>
+        /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
         public string Endpoint
@@ -37,7 +36,6 @@ namespace IceRpc
             set
             {
                 _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
-                Protocol = _endpoint?.Protocol ?? Protocol.Ice2;
                 UpdateProxyEndpoint();
             }
         }
@@ -62,9 +60,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets of sets the Ice protocol used by this server.</summary>
+        /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol { get; set; } = Protocol.Ice2;
+        public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
         /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
         /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
@@ -139,7 +137,7 @@ namespace IceRpc
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList<Endpoint>.Empty,
-                                                connection: null, // GetColocConnection(),
+                                                connection: null,
                                                 ProxyOptions);
         }
 
@@ -164,8 +162,8 @@ namespace IceRpc
             }
 
             return Proxy.GetFactory<T>().Create(path,
-                                                Protocol,
-                                                Protocol.GetEncoding(),
+                                                _proxyEndpoint.Protocol,
+                                                _proxyEndpoint.Protocol.GetEncoding(),
                                                 ImmutableList.Create(_proxyEndpoint),
                                                 connection: null,
                                                 options);
@@ -272,17 +270,15 @@ namespace IceRpc
                     throw new InvalidOperationException($"server '{this}' is already listening");
                 }
 
+                if (_endpoint == null)
+                {
+                    throw new InvalidOperationException("server has no endpoint");
+                }
+
                 if (_shutdownTask != null)
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
-
-                if (_endpoint == null)
-                {
-                    // Temporary
-                    Endpoint = Protocol == Protocol.Ice2 ? $"ice+coloc://{_colocName}" : $"coloc -h {_colocName}";
-                }
-                Debug.Assert(_endpoint != null);
 
                 _incomingConnectionFactory = _endpoint.IsDatagram ?
                     new DatagramIncomingConnectionFactory(this, _endpoint) :
