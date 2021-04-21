@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            var prx = _server.CreateRelativeProxy<IServicePrx>("/test");
+            var prx = _server.CreateProxy<IServicePrx>("/test");
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);
             prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                     async (target, request, next, cancel) =>

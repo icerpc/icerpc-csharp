@@ -132,7 +132,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Protocol = protocol
             };
             server.Listen();
-            IEnumOperationsPrx? prx = server.CreateRelativeProxy<IEnumOperationsPrx>("/test");
+            IEnumOperationsPrx? prx = server.CreateProxy<IEnumOperationsPrx>("/test");
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);
         }

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             };
             _server.Listen();
-            _prx = _server.CreateRelativeProxy<INamespaceMDOperationsPrx>("/");
+            _prx = _server.CreateProxy<INamespaceMDOperationsPrx>("/");
         }
 
         [Test]

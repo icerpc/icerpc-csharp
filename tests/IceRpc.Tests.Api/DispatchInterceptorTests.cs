@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = server.CreateRelativeProxy<IDispatchInterceptorTestServicePrx>("/test");
+            var prx = server.CreateProxy<IDispatchInterceptorTestServicePrx>("/test");
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -65,10 +65,9 @@ namespace IceRpc.Tests.Api
                 }));
 
             router.Map("/test", new TestService());
-            var prx = server.CreateRelativeProxy<IServicePrx>("/test");
-
             server.Dispatcher = router;
             server.Listen();
+            var prx = server.CreateProxy<IServicePrx>("/test");
             await prx.IcePingAsync();
 
             Assert.AreEqual("DispatchInterceptors -> 0", interceptorCalls[0]);

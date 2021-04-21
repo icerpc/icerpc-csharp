@@ -41,11 +41,15 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                // Can't call a colocated service before calling Listen
-                await using var server = new Server { Communicator = communicator, Dispatcher = new ProxyTest() };
-                var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/foo");
+                await using var server = new Server
+                {
+                    Communicator = communicator,
+                    Dispatcher = new ProxyTest(),
+                    Endpoint = TestHelper.GetUniqueTestServerColocEndpoint()
+                };
+                var proxy = server.CreateProxy<IProxyTestPrx>("/foo");
 
-                Assert.ThrowsAsync<UnhandledException>(async () => await proxy.IcePingAsync());
+                Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
 
@@ -76,6 +80,27 @@ namespace IceRpc.Tests.Api
                         {
                             Communicator = communicator,
                             Endpoint = "ice+tcp://127.0.0.1:15001"
+                        };
+                        server2.Listen();
+                    });
+            }
+
+            {
+                string endpoint = TestHelper.GetUniqueTestServerColocEndpoint();
+                await using var server1 = new Server
+                {
+                    Communicator = communicator,
+                    Endpoint = endpoint
+                };
+                server1.Listen();
+
+                // TODO: should throw TransportException
+                Assert.ThrowsAsync<ArgumentException>(async () =>
+                    {
+                        await using var server2 = new Server
+                        {
+                            Communicator = communicator,
+                            Endpoint = endpoint
                         };
                         server2.Listen();
                     });
@@ -175,9 +200,10 @@ namespace IceRpc.Tests.Api
                 Communicator = communicator,
                 ProxyOptions = proxyOptions,
                 Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueTestServerColocEndpoint()
             };
 
-            IProxyTestPrx? proxy = server.CreateRelativeProxy<IProxyTestPrx>("/foo/bar");
+            IProxyTestPrx? proxy = server.CreateProxy<IProxyTestPrx>("/foo/bar");
             CheckProxy(proxy);
 
             // change some properties
@@ -231,7 +257,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+            var proxy = server.CreateProxy<IProxyTestPrx>("/");
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.WaitForCancelAsync(cancel: cancellationSource.Token);
@@ -261,7 +287,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+            var proxy = server.CreateProxy<IProxyTestPrx>("/");
 
             Task task = proxy.WaitForCancelAsync();
             await service.WaitForCancelInProgress;
@@ -291,7 +317,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            var proxy = server.CreateRelativeProxy<IProxyTestPrx>("/");
+            var proxy = server.CreateProxy<IProxyTestPrx>("/");
 
             Task task = proxy.WaitForCancelAsync();
             await service.WaitForCancelInProgress;

@@ -25,10 +25,10 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = new StructOperations(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueTestServerColocEndpoint(protocol)
             };
             _server.Listen();
-            _prx = _server.CreateRelativeProxy<IStructOperationsPrx>("/test");
+            _prx = _server.CreateProxy<IStructOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

@@ -102,8 +102,7 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
-        private AcceptorIncomingConnectionFactory? _colocConnectionFactory;
-        private ColocEndpoint? _colocEndpoint;
+        private AcceptorIncomingConnectionFactory? _colocIncomingConnectionFactory;
 
         private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
@@ -141,7 +140,7 @@ namespace IceRpc
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList<Endpoint>.Empty,
-                                                GetColocConnection(),
+                                                connection: null, // GetColocConnection(),
                                                 ProxyOptions);
         }
 
@@ -295,22 +294,17 @@ namespace IceRpc
 
                 _incomingConnectionFactory.Activate();
 
-                // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
                 _listening = true;
 
                 if (HasColocEndpoint && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
                 {
-                    if (_colocEndpoint == null) // temporary check, we don't really need _colocEndpoint
-                    {
-                        _colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
-                                                           port: _endpoint.Port,
-                                                           protocol: _endpoint.Protocol);
+                    var colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
+                                                          port: _endpoint.Port,
+                                                          protocol: _endpoint.Protocol);
 
-                        _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
-                        _colocConnectionFactory.Activate();
-                    }
-
-                    EndpointExtensions.RegisterColocEndpoint(_endpoint, _colocEndpoint);
+                    _colocIncomingConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
+                    _colocIncomingConnectionFactory.Activate();
+                    EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
                 }
 
                 // TODO: remove
@@ -374,7 +368,7 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _colocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task colocShutdownTask = _colocIncomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
                     await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
@@ -399,54 +393,6 @@ namespace IceRpc
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
-        }
-
-        private Connection? GetColocConnection()
-        {
-            if (GetColocEndpoint() is Endpoint endpoint)
-            {
-                // TODO: very temporary code
-                ValueTask<Connection> vt =
-                    Communicator!.ConnectAsync(endpoint, Communicator.ConnectionOptions, default);
-                return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private Endpoint? GetColocEndpoint()
-        {
-            // Lazy initialized because it needs a fully configured server, in particular Protocol.
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    return null;
-                }
-
-                if (_colocEndpoint == null)
-                {
-                    string host;
-                    ushort port;
-
-                    if (_endpoint is Endpoint endpoint)
-                    {
-                        host = $"{endpoint.Host}.{endpoint.TransportName}";
-                        port = endpoint.Port;
-                    }
-                    else
-                    {
-                        host = $"{_colocName}.coloc";
-                        port = 4062;
-                    }
-                    _colocEndpoint = new ColocEndpoint(host, port, Protocol);
-                    _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
-                    _colocConnectionFactory.Activate();
-                }
-            }
-            return _colocEndpoint;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);

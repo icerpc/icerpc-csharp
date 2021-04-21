@@ -56,8 +56,8 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
 
-            _prx = _server.CreateRelativeProxy<IClassOperationsPrx>("/test");
-            _prxUnexpectedClass = _server.CreateRelativeProxy<IClassOperationsUnexpectedClassPrx>("/test1");
+            _prx = _server.CreateProxy<IClassOperationsPrx>("/test");
+            _prxUnexpectedClass = _server.CreateProxy<IClassOperationsUnexpectedClassPrx>("/test1");
         }
 
         [OneTimeTearDown]

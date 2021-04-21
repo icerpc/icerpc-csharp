@@ -33,9 +33,9 @@ namespace IceRpc.Tests.Encoding
                 Protocol = protocol
             };
             _server.Listen();
-            _sliced = _server.CreateRelativeProxy<ISlicedFormatOperationsPrx>("/sliced");
-            _compact = _server.CreateRelativeProxy<ICompactFormatOperationsPrx>("/compact");
-            _classformat = _server.CreateRelativeProxy<IClassFormatOperationsPrx>("/classformat");
+            _sliced = _server.CreateProxy<ISlicedFormatOperationsPrx>("/sliced");
+            _compact = _server.CreateProxy<ICompactFormatOperationsPrx>("/compact");
+            _classformat = _server.CreateProxy<IClassFormatOperationsPrx>("/classformat");
         }
 
         [OneTimeTearDown]
@@ -209,7 +209,8 @@ namespace IceRpc.Tests.Encoding
             };
             server.Listen();
 
-            var prx = server.CreateRelativeProxy<IClassGraphOperationsPrx>("/classgraph");
+            var prx = server.CreateProxy<IClassGraphOperationsPrx>("/classgraph");
+            await prx.IcePingAsync();
             Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);
             if (graphSize > clientClassGraphMaxDeph)
             {

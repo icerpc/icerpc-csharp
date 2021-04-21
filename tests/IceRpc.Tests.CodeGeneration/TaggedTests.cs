@@ -25,7 +25,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatcher = new TaggedOperations(),
             };
             _server.Listen();
-            _prx = _server.CreateRelativeProxy<ITaggedOperationsPrx>("/");
+            _prx = _server.CreateProxy<ITaggedOperationsPrx>("/");
         }
 
         [OneTimeTearDown]

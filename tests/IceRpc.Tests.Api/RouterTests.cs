@@ -188,7 +188,7 @@ namespace IceRpc.Tests.Api
         }
 
         private IGreeterServicePrx GetGreeter(string path) =>
-            _server.CreateRelativeProxy<IGreeterServicePrx>(path);
+            _server.CreateProxy<IGreeterServicePrx>(path);
 
         public class GreeterService : IAsyncGreeterService
         {

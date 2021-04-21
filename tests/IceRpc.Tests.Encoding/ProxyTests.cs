@@ -52,32 +52,32 @@ namespace IceRpc.Tests.Encoding
 
         [TestCase(2, 0)]
         [TestCase(1, 1)]
-        public void Proxy_Relative(byte encodingMajor, byte encodingMinor)
+        public async Task Proxy_RelativeAsync(byte encodingMajor, byte encodingMinor)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            // Create a relative proxy an clear is colocated connection.
-            IServicePrx prx = _server.CreateRelativeProxy<IServicePrx>("/foo");
-            var connection = prx.Connection;
-            prx.Connection = null;
+            // Create a relative proxy
+            IServicePrx relative = _server.CreateRelativeProxy<IServicePrx>("/foo");
+
+            IServicePrx plain = _server.CreateProxy<IServicePrx>("/bar");
+            await plain.GetConnectionAsync();
 
             // Marshal the relative proxy
             var ostr = new OutputStream(encoding, _data, startAt: default);
-            ostr.WriteProxy(prx);
+            ostr.WriteProxy(relative);
             ostr.Finish();
 
             // Unmarshals the relative proxy using a connection, we should get back a fixed
             // proxy tied to this connection.
             IServicePrx? prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
                                                                 IServicePrx.IceReader,
-                                                                connection: connection,
+                                                                connection: plain.Connection!,
                                                                 proxyOptions: new ProxyOptions());
-            Assert.That(connection == prx1.Connection, Is.True);
+            Assert.That(plain.Connection == prx1.Connection, Is.True);
             CollectionAssert.IsEmpty(prx1.Endpoints);
-            Assert.That(connection == prx1.Connection, Is.True);
 
             // Create a direct proxy and give it a connection
             var prx2 = IServicePrx.Parse("ice+tcp://localhost/bar", _communicator);
-            prx2.Connection = connection;
+            prx2.Connection = plain.Connection;
 
             // Unmarshals the relative proxy using the direct proxy we just created, we should get back
             // a direct proxy that has the same connection and endpoints as the source proxy.

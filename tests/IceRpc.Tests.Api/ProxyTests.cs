@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Api
                 Dispatcher = new GreeterService()
             };
             server.Listen();
-            IGreeterServicePrx? prx = server.CreateRelativeProxy<IGreeterServicePrx>("/test");
+            IGreeterServicePrx? prx = server.CreateProxy<IGreeterServicePrx>("/test");
 
             await prx.IcePingAsync();
 
@@ -112,7 +112,8 @@ namespace IceRpc.Tests.Api
             }
 
             var server = new Server { Communicator = communicator, Dispatcher = new GreeterService() };
-            prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            server.Listen();
+            prx = server.CreateProxy<IGreeterServicePrx>("/");
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -385,8 +386,8 @@ namespace IceRpc.Tests.Api
                 Dispatcher = new GreeterService(),
                 Protocol = protocol
             };
-
-            var prx = server.CreateRelativeProxy<IGreeterServicePrx>("/greeter");
+            server.Listen();
+            var prx = server.CreateProxy<IGreeterServicePrx>("/greeter");
 
             // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
 
@@ -428,7 +429,7 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            IGreeterServicePrx prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
             OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
             IncomingResponseFrame response = await prx.InvokeAsync(request);
             Assert.AreEqual(ResultType.Success, response.ResultType);

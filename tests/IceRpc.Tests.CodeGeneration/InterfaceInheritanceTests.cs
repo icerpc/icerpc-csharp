@@ -31,9 +31,9 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
 
-            _basePrx = _server.CreateRelativeProxy<IMyInterfaceBasePrx>("/base");
-            _derivedPrx = _server.CreateRelativeProxy<IMyInterfaceDerivedPrx>("/derived");
-            _mostDerivedPrx = _server.CreateRelativeProxy<IMyInterfaceMostDerivedPrx>("/mostderived");
+            _basePrx = _server.CreateProxy<IMyInterfaceBasePrx>("/base");
+            _derivedPrx = _server.CreateProxy<IMyInterfaceDerivedPrx>("/derived");
+            _mostDerivedPrx = _server.CreateProxy<IMyInterfaceMostDerivedPrx>("/mostderived");
         }
 
         [OneTimeTearDown]
