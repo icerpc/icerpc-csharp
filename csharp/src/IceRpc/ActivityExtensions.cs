@@ -9,7 +9,7 @@ using System.Web;
 
 namespace IceRpc
 {
-    /// <summary>Helper class to read and write the Activity context from and to IceRpc binary context.</summary>
+    /// <summary>Helper class to propagate the Activity Context.</summary>
     internal static class ActivityExtensions
     {
         internal static void WriteActivityContext(this Activity activity, OutgoingRequestFrame request)
@@ -39,7 +39,7 @@ namespace IceRpc
                     do
                     {
                         baggage.Add(new NameValueHeaderValue(HttpUtility.UrlEncode(e.Current.Key),
-                                                                HttpUtility.UrlEncode(e.Current.Value)).ToString());
+                                                             HttpUtility.UrlEncode(e.Current.Value)).ToString());
                     }
                     while (e.MoveNext());
                     request.WritableContext["baggage"] = string.Join(',', baggage);
@@ -72,7 +72,7 @@ namespace IceRpc
                             bitSequence[0] = false;
                         }
 
-                        // Baggage encoded as a sequence<(string, string?)>                    
+                        // Baggage encoded as a sequence<(string, string?)>
                         ostr.WriteSequence(activity.Baggage, (ostr, entry) =>
                         {
                             BitSequence bitSequence = ostr.WriteBitSequence(1);

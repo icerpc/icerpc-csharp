@@ -91,7 +91,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(called);
             Assert.IsNull(dispatchActivity);
             await server1.ShutdownAsync();
-          
+
             // Now configure the server with an ActivitySource to trigger the creation of the Dispatch activity.
             await using var server2 = new Server
             {
@@ -106,10 +106,10 @@ namespace IceRpc.Tests.ClientServer
                 ShouldListenTo = _ => true,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
                 ActivityStarted = activity =>
-                { 
+                {
                 },
                 ActivityStopped = activity =>
-                { 
+                {
                 }
             };
             ActivitySource.AddActivityListener(listener);
