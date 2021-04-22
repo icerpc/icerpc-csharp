@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("foo:coloc -h coloc_connection_refused")]
         public async Task Coloc_ConnectionRefusedAsync(string colocProxy)
         {
-            var communicator = new Communicator();
+            await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse(colocProxy, communicator);
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
@@ -32,6 +32,37 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
             server.Listen();
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
+        }
+
+        // Verify that coloc optimization occurs and can be disabled
+        [TestCase("ice+tcp://127.0.0.1:0", true)]
+        [TestCase("tcp -h 127.0.0.1 -p 0", true)]
+        [TestCase("ice+tcp://127.0.0.1:0", false)]
+        [TestCase("tcp -h 127.0.0.1 -p 0", false)]
+        public async Task Coloc_OptimizationAsync(string endpoint, bool hasColocEndpoint)
+        {
+            await using var communicator = new Communicator();
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new Greeter(),
+                Endpoint = endpoint,
+                HasColocEndpoint = hasColocEndpoint
+            };
+            server.Listen();
+
+            var greeter = server.CreateProxy<IGreeterTestServicePrx>("/foo");
+            Assert.AreEqual(Transport.TCP, greeter.Endpoints[0].Transport);
+            Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
+
+            if (hasColocEndpoint)
+            {
+                Assert.AreEqual(Transport.Coloc, greeter.Connection!.Endpoint.Transport);
+            }
+            else
+            {
+                Assert.AreEqual(Transport.TCP, greeter.Connection!.Endpoint.Transport);
+            }
         }
 
         internal class Greeter : IAsyncGreeterTestService

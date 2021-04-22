@@ -45,7 +45,7 @@ namespace IceRpc
         /// this value after calling <see cref="Listen"/> has no effect as well.</summary>
         /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
         /// value is true.</value>
-        public bool HasColocEndpoint { get; set; }
+        public bool HasColocEndpoint { get; set; } = true;
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -299,6 +299,10 @@ namespace IceRpc
                     _incomingColocConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
                     _incomingColocConnectionFactory.Activate();
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
+                    if (_proxyEndpoint != _endpoint)
+                    {
+                        EndpointExtensions.RegisterColocEndpoint(_proxyEndpoint!, colocEndpoint);
+                    }
                 }
 
                 // TODO: remove
@@ -356,6 +360,10 @@ namespace IceRpc
                     if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
                     {
                         EndpointExtensions.UnregisterColocEndpoint(endpoint);
+                        if (_proxyEndpoint != _endpoint)
+                        {
+                            EndpointExtensions.UnregisterColocEndpoint(_proxyEndpoint!);
+                        }
                     }
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
