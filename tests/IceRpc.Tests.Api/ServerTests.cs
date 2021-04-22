@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -135,8 +136,9 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        [Test]
-        public async Task Server_EndpointInformation()
+        [TestCase("ice+tcp://127.0.0.1:0")]
+        [TestCase("tcp -h 127.0.0.1 -p 0 -t 15000")]
+        public async Task Server_EndpointInformation(string endpoint)
         {
             await using var communicator = new Communicator();
             await using var server = new Server
@@ -146,24 +148,35 @@ namespace IceRpc.Tests.Api
                 {
                     AcceptNonSecure = NonSecure.Always
                 },
-                Endpoint = "tcp -h 127.0.0.1 -p 0 -t 15000",
-                ProxyHost = "localhost"
+                Endpoint = endpoint
             };
+
+            Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), Endpoint.Parse(server.ProxyEndpoint).Host);
+            server.ProxyHost = "localhost";
+            Assert.AreEqual("localhost", Endpoint.Parse(server.ProxyEndpoint).Host);
 
             server.Listen();
 
-            Endpoint serverEndpoint = Endpoint.Parse(server.Endpoint);
-            Endpoint proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
+            var serverEndpoint = Endpoint.Parse(server.Endpoint);
+            var proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
 
             Assert.AreEqual(Transport.TCP, serverEndpoint.Transport);
             Assert.AreEqual("127.0.0.1", serverEndpoint.Host);
             Assert.That(serverEndpoint.Port, Is.GreaterThan(0));
-            Assert.AreEqual("15000", serverEndpoint["timeout"]);
+
+            if (serverEndpoint.Protocol == Protocol.Ice1)
+            {
+                Assert.AreEqual("15000", serverEndpoint["timeout"]);
+            }
 
             Assert.AreEqual(Transport.TCP, proxyEndpoint.Transport);
             Assert.AreEqual("localhost", proxyEndpoint.Host);
             Assert.AreEqual(serverEndpoint.Port, proxyEndpoint.Port);
-            Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+
+            if (proxyEndpoint.Protocol == Protocol.Ice1)
+            {
+                Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+            }
         }
 
         [Test]

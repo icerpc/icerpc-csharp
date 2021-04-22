@@ -36,6 +36,7 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
+                ProxyHost = "localhost"
             };
             Prx = Server.CreateProxy<IStressTestServicePrx>("/test");
             Server.Listen();

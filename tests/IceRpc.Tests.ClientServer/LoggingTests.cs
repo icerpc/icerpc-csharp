@@ -246,7 +246,8 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
-                Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber)
+                Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
+                ProxyHost = "localhost"
             };
 
         private static string GetCategory(JsonDocument document) =>

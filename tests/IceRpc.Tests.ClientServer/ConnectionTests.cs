@@ -42,7 +42,8 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new()
                 {
                     AcceptNonSecure = NonSecure.Always
-                }
+                },
+                ProxyHost = "localhost"
             };
             server.Listen();
 
@@ -100,7 +101,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     IdleTimeout = TimeSpan.FromSeconds(2),
                     KeepAlive = false
-                }
+                },
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -131,7 +133,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -168,7 +171,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     IdleTimeout = TimeSpan.FromSeconds(1),
                     KeepAlive = true
-                }
+                },
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -214,7 +218,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -251,7 +256,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
 
@@ -287,6 +293,7 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
             server.Listen();
@@ -431,7 +438,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             server.Listen();

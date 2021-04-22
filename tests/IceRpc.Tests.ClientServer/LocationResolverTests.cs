@@ -65,7 +65,8 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 // TODO: should GetTestEndpoint be capable of returning port 0?
-                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
+                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0",
+                ProxyHost = "localhost"
             };
 
             _server.Listen();

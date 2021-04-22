@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,6 +34,11 @@ namespace IceRpc
             get => _endpoint?.ToString() ?? "";
             set
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
+                }
+
                 _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
                 UpdateProxyEndpoint();
             }
@@ -69,12 +75,19 @@ namespace IceRpc
 
         /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
         /// address.</summary>
-        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>.</value>
+        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
+        /// <see cref="Dns.GetHostName()"/>.</value>
         public string ProxyHost
         {
             get => _proxyHost;
             set
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException(
+                        "cannot change the proxy host of a server after calling Listen");
+                }
+
                 if (value.Length == 0)
                 {
                     throw new ArgumentException($"{nameof(ProxyHost)} must have at least one character",
@@ -110,7 +123,7 @@ namespace IceRpc
 
         private Endpoint? _proxyEndpoint;
 
-        private string _proxyHost = "localhost"; // temporary default
+        private string _proxyHost = Dns.GetHostName().ToLowerInvariant();
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);

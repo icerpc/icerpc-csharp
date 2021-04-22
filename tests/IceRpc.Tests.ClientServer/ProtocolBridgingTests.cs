@@ -102,7 +102,8 @@ namespace IceRpc.Tests.ClientServer
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                    HasColocEndpoint = false
+                    HasColocEndpoint = false,
+                    ProxyHost = "localhost"
                 };
         }
 
