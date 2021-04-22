@@ -615,7 +615,7 @@ namespace IceRpc
                 activiy.AddTag("Operation", request.Operation);
                 activiy.AddTag("Path", request.Path);
             }
-            
+
             try
             {
                 return await InvokeWithInterceptorsAsync(proxy,
