@@ -606,6 +606,7 @@ namespace IceRpc
 
             using IDisposable? streamScope = stream.StartScope();
             Activity? activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+            bool activityStarted = false;
             Debug.Assert(stream != null);
             try
             {
@@ -629,6 +630,7 @@ namespace IceRpc
                     activity = new Activity("IceRpc.Dispatch");
                     activity.RestoreActivityContext(request);
                     activity.Start();
+                    activityStarted = true;
                 }
 
                 Socket.Logger.LogReceivedRequest(request);
@@ -694,7 +696,10 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
-                activity?.Stop();
+                if (activityStarted)
+                {
+                    activity!.Stop();
+                }
             }
         }
 
