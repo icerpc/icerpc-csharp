@@ -96,8 +96,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = CreateServer(communicator, colocated, portNumber: 1);
             server.Listen();
 
-            IServicePrx service = colocated ?
-                server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
+            IServicePrx service = server.CreateProxy<IServicePrx>("/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -118,8 +117,7 @@ namespace IceRpc.Tests.ClientServer
             await using Server server = CreateServer(communicator, colocated, portNumber: 2);
             server.Listen();
 
-            IServicePrx service = colocated ?
-                server.CreateRelativeProxy<IServicePrx>("/") : service = server.CreateProxy<IServicePrx>("/");
+            IServicePrx service = server.CreateProxy<IServicePrx>("/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();
@@ -245,10 +243,10 @@ namespace IceRpc.Tests.ClientServer
 
             new Server
             {
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Communicator = communicator,
                 Dispatcher = new TestService(),
-                Endpoint = colocated ? "" : GetTestEndpoint(port: portNumber)
+                Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber)
             };
 
         private static string GetCategory(JsonDocument document) =>

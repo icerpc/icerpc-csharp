@@ -84,24 +84,25 @@ namespace IceRpc.Tests.ClientServer
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
 
             _router.Map("/target", new ProtocolBridgingService());
-            var targetService = CreateProxy<IProtocolBridgingServicePrx>(_targetServer, "/target");
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
+            var targetService = _targetServer.CreateProxy<IProtocolBridgingServicePrx>("/target");
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
-            var forwardService = CreateProxy<IProtocolBridgingServicePrx>(_forwarderServer, "/forward");
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
+            var forwardService = _forwarderServer.CreateProxy<IProtocolBridgingServicePrx>("/forward");
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated) =>
                 new Server
                 {
                     Communicator = _communicator,
-                    Endpoint = colocated ? "" : GetTestEndpoint(port: port, protocol: protocol),
-                    IsDiscoverable = !colocated,
-                    Protocol = protocol
+                    Endpoint = colocated ?
+                        TestHelper.GetUniqueColocEndpoint(protocol) :
+                        GetTestEndpoint(port: port, protocol: protocol),
+                    HasColocEndpoint = false
                 };
         }
 
@@ -115,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel)
             {
-                var proxy = CreateProxy<IProtocolBridgingServicePrx>(current.Server, current.Path);
+                var proxy = current.Server.CreateProxy<IProtocolBridgingServicePrx>(current.Path);
                 proxy.Encoding = current.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }
@@ -146,8 +147,5 @@ namespace IceRpc.Tests.ClientServer
 
             internal Forwarder(IServicePrx target) => _target = target;
         }
-
-        private static T CreateProxy<T>(Server server, string path) where T : class, IServicePrx =>
-            server.Endpoint.Length == 0 ? server.CreateRelativeProxy<T>(path) : server.CreateProxy<T>(path);
     }
 }

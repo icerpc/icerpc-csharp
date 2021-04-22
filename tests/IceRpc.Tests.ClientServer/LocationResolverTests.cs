@@ -62,7 +62,7 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Communicator = _communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 // TODO: should GetTestEndpoint be capable of returning port 0?
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"

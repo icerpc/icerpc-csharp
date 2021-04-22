@@ -30,8 +30,7 @@ namespace IceRpc
         /// <seealso cref="Router"/>
         public IDispatcher? Dispatcher { get; set; }
 
-        /// <summary>Gets or sets the endpoint of this server. Setting this property also sets <see cref="Protocol"/>.
-        /// </summary>
+        /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
         public string Endpoint
@@ -40,16 +39,16 @@ namespace IceRpc
             set
             {
                 _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
-                Protocol = _endpoint?.Protocol ?? Protocol.Ice2;
                 UpdateProxyEndpoint();
             }
         }
 
-        /// <summary>Gets or sets whether this server can be discovered for colocated calls. Changing this value after
-        /// calling <see cref="Listen"/> has no effect.</summary>
-        /// <value>True when the server can be discovered for colocated calls; otherwise, false. The default value is
-        /// true.</value>
-        public bool IsDiscoverable { get; set; }
+        /// <summary>Gets or sets whether this server listens on an endpoint for the coloc transport in addition to its
+        /// regular endpoint. This property has no effect when <see cref="Endpoint"/>'s transport is coloc. Changing
+        /// this value after calling <see cref="Listen"/> has no effect as well.</summary>
+        /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
+        /// value is true.</value>
+        public bool HasColocEndpoint { get; set; } = true;
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -64,9 +63,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets of sets the Ice protocol used by this server.</summary>
+        /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol { get; set; } = Protocol.Ice2;
+        public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
         /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
         /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
@@ -100,20 +99,14 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        private static ulong _counter; // used to generate names for servers without endpoints
-
         private readonly CancellationTokenSource _cancelDispatchSource = new();
-
-        private AcceptorIncomingConnectionFactory? _colocConnectionFactory;
-        private ColocEndpoint? _colocEndpoint;
-
-        private readonly string _colocName = $"colocated-{Interlocked.Increment(ref _counter)}";
 
         private Endpoint? _endpoint;
 
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
+        private IncomingConnectionFactory? _incomingColocConnectionFactory;
         private IncomingConnectionFactory? _incomingConnectionFactory;
         private bool _listening;
 
@@ -139,11 +132,14 @@ namespace IceRpc
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
+            // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
+            // unless the user gives a connection to the new relative proxy.
+
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 ImmutableList<Endpoint>.Empty,
-                                                GetColocConnection(),
+                                                connection: null,
                                                 ProxyOptions);
         }
 
@@ -168,8 +164,8 @@ namespace IceRpc
             }
 
             return Proxy.GetFactory<T>().Create(path,
-                                                Protocol,
-                                                Protocol.GetEncoding(),
+                                                _proxyEndpoint.Protocol,
+                                                _proxyEndpoint.Protocol.GetEncoding(),
                                                 ImmutableList.Create(_proxyEndpoint),
                                                 connection: null,
                                                 options);
@@ -276,33 +272,40 @@ namespace IceRpc
                     throw new InvalidOperationException($"server '{this}' is already listening");
                 }
 
+                if (_endpoint == null)
+                {
+                    throw new InvalidOperationException("server has no endpoint");
+                }
+
                 if (_shutdownTask != null)
                 {
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint is Endpoint endpoint)
+                _incomingConnectionFactory = _endpoint.IsDatagram ?
+                    new DatagramIncomingConnectionFactory(this, _endpoint) :
+                    new AcceptorIncomingConnectionFactory(this, _endpoint);
+
+                _endpoint = _incomingConnectionFactory.Endpoint;
+                UpdateProxyEndpoint();
+
+                _incomingConnectionFactory.Activate();
+
+                _listening = true;
+
+                if (HasColocEndpoint && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
                 {
-                    _incomingConnectionFactory = endpoint.IsDatagram ?
-                        new DatagramIncomingConnectionFactory(this, endpoint) :
-                        new AcceptorIncomingConnectionFactory(this, endpoint);
+                    var colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
+                                                          port: _endpoint.Port,
+                                                          protocol: _endpoint.Protocol);
 
-                    _endpoint = _incomingConnectionFactory.Endpoint;
-                    UpdateProxyEndpoint();
-
-                    _incomingConnectionFactory.Activate();
-
-                    // In theory, as soon as we register this server for coloc, a coloc call could/should succeed.
-                    _listening = true;
-
-                    if (IsDiscoverable && _endpoint.IsDatagram)
+                    _incomingColocConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
+                    _incomingColocConnectionFactory.Activate();
+                    EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
+                    if (_proxyEndpoint != _endpoint)
                     {
-                        ColocServerRegistry.RegisterServer(this);
+                        EndpointExtensions.RegisterColocEndpoint(_proxyEndpoint!, colocEndpoint);
                     }
-                }
-                else
-                {
-                    _listening = true;
                 }
 
                 // TODO: remove
@@ -357,13 +360,20 @@ namespace IceRpc
                     Logger.LogServerShuttingDown(this);
 
                     // No longer available for coloc connections (may not be registered at all)
-                    ColocServerRegistry.UnregisterServer(this);
+                    if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
+                    {
+                        EndpointExtensions.UnregisterColocEndpoint(endpoint);
+                        if (_proxyEndpoint != _endpoint)
+                        {
+                            EndpointExtensions.UnregisterColocEndpoint(_proxyEndpoint!);
+                        }
+                    }
 
                     // Shuts down the incoming connection factory to stop accepting new incoming requests or
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _colocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
+                    Task colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
                     Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
 
                     await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
@@ -381,69 +391,13 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? _colocName;
+        public override string ToString() => _endpoint?.ToString() ?? "";
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             _cancelDispatchSource.Dispose();
-            _colocEndpoint?.Dispose();
-        }
-
-        // Proxies which have at least one endpoint in common with the endpoints used by this server are considered
-        // colocated. Called by ColocServerRegistry.
-        internal Endpoint? GetColocEndpoint(ServicePrx proxy) =>
-            proxy.Endpoints.Any(endpoint => endpoint.IsEquivalent(_endpoint!) ||
-                                            endpoint.IsEquivalent(_proxyEndpoint!)) ?
-                GetColocEndpoint() : null;
-
-        private Connection? GetColocConnection()
-        {
-            if (GetColocEndpoint() is Endpoint endpoint)
-            {
-                // TODO: very temporary code
-                ValueTask<Connection> vt =
-                    Communicator!.ConnectAsync(endpoint, Communicator.ConnectionOptions, default);
-                return vt.IsCompleted ? vt.Result : vt.AsTask().Result;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private Endpoint? GetColocEndpoint()
-        {
-            // Lazy initialized because it needs a fully configured server, in particular Protocol.
-            lock (_mutex)
-            {
-                if (_shutdownTask != null)
-                {
-                    return null;
-                }
-
-                if (_colocEndpoint == null)
-                {
-                    string host;
-                    ushort port;
-
-                    if (_endpoint is Endpoint endpoint)
-                    {
-                        host = endpoint.Host;
-                        port = endpoint.Port;
-                    }
-                    else
-                    {
-                        host = _colocName;
-                        port = 4062;
-                    }
-                    _colocEndpoint = new ColocEndpoint(this, host, port);
-                    _colocConnectionFactory = new AcceptorIncomingConnectionFactory(this, _colocEndpoint);
-                    _colocConnectionFactory.Activate();
-                }
-            }
-            return _colocEndpoint;
         }
 
         private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);

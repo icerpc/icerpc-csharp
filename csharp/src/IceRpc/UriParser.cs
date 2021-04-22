@@ -77,6 +77,10 @@ namespace IceRpc
 
             Runtime.UriInitialize();
             var uri = new Uri(uriString);
+            if (!System.UriParser.IsKnownScheme(uri.Scheme))
+            {
+                throw new FormatException($"the URI scheme of endpoint '{uriString}' is not registered");
+            }
             if (uri.AbsolutePath.Length > 1)
             {
                 throw new FormatException($"endpoint '{uriString}' cannot define a path");
@@ -111,6 +115,10 @@ namespace IceRpc
 
             Runtime.UriInitialize();
             var uri = new Uri(uriString);
+            if (!System.UriParser.IsKnownScheme(uri.Scheme))
+            {
+                throw new FormatException($"the URI scheme of proxy '{uriString}' is not registered");
+            }
 
             ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, uriString);
 

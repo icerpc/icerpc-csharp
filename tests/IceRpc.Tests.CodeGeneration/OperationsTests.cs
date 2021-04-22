@@ -26,11 +26,11 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = new Operations(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
 
-            _prx = _server.CreateRelativeProxy<IOperationsPrx>("/test");
+            _prx = _server.CreateProxy<IOperationsPrx>("/test");
             _derivedPrx = _prx.As<IDerivedOperationsPrx>();
 
             Assert.AreEqual(protocol, _prx.Protocol);

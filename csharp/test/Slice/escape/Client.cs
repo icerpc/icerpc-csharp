@@ -105,25 +105,26 @@ public class Client : TestHelper
         await using var server = new IceRpc.Server
         {
             Communicator = Communicator,
-            Dispatcher = router
+            Dispatcher = router,
+            Endpoint = $"ice+coloc://{Guid.NewGuid()}"
         };
 
         server.Listen();
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = server.CreateRelativeProxy<IdecimalPrx>("/test");
+        IdecimalPrx p = server.CreateProxy<IdecimalPrx>("/test");
         p.@default();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            server.CreateRelativeProxy<IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx>("/test1");
+            server.CreateProxy<IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx>("/test1");
         t1.op();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            server.CreateRelativeProxy<IceRpc.Slice.Test.Escape.System.ITestPrx>("/test2");
+            server.CreateProxy<IceRpc.Slice.Test.Escape.System.ITestPrx>("/test2");
         t2.op();
         Output.WriteLine("ok");
 

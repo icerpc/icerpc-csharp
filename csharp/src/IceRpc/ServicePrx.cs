@@ -866,9 +866,12 @@ namespace IceRpc
         {
             Debug.Assert(!IsFixed);
 
-            if (ColocServerRegistry.GetColocEndpoint(this) is Endpoint colocEndpoint)
+            foreach (Endpoint endpoint in Endpoints)
             {
-                return new List<Endpoint>() { colocEndpoint };
+                if (endpoint.ToColocEndpoint() is Endpoint colocEndpoint)
+                {
+                    return new List<Endpoint>() { colocEndpoint };
+                }
             }
 
             IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;

@@ -303,14 +303,7 @@ namespace IceRpc.Test
         {
             var path = $"/{System.Guid.NewGuid()}";
             (server.Dispatcher as Router)!.Map(path, service);
-            if (server.Endpoint.Length == 0)
-            {
-                return server.CreateRelativeProxy<T>(path);
-            }
-            else
-            {
-                return server.CreateProxy<T>(path);
-            }
+            return server.CreateProxy<T>(path);
         }
 
         public virtual void ServerReady()

@@ -22,11 +22,12 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Communicator = _communicator,
-                Dispatcher = new NamespaceMDOperations()
+                Dispatcher = new NamespaceMDOperations(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
 
             };
             _server.Listen();
-            _prx = _server.CreateRelativeProxy<INamespaceMDOperationsPrx>("/");
+            _prx = _server.CreateProxy<INamespaceMDOperationsPrx>("/");
         }
 
         [Test]

@@ -9,7 +9,7 @@ module IceRpc::Tests::Api
         void SayHello();
     }
 
-    interface DispatchInterceptorTestService
+    interface MiddlewareTestService
     {
         void Op();
     }

@@ -17,8 +17,8 @@ namespace IceRpc.Tests.Api
         public InvocationInterceptorTests()
         {
             Server.Dispatcher = new TestService();
-            Prx = Server.CreateRelativeProxy<IInvocationInterceptorTestServicePrx>("/");
             Server.Listen();
+            Prx = Server.CreateProxy<IInvocationInterceptorTestServicePrx>("/");
         }
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller

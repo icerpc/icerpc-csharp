@@ -23,9 +23,10 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = new TaggedOperations(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _prx = _server.CreateRelativeProxy<ITaggedOperationsPrx>("/");
+            _prx = _server.CreateProxy<ITaggedOperationsPrx>("/");
         }
 
         [OneTimeTearDown]

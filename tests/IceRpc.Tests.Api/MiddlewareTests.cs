@@ -8,17 +8,19 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
-    // TODO: rename to middleware
-
     [Parallelizable]
-    public class DispatchInterceptorTests
+    public class MiddlewareTests
     {
-        /// <summary>Check that throwing an exception from a dispatch interceptor aborts the dispatch.</summary>
+        /// <summary>Check that throwing an exception from a middleware aborts the dispatch.</summary>
         [Test]
-        public async Task DispatchInterceptor_Throw_AbortsDispatch()
+        public async Task Middleware_Throw_AbortsDispatch()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
 
             var service = new TestService();
 
@@ -29,7 +31,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = server.CreateRelativeProxy<IDispatchInterceptorTestServicePrx>("/test");
+            var prx = server.CreateProxy<IMiddlewareTestServicePrx>("/test");
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -37,10 +39,14 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Ensure that middlewares are called in the expected order.</summary>
         [Test]
-        public async Task DispatchInterceptor_CallOrder()
+        public async Task Middleware_CallOrder()
         {
             await using var communicator = new Communicator();
-            await using var server = new Server { Communicator = communicator };
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
 
             var interceptorCalls = new List<string>();
 
@@ -49,36 +55,35 @@ namespace IceRpc.Tests.Api
             router.Use(next => new InlineDispatcher(
                 async (current, cancel) =>
                 {
-                    interceptorCalls.Add("DispatchInterceptors -> 0");
+                    interceptorCalls.Add("Middlewares -> 0");
                     var result = await next.DispatchAsync(current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 0");
+                    interceptorCalls.Add("Middlewares <- 0");
                     return result;
                 }));
 
             router.Use(next => new InlineDispatcher(
                 async (current, cancel) =>
                 {
-                    interceptorCalls.Add("DispatchInterceptors -> 1");
+                    interceptorCalls.Add("Middlewares -> 1");
                     var result = await next.DispatchAsync(current, cancel);
-                    interceptorCalls.Add("DispatchInterceptors <- 1");
+                    interceptorCalls.Add("Middlewares <- 1");
                     return result;
                 }));
 
             router.Map("/test", new TestService());
-            var prx = server.CreateRelativeProxy<IServicePrx>("/test");
-
             server.Dispatcher = router;
             server.Listen();
+            var prx = server.CreateProxy<IServicePrx>("/test");
             await prx.IcePingAsync();
 
-            Assert.AreEqual("DispatchInterceptors -> 0", interceptorCalls[0]);
-            Assert.AreEqual("DispatchInterceptors -> 1", interceptorCalls[1]);
-            Assert.AreEqual("DispatchInterceptors <- 1", interceptorCalls[2]);
-            Assert.AreEqual("DispatchInterceptors <- 0", interceptorCalls[3]);
+            Assert.AreEqual("Middlewares -> 0", interceptorCalls[0]);
+            Assert.AreEqual("Middlewares -> 1", interceptorCalls[1]);
+            Assert.AreEqual("Middlewares <- 1", interceptorCalls[2]);
+            Assert.AreEqual("Middlewares <- 0", interceptorCalls[3]);
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
-        public class TestService : IAsyncDispatchInterceptorTestService
+        public class TestService : IAsyncMiddlewareTestService
         {
             public bool Called { get; private set; }
             public ValueTask OpAsync(Current current, CancellationToken cancel)
