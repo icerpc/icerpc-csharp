@@ -70,13 +70,13 @@ namespace IceRpc
 
             // There's always a single reader (the acceptor) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads.
-            var options = new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = true
-            };
-            _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(options);
+            _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(
+                new UnboundedChannelOptions
+                {
+                    SingleReader = true,
+                    SingleWriter = false,
+                    AllowSynchronousContinuations = true
+                });
 
             if (!_colocAcceptorDictionary.TryAdd(_endpoint, this))
             {
@@ -86,21 +86,21 @@ namespace IceRpc
 
         internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
         {
-            var readerOptions = new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false
-            };
-            var reader = Channel.CreateUnbounded<(long, object?, bool)>(readerOptions);
+            var reader = Channel.CreateUnbounded<(long, object?, bool)>(
+                new UnboundedChannelOptions
+                {
+                    SingleReader = true,
+                    SingleWriter = false,
+                    AllowSynchronousContinuations = false
+                });
 
-            var writerOptions = new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false
-            };
-            var writer = Channel.CreateUnbounded<(long, object?, bool)>(writerOptions);
+            var writer = Channel.CreateUnbounded<(long, object?, bool)>(
+                new UnboundedChannelOptions
+                {
+                    SingleReader = true,
+                    SingleWriter = false,
+                    AllowSynchronousContinuations = false
+                });
 
             long id = Interlocked.Increment(ref _nextId);
 
