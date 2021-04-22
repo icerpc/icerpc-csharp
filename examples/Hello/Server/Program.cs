@@ -19,10 +19,7 @@ try
             builder.Configure(factoryOptions =>
             {
                 factoryOptions.ActivityTrackingOptions = ActivityTrackingOptions.ParentId |
-                                                         ActivityTrackingOptions.SpanId |
-                                                         ActivityTrackingOptions.TraceFlags |
-                                                         ActivityTrackingOptions.TraceId |
-                                                         ActivityTrackingOptions.TraceState;
+                                                         ActivityTrackingOptions.SpanId;
             });
             builder.AddSimpleConsole(configure =>
                 {

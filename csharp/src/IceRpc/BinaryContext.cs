@@ -10,7 +10,9 @@ namespace IceRpc
     public enum BinaryContextKey : int
     {
         /// <summary>Key used to encode the retry policy entry.</summary>
-        RetryPolicy = -1
+        RetryPolicy = -1,
+        /// <summary>Key used to encode OpenTelemetry activity data.</summary>
+        TelemetryContext = -2
     }
 
     public static class BinaryContextHelper

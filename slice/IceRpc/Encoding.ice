@@ -28,4 +28,10 @@ module IceRpc
         /// The payload is compressed using the gzip format.
         GZip = 1,
     }
+
+    struct ValuePair
+    {
+        string key;
+        string? value;
+    }
 }
