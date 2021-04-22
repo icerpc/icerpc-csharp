@@ -603,8 +603,8 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
             using IDisposable? streamScope = stream.StartScope();
-            Activity? activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-            bool activityStarted = false;
+            Activity? activity = null;
+
             Debug.Assert(stream != null);
             try
             {
@@ -623,21 +623,31 @@ namespace IceRpc
                 // Receives the request frame from the stream
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
-                if (Socket.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null)
+
+                _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
-                    activity.RestoreActivityContext(request);
-                    activity.Start();
-                    activityStarted = true;
+                }
+                // It is important to start the activity before logging in case the logger has been configured to
+                // include the activity tracking options.
+                if (activity != null)
+                {
+                    try
+                    {
+                        activity.RestoreActivityContext(request);
+                        activity.AddTag("Operation", request.Operation);
+                        activity.AddTag("Path", request.Path);
+                        activity.Start();
+                    }
+                    catch
+                    {
+                        activity = null;
+                        throw;
+                    }
                 }
 
                 Socket.Logger.LogReceivedRequest(request);
-
-                if (activity != null)
-                {
-                    activity.AddTag("Operation", request.Operation);
-                    activity.AddTag("Path", request.Path);
-                }
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
@@ -694,10 +704,7 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
-                if (activityStarted)
-                {
-                    activity!.Stop();
-                }
+                activity!.Stop();
             }
         }
 

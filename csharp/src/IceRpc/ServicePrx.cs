@@ -605,13 +605,17 @@ namespace IceRpc
             IProgress<bool>? progress = null)
         {
             IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.InvocationInterceptors;
-            Activity? activiy = null;
+            Activity? activity = null;
+            // TODO add a client ActivitySource
+
+            // Start the invocation activity before running client side interceptors, activities started
+            // by interceptors will be children of IceRpc.Invocation activity.
             if (proxy.Communicator.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null)
             {
-                activiy = new Activity("IceRpc.Invocation");
-                activiy.Start();
-                activiy.AddTag("Operation", request.Operation);
-                activiy.AddTag("Path", request.Path);
+                activity = new Activity("IceRpc.Invocation");
+                activity.AddTag("Operation", request.Operation);
+                activity.AddTag("Path", request.Path);
+                activity.Start();
             }
 
             try
@@ -625,7 +629,7 @@ namespace IceRpc
             }
             finally
             {
-                activiy?.Stop();
+                activity?.Stop();
             }
 
             async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
