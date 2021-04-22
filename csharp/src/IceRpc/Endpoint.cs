@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -300,6 +301,17 @@ namespace IceRpc
 
     public static class EndpointExtensions
     {
+        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
+        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
+            new ConcurrentDictionary<Endpoint, ColocEndpoint>();
+
+        /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
+        /// <param name="endpoint">The endpoint to check.</param>
+        /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
+        public static Endpoint? ToColocEndpoint(this Endpoint endpoint) =>
+            endpoint.Transport == Transport.Coloc ? endpoint :
+                (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
+
         /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
         /// <param name="data">The endpoint's data.</param>
         /// <param name="protocol">The endpoint's protocol.</param>
@@ -373,34 +385,17 @@ namespace IceRpc
             return sb;
         }
 
-        internal static StringBuilder AppendEndpointList(
-            this StringBuilder sb,
-            IReadOnlyList<Endpoint> endpoints)
+        internal static void RegisterColocEndpoint(Endpoint endpoint, ColocEndpoint colocEndpoint)
         {
-            Debug.Assert(endpoints.Count > 0);
-
-            if (endpoints[0].Protocol == Protocol.Ice1)
+            Debug.Assert(endpoint.Transport != Transport.Coloc);
+            if (!_colocRegistry.TryAdd(endpoint, colocEndpoint))
             {
-                sb.Append(string.Join(":", endpoints));
+                Debug.Assert(false);
+                throw new TransportException($"endpoint '{endpoint}' is already registered for coloc");
             }
-            else
-            {
-                sb.AppendEndpoint(endpoints[0]);
-                if (endpoints.Count > 1)
-                {
-                    Transport mainTransport = endpoints[0].Transport;
-                    sb.Append("?alt-endpoint=");
-                    for (int i = 1; i < endpoints.Count; ++i)
-                    {
-                        if (i > 1)
-                        {
-                            sb.Append(',');
-                        }
-                        sb.AppendEndpoint(endpoints[i], "", mainTransport != endpoints[i].Transport, '$');
-                    }
-                }
-            }
-            return sb;
         }
+
+        internal static void UnregisterColocEndpoint(Endpoint endpoint) =>
+            _colocRegistry.Remove(endpoint);
     }
 }

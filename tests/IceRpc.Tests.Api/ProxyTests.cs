@@ -20,10 +20,11 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = new GreeterService()
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            IGreeterServicePrx? prx = server.CreateRelativeProxy<IGreeterServicePrx>("/test");
+            IGreeterServicePrx? prx = server.CreateProxy<IGreeterServicePrx>("/test");
 
             await prx.IcePingAsync();
 
@@ -111,8 +112,14 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
-            var server = new Server { Communicator = communicator, Dispatcher = new GreeterService() };
-            prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+            prx = server.CreateProxy<IGreeterServicePrx>("/");
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -217,6 +224,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
+        [TestCase("ice+coloc://host:10000")]
         // a valid URI
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
@@ -225,6 +233,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
@@ -381,10 +390,10 @@ namespace IceRpc.Tests.Api
             {
                 Communicator = communicator,
                 Dispatcher = new GreeterService(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
-
-            var prx = server.CreateRelativeProxy<IGreeterServicePrx>("/greeter");
+            server.Listen();
+            var prx = server.CreateProxy<IGreeterServicePrx>("/greeter");
 
             // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
 
@@ -422,11 +431,12 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                Dispatcher = new GreeterService()
+                Dispatcher = new GreeterService(),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 
-            IGreeterServicePrx prx = server.CreateRelativeProxy<IGreeterServicePrx>("/");
+            IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
             OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
             IncomingResponseFrame response = await prx.InvokeAsync(request);
             Assert.AreEqual(ResultType.Success, response.ResultType);

@@ -24,11 +24,11 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Communicator = _communicator,
                 Dispatcher = new ExceptionOperations(),
-                Protocol = protocol
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
 
-            _prx = _server.CreateRelativeProxy<IExceptionOperationsPrx>("/test");
+            _prx = _server.CreateProxy<IExceptionOperationsPrx>("/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

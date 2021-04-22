@@ -33,11 +33,11 @@ namespace IceRpc.Tests.ClientServer
             Server = new Server
             {
                 Communicator = Communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
             };
-            Prx = Server.CreateRelativeProxy<IStressTestServicePrx>("/test");
+            Prx = Server.CreateProxy<IStressTestServicePrx>("/test");
             Server.Listen();
         }
 

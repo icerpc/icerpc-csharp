@@ -153,7 +153,7 @@ namespace IceRpc
         }
 
         public override string ToString() =>
-            $"{base.ToString()} (ID={Id}, Server={((ColocEndpoint)Endpoint).Server}, Incoming={IsIncoming})";
+            $"{base.ToString()} (ID={Id}, Endpoint={Endpoint}, Incoming={IsIncoming})";
 
         internal ColocSocket(
             ColocEndpoint endpoint,

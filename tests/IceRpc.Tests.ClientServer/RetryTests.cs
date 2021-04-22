@@ -58,10 +58,9 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     Communicator = communicator,
-                    IsDiscoverable = false,
+                    HasColocEndpoint = false,
                     Dispatcher = new RetryService(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    Protocol = protocol
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -75,9 +74,8 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
-                IsDiscoverable = false,
+                HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
-                Protocol = Protocol.Ice2,
                 Endpoint = GetTestEndpoint()
             };
             server.Listen();
@@ -400,7 +398,7 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Communicator = communicator,
-                    IsDiscoverable = false,
+                    HasColocEndpoint = false,
                     Endpoint = GetTestEndpoint(port: i)
                 }).ToArray();
 
@@ -420,9 +418,8 @@ namespace IceRpc.Tests.ClientServer
             var server = new Server
             {
                 Communicator = communicator,
-                IsDiscoverable = false,
-                Endpoint = GetTestEndpoint(protocol: protocol),
-                Protocol = protocol
+                HasColocEndpoint = false,
+                Endpoint = GetTestEndpoint(protocol: protocol)
             };
 
             var router = new Router();

@@ -29,7 +29,12 @@ namespace IceRpc.Tests.Api
         public RouterTests()
         {
             _communicator = new Communicator();
-            _server = new Server { Communicator = _communicator, Dispatcher = _router };
+            _server = new Server
+            {
+                Communicator = _communicator,
+                Dispatcher = _router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
             _server.Listen();
         }
 
@@ -188,7 +193,7 @@ namespace IceRpc.Tests.Api
         }
 
         private IGreeterServicePrx GetGreeter(string path) =>
-            _server.CreateRelativeProxy<IGreeterServicePrx>(path);
+            _server.CreateProxy<IGreeterServicePrx>(path);
 
         public class GreeterService : IAsyncGreeterService
         {

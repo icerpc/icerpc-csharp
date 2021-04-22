@@ -259,12 +259,13 @@ namespace IceRpc
                     }
                     else
                     {
+                        // TODO: revisit
                         return _colocClientSocketScope(
                             logger,
                             socket.Endpoint.TransportName,
                             socket.Endpoint.Protocol,
                             colocatedSocket.Id,
-                            ((ColocEndpoint)socket.Endpoint).Server.ToString());
+                            socket.Endpoint.ToString());
                     }
                 }
                 else if (socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&

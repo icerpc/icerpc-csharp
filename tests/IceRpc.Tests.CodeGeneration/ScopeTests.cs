@@ -29,16 +29,16 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server()
             {
                 Communicator = _communicator,
-                Dispatcher = router
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
-            _prx1 = _server.CreateRelativeProxy<Scope.IOperationsPrx>("/test1");
-            _prx2 = _server.CreateRelativeProxy<Scope.Inner.IOperationsPrx>("/test2");
-            _prx3 = _server.CreateRelativeProxy<Scope.Inner.Inner2.IOperationsPrx>("/test3");
-            _prx4 = _server.CreateRelativeProxy<Scope.Inner.Test.Inner2.IOperationsPrx>("/test4");
+            _prx1 = _server.CreateProxy<Scope.IOperationsPrx>("/test1");
+            _prx2 = _server.CreateProxy<Scope.Inner.IOperationsPrx>("/test2");
+            _prx3 = _server.CreateProxy<Scope.Inner.Inner2.IOperationsPrx>("/test3");
+            _prx4 = _server.CreateProxy<Scope.Inner.Test.Inner2.IOperationsPrx>("/test4");
 
             _server.Listen();
-
         }
 
         [OneTimeTearDown]
