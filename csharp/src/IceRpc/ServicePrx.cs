@@ -968,24 +968,7 @@ namespace IceRpc
 
             if (Activity.Current != null && Activity.Current.Id != null)
             {
-                request.WritableContext["traceparent"] = Activity.Current.Id;
-                if (Activity.Current.TraceStateString != null)
-                {
-                    request.WritableContext["tracestate"] = Activity.Current.TraceStateString;
-                }
-
-                using IEnumerator<KeyValuePair<string, string?>> e = Activity.Current.Baggage.GetEnumerator();
-                if (e.MoveNext())
-                {
-                    var baggage = new List<string>();
-                    do
-                    {
-                        baggage.Add(new NameValueHeaderValue(HttpUtility.UrlEncode(e.Current.Key),
-                                                             HttpUtility.UrlEncode(e.Current.Value)).ToString());
-                    }
-                    while (e.MoveNext());
-                    request.WritableContext["baggage"] = string.Join(',', baggage);
-                }
+                Activity.Current.WriteActivityContext(request);
             }
 
             do

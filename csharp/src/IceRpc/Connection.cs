@@ -605,7 +605,7 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
             using IDisposable? streamScope = stream.StartScope();
-            Activity? activity = null;
+            Activity? activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
             Debug.Assert(stream != null);
             try
             {
@@ -627,32 +627,7 @@ namespace IceRpc
                 if (Socket.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null)
                 {
                     activity = new Activity("IceRpc.Dispatch");
-                    // Restore parent activity when 'traceparent' context entry is present.
-                    if (request.Context.TryGetValue("traceparent", out string? parentId))
-                    {
-                        activity.SetParentId(parentId);
-                        if (request.Context.TryGetValue("tracestate", out string? traceState))
-                        {
-                            activity.TraceStateString = traceState;
-                        }
-
-                        if (request.Context.TryGetValue("baggage", out string? baggage))
-                        {
-                            string[] baggageItems = baggage.Split(new char[] { ',' }, 
-                                StringSplitOptions.RemoveEmptyEntries);
-                            for (int i = baggageItems.Length - 1; i >= 0; i--)
-                            {
-                                if (NameValueHeaderValue.TryParse(baggageItems[i], out NameValueHeaderValue? baggageItem))
-                                {
-                                    if (baggageItem.Value?.Length > 0)
-                                    {
-                                        activity.AddBaggage(baggageItem.Name.ToString(),
-                                                            HttpUtility.UrlDecode(baggageItem.Value));
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    activity.RestoreActivityContext(request);
                     activity.Start();
                 }
 
