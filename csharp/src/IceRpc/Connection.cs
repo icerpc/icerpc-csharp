@@ -704,7 +704,7 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
-                activity!.Stop();
+                activity?.Stop();
             }
         }
 
