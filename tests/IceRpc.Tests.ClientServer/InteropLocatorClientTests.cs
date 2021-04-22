@@ -29,7 +29,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = _communicator,
                 HasColocEndpoint = false,
                 Dispatcher = router,
-                Endpoint = "tcp -h 127.0.0.1 -p 0"
+                Endpoint = "tcp -h 127.0.0.1 -p 0",
+                ProxyHost = "localhost"
             };
 
             _server.Listen();
