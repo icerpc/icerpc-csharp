@@ -16,6 +16,11 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
     builder =>
     {
         builder.AddConfiguration(configuration.GetSection("Logging"));
+        builder.Configure(factoryOptions =>
+        {
+            factoryOptions.ActivityTrackingOptions = ActivityTrackingOptions.ParentId |
+                                                     ActivityTrackingOptions.SpanId;
+        });
         builder.AddSimpleConsole(configure =>
         {
             configure.IncludeScopes = true;

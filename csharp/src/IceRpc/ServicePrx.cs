@@ -598,20 +598,39 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        internal static Task<IncomingResponseFrame> InvokeAsync(
+        internal static async Task<IncomingResponseFrame> InvokeAsync(
             IServicePrx proxy,
             OutgoingRequestFrame request,
             bool oneway,
             IProgress<bool>? progress = null)
         {
             IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.InvocationInterceptors;
+            Activity? activity = null;
 
-            return InvokeWithInterceptorsAsync(proxy,
-                                               request,
-                                               oneway,
-                                               0,
-                                               progress,
-                                               request.CancellationToken);
+            // TODO add a client ActivitySource and use it to start the activities
+            // Start the invocation activity before running client side interceptors. Activities started
+            // by interceptors will be children of IceRpc.Invocation activity.
+            if (proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            {
+                activity = new Activity("IceRpc.Invocation");
+                activity.AddTag("Operation", request.Operation);
+                activity.AddTag("Path", request.Path);
+                activity.Start();
+            }
+
+            try
+            {
+                return await InvokeWithInterceptorsAsync(proxy,
+                                                         request,
+                                                         oneway,
+                                                         0,
+                                                         progress,
+                                                         request.CancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                activity?.Stop();
+            }
 
             async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
                 IServicePrx proxy,
@@ -951,6 +970,11 @@ namespace IceRpc
             Exception? exception = null;
 
             bool tryAgain = false;
+
+            if (Activity.Current != null && Activity.Current.Id != null)
+            {
+                request.WriteActivityContext(Activity.Current);
+            }
 
             do
             {

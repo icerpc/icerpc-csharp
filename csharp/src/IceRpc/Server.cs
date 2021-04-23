@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,9 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IDispatcher, IAsyncDisposable
     {
+        /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
+        /// instances for dispatches.</summary>
+        public ActivitySource? ActivitySource { get; set; }
         // temporary
         public Communicator? Communicator { get; set; }
 

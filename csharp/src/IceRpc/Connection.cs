@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -602,6 +603,7 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
             using IDisposable? streamScope = stream.StartScope();
+            Activity? activity = null;
 
             Debug.Assert(stream != null);
             try
@@ -622,6 +624,26 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
+                // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
+                // before we restore its context.
+                activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) ||  Activity.Current != null))
+                {
+                    activity = new Activity("IceRpc.Dispatch");
+                    // TODO we should start the activity after restoring its context, we should update this once
+                    // we move to CreateActivity in .NET 6
+                    activity.Start();
+                }
+
+                if (activity != null)
+                {
+                    activity.AddTag("Operation", request.Operation);
+                    activity.AddTag("Path", request.Path);
+                    request.RestoreActivityContext(activity);
+                }
+
+                // It is important to start the activity above before logging in case the logger has been configured to
+                // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
@@ -679,6 +701,7 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
+                activity?.Stop();
             }
         }
 
