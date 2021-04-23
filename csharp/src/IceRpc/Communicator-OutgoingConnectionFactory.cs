@@ -41,8 +41,6 @@ namespace IceRpc
                     // Check if there is an active connection that we can use according to the endpoint settings.
                     if (_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections))
                     {
-                        // The list of connections is already sorted with non-secure connections first, this will
-                        // return the first active and trusted connection according to the non-secure preference.
                         connection = connections.FirstOrDefault(connection => connection.IsActive);
 
                         if (connection != null)
@@ -107,6 +105,9 @@ namespace IceRpc
 
                         // Keep the list of connections sorted with non-secure connections first so that when we check
                         // for non-secure connections they are tried first.
+
+                        // TODO: this IsSecure sorting is now meaningless and should be removed.
+
                         if (list.Count == 0 || connection.IsSecure)
                         {
                             list.AddLast(connection);
