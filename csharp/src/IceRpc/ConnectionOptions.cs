@@ -270,9 +270,6 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        // TODO: only meaningful for ice+tcp and ice+ws endpoints, when endpoint.Tls is null.
-        public bool? TlsOverride { get; set; }
-
         internal static OutgoingConnectionOptions Default = new();
 
         private SslClientAuthenticationOptions? _authenticationOptions;
@@ -307,9 +304,6 @@ namespace IceRpc
             set => _acceptTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
-
-        // TODO: only meaningful for ice+tcp and ice+ws endpoints, when endpoint.Tls is null.
-        public bool? TlsOverride { get; set; }
 
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;
