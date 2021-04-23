@@ -38,7 +38,7 @@ namespace IceRpc
         /// <summary>The default timeout for ice1 endpoints.</summary>
         protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
-        /// <summary>The TLS option if this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
+        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
         /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
         /// </value>
         private readonly bool? _tls;
@@ -198,8 +198,7 @@ namespace IceRpc
             ILogger logger,
             CancellationToken cancel)
         {
-            // If the endpoint is always secure or a secure connection is required, connect with the SSL client
-            // authentication options.
+            // If the endpoint is secure, connect with the SSL client authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
             if (IsSecure ?? true)
             {
