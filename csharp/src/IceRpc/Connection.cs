@@ -624,29 +624,26 @@ namespace IceRpc
                 using IncomingRequestFrame request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
-                _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null))
+                // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
+                // before we restore its context.
+                activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Information) ||  Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
-                }
-                // It is important to start the activity before logging in case the logger has been configured to
-                // include the activity tracking options.
-                if (activity != null)
-                {
-                    try
-                    {
-                        activity.RestoreActivityContext(request);
-                        activity.AddTag("Operation", request.Operation);
-                        activity.AddTag("Path", request.Path);
-                        activity.Start();
-                    }
-                    catch
-                    {
-                        activity = null;
-                        throw;
-                    }
+                    // TODO we should start the activity after restoring its context, we should update this once
+                    // we move to CreateActivity in .NET 6
+                    activity.Start();
                 }
 
+                if (activity != null)
+                {
+                    activity.AddTag("Operation", request.Operation);
+                    activity.AddTag("Path", request.Path);
+                    request.RestoreActivityContext(activity);
+                }
+
+                // It is important to start the activity above before logging in case the logger has been configured to
+                // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.

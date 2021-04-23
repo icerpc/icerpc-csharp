@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
@@ -141,25 +142,25 @@ namespace IceRpc.Tests.ClientServer
                 }));
             router.Map("/test", new GreeterService());
 
+            using var activitySource = new ActivitySource("TracingTestActivitySource");
             await using var server = new Server
             {
                 Communicator = communicator,
                 Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
                 Dispatcher = router,
-                ActivitySource = new ActivitySource("TracingTestActivitySource")
+                ActivitySource = activitySource
             };
 
             // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
+            var dispatchStartedActivities = new List<Activity>();
+            var dispatchStoppedActivities = new List<Activity>();
             using var listener = new ActivityListener
             {
-                ShouldListenTo = _ => true,
+                ShouldListenTo = source => source.Name == activitySource.Name,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-                ActivityStarted = activity =>
-                {
-                },
-                ActivityStopped = activity =>
-                {
-                }
+                ActivityStarted = activity => 
+                    dispatchStartedActivities.Add(activity),
+                ActivityStopped = activity => dispatchStoppedActivities.Add(activity)
             };
             ActivitySource.AddActivityListener(listener);
 
@@ -197,6 +198,8 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.AreEqual("Baz", dispatchActivity.GetBaggageItem("Foo"));
             Assert.AreEqual("Information", dispatchActivity.GetBaggageItem("TraceLevel"));
+            Assert.AreEqual(1, dispatchStartedActivities.Count);
+            CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
         public class GreeterService : IAsyncGreeterTestService

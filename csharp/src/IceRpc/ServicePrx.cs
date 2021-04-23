@@ -973,7 +973,7 @@ namespace IceRpc
 
             if (Activity.Current != null && Activity.Current.Id != null)
             {
-                Activity.Current.WriteActivityContext(request);
+                request.WriteActivityContext(Activity.Current);
             }
 
             do

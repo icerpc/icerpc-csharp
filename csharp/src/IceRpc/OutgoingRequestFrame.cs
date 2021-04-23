@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Threading;
+using System.Web;
 
 namespace IceRpc
 {
@@ -317,6 +319,96 @@ namespace IceRpc
 
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingRequestFrame(this);
+
+        internal void WriteActivityContext(Activity activity)
+        {
+            if (activity.IdFormat != ActivityIdFormat.W3C)
+            {
+                throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
+            }
+
+            if (activity.Id == null)
+            {
+                throw new ArgumentException("invalid null activity ID", nameof(activity));
+            }
+
+            if (Protocol == Protocol.Ice1)
+            {
+                // For Ice1 the Activity context is write to the request Context using the standard keys
+                // traceparate, tracestate and baggage.
+
+                WritableContext["traceparent"] = activity.Id;
+                if (activity.TraceStateString != null)
+                {
+                    WritableContext["tracestate"] = activity.TraceStateString;
+                }
+
+                using IEnumerator<KeyValuePair<string, string?>> e = activity.Baggage.GetEnumerator();
+                if (e.MoveNext())
+                {
+                    var baggage = new List<string>();
+                    do
+                    {
+                        baggage.Add(new NameValueHeaderValue(HttpUtility.UrlEncode(e.Current.Key),
+                                                             HttpUtility.UrlEncode(e.Current.Value)).ToString());
+                    }
+                    while (e.MoveNext());
+                    WritableContext["baggage"] = string.Join(',', baggage);
+                }
+            }
+            else
+            {
+                // For Ice2 the activity context is write to the binary context as if it has the following Slice
+                // definition
+                //
+                // struct BaggageEntry
+                // {
+                //    string key;
+                //    string value;
+                // }
+                // sequence<BaggageEntry> Baggage;
+                //
+                // struct ActivityContext
+                // {
+                //    // ActivityID version 1 byte
+                //    byte version;
+                //    // ActivityTraceId 16 bytes
+                //    ulong activityTraceId0;
+                //    ulong activityTraceId1;
+                //    // ActivitySpanId 8 bytes
+                //    ulong activitySpanId
+                //    // ActivityTraceFlags 1 byte
+                //    byte ActivityTraceFlags;
+                //    string traceStateString;
+                //    Baggage baggage;
+                // }
+
+                BinaryContextOverride.Add(
+                    (int)BinaryContextKey.TelemetryContext,
+                    ostr =>
+                    {
+                        // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+                        // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+                        ostr.WriteByte(0);
+                        Span<byte> buffer = stackalloc byte[16];
+                        activity.TraceId.CopyTo(buffer);
+                        ostr.WriteByteSpan(buffer);
+                        activity.SpanId.CopyTo(buffer[0..8]);
+                        ostr.WriteByteSpan(buffer[0..8]);
+                        ostr.WriteByte((byte)activity.ActivityTraceFlags);
+
+                        // Tracestate encoded as an string
+                        ostr.WriteString(activity.TraceStateString ?? "");
+
+                        // Baggage encoded as a sequence<(string, string)>
+                        ostr.WriteSequence(activity.Baggage, (ostr, entry) =>
+                        {
+                            ostr.WriteString(entry.Key);
+                            ostr.WriteString(entry.Value ?? "");
+                        });
+                    });
+            }
+        }
 
         /// <inheritdoc/>
         internal override void WriteHeader(OutputStream ostr)
