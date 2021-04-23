@@ -118,9 +118,10 @@ namespace IceRpc
             ushort port,
             Dictionary<string, string> options)
         {
-            Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
+            Debug.Assert(transport == Transport.WS);
 
             string? resource = null;
+            bool? tls = null;
 
             if (options.TryGetValue("resource", out string? value))
             {
@@ -140,13 +141,18 @@ namespace IceRpc
                 resource = Uri.UnescapeDataString(value);
                 options.Remove("option");
             }
+            else if (options.TryGetValue("tls", out value))
+            {
+                tls = bool.Parse(value);
+                options.Remove("tls");
+            }
 
             var data = new EndpointData(transport,
                                         host,
                                         port,
                                         resource == null ? Array.Empty<string>() : new string[] { resource });
 
-            return new WSEndpoint(data);
+            return new WSEndpoint(data, tls);
         }
 
         internal override SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
@@ -162,8 +168,8 @@ namespace IceRpc
             new WSConnection(this, socket, options, server);
 
         // Constructor used for ice2 parsing.
-        private WSEndpoint(EndpointData data)
-            : base(data)
+        private WSEndpoint(EndpointData data, bool? tls)
+            : base(data, tls)
         {
         }
 

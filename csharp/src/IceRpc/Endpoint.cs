@@ -303,7 +303,7 @@ namespace IceRpc
     {
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
         private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
-            new ConcurrentDictionary<Endpoint, ColocEndpoint>();
+            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
 
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
         /// <param name="endpoint">The endpoint to check.</param>
@@ -397,5 +397,16 @@ namespace IceRpc
 
         internal static void UnregisterColocEndpoint(Endpoint endpoint) =>
             _colocRegistry.Remove(endpoint);
+    }
+
+    internal abstract class EndpointComparer : EqualityComparer<Endpoint>
+    {
+        internal static EndpointComparer Equivalent { get; } = new EquivalentEndpointComparer();
+
+        private class EquivalentEndpointComparer : EndpointComparer
+        {
+            public override bool Equals(Endpoint? lhs, Endpoint? rhs) => lhs!.IsEquivalent(rhs!);
+            public override int GetHashCode(Endpoint endpoint) => endpoint.GetEquivalentHashCode();
+        }
     }
 }

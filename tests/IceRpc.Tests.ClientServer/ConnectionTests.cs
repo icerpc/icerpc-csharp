@@ -39,10 +39,6 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(transport: transport, protocol: protocol),
-                ConnectionOptions = new()
-                {
-                    AcceptNonSecure = NonSecure.Always
-                },
                 ProxyHost = "localhost"
             };
             server.Listen();
@@ -50,11 +46,6 @@ namespace IceRpc.Tests.ClientServer
             var prx = IConnectionTestPrx.Parse(
                 GetTestProxy("test", transport: transport, protocol: protocol),
                 communicator);
-
-            if (transport == "udp")
-            {
-                prx.NonSecure = NonSecure.Always;
-            }
 
             var connection = (await prx.GetConnectionAsync()) as IPConnection;
             Assert.NotNull(connection);

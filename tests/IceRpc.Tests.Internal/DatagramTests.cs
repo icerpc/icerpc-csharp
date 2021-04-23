@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Internal
     public class DatagramTests : SingleStreamSocketBaseTest
     {
         public DatagramTests(AddressFamily addressFamily)
-            : base(Protocol.Ice1, "udp", NonSecure.Always, addressFamily)
+            : base(Protocol.Ice1, "udp", tls: false, addressFamily)
         {
         }
 

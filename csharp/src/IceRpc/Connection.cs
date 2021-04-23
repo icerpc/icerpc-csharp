@@ -304,8 +304,6 @@ namespace IceRpc
             }
         }
 
-        internal abstract bool CanTrust(NonSecure nonSecure);
-
         internal SocketStream CreateStream(bool bidirectional)
         {
             // Ensure the stream is created in the active state only, no new streams should be created if the
@@ -783,8 +781,6 @@ namespace IceRpc
             : base(endpoint, socket, options, server)
         {
         }
-
-        internal override bool CanTrust(NonSecure nonSecure) => true;
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -830,18 +826,6 @@ namespace IceRpc
             ConnectionOptions options,
             Server? server)
             : base(endpoint, socket, options, server) => _socket = socket;
-
-        internal override bool CanTrust(NonSecure nonSecure)
-        {
-            bool trusted = IsSecure || nonSecure switch
-            {
-                NonSecure.SameHost => RemoteEndpoint?.IsSameHost() ?? false,
-                NonSecure.TrustedHost => false, // TODO implement trusted host
-                NonSecure.Always => true,
-                _ => false
-            };
-            return trusted;
-        }
     }
 
     /// <summary>Represents a connection to a TCP-endpoint.</summary>

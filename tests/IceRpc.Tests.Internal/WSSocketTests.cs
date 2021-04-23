@@ -8,12 +8,12 @@ namespace IceRpc.Tests.Internal
 {
     // Test graceful close WS implementation. CloseAsync methods are no-ops for TCP/SSL and complete immediately
     // rather than waiting for the peer close notification so we can't test them like we do for WS.
-    [TestFixture("ws", NonSecure.Always)]
-    [TestFixture("ws", NonSecure.Never)]
+    [TestFixture("ws", false)]
+    [TestFixture("ws", true)]
     public class WSSocketTests : SingleStreamSocketBaseTest
     {
-        public WSSocketTests(string transport, NonSecure nonSecure)
-            : base(Protocol.Ice2, transport, nonSecure, AddressFamily.InterNetwork)
+        public WSSocketTests(string transport, bool tls)
+            : base(Protocol.Ice2, transport, tls, AddressFamily.InterNetwork)
         {
         }
 

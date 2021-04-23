@@ -43,16 +43,10 @@ namespace IceRpc
                     {
                         // The list of connections is already sorted with non-secure connections first, this will
                         // return the first active and trusted connection according to the non-secure preference.
-                        connection = connections.FirstOrDefault(
-                            connection => connection.IsActive && connection.CanTrust(options.NonSecure));
+                        connection = connections.FirstOrDefault(connection => connection.IsActive);
 
                         if (connection != null)
                         {
-                            // TODO should ColocConnection.IsSecure return always true?, currently IsSecure
-                            // is only true for SSL connections.
-                            Debug.Assert(options.NonSecure != NonSecure.Never ||
-                                         connection is ColocConnection ||
-                                         connection.IsSecure);
                             return connection;
                         }
                     }
@@ -72,17 +66,8 @@ namespace IceRpc
                 }
 
                 connection = await connectTask.WaitAsync(cancel).ConfigureAwait(false);
-                // After the connect task completed check if the connection can be trusted.
-                if (!connection.CanTrust(options.NonSecure))
-                {
-                    // The connection cannot be trusted clear the connection and try again.
-                    connection = null;
-                }
             }
             while (connection == null);
-            Debug.Assert(options.NonSecure != NonSecure.Never ||
-                         connection is ColocConnection ||
-                         connection.IsSecure);
             return connection;
 
             async Task<Connection> PerformConnectAsync(Endpoint endpoint, OutgoingConnectionOptions options)
@@ -183,16 +168,14 @@ namespace IceRpc
             }
         }
 
-        internal Connection? GetConnection(List<Endpoint> endpoints, NonSecure nonSecure)
+        internal Connection? GetConnection(List<Endpoint> endpoints)
         {
             lock (_mutex)
             {
                 foreach (Endpoint endpoint in endpoints)
                 {
                     if (_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
-                        connections.FirstOrDefault(
-                            connection => connection.IsActive && connection.CanTrust(nonSecure))
-                        is Connection connection)
+                        connections.FirstOrDefault(connection => connection.IsActive) is Connection connection)
                     {
                         return connection;
                     }
@@ -238,18 +221,6 @@ namespace IceRpc
                     _outgoingConnections.Remove(connection.Endpoint);
                 }
             }
-        }
-
-        private abstract class EndpointComparer : EqualityComparer<Endpoint>
-        {
-            internal static EndpointComparer Equivalent { get; } = new EquivalentEndpointComparer();
-        }
-
-        private class EquivalentEndpointComparer : EndpointComparer
-        {
-            public override bool Equals(Endpoint? lhs, Endpoint? rhs) => lhs!.IsEquivalent(rhs!);
-
-            public override int GetHashCode(Endpoint endpoint) => endpoint.GetEquivalentHashCode();
         }
     }
 }

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
             : base(
                 Protocol.Ice1,
                 "udp",
-                NonSecure.Always,
+                tls: false,
                 addressFamily,
                 clientEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: true),
                 serverEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: false)) =>

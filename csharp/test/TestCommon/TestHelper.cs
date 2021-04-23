@@ -135,6 +135,11 @@ namespace IceRpc.Test
                 }
                 sb.Append(':');
                 sb.Append(port);
+                if (transport == "tcp" || transport == "ws")
+                {
+                    sb.Append("?tls=false");
+                }
+
                 return sb.ToString();
             }
             else
@@ -165,8 +170,9 @@ namespace IceRpc.Test
         {
             if (GetTestProtocol(properties) == Protocol.Ice2 && transport != "udp")
             {
+                transport ??= GetTestTransport(properties);
                 var sb = new StringBuilder("ice+");
-                sb.Append(transport ?? GetTestTransport(properties));
+                sb.Append(transport);
                 sb.Append("://");
                 string host = GetTestHost(properties);
                 if (host.Contains(':'))
@@ -183,6 +189,10 @@ namespace IceRpc.Test
                 sb.Append(GetTestBasePort(properties) + num);
                 sb.Append('/');
                 sb.Append(identity);
+                if (transport == "tcp" || transport == "ws")
+                {
+                    sb.Append("?tls=false");
+                }
                 return sb.ToString();
             }
             else // i.e. ice1

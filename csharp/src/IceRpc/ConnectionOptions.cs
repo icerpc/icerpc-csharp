@@ -270,11 +270,8 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        /// <summary>The NonSecure policy for establishing non-secure connections. The default value is
-        /// <see cref="NonSecure.Always"/>.</summary>
-        /// <value>The <see cref="NonSecure"/> enumeration value.</value>
-        // TODO: switch to NonSecure.Never default
-        public NonSecure NonSecure { get; set; } = NonSecure.Always;
+        // TODO: only meaningful for ice+tcp and ice+ws endpoints, when endpoint.Tls is null.
+        public bool? TlsOverride { get; set; }
 
         internal static OutgoingConnectionOptions Default = new();
 
@@ -300,13 +297,6 @@ namespace IceRpc
             set => _authenticationOptions = value?.Clone();
         }
 
-        /// <summary>The NonSecure policy for accepting non-secure connections. This indicates under what
-        /// circumstances this server accepts non-secure incoming connections. The default value is
-        /// <see cref="NonSecure.Always"/>.</summary>
-        /// <value>The <see cref="NonSecure"/> enumeration value.</value>
-        // TODO: fix default to NonSecure.Never
-        public NonSecure AcceptNonSecure { get; set; } = NonSecure.Always;
-
         /// <summary>The connection accept timeout. If a new incoming connection takes longer than the accept timeout
         /// to be initialized, the server will abandon and close the connection. It can't be 0 and the default value
         /// is 10s.</summary>
@@ -317,6 +307,9 @@ namespace IceRpc
             set => _acceptTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
+
+        // TODO: only meaningful for ice+tcp and ice+ws endpoints, when endpoint.Tls is null.
+        public bool? TlsOverride { get; set; }
 
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;

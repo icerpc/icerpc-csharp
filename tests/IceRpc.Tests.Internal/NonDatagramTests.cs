@@ -9,16 +9,16 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    [TestFixture("tcp", NonSecure.Always, AddressFamily.InterNetwork)]
-    [TestFixture("ws", NonSecure.Always, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture("ws", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", NonSecure.Always, AddressFamily.InterNetworkV6)]
+    [TestFixture("tcp", false, AddressFamily.InterNetwork)]
+    [TestFixture("ws", false, AddressFamily.InterNetwork)]
+    [TestFixture("tcp", true, AddressFamily.InterNetwork)]
+    [TestFixture("ws", true, AddressFamily.InterNetwork)]
+    [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
     public class NonDatagramTests : SingleStreamSocketBaseTest
     {
-        public NonDatagramTests(string transport, NonSecure nonSecure, AddressFamily addressFamily)
-            : base(Protocol.Ice2, transport, nonSecure, addressFamily)
+        public NonDatagramTests(string transport, bool tls, AddressFamily addressFamily)
+            : base(Protocol.Ice2, transport, tls, addressFamily)
         {
         }
 

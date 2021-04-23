@@ -162,11 +162,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
             }
-
-            prx.NonSecure = NonSecure.Always;
-            Assert.AreEqual(NonSecure.Always, prx.NonSecure);
-            prx.NonSecure = NonSecure.Never;
-            Assert.AreEqual(NonSecure.Never, prx.NonSecure);
         }
 
         [Test]
@@ -496,20 +491,17 @@ namespace IceRpc.Tests.Api
             var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator);
             prx.CacheConnection = true;
             prx.PreferExistingConnection = false;
-            prx.NonSecure = NonSecure.Never;
             prx.InvocationTimeout = TimeSpan.FromSeconds(10);
 
             Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(4, proxyProps.Count);
+            Assert.AreEqual(3, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
 
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
 
             ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator);
             locator.CacheConnection = false;
             locator.PreferExistingConnection = false;
-            locator.NonSecure = NonSecure.Always;
 
             // TODO: LocatorClient should reject indirect locators.
             ILocationResolver locationResolver = new LocatorClient(locator);
@@ -517,10 +509,9 @@ namespace IceRpc.Tests.Api
 
             proxyProps = prx.ToProperty("Test");
 
-            Assert.AreEqual(4, proxyProps.Count);
+            Assert.AreEqual(3, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
             Assert.AreEqual("false", proxyProps["Test.PreferExistingConnection"]);
         }
 

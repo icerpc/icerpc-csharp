@@ -12,23 +12,23 @@ namespace IceRpc.Tests.Internal
     // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
     // incoming connection which is different (with Ice2, the acceptor peeks a byte on the socket to
     // figure out if the outgoing connection is a secure or non-secure connection).
-    [TestFixture(Protocol.Ice1, "tcp", NonSecure.Always, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice1, "ssl", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "tcp", NonSecure.Always, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "tcp", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", NonSecure.Always, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", NonSecure.Never, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice1, "tcp", NonSecure.Always, AddressFamily.InterNetworkV6)]
-    [TestFixture(Protocol.Ice2, "tcp", NonSecure.Never, AddressFamily.InterNetworkV6)]
+    [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice2, "ws", false, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice2, "ws", true, AddressFamily.InterNetwork)]
+    [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
+    [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
     public class ConnectSingleStreamSocketTests : SocketBaseTest
     {
         public ConnectSingleStreamSocketTests(
             Protocol protocol,
             string transport,
-            NonSecure nonSecure,
+            bool tls,
             AddressFamily addressFamily)
-            : base(protocol, transport, nonSecure, addressFamily)
+            : base(protocol, transport, tls, addressFamily)
         {
         }
 
