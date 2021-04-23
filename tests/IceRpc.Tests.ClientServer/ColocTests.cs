@@ -47,7 +47,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
-                HasColocEndpoint = hasColocEndpoint
+                HasColocEndpoint = hasColocEndpoint,
+                ProxyHost = "localhost"
             };
             server.Listen();
 

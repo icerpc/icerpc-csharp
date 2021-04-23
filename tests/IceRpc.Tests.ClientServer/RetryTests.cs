@@ -60,7 +60,8 @@ namespace IceRpc.Tests.ClientServer
                     Communicator = communicator,
                     HasColocEndpoint = false,
                     Dispatcher = new RetryService(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
+                    ProxyHost = "localhost"
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -76,7 +77,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
             };
             server.Listen();
 
@@ -399,7 +401,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Communicator = communicator,
                     HasColocEndpoint = false,
-                    Endpoint = GetTestEndpoint(port: i)
+                    Endpoint = GetTestEndpoint(port: i),
+                    ProxyHost = "localhost"
                 }).ToArray();
 
             var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -419,7 +422,8 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 HasColocEndpoint = false,
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             var router = new Router();
