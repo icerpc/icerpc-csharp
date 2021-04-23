@@ -717,14 +717,13 @@ namespace IceRpc
                 // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
                 // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
                 // a server.
-                using CancellationTokenSource combinedSource = current.Server != null ?
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, current.Server.CancelDispatch) :
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel);
+                using CancellationTokenSource? combinedSource = current.Server != null ?
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, current.Server.CancelDispatch) : null;
 
                 try
                 {
                     OutgoingResponseFrame response =
-                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+                        await dispatcher.DispatchAsync(current, combinedSource?.Token ?? cancel).ConfigureAwait(false);
 
                     cancel.ThrowIfCancellationRequested();
                     return response;
