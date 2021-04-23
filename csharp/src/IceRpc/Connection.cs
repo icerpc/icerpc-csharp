@@ -38,6 +38,27 @@ namespace IceRpc
         // HACK ALERT: the communicator is set after connection construction for now and until it's removed.
         public Communicator? Communicator { get; set; }
 
+        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
+        /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
+        /// connection. For outgoing connections, set can be called during configuration.</summary>
+        /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
+        /// set.</value>
+        public IDispatcher? Dispatcher
+        {
+            get => Server?.Dispatcher ?? _dispatcher;
+            set
+            {
+                if (Server == null)
+                {
+                    _dispatcher = value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("cannot change the dispatcher of an incoming connection");
+                }
+            }
+        }
+
         /// <summary>Gets the endpoint from which the connection was created.</summary>
         /// <value>The endpoint from which the connection was created.</value>
         public Endpoint Endpoint { get; }
@@ -97,6 +118,8 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        public Server? Server { get; }
+
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
@@ -121,28 +144,6 @@ namespace IceRpc
                 }
             }
         }
-
-        /// <summary>Gets or sets the dispatcher that dispatches received by this connection. For incoming connection,
-        /// set is an invalid operation and get returns the dispatcher of the server that created this connection.
-        /// For outgoing connections, set can be called during configuration.</summary>
-        /// <value>The dispatcher that dispatches received by this connection, or null if no dispatcher is set.</value>
-        public IDispatcher? Dispatcher
-        {
-            get => Server?.Dispatcher ?? _dispatcher;
-            set
-            {
-                if (Server == null)
-                {
-                    _dispatcher = value;
-                }
-                else
-                {
-                    throw new InvalidOperationException("cannot change the dispatcher of an incoming connection");
-                }
-            }
-        }
-
-        public Server? Server { get; }
 
         // This property should be private protected, it's internal instead for testing purpose.
         internal MultiStreamSocket Socket { get; }
