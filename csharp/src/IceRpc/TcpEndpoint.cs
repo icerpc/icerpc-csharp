@@ -127,8 +127,6 @@ namespace IceRpc
         }
 
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
-        // We also ignore _tls: if we already have a tls=false connection established, we want to reuse it, even when
-        // tls=true.
         protected internal override bool IsEquivalent(Endpoint? other) =>
             ReferenceEquals(this, other) ||
             (other is TcpEndpoint otherTcpEndpoint &&
