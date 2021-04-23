@@ -627,7 +627,7 @@ namespace IceRpc
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
                 activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Information) ||  Activity.Current != null))
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) ||  Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
                     // TODO we should start the activity after restoring its context, we should update this once

@@ -384,7 +384,7 @@ namespace IceRpc
                 // }
 
                 BinaryContextOverride.Add(
-                    (int)BinaryContextKey.TelemetryContext,
+                    (int)BinaryContextKey.TraceContext,
                     ostr =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,

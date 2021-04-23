@@ -610,7 +610,7 @@ namespace IceRpc
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors, activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (proxy.Communicator.Logger.IsEnabled(LogLevel.Information) || Activity.Current != null)
+            if (proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
                 activity = new Activity("IceRpc.Invocation");
                 activity.AddTag("Operation", request.Operation);

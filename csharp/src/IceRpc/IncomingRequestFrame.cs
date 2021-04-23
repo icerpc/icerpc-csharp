@@ -299,7 +299,7 @@ namespace IceRpc
             }
             else
             {
-                if (BinaryContext.TryGetValue((int)BinaryContextKey.TelemetryContext, out ReadOnlyMemory<byte> buffer))
+                if (BinaryContext.TryGetValue((int)BinaryContextKey.TraceContext, out ReadOnlyMemory<byte> buffer))
                 {
                     // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                     // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values

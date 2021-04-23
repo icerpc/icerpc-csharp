@@ -11,8 +11,8 @@ namespace IceRpc
     {
         /// <summary>Key used to encode the retry policy entry.</summary>
         RetryPolicy = -1,
-        /// <summary>Key used to encode OpenTelemetry activity data.</summary>
-        TelemetryContext = -2
+        /// <summary>Key used to encode the W3C Trace Context information.</summary>
+        TraceContext = -2
     }
 
     public static class BinaryContextHelper
