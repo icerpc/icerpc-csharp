@@ -358,7 +358,7 @@ namespace IceRpc
             }
             else
             {
-                // For Ice2 the activity context is write to the binary context as if it has the following Slice
+                // For Ice2 the activity context is written to the binary context as if it has the following Slice
                 // definition
                 //
                 // struct BaggageEntry
