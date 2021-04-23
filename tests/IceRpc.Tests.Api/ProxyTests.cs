@@ -340,7 +340,7 @@ namespace IceRpc.Tests.Api
 
             Endpoint tcpEndpoint = endps[0];
             Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
-            Assert.IsFalse(tcpEndpoint.IsAlwaysSecure);
+            Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
             Assert.AreEqual(10000, tcpEndpoint.Port);
 
@@ -360,7 +360,7 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("5", udpEndpoint["ttl"]);
                 Assert.AreEqual(null, udpEndpoint["timeout"]);
                 Assert.AreEqual(null, udpEndpoint["compress"]);
-                Assert.IsFalse(udpEndpoint.IsAlwaysSecure);
+                Assert.IsFalse(udpEndpoint.IsSecure);
                 Assert.IsTrue(udpEndpoint.IsDatagram);
                 Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
 

@@ -12,7 +12,7 @@ namespace IceRpc
 {
     internal sealed class WSEndpoint : TcpEndpoint
     {
-        public override bool IsAlwaysSecure => Transport == Transport.WSS;
+        public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.WSS : base.IsSecure;
 
         public override string? this[string option] => option == "resource" ? Resource : base[option];
 

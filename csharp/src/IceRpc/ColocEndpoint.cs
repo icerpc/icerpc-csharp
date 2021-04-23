@@ -15,8 +15,7 @@ namespace IceRpc
     /// <summary>The Endpoint class for the colocated transport.</summary>
     internal class ColocEndpoint : Endpoint
     {
-        public override bool IsAlwaysSecure => true;
-
+        public override bool? IsSecure => true;
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0, just like for IP endpoints.

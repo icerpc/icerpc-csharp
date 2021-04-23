@@ -18,7 +18,7 @@ namespace IceRpc
     internal class TcpEndpoint : IPEndpoint
     {
         public override bool IsDatagram => false;
-        public override bool IsAlwaysSecure => Transport == Transport.SSL;
+        public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.SSL : _tls;
 
         public override string? this[string option] =>
             option switch
@@ -203,7 +203,7 @@ namespace IceRpc
             // If the endpoint is always secure or a secure connection is required, connect with the SSL client
             // authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (Protocol == Protocol.Ice1 ? IsAlwaysSecure : (_tls ?? true))
+            if (IsSecure ?? true)
             {
                 authenticationOptions = options.AuthenticationOptions ?? new SslClientAuthenticationOptions()
                 {

@@ -19,6 +19,7 @@ namespace IceRpc
     internal sealed class UdpEndpoint : IPEndpoint
     {
         public override bool IsDatagram => true;
+        public override bool? IsSecure => false;
 
         public override string? this[string option] =>
             option switch
