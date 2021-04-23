@@ -93,25 +93,25 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNull(dispatchActivity);
             await server1.ShutdownAsync();
 
+            using var activitySource = new ActivitySource("TracingTestActivitySource");
             // Now configure the server with an ActivitySource to trigger the creation of the Dispatch activity.
             await using var server2 = new Server
             {
                 Communicator = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router,
-                ActivitySource = new ActivitySource("TracingTestActivitySource")
+                ActivitySource = activitySource
             };
 
+            // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
+            var dispatchStartedActivities = new List<Activity>();
+            var dispatchStoppedActivities = new List<Activity>();
             using var listener = new ActivityListener
             {
-                ShouldListenTo = _ => true,
+                ShouldListenTo = source => source.Name == activitySource.Name,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-                ActivityStarted = activity =>
-                {
-                },
-                ActivityStopped = activity =>
-                {
-                }
+                ActivityStarted = activity => dispatchStartedActivities.Add(activity),
+                ActivityStopped = activity => dispatchStoppedActivities.Add(activity)
             };
             ActivitySource.AddActivityListener(listener);
 
@@ -120,6 +120,8 @@ namespace IceRpc.Tests.ClientServer
             await prx.IcePingAsync();
             Assert.IsNotNull(dispatchActivity);
             Assert.AreEqual("IceRpc.Dispatch", dispatchActivity.DisplayName);
+            Assert.AreEqual(1, dispatchStartedActivities.Count);
+            CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
         /// <summary>Ensure that the Invocation activity is restored in the server side and used as the
@@ -158,8 +160,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 ShouldListenTo = source => source.Name == activitySource.Name,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-                ActivityStarted = activity => 
-                    dispatchStartedActivities.Add(activity),
+                ActivityStarted = activity => dispatchStartedActivities.Add(activity),
                 ActivityStopped = activity => dispatchStoppedActivities.Add(activity)
             };
             ActivitySource.AddActivityListener(listener);
