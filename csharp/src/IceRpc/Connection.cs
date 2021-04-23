@@ -657,12 +657,10 @@ namespace IceRpc
                 // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
 
-                // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
-                OutgoingResponseFrame? response = null;
+                OutgoingResponseFrame? response;
 
                 try
                 {
-                    // Dispatch the request and get the response
                     var current = new Current(Server, request, stream, this);
                     response = await DispatchAsync(current, cancel).ConfigureAwait(false);
                 }
