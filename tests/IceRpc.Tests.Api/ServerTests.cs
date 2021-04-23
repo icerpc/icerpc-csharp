@@ -136,7 +136,7 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        [TestCase("ice+tcp://127.0.0.1:0")]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
         [TestCase("tcp -h 127.0.0.1 -p 0 -t 15000")]
         public async Task Server_EndpointInformation(string endpoint)
         {
@@ -144,10 +144,6 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Communicator = communicator,
-                ConnectionOptions = new()
-                {
-                    AcceptNonSecure = NonSecure.Always
-                },
                 Endpoint = endpoint
             };
 

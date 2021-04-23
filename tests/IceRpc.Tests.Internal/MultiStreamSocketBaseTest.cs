@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Internal
         public MultiStreamSocketBaseTest(MultiStreamSocketType socketType)
             : base(socketType == MultiStreamSocketType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
                    socketType == MultiStreamSocketType.Coloc ? "coloc" : "tcp",
-                   NonSecure.Always) =>
+                   tls: false) =>
             SocketType = socketType;
 
         public async Task SetUpSocketsAsync()

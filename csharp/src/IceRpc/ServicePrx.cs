@@ -89,9 +89,6 @@ namespace IceRpc
         public ILocationResolver? LocationResolver { get; set; }
 
         /// <inheritdoc/>
-        public NonSecure NonSecure { get; set; }
-
-        /// <inheritdoc/>
         public string Path { get; } = "";
 
         /// <inheritdoc/>
@@ -187,10 +184,6 @@ namespace IceRpc
                 return false;
             }
             if (LocationResolver != other.LocationResolver)
-            {
-                return false;
-            }
-            if (NonSecure != other.NonSecure)
             {
                 return false;
             }
@@ -501,13 +494,6 @@ namespace IceRpc
                     sb.Append(TimeSpanExtensions.ToPropertyValue(_invocationTimeout));
                 }
 
-                if (NonSecure != NonSecure.Always)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("non-secure=");
-                    sb.Append(NonSecure.ToString().ToLowerInvariant());
-                }
-
                 if (IsOneway)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -710,7 +696,6 @@ namespace IceRpc
                  InvocationTimeout = _invocationTimeout,
                  IsOneway = IsOneway,
                  LocationResolver = LocationResolver,
-                 NonSecure = NonSecure,
                  PreferExistingConnection = PreferExistingConnection
              };
 
@@ -734,7 +719,7 @@ namespace IceRpc
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
                     await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, NonSecure);
+                connection = Communicator.GetConnection(endpoints);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -742,7 +727,6 @@ namespace IceRpc
             }
 
             OutgoingConnectionOptions options = Communicator.ConnectionOptions.Clone();
-            options.NonSecure = NonSecure;
 
             bool refreshCache = false;
 
@@ -816,10 +800,6 @@ namespace IceRpc
                 {
                     properties[$"{prefix}.PreferExistingConnection"] = "false";
                 }
-                if (NonSecure != NonSecure.Always)
-                {
-                    properties[$"{prefix}.NonSecure"] = NonSecure.ToString();
-                }
             }
             // else, only a single property in the dictionary
 
@@ -843,7 +823,6 @@ namespace IceRpc
             _invocationTimeout = options.InvocationTimeout;
             IsOneway = options.IsOneway;
             LocationResolver = options.LocationResolver;
-            NonSecure = options.NonSecure;
             PreferExistingConnection = options.PreferExistingConnection;
             Protocol = protocol;
 
@@ -903,12 +882,6 @@ namespace IceRpc
                     return false;
                 }
 
-                // With ice1 when secure endpoint is required filter out all non-secure endpoints.
-                if (Protocol == Protocol.Ice1 && NonSecure == NonSecure.Never && !endpoint.IsAlwaysSecure)
-                {
-                    return false;
-                }
-
                 // Filter out datagram endpoints when oneway is false.
                 if (endpoint.IsDatagram)
                 {
@@ -951,7 +924,7 @@ namespace IceRpc
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints, NonSecure);
+                connection = Communicator.GetConnection(endpoints);
                 if (CacheConnection)
                 {
                     _connection = connection;
@@ -959,7 +932,6 @@ namespace IceRpc
             }
 
             OutgoingConnectionOptions connectionOptions = Communicator.ConnectionOptions.Clone();
-            connectionOptions.NonSecure = NonSecure;
 
             ILogger logger = Communicator.Logger;
             int nextEndpoint = 0;

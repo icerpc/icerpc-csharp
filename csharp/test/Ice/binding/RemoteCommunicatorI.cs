@@ -27,11 +27,6 @@ namespace IceRpc.Test.Binding
                     var server = new Server
                     {
                         Communicator = current.Communicator,
-                        ConnectionOptions = new()
-                        {
-                            AcceptNonSecure = transport == "udp" ? NonSecure.Always :
-                                current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
-                        },
                         Dispatcher = new TestIntf(name),
                         Endpoint = endpoint,
                         ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())

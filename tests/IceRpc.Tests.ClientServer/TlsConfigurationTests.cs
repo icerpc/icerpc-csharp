@@ -414,18 +414,16 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
-                Endpoint = GetTestEndpoint(serverHost),
+                Endpoint = GetTestEndpoint(serverHost, tls: true),
                 ConnectionOptions = new()
                 {
-                    AcceptNonSecure = NonSecure.Never,
                     AuthenticationOptions = tlsServerOptions
                 }
             };
 
             server.Listen();
 
-            var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1"), clientCommunicator);
-            prx.NonSecure = NonSecure.Never;
+            var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1", tls: true), clientCommunicator);
             closure(server, prx);
         }
 

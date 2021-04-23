@@ -171,7 +171,6 @@ namespace IceRpc
             proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
             proxyOptions.PreferExistingConnection =
                 parsedOptions.PreferExistingConnection ?? proxyOptions.PreferExistingConnection;
-            proxyOptions.NonSecure = parsedOptions.NonSecure ?? proxyOptions.NonSecure;
 
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
@@ -313,15 +312,6 @@ namespace IceRpc
                         throw new FormatException($"0 is not a valid value for the {name} option in '{uriString}'");
                     }
                 }
-                else if (name == "non-secure")
-                {
-                    CheckProxyOption(name, parsedOptions.NonSecure != null);
-                    if (int.TryParse(value, out int _))
-                    {
-                        throw new FormatException($"{value} is not a valid option for non-secure");
-                    }
-                    parsedOptions.NonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
-                }
                 else if (name == "oneway")
                 {
                     CheckProxyOption(name, parsedOptions.IsOneway != null);
@@ -396,7 +386,6 @@ namespace IceRpc
             internal TimeSpan? InvocationTimeout;
 
             internal bool? IsOneway;
-            internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
         }
     }

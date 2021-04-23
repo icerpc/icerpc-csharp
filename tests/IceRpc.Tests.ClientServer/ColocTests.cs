@@ -35,9 +35,9 @@ namespace IceRpc.Tests.ClientServer
         }
 
         // Verify that coloc optimization occurs and can be disabled
-        [TestCase("ice+tcp://127.0.0.1:0", true)]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false", true)]
         [TestCase("tcp -h 127.0.0.1 -p 0", true)]
-        [TestCase("ice+tcp://127.0.0.1:0", false)]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false", false)]
         [TestCase("tcp -h 127.0.0.1 -p 0", false)]
         public async Task Coloc_OptimizationAsync(string endpoint, bool hasColocEndpoint)
         {

@@ -173,9 +173,6 @@ namespace IceRpc
         /// exists creating a new one to the first endpoint.</summary>
         public bool PreferExistingConnection { get; set; }
 
-        /// <summary>Indicates the proxy's preference for establishing non-secure connections.</summary>
-        public NonSecure NonSecure { get; set; }
-
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }
 

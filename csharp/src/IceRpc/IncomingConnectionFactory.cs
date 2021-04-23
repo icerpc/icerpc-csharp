@@ -157,18 +157,8 @@ namespace IceRpc
                         _server.ConnectionOptions.AuthenticationOptions,
                         cancel).ConfigureAwait(false);
 
-                    // Check if the established connection can be trusted according to the server non-secure
-                    // setting.
-                    if (connection.CanTrust(_server.ConnectionOptions.AcceptNonSecure))
-                    {
-                        // Perform protocol level initialization
-                        await connection.InitializeAsync(cancel).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // Connection not trusted, abort it.
-                        await connection.AbortAsync("connection is not trusted").ConfigureAwait(false);
-                    }
+                    // Perform protocol level initialization
+                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
                 }
                 catch
                 {

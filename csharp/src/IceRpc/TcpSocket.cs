@@ -28,6 +28,8 @@ namespace IceRpc
         {
             try
             {
+                // TODO: rework this code using endpoint.IsSecure
+
                 // On the server side, when accepting a new connection for Ice2 endpoint, the TCP socket checks
                 // the first byte sent by the peer to figure out if the peer tries to establish a TLS connection.
                 bool secure = false;
@@ -47,7 +49,7 @@ namespace IceRpc
                 // If a secure connection is needed, a new SslSocket is created and returned from this method.
                 // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
                 SingleStreamSocket socket = this;
-                if (endpoint.IsAlwaysSecure || secure)
+                if (endpoint.IsSecure ?? secure)
                 {
                     socket = new SslSocket(this);
                     await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);

@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Internal
     public class TcpOptionsTests : SocketBaseTest
     {
         public TcpOptionsTests(Protocol protocol, AddressFamily addressFamily)
-            : base(protocol, "tcp", NonSecure.Always, addressFamily)
+            : base(protocol, "tcp", tls: false, addressFamily)
         {
         }
 

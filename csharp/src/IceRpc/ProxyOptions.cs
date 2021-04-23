@@ -42,9 +42,6 @@ namespace IceRpc
         public ILocationResolver? LocationResolver { get; set; }
 
         /// <summary>(temporary).</summary>
-        public NonSecure NonSecure { get; set; } = NonSecure.Always;
-
-        /// <summary>(temporary).</summary>
         public bool PreferExistingConnection { get; set; } = true;
 
         private TimeSpan _invocationTimeout = DefaultInvocationTimeout;
