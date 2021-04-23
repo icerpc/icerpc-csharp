@@ -128,11 +128,11 @@ namespace IceRpc.Tests.Api
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
-                Assert.DoesNotThrow(() => connection.Server = server2);
-                Assert.DoesNotThrow(() => connection.Server = null);
+                Assert.DoesNotThrow(() => connection.Dispatcher = server2);
+                Assert.DoesNotThrow(() => connection.Dispatcher = null);
                 await server2.DisposeAsync();
                 // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
-                Assert.DoesNotThrow(() => connection.Server = server2);
+                Assert.DoesNotThrow(() => connection.Dispatcher = server2);
             }
         }
 

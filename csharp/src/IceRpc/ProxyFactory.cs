@@ -21,7 +21,7 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            if (connection.Server is not Server server)
+            if (connection.Dispatcher is not Server server)
             {
                 throw new InvalidOperationException("cannot create a fixed proxy using a connection without a server");
             }

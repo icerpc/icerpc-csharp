@@ -122,17 +122,27 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets or sets the server that dispatches requests received over this connection.
-        /// A client can invoke an operation on a server using a proxy, and then set a server for the
-        /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
-        /// cannot establish a connection back to the client, for example because of firewalls.</summary>
-        /// <value>The server that dispatches requests for the connection, or null if no server is set.
-        /// </value>
-        public Server? Server
+        /// <summary>Gets or sets the dispatcher that dispatches received by this connection. For incoming connection,
+        /// set is an invalid operation and get returns the dispatcher of the server that created this connection.
+        /// For outgoing connections, set can be called during configuration.</summary>
+        /// <value>The dispatcher that dispatches received by this connection, or null if no dispatcher is set.</value>
+        public IDispatcher? Dispatcher
         {
-            get => _server;
-            set => _server = value;
+            get => Server?.Dispatcher ?? _dispatcher;
+            set
+            {
+                if (Server == null)
+                {
+                    _dispatcher = value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("cannot change the dispatcher of an incoming connection");
+                }
+            }
         }
+
+        public Server? Server { get; }
 
         // This property should be private protected, it's internal instead for testing purpose.
         internal MultiStreamSocket Socket { get; }
@@ -146,11 +156,13 @@ namespace IceRpc
         private readonly TimeSpan _closeTimeout;
         // The close task is assigned when GoAwayAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
+
+        private volatile IDispatcher? _dispatcher; // TODO: the volatile should not be needed
+
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
         // performed atomically.
         private readonly object _mutex = new();
         private Action<Connection>? _remove;
-        private volatile Server? _server;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
 
@@ -177,7 +189,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = Socket.StartScope(_server);
+            using IDisposable? scope = Socket.StartScope(Server);
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully",
                                                             isClosedByPeer: false,
                                                             RetryPolicy.AfterDelay(TimeSpan.Zero)));
@@ -261,7 +273,7 @@ namespace IceRpc
             KeepAlive = options.KeepAlive;
             IsIncoming = server != null;
             _closeTimeout = options.CloseTimeout;
-            _server = server;
+            Server = server;
             _state = ConnectionState.NotInitialized;
         }
 
@@ -271,7 +283,7 @@ namespace IceRpc
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(_server);
+                using IDisposable? scope = Socket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
                     Socket.Logger.LogStartReceivingDatagrams();
@@ -291,7 +303,7 @@ namespace IceRpc
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(_server);
+                using IDisposable? scope = Socket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
                     Socket.Logger.LogStartSendingDatagrams();
@@ -322,7 +334,7 @@ namespace IceRpc
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            using IDisposable? socketScope = Socket.StartScope(_server);
+            using IDisposable? socketScope = Socket.StartScope(Server);
             try
             {
                 Task goAwayTask;
@@ -403,7 +415,7 @@ namespace IceRpc
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            using IDisposable? socketScope = Socket.StartScope(_server);
+            using IDisposable? socketScope = Socket.StartScope(Server);
             try
             {
                 // Initialize the transport.
@@ -624,7 +636,7 @@ namespace IceRpc
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
-                activity = _server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
                 if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) ||  Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
@@ -646,7 +658,7 @@ namespace IceRpc
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
-                Server? server = _server;
+                Server? server = Server;
 
                 try
                 {
