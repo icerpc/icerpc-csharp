@@ -658,26 +658,12 @@ namespace IceRpc
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
                 OutgoingResponseFrame? response = null;
-                Server? server = Server;
 
                 try
                 {
-                    if (server == null)
-                    {
-                        if (stream.IsBidirectional)
-                        {
-                            response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
-                            cancel.ThrowIfCancellationRequested(); // a very rare situation
-                        }
-                    }
-                    else
-                    {
-                        // Dispatch the request and get the response
-                        var current = new Current(server, request, stream, this);
-                        IDispatcher dispatcher = server;
-
-                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
-                    }
+                    // Dispatch the request and get the response
+                    var current = new Current(Server, request, stream, this);
+                    response = await DispatchAsync(current, cancel).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -712,6 +698,82 @@ namespace IceRpc
             {
                 stream?.Release();
                 activity?.Stop();
+            }
+        }
+
+        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
+        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
+        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
+        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
+        /// <see cref="ServiceNotFoundException"/> response.</summary>
+        /// <param name="current">The request being dispatched.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
+        private async ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
+        {
+            if (Dispatcher is IDispatcher dispatcher)
+            {
+                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
+                // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
+                // a server.
+                using CancellationTokenSource combinedSource = current.Server != null ?
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, current.Server.CancelDispatch) :
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel);
+
+                try
+                {
+                    OutgoingResponseFrame response =
+                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+
+                    cancel.ThrowIfCancellationRequested();
+                    return response;
+                }
+                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+                {
+                    // The client requested cancellation, we log it and let it propagate.
+                    Socket.Logger.LogDispatchCanceledByClient(current);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (ex is OperationCanceledException &&
+                        current.Server is Server server &&
+                        server.CancelDispatch.IsCancellationRequested)
+                    {
+                        // Replace exception
+                        ex = new ServerException("dispatch canceled by server shutdown");
+                    }
+                    // else it's another OperationCanceledException that the implementation should have caught, and it
+                    // will become an UnhandledException below.
+
+                    if (current.IsOneway)
+                    {
+                        // We log this exception, since otherwise it would be lost.
+                        Socket.Logger.LogDispatchException(current, ex);
+                        return OutgoingResponseFrame.WithVoidReturnValue(current);
+                    }
+                    else
+                    {
+                        RemoteException actualEx;
+                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
+                        {
+                            actualEx = remoteEx;
+                        }
+                        else
+                        {
+                            actualEx = new UnhandledException(ex);
+
+                            // We log the "source" exception as UnhandledException may not include all details.
+                            Socket.Logger.LogDispatchException(current, ex);
+                        }
+                        return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
+                    }
+                }
+            }
+            else
+            {
+                return new OutgoingResponseFrame(current.IncomingRequestFrame,
+                                                 new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 

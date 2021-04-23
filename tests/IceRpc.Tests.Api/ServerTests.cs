@@ -122,17 +122,11 @@ namespace IceRpc.Tests.Api
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
-                await using var server2 = new Server
-                {
-                    Communicator = communicator,
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
-                };
+                IDispatcher dispatcher = new ProxyTest();
 
-                Assert.DoesNotThrow(() => connection.Dispatcher = server2);
+                // We can set Dispatcher on an outgoing connection
+                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
                 Assert.DoesNotThrow(() => connection.Dispatcher = null);
-                await server2.DisposeAsync();
-                // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
-                Assert.DoesNotThrow(() => connection.Dispatcher = server2);
             }
         }
 
@@ -360,7 +354,7 @@ namespace IceRpc.Tests.Api
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
+                new(current.Server!.CreateRelativeProxy<IProxyTestPrx>(current.Path));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {

@@ -34,7 +34,7 @@ namespace IceRpc.Test.Binding
 
                     server.Listen();
 
-                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
+                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
                 }
                 catch (TransportException)
                 {
@@ -60,7 +60,7 @@ namespace IceRpc.Test.Binding
             };
 
             server.Listen();
-            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
+            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
         }
 
         // Coloc call.
@@ -72,7 +72,7 @@ namespace IceRpc.Test.Binding
 
         public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
         {
-            _ = current.Server.ShutdownAsync(); // only initiate shutdown
+            _ = current.Server!.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }
