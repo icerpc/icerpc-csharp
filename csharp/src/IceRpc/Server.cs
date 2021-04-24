@@ -150,7 +150,8 @@ namespace IceRpc
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,
                                                 Protocol.GetEncoding(),
-                                                ImmutableList<Endpoint>.Empty,
+                                                endpoint: null,
+                                                altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 ProxyOptions);
         }
@@ -178,7 +179,8 @@ namespace IceRpc
             return Proxy.GetFactory<T>().Create(path,
                                                 _proxyEndpoint.Protocol,
                                                 _proxyEndpoint.Protocol.GetEncoding(),
-                                                ImmutableList.Create(_proxyEndpoint),
+                                                _proxyEndpoint,
+                                                altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 options);
         }

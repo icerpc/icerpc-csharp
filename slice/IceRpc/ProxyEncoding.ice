@@ -61,6 +61,7 @@ module IceRpc
         string? path;                        // Percent-escaped URI path. Null means null proxy.
         Protocol? protocol;                  // null is equivalent to Protocol::Ice2
         Encoding? encoding;                  // null is equivalent to Encoding 2.0
-        EndpointDataSeq? endpoints;
+        EndpointData? endpoint;
+        EndpointDataSeq? altEndpoints;
     }
 }

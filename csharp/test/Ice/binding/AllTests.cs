@@ -13,16 +13,18 @@ namespace IceRpc.Test.Binding
     {
         private static ITestIntfPrx CreateTestIntfPrx(List<IRemoteServerPrx> servers)
         {
-            var endpoints = new List<Endpoint>();
+            var endpoints = new List<string>();
             ITestIntfPrx? obj = null;
             IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
                 obj = p.Current.GetTestIntf();
-                endpoints.AddRange(obj!.Endpoints);
+                endpoints.Add(obj.Endpoint);
+                endpoints.AddRange(obj.AltEndpoints);
             }
             TestHelper.Assert(obj != null);
-            obj.Endpoints = endpoints;
+            obj.Endpoint = endpoints[0];
+            obj.AltEndpoints = endpoints.Skip(1);
             obj.IsOneway = false;
             return obj.AddTlsFalse();
         }
@@ -41,14 +43,20 @@ namespace IceRpc.Test.Binding
         {
             if (prx.Protocol == Protocol.Ice2)
             {
-                prx.Endpoints = prx.Endpoints.Select(e =>
+                if (prx.Endpoint.Length > 0 &&
+                    prx.Endpoint.StartsWith("ice+tcp:") || prx.Endpoint.StartsWith("ice+ws:"))
                 {
-                    if (e.Transport == Transport.TCP || e.Transport == Transport.WS)
+                    prx.Endpoint = $"{prx.Endpoint}?tls=false";
+                }
+
+                prx.AltEndpoints = prx.AltEndpoints.Select(e =>
+                {
+                    if (e.StartsWith("ice+tcp:") || e.StartsWith("ice+ws:"))
                     {
-                        e = Endpoint.Parse($"{e}?tls=false");
+                        e = $"{e}?tls=false";
                     }
                     return e;
-                }).ToList();
+                });
             }
             return prx;
         }
@@ -213,7 +221,8 @@ namespace IceRpc.Test.Binding
                 {
                 }
 
-                IReadOnlyList<Endpoint> endpoints = obj.Endpoints;
+                string endpoint = obj.Endpoint;
+                string[] altEndpoints = obj.AltEndpoints.ToArray();
                 servers.Clear();
 
                 // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
@@ -222,7 +231,7 @@ namespace IceRpc.Test.Binding
                     // Now, re-activate the servers with the same endpoints in the opposite order.
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter66", endpoints[2].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter66", altEndpoints[1]));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter66");
@@ -230,7 +239,7 @@ namespace IceRpc.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter65", endpoints[1].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter65", altEndpoints[0]));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter65");
@@ -238,7 +247,7 @@ namespace IceRpc.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoints[0].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoint));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter64");
@@ -381,7 +390,7 @@ namespace IceRpc.Test.Binding
                     // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                     if (helper.Protocol == Protocol.Ice1)
                     {
-                        com.CreateServerWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp Server.
+                        com.CreateServerWithEndpoints("Adapter83", obj.AltEndpoints.ToArray()[0]); // Recreate a tcp Server.
 
                         for (int i = 0; i < 5; i++)
                         {

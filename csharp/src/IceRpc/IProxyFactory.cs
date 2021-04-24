@@ -11,7 +11,8 @@ namespace IceRpc
         /// <param name="protocol">The protocol of the new proxy.</param>
         /// <param name="encoding">The encoding of the new proxy. Usually corresponds to the protocol's encoding.
         /// </param>
-        /// <param name="endpoints">The endpoints of the proxy (can be empty).</param>
+        /// <param name="endpoint">The endpoint of the proxy (can be null).</param>
+        /// <param name="altEndpoints">The alternative endpoints of the proxy (can be empty).</param>
         /// <param name="connection">The connection of the proxy (can be null).</param>
         /// <param name="options">The service proxy options.</param>
         /// <returns>The new service proxy.</returns>
@@ -19,7 +20,8 @@ namespace IceRpc
             string path,
             Protocol protocol,
             Encoding encoding,
-            IEnumerable<Endpoint> endpoints,
+            Endpoint? endpoint,
+            IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
             ProxyOptions options);
 
@@ -28,7 +30,8 @@ namespace IceRpc
         /// <param name="facet">The facet of the target service.</param>
         /// <param name="encoding">The encoding of the new proxy. Usually corresponds to the protocol's encoding.
         /// </param>
-        /// <param name="endpoints">The endpoints of the proxy (can be empty).</param>
+        /// <param name="endpoint">The endpoint of the proxy (can be null).</param>
+        /// <param name="altEndpoints">The alternative endpoints of the proxy (can be empty).</param>
         /// <param name="connection">The connection of the proxy (can be null).</param>
         /// <param name="options">The service proxy options.</param>
         /// <returns>The new service proxy.</returns>
@@ -36,7 +39,8 @@ namespace IceRpc
             Identity identity,
             string facet,
             Encoding encoding,
-            IEnumerable<Endpoint> endpoints,
+            Endpoint? endpoint,
+            IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
             ProxyOptions options);
     }

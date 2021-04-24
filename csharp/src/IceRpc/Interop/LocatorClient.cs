@@ -278,7 +278,11 @@ namespace IceRpc.Interop
                         resolved = null;
                     }
 
-                    IReadOnlyList<Endpoint> endpoints = resolved?.Endpoints ?? ImmutableList<Endpoint>.Empty;
+                    IReadOnlyList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+                    if (resolved?.ParsedEndpoint != null)
+                    {
+                        endpoints = ImmutableList.Create(resolved.ParsedEndpoint).AddRange(resolved.ParsedAltEndpoints);
+                    }
 
                     if (endpoints.Count == 0)
                     {

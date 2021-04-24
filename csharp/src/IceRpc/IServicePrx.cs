@@ -121,6 +121,10 @@ namespace IceRpc
         public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
 
+        /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
+        /// <value>The secondary endpoints of this proxy.</value>
+        public IEnumerable<string> AltEndpoints { get; set; }
+
         /// <summary>Indicates whether or not this proxy caches its connection. Setting this value does not clear
         /// <see cref="Connection"/></summary>
         /// <value>True when the proxy caches its connection; otherwise, false.</value>
@@ -143,10 +147,9 @@ namespace IceRpc
         /// <summary>The encoding used to marshal request parameters.</summary>
         public Encoding Encoding { get; set; }
 
-        /// <summary>Gets or sets the endpoints of this proxy. Setting the endpoints does not affect the value of
-        /// <see cref="Connection"/>.</summary>
-        /// <value>The endpoints of this proxy.</value>
-        public IReadOnlyList<Endpoint> Endpoints { get; set; }
+        /// <summary>Gets or sets the main endpoint of this proxy.</summary>
+        /// <value>The main endpoint of this proxy.</value>
+        public string Endpoint { get; set; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>
         public IReadOnlyList<InvocationInterceptor> InvocationInterceptors { get; set; }
@@ -409,19 +412,21 @@ namespace IceRpc
                 string path,
                 Protocol protocol,
                 Encoding encoding,
-                IEnumerable<Endpoint> endpoints,
+                Endpoint? endpoint,
+                IEnumerable<Endpoint> altEndpoints,
                 Connection? connection,
                 ProxyOptions options) =>
-                new ServicePrx(path, protocol, encoding, endpoints, connection, options);
+                new ServicePrx(path, protocol, encoding, endpoint, altEndpoints, connection, options);
 
             public IServicePrx Create(
                 Identity identity,
                 string facet,
                 Encoding encoding,
-                IEnumerable<Endpoint> endpoints,
+                Endpoint? endpoint,
+                IEnumerable<Endpoint> altEndpoints,
                 Connection? connection,
                 ProxyOptions options) =>
-                new ServicePrx(identity, facet, encoding, endpoints, connection, options);
+                new ServicePrx(identity, facet, encoding, endpoint, altEndpoints, connection, options);
         }
     }
 }
