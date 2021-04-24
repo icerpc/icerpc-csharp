@@ -326,7 +326,7 @@ namespace IceRpc
                 }
                 else if (name == "fixed")
                 {
-                    throw new FormatException("cannot create or recreate a fixed proxy from a URI");
+                    throw new FormatException("cannot create a fixed proxy from a URI");
                 }
                 else if (iceScheme)
                 {

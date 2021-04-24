@@ -130,8 +130,9 @@ namespace IceRpc
                 }
                 else if (_altEndpoints.Count > 0)
                 {
-                    throw new ArgumentException("cannot clear ParsedEndpoint when ParsedAltEndpoints is not empty",
-                                                nameof(ParsedEndpoint));
+                    throw new ArgumentException(
+                        $"cannot clear {nameof(ParsedEndpoint)} when {nameof(ParsedAltEndpoints)} is not empty",
+                        nameof(ParsedEndpoint));
                 }
                 _endpoint = value;
             }
@@ -154,8 +155,7 @@ namespace IceRpc
         internal bool IsFixed => _endpoint == null && !IsRelative;
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
         internal bool IsRelative =>
-            Endpoint == null &&
-            (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
+            _endpoint == null && (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.HasOptions;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
