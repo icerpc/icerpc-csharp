@@ -76,22 +76,21 @@ namespace IceRpc
         /// <inheritdoc/>
         public ILocationResolver? LocationResolver { get; set; }
 
-        public IReadOnlyList<Endpoint> ParsedAltEndpoints
+        /// <summary>Gets or sets the endpoint objects that back <see cref="AltEndpoints"/>.</summary>
+        public ImmutableList<Endpoint> ParsedAltEndpoints
         {
             get => _altEndpoints;
 
             private set
             {
-                var altEndpoints = value.ToImmutableList();
-
-                if (_endpoint == null && altEndpoints.Count > 0)
+                if (_endpoint == null && value.Count > 0)
                 {
                     throw new ArgumentException(
                         $"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)} is empty",
                         nameof(ParsedAltEndpoints));
                 }
 
-                if (altEndpoints.Count > 0 &&
+                if (value.Count > 0 &&
                     (_endpoint!.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc))
                 {
                     throw new ArgumentException(
@@ -100,20 +99,21 @@ namespace IceRpc
                         nameof(ParsedAltEndpoints));
                 }
 
-                if (altEndpoints.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
+                if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
                 {
                     throw new ArgumentException("cannot use loc or coloc transport", nameof(ParsedAltEndpoints));
                 }
 
-                if (altEndpoints.Any(e => e.Protocol != Protocol))
+                if (value.Any(e => e.Protocol != Protocol))
                 {
                     throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
                                                  nameof(ParsedAltEndpoints));
                 }
-                _altEndpoints = altEndpoints;
+                _altEndpoints = value;
             }
         }
 
+        /// <summary>Gets or sets the endpoint object that backs <see cref="Endpoint"/>.</summary>
         public Endpoint? ParsedEndpoint
         {
             get => _endpoint;

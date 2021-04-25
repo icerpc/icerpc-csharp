@@ -96,7 +96,7 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, IReadOnlyList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
+        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
             string uriString,
             ProxyOptions proxyOptions)
         {

@@ -205,7 +205,7 @@ namespace IceRpc
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
                 var endpoint = proxyData.Endpoint?.ToEndpoint(protocol);
-                IReadOnlyList<Endpoint> altEndpoints =
+                ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(
                         data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
 

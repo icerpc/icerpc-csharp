@@ -20,7 +20,7 @@ namespace IceRpc
         // The following are helper classes and methods for generated servants.
 
         /// <summary>Holds a <see cref="RequestReader{T}"/> for each remote operation with parameter(s) defined in
-        /// the pseudo-interface Object.</summary>
+        /// the pseudo-interface Service.</summary>
         public static class Request
         {
             /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
@@ -29,11 +29,11 @@ namespace IceRpc
             /// <param name="request">The request frame.</param>
             /// <returns>The return value decoded from the frame.</returns>
             public static string IceIsA(Connection connection, IncomingRequestFrame request) =>
-                 request.ReadArgs(connection, InputStream.IceReaderIntoString);
+                request.ReadArgs(connection, InputStream.IceReaderIntoString);
         }
 
         /// <summary>Provides an <see cref="OutgoingResponseFrame"/> factory method for each non-void remote operation
-        /// defined in the pseudo-interface Object.</summary>
+        /// defined in the pseudo-interface Service.</summary>
         public static class Response
         {
             /// <summary>Creates an <see cref="OutgoingResponseFrame"/> for operation ice_id.</summary>
@@ -73,34 +73,34 @@ namespace IceRpc
                     OutputStream.IceWriterFromBool);
         }
 
-        /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
+        /// <summary>Returns the Slice type ID of the most-derived interface supported by this service.</summary>
         /// <param name="current">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
         /// </param>
         /// <returns>The Slice type ID of the most-derived interface.</returns>
         public ValueTask<string> IceIdAsync(Current current, CancellationToken cancel) => new("::Ice::Object");
 
-        /// <summary>Returns the Slice type IDs of the interfaces supported by this object.</summary>
+        /// <summary>Returns the Slice type IDs of the interfaces supported by this service.</summary>
         /// <param name="current">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
-        /// <returns>The Slice type IDs of the interfaces supported by this object, in alphabetical order.</returns>
+        /// <returns>The Slice type IDs of the interfaces supported by this service, in alphabetical order.</returns>
         public ValueTask<IEnumerable<string>> IceIdsAsync(Current current, CancellationToken cancel) =>
             new(new string[] { "::Ice::Object" });
 
-        /// <summary>Tests whether this object supports the specified Slice interface.</summary>
+        /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
         /// <param name="current">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
-        /// <returns>True if this object implements the interface specified by typeId.</returns>
+        /// <returns>True if this service implements the interface specified by typeId.</returns>
         public async ValueTask<bool> IceIsAAsync(string typeId, Current current, CancellationToken cancel)
         {
             var array = (string[])await IceIdsAsync(current, cancel).ConfigureAwait(false);
             return Array.BinarySearch(array, typeId, StringComparer.Ordinal) >= 0;
         }
 
-        /// <summary>Tests whether this object can be reached.</summary>
+        /// <summary>Tests whether this service can be reached.</summary>
         /// <param name="current">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>

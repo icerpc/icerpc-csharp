@@ -119,7 +119,7 @@ namespace IceRpc
         /// <param name="s">The string to parse.</param>
         /// <param name="proxyOptions">The proxy options.</param>
         /// <returns>The arguments to create the proxy.</returns>
-        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, IEnumerable<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
+        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
             string s,
             ProxyOptions proxyOptions)
         {
