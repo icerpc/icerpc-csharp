@@ -206,9 +206,7 @@ namespace IceRpc
 
                 if (protocol == Protocol.Ice1)
                 {
-                    InvocationMode invocationMode = endpoint != null &&
-                                                    endpoint.IsDatagram &&
-                                                    altEndpoints.All(e => e.IsDatagram) ?
+                    InvocationMode invocationMode = endpoint != null && endpoint.IsDatagram ?
                         InvocationMode.Oneway : InvocationMode.Twoway;
 
                     string facet;
