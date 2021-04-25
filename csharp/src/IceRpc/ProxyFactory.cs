@@ -284,12 +284,12 @@ namespace IceRpc
                             }
 
                             return factory.Create(identity.ToPath(),
-                                                        protocol,
-                                                        encoding,
-                                                        endpoint,
-                                                        altEndpoints,
-                                                        connection,
-                                                      options);
+                                                  protocol,
+                                                  encoding,
+                                                  endpoint,
+                                                  altEndpoints,
+                                                  connection,
+                                                  options);
                         }
                         else
                         {
