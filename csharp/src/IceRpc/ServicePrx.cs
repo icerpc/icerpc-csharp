@@ -156,7 +156,7 @@ namespace IceRpc
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
         internal bool IsRelative =>
             _endpoint == null && (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
-        internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.HasOptions;
+        internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;

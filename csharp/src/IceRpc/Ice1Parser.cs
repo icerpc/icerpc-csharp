@@ -380,6 +380,11 @@ namespace IceRpc
                         if (endpoint == null)
                         {
                             endpoint = ParseEndpoint(es);
+
+                            if (endpoint.Transport == Transport.Loc)
+                            {
+                                throw new FormatException("use @ adapterId instead of loc in proxy");
+                            }
                         }
                         else
                         {

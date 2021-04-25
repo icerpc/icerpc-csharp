@@ -133,13 +133,13 @@ namespace IceRpc
 
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
-                Endpoint[] allEndpoints =
+                Endpoint[] endpointArray =
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
 
-                if (allEndpoints.Length == 0)
+                if (endpointArray.Length == 0)
                 {
                     string adapterId = istr.ReadString();
                     if (adapterId.Length > 0)
@@ -149,13 +149,13 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (allEndpoints.Length > 1 && allEndpoints.Any(e => e.Transport == Transport.Loc))
+                    if (endpointArray.Length > 1 && endpointArray.Any(e => e.Transport == Transport.Loc))
                     {
                         throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
                     }
 
-                    endpoint = allEndpoints[0];
-                    altEndpoints = allEndpoints[1..];
+                    endpoint = endpointArray[0];
+                    altEndpoints = endpointArray[1..];
                 }
 
                 if (proxyData.Protocol == Protocol.Ice1)

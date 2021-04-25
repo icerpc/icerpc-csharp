@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Encoding
                                                                 connection: plain.Connection!,
                                                                 proxyOptions: new ProxyOptions());
             Assert.That(plain.Connection == prx1.Connection, Is.True);
-            CollectionAssert.IsEmpty(prx1.Endpoints);
+            Assert.IsEmpty(prx1.Endpoint);
 
             // Create a direct proxy and give it a connection
             var prx2 = IServicePrx.Parse("ice+tcp://localhost/bar", _communicator);
@@ -84,9 +84,9 @@ namespace IceRpc.Tests.Encoding
             // a direct proxy that has the same connection and endpoints as the source proxy.
             prx1 = _data[0].AsReadOnlyMemory().Read(encoding, IServicePrx.IceReader, source: prx2);
             Assert.That(prx1.Connection, Is.Not.Null);
-            CollectionAssert.IsNotEmpty(prx1.Endpoints);
+            Assert.IsNotEmpty(prx1.Endpoint);
             Assert.That(prx2.Connection == prx1.Connection, Is.True);
-            Assert.That(prx2.Endpoints == prx1.Endpoints, Is.True);
+            Assert.AreEqual(prx2.Endpoint, prx1.Endpoint);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter(),
-                Endpoint = greeter.Endpoints[0].ToString()
+                Endpoint = greeter.Endpoint
             };
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
@@ -53,7 +53,9 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             var greeter = server.CreateProxy<IGreeterTestServicePrx>("/foo");
-            Assert.AreEqual(Transport.TCP, greeter.Endpoints[0].Transport);
+            Assert.That(greeter.Endpoint!.StartsWith("ice+tcp", StringComparison.Ordinal) ||
+                        greeter.Endpoint.StartsWith("tcp", StringComparison.Ordinal),
+                        Is.True);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 
             if (hasColocEndpoint)
