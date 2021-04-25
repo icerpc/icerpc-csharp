@@ -149,11 +149,6 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (endpointArray.Length > 1 && endpointArray.Any(e => e.Transport == Transport.Loc))
-                    {
-                        throw new InvalidDataException("received multi-endpoint proxy with a loc endpoint");
-                    }
-
                     endpoint = endpointArray[0];
                     altEndpoints = endpointArray[1..];
                 }
@@ -208,21 +203,6 @@ namespace IceRpc
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(
                         data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
-
-                if (endpoint == null && altEndpoints.Count > 0)
-                {
-                    throw new InvalidDataException("received proxy with only alt-endpoints");
-                }
-
-                if (altEndpoints.Any(e => e.Transport == Transport.Loc))
-                {
-                    throw new InvalidDataException("received proxy with an ice+loc alt-endpoint");
-                }
-
-                if (endpoint != null && endpoint.Transport == Transport.Loc && altEndpoints.Any())
-                {
-                    throw new InvalidDataException("received ice+loc proxy with alt-endpoints");
-                }
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -284,43 +264,56 @@ namespace IceRpc
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
-                // If there is no location resolver, it's a relative proxy.
-                if (endpoint == null && options.LocationResolver == null)
+                try
                 {
-                    // The protocol of the source proxy/connection prevails.
-                    Protocol protocol = connection?.Protocol ?? source!.Protocol;
-                    endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                    altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
-
-                    if (protocol != Protocol.Ice1)
+                    // If there is no location resolver, it's a relative proxy.
+                    if (endpoint == null && options.LocationResolver == null)
                     {
-                        if (facet.Length > 0)
-                        {
-                            throw new InvalidDataException(
-                                @$"received a relative proxy with a facet on an {protocol.GetName()
-                                } connection or proxy");
-                        }
+                        // The protocol of the source proxy/connection prevails.
+                        Protocol protocol = connection?.Protocol ?? source!.Protocol;
+                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
+                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
 
-                        return factory.Create(identity.ToPath(),
-                                              protocol,
-                                              encoding,
-                                              endpoint,
-                                              altEndpoints,
-                                              connection,
-                                              options);
+                        if (protocol != Protocol.Ice1)
+                        {
+                            if (facet.Length > 0)
+                            {
+                                throw new InvalidDataException(
+                                    @$"received a relative proxy with a facet on an {protocol.GetName()
+                                    } connection or proxy");
+                            }
+
+                            return factory.Create(identity.ToPath(),
+                                                        protocol,
+                                                        encoding,
+                                                        endpoint,
+                                                        altEndpoints,
+                                                        connection,
+                                                      options);
+                        }
+                        else
+                        {
+                            return
+                                factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
+                        }
                     }
                     else
                     {
-                        return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
+                        if (endpoint == null)
+                        {
+                            endpoint = LocEndpoint.Create(identity); // well-known proxy
+                        }
+
+                        return factory.Create(identity, facet, encoding, endpoint, altEndpoints, null, options);
                     }
                 }
-                else
+                catch (InvalidDataException)
                 {
-                    if (endpoint == null)
-                    {
-                        endpoint = LocEndpoint.Create(identity); // well-known proxy
-                    }
-                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection: null, options);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidDataException("received invalid proxy", ex);
                 }
             }
 
@@ -332,23 +325,30 @@ namespace IceRpc
                 string path,
                 Protocol protocol)
             {
-                if (endpoint == null) // relative proxy
+                try
                 {
-                    // The protocol of the source proxy/connection prevails. It could be for example ice1.
-                    protocol = connection?.Protocol ?? source!.Protocol;
-                    endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                    altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
-                    return factory.Create(path, protocol, encoding, endpoint, altEndpoints, connection, proxyOptions);
+                    if (endpoint == null) // relative proxy
+                    {
+                        // The protocol of the source proxy/connection prevails. It could be for example ice1.
+                        protocol = connection?.Protocol ?? source!.Protocol;
+                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
+                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
+                        return factory.Create(path, protocol, encoding, endpoint, altEndpoints, connection, proxyOptions);
+                    }
+                    else
+                    {
+                        return factory.Create(path,
+                                              protocol,
+                                              encoding,
+                                              endpoint,
+                                              altEndpoints,
+                                              connection: null,
+                                              proxyOptions);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    return factory.Create(path,
-                                          protocol,
-                                          encoding,
-                                          endpoint,
-                                          altEndpoints,
-                                          connection: null,
-                                          proxyOptions);
+                    throw new InvalidDataException("received invalid proxy", ex);
                 }
             }
         }

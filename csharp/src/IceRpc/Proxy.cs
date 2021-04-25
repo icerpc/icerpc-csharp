@@ -170,7 +170,6 @@ namespace IceRpc
                 {
                     // Need to replace Loc endpoint since we're changing the identity.
                     endpoint = LocEndpoint.Create(identity);
-                    altEndpoints = ImmutableList<Endpoint>.Empty;
                     connection = null; // clear cached connection since we're changing the endpoint
                 }
 
