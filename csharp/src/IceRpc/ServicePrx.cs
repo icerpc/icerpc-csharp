@@ -83,32 +83,36 @@ namespace IceRpc
 
             private set
             {
-                if (_endpoint == null && value.Count > 0)
+                if (value.Count > 0)
                 {
-                    throw new ArgumentException(
-                        $"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)} is empty",
-                        nameof(ParsedAltEndpoints));
-                }
+                    if (_endpoint == null)
+                    {
+                        throw new ArgumentException(
+                            $"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)} is empty",
+                            nameof(ParsedAltEndpoints));
+                    }
 
-                if (value.Count > 0 &&
-                    (_endpoint!.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc))
-                {
-                    throw new ArgumentException(
-                        @$"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)
-                        } uses the loc or coloc transports",
-                        nameof(ParsedAltEndpoints));
-                }
+                    if (_endpoint.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc)
+                    {
+                        throw new ArgumentException(
+                            @$"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)
+                            } uses the loc or coloc transports",
+                            nameof(ParsedAltEndpoints));
+                    }
 
-                if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
-                {
-                    throw new ArgumentException("cannot use loc or coloc transport", nameof(ParsedAltEndpoints));
-                }
+                    if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
+                    {
+                        throw new ArgumentException("cannot use loc or coloc transport", nameof(ParsedAltEndpoints));
+                    }
 
-                if (value.Any(e => e.Protocol != Protocol))
-                {
-                    throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
-                                                 nameof(ParsedAltEndpoints));
+                    if (value.Any(e => e.Protocol != Protocol))
+                    {
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
+                                                     nameof(ParsedAltEndpoints));
+                    }
                 }
+                // else, no need to check anything, an empty list is always fine.
+
                 _altEndpoints = value;
             }
         }
@@ -387,7 +391,7 @@ namespace IceRpc
                     encoding: Encoding != Encoding.V20 ? Encoding : null,
                     endpoint: _endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
                          endpoint.Data : null,
-                    altEndpoints: _altEndpoints.Select(e => e.Data).ToArray());
+                    altEndpoints: _altEndpoints.Count == 0 ? null : _altEndpoints.Select(e => e.Data).ToArray());
 
                 proxyData.IceWrite(ostr);
             }
