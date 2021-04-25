@@ -892,8 +892,11 @@ namespace IceRpc
             PreferExistingConnection = options.PreferExistingConnection;
             Protocol = protocol;
 
-            ParsedEndpoint = endpoint; // use the Parsed[Alt]Endpoint[s] set validation
-            ParsedAltEndpoints = altEndpoints.ToImmutableList();
+            ParsedEndpoint = endpoint; // use the ParsedEndpoint set validation
+            if (altEndpoints.Any())
+            {
+                ParsedAltEndpoints = altEndpoints.ToImmutableList();
+            }
         }
 
         private void ClearConnection(Connection connection)
