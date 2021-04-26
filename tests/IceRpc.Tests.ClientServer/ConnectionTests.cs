@@ -57,7 +57,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(null, connection.Endpoint["compress"]);
             Assert.IsFalse(connection.IsIncoming);
 
-            Assert.AreEqual(null, connection.Server);
+            Assert.AreEqual(null, connection.Dispatcher);
             Assert.AreEqual(connection.Endpoint.Port, connection.RemoteEndpoint!.Port);
             Assert.IsTrue(connection.LocalEndpoint!.Port > 0);
 

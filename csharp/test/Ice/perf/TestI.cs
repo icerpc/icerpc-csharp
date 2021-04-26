@@ -20,6 +20,6 @@ namespace IceRpc.Test.Perf
         }
 
         public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Server.ShutdownAsync();
+            current.Server!.ShutdownAsync();
     }
 }

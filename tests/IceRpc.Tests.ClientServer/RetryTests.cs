@@ -85,7 +85,7 @@ namespace IceRpc.Tests.ClientServer
             IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
 
             Connection connection = await proxy.GetConnectionAsync();
-            connection.Server = server;
+            connection.Dispatcher = server.Dispatcher;
             IRetryBidirServicePrx bidir = proxy.Clone();
             bidir.Connection = connection;
             bidir.Endpoint = ""; // fixed proxy
@@ -243,7 +243,7 @@ namespace IceRpc.Tests.ClientServer
                         routers[i].Use(next => new InlineDispatcher(
                             async (current, cancel) =>
                             {
-                                calls.Add(current.Server.ToString());
+                                calls.Add(current.Server!.ToString());
                                 return await next.DispatchAsync(current, cancel);
                             }));
                         servers[i].Dispatcher = routers[i];
@@ -282,7 +282,7 @@ namespace IceRpc.Tests.ClientServer
                         router.Use(next => new InlineDispatcher(
                             async (current, cancel) =>
                             {
-                                calls.Add(current.Server.ToString());
+                                calls.Add(current.Server!.ToString());
                                 return await next.DispatchAsync(current, cancel);
                             }));
                     }

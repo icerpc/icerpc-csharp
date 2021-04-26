@@ -13,7 +13,7 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequestFrame.BinaryContext;
 
         /// <summary>The communicator.</summary>
-        public Communicator Communicator => Server.Communicator!;
+        public Communicator Communicator => Connection.Communicator!;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection { get; }
@@ -51,7 +51,7 @@ namespace IceRpc
         public Protocol Protocol => IncomingRequestFrame.Protocol;
 
         /// <summary>The server.</summary>
-        public Server Server { get; }
+        public Server? Server { get; }
 
         /// <summary>The stream ID</summary>
         public long StreamId => Stream.Id;
@@ -59,7 +59,7 @@ namespace IceRpc
         internal SocketStream Stream { get; }
 
         internal Current(
-            Server server,
+            Server? server,
             IncomingRequestFrame incomingRequestFrame,
             SocketStream stream,
             Connection connection)
