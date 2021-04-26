@@ -162,10 +162,10 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        private bool IsFixed => _endpoint == null && !IsRelative; // (_connection?.IsIncoming ?? false);
+        private bool IsFixed => _endpoint == null &&
+            _connection != null &&
+            _connection.Endpoint.Transport != Transport.Coloc; // (_connection?.IsIncoming ?? false);
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
-        internal bool IsRelative =>
-            _endpoint == null && (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -308,9 +308,9 @@ namespace IceRpc
         /// <inheritdoc/>
         public void IceWrite(OutputStream ostr)
         {
-            if (IsFixed)
+            if (_connection?.IsIncoming ?? false)
             {
-                throw new NotSupportedException("cannot marshal a fixed proxy");
+                throw new InvalidOperationException("cannot marshal a proxy bound to an incoming connection");
             }
 
             InvocationMode? invocationMode = IsOneway ? InvocationMode.Oneway : null;
@@ -354,15 +354,13 @@ namespace IceRpc
                     ostr.WriteSize(0); // 0 endpoints
                     ostr.WriteString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
                 }
-                else if (IsRelative)
+                else if (_endpoint == null)
                 {
                     ostr.WriteSize(0); // 0 endpoints
                     ostr.WriteString(""); // empty adapter ID
                 }
                 else
                 {
-                    Debug.Assert(_endpoint != null);
-
                     IEnumerable<Endpoint> endpoints = _endpoint.Transport == Transport.Coloc ?
                         _altEndpoints : Enumerable.Empty<Endpoint>().Append(_endpoint).Concat(_altEndpoints);
 
