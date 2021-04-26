@@ -162,7 +162,7 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        internal bool IsFixed => _endpoint == null && !IsRelative;
+        private bool IsFixed => _endpoint == null && !IsRelative; // (_connection?.IsIncoming ?? false);
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
         internal bool IsRelative =>
             _endpoint == null && (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
@@ -227,6 +227,12 @@ namespace IceRpc
             {
                 return false;
             }
+
+            // Only compare the connections of endpointless proxies.
+            if (_endpoint == null && _connection != other._connection)
+            {
+                return false;
+            }
             if (!_altEndpoints.SequenceEqual(other._altEndpoints))
             {
                 return false;
@@ -264,15 +270,6 @@ namespace IceRpc
                 return false;
             }
 
-            if (IsFixed)
-            {
-                if (_connection != other._connection)
-                {
-                    return false;
-                }
-            }
-            // else we assume that for non-fixed proxies, connection differences don't affect equality.
-
             if (!_context.DictionaryEqual(other._context)) // done last since it's more expensive
             {
                 return false;
@@ -297,13 +294,13 @@ namespace IceRpc
             hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
-            if (IsFixed)
-            {
-                hash.Add(_connection);
-            }
-            else if (_endpoint != null)
+            if (_endpoint != null)
             {
                 hash.Add(_endpoint.GetHashCode());
+            }
+            else if (_connection != null)
+            {
+                hash.Add(_connection);
             }
             return hash.ToHashCode();
         }
@@ -548,12 +545,6 @@ namespace IceRpc
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("encoding=");
                     sb.Append(Encoding);
-                }
-
-                if (IsFixed)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("fixed=true");
                 }
 
                 if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
@@ -846,11 +837,6 @@ namespace IceRpc
         /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IServicePrx, string)"/>.</summary>
         internal Dictionary<string, string> ToProperty(string prefix)
         {
-            if (IsFixed)
-            {
-                throw new NotSupportedException("cannot convert a fixed proxy to a property dictionary");
-            }
-
             var properties = new Dictionary<string, string> { [prefix] = ToString() };
 
             if (Protocol == Protocol.Ice1)
@@ -907,7 +893,6 @@ namespace IceRpc
 
         private void ClearConnection(Connection connection)
         {
-            Debug.Assert(!IsFixed);
             Interlocked.CompareExchange(ref _connection, null, connection);
         }
 
@@ -916,8 +901,6 @@ namespace IceRpc
             bool oneway,
             CancellationToken cancel)
         {
-            Debug.Assert(!IsFixed);
-
             if (_endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
             {
                 return new List<Endpoint>() { colocEndpoint };
