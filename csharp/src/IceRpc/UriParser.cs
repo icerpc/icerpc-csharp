@@ -96,7 +96,7 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Encoding Encoding, IReadOnlyList<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
             string uriString,
             ProxyOptions proxyOptions)
         {
@@ -122,11 +122,12 @@ namespace IceRpc
 
             ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, uriString);
 
-            ImmutableList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+            Endpoint? endpoint = null;
+            var altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
                 parsedOptions.EndpointOptions ??= new Dictionary<string, string>();
-                endpoints = ImmutableList.Create(CreateEndpoint(parsedOptions.EndpointOptions, uri));
+                endpoint = CreateEndpoint(parsedOptions.EndpointOptions, uri);
 
                 if (parsedOptions.AltEndpoint is string altEndpoint)
                 {
@@ -151,12 +152,12 @@ namespace IceRpc
 
                         Endpoint parsedEndpoint = ParseEndpoint(altUriString);
 
-                        if (parsedEndpoint.Protocol != endpoints[0].Protocol)
+                        if (parsedEndpoint.Protocol != endpoint.Protocol)
                         {
                             throw new FormatException(
                                 $"the protocol of all endpoints in '{uriString}' must be the same");
                         }
-                        endpoints = endpoints.Add(parsedEndpoint);
+                        altEndpoints = altEndpoints.Add(parsedEndpoint);
                     }
                 }
             }
@@ -174,7 +175,8 @@ namespace IceRpc
 
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
-                    endpoints,
+                    endpoint,
+                    altEndpoints,
                     proxyOptions);
         }
 
@@ -324,7 +326,7 @@ namespace IceRpc
                 }
                 else if (name == "fixed")
                 {
-                    throw new FormatException("cannot create or recreate a fixed proxy from a URI");
+                    throw new FormatException("cannot create a fixed proxy from a URI");
                 }
                 else if (iceScheme)
                 {

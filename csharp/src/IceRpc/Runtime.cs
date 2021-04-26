@@ -108,8 +108,8 @@ namespace IceRpc
         /// <param name="transport">The transport.</param>
         /// <param name="transportName">The name of the transport in lower case, for example "tcp".</param>
         /// <param name="factory">A delegate that creates an endpoint from an <see cref="EndpointData"/>.</param>
-        /// <param name="ice1Factory">A delegate that creates an ice1 endpoint by reading an <see cref="InputStream"/>
-        /// (optional).</param>
+        /// <param name="ice1Factory">A delegate that creates an ice1 endpoint by reading an <see cref="InputStream"/>.
+        /// </param>
         /// <param name="ice1Parser">A delegate that creates an ice1 endpoint from a pre-parsed string.</param>
         /// <param name="ice2Parser">A delegate that creates an ice2 endpoint from a pre-parsed URI.</param>
         /// <param name="defaultUriPort">The default port for URI endpoints that don't specify a port explicitly.
@@ -156,6 +156,7 @@ namespace IceRpc
             RegisterTransport(Transport.Loc,
                               "loc",
                               LocEndpoint.Create,
+                              ice1Parser: LocEndpoint.ParseIce1Endpoint,
                               ice2Parser: LocEndpoint.ParseIce2Endpoint,
                               defaultUriPort: LocEndpoint.DefaultLocPort);
 

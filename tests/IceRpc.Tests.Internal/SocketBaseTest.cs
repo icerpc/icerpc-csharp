@@ -230,7 +230,8 @@ namespace IceRpc.Tests.Internal
             return (connection.Socket, IServicePrx.Factory.Create("/dummy",
                                                                   ClientEndpoint.Protocol,
                                                                   ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoints: ImmutableList<Endpoint>.Empty,
+                                                                  endpoint: null,
+                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
                                                                   connection,
                                                                   options));
         }

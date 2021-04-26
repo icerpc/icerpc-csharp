@@ -370,11 +370,11 @@ namespace IceRpc.Tests.ClientServer
                 // Local case: start an operation and then close the connection gracefully on the client side without
                 // waiting for the pending invocation to complete. There will be no retry and we expect the invocation
                 // to fail with ConnectionClosedException.
-                await using var connection = await Connection.CreateAsync(prx.Endpoints[0], prx.Communicator);
+                await using var connection = await Connection.CreateAsync(Endpoint.Parse(prx.Endpoint), prx.Communicator);
                 cb = new ProgressCallback();
                 IConnectionTestPrx fixedPrx = prx.Clone();
                 fixedPrx.Connection = connection;
-                fixedPrx.Endpoints = ImmutableList<Endpoint>.Empty;
+                fixedPrx.Endpoint = "";
 
                 Task t = fixedPrx.StartDispatchAsync(progress: cb);
                 await cb.Completed.Task; // Ensure the request was sent before closing the connection.
