@@ -118,6 +118,7 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        /// <summary>The server that created this incoming connection.</summary>
         public Server? Server { get; }
 
         internal CompressionLevel CompressionLevel { get; }
@@ -157,8 +158,7 @@ namespace IceRpc
         private readonly TimeSpan _closeTimeout;
         // The close task is assigned when GoAwayAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
-
-        private volatile IDispatcher? _dispatcher; // TODO: the volatile should not be needed
+        private IDispatcher? _dispatcher;
 
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
         // performed atomically.

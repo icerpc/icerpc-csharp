@@ -16,7 +16,6 @@ namespace IceRpc
         internal const int TransportBaseEventId = 5 * EventIdRange;
         internal const int WebSocketBaseEventId = 6 * EventIdRange;
         internal const int LocatorClientBaseEventId = 7 * EventIdRange;
-
         internal const int ConnectionBaseEventId = 8 * EventIdRange;
         private const int EventIdRange = 128;
 
