@@ -21,12 +21,13 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            if (connection.Server is not Server server)
+            if (connection.Dispatcher == null)
             {
-                throw new InvalidOperationException("cannot create a fixed proxy using a connection without a server");
+                throw new InvalidOperationException(
+                    "cannot create a fixed proxy using a connection without a dispatcher");
             }
 
-            ProxyOptions options = server.ProxyOptions;
+            ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
             if (connection.Endpoint.IsDatagram && !options.IsOneway)
             {
                 options = options.Clone();

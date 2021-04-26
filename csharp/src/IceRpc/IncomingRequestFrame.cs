@@ -103,7 +103,7 @@ namespace IceRpc
             return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
                                                                 reader,
                                                                 connection: connection,
-                                                                proxyOptions: connection.Server!.ProxyOptions);
+                                                                proxyOptions: connection.Server?.ProxyOptions);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -149,7 +149,7 @@ namespace IceRpc
             var istr = new InputStream(Payload.AsReadOnlyMemory(),
                                        Protocol.GetEncoding(),
                                        connection: connection,
-                                       proxyOptions: connection.Server!.ProxyOptions,
+                                       proxyOptions: connection.Server?.ProxyOptions,
                                        startEncapsulation: true);
             T value = reader(istr, SocketStream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the

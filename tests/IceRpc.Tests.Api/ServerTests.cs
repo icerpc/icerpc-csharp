@@ -122,17 +122,11 @@ namespace IceRpc.Tests.Api
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
-                await using var server2 = new Server
-                {
-                    Communicator = communicator,
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
-                };
+                IDispatcher dispatcher = new ProxyTest();
 
-                Assert.DoesNotThrow(() => connection.Server = server2);
-                Assert.DoesNotThrow(() => connection.Server = null);
-                await server2.DisposeAsync();
-                // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
-                Assert.DoesNotThrow(() => connection.Server = server2);
+                // We can set Dispatcher on an outgoing connection
+                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
+                Assert.DoesNotThrow(() => connection.Dispatcher = null);
             }
         }
 
@@ -293,6 +287,31 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
+        // When a client cancels a request, the dispatch is canceled. Works also when the dispatch is performed by
+        // an outgoing connection.
+        public async Task Server_CallbackRequestCancelAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+            var serverTest = new ServerTest(service);
+
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = serverTest,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+
+            server.Listen();
+            var proxy = server.CreateProxy<IServerTestPrx>("/");
+
+            await proxy.IcePingAsync();
+            proxy.Connection!.Dispatcher = service;
+
+            await proxy.CallbackAsync(server.CreateRelativeProxy<IProxyTestPrx>("/callback"));
+        }
+
+        [Test]
         // Canceling the cancellation token (source) of ShutdownAsync results in a ServerException when the operation
         // completes with an OperationCanceledException.
         public async Task Server_ShutdownCancelAsync()
@@ -360,7 +379,7 @@ namespace IceRpc.Tests.Api
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
+                new(current.Server!.CreateRelativeProxy<IProxyTestPrx>(current.Path));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
             {
@@ -378,6 +397,29 @@ namespace IceRpc.Tests.Api
                 }
                 cancel.ThrowIfCancellationRequested(); // to make it typical
             }
+        }
+
+        private class ServerTest : IAsyncServerTest
+        {
+            private readonly ProxyTest _service;
+
+            public async ValueTask CallbackAsync(
+                IProxyTestPrx callback,
+                Current current,
+                CancellationToken cancel)
+            {
+                using var cancellationSource = new CancellationTokenSource();
+                Task task = callback.WaitForCancelAsync(cancel: cancellationSource.Token);
+                await _service.WaitForCancelInProgress;
+                Assert.IsFalse(task.IsCompleted);
+                cancellationSource.Cancel();
+                Assert.CatchAsync<OperationCanceledException>(async () => await task);
+
+                // Verify callback still works
+                Assert.DoesNotThrowAsync(async () => await callback.IcePingAsync());
+            }
+
+            internal ServerTest(ProxyTest service) => _service = service;
         }
     }
 }

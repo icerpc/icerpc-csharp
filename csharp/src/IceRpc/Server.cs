@@ -13,7 +13,7 @@ namespace IceRpc
     /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
     /// the corresponding responses. A server should be first configured through its properties, then activated with
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
-    public sealed class Server : IDispatcher, IAsyncDisposable
+    public sealed class Server : IAsyncDisposable
     {
         /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
         /// instances for dispatches.</summary>
@@ -109,6 +109,8 @@ namespace IceRpc
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
+        internal CancellationToken CancelDispatch => _cancelDispatchSource.Token;
+
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
@@ -181,90 +183,6 @@ namespace IceRpc
                                                 ImmutableList.Create(_proxyEndpoint),
                                                 connection: null,
                                                 options);
-        }
-
-        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
-        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
-        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
-        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
-        /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="current">The request being dispatched.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        /// <remarks>This method is called by the IceRPC connection code when it receives a request.</remarks>
-        async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
-        {
-            // temporary
-            ProxyOptions.Communicator ??= Communicator;
-
-            if (!_listening)
-            {
-                var ex = new UnhandledException(
-                    new InvalidOperationException($"call {nameof(Listen)} before dispatching colocated requests"));
-
-                return new OutgoingResponseFrame(current.IncomingRequestFrame, ex);
-            }
-
-            if (Dispatcher is IDispatcher dispatcher)
-            {
-                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
-                // source/token that combines cancel and the server's own cancellation token.
-                using var combinedSource =
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancelDispatchSource.Token);
-
-                try
-                {
-                    OutgoingResponseFrame response =
-                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
-
-                    cancel.ThrowIfCancellationRequested();
-                    return response;
-                }
-                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-                {
-                    // The client requested cancellation, we log it and let it propagate.
-                    Logger.LogServerDispatchCanceledByClient(current);
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (ex is OperationCanceledException && _cancelDispatchSource.Token.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-
-                    if (current.IsOneway)
-                    {
-                        // We log this exception, since otherwise it would be lost.
-                        Logger.LogServerDispatchException(current, ex);
-                        return OutgoingResponseFrame.WithVoidReturnValue(current);
-                    }
-                    else
-                    {
-                        RemoteException actualEx;
-                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                        {
-                            actualEx = remoteEx;
-                        }
-                        else
-                        {
-                            actualEx = new UnhandledException(ex);
-
-                            // We log the "source" exception as UnhandledException may not include all details.
-                            Logger.LogServerDispatchException(current, ex);
-                        }
-                        return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
-                    }
-                }
-            }
-            else
-            {
-                return new OutgoingResponseFrame(current.IncomingRequestFrame,
-                                                 new ServiceNotFoundException(RetryPolicy.OtherReplica));
-            }
         }
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
