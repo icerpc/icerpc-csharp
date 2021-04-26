@@ -163,7 +163,6 @@ namespace IceRpc
                 var identity = Identity.FromPath(path);
 
                 Endpoint? endpoint = proxy.Impl.ParsedEndpoint;
-                IEnumerable<Endpoint> altEndpoints = proxy.Impl.ParsedAltEndpoints;
                 Connection? connection = proxy.Connection;
 
                 if (proxy.Impl.IsWellKnown)
@@ -177,7 +176,7 @@ namespace IceRpc
                                               proxy.GetFacet(),
                                               proxy.Encoding,
                                               endpoint,
-                                              altEndpoints,
+                                              proxy.Impl.ParsedAltEndpoints,
                                               connection,
                                               proxy.GetOptions());
             }

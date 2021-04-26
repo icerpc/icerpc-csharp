@@ -131,6 +131,12 @@ namespace IceRpc
                         throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(ParsedEndpoint));
                     }
+                    if (_altEndpoints.Count > 0 &&
+                        (value.Transport == Transport.Loc || value.Transport == Transport.Coloc))
+                    {
+                        throw new ArgumentException(
+                            "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(ParsedEndpoint));
+                    }
                 }
                 else if (_altEndpoints.Count > 0)
                 {

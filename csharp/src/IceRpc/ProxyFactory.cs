@@ -138,7 +138,7 @@ namespace IceRpc
                     istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
-                IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+                IEnumerable<Endpoint> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
@@ -147,6 +147,7 @@ namespace IceRpc
                     {
                         endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
                     }
+                    altEndpoints = ImmutableList<Endpoint>.Empty;
                 }
                 else
                 {

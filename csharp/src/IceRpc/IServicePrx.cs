@@ -148,7 +148,7 @@ namespace IceRpc
         public Encoding Encoding { get; set; }
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
-        /// <value>The main endpoint of this proxy.</value>
+        /// <value>The main endpoint of this proxy. The empty string means this proxy has no endpoint.</value>
         public string Endpoint { get; set; }
 
         /// <summary>The invocation interceptors of this proxy.</summary>
