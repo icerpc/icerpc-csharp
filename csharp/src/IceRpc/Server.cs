@@ -24,6 +24,10 @@ namespace IceRpc
         /// <summary>Gets or sets the options of incoming connections created by this server.</summary>
         public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
 
+        /// <summary>The event source for tracing dispatch events, when this is null the default
+        /// <see cref="DispatchEventSource.Log"/> will be used.</summary>
+        public DispatchEventSource? DispatchEventSource { get; set; }
+
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
         /// <seealso cref="IDispatcher"/>

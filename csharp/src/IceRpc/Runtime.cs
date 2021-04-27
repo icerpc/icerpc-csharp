@@ -15,6 +15,7 @@ using System.Runtime.Loader;
 [assembly: InternalsVisibleTo("IceRpc.Tests.CodeGeneration")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Encoding")]
+[assembly: InternalsVisibleTo("IceRpc.Tests.ClientServer")]
 
 namespace IceRpc
 {
