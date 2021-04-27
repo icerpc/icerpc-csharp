@@ -61,7 +61,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class StructOperations : IAsyncStructOperations
+        public class StructOperations : IStructOperations
         {
             public ValueTask<(MyStruct R1, MyStruct R2)> OpMyStructAsync(
                 MyStruct p1,

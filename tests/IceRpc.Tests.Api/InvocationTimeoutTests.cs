@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Api
             Assert.IsTrue(dispatchDeadline >= expectedDeadline);
         }
 
-        public class TestService : IAsyncGreeterService
+        public class TestService : IGreeterService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

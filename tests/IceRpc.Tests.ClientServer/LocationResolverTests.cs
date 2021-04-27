@@ -82,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
             return new LocationResolver(protocol, location, category, greeter.Endpoint);
         }
 
-        private class GreeterTestService : IAsyncGreeterTestService
+        private class GreeterTestService : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

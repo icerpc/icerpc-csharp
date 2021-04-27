@@ -648,7 +648,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
     }
 
-    public class TaggedOperations : IAsyncTaggedOperations
+    public class TaggedOperations : ITaggedOperations
     {
         public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
             AnotherStruct? p1,
@@ -742,10 +742,10 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IAsyncTaggedOperations.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
+        public ValueTask<ITaggedOperations.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IAsyncTaggedOperations.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new ITaggedOperations.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
             List<int>? p1,
@@ -787,11 +787,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IAsyncTaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
+        public ValueTask<ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
             MyStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IAsyncTaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
+            new(new ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
             MyStruct[]? p1,
@@ -841,10 +841,10 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IAsyncTaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
+        public ValueTask<ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IAsyncTaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask OpTaggedExceptionAsync(
             int? p1,

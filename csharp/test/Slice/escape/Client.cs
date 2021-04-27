@@ -11,18 +11,18 @@ using System.Threading.Tasks;
 
 public class Client : TestHelper
 {
-    public sealed class Case : IAsynccase
+    public sealed class Case : Icase
     {
         public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
     }
 
-    public sealed class Decimal : IAsyncdecimal
+    public sealed class Decimal : Idecimal
     {
         public ValueTask defaultAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public sealed class Explicit : IAsyncexplicit
+    public sealed class Explicit : Iexplicit
     {
         public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
@@ -34,12 +34,12 @@ public class Client : TestHelper
         }
     }
 
-    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.IAsyncTest
+    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.IAsyncTest
+    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }

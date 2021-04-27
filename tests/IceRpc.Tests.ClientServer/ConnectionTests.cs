@@ -437,7 +437,7 @@ namespace IceRpc.Tests.ClientServer
             await closure(server, server.CreateProxy<IConnectionTestPrx>("/test"));
         }
 
-        class ConnectionTest : IAsyncConnectionTest
+        class ConnectionTest : IConnectionTest
         {
             private readonly SemaphoreSlim _semaphore = new(0);
             private TaskCompletionSource<object?>? _pending;

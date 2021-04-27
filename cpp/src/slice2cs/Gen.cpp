@@ -1149,8 +1149,8 @@ Slice::Gen::generate(const UnitPtr& p)
     ProxyVisitor proxyVisitor(_out);
     p->visit(&proxyVisitor, false);
 
-    DispatcherVisitor asyncDispatcherVisitor(_out, true);
-    p->visit(&asyncDispatcherVisitor, false);
+    DispatcherVisitor dispatcherVisitor(_out);
+    p->visit(&dispatcherVisitor, false);
 }
 
 void
@@ -2596,8 +2596,8 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     }
 }
 
-Slice::Gen::DispatcherVisitor::DispatcherVisitor(::IceUtilInternal::Output& out, bool generateAllAsync) :
-    CsVisitor(out), _generateAllAsync(generateAllAsync)
+Slice::Gen::DispatcherVisitor::DispatcherVisitor(::IceUtilInternal::Output& out) :
+    CsVisitor(out), _generateAllAsync(true)
 {
 }
 
@@ -2623,7 +2623,7 @@ bool
 Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 {
     InterfaceList bases = p->bases();
-    string name = interfaceName(p, _generateAllAsync);
+    string name = interfaceName(p);
     string ns = getNamespace(p);
 
     _out << sp;
@@ -2640,7 +2640,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         for(InterfaceList::const_iterator q = bases.begin(); q != bases.end();)
         {
-            _out << getUnqualified(getNamespace(*q) + "." + interfaceName(*q, _generateAllAsync), ns);
+            _out << getUnqualified(getNamespace(*q) + "." + interfaceName(*q), ns);
             if(++q != bases.end())
             {
                 _out << ", ";

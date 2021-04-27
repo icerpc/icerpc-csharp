@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.Binding
 {
-    public class RemoteCommunicator : IAsyncRemoteCommunicator
+    public class RemoteCommunicator : IRemoteCommunicator
     {
         private int _nextPort = 10;
 

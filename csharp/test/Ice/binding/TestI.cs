@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.Binding
 {
-    public class TestIntf : IAsyncTestIntf
+    public class TestIntf : ITestIntf
     {
         private string _serverName;
 

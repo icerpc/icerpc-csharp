@@ -233,7 +233,7 @@ namespace IceRpc.Tests.Encoding
             }
         }
 
-        class CompactFormatOperations : IAsyncCompactFormatOperations
+        class CompactFormatOperations : ICompactFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -241,7 +241,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class SlicedFormatOperatinos : IAsyncSlicedFormatOperations
+        class SlicedFormatOperatinos : ISlicedFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -249,7 +249,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class ClassFormatOperations : IAsyncClassFormatOperations
+        class ClassFormatOperations : IClassFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -262,7 +262,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class ClassGraphOperations : IAsyncClassGraphOperations
+        class ClassGraphOperations : IClassGraphOperations
         {
             public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Dispatch dispatch, CancellationToken cancel) =>
                 new(CreateClassGraph(size));

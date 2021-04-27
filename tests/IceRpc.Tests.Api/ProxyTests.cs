@@ -557,7 +557,7 @@ namespace IceRpc.Tests.Api
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
 
-        public class GreeterService : IAsyncGreeterService
+        public class GreeterService : IGreeterService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 default;

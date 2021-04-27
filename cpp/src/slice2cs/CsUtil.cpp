@@ -62,27 +62,22 @@ Slice::fieldName(const MemberPtr& member)
 }
 
 std::string
-Slice::interfaceName(const InterfaceDeclPtr& decl, bool isAsync)
+Slice::interfaceName(const InterfaceDeclPtr& decl)
 {
     string name = normalizeCase(decl) ? pascalCase(decl->name()) : decl->name();
 
     // Check if the interface already follows the 'I' prefix convention.
     if (name.size() >= 2 && name.at(0) == 'I' && isupper(name.at(1)))
     {
-        if (isAsync)
-        {
-            // We remove the 'I' prefix, and replace it with the full 'IAsync' prefix.
-            return "IAsync" + name.substr(1);
-        }
         return name;
     }
-    return string("I") + (isAsync ? "Async" : "") + name;
+    return string("I") + name;
 }
 
 std::string
-Slice::interfaceName(const InterfaceDefPtr& def, bool isAsync)
+Slice::interfaceName(const InterfaceDefPtr& def)
 {
-    return interfaceName(def->declaration(), isAsync);
+    return interfaceName(def->declaration());
 }
 
 std::string
@@ -485,7 +480,7 @@ Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
     }
     else if (dispatch && op->hasMarshaledResult())
     {
-        string name = getNamespace(interface) + "." + interfaceName(interface, true);
+        string name = getNamespace(interface) + "." + interfaceName(interface);
         return getUnqualified(name, scope) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
     }
     else if (returnValues.size() > 1)

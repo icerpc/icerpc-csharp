@@ -275,7 +275,7 @@ namespace IceRpc.Tests.ClientServer
             data.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(
                 line => JsonDocument.Parse(line)).ToList();
 
-        public class TestService : IAsyncLoggingTestService
+        public class TestService : ILoggingTestService
         {
             public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

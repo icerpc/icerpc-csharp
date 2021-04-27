@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.Perf
 {
-    public sealed class PerformanceI : IAsyncPerformance
+    public sealed class PerformanceI : IPerformance
     {
         private static readonly byte[] _bytes = new byte[1024000]; // 1MB];
 

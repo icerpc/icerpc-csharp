@@ -144,7 +144,7 @@ private:
     {
     public:
 
-        DispatcherVisitor(::IceUtilInternal::Output&, bool);
+        DispatcherVisitor(::IceUtilInternal::Output&);
 
         bool visitModuleStart(const ModulePtr&) override;
         void visitModuleEnd(const ModulePtr&) override;

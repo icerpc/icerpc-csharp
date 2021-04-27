@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.AMI
 {
-    public class TestIntf : IAsyncTestIntf
+    public class TestIntf : ITestIntf
     {
         private readonly object _mutex = new();
         private bool _shutdown;
@@ -154,7 +154,7 @@ namespace IceRpc.Test.AMI
         }
     }
 
-    public class TestIntf2 : Outer.Inner.IAsyncTestIntf
+    public class TestIntf2 : Outer.Inner.ITestIntf
     {
         public ValueTask<(int, int)> OpAsync(int i, Dispatch dispatch, CancellationToken cancel) => new((i, i));
     }
