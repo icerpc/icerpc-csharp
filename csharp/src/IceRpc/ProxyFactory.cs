@@ -102,14 +102,9 @@ namespace IceRpc
         public static T? ReadNullable<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx
         {
-            IServicePrx? source = istr.Source;
-            Connection? connection = istr.Connection ?? source?.Connection;
-            ProxyOptions? proxyOptions = istr.ProxyOptions ?? source?.GetOptions();
-
-            if ((source == null && connection == null) || proxyOptions == null)
+            if (istr.ProxyOptions == null)
             {
-                throw new InvalidOperationException(
-                    "cannot read a proxy from an InputStream with no source nor connection/proxy options");
+                throw new InvalidOperationException("cannot read a proxy from an InputStream with no proxy options");
             }
 
             if (istr.Encoding == Encoding.V11)
@@ -206,6 +201,11 @@ namespace IceRpc
                     proxyData.AltEndpoints?.Select(
                         data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
 
+                if (endpoint == null && altEndpoints.Count > 0)
+                {
+                    throw new InvalidDataException("received proxy with only alt endpoints");
+                }
+
                 if (protocol == Protocol.Ice1)
                 {
                     InvocationMode invocationMode = endpoint != null && endpoint.IsDatagram ?
@@ -257,7 +257,7 @@ namespace IceRpc
                 Identity identity,
                 InvocationMode invocationMode)
             {
-                ProxyOptions options = proxyOptions;
+                ProxyOptions options = istr.ProxyOptions;
                 if (options.IsOneway != (invocationMode != InvocationMode.Twoway))
                 {
                     options = options.Clone();
@@ -266,21 +266,24 @@ namespace IceRpc
 
                 try
                 {
-                    // If there is no location resolver, it's a relative proxy.
-                    if (endpoint == null && options.LocationResolver == null)
+                    // If there is no location resolver, it's a relative proxy. (TODO: temporary)
+                    if (endpoint == null && options.LocationResolver == null && istr.Connection != null)
                     {
-                        // The protocol of the source proxy/connection prevails.
-                        Protocol protocol = connection?.Protocol ?? source!.Protocol;
-                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
+                        // The protocol of the connection prevails.
+                        Protocol protocol = istr.Connection.Protocol;
+                        if (!istr.Connection.IsIncoming)
+                        {
+                            endpoint = istr.Connection.Endpoint;
+                        }
 
                         if (protocol != Protocol.Ice1)
                         {
                             if (facet.Length > 0)
                             {
+                                // can't create an ice2+ proxy with a facet
                                 throw new InvalidDataException(
-                                    @$"received a relative proxy with a facet on an {protocol.GetName()
-                                    } connection or proxy");
+                                    @$"received an endpointless proxy with a facet on an {protocol.GetName()
+                                    } connection");
                             }
 
                             return factory.Create(identity.ToPath(),
@@ -288,13 +291,18 @@ namespace IceRpc
                                                   encoding,
                                                   endpoint,
                                                   altEndpoints,
-                                                  connection,
+                                                  istr.Connection,
                                                   options);
                         }
                         else
                         {
-                            return
-                                factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
+                            return factory.Create(identity,
+                                                  facet,
+                                                  encoding,
+                                                  endpoint,
+                                                  altEndpoints,
+                                                  istr.Connection,
+                                                  options);
                         }
                     }
                     else
@@ -327,13 +335,22 @@ namespace IceRpc
             {
                 try
                 {
-                    if (endpoint == null) // relative proxy
+                    if (endpoint == null && istr.Connection != null)
                     {
-                        // The protocol of the source proxy/connection prevails. It could be for example ice1.
-                        protocol = connection?.Protocol ?? source!.Protocol;
-                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
-                        return factory.Create(path, protocol, encoding, endpoint, altEndpoints, connection, proxyOptions);
+                        // The protocol of the connection prevails. It could be for example ice1.
+                        protocol = istr.Connection.Protocol;
+                        if (!istr.Connection.IsIncoming)
+                        {
+                            endpoint = istr.Connection.Endpoint;
+                        }
+
+                        return factory.Create(path,
+                                              protocol,
+                                              encoding,
+                                              endpoint,
+                                              altEndpoints,
+                                              istr.Connection,
+                                              istr.ProxyOptions);
                     }
                     else
                     {
@@ -343,7 +360,7 @@ namespace IceRpc
                                               endpoint,
                                               altEndpoints,
                                               connection: null,
-                                              proxyOptions);
+                                              istr.ProxyOptions);
                     }
                 }
                 catch (Exception ex)

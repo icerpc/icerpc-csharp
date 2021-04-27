@@ -25,15 +25,12 @@ namespace IceRpc
         // after the reading of the response frame.
         internal SocketStream? SocketStream { get; set; }
 
-        private static readonly ConcurrentDictionary<(Protocol Protocol, Encoding Encoding), IncomingResponseFrame>
-            _cachedVoidReturnValueFrames = new();
-
         /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The Ice protocol of this frame.</param>
+        /// <param name="connection">The connection that received this frame.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
-        public IncomingResponseFrame(Protocol protocol, ArraySegment<byte> data, int maxSize)
-            : this(protocol, data, maxSize, null)
+        public IncomingResponseFrame(Connection connection, ArraySegment<byte> data, int maxSize)
+            : this(connection, data, maxSize, null)
         {
         }
 
@@ -61,7 +58,10 @@ namespace IceRpc
             }
 
             return ResultType == ResultType.Success ?
-                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(), reader, source: proxy) :
+                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(),
+                                                              reader,
+                                                              Connection,
+                                                              proxy.GetOptions()) :
                 throw ReadException(proxy);
         }
 
@@ -89,7 +89,8 @@ namespace IceRpc
 
                 var istr = new InputStream(Payload.AsReadOnlyMemory(1),
                                            Protocol.GetEncoding(),
-                                           source: proxy,
+                                           Connection,
+                                           proxy.GetOptions(),
                                            startEncapsulation: true);
                 T value = reader(istr, SocketStream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
@@ -171,24 +172,18 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns an <see cref="IncomingResponseFrame"/> that represents a oneway pseudo response.</summary>
-        internal static IncomingResponseFrame WithVoidReturnValue(Protocol protocol, Encoding encoding) =>
-            _cachedVoidReturnValueFrames.GetOrAdd(
-                (protocol, encoding),
-                key => new IncomingResponseFrame(key.Protocol, key.Encoding));
-
         /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The Ice protocol of this frame.</param>
+        /// <param name="connection">The connection that received this frame.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the response frame.</param>
         internal IncomingResponseFrame(
-            Protocol protocol,
+            Connection connection,
             ArraySegment<byte> data,
             int maxSize,
             SocketStream? socketStream)
-            : base(protocol, maxSize)
+            : base(connection, maxSize)
         {
             SocketStream = socketStream;
 
@@ -241,9 +236,10 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response frame from an outgoing response frame. Used for colocated calls.
         /// </summary>
+        /// <param name="protocol">The protocol of this frame.</param>
         /// <param name="response">The outgoing response frame.</param>
-        internal IncomingResponseFrame(OutgoingResponseFrame response)
-            : base(response.Protocol, int.MaxValue)
+        internal IncomingResponseFrame(Protocol protocol, OutgoingResponseFrame response)
+            : base(protocol, int.MaxValue)
         {
             if (Protocol == Protocol.Ice2)
             {
@@ -253,6 +249,14 @@ namespace IceRpc
             PayloadEncoding = response.PayloadEncoding;
             PayloadCompressionFormat = response.PayloadCompressionFormat;
             Payload = response.Payload.AsArraySegment();
+        }
+
+        // Constructor for oneway response pseudo frame.
+        internal IncomingResponseFrame(Connection connection, Encoding encoding)
+            : base(connection, int.MaxValue)
+        {
+            PayloadEncoding = encoding;
+            Payload = Protocol.GetVoidReturnPayload(encoding);
         }
 
         internal RetryPolicy GetRetryPolicy(ServicePrx proxy)
@@ -269,14 +273,6 @@ namespace IceRpc
             return retryPolicy;
         }
 
-        // Constructor for oneway response pseudo frame.
-        private IncomingResponseFrame(Protocol protocol, Encoding encoding)
-            : base(protocol, int.MaxValue)
-        {
-            PayloadEncoding = encoding;
-            Payload = protocol.GetVoidReturnPayload(encoding);
-        }
-
         private Exception ReadException(IServicePrx proxy)
         {
             Debug.Assert(ResultType != ResultType.Success);
@@ -289,7 +285,8 @@ namespace IceRpc
             {
                 istr = new InputStream(Payload.Slice(1),
                                        Protocol.GetEncoding(),
-                                       source: proxy,
+                                       Connection,
+                                       proxy.GetOptions(),
                                        startEncapsulation: true);
 
                 if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)

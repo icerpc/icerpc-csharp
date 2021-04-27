@@ -329,6 +329,7 @@ namespace IceRpc
         }
 
         internal async virtual ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(
+            Connection connection,
             CancellationToken cancel = default)
         {
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
@@ -339,18 +340,19 @@ namespace IceRpc
             IncomingRequestFrame request;
             if (ReceivedEndOfStream)
             {
-                request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, null);
+                request = new IncomingRequestFrame(connection, data, _socket.IncomingFrameMaxSize, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
+                request = new IncomingRequestFrame(connection, data, _socket.IncomingFrameMaxSize, this);
             }
 
             return request;
         }
 
         internal async virtual ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(
+            Connection connection,
             CancellationToken cancel = default)
         {
             ArraySegment<byte> data;
@@ -375,7 +377,7 @@ namespace IceRpc
             if (ReceivedEndOfStream)
             {
                 response = new IncomingResponseFrame(
-                    _socket.Endpoint.Protocol,
+                    connection,
                     data,
                     _socket.IncomingFrameMaxSize,
                     null);
@@ -384,7 +386,7 @@ namespace IceRpc
             {
                 EnableReceiveFlowControl();
                 response = new IncomingResponseFrame(
-                    _socket.Endpoint.Protocol,
+                    connection,
                     data,
                     _socket.IncomingFrameMaxSize,
                     this);

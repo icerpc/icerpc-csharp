@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
 
             // Stream is aborted
             Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await clientStream.ReceiveResponseFrameAsync(default));
+                async () => await clientStream.ReceiveResponseFrameAsync(Proxy.Connection!, default));
             clientStream.Release();
 
             // Can't create new stream
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
             var serverStream = await ServerSocket.AcceptStreamAsync(default);
-            var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
+            var incomingRequest = await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!, default);
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
 
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Internal
 
             // Stream is not aborted
             var acceptTask = ClientSocket.AcceptStreamAsync(default);
-            await clientStream.ReceiveResponseFrameAsync(default);
+            await clientStream.ReceiveResponseFrameAsync(Proxy.Connection!, default);
 
             (var serverBidirectional, var serverUnidirectional) = ServerSocket.AbortStreams(ex, stream =>
             {
@@ -142,14 +142,14 @@ namespace IceRpc.Tests.Internal
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
             var serverStream = await ServerSocket.AcceptStreamAsync(default);
-            var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
+            var incomingRequest = await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!, default);
 
             await serverStream.SendResponseFrameAsync(
                 new OutgoingResponseFrame(incomingRequest, new UnhandledException(ex)),
                 default);
 
             var acceptTask = ClientSocket.AcceptStreamAsync(default);
-            await clientStream.ReceiveResponseFrameAsync(default);
+            await clientStream.ReceiveResponseFrameAsync(Proxy.Connection!, default);
 
             clientStream.Release();
             serverStream.Release();
@@ -158,7 +158,7 @@ namespace IceRpc.Tests.Internal
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
             serverStream = await ServerSocket.AcceptStreamAsync(default);
-            await serverStream.ReceiveRequestFrameAsync();
+            await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!);
 
             (var clientBidirectional, var clientUnidirectional) = ClientSocket.AbortStreams(ex, stream =>
             {
@@ -275,7 +275,7 @@ namespace IceRpc.Tests.Internal
                 await stream.SendRequestFrameAsync(DummyRequest);
 
                 serverStreams.Add(await ServerSocket.AcceptStreamAsync(default));
-                var request = await serverStreams.Last().ReceiveRequestFrameAsync();
+                var request = await serverStreams.Last().ReceiveRequestFrameAsync(Proxy.Connection!);
                 incomingRequest ??= request;
             }
 
@@ -297,7 +297,7 @@ namespace IceRpc.Tests.Internal
 
             // Close one stream by sending the response (which sends the stream EOS) and receiving it.
             await serverStreams.Last().SendResponseFrameAsync(GetResponseFrame(incomingRequest!));
-            await clientStreams.Last().ReceiveResponseFrameAsync();
+            await clientStreams.Last().ReceiveResponseFrameAsync(Proxy.Connection!);
             Assert.IsFalse(acceptClientStream.IsCompleted);
             clientStreams.Last().Release();
             serverStreams.Last().Release();
@@ -356,7 +356,7 @@ namespace IceRpc.Tests.Internal
                 }
                 if (bidirectional)
                 {
-                    await stream.ReceiveResponseFrameAsync();
+                    await stream.ReceiveResponseFrameAsync(Proxy.Connection!);
                 }
                 stream.Release();
             }
@@ -371,7 +371,7 @@ namespace IceRpc.Tests.Internal
                     Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
                 }
 
-                var request = await stream.ReceiveRequestFrameAsync();
+                var request = await stream.ReceiveRequestFrameAsync(Proxy.Connection!);
 
                 // With non-Ice1 sockets, the server-side releases the stream shortly before sending the
                 // last stream frame (with the response).
@@ -408,7 +408,7 @@ namespace IceRpc.Tests.Internal
                 stream.Release();
 
                 serverStreams.Add(await ServerSocket.AcceptStreamAsync(default));
-                await serverStreams.Last().ReceiveRequestFrameAsync();
+                await serverStreams.Last().ReceiveRequestFrameAsync(Proxy.Connection!);
             }
 
             // Ensure the client side accepts streams to receive responses.
@@ -556,7 +556,7 @@ namespace IceRpc.Tests.Internal
             await stream.SendRequestFrameAsync(DummyRequest);
 
             var serverStream = await ServerSocket.AcceptStreamAsync(default);
-            var request = await serverStream.ReceiveRequestFrameAsync();
+            var request = await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!);
             ServerSocket.Abort();
             Assert.CatchAsync<TransportException>(
                 async () => await serverStream.SendResponseFrameAsync(GetResponseFrame(request)));

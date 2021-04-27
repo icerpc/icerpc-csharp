@@ -189,13 +189,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(100, 10, 10)]
         [TestCase(50, 200, 10)]
         [TestCase(50, 10, 200)]
-        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDeph, int serverClassGraphMaxDeph)
+        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
             await using var communicator = new Communicator()
             {
                 ConnectionOptions = new OutgoingConnectionOptions
                 {
-                    ClassGraphMaxDepth = clientClassGraphMaxDeph
+                    ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }
             };
             await using var server = new Server
@@ -203,7 +203,7 @@ namespace IceRpc.Tests.Encoding
                 Communicator = communicator,
                 ConnectionOptions = new IncomingConnectionOptions()
                 {
-                    ClassGraphMaxDepth = serverClassGraphMaxDeph
+                    ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
                 Dispatcher = new ClassGraphOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -212,8 +212,8 @@ namespace IceRpc.Tests.Encoding
 
             var prx = server.CreateProxy<IClassGraphOperationsPrx>("/classgraph");
             await prx.IcePingAsync();
-            Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);
-            if (graphSize > clientClassGraphMaxDeph)
+            Assert.AreEqual(clientClassGraphMaxDepth, prx.Connection?.ClassGraphMaxDepth);
+            if (graphSize > clientClassGraphMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
@@ -222,7 +222,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.DoesNotThrowAsync(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
 
-            if (graphSize > serverClassGraphMaxDeph)
+            if (graphSize > serverClassGraphMaxDepth)
             {
                 Assert.ThrowsAsync<UnhandledException>(
                     async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));

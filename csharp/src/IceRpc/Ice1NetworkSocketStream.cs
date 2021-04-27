@@ -73,7 +73,9 @@ namespace IceRpc
             return frame;
         }
 
-        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
+        private protected override async ValueTask SendFrameAsync(
+            OutgoingFrame frame,
+            CancellationToken cancel)
         {
             if (frame.StreamDataWriter != null)
             {

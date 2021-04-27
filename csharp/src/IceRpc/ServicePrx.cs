@@ -1076,11 +1076,11 @@ namespace IceRpc
 
                     if (oneway)
                     {
-                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
+                        return new IncomingResponseFrame(connection, request.PayloadEncoding);
                     }
 
                     // Wait for the reception of the response.
-                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    response = await stream.ReceiveResponseFrameAsync(connection, cancel).ConfigureAwait(false);
 
                     logger.LogReceivedResponse(response);
 
