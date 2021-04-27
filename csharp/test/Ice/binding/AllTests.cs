@@ -11,14 +11,14 @@ namespace IceRpc.Test.Binding
 {
     public static class AllTests
     {
-        private static ITestIntfPrx CreateTestIntfPrx(List<IRemoteServerPrx> servers)
+        private static async Task<ITestIntfPrx> CreateTestIntfPrxAsync(List<IRemoteServerPrx> servers)
         {
             var endpoints = new List<string>();
             ITestIntfPrx? obj = null;
             IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
-                obj = p.Current.GetTestIntf();
+                obj = await p.Current.GetTestIntfAsync();
                 endpoints.Add(obj.Endpoint);
                 endpoints.AddRange(obj.AltEndpoints);
             }
@@ -29,12 +29,12 @@ namespace IceRpc.Test.Binding
             return obj.AddTlsFalse();
         }
 
-        private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteServerPrx> servers)
+        private static async Task DeactivateAsync(IRemoteCommunicatorPrx communicator, List<IRemoteServerPrx> servers)
         {
             IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
-                communicator.DeactivateServer(p.Current);
+                await communicator.DeactivateServerAsync(p.Current);
             }
         }
 
@@ -80,15 +80,15 @@ namespace IceRpc.Test.Binding
                     "Adapter",
                     (ice1 && testTransport == "tcp") ? "default" : testTransport);
                 TestHelper.Assert(server != null);
-                ITestIntfPrx? test1 = server.GetTestIntf()?.AddTlsFalse();
-                ITestIntfPrx? test2 = server.GetTestIntf()?.AddTlsFalse();
+                ITestIntfPrx? test1 = (await server.GetTestIntfAsync())?.AddTlsFalse();
+                ITestIntfPrx? test2 = (await server.GetTestIntfAsync())?.AddTlsFalse();
                 TestHelper.Assert(test1 != null && test2 != null);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
 
                 await test1.IcePingAsync();
                 await test2.IcePingAsync();
 
-                com.DeactivateServer(server);
+                await com.DeactivateServerAsync(server);
 
                 var test3 = test1.As<ITestIntfPrx>();
                 TestHelper.Assert(test3.Connection == test1.Connection);
@@ -114,30 +114,30 @@ namespace IceRpc.Test.Binding
                     await com.CreateServerAsync("Adapter33", testTransport)!
                 };
 
-                ITestIntfPrx obj = CreateTestIntfPrx(servers);
+                ITestIntfPrx obj = await CreateTestIntfPrxAsync(servers);
 
                 // Ensure that endpoints are tried in order by deactivating the servers one after the other.
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter31");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter31");
                 }
-                com.DeactivateServer(servers[0]);
+                await com.DeactivateServerAsync(servers[0]);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter32");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter32");
                 }
-                com.DeactivateServer(servers[1]);
+                await com.DeactivateServerAsync(servers[1]);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter33");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter33");
                 }
-                com.DeactivateServer(servers[2]);
+                await com.DeactivateServerAsync(servers[2]);
 
                 try
                 {
-                    obj.GetAdapterName();
+                    await obj.GetAdapterNameAsync();
                 }
                 catch (ConnectFailedException)
                 {
@@ -151,11 +151,11 @@ namespace IceRpc.Test.Binding
             {
                 IRemoteServerPrx? server = await com.CreateServerAsync("Adapter41", testTransport);
                 TestHelper.Assert(server != null);
-                ITestIntfPrx test1 = server.GetTestIntf()!.AddTlsFalse();
+                ITestIntfPrx test1 = (await server.GetTestIntfAsync())!.AddTlsFalse();
                 test1.CacheConnection = false;
                 test1.PreferExistingConnection = false;
 
-                ITestIntfPrx test2 = server.GetTestIntf()!.AddTlsFalse();
+                ITestIntfPrx test2 = (await server.GetTestIntfAsync())!.AddTlsFalse();
                 test2.CacheConnection = false;
                 test2.PreferExistingConnection = false;
 
@@ -165,7 +165,7 @@ namespace IceRpc.Test.Binding
 
                 await test1.IcePingAsync();
 
-                com.DeactivateServer(server);
+                await com.DeactivateServerAsync(server);
 
                 var test3 = test1.As<ITestIntfPrx>();
                 try
@@ -189,7 +189,7 @@ namespace IceRpc.Test.Binding
                     await com.CreateServerAsync("Adapter63", testTransport)!
                 };
 
-                ITestIntfPrx obj = CreateTestIntfPrx(servers);
+                ITestIntfPrx obj = await CreateTestIntfPrxAsync(servers);
                 obj.CacheConnection = false;
                 obj.PreferExistingConnection = false;
                 TestHelper.Assert(!obj.CacheConnection && !obj.PreferExistingConnection);
@@ -197,25 +197,25 @@ namespace IceRpc.Test.Binding
                 // Ensure that endpoints are tried in order by deactivating the servers one after the other.
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter61");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter61");
                 }
-                com.DeactivateServer(servers[0]);
+                await com.DeactivateServerAsync(servers[0]);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter62");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter62");
                 }
-                com.DeactivateServer(servers[1]);
+                await com.DeactivateServerAsync(servers[1]);
 
                 for (int i = 0; i < 3; i++)
                 {
-                    TestHelper.Assert(obj.GetAdapterName() == "Adapter63");
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter63");
                 }
-                com.DeactivateServer(servers[2]);
+                await com.DeactivateServerAsync(servers[2]);
 
                 try
                 {
-                    obj.GetAdapterName();
+                    await obj.GetAdapterNameAsync();
                 }
                 catch (ConnectFailedException)
                 {
@@ -231,29 +231,29 @@ namespace IceRpc.Test.Binding
                     // Now, re-activate the servers with the same endpoints in the opposite order.
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter66", altEndpoints[1]));
+                    servers.Add(await com.CreateServerWithEndpointsAsync("Adapter66", altEndpoints[1]));
                     for (int i = 0; i < 3; i++)
                     {
-                        TestHelper.Assert(obj.GetAdapterName() == "Adapter66");
+                        TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter66");
                     }
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter65", altEndpoints[0]));
+                    servers.Add(await com.CreateServerWithEndpointsAsync("Adapter65", altEndpoints[0]));
                     for (int i = 0; i < 3; i++)
                     {
-                        TestHelper.Assert(obj.GetAdapterName() == "Adapter65");
+                        TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter65");
                     }
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoint));
+                    servers.Add(await com.CreateServerWithEndpointsAsync("Adapter64", endpoint));
                     for (int i = 0; i < 3; i++)
                     {
-                        TestHelper.Assert(obj.GetAdapterName() == "Adapter64");
+                        TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter64");
                     }
 
-                    Deactivate(com, servers);
+                    await DeactivateAsync(com, servers);
                 }
             }
             output.WriteLine("ok");
@@ -275,18 +275,18 @@ namespace IceRpc.Test.Binding
                     await com.CreateServerAsync("Adapter85", testTransport)!
                 };
 
-                ITestIntfPrx obj1 = CreateTestIntfPrx(servers1);
-                ITestIntfPrx obj2 = CreateTestIntfPrx(servers2);
+                ITestIntfPrx obj1 = await CreateTestIntfPrxAsync(servers1);
+                ITestIntfPrx obj2 = await CreateTestIntfPrxAsync(servers2);
 
-                com.DeactivateServer(servers1[0]);
+                await com.DeactivateServerAsync(servers1[0]);
 
                 Task<string> t1 = obj1.GetAdapterNameAsync();
                 Task<string> t2 = obj2.GetAdapterNameAsync();
                 TestHelper.Assert(t1.Result == "Adapter82");
                 TestHelper.Assert(t2.Result == "Adapter84");
 
-                Deactivate(com, servers1);
-                Deactivate(com, servers2);
+                await DeactivateAsync(com, servers1);
+                await DeactivateAsync(com, servers2);
             }
 
             {
@@ -304,16 +304,16 @@ namespace IceRpc.Test.Binding
                     await com.CreateServerAsync("Adapter95", testTransport)!
                 };
 
-                ITestIntfPrx obj1 = CreateTestIntfPrx(servers1);
-                ITestIntfPrx obj2 = CreateTestIntfPrx(servers2);
+                ITestIntfPrx obj1 = await CreateTestIntfPrxAsync(servers1);
+                ITestIntfPrx obj2 = await CreateTestIntfPrxAsync(servers2);
 
                 Task<string> t1 = obj1.GetAdapterNameAsync();
                 Task<string> t2 = obj2.GetAdapterNameAsync();
                 TestHelper.Assert(t1.Result == "Adapter91");
                 TestHelper.Assert(t2.Result == "Adapter91");
 
-                Deactivate(com, servers1);
-                Deactivate(com, servers2);
+                await DeactivateAsync(com, servers1);
+                await DeactivateAsync(com, servers2);
             }
             output.WriteLine("ok");
 
@@ -330,11 +330,11 @@ namespace IceRpc.Test.Binding
                         await com.CreateServerAsync("Adapter71", testTransport),
                     };
 
-                    ITestIntfPrx obj = CreateTestIntfPrx(servers);
-                    TestHelper.Assert(obj.GetAdapterName().Equals("Adapter71"));
+                    ITestIntfPrx obj = await CreateTestIntfPrxAsync(servers);
+                    TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter71"));
 
                     servers.RemoveAt(servers.Count - 1);
-                    ITestIntfPrx testUDP = CreateTestIntfPrx(servers);
+                    ITestIntfPrx testUDP = await CreateTestIntfPrxAsync(servers);
                     testUDP.IsOneway = true;
 
                     try
@@ -371,34 +371,34 @@ namespace IceRpc.Test.Binding
                         await com.CreateServerAsync("Adapter82", "tcp")!
                     };
 
-                    ITestIntfPrx obj = CreateTestIntfPrx(servers);
+                    ITestIntfPrx obj = await CreateTestIntfPrxAsync(servers);
 
                     for (int i = 0; i < 5; i++)
                     {
-                        TestHelper.Assert(obj.GetAdapterName().Equals("Adapter82"));
+                        TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter82");
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    com.DeactivateServer(servers[1]);
+                    await com.DeactivateServerAsync(servers[1]);
 
                     for (int i = 0; i < 5; i++)
                     {
-                        TestHelper.Assert(obj.GetAdapterName().Equals("Adapter81"));
+                        TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter81");
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
                     // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                     if (helper.Protocol == Protocol.Ice1)
                     {
-                        com.CreateServerWithEndpoints("Adapter83", obj.AltEndpoints.ToArray()[0]); // Recreate a tcp Server.
+                        await com.CreateServerWithEndpointsAsync("Adapter83", obj.AltEndpoints.ToArray()[0]); // Recreate a tcp Server.
 
                         for (int i = 0; i < 5; i++)
                         {
-                            TestHelper.Assert(obj.GetAdapterName().Equals("Adapter83"));
+                            TestHelper.Assert(await obj.GetAdapterNameAsync() == "Adapter83");
                             _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                         }
                     }
-                    Deactivate(com, servers);
+                    await DeactivateAsync(com, servers);
                 }
                 output.WriteLine("ok");
             }
@@ -635,7 +635,7 @@ namespace IceRpc.Test.Binding
                 output.WriteLine("ok");
             }
 
-            com.Shutdown();
+            await com.ShutdownAsync();
         }
     }
 }

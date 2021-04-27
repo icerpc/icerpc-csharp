@@ -2453,33 +2453,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 
     bool voidOp = returnType.empty();
 
-    // Write the synchronous version of the operation.
-    _out << sp;
-    writeOperationDocComment(operation, deprecateReason, false, false);
-    if (!deprecateReason.empty())
-    {
-        _out << nl << "[global::System.Obsolete(\"" << deprecateReason << "\")]";
-    }
-    _out << nl << returnTypeStr(operation, ns, false) << " " << name << spar << getInvocationParams(operation, ns)
-         << epar << " =>";
-    _out.inc();
-
-    _out << nl << "IceInvoke(Request." << name << "(this, ";
-    if (params.size() > 0)
-    {
-        _out << toTuple(params) << ", ";
-    }
-    _out << context << ", " << cancel << "), ";
-    if (voidOp)
-    {
-        _out << (oneway ? "oneway: true" : "IsOneway") << ");";
-    }
-    else
-    {
-        _out << "Response." << name << ");";
-    }
-    _out.dec();
-
     // Write the async version of the operation
     _out << sp;
     writeOperationDocComment(operation, deprecateReason, false, true);

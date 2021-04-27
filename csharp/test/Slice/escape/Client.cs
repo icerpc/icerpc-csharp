@@ -44,7 +44,7 @@ public class Client : TestHelper
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public static void TestTypes()
+    public static async Task TestTypesAsync()
     {
         @as a = @as.@base;
         Assert(a == @as.@base);
@@ -58,7 +58,7 @@ public class Client : TestHelper
         int c2;
         if (c1 != null)
         {
-            c2 = c1.@catch(0);
+            c2 = await c1.catchAsync(0);
             Assert(c2 == 0);
         }
         var d = new Decimal();
@@ -66,7 +66,7 @@ public class Client : TestHelper
         IdecimalPrx? d1 = null;
         if (d1 != null)
         {
-            d1.@default();
+            await d1.defaultAsync();
         }
         Assert(d1 == null);
         var e = new @delegate();
@@ -76,9 +76,9 @@ public class Client : TestHelper
         IexplicitPrx? f1 = null;
         if (f1 != null)
         {
-            c2 = f1.@catch(0);
+            c2 = await f1.catchAsync(0);
             Assert(c2 == 0);
-            f1.@default();
+            await f1.defaultAsync();
         }
         Assert(f1 == null);
         var g2 = new Dictionary<string, @break>();
@@ -112,23 +112,23 @@ public class Client : TestHelper
         Output.Write("testing operation name... ");
         Output.Flush();
         IdecimalPrx p = server.CreateProxy<IdecimalPrx>("/test");
-        p.@default();
+        await p.defaultAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
             server.CreateProxy<IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx>("/test1");
-        t1.op();
+        await t1.opAsync();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
             server.CreateProxy<IceRpc.Slice.Test.Escape.System.ITestPrx>("/test2");
-        t2.op();
+        await t2.opAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing types... ");
         Output.Flush();
-        TestTypes();
+        await TestTypesAsync();
         Output.WriteLine("ok");
     }
 
