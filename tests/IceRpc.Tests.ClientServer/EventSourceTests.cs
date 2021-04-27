@@ -28,9 +28,9 @@ namespace IceRpc.Tests.ClientServer
                 "IceRpc.Invocation",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
-                    ("current-requests", "1"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
+                    ("total-requests", "10"),
+                    ("current-requests", "10"),
+                    ("current-requests", "0"),  // Back to 0 after the request finish
                     ("requests-per-second", "1")
                 });
 
@@ -38,9 +38,9 @@ namespace IceRpc.Tests.ClientServer
                 "IceRpc.Dispatch",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
-                    ("current-requests", "1"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
+                    ("total-requests", "10"),
+                    ("current-requests", "10"),
+                    ("current-requests", "0"),  // Back to 0 after the request finish
                     ("requests-per-second", "1")
                 });
 
@@ -48,7 +48,13 @@ namespace IceRpc.Tests.ClientServer
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
-            await greeter.SayHelloAsync();
+            var tasks = new List<Task>();
+            for (int i = 0; i < 10; ++i)
+            {
+                tasks.Add(greeter.SayHelloAsync());
+            }
+
+            await Task.WhenAll(tasks);
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
@@ -70,20 +76,20 @@ namespace IceRpc.Tests.ClientServer
                 "IceRpc.Invocation",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
-                    ("current-requests", "1"),
+                    ("total-requests", "10"),
+                    ("current-requests", "10"),
                     ("current-requests", "0"), // Back to 0 after the request finish
-                    ("canceled-requests", "1"),
+                    ("canceled-requests", "10"),
                 });
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
-                    ("current-requests", "1"),
+                    ("total-requests", "10"),
+                    ("current-requests", "10"),
                     ("current-requests", "0"), // Back to 0 after the request finish
-                    ("canceled-requests", "1")
+                    ("canceled-requests", "10")
                 });
 
             DispatchEventSource.Log.ResetCounters();
@@ -91,7 +97,14 @@ namespace IceRpc.Tests.ClientServer
 
             server.Listen();
             greeter.InvocationTimeout = TimeSpan.FromSeconds(1);
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await greeter.SayHelloAsync());
+
+            var tasks = new List<Task>();
+            for (int i = 0; i < 10; ++i)
+            {
+                tasks.Add(greeter.SayHelloAsync());
+            }
+
+            Assert.ThrowsAsync< OperationCanceledException>(async () => await Task.WhenAll(tasks));
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
@@ -113,27 +126,30 @@ namespace IceRpc.Tests.ClientServer
                 "IceRpc.Invocation",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
+                    ("total-requests", "10"),
                     ("current-requests", "1"),
                     ("current-requests", "0"), // Back to 0 after the request finish
-                    ("failed-requests", "1")
+                    ("failed-requests", "10")
                 });
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch",
                 new (string, string)[]
                 {
-                    ("total-requests", "1"),
+                    ("total-requests", "10"),
                     ("current-requests", "1"),
                     ("current-requests", "0"), // Back to 0 after the request finish
-                    ("failed-requests", "1")
+                    ("failed-requests", "10")
                 });
 
             DispatchEventSource.Log.ResetCounters();
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
-            Assert.ThrowsAsync<ServerException>(async() => await greeter.SayHelloAsync());
+            for (int i = 0; i < 10; ++i)
+            {
+                Assert.ThrowsAsync<ServerException>(async () => await greeter.SayHelloAsync());
+            }
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
