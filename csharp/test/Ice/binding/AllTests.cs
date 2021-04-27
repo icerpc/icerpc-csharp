@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using IceRpc.Test;
@@ -12,18 +13,20 @@ namespace IceRpc.Test.Binding
     {
         private static ITestIntfPrx CreateTestIntfPrx(List<IRemoteServerPrx> servers)
         {
-            var endpoints = new List<Endpoint>();
+            var endpoints = new List<string>();
             ITestIntfPrx? obj = null;
             IEnumerator<IRemoteServerPrx> p = servers.GetEnumerator();
             while (p.MoveNext())
             {
                 obj = p.Current.GetTestIntf();
-                endpoints.AddRange(obj!.Endpoints);
+                endpoints.Add(obj.Endpoint);
+                endpoints.AddRange(obj.AltEndpoints);
             }
             TestHelper.Assert(obj != null);
-            obj.Endpoints = endpoints;
+            obj.Endpoint = endpoints[0];
+            obj.AltEndpoints = endpoints.Skip(1);
             obj.IsOneway = false;
-            return obj;
+            return obj.AddTlsFalse();
         }
 
         private static void Deactivate(IRemoteCommunicatorPrx communicator, List<IRemoteServerPrx> servers)
@@ -33,6 +36,29 @@ namespace IceRpc.Test.Binding
             {
                 communicator.DeactivateServer(p.Current);
             }
+        }
+
+        // If this proxy has an ice+tcp or ice+ws endpoint, add ?tls=false
+        private static ITestIntfPrx AddTlsFalse(this ITestIntfPrx prx)
+        {
+            if (prx.Protocol == Protocol.Ice2)
+            {
+                if (prx.Endpoint.Length > 0 &&
+                    prx.Endpoint.StartsWith("ice+tcp:") || prx.Endpoint.StartsWith("ice+ws:"))
+                {
+                    prx.Endpoint = $"{prx.Endpoint}?tls=false";
+                }
+
+                prx.AltEndpoints = prx.AltEndpoints.Select(e =>
+                {
+                    if (e.StartsWith("ice+tcp:") || e.StartsWith("ice+ws:"))
+                    {
+                        e = $"{e}?tls=false";
+                    }
+                    return e;
+                });
+            }
+            return prx;
         }
 
         public static async Task RunAsync(TestHelper helper)
@@ -54,8 +80,8 @@ namespace IceRpc.Test.Binding
                     "Adapter",
                     (ice1 && testTransport == "tcp") ? "default" : testTransport);
                 TestHelper.Assert(server != null);
-                ITestIntfPrx? test1 = server.GetTestIntf();
-                ITestIntfPrx? test2 = server.GetTestIntf();
+                ITestIntfPrx? test1 = server.GetTestIntf()?.AddTlsFalse();
+                ITestIntfPrx? test2 = server.GetTestIntf()?.AddTlsFalse();
                 TestHelper.Assert(test1 != null && test2 != null);
                 TestHelper.Assert(await test1.GetConnectionAsync() == await test2.GetConnectionAsync());
 
@@ -125,11 +151,11 @@ namespace IceRpc.Test.Binding
             {
                 IRemoteServerPrx? server = await com.CreateServerAsync("Adapter41", testTransport);
                 TestHelper.Assert(server != null);
-                ITestIntfPrx test1 = server.GetTestIntf()!;
+                ITestIntfPrx test1 = server.GetTestIntf()!.AddTlsFalse();
                 test1.CacheConnection = false;
                 test1.PreferExistingConnection = false;
 
-                ITestIntfPrx test2 = server.GetTestIntf()!;
+                ITestIntfPrx test2 = server.GetTestIntf()!.AddTlsFalse();
                 test2.CacheConnection = false;
                 test2.PreferExistingConnection = false;
 
@@ -195,7 +221,8 @@ namespace IceRpc.Test.Binding
                 {
                 }
 
-                IReadOnlyList<Endpoint> endpoints = obj.Endpoints;
+                string endpoint = obj.Endpoint;
+                string[] altEndpoints = obj.AltEndpoints.ToArray();
                 servers.Clear();
 
                 // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
@@ -204,7 +231,7 @@ namespace IceRpc.Test.Binding
                     // Now, re-activate the servers with the same endpoints in the opposite order.
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter66", endpoints[2].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter66", altEndpoints[1]));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter66");
@@ -212,7 +239,7 @@ namespace IceRpc.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter65", endpoints[1].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter65", altEndpoints[0]));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter65");
@@ -220,7 +247,7 @@ namespace IceRpc.Test.Binding
 
                     // Wait 5 seconds to let recent endpoint failures expire
                     Thread.Sleep(5000);
-                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoints[0].ToString()));
+                    servers.Add(com.CreateServerWithEndpoints("Adapter64", endpoint));
                     for (int i = 0; i < 3; i++)
                     {
                         TestHelper.Assert(obj.GetAdapterName() == "Adapter64");
@@ -292,6 +319,8 @@ namespace IceRpc.Test.Binding
 
             if (helper.Protocol == Protocol.Ice1)
             {
+                // Not clear what we're testing here
+                /*
                 output.Write("testing endpoint mode filtering... ");
                 output.Flush();
                 {
@@ -308,8 +337,6 @@ namespace IceRpc.Test.Binding
                     ITestIntfPrx testUDP = CreateTestIntfPrx(servers);
                     testUDP.IsOneway = true;
 
-                    // test that datagram proxies fail if NonSecure is false
-                    testUDP.NonSecure = NonSecure.Never;
                     try
                     {
                         await testUDP.GetConnectionAsync();
@@ -320,7 +347,6 @@ namespace IceRpc.Test.Binding
                         // expected
                     }
 
-                    testUDP.NonSecure = NonSecure.Always;
                     try
                     {
                         testUDP.GetAdapterName();
@@ -332,6 +358,7 @@ namespace IceRpc.Test.Binding
                     }
                 }
                 output.WriteLine("ok");
+                */
             }
             if (communicator.GetProperty("Ice.Plugin.IceSSL") != null)
             {
@@ -352,16 +379,6 @@ namespace IceRpc.Test.Binding
                         _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                     }
 
-                    ITestIntfPrx testNonSecure = obj.Clone();
-                    testNonSecure.NonSecure = NonSecure.Always;
-
-                    // TODO: update when NonSecure default is updated
-                    ITestIntfPrx testSecure = obj.Clone();
-                    testSecure.NonSecure = NonSecure.Never;
-
-                    TestHelper.Assert(await obj.GetConnectionAsync() != await testSecure.GetConnectionAsync());
-                    TestHelper.Assert(await obj.GetConnectionAsync() == await testNonSecure.GetConnectionAsync());
-
                     com.DeactivateServer(servers[1]);
 
                     for (int i = 0; i < 5; i++)
@@ -373,25 +390,13 @@ namespace IceRpc.Test.Binding
                     // TODO: ice1-only for now, because we send the client endpoints for use in Server configuration.
                     if (helper.Protocol == Protocol.Ice1)
                     {
-                        com.CreateServerWithEndpoints("Adapter83", obj.Endpoints[1].ToString()); // Recreate a tcp Server.
+                        com.CreateServerWithEndpoints("Adapter83", obj.AltEndpoints.ToArray()[0]); // Recreate a tcp Server.
 
                         for (int i = 0; i < 5; i++)
                         {
                             TestHelper.Assert(obj.GetAdapterName().Equals("Adapter83"));
                             _ = (await obj.GetConnectionAsync()).GoAwayAsync();
                         }
-                    }
-
-                    com.DeactivateServer(servers[0]);
-
-                    try
-                    {
-                        await testSecure.IcePingAsync();
-                        TestHelper.Assert(false);
-                    }
-                    catch (ConnectionRefusedException)
-                    {
-                        // expected
                     }
                     Deactivate(com, servers);
                 }

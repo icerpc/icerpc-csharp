@@ -24,12 +24,14 @@ namespace IceRpc.Tests.ClientServer
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
-            Assert.AreEqual(Transport.Loc, greeter.Endpoints[0].Transport);
+            var endpoint = Endpoint.Parse(greeter.Endpoint);
+
+            Assert.AreEqual(Transport.Loc, endpoint.Transport);
 
             ILocationResolver locationResolver = SetupServer(greeter.Protocol,
                                                              greeter.Path,
-                                                             greeter.Endpoints[0].Host,
-                                                             greeter.Endpoints[0]["category"]);
+                                                             endpoint.Host,
+                                                             endpoint["category"]);
 
             Assert.IsNull(greeter.LocationResolver);
             Assert.ThrowsAsync<NoEndpointException>(async () => await greeter.SayHelloAsync());
@@ -41,7 +43,8 @@ namespace IceRpc.Tests.ClientServer
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
-                Assert.AreEqual(Transport.Loc, badGreeter.Endpoints[0].Transport);
+                var badEndpoint = Endpoint.Parse(badGreeter.Endpoint);
+                Assert.AreEqual(Transport.Loc, badEndpoint.Transport);
 
                 badGreeter.LocationResolver = locationResolver;
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
@@ -65,7 +68,8 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 // TODO: should GetTestEndpoint be capable of returning port 0?
-                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0" : "tcp -h 127.0.0.1 -p 0"
+                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
+                ProxyHost = "localhost"
             };
 
             _server.Listen();
@@ -73,9 +77,9 @@ namespace IceRpc.Tests.ClientServer
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
 
-            Assert.AreNotEqual(0, greeter.Endpoints[0].Port);
+            Assert.AreNotEqual(0, Endpoint.Parse(greeter.Endpoint).Port);
 
-            return new LocationResolver(protocol, location, category, greeter.Endpoints);
+            return new LocationResolver(protocol, location, category, greeter.Endpoint);
         }
 
         private class GreeterTestService : IAsyncGreeterTestService
@@ -87,11 +91,11 @@ namespace IceRpc.Tests.ClientServer
         // category.
         private class LocationResolver : ILocationResolver
         {
-            private string? _category;
-            private string _location;
+            private readonly string? _category;
+            private readonly string _location;
 
-            private Protocol _protocol;
-            private IReadOnlyList<Endpoint> _resolvedAddress;
+            private readonly Protocol _protocol;
+            private readonly Endpoint _resolvedAddress;
 
             public ValueTask<IReadOnlyList<Endpoint>> ResolveAsync(
                 Endpoint endpoint,
@@ -102,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
 
                 if (endpoint.Protocol == _protocol && endpoint.Host == _location && endpoint["category"] == _category)
                 {
-                    return new(_resolvedAddress);
+                    return new(ImmutableList.Create(_resolvedAddress));
                 }
                 else
                 {
@@ -114,12 +118,12 @@ namespace IceRpc.Tests.ClientServer
                 Protocol protocol,
                 string location,
                 string? category,
-                IReadOnlyList<Endpoint> resolvedAddress)
+                string resolvedAddress)
             {
                 _category = category;
                 _location = location;
                 _protocol = protocol;
-                _resolvedAddress = resolvedAddress;
+                _resolvedAddress = Endpoint.Parse(resolvedAddress);
             }
         }
     }

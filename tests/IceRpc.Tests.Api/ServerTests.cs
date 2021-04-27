@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -121,49 +122,51 @@ namespace IceRpc.Tests.Api
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
                 Connection connection = await prx.GetConnectionAsync();
 
-                await using var server2 = new Server
-                {
-                    Communicator = communicator,
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
-                };
+                IDispatcher dispatcher = new ProxyTest();
 
-                Assert.DoesNotThrow(() => connection.Server = server2);
-                Assert.DoesNotThrow(() => connection.Server = null);
-                await server2.DisposeAsync();
-                // Setting a deactivated server on a connection no longer raise ServerDeactivatedException
-                Assert.DoesNotThrow(() => connection.Server = server2);
+                // We can set Dispatcher on an outgoing connection
+                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
+                Assert.DoesNotThrow(() => connection.Dispatcher = null);
             }
         }
 
-        [Test]
-        public async Task Server_EndpointInformation()
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
+        [TestCase("tcp -h 127.0.0.1 -p 0 -t 15000")]
+        public async Task Server_EndpointInformation(string endpoint)
         {
             await using var communicator = new Communicator();
             await using var server = new Server
             {
                 Communicator = communicator,
-                ConnectionOptions = new()
-                {
-                    AcceptNonSecure = NonSecure.Always
-                },
-                Endpoint = "tcp -h 127.0.0.1 -p 0 -t 15000",
-                ProxyHost = "localhost"
+                Endpoint = endpoint
             };
+
+            Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), Endpoint.Parse(server.ProxyEndpoint).Host);
+            server.ProxyHost = "localhost";
+            Assert.AreEqual("localhost", Endpoint.Parse(server.ProxyEndpoint).Host);
 
             server.Listen();
 
-            Endpoint serverEndpoint = Endpoint.Parse(server.Endpoint);
-            Endpoint proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
+            var serverEndpoint = Endpoint.Parse(server.Endpoint);
+            var proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
 
             Assert.AreEqual(Transport.TCP, serverEndpoint.Transport);
             Assert.AreEqual("127.0.0.1", serverEndpoint.Host);
             Assert.That(serverEndpoint.Port, Is.GreaterThan(0));
-            Assert.AreEqual("15000", serverEndpoint["timeout"]);
+
+            if (serverEndpoint.Protocol == Protocol.Ice1)
+            {
+                Assert.AreEqual("15000", serverEndpoint["timeout"]);
+            }
 
             Assert.AreEqual(Transport.TCP, proxyEndpoint.Transport);
             Assert.AreEqual("localhost", proxyEndpoint.Host);
             Assert.AreEqual(serverEndpoint.Port, proxyEndpoint.Port);
-            Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+
+            if (proxyEndpoint.Protocol == Protocol.Ice1)
+            {
+                Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+            }
         }
 
         [Test]
@@ -284,6 +287,31 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
+        // When a client cancels a request, the dispatch is canceled. Works also when the dispatch is performed by
+        // an outgoing connection.
+        public async Task Server_CallbackRequestCancelAsync()
+        {
+            await using var communicator = new Communicator();
+            var service = new ProxyTest();
+            var serverTest = new ServerTest(service);
+
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = serverTest,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+
+            server.Listen();
+            var proxy = server.CreateProxy<IServerTestPrx>("/");
+
+            await proxy.IcePingAsync();
+            proxy.Connection!.Dispatcher = service;
+
+            await proxy.CallbackAsync(server.CreateRelativeProxy<IProxyTestPrx>("/callback"));
+        }
+
+        [Test]
         // Canceling the cancellation token (source) of ShutdownAsync results in a ServerException when the operation
         // completes with an OperationCanceledException.
         public async Task Server_ShutdownCancelAsync()
@@ -351,7 +379,7 @@ namespace IceRpc.Tests.Api
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(dispatch.Server.CreateRelativeProxy<IProxyTestPrx>(dispatch.Path));
+                new(dispatch.Server!.CreateRelativeProxy<IProxyTestPrx>(dispatch.Path));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {
@@ -369,6 +397,29 @@ namespace IceRpc.Tests.Api
                 }
                 cancel.ThrowIfCancellationRequested(); // to make it typical
             }
+        }
+
+        private class ServerTest : IAsyncServerTest
+        {
+            private readonly ProxyTest _service;
+
+            public async ValueTask CallbackAsync(
+                IProxyTestPrx callback,
+                Dispatch dispatch,
+                CancellationToken cancel)
+            {
+                using var cancellationSource = new CancellationTokenSource();
+                Task task = callback.WaitForCancelAsync(cancel: cancellationSource.Token);
+                await _service.WaitForCancelInProgress;
+                Assert.IsFalse(task.IsCompleted);
+                cancellationSource.Cancel();
+                Assert.CatchAsync<OperationCanceledException>(async () => await task);
+
+                // Verify callback still works
+                Assert.DoesNotThrowAsync(async () => await callback.IcePingAsync());
+            }
+
+            internal ServerTest(ProxyTest service) => _service = service;
         }
     }
 }

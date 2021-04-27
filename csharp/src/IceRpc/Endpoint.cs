@@ -55,15 +55,17 @@ namespace IceRpc
         /// <summary>The host name or address.</summary>
         public string Host => Data.Host;
 
-        /// <summary>Indicates whether or not this endpoint's transport is always secure. Only applies to ice1.</summary>
-        /// <value>True when this endpoint's transport is secure; otherwise, false.</value>
-        public virtual bool IsAlwaysSecure => false;
-
         /// <summary>Indicates whether or not this endpoint's transport uses datagrams with no ordering or delivery
         /// guarantees.</summary>
         /// <value>True when this endpoint's transport is datagram-based; otherwise, false. There is currently a
         /// single datagram-based transport: UDP.</value>
         public virtual bool IsDatagram => false;
+
+        /// <summary>Indicates whether or not this endpoint's transport is secure.</summary>
+        /// <value>True means the endpoint's transport is secure. False means the endpoint's tranport is not secure. And
+        /// null means whether or not the transport is secure is not determined yet. The endpoint of an established
+        /// connection never returns this null value.</value>
+        public virtual bool? IsSecure => null;
 
         /// <summary>Gets an option of the endpoint.</summary>
         /// <param name="option">The name of the option to retrieve.</param>
@@ -303,7 +305,7 @@ namespace IceRpc
     {
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
         private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
-            new ConcurrentDictionary<Endpoint, ColocEndpoint>();
+            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
 
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
         /// <param name="endpoint">The endpoint to check.</param>
@@ -397,5 +399,16 @@ namespace IceRpc
 
         internal static void UnregisterColocEndpoint(Endpoint endpoint) =>
             _colocRegistry.Remove(endpoint);
+    }
+
+    internal abstract class EndpointComparer : EqualityComparer<Endpoint>
+    {
+        internal static EndpointComparer Equivalent { get; } = new EquivalentEndpointComparer();
+
+        private class EquivalentEndpointComparer : EndpointComparer
+        {
+            public override bool Equals(Endpoint? lhs, Endpoint? rhs) => lhs!.IsEquivalent(rhs!);
+            public override int GetHashCode(Endpoint endpoint) => endpoint.GetEquivalentHashCode();
+        }
     }
 }

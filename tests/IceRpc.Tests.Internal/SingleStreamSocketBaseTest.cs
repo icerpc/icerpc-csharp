@@ -21,9 +21,9 @@ namespace IceRpc.Tests.Internal
         public SingleStreamSocketBaseTest(
             Protocol protocol,
             string transport,
-            NonSecure nonSecure,
+            bool tls,
             AddressFamily addressFamily = AddressFamily.InterNetwork)
-            : base(protocol, transport, nonSecure, addressFamily)
+            : base(protocol, transport, tls, addressFamily)
         {
         }
 

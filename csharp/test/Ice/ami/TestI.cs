@@ -64,7 +64,7 @@ namespace IceRpc.Test.AMI
                     _pending.SetResult(null);
                     _pending = null;
                 }
-                current.Server.ShutdownAsync();
+                current.Server!.ShutdownAsync();
             }
         }
 
@@ -96,7 +96,7 @@ namespace IceRpc.Test.AMI
         }
 
         private static ITestIntfPrx Self(Dispatch dispatch) =>
-            current.Server.CreateProxy<ITestIntfPrx>(current.Path);
+            dispatch.Server!.CreateProxy<ITestIntfPrx>(current.Path);
 
         public ValueTask StartDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {

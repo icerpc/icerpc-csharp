@@ -27,11 +27,6 @@ namespace IceRpc.Test.Binding
                     var server = new Server
                     {
                         Communicator = current.Communicator,
-                        ConnectionOptions = new()
-                        {
-                            AcceptNonSecure = transport == "udp" ? NonSecure.Always :
-                                current.Communicator.GetPropertyAsEnum<NonSecure>("Ice.AcceptNonSecure") ?? NonSecure.Always,
-                        },
                         Dispatcher = new TestIntf(name),
                         Endpoint = endpoint,
                         ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
@@ -39,7 +34,7 @@ namespace IceRpc.Test.Binding
 
                     server.Listen();
 
-                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
+                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
                 }
                 catch (TransportException)
                 {
@@ -65,7 +60,7 @@ namespace IceRpc.Test.Binding
             };
 
             server.Listen();
-            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server, new RemoteServer(server)));
+            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
         }
 
         // Coloc call.
@@ -77,7 +72,7 @@ namespace IceRpc.Test.Binding
 
         public ValueTask ShutdownAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            _ = current.Server.ShutdownAsync(); // only initiate shutdown
+            _ = current.Server!.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

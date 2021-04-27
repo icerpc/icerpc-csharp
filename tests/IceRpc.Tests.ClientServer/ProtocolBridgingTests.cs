@@ -102,7 +102,8 @@ namespace IceRpc.Tests.ClientServer
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                    HasColocEndpoint = false
+                    HasColocEndpoint = false,
+                    ProxyHost = "localhost"
                 };
         }
 
@@ -116,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                var proxy = dispatch.Server.CreateProxy<IProtocolBridgingServicePrx>(dispatch.Path);
+                var proxy = dispatch.Server!.CreateProxy<IProtocolBridgingServicePrx>(dispatch.Path);
                 proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }

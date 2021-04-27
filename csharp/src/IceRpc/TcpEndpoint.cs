@@ -18,7 +18,7 @@ namespace IceRpc
     internal class TcpEndpoint : IPEndpoint
     {
         public override bool IsDatagram => false;
-        public override bool IsAlwaysSecure => Transport == Transport.SSL;
+        public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.SSL : _tls;
 
         public override string? this[string option] =>
             option switch
@@ -26,14 +26,22 @@ namespace IceRpc
                 "compress" => HasCompressionFlag ? "true" : null,
                 "timeout" => Timeout != DefaultTimeout ?
                              Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
+                "tls" => _tls?.ToString().ToLowerInvariant(),
                 _ => base[option],
             };
+
+        protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
         private protected bool HasCompressionFlag { get; }
         private protected TimeSpan Timeout { get; } = DefaultTimeout;
 
         /// <summary>The default timeout for ice1 endpoints.</summary>
         protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+
+        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
+        /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
+        /// </value>
+        private readonly bool? _tls;
 
         // TODO: should not be public
         public override IAcceptor Acceptor(Server server)
@@ -89,7 +97,7 @@ namespace IceRpc
             }
             else
             {
-                return base.Equals(other);
+                return other is TcpEndpoint tcpEndpoint && _tls == tcpEndpoint._tls && base.Equals(other);
             }
         }
 
@@ -108,11 +116,21 @@ namespace IceRpc
                     sb.Append(" -z");
                 }
             }
+            else if (_tls is bool tls)
+            {
+                if (base.HasOptions)
+                {
+                    sb.Append(optionSeparator);
+                }
+                sb.Append($"tls={tls.ToString().ToLowerInvariant()}");
+            }
         }
 
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
         protected internal override bool IsEquivalent(Endpoint? other) =>
-            ReferenceEquals(this, other) || base.Equals(other);
+            ReferenceEquals(this, other) ||
+            (other is TcpEndpoint otherTcpEndpoint &&
+                (_tls == otherTcpEndpoint._tls || _tls == null || otherTcpEndpoint._tls == null) && base.Equals(other));
 
         protected internal override void WriteOptions11(OutputStream ostr)
         {
@@ -162,10 +180,17 @@ namespace IceRpc
             Transport transport,
             string host,
             ushort port,
-            Dictionary<string, string> _)
+            Dictionary<string, string> options)
         {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()));
+            Debug.Assert(transport == Transport.TCP);
+
+            bool? tls = null;
+            if (options.TryGetValue("tls", out string? value))
+            {
+                tls = bool.Parse(value);
+                options.Remove("tls");
+            }
+            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()), tls);
         }
 
         protected internal override async Task<Connection> ConnectAsync(
@@ -173,16 +198,9 @@ namespace IceRpc
             ILogger logger,
             CancellationToken cancel)
         {
-            // If the endpoint is always secure or a secure connection is required, connect with the SSL client
-            // authentication options.
+            // If the endpoint is secure, connect with the SSL client authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsAlwaysSecure || options.NonSecure switch
-            {
-                NonSecure.SameHost => true,    // TODO check if Host is the same host
-                NonSecure.TrustedHost => true, // TODO check if Host is a trusted host
-                NonSecure.Always => false,
-                _ => true
-            })
+            if (IsSecure ?? true)
             {
                 authenticationOptions = options.AuthenticationOptions ?? new SslClientAuthenticationOptions()
                 {
@@ -200,7 +218,6 @@ namespace IceRpc
             };
             Connection connection = CreateConnection(multiStreamSocket, options, server: null);
             await connection.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            Debug.Assert(connection.CanTrust(options.NonSecure));
             return connection;
         }
 
@@ -261,10 +278,9 @@ namespace IceRpc
         }
 
         // Constructor for ice2 parsing.
-        private protected TcpEndpoint(EndpointData data)
-            : base(data, Protocol.Ice2)
-        {
-        }
+        private protected TcpEndpoint(EndpointData data, bool? tls)
+            : base(data, Protocol.Ice2) =>
+            _tls = tls;
 
         // Clone constructor
         private protected TcpEndpoint(TcpEndpoint endpoint, string host, ushort port)
@@ -272,6 +288,7 @@ namespace IceRpc
         {
             HasCompressionFlag = endpoint.HasCompressionFlag;
             Timeout = endpoint.Timeout;
+            _tls = endpoint._tls;
         }
 
         private protected override IPEndpoint Clone(string host, ushort port) =>

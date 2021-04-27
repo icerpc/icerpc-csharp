@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,14 +98,14 @@ namespace IceRpc.Tests.Api
             if (prx.Protocol == Protocol.Ice1)
             {
                 var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
-                prx.Endpoints = prx2.Endpoints;
-                Assert.AreEqual(prx.Endpoints, prx2.Endpoints);
+                prx.Endpoint = prx2.Endpoint;
+                Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
             else
             {
                 var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
-                prx.Endpoints = prx2.Endpoints;
-                Assert.AreEqual(prx.Endpoints, prx2.Endpoints);
+                prx.Endpoint = prx2.Endpoint;
+                Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
 
             if (prx.Protocol == Protocol.Ice1)
@@ -162,11 +163,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
             }
-
-            prx.NonSecure = NonSecure.Always;
-            Assert.AreEqual(NonSecure.Always, prx.NonSecure);
-            prx.NonSecure = NonSecure.Never;
-            Assert.AreEqual(NonSecure.Never, prx.NonSecure);
         }
 
         [Test]
@@ -178,8 +174,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
 
             // Endpoints protocol must match the proxy protocol
-            Assert.Throws<ArgumentException>(() => prxIce1.Endpoints = prxIce2.Endpoints);
-            Assert.Throws<ArgumentException>(() => prxIce2.Endpoints = prxIce1.Endpoints);
+            Assert.Throws<ArgumentException>(() => prxIce1.Endpoint = prxIce2.Endpoint);
+            Assert.Throws<ArgumentException>(() => prxIce2.Endpoint = prxIce1.Endpoint);
 
             // Zero is not a valid invocation timeout
             Assert.Throws<ArgumentException>(() => prxIce2.InvocationTimeout = TimeSpan.Zero);
@@ -341,11 +337,12 @@ namespace IceRpc.Tests.Api
         {
             var p1 = IServicePrx.Parse(prx, Communicator);
 
-            IReadOnlyList<Endpoint> endps = p1.Endpoints;
+            string endpoint = p1.Endpoint;
+            IReadOnlyList<string> altEndpoints = p1.AltEndpoints.ToImmutableList();
 
-            Endpoint tcpEndpoint = endps[0];
+            var tcpEndpoint = Endpoint.Parse(endpoint);
             Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
-            Assert.IsFalse(tcpEndpoint.IsAlwaysSecure);
+            Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
             Assert.AreEqual(10000, tcpEndpoint.Port);
 
@@ -358,24 +355,24 @@ namespace IceRpc.Tests.Api
 
             if (p1.Protocol == Protocol.Ice1)
             {
-                Endpoint udpEndpoint = endps[1];
+                var udpEndpoint = Endpoint.Parse(altEndpoints[0]);
                 Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
                 Assert.AreEqual(10001, udpEndpoint.Port);
                 Assert.AreEqual("eth0", udpEndpoint["interface"]);
                 Assert.AreEqual("5", udpEndpoint["ttl"]);
                 Assert.AreEqual(null, udpEndpoint["timeout"]);
                 Assert.AreEqual(null, udpEndpoint["compress"]);
-                Assert.IsFalse(udpEndpoint.IsAlwaysSecure);
+                Assert.IsFalse(udpEndpoint.IsSecure);
                 Assert.IsTrue(udpEndpoint.IsDatagram);
                 Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
 
-                Endpoint opaqueEndpoint = endps[2];
+                var opaqueEndpoint = Endpoint.Parse(altEndpoints[1]);
                 Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
                 Assert.AreEqual("1.8", opaqueEndpoint["value-encoding"]);
             }
             else
             {
-                Endpoint universalEndpoint = endps[1];
+                var universalEndpoint = Endpoint.Parse(altEndpoints[0]);
                 Assert.AreEqual((Transport)100, universalEndpoint.Transport);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
@@ -496,20 +493,17 @@ namespace IceRpc.Tests.Api
             var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator);
             prx.CacheConnection = true;
             prx.PreferExistingConnection = false;
-            prx.NonSecure = NonSecure.Never;
             prx.InvocationTimeout = TimeSpan.FromSeconds(10);
 
             Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(4, proxyProps.Count);
+            Assert.AreEqual(3, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
 
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
 
             ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator);
             locator.CacheConnection = false;
             locator.PreferExistingConnection = false;
-            locator.NonSecure = NonSecure.Always;
 
             // TODO: LocatorClient should reject indirect locators.
             ILocationResolver locationResolver = new LocatorClient(locator);
@@ -517,10 +511,9 @@ namespace IceRpc.Tests.Api
 
             proxyProps = prx.ToProperty("Test");
 
-            Assert.AreEqual(4, proxyProps.Count);
+            Assert.AreEqual(3, proxyProps.Count);
             Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
             Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("Never", proxyProps["Test.NonSecure"]);
             Assert.AreEqual("false", proxyProps["Test.PreferExistingConnection"]);
         }
 
@@ -557,9 +550,10 @@ namespace IceRpc.Tests.Api
                 "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
-            Assert.AreEqual(2, prx.Endpoints.Count);
-            Assert.AreEqual(Transport.WS, prx.Endpoints[1].Transport);
-            Assert.AreEqual("/x/y", prx.Endpoints[1]["resource"]);
+            Endpoint altEndpoint = Endpoint.Parse(prx.AltEndpoints.First());
+            Assert.AreEqual(1, prx.AltEndpoints.Count());
+            Assert.AreEqual(Transport.WS, altEndpoint.Transport);
+            Assert.AreEqual("/x/y", altEndpoint["resource"]);
             Assert.AreEqual(2, prx.Context.Count);
             Assert.AreEqual("some value", prx.Context["c 1"]);
             Assert.AreEqual("v5", prx.Context["c5"]);

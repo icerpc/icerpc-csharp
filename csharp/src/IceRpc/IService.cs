@@ -19,7 +19,7 @@ namespace IceRpc
         // The following are helper classes and methods for generated servants.
 
         /// <summary>Holds a <see cref="RequestReader{T}"/> for each remote operation with parameter(s) defined in
-        /// the pseudo-interface Object.</summary>
+        /// the pseudo-interface Service.</summary>
         public static class Request
         {
             /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
@@ -86,7 +86,7 @@ namespace IceRpc
         public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) =>
             new(new string[] { "::Ice::Object" });
 
-        /// <summary>Tests whether this object supports the specified Slice interface.</summary>
+        /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
         /// <param name="dispatch">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.

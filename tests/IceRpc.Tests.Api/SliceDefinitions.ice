@@ -28,4 +28,9 @@ module IceRpc::Tests::Api
 
         void waitForCancel();
     }
+
+    interface ServerTest
+    {
+        void callback(ProxyTest callback);
+    }
 }

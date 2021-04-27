@@ -39,21 +39,13 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(transport: transport, protocol: protocol),
-                ConnectionOptions = new()
-                {
-                    AcceptNonSecure = NonSecure.Always
-                }
+                ProxyHost = "localhost"
             };
             server.Listen();
 
             var prx = IConnectionTestPrx.Parse(
                 GetTestProxy("test", transport: transport, protocol: protocol),
                 communicator);
-
-            if (transport == "udp")
-            {
-                prx.NonSecure = NonSecure.Always;
-            }
 
             var connection = (await prx.GetConnectionAsync()) as IPConnection;
             Assert.NotNull(connection);
@@ -65,7 +57,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(null, connection.Endpoint["compress"]);
             Assert.IsFalse(connection.IsIncoming);
 
-            Assert.AreEqual(null, connection.Server);
+            Assert.AreEqual(null, connection.Dispatcher);
             Assert.AreEqual(connection.Endpoint.Port, connection.RemoteEndpoint!.Port);
             Assert.IsTrue(connection.LocalEndpoint!.Port > 0);
 
@@ -100,7 +92,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     IdleTimeout = TimeSpan.FromSeconds(2),
                     KeepAlive = false
-                }
+                },
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -131,7 +124,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -168,7 +162,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     IdleTimeout = TimeSpan.FromSeconds(1),
                     KeepAlive = true
-                }
+                },
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -214,7 +209,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
             };
 
             server.Listen();
@@ -251,7 +247,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
 
@@ -287,6 +284,7 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
                 Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
                 //TaskScheduler = schedulerPair.ExclusiveScheduler
             };
             server.Listen();
@@ -372,11 +370,11 @@ namespace IceRpc.Tests.ClientServer
                 // Local case: start an operation and then close the connection gracefully on the client side without
                 // waiting for the pending invocation to complete. There will be no retry and we expect the invocation
                 // to fail with ConnectionClosedException.
-                await using var connection = await Connection.CreateAsync(prx.Endpoints[0], prx.Communicator);
+                await using var connection = await Connection.CreateAsync(Endpoint.Parse(prx.Endpoint), prx.Communicator);
                 cb = new ProgressCallback();
                 IConnectionTestPrx fixedPrx = prx.Clone();
                 fixedPrx.Connection = connection;
-                fixedPrx.Endpoints = ImmutableList<Endpoint>.Empty;
+                fixedPrx.Endpoint = "";
 
                 Task t = fixedPrx.StartDispatchAsync(progress: cb);
                 await cb.Completed.Task; // Ensure the request was sent before closing the connection.
@@ -431,7 +429,8 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new ConnectionTest(),
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             server.Listen();

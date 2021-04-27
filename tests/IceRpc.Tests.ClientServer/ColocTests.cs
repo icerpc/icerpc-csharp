@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter(),
-                Endpoint = greeter.Endpoints[0].ToString()
+                Endpoint = greeter.Endpoint
             };
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
@@ -35,9 +35,9 @@ namespace IceRpc.Tests.ClientServer
         }
 
         // Verify that coloc optimization occurs and can be disabled
-        [TestCase("ice+tcp://127.0.0.1:0", true)]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false", true)]
         [TestCase("tcp -h 127.0.0.1 -p 0", true)]
-        [TestCase("ice+tcp://127.0.0.1:0", false)]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false", false)]
         [TestCase("tcp -h 127.0.0.1 -p 0", false)]
         public async Task Coloc_OptimizationAsync(string endpoint, bool hasColocEndpoint)
         {
@@ -47,12 +47,15 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
-                HasColocEndpoint = hasColocEndpoint
+                HasColocEndpoint = hasColocEndpoint,
+                ProxyHost = "localhost"
             };
             server.Listen();
 
             var greeter = server.CreateProxy<IGreeterTestServicePrx>("/foo");
-            Assert.AreEqual(Transport.TCP, greeter.Endpoints[0].Transport);
+            Assert.That(greeter.Endpoint!.StartsWith("ice+tcp", StringComparison.Ordinal) ||
+                        greeter.Endpoint.StartsWith("tcp", StringComparison.Ordinal),
+                        Is.True);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 
             if (hasColocEndpoint)

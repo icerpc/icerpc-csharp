@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
         public SocketBaseTest(
             Protocol protocol,
             string transport,
-            NonSecure nonSecure,
+            bool tls,
             AddressFamily addressFamily = AddressFamily.InterNetwork,
             Func<string, int, string>? clientEndpoint = null,
             Func<string, int, string>? serverEndpoint = null)
@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
             port += Interlocked.Add(ref _nextBasePort, 1);
 
             TransportName = transport;
-            IsSecure = nonSecure == NonSecure.Never;
+            IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
             _loggerFactory = LoggerFactory.Create(
@@ -87,14 +87,12 @@ namespace IceRpc.Tests.Internal
                                 {
                                     new X509Certificate2("../../../certs/cacert.pem")
                                 })
-                },
-                NonSecure = IsSecure ? NonSecure.Never : NonSecure.Always
+                }
             };
             Communicator = new Communicator(connectionOptions: clientConnectionOptions);
 
             var serverConnectionOptions = new IncomingConnectionOptions()
             {
-                AcceptNonSecure = nonSecure,
                 AuthenticationOptions = new()
                 {
                     ClientCertificateRequired = false,
@@ -117,10 +115,17 @@ namespace IceRpc.Tests.Internal
             {
                 if (protocol == Protocol.Ice2)
                 {
+                    string tlsOption = "";
+                    if ((transport == "tcp" || transport == "ws") && !IsSecure)
+                    {
+                        tlsOption = "?tls=false";
+                    }
+
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";
-                    string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
+                    string endpoint = serverEndpoint?.Invoke(host, port) ??
+                        $"ice+{transport}://{host}:{port}{tlsOption}";
                     ServerEndpoint = Endpoint.Parse(endpoint);
-                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}";
+                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
                     ClientEndpoint = Endpoint.Parse(endpoint);
                 }
                 else
@@ -225,7 +230,8 @@ namespace IceRpc.Tests.Internal
             return (connection.Socket, IServicePrx.Factory.Create("/dummy",
                                                                   ClientEndpoint.Protocol,
                                                                   ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoints: ImmutableList<Endpoint>.Empty,
+                                                                  endpoint: null,
+                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
                                                                   connection,
                                                                   options));
         }

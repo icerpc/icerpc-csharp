@@ -10,7 +10,9 @@ namespace IceRpc
     public enum BinaryContextKey : int
     {
         /// <summary>Key used to encode the retry policy entry.</summary>
-        RetryPolicy = -1
+        RetryPolicy = -1,
+        /// <summary>Key used to encode the W3C Trace Context information.</summary>
+        TraceContext = -2
     }
 
     public static class BinaryContextHelper

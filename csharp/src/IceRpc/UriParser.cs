@@ -96,7 +96,7 @@ namespace IceRpc
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Encoding Encoding, IReadOnlyList<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
             string uriString,
             ProxyOptions proxyOptions)
         {
@@ -122,11 +122,12 @@ namespace IceRpc
 
             ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, uriString);
 
-            ImmutableList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+            Endpoint? endpoint = null;
+            var altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
                 parsedOptions.EndpointOptions ??= new Dictionary<string, string>();
-                endpoints = ImmutableList.Create(CreateEndpoint(parsedOptions.EndpointOptions, uri));
+                endpoint = CreateEndpoint(parsedOptions.EndpointOptions, uri);
 
                 if (parsedOptions.AltEndpoint is string altEndpoint)
                 {
@@ -151,12 +152,12 @@ namespace IceRpc
 
                         Endpoint parsedEndpoint = ParseEndpoint(altUriString);
 
-                        if (parsedEndpoint.Protocol != endpoints[0].Protocol)
+                        if (parsedEndpoint.Protocol != endpoint.Protocol)
                         {
                             throw new FormatException(
                                 $"the protocol of all endpoints in '{uriString}' must be the same");
                         }
-                        endpoints = endpoints.Add(parsedEndpoint);
+                        altEndpoints = altEndpoints.Add(parsedEndpoint);
                     }
                 }
             }
@@ -171,11 +172,11 @@ namespace IceRpc
             proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
             proxyOptions.PreferExistingConnection =
                 parsedOptions.PreferExistingConnection ?? proxyOptions.PreferExistingConnection;
-            proxyOptions.NonSecure = parsedOptions.NonSecure ?? proxyOptions.NonSecure;
 
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
-                    endpoints,
+                    endpoint,
+                    altEndpoints,
                     proxyOptions);
         }
 
@@ -313,15 +314,6 @@ namespace IceRpc
                         throw new FormatException($"0 is not a valid value for the {name} option in '{uriString}'");
                     }
                 }
-                else if (name == "non-secure")
-                {
-                    CheckProxyOption(name, parsedOptions.NonSecure != null);
-                    if (int.TryParse(value, out int _))
-                    {
-                        throw new FormatException($"{value} is not a valid option for non-secure");
-                    }
-                    parsedOptions.NonSecure = Enum.Parse<NonSecure>(value, ignoreCase: true);
-                }
                 else if (name == "oneway")
                 {
                     CheckProxyOption(name, parsedOptions.IsOneway != null);
@@ -334,7 +326,7 @@ namespace IceRpc
                 }
                 else if (name == "fixed")
                 {
-                    throw new FormatException("cannot create or recreate a fixed proxy from a URI");
+                    throw new FormatException("cannot create a fixed proxy from a URI");
                 }
                 else if (iceScheme)
                 {
@@ -396,7 +388,6 @@ namespace IceRpc
             internal TimeSpan? InvocationTimeout;
 
             internal bool? IsOneway;
-            internal NonSecure? NonSecure;
             internal bool? PreferExistingConnection;
         }
     }

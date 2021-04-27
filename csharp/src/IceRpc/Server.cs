@@ -3,6 +3,8 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,8 +13,11 @@ namespace IceRpc
     /// <summary>A server serves clients by listening for the requests they send, processing these requests and sending
     /// the corresponding responses. A server should be first configured through its properties, then activated with
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
-    public sealed class Server : IDispatcher, IAsyncDisposable
+    public sealed class Server : IAsyncDisposable
     {
+        /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
+        /// instances for dispatches.</summary>
+        public ActivitySource? ActivitySource { get; set; }
         // temporary
         public Communicator? Communicator { get; set; }
 
@@ -33,6 +38,11 @@ namespace IceRpc
             get => _endpoint?.ToString() ?? "";
             set
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
+                }
+
                 _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
                 UpdateProxyEndpoint();
             }
@@ -69,12 +79,19 @@ namespace IceRpc
 
         /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
         /// address.</summary>
-        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>.</value>
+        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
+        /// <see cref="Dns.GetHostName()"/>.</value>
         public string ProxyHost
         {
             get => _proxyHost;
             set
             {
+                if (_listening)
+                {
+                    throw new InvalidOperationException(
+                        "cannot change the proxy host of a server after calling Listen");
+                }
+
                 if (value.Length == 0)
                 {
                     throw new ArgumentException($"{nameof(ProxyHost)} must have at least one character",
@@ -91,6 +108,8 @@ namespace IceRpc
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
+
+        internal CancellationToken CancelDispatch => _cancelDispatchSource.Token;
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
@@ -110,7 +129,7 @@ namespace IceRpc
 
         private Endpoint? _proxyEndpoint;
 
-        private string _proxyHost = "localhost"; // temporary default
+        private string _proxyHost = Dns.GetHostName().ToLowerInvariant();
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -133,7 +152,8 @@ namespace IceRpc
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,
                                                 Protocol.GetEncoding(),
-                                                ImmutableList<Endpoint>.Empty,
+                                                endpoint: null,
+                                                altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 ProxyOptions);
         }
@@ -161,92 +181,10 @@ namespace IceRpc
             return Proxy.GetFactory<T>().Create(path,
                                                 _proxyEndpoint.Protocol,
                                                 _proxyEndpoint.Protocol.GetEncoding(),
-                                                ImmutableList.Create(_proxyEndpoint),
+                                                _proxyEndpoint,
+                                                altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 options);
-        }
-
-        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
-        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
-        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
-        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
-        /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="request">The request being dispatched.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
-        /// <remarks>This method is called by the IceRPC connection code when it receives a request.</remarks>
-        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
-        {
-            // temporary
-            ProxyOptions.Communicator ??= Communicator;
-
-            if (!_listening)
-            {
-                var ex = new UnhandledException(
-                    new InvalidOperationException($"call {nameof(Listen)} before dispatching colocated requests"));
-
-                return new OutgoingResponse(request, ex);
-            }
-
-            if (Dispatcher is IDispatcher dispatcher)
-            {
-                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
-                // source/token that combines cancel and the server's own cancellation token.
-                using var combinedSource =
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, _cancelDispatchSource.Token);
-
-                try
-                {
-                    OutgoingResponse response =
-                        await dispatcher.DispatchAsync(request, combinedSource.Token).ConfigureAwait(false);
-
-                    cancel.ThrowIfCancellationRequested();
-                    return response;
-                }
-                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-                {
-                    // The client requested cancellation, we log it and let it propagate.
-                    Logger.LogServerDispatchCanceledByClient(this, request);
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (ex is OperationCanceledException && _cancelDispatchSource.Token.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-
-                    if (request.IsOneway)
-                    {
-                        // We log this exception, since otherwise it would be lost.
-                        Logger.LogServerDispatchException(this, request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
-                    }
-                    else
-                    {
-                        RemoteException actualEx;
-                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                        {
-                            actualEx = remoteEx;
-                        }
-                        else
-                        {
-                            actualEx = new UnhandledException(ex);
-
-                            // We log the "source" exception as UnhandledException may not include all details.
-                            Logger.LogServerDispatchException(this, request, ex);
-                        }
-                        return new OutgoingResponse(request, actualEx);
-                    }
-                }
-            }
-            else
-            {
-                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
-            }
         }
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their

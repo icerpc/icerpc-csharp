@@ -12,8 +12,6 @@ namespace IceRpc
         private const int ServerListening = BaseEventId + 0;
         private const int ServerShuttingDown = BaseEventId + 1;
         private const int ServerShutdownComplete = BaseEventId + 2;
-        private const int ServerDispatchException = BaseEventId + 3;
-        private const int ServerDispatchCanceledByClient = BaseEventId + 4;
 
         private static readonly Action<ILogger, Server, Exception> _serverListening =
             LoggerMessage.Define<Server>(
@@ -33,18 +31,6 @@ namespace IceRpc
                 new EventId(ServerShutdownComplete, nameof(ServerShutdownComplete)),
                 "server '{Name}' completed its shutdown");
 
-        private static readonly Action<ILogger, Server, string, string, Exception> _serverDispatchException =
-            LoggerMessage.Define<Server, string, string>(
-                LogLevel.Debug,
-                new EventId(ServerDispatchException, nameof(ServerDispatchException)),
-                "dispatch exception (Server={Server}, Path={Path}, Operation={Operation})");
-
-        private static readonly Action<ILogger, Server, string, string, Exception> _serverDispatchCanceledByClient =
-            LoggerMessage.Define<Server, string, string>(
-                LogLevel.Debug,
-                new EventId(ServerDispatchCanceledByClient, nameof(ServerDispatchCanceledByClient)),
-                "dispatch canceled by client (Server={Server}, Path={Path}, Operation={Operation})");
-
         internal static void LogServerListening(this ILogger logger, Server server) =>
             _serverListening(logger, server, null!);
 
@@ -53,18 +39,5 @@ namespace IceRpc
 
         internal static void LogServerShutdownComplete(this ILogger logger, Server server) =>
             _serverShutdownComplete(logger, server, null!);
-
-        internal static void LogServerDispatchException(
-            this ILogger logger,
-            Server server,
-            IncomingRequest request,
-            Exception ex) =>
-            _serverDispatchException(logger, server, request.Path, request.Operation, ex);
-
-        internal static void LogServerDispatchCanceledByClient(
-            this ILogger logger,
-            Server server,
-            IncomingRequest request) =>
-            _serverDispatchCanceledByClient(logger, server, request.Path, request.Operation, null!);
     }
 }

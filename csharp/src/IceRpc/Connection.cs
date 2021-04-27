@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,6 +37,27 @@ namespace IceRpc
         // to the endpoint, class, exception factories. It's only use for this purpose.
         // HACK ALERT: the communicator is set after connection construction for now and until it's removed.
         public Communicator? Communicator { get; set; }
+
+        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
+        /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
+        /// connection. For outgoing connections, set can be called during configuration.</summary>
+        /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
+        /// set.</value>
+        public IDispatcher? Dispatcher
+        {
+            get => Server?.Dispatcher ?? _dispatcher;
+            set
+            {
+                if (Server == null)
+                {
+                    _dispatcher = value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("cannot change the dispatcher of an incoming connection");
+                }
+            }
+        }
 
         /// <summary>Gets the endpoint from which the connection was created.</summary>
         /// <value>The endpoint from which the connection was created.</value>
@@ -96,6 +118,9 @@ namespace IceRpc
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
 
+        /// <summary>The server that created this incoming connection.</summary>
+        public Server? Server { get; }
+
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
@@ -121,18 +146,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets or sets the server that dispatches requests received over this connection.
-        /// A client can invoke an operation on a server using a proxy, and then set a server for the
-        /// outgoing connection used by the proxy in order to receive callbacks. This is useful if the server
-        /// cannot establish a connection back to the client, for example because of firewalls.</summary>
-        /// <value>The server that dispatches requests for the connection, or null if no server is set.
-        /// </value>
-        public Server? Server
-        {
-            get => _server;
-            set => _server = value;
-        }
-
         // This property should be private protected, it's internal instead for testing purpose.
         internal MultiStreamSocket Socket { get; }
         // The accept stream task is assigned each time a new accept stream async operation is started.
@@ -145,11 +158,12 @@ namespace IceRpc
         private readonly TimeSpan _closeTimeout;
         // The close task is assigned when GoAwayAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
+        private IDispatcher? _dispatcher;
+
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
         // performed atomically.
         private readonly object _mutex = new();
         private Action<Connection>? _remove;
-        private volatile Server? _server;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
 
@@ -176,7 +190,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = Socket.StartScope(_server);
+            using IDisposable? scope = Socket.StartScope(Server);
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully",
                                                             isClosedByPeer: false,
                                                             RetryPolicy.AfterDelay(TimeSpan.Zero)));
@@ -260,7 +274,7 @@ namespace IceRpc
             KeepAlive = options.KeepAlive;
             IsIncoming = server != null;
             _closeTimeout = options.CloseTimeout;
-            _server = server;
+            Server = server;
             _state = ConnectionState.NotInitialized;
         }
 
@@ -270,7 +284,7 @@ namespace IceRpc
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(_server);
+                using IDisposable? scope = Socket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
                     Socket.Logger.LogStartReceivingDatagrams();
@@ -290,7 +304,7 @@ namespace IceRpc
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(_server);
+                using IDisposable? scope = Socket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
                     Socket.Logger.LogStartSendingDatagrams();
@@ -303,8 +317,6 @@ namespace IceRpc
                 _state = ConnectionState.Initializing;
             }
         }
-
-        internal abstract bool CanTrust(NonSecure nonSecure);
 
         internal SocketStream CreateStream(bool bidirectional)
         {
@@ -323,7 +335,7 @@ namespace IceRpc
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            using IDisposable? socketScope = Socket.StartScope(_server);
+            using IDisposable? socketScope = Socket.StartScope(Server);
             try
             {
                 Task goAwayTask;
@@ -404,7 +416,7 @@ namespace IceRpc
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            using IDisposable? socketScope = Socket.StartScope(_server);
+            using IDisposable? socketScope = Socket.StartScope(Server);
             try
             {
                 // Initialize the transport.
@@ -602,6 +614,7 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
             using IDisposable? streamScope = stream.StartScope();
+            Activity? activity = null;
 
             Debug.Assert(stream != null);
             try
@@ -622,30 +635,35 @@ namespace IceRpc
                 using IncomingRequest request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
+                // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
+                // before we restore its context.
+                activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                {
+                    activity = new Activity("IceRpc.Dispatch");
+                    // TODO we should start the activity after restoring its context, we should update this once
+                    // we move to CreateActivity in .NET 6
+                    activity.Start();
+                }
+
+                if (activity != null)
+                {
+                    activity.AddTag("Operation", request.Operation);
+                    activity.AddTag("Path", request.Path);
+                    request.RestoreActivityContext(activity);
+                }
+
+                // It is important to start the activity above before logging in case the logger has been configured to
+                // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
 
-                // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
-                OutgoingResponse? response = null;
-                Server? server = _server;
+                OutgoingResponse? response;
 
                 try
                 {
-                    if (server == null)
-                    {
-                        if (stream.IsBidirectional)
-                        {
-                            response = new OutgoingResponse(request, new ServiceNotFoundException());
-                            cancel.ThrowIfCancellationRequested(); // a very rare situation
-                        }
-                    }
-                    else
-                    {
-                        // Dispatch the request and get the response
-                        request.Connection = this;
-                        request.Stream = stream;
-                        IDispatcher dispatcher = server;
-                        response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
-                    }
+                    request.Connection = this;
+                    request.Stream = stream;
+                    response = await DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -679,6 +697,81 @@ namespace IceRpc
             finally
             {
                 stream?.Release();
+                activity?.Stop();
+            }
+        }
+
+        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
+        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
+        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
+        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
+        /// <see cref="ServiceNotFoundException"/> response.</summary>
+        /// <param name="request">The request being dispatched.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
+        private async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        {
+            if (Dispatcher is IDispatcher dispatcher)
+            {
+                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
+                // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
+                // a server.
+                using CancellationTokenSource? combinedSource = request.Connection.Server != null ?
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, request.Connection.Server.CancelDispatch) : null;
+
+                try
+                {
+                    OutgoingResponse response =
+                        await dispatcher.DispatchAsync(request, combinedSource?.Token ?? cancel).ConfigureAwait(false);
+
+                    cancel.ThrowIfCancellationRequested();
+                    return response;
+                }
+                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+                {
+                    // The client requested cancellation, we log it and let it propagate.
+                    Socket.Logger.LogDispatchCanceledByClient(request);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (ex is OperationCanceledException &&
+                        request.Connection.Server is Server server &&
+                        server.CancelDispatch.IsCancellationRequested)
+                    {
+                        // Replace exception
+                        ex = new ServerException("dispatch canceled by server shutdown");
+                    }
+                    // else it's another OperationCanceledException that the implementation should have caught, and it
+                    // will become an UnhandledException below.
+
+                    if (request.IsOneway)
+                    {
+                        // We log this exception, since otherwise it would be lost.
+                        Socket.Logger.LogDispatchException(request, ex);
+                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
+                    }
+                    else
+                    {
+                        RemoteException actualEx;
+                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
+                        {
+                            actualEx = remoteEx;
+                        }
+                        else
+                        {
+                            actualEx = new UnhandledException(ex);
+
+                            // We log the "source" exception as UnhandledException may not include all details.
+                            Socket.Logger.LogDispatchException(request, ex);
+                        }
+                        return new OutgoingResponse(request, actualEx);
+                    }
+                }
+            }
+            else
+            {
+                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 
@@ -783,8 +876,6 @@ namespace IceRpc
             : base(endpoint, socket, options, server)
         {
         }
-
-        internal override bool CanTrust(NonSecure nonSecure) => true;
     }
 
     /// <summary>Represents a connection to an IP-endpoint.</summary>
@@ -830,18 +921,6 @@ namespace IceRpc
             ConnectionOptions options,
             Server? server)
             : base(endpoint, socket, options, server) => _socket = socket;
-
-        internal override bool CanTrust(NonSecure nonSecure)
-        {
-            bool trusted = IsSecure || nonSecure switch
-            {
-                NonSecure.SameHost => RemoteEndpoint?.IsSameHost() ?? false,
-                NonSecure.TrustedHost => false, // TODO implement trusted host
-                NonSecure.Always => true,
-                _ => false
-            };
-            return trusted;
-        }
     }
 
     /// <summary>Represents a connection to a TCP-endpoint.</summary>

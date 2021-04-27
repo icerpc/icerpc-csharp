@@ -20,7 +20,7 @@ namespace IceRpc
                 (Data.Options.Length > 0 ? Data.Options[0] : null) : base[option];
 
         protected internal override ushort DefaultPort => DefaultLocPort;
-        protected internal override bool HasOptions => Data.Options.Length > 0;
+        protected internal override bool HasOptions => Protocol == Protocol.Ice1 || Data.Options.Length > 0;
 
         internal const ushort DefaultLocPort = 0;
 
@@ -31,6 +31,17 @@ namespace IceRpc
 
         public override Connection CreateDatagramServerConnection(Server server) =>
             throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
+
+        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            base.AppendOptions(sb, optionSeparator);
+
+            if (Protocol == Protocol.Ice1 && Data.Options.Length > 0)
+            {
+                sb.Append(" -c "); // category
+                sb.Append(Data.Options[0]); // can be empty (all this is temporary anyway)
+            }
+        }
 
         // InvalidOperationException because this method should never get called.
         protected internal override Task<Connection> ConnectAsync(
@@ -65,7 +76,29 @@ namespace IceRpc
         internal static LocEndpoint Create(string location, Protocol protocol) =>
             new(new EndpointData(Transport.Loc, location, port: 0, Array.Empty<string>()), protocol);
 
-        // There is no ParseIce1Endpoint: in ice1 string format, loc is never represented as an endpoint.
+        internal static LocEndpoint ParseIce1Endpoint(
+            Transport transport,
+            Dictionary<string, string?> options,
+            string endpointString)
+        {
+            Debug.Assert(transport == Transport.Loc);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
+
+            if (options.TryGetValue("-c", out string? category))
+            {
+                if (category == null)
+                {
+                    category = "";
+                }
+                options.Remove("-c");
+            }
+
+            return new(new EndpointData(transport,
+                                        host,
+                                        port,
+                                        category == null ? Array.Empty<string>() : new string[] { category }),
+                        Protocol.Ice1);
+        }
 
         internal static LocEndpoint ParseIce2Endpoint(
             Transport transport,

@@ -13,7 +13,7 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequest.BinaryContext;
 
         /// <summary>The communicator.</summary>
-        public Communicator Communicator => Server.Communicator!;
+        public Communicator Communicator => Connection.Communicator!;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection => IncomingRequest.Connection!;
@@ -48,7 +48,7 @@ namespace IceRpc
         public Protocol Protocol => IncomingRequest.Protocol;
 
         /// <summary>The server.</summary>
-        public Server Server => Connection.Server!;
+        public Server? Server => Connection.Server;
 
         /// <summary>The stream ID</summary>
         public long StreamId => IncomingRequest.Stream!.Id;

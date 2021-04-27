@@ -51,8 +51,8 @@ namespace IceRpc.Tests.ClientServer
 
             // Check that we can still connect using a service proxy with 3 endpoints when only one
             // of the target servers is active.
-            prx1.Endpoints = prx1.Endpoints.Concat(prx2.Endpoints).Concat(prx3.Endpoints).ToImmutableList();
-            Assert.AreEqual(3, prx1.Endpoints.Count);
+            prx1.AltEndpoints = new string[] { prx2.Endpoint, prx3.Endpoint };
+            Assert.AreEqual(2, prx1.AltEndpoints.Count());
             foreach (int port in new int[] { 0, 1, 2 })
             {
                 await using var server = new Server
@@ -60,7 +60,8 @@ namespace IceRpc.Tests.ClientServer
                     Communicator = communicator,
                     HasColocEndpoint = false,
                     Dispatcher = new RetryService(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
+                    ProxyHost = "localhost"
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -76,17 +77,18 @@ namespace IceRpc.Tests.ClientServer
                 Communicator = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ProxyHost = "localhost"
             };
             server.Listen();
 
             IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
 
             Connection connection = await proxy.GetConnectionAsync();
-            connection.Server = server;
+            connection.Dispatcher = server.Dispatcher;
             IRetryBidirServicePrx bidir = proxy.Clone();
             bidir.Connection = connection;
-            bidir.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
+            bidir.Endpoint = ""; // fixed proxy
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
@@ -241,7 +243,7 @@ namespace IceRpc.Tests.ClientServer
                         routers[i].Use(next => new InlineDispatcher(
                             async (request, cancel) =>
                             {
-                                calls.Add(request.Connection.Server.ToString());
+                                calls.Add(request.Connection.Server!.ToString());
                                 return await next.DispatchAsync(request, cancel);
                             }));
                         servers[i].Dispatcher = routers[i];
@@ -257,7 +259,7 @@ namespace IceRpc.Tests.ClientServer
                     // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
                     //  exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
                     calls.Clear();
-                    prx1.Endpoints = prx1.Endpoints.Concat(prx2.Endpoints).ToImmutableList();
+                    prx1.AltEndpoints = ImmutableList.Create(prx2.Endpoint);
                     Assert.DoesNotThrowAsync(async () => await prx1.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
                     Assert.AreEqual(servers[1].ToString(), calls[1]);
@@ -280,7 +282,7 @@ namespace IceRpc.Tests.ClientServer
                         router.Use(next => new InlineDispatcher(
                             async (request, cancel) =>
                             {
-                                calls.Add(request.Connection.Server.ToString());
+                                calls.Add(request.Connection.Server!.ToString());
                                 return await next.DispatchAsync(request, cancel);
                             }));
                     }
@@ -305,7 +307,7 @@ namespace IceRpc.Tests.ClientServer
                     // RetrySystemFailure the last failure should be reported.
                     calls.Clear();
                     var prx = prx1.Clone();
-                    prx.Endpoints = prx1.Endpoints.Concat(prx2.Endpoints).ToImmutableList();
+                    prx.AltEndpoints = ImmutableList.Create(prx2.Endpoint);
                     Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
                     Assert.AreEqual(servers[1].ToString(), calls[1]);
@@ -316,7 +318,7 @@ namespace IceRpc.Tests.ClientServer
                     // because ConnectionLostException cannot be retry for a non idempotent request.
                     calls.Clear();
                     prx = prx1.Clone();
-                    prx.Endpoints = prx1.Endpoints.Concat(prx3.Endpoints).Concat(prx2.Endpoints).ToImmutableList();
+                    prx.AltEndpoints = new string[] { prx3.Endpoint, prx2.Endpoint };
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
                     Assert.AreEqual(servers[2].ToString(), calls[1]);
@@ -344,19 +346,19 @@ namespace IceRpc.Tests.ClientServer
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
 
-                    await using var connection1 = await Connection.CreateAsync(retry.Endpoints[0], retry.Communicator);
-                    await using var connection2 = await Connection.CreateAsync(retry.Endpoints[0], retry.Communicator);
+                    await using var connection1 = await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), retry.Communicator);
+                    await using var connection2 = await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), retry.Communicator);
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;
-                    retry1.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
+                    retry1.Endpoint = ""; // fixed proxy
 
                     Task t1 = retry1.OpWithDataAsync(2, 5000, data);
                     await Task.Delay(1000); // Ensure the first request is sent before the second request
 
                     var retry2 = retry.Clone();
                     retry2.Connection = connection2;
-                    retry2.Endpoints = ImmutableList<Endpoint>.Empty; // fixed proxy
+                    retry2.Endpoint = ""; // fixed proxy
                     Task t2 = retry2.OpWithDataAsync(2, 0, data);
 
                     Assert.DoesNotThrowAsync(async () => await t1);
@@ -399,7 +401,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Communicator = communicator,
                     HasColocEndpoint = false,
-                    Endpoint = GetTestEndpoint(port: i)
+                    Endpoint = GetTestEndpoint(port: i),
+                    ProxyHost = "localhost"
                 }).ToArray();
 
             var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -419,7 +422,8 @@ namespace IceRpc.Tests.ClientServer
             {
                 Communicator = communicator,
                 HasColocEndpoint = false,
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
             };
 
             var router = new Router();

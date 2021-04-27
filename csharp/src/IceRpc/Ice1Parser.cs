@@ -119,7 +119,7 @@ namespace IceRpc
         /// <param name="s">The string to parse.</param>
         /// <param name="proxyOptions">The proxy options.</param>
         /// <returns>The arguments to create the proxy.</returns>
-        internal static (Identity Identity, string Facet, Encoding Encoding, IEnumerable<Endpoint> Endpoints, ProxyOptions Options) ParseProxy(
+        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
             string s,
             ProxyOptions proxyOptions)
         {
@@ -162,7 +162,8 @@ namespace IceRpc
             var identity = Identity.Parse(identityString);
             string facet = "";
             Encoding encoding = Ice1Definitions.Encoding;
-            ImmutableList<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+            Endpoint? endpoint = null;
+            var altEndpoints = ImmutableList<Endpoint>.Empty;
             proxyOptions = proxyOptions.Clone();
 
             while (true)
@@ -318,8 +319,8 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                endpoints = ImmutableList.Create(LocEndpoint.Create(identity) as Endpoint);
-                return (identity, facet, encoding, endpoints, proxyOptions);
+                endpoint = LocEndpoint.Create(identity);
+                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
             }
 
             if (s[beg] == ':')
@@ -376,7 +377,19 @@ namespace IceRpc
                     string es = s[beg..end];
                     try
                     {
-                        endpoints = endpoints.Add(ParseEndpoint(es));
+                        if (endpoint == null)
+                        {
+                            endpoint = ParseEndpoint(es);
+
+                            if (endpoint.Transport == Transport.Loc)
+                            {
+                                throw new FormatException("use @ adapterId instead of loc in proxy");
+                            }
+                        }
+                        else
+                        {
+                            altEndpoints = altEndpoints.Add(ParseEndpoint(es));
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -385,14 +398,14 @@ namespace IceRpc
                     }
                 }
 
-                Debug.Assert(endpoints.Count > 0);
+                Debug.Assert(endpoint != null);
 
-                if (endpoints.All(e => e.IsDatagram))
+                if (endpoint.IsDatagram && altEndpoints.All(e => e.IsDatagram))
                 {
                     proxyOptions.IsOneway = true;
                 }
 
-                return (identity, facet, encoding, endpoints, proxyOptions);
+                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
             }
             else if (s[beg] == '@')
             {
@@ -437,8 +450,8 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoints = ImmutableList.Create<Endpoint>(LocEndpoint.Create(adapterId, Protocol.Ice1));
-                return (identity, facet, encoding, endpoints, proxyOptions);
+                endpoint = LocEndpoint.Create(adapterId, Protocol.Ice1);
+                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
             }
 
             throw new FormatException($"malformed proxy '{s}'");
