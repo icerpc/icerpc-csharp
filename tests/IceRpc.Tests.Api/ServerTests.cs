@@ -226,7 +226,6 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
             await proxy.SendProxyAsync(proxy);
-            // The server always unmarshals the proxy as a fixed proxy
             Assert.IsNotNull(service.Proxy);
             CheckProxy(service.Proxy!);
 
@@ -308,7 +307,7 @@ namespace IceRpc.Tests.Api
             await proxy.IcePingAsync();
             proxy.Connection!.Dispatcher = service;
 
-            await proxy.CallbackAsync(server.CreateRelativeProxy<IProxyTestPrx>("/callback"));
+            await proxy.CallbackAsync(server.CreateEndpointlessProxy<IProxyTestPrx>("/callback"));
         }
 
         [Test]
@@ -379,7 +378,7 @@ namespace IceRpc.Tests.Api
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(dispatch.Server!.CreateRelativeProxy<IProxyTestPrx>(dispatch.Path));
+                new(dispatch.Server!.CreateEndpointlessProxy<IProxyTestPrx>(dispatch.Path));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {

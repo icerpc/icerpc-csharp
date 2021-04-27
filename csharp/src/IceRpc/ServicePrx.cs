@@ -162,10 +162,7 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        internal bool IsFixed => _endpoint == null && !IsRelative;
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
-        internal bool IsRelative =>
-            _endpoint == null && (_connection?.Endpoint.Transport ?? Transport.Coloc) == Transport.Coloc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -227,6 +224,12 @@ namespace IceRpc
             {
                 return false;
             }
+
+            // Only compare the connections of endpointless proxies.
+            if (_endpoint == null && _connection != other._connection)
+            {
+                return false;
+            }
             if (!_altEndpoints.SequenceEqual(other._altEndpoints))
             {
                 return false;
@@ -264,15 +267,6 @@ namespace IceRpc
                 return false;
             }
 
-            if (IsFixed)
-            {
-                if (_connection != other._connection)
-                {
-                    return false;
-                }
-            }
-            // else we assume that for non-fixed proxies, connection differences don't affect equality.
-
             if (!_context.DictionaryEqual(other._context)) // done last since it's more expensive
             {
                 return false;
@@ -297,13 +291,13 @@ namespace IceRpc
             hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
-            if (IsFixed)
-            {
-                hash.Add(_connection);
-            }
-            else if (_endpoint != null)
+            if (_endpoint != null)
             {
                 hash.Add(_endpoint.GetHashCode());
+            }
+            else if (_connection != null)
+            {
+                hash.Add(_connection);
             }
             return hash.ToHashCode();
         }
@@ -311,9 +305,9 @@ namespace IceRpc
         /// <inheritdoc/>
         public void IceWrite(OutputStream ostr)
         {
-            if (IsFixed)
+            if (_connection?.IsIncoming ?? false)
             {
-                throw new NotSupportedException("cannot marshal a fixed proxy");
+                throw new InvalidOperationException("cannot marshal a proxy bound to an incoming connection");
             }
 
             InvocationMode? invocationMode = IsOneway ? InvocationMode.Oneway : null;
@@ -357,15 +351,13 @@ namespace IceRpc
                     ostr.WriteSize(0); // 0 endpoints
                     ostr.WriteString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
                 }
-                else if (IsRelative)
+                else if (_endpoint == null)
                 {
                     ostr.WriteSize(0); // 0 endpoints
                     ostr.WriteString(""); // empty adapter ID
                 }
                 else
                 {
-                    Debug.Assert(_endpoint != null);
-
                     IEnumerable<Endpoint> endpoints = _endpoint.Transport == Transport.Coloc ?
                         _altEndpoints : Enumerable.Empty<Endpoint>().Append(_endpoint).Concat(_altEndpoints);
 
@@ -373,7 +365,7 @@ namespace IceRpc
                     {
                         ostr.WriteSequence(endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
                     }
-                    else // marshaled as relative/well-known proxy
+                    else // marshaled as an endpointless proxy
                     {
                         ostr.WriteSize(0); // 0 endpoints
                         ostr.WriteString(""); // empty adapter ID
@@ -516,7 +508,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    sb.Append("ice:"); // relative proxy
+                    sb.Append("ice:"); // endpointless proxy
                     sb.Append(Path);
                 }
 
@@ -548,12 +540,6 @@ namespace IceRpc
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("encoding=");
                     sb.Append(Encoding);
-                }
-
-                if (IsFixed)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("fixed=true");
                 }
 
                 if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
@@ -785,7 +771,7 @@ namespace IceRpc
 
             List<Endpoint>? endpoints = null;
 
-            if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
+            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
@@ -846,11 +832,6 @@ namespace IceRpc
         /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IServicePrx, string)"/>.</summary>
         internal Dictionary<string, string> ToProperty(string prefix)
         {
-            if (IsFixed)
-            {
-                throw new NotSupportedException("cannot convert a fixed proxy to a property dictionary");
-            }
-
             var properties = new Dictionary<string, string> { [prefix] = ToString() };
 
             if (Protocol == Protocol.Ice1)
@@ -907,7 +888,6 @@ namespace IceRpc
 
         private void ClearConnection(Connection connection)
         {
-            Debug.Assert(!IsFixed);
             Interlocked.CompareExchange(ref _connection, null, connection);
         }
 
@@ -916,8 +896,6 @@ namespace IceRpc
             bool oneway,
             CancellationToken cancel)
         {
-            Debug.Assert(!IsFixed);
-
             if (_endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
             {
                 return new List<Endpoint>() { colocEndpoint };
@@ -997,7 +975,7 @@ namespace IceRpc
                     "cannot make two-way invocation using a cached datagram connection");
             }
 
-            if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
+            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
@@ -1095,11 +1073,12 @@ namespace IceRpc
 
                     if (oneway)
                     {
-                        return IncomingResponseFrame.WithVoidReturnValue(request.Protocol, request.PayloadEncoding);
+                        return new IncomingResponseFrame(connection, request.PayloadEncoding);
                     }
 
                     // Wait for the reception of the response.
                     response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    response.Connection = connection;
 
                     logger.LogReceivedResponse(response);
 
@@ -1171,13 +1150,13 @@ namespace IceRpc
 
                 // Check if we can retry, we cannot retry if we have consumed all attempts, the current retry
                 // policy doesn't allow retries, the request was already released, there are no more endpoints
-                // or a fixed reference receives an exception with OtherReplica retry policy.
+                // or an incoming connection receives an exception with OtherReplica retry policy.
 
                 if (attempt == Communicator.InvocationMaxAttempts ||
                     retryPolicy == RetryPolicy.NoRetry ||
                     (sent && releaseRequestAfterSent) ||
                     (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
-                    (IsFixed && retryPolicy == RetryPolicy.OtherReplica))
+                    ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
                 {
                     tryAgain = false;
                 }
@@ -1221,7 +1200,7 @@ namespace IceRpc
 
                     observer?.Retried();
 
-                    if (!IsFixed && connection != null)
+                    if (_endpoint != null && connection != null && !connection.IsIncoming)
                     {
                         // Retry with a new connection!
                         connection = null;

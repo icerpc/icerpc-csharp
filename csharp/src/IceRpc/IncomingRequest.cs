@@ -21,13 +21,6 @@ namespace IceRpc
         /// <summary>The request context.</summary>
         public SortedDictionary<string, string> Context { get; }
 
-        /// <summary>The connection that received this request.</summary>
-        public Connection Connection
-        {
-            get => _connection ?? throw new InvalidOperationException("connection is not set");
-            internal set => _connection = value;
-        }
-
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
         /// enforce this deadline - it's provided "for information" to the application. The Ice client runtime sets
@@ -74,6 +67,8 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
+
+        private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
@@ -170,11 +165,8 @@ namespace IceRpc
             return value;
         }
 
-        private Connection? _connection;
-        private long? _streamId;
-
         /// <summary>Constructs an incoming request frame.</summary>
-        /// <param name="protocol">The Ice protocol.</param>
+        /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to

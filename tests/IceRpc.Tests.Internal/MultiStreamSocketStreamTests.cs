@@ -123,7 +123,8 @@ namespace IceRpc.Tests.Internal
                         using var source = new CancellationTokenSource(500);
                         SocketStream serverStream = await ServerSocket.AcceptStreamAsync(source.Token);
                         _ = ServerSocket.AcceptStreamAsync(default).AsTask();
-                        Assert.CatchAsync<TransportException>(async () => await serverStream.ReceiveRequestFrameAsync());
+                        Assert.CatchAsync<TransportException>(
+                            async () => await serverStream.ReceiveRequestFrameAsync());
                     }
                     catch (OperationCanceledException)
                     {

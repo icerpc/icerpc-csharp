@@ -11,22 +11,16 @@ namespace IceRpc
 {
     public static class ProxyFactory
     {
-        /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
+        /// <summary>Creates a proxy from a connection.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="path">The path of the service.</param>
-        /// <returns>A fixed proxy.</returns>
+        /// <returns>The new proxy.</returns>
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            if (connection.Dispatcher == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot create a fixed proxy using a connection without a dispatcher");
-            }
-
             ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
             if (connection.Endpoint.IsDatagram && !options.IsOneway)
             {
@@ -37,7 +31,7 @@ namespace IceRpc
             return factory.Create(path,
                                   connection.Protocol,
                                   connection.Protocol.GetEncoding(),
-                                  null,
+                                  connection.IsIncoming ? null : connection.Endpoint,
                                   ImmutableList<Endpoint>.Empty,
                                   connection,
                                   options);
@@ -102,14 +96,9 @@ namespace IceRpc
         public static T? ReadNullable<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx
         {
-            IServicePrx? source = istr.Source;
-            Connection? connection = istr.Connection ?? source?.Connection;
-            ProxyOptions? proxyOptions = istr.ProxyOptions ?? source?.GetOptions();
-
-            if ((source == null && connection == null) || proxyOptions == null)
+            if (istr.ProxyOptions == null)
             {
-                throw new InvalidOperationException(
-                    "cannot read a proxy from an InputStream with no source nor connection/proxy options");
+                throw new InvalidOperationException("cannot read a proxy from an InputStream without proxy options");
             }
 
             if (istr.Encoding == Encoding.V11)
@@ -182,11 +171,29 @@ namespace IceRpc
                         throw new InvalidDataException(
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
                     }
-                    return CreateIce2Proxy(proxyData.Encoding,
-                                           endpoint,
-                                           altEndpoints,
-                                           identity.ToPath(),
-                                           proxyData.Protocol);
+
+                    Connection? connection = null;
+                    if (endpoint == null)
+                    {
+                        // Use the connection endpoint if the connection is an outgoing connection
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
+                    }
+
+                    try
+                    {
+                        return factory.Create(identity.ToPath(),
+                                              connection?.Protocol ?? proxyData.Protocol,
+                                              proxyData.Encoding,
+                                              endpoint,
+                                              altEndpoints,
+                                              connection,
+                                              istr.ProxyOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
                 }
             }
             else
@@ -205,6 +212,11 @@ namespace IceRpc
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(
                         data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
+
+                if (endpoint == null && altEndpoints.Count > 0)
+                {
+                    throw new InvalidDataException("received proxy with only alt endpoints");
+                }
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -240,11 +252,28 @@ namespace IceRpc
                 }
                 else
                 {
-                    return CreateIce2Proxy(proxyData.Encoding ?? Encoding.V20,
-                                           endpoint,
-                                           altEndpoints,
-                                           proxyData.Path,
-                                           protocol);
+                    Connection? connection = null;
+                    if (endpoint == null)
+                    {
+                        // Use the connection endpoint if the connection is an outgoing connection
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
+                    }
+
+                    try
+                    {
+                        return factory.Create(proxyData.Path,
+                                              connection?.Protocol ?? protocol,
+                                              proxyData.Encoding ?? Encoding.V20,
+                                              endpoint,
+                                              altEndpoints,
+                                              connection,
+                                              istr.ProxyOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
                 }
             }
 
@@ -257,94 +286,53 @@ namespace IceRpc
                 Identity identity,
                 InvocationMode invocationMode)
             {
-                ProxyOptions options = proxyOptions;
+                ProxyOptions options = istr.ProxyOptions;
                 if (options.IsOneway != (invocationMode != InvocationMode.Twoway))
                 {
                     options = options.Clone();
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
-                try
+                Connection? connection = null;
+                if (endpoint == null)
                 {
-                    // If there is no location resolver, it's a relative proxy.
-                    if (endpoint == null && options.LocationResolver == null)
+                    if ((options.LocationResolver != null || istr.Connection == null) && identity is Identity id)
                     {
-                        // The protocol of the source proxy/connection prevails.
-                        Protocol protocol = connection?.Protocol ?? source!.Protocol;
-                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
-
-                        if (protocol != Protocol.Ice1)
-                        {
-                            if (facet.Length > 0)
-                            {
-                                throw new InvalidDataException(
-                                    @$"received a relative proxy with a facet on an {protocol.GetName()
-                                    } connection or proxy");
-                            }
-
-                            return factory.Create(identity.ToPath(),
-                                                  protocol,
-                                                  encoding,
-                                                  endpoint,
-                                                  altEndpoints,
-                                                  connection,
-                                                  options);
-                        }
-                        else
-                        {
-                            return
-                                factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
-                        }
+                        endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
                     }
                     else
                     {
-                        if (endpoint == null)
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
+                    }
+                }
+
+                try
+                {
+                    if (connection != null && connection.Protocol != Protocol.Ice1)
+                    {
+                        if (facet.Length > 0)
                         {
-                            endpoint = LocEndpoint.Create(identity); // well-known proxy
+                            // can't create an ice2+ proxy with a facet
+                            throw new InvalidDataException(
+                                @$"received an endpointless proxy with a facet on an {connection.Protocol.GetName()
+                                } connection");
                         }
 
-                        return factory.Create(identity, facet, encoding, endpoint, altEndpoints, null, options);
+                        return factory.Create(identity.ToPath(),
+                                              connection.Protocol,
+                                              encoding,
+                                              endpoint,
+                                              altEndpoints,
+                                              connection,
+                                              options);
                     }
+
+                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
                 }
                 catch (InvalidDataException)
                 {
                     throw;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException("received invalid proxy", ex);
-                }
-            }
-
-            // Creates an ice2+ proxy
-            T CreateIce2Proxy(
-                Encoding encoding,
-                Endpoint? endpoint,
-                IEnumerable<Endpoint> altEndpoints,
-                string path,
-                Protocol protocol)
-            {
-                try
-                {
-                    if (endpoint == null) // relative proxy
-                    {
-                        // The protocol of the source proxy/connection prevails. It could be for example ice1.
-                        protocol = connection?.Protocol ?? source!.Protocol;
-                        endpoint = source?.Impl.ParsedEndpoint; // overwrite endpoints
-                        altEndpoints = source?.Impl.ParsedAltEndpoints ?? altEndpoints;
-                        return factory.Create(path, protocol, encoding, endpoint, altEndpoints, connection, proxyOptions);
-                    }
-                    else
-                    {
-                        return factory.Create(path,
-                                              protocol,
-                                              encoding,
-                                              endpoint,
-                                              altEndpoints,
-                                              connection: null,
-                                              proxyOptions);
-                    }
                 }
                 catch (Exception ex)
                 {

@@ -47,46 +47,37 @@ namespace IceRpc.Tests.Encoding
             ostr.WriteProxy(prx);
             ostr.Finish();
 
-            var prx2 = _data[0].AsReadOnlyMemory().Read(encoding, IServicePrx.IceReader, source: prx);
+            var prx2 = _data[0].AsReadOnlyMemory().Read(encoding,
+                                                        IServicePrx.IceReader,
+                                                        connection: null,
+                                                        prx.GetOptions());
             Assert.AreEqual(prx, prx2);
         }
 
         [TestCase(2, 0)]
         [TestCase(1, 1)]
-        public async Task Proxy_RelativeAsync(byte encodingMajor, byte encodingMinor)
+        public async Task Proxy_EndpointLessAsync(byte encodingMajor, byte encodingMinor)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            // Create a relative proxy
-            IServicePrx relative = _server.CreateRelativeProxy<IServicePrx>("/foo");
 
-            IServicePrx plain = _server.CreateProxy<IServicePrx>("/bar");
-            await plain.GetConnectionAsync();
+            // Create an endpointless proxy
+            IServicePrx endpointLess = _server.CreateEndpointlessProxy<IServicePrx>("/foo");
 
-            // Marshal the relative proxy
+            IServicePrx regular = _server.CreateProxy<IServicePrx>("/bar");
+            Connection connection = await regular.GetConnectionAsync();
+
+            // Marshal the endpointless proxy
             var ostr = new OutputStream(encoding, _data, startAt: default);
-            ostr.WriteProxy(relative);
+            ostr.WriteProxy(endpointLess);
             ostr.Finish();
 
-            // Unmarshals the relative proxy using a connection, we should get back a fixed
-            // proxy tied to this connection.
-            IServicePrx? prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
+            // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
+            IServicePrx prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
                                                                 IServicePrx.IceReader,
-                                                                connection: plain.Connection!,
+                                                                connection,
                                                                 proxyOptions: new ProxyOptions());
-            Assert.That(plain.Connection == prx1.Connection, Is.True);
-            Assert.IsEmpty(prx1.Endpoint);
-
-            // Create a direct proxy and give it a connection
-            var prx2 = IServicePrx.Parse("ice+tcp://localhost/bar", _communicator);
-            prx2.Connection = plain.Connection;
-
-            // Unmarshals the relative proxy using the direct proxy we just created, we should get back
-            // a direct proxy that has the same connection and endpoints as the source proxy.
-            prx1 = _data[0].AsReadOnlyMemory().Read(encoding, IServicePrx.IceReader, source: prx2);
-            Assert.That(prx1.Connection, Is.Not.Null);
-            Assert.IsNotEmpty(prx1.Endpoint);
-            Assert.That(prx2.Connection == prx1.Connection, Is.True);
-            Assert.AreEqual(prx2.Endpoint, prx1.Endpoint);
+            Assert.AreEqual(connection, prx1.Connection);
+            Assert.AreEqual(prx1.Endpoint, connection.Endpoint.ToString());
         }
     }
 }

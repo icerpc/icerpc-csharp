@@ -136,18 +136,17 @@ namespace IceRpc
 
         private Lazy<Task>? _shutdownTask;
 
-        /// <summary>Creates a relative proxy for a service hosted by this server. This relative proxy holds a colocated
-        /// connection to this server.</summary>
+        /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="path">The path of the service.</param>
-        /// <returns>A new relative proxy.</returns>
-        public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx
+        /// <returns>A new proxy.</returns>
+        public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
         {
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
             // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
-            // unless the user gives a connection to the new relative proxy.
+            // unless the user gives a connection to this new proxy.
 
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,

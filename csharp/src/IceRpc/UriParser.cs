@@ -324,10 +324,6 @@ namespace IceRpc
                     CheckProxyOption(name, parsedOptions.PreferExistingConnection != null);
                     parsedOptions.PreferExistingConnection = bool.Parse(value);
                 }
-                else if (name == "fixed")
-                {
-                    throw new FormatException("cannot create a fixed proxy from a URI");
-                }
                 else if (iceScheme)
                 {
                     // We've parsed all known proxy options so the remaining options must be endpoint options or
