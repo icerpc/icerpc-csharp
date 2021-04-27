@@ -242,6 +242,20 @@ namespace IceRpc
                 }
             }
 
+            (Connection? Connection, Endpoint? Endpoint) FromNullEndpoint(Identity? identity = null)
+            {
+                if ((istr.ProxyOptions.LocationResolver != null || istr.Connection == null) && identity is Identity id)
+                {
+                    Endpoint endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
+                    return (null, endpoint);
+                }
+                else
+                {
+                    Endpoint? endpoint = !(istr.Connection?.IsIncoming ?? true) ? istr.Connection.Endpoint : null;
+                    return (istr.Connection, endpoint);
+                }
+            }
+
             // Creates an ice1 proxy
             T CreateIce1Proxy(
                 Encoding encoding,
@@ -258,55 +272,35 @@ namespace IceRpc
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
+                Connection? connection = null;
+
                 try
                 {
-                    if (endpoint == null && (options.LocationResolver != null || istr.Connection == null))
+                    if (endpoint == null)
                     {
-                        endpoint = LocEndpoint.Create(identity); // well-known proxy with a loc endpoint (temporary)
-                    }
+                        (connection, endpoint) = FromNullEndpoint(identity);
 
-                    if (endpoint == null && istr.Connection != null)
-                    {
-                        // The protocol of the connection prevails.
-                        Protocol protocol = istr.Connection.Protocol;
-                        if (!istr.Connection.IsIncoming)
-                        {
-                            endpoint = istr.Connection.Endpoint;
-                        }
-
-                        if (protocol != Protocol.Ice1)
+                        if (connection != null && connection.Protocol != Protocol.Ice1)
                         {
                             if (facet.Length > 0)
                             {
                                 // can't create an ice2+ proxy with a facet
                                 throw new InvalidDataException(
-                                    @$"received an endpointless proxy with a facet on an {protocol.GetName()
+                                    @$"received an endpointless proxy with a facet on an {connection.Protocol.GetName()
                                     } connection");
                             }
 
                             return factory.Create(identity.ToPath(),
-                                                  protocol,
+                                                  connection.Protocol,
                                                   encoding,
                                                   endpoint,
                                                   altEndpoints,
-                                                  istr.Connection,
-                                                  options);
-                        }
-                        else
-                        {
-                            return factory.Create(identity,
-                                                  facet,
-                                                  encoding,
-                                                  endpoint,
-                                                  altEndpoints,
-                                                  istr.Connection,
+                                                  connection,
                                                   options);
                         }
                     }
-                    else
-                    {
-                        return factory.Create(identity, facet, encoding, endpoint, altEndpoints, null, options);
-                    }
+
+                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
                 }
                 catch (InvalidDataException)
                 {
@@ -328,33 +322,20 @@ namespace IceRpc
             {
                 try
                 {
-                    if (endpoint == null && istr.Connection != null)
-                    {
-                        // The protocol of the connection prevails. It could be for example ice1.
-                        protocol = istr.Connection.Protocol;
-                        if (!istr.Connection.IsIncoming)
-                        {
-                            endpoint = istr.Connection.Endpoint;
-                        }
+                    Connection? connection = null;
 
-                        return factory.Create(path,
-                                              protocol,
-                                              encoding,
-                                              endpoint,
-                                              altEndpoints,
-                                              istr.Connection,
-                                              istr.ProxyOptions);
-                    }
-                    else
+                    if (endpoint == null)
                     {
-                        return factory.Create(path,
-                                              protocol,
-                                              encoding,
-                                              endpoint,
-                                              altEndpoints,
-                                              connection: null,
-                                              istr.ProxyOptions);
+                        (connection, endpoint) = FromNullEndpoint();
                     }
+
+                    return factory.Create(path,
+                                          connection?.Protocol ?? protocol,
+                                          encoding,
+                                          endpoint,
+                                          altEndpoints,
+                                          connection,
+                                          istr.ProxyOptions);
                 }
                 catch (Exception ex)
                 {
