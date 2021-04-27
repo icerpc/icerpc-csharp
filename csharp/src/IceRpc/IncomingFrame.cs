@@ -17,9 +17,7 @@ namespace IceRpc
         /// <summary>The connection that received this frame.</summary>
         public Connection Connection
         {
-            get => _connection != null ? _connection :
-                throw new InvalidOperationException("connection not set on frame");
-
+            get => _connection ?? throw new InvalidOperationException("connection not set");
             internal set => _connection = value;
         }
 
