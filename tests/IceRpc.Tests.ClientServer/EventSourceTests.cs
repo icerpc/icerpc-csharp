@@ -16,12 +16,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsAsync()
         {
             await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             await using var server = new Server
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter1(),
-                Endpoint = "ice+coloc://event_source:0"
+                Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
@@ -29,7 +29,9 @@ namespace IceRpc.Tests.ClientServer
                 new (string, string)[]
                 {
                     ("total-requests", "1"),
-                    ("current-requests", "1")
+                    ("current-requests", "1"),
+                    ("current-requests", "0"), // Back to 0 after the request finish
+                    ("requests-per-second", "1")
                 });
 
             using var dispatchEventListener = new TestEventListener(
@@ -37,7 +39,9 @@ namespace IceRpc.Tests.ClientServer
                 new (string, string)[]
                 {
                     ("total-requests", "1"),
-                    ("current-requests", "1")
+                    ("current-requests", "1"),
+                    ("current-requests", "0"), // Back to 0 after the request finish
+                    ("requests-per-second", "1")
                 });
 
             DispatchEventSource.Log.ResetCounters();
@@ -54,12 +58,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsCanceledAsync()
         {
             await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             await using var server = new Server
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter2(),
-                Endpoint = "ice+coloc://event_source:0"
+                Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
@@ -68,7 +72,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ("total-requests", "1"),
                     ("current-requests", "1"),
-                    ("canceled-requests", "1")
+                    ("current-requests", "0"), // Back to 0 after the request finish
+                    ("canceled-requests", "1"),
                 });
 
             using var dispatchEventListener = new TestEventListener(
@@ -77,6 +82,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ("total-requests", "1"),
                     ("current-requests", "1"),
+                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("canceled-requests", "1")
                 });
 
@@ -95,12 +101,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsFailedAsync()
         {
             await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             await using var server = new Server
             {
                 Communicator = communicator,
                 Dispatcher = new Greeter3(),
-                Endpoint = "ice+coloc://event_source:0"
+                Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
@@ -109,6 +115,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ("total-requests", "1"),
                     ("current-requests", "1"),
+                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "1")
                 });
 
@@ -118,6 +125,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ("total-requests", "1"),
                     ("current-requests", "1"),
+                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "1")
                 });
 
@@ -195,21 +203,31 @@ namespace IceRpc.Tests.ClientServer
                     Assert.IsNotNull(eventData.Payload);
                     var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
 
-                    if (eventPayload.TryGetValue("Name", out object? nameValue) && 
-                        eventPayload.TryGetValue("Count", out object? countValue))
+                    string name = "";
+                    if (eventPayload.TryGetValue("Name", out object? nameValue))
                     {
-                        string name = nameValue?.ToString() ?? "";
-                        string value = countValue?.ToString() ?? "";
+                        name = nameValue?.ToString() ?? "";
+                    }
 
-                        foreach (var entry in _tasks)
+                    string value = "";
+                    if (eventPayload.TryGetValue("Increment", out object? incrementValue))
+                    {
+                        value = incrementValue?.ToString() ?? "";
+                    }
+                    else if (eventPayload.TryGetValue("Mean", out object? meanValue))
+                    {
+                        value = meanValue?.ToString() ?? "";
+                    }
+
+                    foreach (var entry in _tasks)
+                    {
+                        if (entry.Key == name && entry.Value == value)
                         {
-                            if (entry.Key == name && entry.Value == value)
-                            {
-                                entry.Source.TrySetResult(null);
-                                break;
-                            }
+                            entry.Source.TrySetResult(null);
+                            break;
                         }
                     }
+
                 }
                 base.OnEventWritten(eventData);
             }

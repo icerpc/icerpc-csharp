@@ -698,7 +698,6 @@ namespace IceRpc
                     }
                     Socket.Logger.LogSentResponse(response);
                 }
-                DispatchEventSource.Log.RequestStop(path, operation);
             }
             catch (Exception ex)
             {
@@ -711,6 +710,10 @@ namespace IceRpc
             }
             finally
             {
+                if (dispatchStarted)
+                {
+                    DispatchEventSource.Log.RequestStop(path, operation);
+                }
                 activity?.Stop();
                 stream?.Release();
             }

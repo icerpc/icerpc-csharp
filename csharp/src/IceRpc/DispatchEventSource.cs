@@ -29,7 +29,6 @@ namespace IceRpc
         {
             Interlocked.Increment(ref _totalRequests);
             Interlocked.Increment(ref _currentRequests);
-
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
                 WriteEvent(1, path, operation);
@@ -41,7 +40,6 @@ namespace IceRpc
         public void RequestStop(string path, string operation)
         {
             Interlocked.Decrement(ref _currentRequests);
-
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
                 WriteEvent(2, path, operation);
@@ -53,8 +51,6 @@ namespace IceRpc
         public void RequestCanceled(string path, string operation)
         {
             Interlocked.Increment(ref _canceledRequests);
-            Interlocked.Decrement(ref _currentRequests);
-
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
                 WriteEvent(3, path, operation);
@@ -65,7 +61,6 @@ namespace IceRpc
         public void RequestFailed(string path, string operation, Exception? exception)
         {
             Interlocked.Increment(ref _failedRequests);
-            Interlocked.Decrement(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
                 RequestFailed(path, operation, exception?.ToString() ?? "");

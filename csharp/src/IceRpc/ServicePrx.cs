@@ -685,11 +685,7 @@ namespace IceRpc
                     progress,
                     request.CancellationToken).ConfigureAwait(false);
                 
-                if (response.ResultType == ResultType.Success)
-                {
-                    InvocationEventSource.Log.RequestStop(request.Path, request.Operation);
-                }
-                else
+                if (response.ResultType != ResultType.Success)
                 {
                     InvocationEventSource.Log.RequestFailed(request.Path, request.Operation, null);
                 }
@@ -700,13 +696,9 @@ namespace IceRpc
                 InvocationEventSource.Log.RequestCanceled(request.Path, request.Operation);
                 throw;
             }
-            catch (Exception ex)
-            {
-                InvocationEventSource.Log.RequestFailed(request.Path, request.Operation, ex);
-                throw;
-            }
             finally
             {
+                InvocationEventSource.Log.RequestStop(request.Path, request.Operation);
                 activity?.Stop();
             }
 
