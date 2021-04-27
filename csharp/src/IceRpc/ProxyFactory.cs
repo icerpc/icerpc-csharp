@@ -260,8 +260,12 @@ namespace IceRpc
 
                 try
                 {
-                    // If there is no location resolver, it's a relative proxy. (TODO: temporary)
-                    if (endpoint == null && options.LocationResolver == null && istr.Connection != null)
+                    if (endpoint == null && (options.LocationResolver != null || istr.Connection == null))
+                    {
+                        endpoint = LocEndpoint.Create(identity); // well-known proxy with a loc endpoint (temporary)
+                    }
+
+                    if (endpoint == null && istr.Connection != null)
                     {
                         // The protocol of the connection prevails.
                         Protocol protocol = istr.Connection.Protocol;
@@ -301,11 +305,6 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (endpoint == null)
-                        {
-                            endpoint = LocEndpoint.Create(identity); // well-known proxy
-                        }
-
                         return factory.Create(identity, facet, encoding, endpoint, altEndpoints, null, options);
                     }
                 }
