@@ -618,8 +618,8 @@ namespace IceRpc
 
             Debug.Assert(stream != null);
 
-            string? operation = null;
-            string? path = null;
+            string operation = "";
+            string path = "";
             bool dispatchStarted = false;
             try
             {
