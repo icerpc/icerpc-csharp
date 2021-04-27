@@ -11,22 +11,16 @@ namespace IceRpc
 {
     public static class ProxyFactory
     {
-        /// <summary>Creates a proxy bound to connection, known as a fixed proxy.</summary>
+        /// <summary>Creates a proxy from a connection.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="factory">This proxy factory. Use INamePrx.Factory for this parameter, where INamePrx is the
         /// proxy type.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="path">The path of the service.</param>
-        /// <returns>A fixed proxy.</returns>
+        /// <returns>The new proxy.</returns>
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            if (connection.Dispatcher == null)
-            {
-                throw new InvalidOperationException(
-                    "cannot create a fixed proxy using a connection without a dispatcher");
-            }
-
             ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
             if (connection.Endpoint.IsDatagram && !options.IsOneway)
             {
@@ -37,7 +31,7 @@ namespace IceRpc
             return factory.Create(path,
                                   connection.Protocol,
                                   connection.Protocol.GetEncoding(),
-                                  null,
+                                  connection.IsIncoming ? null : connection.Endpoint,
                                   ImmutableList<Endpoint>.Empty,
                                   connection,
                                   options);
