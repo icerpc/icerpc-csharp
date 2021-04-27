@@ -634,6 +634,8 @@ namespace IceRpc
                 // Receives the request frame from the stream
                 using IncomingRequest request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+                request.Connection = this;
+                request.StreamId = stream.Id;
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
@@ -661,8 +663,6 @@ namespace IceRpc
 
                 try
                 {
-                    request.Connection = this;
-                    request.Stream = stream;
                     response = await DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)

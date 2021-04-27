@@ -40,7 +40,11 @@ namespace IceRpc
         public bool IsIdempotent { get; }
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => !Stream!.IsBidirectional;
+        public bool IsOneway => !IsBirectional;
+
+        /// <summary>Returns <c>True</c> if the stream that received this reqest is a bidirectional stream,
+        /// <c>False</c> otherwise.</summary>
+        public bool IsBirectional => StreamId % 4 < 2;
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
@@ -60,12 +64,11 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         public Identity Identity { get; } = Identity.Empty;
 
-        // TODO: merge these two steams together?
-        // The socket stream for this request.
-        internal SocketStream Stream
+        /// <summary>Id of the stream used to create this request.</summary>
+        internal long StreamId
         {
-            get => _stream ?? throw new InvalidOperationException("stream is not set");
-            set => _stream = value;
+            get => _streamId ?? throw new InvalidOperationException("stream ID is not set");
+            set => _streamId = value;
         }
 
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
@@ -94,10 +97,9 @@ namespace IceRpc
 
         /// <summary>Reads the arguments from a request.</summary>
         /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="connection">The current connection.</param>
         /// <param name="reader">The delegate used to read the arguments.</param>
         /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(Connection connection, InputStreamReader<T> reader)
+        public T ReadArgs<T>(InputStreamReader<T> reader)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)
             {
@@ -111,8 +113,8 @@ namespace IceRpc
 
             return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
                                                                 reader,
-                                                                connection: connection,
-                                                                proxyOptions: connection.Server?.ProxyOptions);
+                                                                connection: Connection,
+                                                                proxyOptions: Connection.Server?.ProxyOptions);
         }
 
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -169,7 +171,7 @@ namespace IceRpc
         }
 
         private Connection? _connection;
-        private SocketStream? _stream;
+        private long? _streamId;
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The Ice protocol.</param>

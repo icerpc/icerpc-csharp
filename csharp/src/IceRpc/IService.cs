@@ -27,7 +27,7 @@ namespace IceRpc
             /// <param name="request">The request frame.</param>
             /// <returns>The return value decoded from the frame.</returns>
             public static string IceIsA(IncomingRequest request) =>
-                 request.ReadArgs(request.Connection, InputStream.IceReaderIntoString);
+                 request.ReadArgs(InputStream.IceReaderIntoString);
         }
 
         /// <summary>Provides an <see cref="OutgoingResponse"/> factory method for each non-void remote operation

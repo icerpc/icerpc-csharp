@@ -403,9 +403,9 @@ namespace IceRpc
             FormatType format)
         {
             var response = new OutgoingResponse(dispatch.Protocol,
-                                                     dispatch.Encoding,
-                                                     dispatch.Connection.CompressionLevel,
-                                                     dispatch.Connection.CompressionMinSize);
+                                                dispatch.Encoding,
+                                                dispatch.Connection.CompressionLevel,
+                                                dispatch.Connection.CompressionMinSize);
 
             // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
             byte[] buffer = new byte[256];

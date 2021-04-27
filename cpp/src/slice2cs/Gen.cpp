@@ -2687,7 +2687,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << "(IceRpc.IncomingRequest request) =>";
                 _out.inc();
                 _out << nl;
-                _out << "request.ReadArgs(request.Connection, ";
+                _out << "request.ReadArgs(";
                 writeIncomingRequestReader(operation);
                 _out << ");";
                 _out.dec();

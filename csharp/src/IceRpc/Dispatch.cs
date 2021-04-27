@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace IceRpc
 {
     /// <summary>Information about the current method dispatch for servers. Each method on the server has a
-    /// Dispatch as a parameter.</summary>
+    /// Dispatch parameter.</summary>
     public sealed class Dispatch
     {
         /// <summary>The binary context carried by the incoming request frame.</summary>
@@ -36,7 +36,7 @@ namespace IceRpc
         public bool IsIdempotent => IncomingRequest.IsIdempotent;
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => !IncomingRequest.Stream.IsBidirectional;
+        public bool IsOneway => IncomingRequest.IsOneway;
 
         /// <summary>The operation name.</summary>
         public string Operation => IncomingRequest.Operation;
@@ -51,7 +51,7 @@ namespace IceRpc
         public Server? Server => Connection.Server;
 
         /// <summary>The stream ID</summary>
-        public long StreamId => IncomingRequest.Stream.Id;
+        public long StreamId => IncomingRequest.StreamId;
 
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
