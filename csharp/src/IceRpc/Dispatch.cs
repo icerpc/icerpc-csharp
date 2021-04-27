@@ -16,7 +16,7 @@ namespace IceRpc
         public Communicator Communicator => Connection.Communicator!;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
-        public Connection Connection => IncomingRequest.Connection!;
+        public Connection Connection => IncomingRequest.Connection;
 
         /// <summary>The request context, as received from the client.</summary>
         public SortedDictionary<string, string> Context => IncomingRequest.Context;
@@ -36,7 +36,7 @@ namespace IceRpc
         public bool IsIdempotent => IncomingRequest.IsIdempotent;
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => !IncomingRequest.Stream!.IsBidirectional;
+        public bool IsOneway => !IncomingRequest.Stream.IsBidirectional;
 
         /// <summary>The operation name.</summary>
         public string Operation => IncomingRequest.Operation;
@@ -51,7 +51,7 @@ namespace IceRpc
         public Server? Server => Connection.Server;
 
         /// <summary>The stream ID</summary>
-        public long StreamId => IncomingRequest.Stream!.Id;
+        public long StreamId => IncomingRequest.Stream.Id;
 
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
