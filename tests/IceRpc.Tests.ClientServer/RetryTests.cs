@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Retry_FixedReference()
+        public async Task Retry_EndpointlessProxy()
         {
             await using var communicator = new Communicator();
             await using var server = new Server
@@ -88,7 +88,7 @@ namespace IceRpc.Tests.ClientServer
             connection.Dispatcher = server.Dispatcher;
             IRetryBidirServicePrx bidir = proxy.Clone();
             bidir.Connection = connection;
-            bidir.Endpoint = ""; // fixed proxy
+            bidir.Endpoint = ""; // endpointless proxy with a connection
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
@@ -351,14 +351,14 @@ namespace IceRpc.Tests.ClientServer
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;
-                    retry1.Endpoint = ""; // fixed proxy
+                    retry1.Endpoint = ""; // endpointless proxy
 
                     Task t1 = retry1.OpWithDataAsync(2, 5000, data);
                     await Task.Delay(1000); // Ensure the first request is sent before the second request
 
                     var retry2 = retry.Clone();
                     retry2.Connection = connection2;
-                    retry2.Endpoint = ""; // fixed proxy
+                    retry2.Endpoint = ""; // endpointless proxy
                     Task t2 = retry2.OpWithDataAsync(2, 0, data);
 
                     Assert.DoesNotThrowAsync(async () => await t1);

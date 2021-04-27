@@ -365,7 +365,7 @@ namespace IceRpc
                     {
                         ostr.WriteSequence(endpoints, (ostr, endpoint) => ostr.WriteEndpoint11(endpoint));
                     }
-                    else // marshaled as relative/well-known proxy
+                    else // marshaled as an endpointless proxy
                     {
                         ostr.WriteSize(0); // 0 endpoints
                         ostr.WriteString(""); // empty adapter ID
@@ -508,7 +508,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    sb.Append("ice:"); // relative proxy
+                    sb.Append("ice:"); // endpointless proxy
                     sb.Append(Path);
                 }
 

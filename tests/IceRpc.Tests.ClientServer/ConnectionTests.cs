@@ -372,11 +372,11 @@ namespace IceRpc.Tests.ClientServer
                 // to fail with ConnectionClosedException.
                 await using var connection = await Connection.CreateAsync(Endpoint.Parse(prx.Endpoint), prx.Communicator);
                 cb = new ProgressCallback();
-                IConnectionTestPrx fixedPrx = prx.Clone();
-                fixedPrx.Connection = connection;
-                fixedPrx.Endpoint = "";
+                IConnectionTestPrx endpointless = prx.Clone();
+                endpointless.Connection = connection;
+                endpointless.Endpoint = "";
 
-                Task t = fixedPrx.StartDispatchAsync(progress: cb);
+                Task t = endpointless.StartDispatchAsync(progress: cb);
                 await cb.Completed.Task; // Ensure the request was sent before closing the connection.
                 _ = connection.GoAwayAsync();
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);

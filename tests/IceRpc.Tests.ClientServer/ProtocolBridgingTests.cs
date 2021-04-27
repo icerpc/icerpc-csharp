@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
 
-            // When colocated, the proxy is a relative proxy and inherits the forwarder's proxy protocol.
+            // When colocated, the proxy is an endpointless proxy and "inherits" the forwarder's proxy protocol.
             Assert.AreEqual(colocated ? forwarderProtocol : targetProtocol, newPrx.Protocol);
 
             _ = await TestProxyAsync(newPrx, direct: true);

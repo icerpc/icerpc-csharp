@@ -256,7 +256,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
         [TestCase("ice+tcp://host.zeroc.com/identity?invocation-timeout=0s")] // 0 is not a valid invocation timeout
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
-        [TestCase("ice:foo?fixed=true")] // cannot create fixed proxy from URI
         [TestCase("")]
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
@@ -376,28 +375,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual((Transport)100, universalEndpoint.Transport);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
-        }
-
-        [TestCase(Protocol.Ice1, "fixed -t -e 1.1")]
-        [TestCase(Protocol.Ice2, "ice:/fixed?fixed=true")]
-        public async Task Proxy_Fixed(Protocol protocol, string _)
-        {
-            await using var communicator = new Communicator();
-            await using var server = new Server
-            {
-                Communicator = communicator,
-                Dispatcher = new GreeterService(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
-            };
-            server.Listen();
-            var prx = server.CreateProxy<IGreeterServicePrx>("/greeter");
-
-            // TODO: this does not work. A fixed proxy must be bound to a non-coloc connection.
-
-            // Connection connection = await prx.GetConnectionAsync();
-
-            // prx.FixedConnection = connection;
-            // Assert.AreEqual(expected, prx.WithPath<IGreeterServicePrx>("fixed").ToString());
         }
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>

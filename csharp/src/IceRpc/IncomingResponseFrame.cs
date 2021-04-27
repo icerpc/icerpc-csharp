@@ -40,8 +40,7 @@ namespace IceRpc
         /// <summary>Reads the return value. If this response frame carries a failure, reads and throws this exception.
         /// </summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request. <c>proxy</c> is used to read relative proxies.
-        /// </param>
+        /// <param name="proxy">The proxy used to send the request.</param>
         /// <param name="reader">An input stream reader used to read the frame return value, when the frame
         /// return value contain multiple values the reader must use a tuple to return the values.</param>
         /// <returns>The frame return value.</returns>
@@ -68,8 +67,7 @@ namespace IceRpc
         /// <summary>Reads the return value which contains a stream return value. If this response frame carries a
         /// failure, reads and throws this exception.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request. <c>proxy</c> is used to read relative proxies.
-        /// </param>
+        /// <param name="proxy">The proxy used to send the request.</param>
         /// <param name="reader">A reader used to read the frame return value, when the frame return value contain
         /// multiple values the reader must use a tuple to return the values.</param>
         /// <returns>The frame return value.</returns>
@@ -112,8 +110,7 @@ namespace IceRpc
         /// <summary>Reads the return value which is a stream return value only. If this response frame carries a
         /// failure, reads and throws this exception.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request. <c>proxy</c> is used to read relative proxies.
-        /// </param>
+        /// <param name="proxy">The proxy used to send the request.</param>
         /// <param name="reader">A reader used to read the frame return value.</param>
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
@@ -148,8 +145,7 @@ namespace IceRpc
 
         /// <summary>Reads the return value and makes sure this return value is empty (void) or has only unknown tagged
         /// members. If this response frame carries a failure, reads and throws this exception.</summary>
-        /// <param name="proxy">The proxy used to send the request. <c>proxy</c> is used to read relative proxies.
-        /// </param>
+        /// <param name="proxy">The proxy used to send the request.</param>
         public void ReadVoidReturnValue(IServicePrx proxy)
         {
             if (PayloadCompressionFormat != CompressionFormat.Decompressed)

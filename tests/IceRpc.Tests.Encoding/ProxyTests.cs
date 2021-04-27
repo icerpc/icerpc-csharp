@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
 
             // Create an endpointless proxy
-            IServicePrx endpointLess = _server.CreateRelativeProxy<IServicePrx>("/foo");
+            IServicePrx endpointLess = _server.CreateEndpointlessProxy<IServicePrx>("/foo");
 
             IServicePrx regular = _server.CreateProxy<IServicePrx>("/bar");
             Connection connection = await regular.GetConnectionAsync();
