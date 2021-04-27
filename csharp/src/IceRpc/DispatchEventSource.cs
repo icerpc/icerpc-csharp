@@ -104,7 +104,7 @@ namespace IceRpc
                 };
 
                 _requestsPerSecondCounter ??= new IncrementingPollingCounter(
-                    "request-per-second",
+                    "requests-per-second",
                     this,
                     () => Volatile.Read(ref _totalRequests))
                 {
