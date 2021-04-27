@@ -625,184 +625,184 @@ namespace IceRpc.Tests.CodeGeneration
         {
             public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
                 AnotherStruct? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructListAsync(
                 List<AnotherStruct>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructSeqAsync(
                 AnotherStruct[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(bool? R1, bool? R2)> OpBoolAsync(
                 bool? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<bool>? R1, IEnumerable<bool>? R2)> OpBoolListAsync(
                 List<bool>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<bool> R1, ReadOnlyMemory<bool> R2)> OpBoolSeqAsync(
-                bool[]? p1, Current current, CancellationToken cancel) => new((p1, p1));
+                bool[]? p1, Dispatch dispatch, CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(byte? R1, byte? R2)> OpByteAsync(
                 byte? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<byte>? R1, IEnumerable<byte>? R2)> OpByteListAsync(
                 List<byte>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpByteSeqAsync(
                 byte[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(double? R1, double? R2)> OpDoubleAsync(
                 double? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<double>? R1, IEnumerable<double>? R2)> OpDoubleListAsync(
                 List<double>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<double> R1, ReadOnlyMemory<double> R2)> OpDoubleSeqAsync(
                 double[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(float? R1, float? R2)> OpFloatAsync(
                 float? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<float>? R1, IEnumerable<float>? R2)> OpFloatListAsync(
                 List<float>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<float> R1, ReadOnlyMemory<float> R2)> OpFloatSeqAsync(
                 float[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(int? R1, int? R2)> OpIntAsync(
                 int? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IReadOnlyDictionary<int, int>? R1, IReadOnlyDictionary<int, int>? R2)> OpIntDictAsync(
                 Dictionary<int, int>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<IOptionalOperations.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
                 Dictionary<int, int>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpIntDictMarshaledResultMarshaledReturnValue(p1, current));
+                new(new IOptionalOperations.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
 
             public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
                 List<int>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<int> R1, ReadOnlyMemory<int> R2)> OpIntSeqAsync(
                 int[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(long? R1, long? R2)> OpLongAsync(
                 long? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<long>? R1, IEnumerable<long>? R2)> OpLongListAsync(
                 List<long>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpLongSeqAsync(
                 long[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(MyEnum? R1, MyEnum? R2)> OpMyEnumAsync(
                 MyEnum? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(MyStruct? R1, MyStruct? R2)> OpMyStructAsync(
                 MyStruct? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructListAsync(
                 List<MyStruct>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<IOptionalOperations.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
                 MyStruct? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, current));
+                new(new IOptionalOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
 
             public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
                 MyStruct[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(short? R1, short? R2)> OpShortAsync(
                 short? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<short>? R1, IEnumerable<short>? R2)> OpShortListAsync(
                 List<short>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(ReadOnlyMemory<short> R1, ReadOnlyMemory<short> R2)> OpShortSeqAsync(
                 short[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(string? R1, string? R2)> OpStringAsync(
                 string? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IReadOnlyDictionary<string, string>? R1, IReadOnlyDictionary<string, string>? R2)> OpStringDictAsync(
                 Dictionary<string, string>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<string>? R1, IEnumerable<string>? R2)> OpStringListAsync(
                 List<string>? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<(IEnumerable<string>? R1, IEnumerable<string>? R2)> OpStringSeqAsync(
                 string[]? p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
             public ValueTask<IOptionalOperations.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
                 string[]? p1,
-                Current current,
-                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, current));
-            public ValueTask<AnyClass?> PingPongAsync(AnyClass? o, Current current, CancellationToken cancel) =>
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
+            public ValueTask<AnyClass?> PingPongAsync(AnyClass? o, Dispatch dispatch, CancellationToken cancel) =>
                 new(o);
         }
     }

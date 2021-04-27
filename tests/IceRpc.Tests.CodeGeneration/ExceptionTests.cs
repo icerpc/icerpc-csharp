@@ -83,8 +83,8 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class ExceptionOperations : IAsyncExceptionOperations
         {
-            public ValueTask ThrowAAsync(int a, Current current, CancellationToken cancel) => throw new MyExceptionA(a);
-            public ValueTask ThrowAorBAsync(int a, Current current, CancellationToken cancel)
+            public ValueTask ThrowAAsync(int a, Dispatch dispatch, CancellationToken cancel) => throw new MyExceptionA(a);
+            public ValueTask ThrowAorBAsync(int a, Dispatch dispatch, CancellationToken cancel)
             {
                 if (a > 0)
                 {

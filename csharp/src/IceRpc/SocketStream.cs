@@ -328,23 +328,22 @@ namespace IceRpc
             _socket.Logger.LogReceivedInitializeFrame(_socket);
         }
 
-        internal async virtual ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(
-            CancellationToken cancel = default)
+        internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
 
-            IncomingRequestFrame request;
+            IncomingRequest request;
             if (ReceivedEndOfStream)
             {
-                request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, null);
+                request = new IncomingRequest(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                request = new IncomingRequestFrame(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
+                request = new IncomingRequest(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
             return request;
@@ -491,7 +490,7 @@ namespace IceRpc
         }
 
         internal async ValueTask SendResponseFrameAsync(
-            OutgoingResponseFrame response,
+            OutgoingResponse response,
             CancellationToken cancel = default)
         {
             // Send the response frame.

@@ -73,9 +73,9 @@ namespace IceRpc
         /// <param name="progress">Sent progress provider.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task holding the response frame.</returns>
-        public static async ValueTask<OutgoingResponseFrame> ForwardAsync(
+        public static async ValueTask<OutgoingResponse> ForwardAsync(
             this IServicePrx proxy,
-            IncomingRequestFrame request,
+            IncomingRequest request,
             bool oneway,
             IProgress<bool>? progress = null,
             CancellationToken cancel = default)
@@ -86,11 +86,11 @@ namespace IceRpc
                 // TODO: add support for stream data forwarding.
                 using IncomingResponseFrame response =
                     await ServicePrx.InvokeAsync(proxy, forwardedRequest, oneway, progress).ConfigureAwait(false);
-                return new OutgoingResponseFrame(request, response);
+                return new OutgoingResponse(request, response);
             }
             catch (LimitExceededException exception)
             {
-                return new OutgoingResponseFrame(request, new ServerException(exception.Message, exception));
+                return new OutgoingResponse(request, new ServerException(exception.Message, exception));
             }
         }
 

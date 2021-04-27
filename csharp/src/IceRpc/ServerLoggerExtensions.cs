@@ -56,11 +56,15 @@ namespace IceRpc
 
         internal static void LogServerDispatchException(
             this ILogger logger,
-            Current current,
+            Server server,
+            IncomingRequest request,
             Exception ex) =>
-            _serverDispatchException(logger, current.Server, current.Path, current.Operation, ex);
+            _serverDispatchException(logger, server, request.Path, request.Operation, ex);
 
-        internal static void LogServerDispatchCanceledByClient(this ILogger logger, Current current) =>
-            _serverDispatchCanceledByClient(logger, current.Server, current.Path, current.Operation, null!);
+        internal static void LogServerDispatchCanceledByClient(
+            this ILogger logger,
+            Server server,
+            IncomingRequest request) =>
+            _serverDispatchCanceledByClient(logger, server, request.Path, request.Operation, null!);
     }
 }

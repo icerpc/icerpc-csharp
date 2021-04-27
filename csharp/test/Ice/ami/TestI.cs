@@ -13,19 +13,19 @@ namespace IceRpc.Test.AMI
         private TaskCompletionSource<object?>? _pending;
         private int _value;
 
-        public void Op(Current current, CancellationToken cancel)
+        public void Op(Dispatch dispatch, CancellationToken cancel)
         {
         }
 
-        public int OpWithResult(Current current, CancellationToken cancel) => 15;
+        public int OpWithResult(Dispatch dispatch, CancellationToken cancel) => 15;
 
-        public void OpWithUE(Current current, CancellationToken cancel) => throw new TestIntfException();
+        public void OpWithUE(Dispatch dispatch, CancellationToken cancel) => throw new TestIntfException();
 
-        public void OpWithPayload(byte[] seq, Current current, CancellationToken cancel)
+        public void OpWithPayload(byte[] seq, Dispatch dispatch, CancellationToken cancel)
         {
         }
 
-        public void Close(CloseMode mode, Current current, CancellationToken cancel)
+        public void Close(CloseMode mode, Dispatch dispatch, CancellationToken cancel)
         {
             if (mode == CloseMode.Gracefully)
             {
@@ -37,7 +37,7 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public void Sleep(int ms, Current current, CancellationToken cancel)
+        public void Sleep(int ms, Dispatch dispatch, CancellationToken cancel)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public void Shutdown(Current current, CancellationToken cancel)
+        public void Shutdown(Dispatch dispatch, CancellationToken cancel)
         {
             lock (_mutex)
             {
@@ -68,20 +68,20 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public bool SupportsAMD(Current current, CancellationToken cancel) => true;
+        public bool SupportsAMD(Dispatch dispatch, CancellationToken cancel) => true;
 
-        public bool SupportsFunctionalTests(Current current, CancellationToken cancel) => false;
+        public bool SupportsFunctionalTests(Dispatch dispatch, CancellationToken cancel) => false;
 
-        public async ValueTask OpAsyncDispatchAsync(Current current, CancellationToken cancel) =>
+        public async ValueTask OpAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel) =>
             await Task.Delay(10, cancel);
 
-        public async ValueTask<int> OpWithResultAsyncDispatchAsync(Current current, CancellationToken cancel)
+        public async ValueTask<int> OpWithResultAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {
             await Task.Delay(10, cancel);
             return await Self(current).OpWithResultAsync(cancel: cancel);
         }
 
-        public async ValueTask OpWithUEAsyncDispatchAsync(Current current, CancellationToken cancel)
+        public async ValueTask OpWithUEAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {
             await Task.Delay(10, cancel);
             try
@@ -95,10 +95,10 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        private static ITestIntfPrx Self(Current current) =>
+        private static ITestIntfPrx Self(Dispatch dispatch) =>
             current.Server.CreateProxy<ITestIntfPrx>(current.Path);
 
-        public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
+        public ValueTask StartDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {
             lock (_mutex)
             {
@@ -119,7 +119,7 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public void FinishDispatch(Current current, CancellationToken cancel)
+        public void FinishDispatch(Dispatch dispatch, CancellationToken cancel)
         {
             lock (_mutex)
             {
@@ -135,14 +135,14 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public int Set(int newValue, Current current, CancellationToken cancel)
+        public int Set(int newValue, Dispatch dispatch, CancellationToken cancel)
         {
             int oldValue = _value;
             _value = newValue;
             return oldValue;
         }
 
-        public void SetOneway(int previousValue, int newValue, Current current, CancellationToken cancel)
+        public void SetOneway(int previousValue, int newValue, Dispatch dispatch, CancellationToken cancel)
         {
             if (_value != previousValue)
             {
@@ -155,6 +155,6 @@ namespace IceRpc.Test.AMI
 
     public class TestIntf2 : Outer.Inner.ITestIntf
     {
-        public (int, int) Op(int i, Current current, CancellationToken cancel) => (i, i);
+        public (int, int) Op(int i, Dispatch dispatch, CancellationToken cancel) => (i, i);
     }
 }

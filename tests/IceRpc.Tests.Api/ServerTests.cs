@@ -350,16 +350,16 @@ namespace IceRpc.Tests.Api
             private TaskCompletionSource<object?> _waitForCancelInProgressSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(current.Server.CreateRelativeProxy<IProxyTestPrx>(current.Path));
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+                new(dispatch.Server.CreateRelativeProxy<IProxyTestPrx>(dispatch.Path));
 
-            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
+            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {
                 Proxy = proxy;
                 return default;
             }
 
-            public async ValueTask WaitForCancelAsync(Current current, CancellationToken cancel)
+            public async ValueTask WaitForCancelAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.IsTrue(cancel.CanBeCanceled);
                 _waitForCancelInProgressSource.SetResult(null);

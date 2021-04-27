@@ -279,7 +279,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public OutgoingRequestFrame(
             IServicePrx proxy,
-            IncomingRequestFrame request,
+            IncomingRequest request,
             bool forwardBinaryContext = true,
             CancellationToken cancel = default)
             : this(proxy, request.Operation, request.IsIdempotent, request.Context, cancel)
@@ -316,7 +316,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() => new IncomingRequestFrame(this);
+        internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
         /// <inheritdoc/>
         internal override void WriteHeader(OutputStream ostr)

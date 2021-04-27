@@ -66,7 +66,7 @@ namespace IceRpc
                             // Ignore the stream has been aborted.
                         }
                     }
-                    else if (frame is IncomingRequestFrame || streamId == (IsIncoming ? 2 : 3))
+                    else if (frame is IncomingRequest || streamId == (IsIncoming ? 2 : 3))
                     {
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.

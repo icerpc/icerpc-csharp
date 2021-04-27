@@ -171,11 +171,11 @@ namespace IceRpc
         /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
         /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
         /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="current">The request being dispatched.</param>
+        /// <param name="request">The request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
+        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
         /// <remarks>This method is called by the IceRPC connection code when it receives a request.</remarks>
-        async ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
+        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             // temporary
             ProxyOptions.Communicator ??= Communicator;
@@ -185,7 +185,7 @@ namespace IceRpc
                 var ex = new UnhandledException(
                     new InvalidOperationException($"call {nameof(Listen)} before dispatching colocated requests"));
 
-                return new OutgoingResponseFrame(current.IncomingRequestFrame, ex);
+                return new OutgoingResponse(request, ex);
             }
 
             if (Dispatcher is IDispatcher dispatcher)
@@ -197,8 +197,8 @@ namespace IceRpc
 
                 try
                 {
-                    OutgoingResponseFrame response =
-                        await dispatcher.DispatchAsync(current, combinedSource.Token).ConfigureAwait(false);
+                    OutgoingResponse response =
+                        await dispatcher.DispatchAsync(request, combinedSource.Token).ConfigureAwait(false);
 
                     cancel.ThrowIfCancellationRequested();
                     return response;
@@ -206,7 +206,7 @@ namespace IceRpc
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested)
                 {
                     // The client requested cancellation, we log it and let it propagate.
-                    Logger.LogServerDispatchCanceledByClient(current);
+                    Logger.LogServerDispatchCanceledByClient(this, request);
                     throw;
                 }
                 catch (Exception ex)
@@ -219,11 +219,11 @@ namespace IceRpc
                     // else it's another OperationCanceledException that the implementation should have caught, and it
                     // will become an UnhandledException below.
 
-                    if (current.IsOneway)
+                    if (request.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
-                        Logger.LogServerDispatchException(current, ex);
-                        return OutgoingResponseFrame.WithVoidReturnValue(current);
+                        Logger.LogServerDispatchException(this, request, ex);
+                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
                     }
                     else
                     {
@@ -237,16 +237,15 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                            Logger.LogServerDispatchException(current, ex);
+                            Logger.LogServerDispatchException(this, request, ex);
                         }
-                        return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
+                        return new OutgoingResponse(request, actualEx);
                     }
                 }
             }
             else
             {
-                return new OutgoingResponseFrame(current.IncomingRequestFrame,
-                                                 new ServiceNotFoundException(RetryPolicy.OtherReplica));
+                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 

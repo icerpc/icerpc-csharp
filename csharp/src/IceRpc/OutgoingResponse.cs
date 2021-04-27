@@ -9,7 +9,7 @@ using System.Diagnostics;
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame sent by the application.</summary>
-    public sealed class OutgoingResponseFrame : OutgoingFrame
+    public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
@@ -25,20 +25,20 @@ namespace IceRpc
         // and the first segment has always at least 2 bytes.
         private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
 
-        /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation that returns void.</summary>
-        /// <param name="current">The Current object for the corresponding incoming request.</param>
-        /// <returns>A new OutgoingResponseFrame.</returns>
-        public static OutgoingResponseFrame WithVoidReturnValue(Current current)
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
+        /// <param name="dispatch">The dispatch object for the corresponding incoming request.</param>
+        /// <returns>A new OutgoingResponse.</returns>
+        public static OutgoingResponse WithVoidReturnValue(Dispatch dispatch)
         {
-            var response = new OutgoingResponseFrame(current.Protocol, current.Encoding);
-            response.Payload.Add(current.Protocol.GetVoidReturnPayload(current.Encoding));
+            var response = new OutgoingResponse(dispatch.Protocol, dispatch.Encoding);
+            response.Payload.Add(dispatch.Protocol.GetVoidReturnPayload(dispatch.Encoding));
             return response;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation with a non-tuple non-struct
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a non-tuple non-struct
         /// return type.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="current">The Current object for the corresponding incoming request.</param>
+        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
         /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
         /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
@@ -46,56 +46,56 @@ namespace IceRpc
         /// <param name="returnValue">The return value to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
         /// </param>
-        /// <returns>A new OutgoingResponseFrame.</returns>
-        public static OutgoingResponseFrame WithReturnValue<T>(
-            Current current,
+        /// <returns>A new OutgoingResponse.</returns>
+        public static OutgoingResponse WithReturnValue<T>(
+            Dispatch dispatch,
             bool compress,
             FormatType format,
             T returnValue,
             OutputStreamWriter<T> writer)
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
+            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
             writer(ostr, returnValue);
             ostr.Finish();
-            if (compress && current.Encoding == Encoding.V20)
+            if (compress && dispatch.Encoding == Encoding.V20)
             {
                 response.CompressPayload();
             }
             return response;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation with a single stream return
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a single stream return
         /// value.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="current">The Current object for the corresponding incoming request.</param>
+        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
         /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
         /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
         /// <param name="writer">The delegate that will send the stream return value.</param>
-        /// <returns>A new OutgoingResponseFrame.</returns>
+        /// <returns>A new OutgoingResponse.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Microsoft.Performance",
             "CA1801: Review unused parameters",
             Justification = "TODO")]
-        public static OutgoingResponseFrame WithReturnValue<T>(
-            Current current,
+        public static OutgoingResponse WithReturnValue<T>(
+            Dispatch dispatch,
             bool compress,
             FormatType format,
             T returnValue,
             Action<SocketStream, T, System.Threading.CancellationToken> writer)
         {
-            OutgoingResponseFrame response = WithVoidReturnValue(current);
+            OutgoingResponse response = WithVoidReturnValue(dispatch);
             // TODO: deal with compress, format and cancellation token
             response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
             return response;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation with a tuple or struct return
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple or struct return
         /// type.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="current">The Current object for the corresponding incoming request.</param>
+        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
         /// <param name="compress">True if the response payload should be compressed, false otherwise. Applies only
         /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
@@ -103,49 +103,49 @@ namespace IceRpc
         /// <param name="returnValue">The return value to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
         /// </param>
-        /// <returns>A new OutgoingResponseFrame.</returns>
-        public static OutgoingResponseFrame WithReturnValue<T>(
-            Current current,
+        /// <returns>A new OutgoingResponse.</returns>
+        public static OutgoingResponse WithReturnValue<T>(
+            Dispatch dispatch,
             bool compress,
             FormatType format,
             in T returnValue,
             OutputStreamValueWriter<T> writer)
             where T : struct
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
+            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
             writer(ostr, in returnValue);
             ostr.Finish();
-            if (compress && current.Encoding == Encoding.V20)
+            if (compress && dispatch.Encoding == Encoding.V20)
             {
                 response.CompressPayload();
             }
             return response;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingResponseFrame"/> for an operation with a tuple return
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple return
         /// type where the tuple return type contains a stream return value.</summary>
         /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="current">The Current object for the corresponding incoming request.</param>
+        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
         /// <param name="compress">True if the response payload should be compressed, false otherwise Applies only
         /// to the 2.0 encoding.</param>
         /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
         /// class instances.</param>
         /// <param name="returnValue">The return value to write into the frame.</param>
         /// <param name="writer">The delegate that writes the return value into the frame.</param>
-        /// <returns>A new OutgoingResponseFrame.</returns>
-        public static OutgoingResponseFrame WithReturnValue<T>(
-            Current current,
+        /// <returns>A new OutgoingResponse.</returns>
+        public static OutgoingResponse WithReturnValue<T>(
+            Dispatch dispatch,
             bool compress,
             FormatType format,
             in T returnValue,
             OutputStreamValueWriterWithStreamable<T> writer)
             where T : struct
         {
-            (OutgoingResponseFrame response, OutputStream ostr) = PrepareReturnValue(current, format);
+            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
             // TODO: deal with compress, format and cancellation token
             response.StreamDataWriter = writer(ostr, in returnValue, default);
             ostr.Finish();
-            if (compress && current.Encoding == Encoding.V20)
+            if (compress && dispatch.Encoding == Encoding.V20)
             {
                 response.CompressPayload();
             }
@@ -159,8 +159,8 @@ namespace IceRpc
         /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming response frame's
         /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
         /// except for entries previously added by dispatch interceptors.</param>
-        public OutgoingResponseFrame(
-            IncomingRequestFrame request,
+        public OutgoingResponse(
+            IncomingRequest request,
             IncomingResponseFrame response,
             bool forwardBinaryContext = true)
             : this(request.Protocol, response.PayloadEncoding)
@@ -273,7 +273,7 @@ namespace IceRpc
         /// <summary>Constructs a response frame that represents a failure and contains an exception.</summary>
         /// <param name="request">The incoming request for which this constructor creates a response.</param>
         /// <param name="exception">The exception to store into the frame's payload.</param>
-        public OutgoingResponseFrame(IncomingRequestFrame request, RemoteException exception)
+        public OutgoingResponse(IncomingRequest request, RemoteException exception)
             : this(request.Protocol, request.PayloadEncoding)
         {
             ReplyStatus replyStatus = ReplyStatus.UserException;
@@ -398,14 +398,14 @@ namespace IceRpc
             }
         }
 
-        private static (OutgoingResponseFrame ResponseFrame, OutputStream Ostr) PrepareReturnValue(
-            Current current,
+        private static (OutgoingResponse ResponseFrame, OutputStream Ostr) PrepareReturnValue(
+            Dispatch dispatch,
             FormatType format)
         {
-            var response = new OutgoingResponseFrame(current.Protocol,
-                                                     current.Encoding,
-                                                     current.Connection.CompressionLevel,
-                                                     current.Connection.CompressionMinSize);
+            var response = new OutgoingResponse(dispatch.Protocol,
+                                                     dispatch.Encoding,
+                                                     dispatch.Connection.CompressionLevel,
+                                                     dispatch.Connection.CompressionMinSize);
 
             // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
             byte[] buffer = new byte[256];
@@ -419,7 +419,7 @@ namespace IceRpc
             return (response, ostr);
         }
 
-        private OutgoingResponseFrame(
+        private OutgoingResponse(
             Protocol protocol,
             Encoding encoding,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,

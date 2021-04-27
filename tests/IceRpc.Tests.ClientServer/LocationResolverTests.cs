@@ -80,7 +80,7 @@ namespace IceRpc.Tests.ClientServer
 
         private class GreeterTestService : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         // A very simple location resolver with no cache that resolves a single location represented by location and

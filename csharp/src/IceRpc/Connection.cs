@@ -619,13 +619,13 @@ namespace IceRpc
                 }
 
                 // Receives the request frame from the stream
-                using IncomingRequestFrame request =
+                using IncomingRequest request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
 
                 Socket.Logger.LogReceivedRequest(request);
 
                 // If no server is configure to dispatch the request, return a ServiceNotFoundException to the caller.
-                OutgoingResponseFrame? response = null;
+                OutgoingResponse? response = null;
                 Server? server = _server;
 
                 try
@@ -634,17 +634,17 @@ namespace IceRpc
                     {
                         if (stream.IsBidirectional)
                         {
-                            response = new OutgoingResponseFrame(request, new ServiceNotFoundException());
+                            response = new OutgoingResponse(request, new ServiceNotFoundException());
                             cancel.ThrowIfCancellationRequested(); // a very rare situation
                         }
                     }
                     else
                     {
                         // Dispatch the request and get the response
-                        var current = new Current(server, request, stream, this);
+                        request.Connection = this;
+                        request.Stream = stream;
                         IDispatcher dispatcher = server;
-
-                        response = await dispatcher.DispatchAsync(current, cancel).ConfigureAwait(false);
+                        response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -666,7 +666,7 @@ namespace IceRpc
                     {
                         // Send the exception as the response instead of sending the response from the dispatch
                         // if sending raises a remote exception.
-                        response = new OutgoingResponseFrame(request, ex);
+                        response = new OutgoingResponse(request, ex);
                         await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
                     }
                     Socket.Logger.LogSentResponse(response);

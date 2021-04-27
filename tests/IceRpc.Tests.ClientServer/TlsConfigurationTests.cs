@@ -431,7 +431,7 @@ namespace IceRpc.Tests.ClientServer
 
         internal class GreeterTestService : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         [Flags]

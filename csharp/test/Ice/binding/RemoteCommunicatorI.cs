@@ -13,7 +13,7 @@ namespace IceRpc.Test.Binding
         public ValueTask<IRemoteServerPrx> CreateServerAsync(
             string name,
             string transport,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel)
         {
             int retry = 5;
@@ -54,7 +54,7 @@ namespace IceRpc.Test.Binding
         public ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
             string name,
             string endpoints,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel)
         {
             var server = new Server
@@ -71,11 +71,11 @@ namespace IceRpc.Test.Binding
         // Coloc call.
         public ValueTask DeactivateServerAsync(
             IRemoteServerPrx server,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel) =>
             new(server.DeactivateAsync(cancel: cancel));
 
-        public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
+        public ValueTask ShutdownAsync(Dispatch dispatch, CancellationToken cancel)
         {
             _ = current.Server.ShutdownAsync(); // only initiate shutdown
             return default;

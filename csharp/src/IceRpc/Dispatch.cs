@@ -6,20 +6,20 @@ using System.Collections.Generic;
 namespace IceRpc
 {
     /// <summary>Information about the current method dispatch for servers. Each method on the server has a
-    /// Current as its final parameter.</summary>
-    public sealed class Current
+    /// Dispatch as a parameter.</summary>
+    public sealed class Dispatch
     {
         /// <summary>The binary context carried by the incoming request frame.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequestFrame.BinaryContext;
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequest.BinaryContext;
 
         /// <summary>The communicator.</summary>
         public Communicator Communicator => Server.Communicator!;
 
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
-        public Connection Connection { get; }
+        public Connection Connection => IncomingRequest.Connection!;
 
         /// <summary>The request context, as received from the client.</summary>
-        public SortedDictionary<string, string> Context => IncomingRequestFrame.Context;
+        public SortedDictionary<string, string> Context => IncomingRequest.Context;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -27,47 +27,35 @@ namespace IceRpc
         /// this deadline automatically using the proxy's invocation timeout and sends it with ice2 requests but not
         /// with ice1 requests. As a result, the deadline for an ice1 request is always <see cref="DateTime.MaxValue"/>
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline => IncomingRequestFrame.Deadline;
+        public DateTime Deadline => IncomingRequest.Deadline;
 
         /// <summary>The encoding used by the request.</summary>
-        public Encoding Encoding => IncomingRequestFrame.PayloadEncoding;
-
-        /// <summary>The incoming request frame.</summary>
-        public IncomingRequestFrame IncomingRequestFrame { get; }
+        public Encoding Encoding => IncomingRequest.PayloadEncoding;
 
         /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
-        public bool IsIdempotent => IncomingRequestFrame.IsIdempotent;
+        public bool IsIdempotent => IncomingRequest.IsIdempotent;
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => !Stream.IsBidirectional;
+        public bool IsOneway => !IncomingRequest.Stream!.IsBidirectional;
 
         /// <summary>The operation name.</summary>
-        public string Operation => IncomingRequestFrame.Operation;
+        public string Operation => IncomingRequest.Operation;
 
         /// <summary>The path (percent-escaped).</summary>
-        public string Path => IncomingRequestFrame.Path;
+        public string Path => IncomingRequest.Path;
 
         /// <summary>The protocol used by the request.</summary>
-        public Protocol Protocol => IncomingRequestFrame.Protocol;
+        public Protocol Protocol => IncomingRequest.Protocol;
 
         /// <summary>The server.</summary>
-        public Server Server { get; }
+        public Server Server => Connection.Server!;
 
         /// <summary>The stream ID</summary>
-        public long StreamId => Stream.Id;
+        public long StreamId => IncomingRequest.Stream!.Id;
 
-        internal SocketStream Stream { get; }
+        /// <summary>The incoming request frame.</summary>
+        internal IncomingRequest IncomingRequest { get; }
 
-        internal Current(
-            Server server,
-            IncomingRequestFrame incomingRequestFrame,
-            SocketStream stream,
-            Connection connection)
-        {
-            Server = server;
-            Connection = connection;
-            IncomingRequestFrame = incomingRequestFrame;
-            Stream = stream;
-        }
+        public Dispatch(IncomingRequest request) => IncomingRequest = request;
     }
 }

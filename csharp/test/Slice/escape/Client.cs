@@ -13,35 +13,35 @@ public class Client : TestHelper
 {
     public sealed class Case : Icase
     {
-        public ValueTask<int> catchAsync(int @checked, IceRpc.Current current, CancellationToken cancel) =>
+        public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
     }
 
     public sealed class Decimal : Idecimal
     {
-        public void @default(IceRpc.Current current, CancellationToken cancel)
+        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel)
         {
         }
     }
 
     public sealed class Explicit : Iexplicit
     {
-        public ValueTask<int> catchAsync(int @checked, IceRpc.Current current, CancellationToken cancel) =>
+        public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
 
-        public void @default(IceRpc.Current current, CancellationToken cancel) => Assert(current.Operation == "default");
+        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel) => Assert(current.Operation == "default");
     }
 
     public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
     {
-        public void op(IceRpc.Current current, CancellationToken cancel)
+        public void op(IceRpc.Dispatch dispatch, CancellationToken cancel)
         {
         }
     }
 
     public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
     {
-        public void op(IceRpc.Current current, CancellationToken cancel)
+        public void op(IceRpc.Dispatch dispatch, CancellationToken cancel)
         {
         }
     }

@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 namespace IceRpc
 {
     /// <summary>Represents a request protocol frame received by the application.</summary>
-    public sealed class IncomingRequestFrame : IncomingFrame, IDisposable
+    public sealed class IncomingRequest : IncomingFrame, IDisposable
     {
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; } =
@@ -16,6 +16,13 @@ namespace IceRpc
 
         /// <summary>The request context.</summary>
         public SortedDictionary<string, string> Context { get; }
+
+        /// <summary>The connection that received this requested.</summary>
+        public Connection Connection
+        {
+            get => _connection ?? throw new InvalidOperationException("connection is not set");
+            internal set => _connection = value;
+        }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -27,6 +34,9 @@ namespace IceRpc
 
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
+
+        /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
+        public bool IsOneway => !Stream!.IsBidirectional;
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
@@ -46,18 +56,17 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         public Identity Identity { get; } = Identity.Empty;
 
+        // TODO: merge these two steams together?
+        // The socket stream for this request.
+        internal SocketStream Stream
+        {
+            get => _stream ?? throw new InvalidOperationException("stream is not set");
+            set => _stream = value;
+        }
+
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
-
-        /// <summary>Constructs an incoming request frame.</summary>
-        /// <param name="protocol">The Ice protocol.</param>
-        /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
-        public IncomingRequestFrame(Protocol protocol, ArraySegment<byte> data, int maxSize)
-            : this(protocol, data, maxSize, null)
-        {
-        }
 
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
@@ -155,13 +164,16 @@ namespace IceRpc
             return value;
         }
 
+        private Connection? _connection;
+        private SocketStream? _stream;
+
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The Ice protocol.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
-        internal IncomingRequestFrame(
+        internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
             int maxSize,
@@ -236,7 +248,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame from an outgoing request frame. Used for colocated calls.
         /// </summary>
         /// <param name="request">The outgoing request frame.</param>
-        internal IncomingRequestFrame(OutgoingRequestFrame request)
+        internal IncomingRequest(OutgoingRequestFrame request)
             : base(request.Protocol, int.MaxValue)
         {
             if (Protocol == Protocol.Ice1)
