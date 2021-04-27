@@ -952,8 +952,8 @@ Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& 
 
     if(dispatch)
     {
-        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "current")
-             << "\">The Current object for the dispatch.</param>";
+        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "dispatch")
+             << "\">The Dispatch object for the request.</param>";
     }
     else
     {
@@ -2684,10 +2684,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
-                _out << "(IceRpc.Connection connection, IceRpc.IncomingRequestFrame request) =>";
+                _out << "(IceRpc.IncomingRequest request) =>";
                 _out.inc();
                 _out << nl;
-                _out << "request.ReadArgs(connection, ";
+                _out << "request.ReadArgs(";
                 writeIncomingRequestReader(operation);
                 _out << ");";
                 _out.dec();
@@ -2699,7 +2699,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if (generateResponseClass)
     {
-        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingResponseFrame\"/> factory method "
+        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingResponse\"/> factory method "
              << "for each non-void remote operation";
         _out << nl << "/// defined in the <see cref=\"" << name << "\"/>.</summary>";
         _out << nl << "public static new class Response";
@@ -2713,19 +2713,19 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << sp;
                 bool inValue = returnCount > 1;
-                _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingResponseFrame\"/> for operation "
+                _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingResponse\"/> for operation "
                      << fixId(operationName(operation)) << ".</summary>";
-                _out << nl << "/// <param name=\"current\">Holds decoded header data and other information about the "
+                _out << nl << "/// <param name=\"dispatch\">Holds decoded header data and other information about the "
                      << "current request.</param>";
                 _out << nl << "/// <param name=\"returnValue\">The return value to write into the new frame.</param>";
-                _out << nl << "/// <returns>A new <see cref=\"IceRpc.OutgoingResponseFrame\"/>.</returns>";
-                _out << nl << "public static IceRpc.OutgoingResponseFrame "<< fixId(operationName(operation))
-                    << "(IceRpc.Current current, "
+                _out << nl << "/// <returns>A new <see cref=\"IceRpc.OutgoingResponse\"/>.</returns>";
+                _out << nl << "public static IceRpc.OutgoingResponse "<< fixId(operationName(operation))
+                    << "(IceRpc.Dispatch dispatch, "
                     << (inValue ? "in " : "") << toTupleType(returns, true) << " returnValue) =>";
                 _out.inc();
-                _out << nl << "IceRpc.OutgoingResponseFrame.WithReturnValue(";
+                _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
                 _out.inc();
-                _out << nl << "current,"
+                _out << nl << "dispatch,"
                     << nl << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ","
                     << nl << "format: " << opFormatTypeToString(operation) << ","
                     << nl << (inValue ? "in " : "") << "returnValue,"
@@ -2755,31 +2755,31 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<string> IceRpc.IService.IceIdAsync("
-         << "IceRpc.Current current, "
+         << "IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) => new(_iceTypeId);";
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> "
-         << "IceRpc.IService.IceIdsAsync(IceRpc.Current current, "
+         << "IceRpc.IService.IceIdsAsync(IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame> IceRpc.IDispatcher"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> IceRpc.IDispatcher"
          << ".DispatchAsync("
-         << "IceRpc.Current current, "
+         << "IceRpc.IncomingRequest request, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "DispatchAsync(this, current, cancel);";
+    _out << nl << "DispatchAsync(this, request, cancel);";
     _out.dec();
 
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
          << "DispatchAsync(" << fixId(name) << " servant, "
-         << "IceRpc.Current current, "
+         << "IceRpc.IncomingRequest request, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "current.Operation switch";
+    _out << nl << "request.Operation switch";
     _out << sb;
     vector<pair<string, string>> allOpNames;
     for(const auto& op : p->allOperations())
@@ -2793,7 +2793,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     for(const auto& opName : allOpNames)
     {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(current, cancel),";
+        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(request, cancel),";
     }
 
     _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
@@ -2820,7 +2820,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
         _out << sb;
         _out << nl << "/// <summary>The frame holding the marshaled response.</summary>";
-        _out << nl << "public IceRpc.OutgoingResponseFrame Response { get; }";
+        _out << nl << "public IceRpc.OutgoingResponse Response { get; }";
 
         emitEqualityOperators(name);
         _out << sp;
@@ -2832,12 +2832,12 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
                                     {
                                         return paramTypeStr(p) + " " + paramName(p);
                                     })
-             << ("IceRpc.Current " + getEscapedParamName(operation, "current"))
+             << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"))
              << epar;
         _out << sb;
-        _out << nl << "Response = IceRpc.OutgoingResponseFrame.WithReturnValue(";
+        _out << nl << "Response = IceRpc.OutgoingResponse.WithReturnValue(";
         _out.inc();
-        _out << nl << getEscapedParamName(operation, "current") << ", "
+        _out << nl << getEscapedParamName(operation, "dispatch") << ", "
              << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ", "
              << "format: " << opFormatTypeToString(operation) << ", "
              << toTuple(returnType) << ",";
@@ -2903,7 +2903,7 @@ Slice::Gen::DispatcherVisitor::writeMethodDeclaration(const OperationPtr& operat
                      {
                         return paramTypeStr(param, false) + " " + paramName(param);
                      });
-    _out << ("IceRpc.Current " + getEscapedParamName(operation, "current"));
+    _out << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"));
     _out << ("global::System.Threading.CancellationToken " + getEscapedParamName(operation, "cancel"));
     _out << epar << ';';
 }
@@ -2927,34 +2927,36 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << "async ";
     }
-    _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame>";
-    _out << " " << internalName << "(IceRpc.Current current, global::System.Threading.CancellationToken cancel)";
+    _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
+    _out << " " << internalName << "(IceRpc.IncomingRequest request, global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
     {
-         _out << nl << "IceCheckNonIdempotent(current);";
+         _out << nl << "IceCheckNonIdempotent(request);";
     }
 
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "current.IncomingRequestFrame.ReadEmptyArgs();";
+        _out << nl << "request.ReadEmptyArgs();";
     }
     else if(params.size() == 1 && params.front()->stream())
     {
-        _out << nl << "var " << paramName(params.front(), "iceP_") << " = current.IncomingRequestFrame.ReadArgs(";
+        _out << nl << "var " << paramName(params.front(), "iceP_") << " = request.ReadArgs(";
         _out << "IceRpc.SocketStream.Ice" << streamDataReader(params.front()->type());
         _out << ");";
     }
     else
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(current.Connection, current.IncomingRequestFrame);";
+            << " = Request." << fixId(opName) << "(request);";
     }
 
-    // The 'this.' is necessary only when the operation name matches one of our local variable (current, istr etc.)
+    _out << nl << "var dispatch = new IceRpc.Dispatch(request);";
+
+    // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
 
     if (operation->hasMarshaledResult())
     {
@@ -2969,12 +2971,12 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             {
                 _out << paramName(params.front(), "iceP_");
             }
-            _out << "current" << "cancel" << epar << ".ConfigureAwait(false);";
+            _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
             _out << nl << "return returnValue.Response;";
         }
         else
         {
-            _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame>(this."
+            _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(this."
                  << name << spar;
             if (params.size() > 1)
             {
@@ -2984,7 +2986,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             {
                 _out << paramName(params.front(), "iceP_");
             }
-            _out << "current" << "cancel" << epar << ".Response);";
+            _out << "dispatch" << "cancel" << epar << ".Response);";
         }
         _out << eb;
     }
@@ -3009,7 +3011,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << paramName(params.front(), "iceP_");
         }
-        _out << "current" << "cancel" << epar;
+        _out << "dispatch" << "cancel" << epar;
         if (amd)
         {
             _out << ".ConfigureAwait(false)";
@@ -3020,13 +3022,13 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             if (amd)
             {
-                _out << nl << "return IceRpc.OutgoingResponseFrame.WithVoidReturnValue(current);";
+                _out << nl << "return IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch);";
             }
             else
             {
-                _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame>(";
+                _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(";
                 _out.inc();
-                _out << nl << "IceRpc.OutgoingResponseFrame.WithVoidReturnValue(current));";
+                _out << nl << "IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch));";
                 _out.dec();
             }
         }
@@ -3035,11 +3037,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << nl << "return ";
             if (!amd)
             {
-                _out << "new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponseFrame>(";
+                _out << "new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(";
                 _out.inc();
                 _out << nl;
             }
-            _out << "Response." << fixId(opName) << "(current, returnValue)";
+            _out << "Response." << fixId(opName) << "(dispatch, returnValue)";
 
             if (!amd)
             {

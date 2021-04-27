@@ -9,17 +9,17 @@ namespace IceRpc.Test.Perf
     {
         private static readonly byte[] _bytes = new byte[1024000]; // 1MB];
 
-        public void SendBytes(byte[] seq, Current current, CancellationToken cancel)
+        public void SendBytes(byte[] seq, Dispatch dispatch, CancellationToken cancel)
         {
         }
 
-        public System.ReadOnlyMemory<byte> ReceiveBytes(int size, Current current, CancellationToken cancel)
+        public System.ReadOnlyMemory<byte> ReceiveBytes(int size, Dispatch dispatch, CancellationToken cancel)
         {
             Debug.Assert(size <= _bytes.Length);
             return new(_bytes, 0, size);
         }
 
-        public void Shutdown(Current current, CancellationToken cancel) =>
-            current.Server!.ShutdownAsync();
+        public void Shutdown(Dispatch dispatch, CancellationToken cancel) =>
+            dispatch.Server!.ShutdownAsync();
     }
 }

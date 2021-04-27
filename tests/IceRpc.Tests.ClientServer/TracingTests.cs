@@ -118,6 +118,8 @@ namespace IceRpc.Tests.ClientServer
             server2.Listen();
             prx = server2.CreateProxy<IGreeterTestServicePrx>("/");
             await prx.IcePingAsync();
+            // Await the server shutdown to ensure the dispatch has finish
+            await server2.ShutdownAsync();
             Assert.IsNotNull(dispatchActivity);
             Assert.AreEqual("IceRpc.Dispatch", dispatchActivity.DisplayName);
             Assert.AreEqual(1, dispatchStartedActivities.Count);
@@ -187,7 +189,8 @@ namespace IceRpc.Tests.ClientServer
                         return await next(target, request, cancel);
                     });
             await prx.IcePingAsync();
-
+            // Await the server shutdown to ensure the dispatch has finish
+            await server.ShutdownAsync();
             Assert.IsNotNull(invocationActivity);
             Assert.AreEqual(testActivity, invocationActivity.Parent);
             Assert.IsNotNull(dispatchActivity);
@@ -205,7 +208,7 @@ namespace IceRpc.Tests.ClientServer
 
         public class GreeterService : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

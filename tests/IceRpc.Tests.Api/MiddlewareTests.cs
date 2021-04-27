@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Api
             var service = new TestService();
 
             var router = new Router();
-            router.Use(next => new InlineDispatcher((current, cancel) => throw new ArgumentException("message")));
+            router.Use(next => new InlineDispatcher((request, cancel) => throw new ArgumentException("message")));
             router.Map("/test", service);
 
             server.Dispatcher = router;
@@ -53,19 +53,19 @@ namespace IceRpc.Tests.Api
             var router = new Router();
 
             router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                async (request, cancel) =>
                 {
                     interceptorCalls.Add("Middlewares -> 0");
-                    var result = await next.DispatchAsync(current, cancel);
+                    var result = await next.DispatchAsync(request, cancel);
                     interceptorCalls.Add("Middlewares <- 0");
                     return result;
                 }));
 
             router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                async (request, cancel) =>
                 {
                     interceptorCalls.Add("Middlewares -> 1");
-                    var result = await next.DispatchAsync(current, cancel);
+                    var result = await next.DispatchAsync(request, cancel);
                     interceptorCalls.Add("Middlewares <- 1");
                     return result;
                 }));
@@ -86,7 +86,7 @@ namespace IceRpc.Tests.Api
         public class TestService : IAsyncMiddlewareTestService
         {
             public bool Called { get; private set; }
-            public ValueTask OpAsync(Current current, CancellationToken cancel)
+            public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Called = true;
                 return default;

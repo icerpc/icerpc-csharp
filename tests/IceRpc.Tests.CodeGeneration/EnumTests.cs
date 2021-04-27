@@ -142,26 +142,26 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(MyEnum R1, MyEnum R2)> OpMyEnumAsync(
                 MyEnum p1,
                 MyEnum p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(MyFixedLengthEnum R1, MyFixedLengthEnum R2)> OpMyFixedLengthEnumAsync(
                 MyFixedLengthEnum p1,
                 MyFixedLengthEnum p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(MyUncheckedEnum R1, MyUncheckedEnum R2)> OpMyUncheckedEnumAsync(
                 MyUncheckedEnum p1,
                 MyUncheckedEnum p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<MyEnum> OpInvalidMyEnumAsync(Current current, CancellationToken cancel) =>
+            public ValueTask<MyEnum> OpInvalidMyEnumAsync(Dispatch dispatch, CancellationToken cancel) =>
                 new((MyEnum)3);
 
             public ValueTask<MyFixedLengthEnum> OpInvalidMyFixedLengthEnumAsync(
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(0);
         }

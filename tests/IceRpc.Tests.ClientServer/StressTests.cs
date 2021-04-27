@@ -77,14 +77,14 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<ReadOnlyMemory<byte>> OpReceiveByteSeqAsync(
                 int size,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 OpReceiveByteSeqData = Enumerable.Range(0, size).Select(x => (byte)x).ToArray();
                 return new(OpReceiveByteSeqData);
             }
 
-            public ValueTask OpSendByteSeqAsync(byte[] data, Current current, CancellationToken cancel)
+            public ValueTask OpSendByteSeqAsync(byte[] data, Dispatch dispatch, CancellationToken cancel)
             {
                 OpSendByteSeqData = data;
                 return default;

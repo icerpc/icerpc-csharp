@@ -66,13 +66,13 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(MyStruct R1, MyStruct R2)> OpMyStructAsync(
                 MyStruct p1,
                 MyStruct p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(AnotherStruct R1, AnotherStruct R2)> OpAnotherStructAsync(
                 AnotherStruct p1,
                 AnotherStruct p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
     }
