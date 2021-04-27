@@ -485,7 +485,7 @@ Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
     }
     else if (dispatch && op->hasMarshaledResult())
     {
-        string name = getNamespace(interface) + "." + interfaceName(interface);
+        string name = getNamespace(interface) + "." + interfaceName(interface, true);
         return getUnqualified(name, scope) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
     }
     else if (returnValues.size() > 1)
