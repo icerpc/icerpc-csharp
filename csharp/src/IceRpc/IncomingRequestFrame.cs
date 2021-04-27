@@ -55,11 +55,11 @@ namespace IceRpc
         internal SocketStream? SocketStream { get; set; }
 
         /// <summary>Constructs an incoming request frame.</summary>
-        /// <param name="connection">The connection that received this request.</param>
+        /// <param name="protocol">The protocol of the request.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
-        public IncomingRequestFrame(Connection connection, ArraySegment<byte> data, int maxSize)
-            : this(connection, data, maxSize, null)
+        public IncomingRequestFrame(Protocol protocol, ArraySegment<byte> data, int maxSize)
+            : this(protocol, data, maxSize, null)
         {
         }
 
@@ -160,17 +160,17 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an incoming request frame.</summary>
-        /// <param name="connection">The connection that received this frame.</param>
+        /// <param name="protocol">The protocol of this request</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequestFrame(
-            Connection connection,
+            Protocol protocol,
             ArraySegment<byte> data,
             int maxSize,
             SocketStream? socketStream)
-            : base(connection, maxSize)
+            : base(protocol, maxSize)
         {
             SocketStream = socketStream;
 

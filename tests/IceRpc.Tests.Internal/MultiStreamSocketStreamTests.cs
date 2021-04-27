@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
             {
                 SocketStream serverStream = await ServerSocket.AcceptStreamAsync(default);
                 ValueTask<SocketStream> _ = ServerSocket.AcceptStreamAsync(default);
-                await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!);
+                await serverStream.ReceiveRequestFrameAsync();
                 serverStream.Release();
             }
         }
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Internal
                         SocketStream serverStream = await ServerSocket.AcceptStreamAsync(source.Token);
                         _ = ServerSocket.AcceptStreamAsync(default).AsTask();
                         Assert.CatchAsync<TransportException>(
-                            async () => await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!));
+                            async () => await serverStream.ReceiveRequestFrameAsync());
                     }
                     catch (OperationCanceledException)
                     {
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.Internal
                 {
                     SocketStream serverStream = await ServerSocket.AcceptStreamAsync(default);
                     Task receiveNextRequestTask = ReceiveRequestsAsync(--requestCount);
-                    _ = await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!);
+                    _ = await serverStream.ReceiveRequestFrameAsync();
                     serverStream.Release();
                     await receiveNextRequestTask;
                 }
@@ -148,7 +148,7 @@ namespace IceRpc.Tests.Internal
             await stream.SendRequestFrameAsync(DummyRequest);
 
             SocketStream serverStream = await ServerSocket.AcceptStreamAsync(default);
-            IncomingRequestFrame request = await serverStream.ReceiveRequestFrameAsync(Proxy.Connection!);
+            IncomingRequestFrame request = await serverStream.ReceiveRequestFrameAsync();
 
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -166,7 +166,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReceiveRequestFrameAsync(Proxy.Connection!, source.Token));
+                async () => await stream.ReceiveRequestFrameAsync(source.Token));
             stream.Release();
         }
 
@@ -178,7 +178,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReceiveResponseFrameAsync(Proxy.Connection!, source.Token));
+                async () => await stream.ReceiveResponseFrameAsync(source.Token));
             stream.Release();
         }
     }

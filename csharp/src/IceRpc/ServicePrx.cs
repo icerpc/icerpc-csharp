@@ -1080,7 +1080,8 @@ namespace IceRpc
                     }
 
                     // Wait for the reception of the response.
-                    response = await stream.ReceiveResponseFrameAsync(connection, cancel).ConfigureAwait(false);
+                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    response.Connection = connection;
 
                     logger.LogReceivedResponse(response);
 

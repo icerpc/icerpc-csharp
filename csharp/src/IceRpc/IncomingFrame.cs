@@ -15,8 +15,13 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; }
 
         /// <summary>The connection that received this frame.</summary>
-        // TODO: nullable for coloc, ideally should not be.
-        public Connection? Connection { get; internal set; }
+        public Connection Connection
+        {
+            get => _connection != null ? _connection :
+                throw new InvalidOperationException("connection not set on frame");
+
+            internal set => _connection = value;
+        }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
@@ -39,6 +44,7 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
+        private Connection? _connection;
         private readonly int _maxSize;
 
         /// <summary>Decompresses the encapsulation payload if it is compressed. Compressed encapsulations are only
@@ -123,16 +129,6 @@ namespace IceRpc
                 Payload = decompressedPayload;
                 PayloadCompressionFormat = CompressionFormat.Decompressed;
             }
-        }
-
-        /// <summary>Constructs a new <see cref="IncomingFrame"/>.</summary>
-        /// <param name="connection">The connection that received this frame.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
-        protected IncomingFrame(Connection connection, int maxSize)
-        {
-            Protocol = connection.Protocol;
-            Connection = connection;
-            _maxSize = maxSize;
         }
 
         /// <summary>Constructs a new <see cref="IncomingFrame"/>.</summary>
