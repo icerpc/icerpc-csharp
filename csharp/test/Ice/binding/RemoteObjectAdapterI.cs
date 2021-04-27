@@ -18,9 +18,9 @@ namespace IceRpc.Test.Binding
             _testIntf = _server.CreateProxy<ITestIntfPrx>("/test");
         }
 
-        public ValueTask<ITestIntfPrx> GetTestIntfAsync(Current current, CancellationToken cancel) =>
+        public ValueTask<ITestIntfPrx> GetTestIntfAsync(Dispatch dispatch, CancellationToken cancel) =>
             new(_testIntf);
 
-        public ValueTask DeactivateAsync(Current current, CancellationToken cancel) => new(_server.ShutdownAsync());
+        public ValueTask DeactivateAsync(Dispatch dispatch, CancellationToken cancel) => new(_server.ShutdownAsync());
     }
 }

@@ -443,486 +443,486 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpByteSeqAsync(
                 byte[] p1,
                 byte[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<bool> R1, ReadOnlyMemory<bool> R2)> OpBoolSeqAsync(
                 bool[] p1,
                 bool[] p2,
-                Current current, CancellationToken cancel) => new((p1, p2));
+                Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<short> R1, ReadOnlyMemory<short> R2)> OpShortSeqAsync(
                 short[] p1,
                 short[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<ushort> R1, ReadOnlyMemory<ushort> R2)> OpUShortSeqAsync(
                 ushort[] p1,
                 ushort[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<int> R1, ReadOnlyMemory<int> R2)> OpIntSeqAsync(
                 int[] p1,
                 int[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpVarIntSeqAsync(
                 int[] p1,
                 int[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<uint> R1, ReadOnlyMemory<uint> R2)> OpUIntSeqAsync(
                 uint[] p1,
                 uint[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<uint> R1, IEnumerable<uint> R2)> OpVarUIntSeqAsync(
                 uint[] p1,
                 uint[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpLongSeqAsync(
                 long[] p1,
                 long[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpVarLongSeqAsync(
                 long[] p1,
                 long[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<ulong> R1, ReadOnlyMemory<ulong> R2)> OpULongSeqAsync(
                 ulong[] p1,
                 ulong[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<ulong> R1, IEnumerable<ulong> R2)> OpVarULongSeqAsync(
                 ulong[] p1,
                 ulong[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<float> R1, ReadOnlyMemory<float> R2)> OpFloatSeqAsync(
                 float[] p1,
                 float[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<double> R1, ReadOnlyMemory<double> R2)> OpDoubleSeqAsync(
                 double[] p1,
                 double[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringSeqAsync(
                 string[] p1,
                 string[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             // Defined types sequences
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumSeqAsync(
                 MyEnum[] p1,
                 MyEnum[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<MyFixedLengthEnum> R1, ReadOnlyMemory<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumSeqAsync(
                 MyFixedLengthEnum[] p1,
                 MyFixedLengthEnum[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ReadOnlyMemory<MyUncheckedEnum> R1, ReadOnlyMemory<MyUncheckedEnum> R2)> OpMyUncheckedEnumSeqAsync(
                 MyUncheckedEnum[] p1,
                 MyUncheckedEnum[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructSeqAsync(
                 MyStruct[] p1,
                 MyStruct[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsSeqAsync(
                 IOperationsPrx[] p1,
                 IOperationsPrx[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructSeqAsync(
                 AnotherStruct[] p1,
                 AnotherStruct[] p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteListAsync(
                 List<byte> p1,
                 List<byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteLinkedListAsync(
                 LinkedList<byte> p1,
                 LinkedList<byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteQueueAsync(
                 Queue<byte> p1,
                 Queue<byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteStackAsync(
                 Stack<byte> p1,
                 Stack<byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteCustomSeqAsync(
                 Custom<byte> p1,
                 Custom<byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolListAsync(
                 List<bool> p1,
                 List<bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolLinkedListAsync(
                 LinkedList<bool> p1,
                 LinkedList<bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolQueueAsync(
                 Queue<bool> p1,
                 Queue<bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolStackAsync(
                 Stack<bool> p1,
                 Stack<bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolCustomSeqAsync(
                 Custom<bool> p1,
                 Custom<bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntListAsync(
                 List<int> p1,
                 List<int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntLinkedListAsync(
                 LinkedList<int> p1,
                 LinkedList<int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntQueueAsync(
                 Queue<int> p1,
                 Queue<int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntStackAsync(
                 Stack<int> p1,
                 Stack<int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntCustomSeqAsync(
                 Custom<int> p1,
                 Custom<int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongListAsync(
                 List<long> p1,
                 List<long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongLinkedListAsync(
                 LinkedList<long> p1,
                 LinkedList<long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongQueueAsync(
                 Queue<long> p1,
                 Queue<long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongStackAsync(
                 Stack<long> p1,
                 Stack<long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongCustomSeqAsync(
                 Custom<long> p1,
                 Custom<long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatListAsync(
                 List<float> p1,
                 List<float> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatLinkedListAsync(
                 LinkedList<float> p1,
                 LinkedList<float> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatQueueAsync(
                 Queue<float> p1,
                 Queue<float> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatStackAsync(
                 Stack<float> p1,
                 Stack<float> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatCustomSeqAsync(
                 Custom<float> p1,
                 Custom<float> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringListAsync(
                 List<string> p1,
                 List<string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringLinkedListAsync(
                 LinkedList<string> p1,
                 LinkedList<string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringQueueAsync(
                 Queue<string> p1,
                 Queue<string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringStackAsync(
                 Stack<string> p1,
                 Stack<string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringCustomSeqAsync(
                 Custom<string> p1,
                 Custom<string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumListAsync(
                 List<MyEnum> p1,
                 List<MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumLinkedListAsync(
                 LinkedList<MyEnum> p1,
                 LinkedList<MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumQueueAsync(
                 Queue<MyEnum> p1,
                 Queue<MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumStackAsync(
                 Stack<MyEnum> p1,
                 Stack<MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumCustomSeqAsync(
                 Custom<MyEnum> p1,
                 Custom<MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumListAsync(
                 List<MyFixedLengthEnum> p1,
                 List<MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumLinkedListAsync(
                 LinkedList<MyFixedLengthEnum> p1,
                 LinkedList<MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumQueueAsync(
                 Queue<MyFixedLengthEnum> p1,
                 Queue<MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumStackAsync(
                 Stack<MyFixedLengthEnum> p1,
                 Stack<MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumCustomSeqAsync(
                 Custom<MyFixedLengthEnum> p1,
                 Custom<MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumListAsync(
                 List<MyUncheckedEnum> p1,
                 List<MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumLinkedListAsync(
                 LinkedList<MyUncheckedEnum> p1,
                 LinkedList<MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumQueueAsync(
                 Queue<MyUncheckedEnum> p1,
                 Queue<MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumStackAsync(
                 Stack<MyUncheckedEnum> p1,
                 Stack<MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumCustomSeqAsync(
                 Custom<MyUncheckedEnum> p1,
                 Custom<MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructListAsync(
                 List<MyStruct> p1,
                 List<MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructLinkedListAsync(
                 LinkedList<MyStruct> p1,
                 LinkedList<MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructQueueAsync(
                 Queue<MyStruct> p1,
                 Queue<MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructStackAsync(
                 Stack<MyStruct> p1,
                 Stack<MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructCustomSeqAsync(
                 Custom<MyStruct> p1,
                 Custom<MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsListAsync(
                 List<IOperationsPrx> p1,
                 List<IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsLinkedListAsync(
                 LinkedList<IOperationsPrx> p1,
                 LinkedList<IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsQueueAsync(
                 Queue<IOperationsPrx> p1,
                 Queue<IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsStackAsync(
                 Stack<IOperationsPrx> p1,
                 Stack<IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsCustomSeqAsync(
                 Custom<IOperationsPrx> p1,
                 Custom<IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructListAsync(
                 List<AnotherStruct> p1,
                 List<AnotherStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructLinkedListAsync(
                 LinkedList<AnotherStruct> p1,
                 LinkedList<AnotherStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructQueueAsync(
                 Queue<AnotherStruct> p1,
                 Queue<AnotherStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructStackAsync(
                 Stack<AnotherStruct> p1,
                 Stack<AnotherStruct> p2,
-                Current current, CancellationToken cancel) => new((p1, p2));
+                Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructCustomSeqAsync(
                 Custom<AnotherStruct> p1,
                 Custom<AnotherStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
 

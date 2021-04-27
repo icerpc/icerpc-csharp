@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
             await stream.SendRequestFrameAsync(DummyRequest);
 
             SocketStream serverStream = await ServerSocket.AcceptStreamAsync(default);
-            IncomingRequestFrame request = await serverStream.ReceiveRequestFrameAsync();
+            IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
 
             using var source = new CancellationTokenSource();
             source.Cancel();

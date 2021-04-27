@@ -8,7 +8,7 @@ namespace IceRpc.Test.Binding
     {
         private string _serverName;
 
-        public string GetAdapterName(Current current, CancellationToken cancel) => _serverName;
+        public string GetAdapterName(Dispatch dispatch, CancellationToken cancel) => _serverName;
 
         internal TestIntf(string serverName) => _serverName = serverName;
     }

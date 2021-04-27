@@ -95,98 +95,98 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(byte, byte)> OpByteAsync(
                 byte p1,
                 byte p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(bool, bool)> OpBoolAsync(
                 bool p1,
                 bool p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(short, short)> OpShortAsync(
                 short p1,
                 short p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ushort, ushort)> OpUShortAsync(
                 ushort p1,
                 ushort p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(int, int)> OpIntAsync(
                 int p1,
                 int p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(int, int)> OpVarIntAsync(
                 int p1,
                 int p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(uint, uint)> OpUIntAsync(
                 uint p1,
                 uint p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(uint, uint)> OpVarUIntAsync(
                 uint p1,
                 uint p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(long, long)> OpLongAsync(
                 long p1,
                 long p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(long, long)> OpVarLongAsync(
                 long p1,
                 long p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ulong, ulong)> OpULongAsync(
                 ulong p1,
                 ulong p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(ulong, ulong)> OpVarULongAsync(
                 ulong p1,
                 ulong p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(float, float)> OpFloatAsync(
                 float p1,
                 float p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(double, double)> OpDoubleAsync(
                 double p1,
                 double p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(string, string)> OpStringAsync(
                 string p1,
                 string p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             // Oneway Operations
 
-            public ValueTask OpOnewayAsync(Current current, CancellationToken cancel) => throw new SomeException();
+            public ValueTask OpOnewayAsync(Dispatch dispatch, CancellationToken cancel) => throw new SomeException();
 
-            public ValueTask OpOnewayMetadataAsync(Current current, CancellationToken cancel) =>
+            public ValueTask OpOnewayMetadataAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new SomeException();
         }
     }

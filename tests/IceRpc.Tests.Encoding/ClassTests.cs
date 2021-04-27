@@ -237,7 +237,7 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
@@ -253,20 +253,20 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
 
             public ValueTask<MyClassCustomFormat> OpMyClassSlicedFormatAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
         class ClassGraphOperations : IAsyncClassGraphOperations
         {
-            public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Current current, CancellationToken cancel) =>
+            public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Dispatch dispatch, CancellationToken cancel) =>
                 new(CreateClassGraph(size));
-            public ValueTask SendClassGraphAsync(Recursive p1, Current current, CancellationToken cancel) => default;
+            public ValueTask SendClassGraphAsync(Recursive p1, Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private static Recursive CreateClassGraph(int size)

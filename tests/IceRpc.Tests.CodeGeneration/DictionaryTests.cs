@@ -283,208 +283,208 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(IReadOnlyDictionary<byte, byte> R1, IReadOnlyDictionary<byte, byte> R2)> OpByteDictAsync(
                 Dictionary<byte, byte> p1,
                 Dictionary<byte, byte> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<bool, bool> R1, IReadOnlyDictionary<bool, bool> R2)> OpBoolDictAsync(
                 Dictionary<bool, bool> p1,
                 Dictionary<bool, bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<short, short> R1, IReadOnlyDictionary<short, short> R2)> OpShortDictAsync(
                 Dictionary<short, short> p1,
                 Dictionary<short, short> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ushort, ushort> R1, IReadOnlyDictionary<ushort, ushort> R2)> OpUShortDictAsync(
                 Dictionary<ushort, ushort> p1,
                 Dictionary<ushort, ushort> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpIntDictAsync(
                 Dictionary<int, int> p1,
                 Dictionary<int, int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpVarIntDictAsync(
                 Dictionary<int, int> p1,
                 Dictionary<int, int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpUIntDictAsync(
                 Dictionary<uint, uint> p1,
                 Dictionary<uint, uint> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpVarUIntDictAsync(
                 Dictionary<uint, uint> p1,
                 Dictionary<uint, uint> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpLongDictAsync(
                 Dictionary<long, long> p1,
                 Dictionary<long, long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpVarLongDictAsync(
                 Dictionary<long, long> p1,
                 Dictionary<long, long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpULongDictAsync(
                 Dictionary<ulong, ulong> p1,
                 Dictionary<ulong, ulong> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpVarULongDictAsync(
                 Dictionary<ulong, ulong> p1,
                 Dictionary<ulong, ulong> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<string, string> R1, IReadOnlyDictionary<string, string> R2)> OpStringDictAsync(
                 Dictionary<string, string> p1,
                 Dictionary<string, string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyEnum, MyEnum> R1, IReadOnlyDictionary<MyEnum, MyEnum> R2)> OpMyEnumDictAsync(
                 Dictionary<MyEnum, MyEnum> p1,
                 Dictionary<MyEnum, MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R1, IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R2)> OpMyFixedLengthEnumDictAsync(
                 Dictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
                 Dictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R1, IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R2)> OpMyUncheckedEnumDictAsync(
                 Dictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
                 Dictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyStruct, MyStruct> R1, IReadOnlyDictionary<MyStruct, MyStruct> R2)> OpMyStructDictAsync(
                 Dictionary<MyStruct, MyStruct> p1,
                 Dictionary<MyStruct, MyStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<string, IOperationsPrx> R1, IReadOnlyDictionary<string, IOperationsPrx> R2)> OpOperationsDictAsync(
                 Dictionary<string, IOperationsPrx> p1,
                 Dictionary<string, IOperationsPrx> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<string, AnotherStruct> R1, IReadOnlyDictionary<string, AnotherStruct> R2)> OpAnotherStructDictAsync(
                 Dictionary<string, AnotherStruct> p1,
                 Dictionary<string, AnotherStruct> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<byte, byte> R1, IReadOnlyDictionary<byte, byte> R2)> OpByteSortedDictAsync(
                 SortedDictionary<byte, byte> p1,
                 SortedDictionary<byte, byte> p2,
-                Current current, CancellationToken cancel) => new((p1, p2));
+                Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<bool, bool> R1, IReadOnlyDictionary<bool, bool> R2)> OpBoolSortedDictAsync(
                 SortedDictionary<bool, bool> p1,
                 SortedDictionary<bool, bool> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<short, short> R1, IReadOnlyDictionary<short, short> R2)> OpShortSortedDictAsync(
                 SortedDictionary<short, short> p1,
                 SortedDictionary<short, short> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ushort, ushort> R1, IReadOnlyDictionary<ushort, ushort> R2)> OpUShortSortedDictAsync(
                 SortedDictionary<ushort, ushort> p1,
                 SortedDictionary<ushort, ushort> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpIntSortedDictAsync(
                 SortedDictionary<int, int> p1,
                 SortedDictionary<int, int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
             public ValueTask<(IReadOnlyDictionary<int, int> R1, IReadOnlyDictionary<int, int> R2)> OpVarIntSortedDictAsync(
                 SortedDictionary<int, int> p1,
                 SortedDictionary<int, int> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
             public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpUIntSortedDictAsync(
                 SortedDictionary<uint, uint> p1,
                 SortedDictionary<uint, uint> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<uint, uint> R1, IReadOnlyDictionary<uint, uint> R2)> OpVarUIntSortedDictAsync(
                 SortedDictionary<uint, uint> p1,
                 SortedDictionary<uint, uint> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpLongSortedDictAsync(
                 SortedDictionary<long, long> p1,
                 SortedDictionary<long, long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<long, long> R1, IReadOnlyDictionary<long, long> R2)> OpVarLongSortedDictAsync(
                 SortedDictionary<long, long> p1,
                 SortedDictionary<long, long> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpULongSortedDictAsync(
                 SortedDictionary<ulong, ulong> p1,
                 SortedDictionary<ulong, ulong> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<ulong, ulong> R1, IReadOnlyDictionary<ulong, ulong> R2)> OpVarULongSortedDictAsync(
                 SortedDictionary<ulong, ulong> p1,
                 SortedDictionary<ulong, ulong> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<string, string> R1, IReadOnlyDictionary<string, string> R2)> OpStringSortedDictAsync(
                 SortedDictionary<string, string> p1,
                 SortedDictionary<string, string> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyEnum, MyEnum> R1, IReadOnlyDictionary<MyEnum, MyEnum> R2)> OpMyEnumSortedDictAsync(
                 SortedDictionary<MyEnum, MyEnum> p1,
                 SortedDictionary<MyEnum, MyEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R1, IReadOnlyDictionary<MyFixedLengthEnum, MyFixedLengthEnum> R2)> OpMyFixedLengthEnumSortedDictAsync(
                 SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
                 SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R1, IReadOnlyDictionary<MyUncheckedEnum, MyUncheckedEnum> R2)> OpMyUncheckedEnumSortedDictAsync(
                 SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
                 SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
 

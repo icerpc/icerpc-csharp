@@ -212,14 +212,14 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<IServicePrx?> FindObjectByIdAsync(
                 Identity id,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(_identityMap.TryGetValue(id, out IServicePrx? value) ? value : null);
 
-            public ValueTask<IServicePrx?> FindAdapterByIdAsync(string id, Current current, CancellationToken cancel) =>
+            public ValueTask<IServicePrx?> FindAdapterByIdAsync(string id, Dispatch dispatch, CancellationToken cancel) =>
                 new(_adapterMap.TryGetValue(id, out IServicePrx? value) ? value : null);
 
-            public ValueTask<ILocatorRegistryPrx?> GetRegistryAsync(Current current, CancellationToken cancel)
+            public ValueTask<ILocatorRegistryPrx?> GetRegistryAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.Fail("unexpected call to GetRegistryAsync");
                 return new(null as ILocatorRegistryPrx);
@@ -228,7 +228,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask RegisterAdapterAsync(
                 string adapter,
                 IServicePrx dummy,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 _adapterMap.Add(adapter, dummy);
@@ -238,26 +238,26 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask RegisterWellKnownProxyAsync(
                 Identity identity,
                 IServicePrx dummy,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 _identityMap.Add(identity, dummy);
                 return default;
             }
 
-            public ValueTask<bool> UnregisterAdapterAsync(string adapter, Current current, CancellationToken cancel) =>
+            public ValueTask<bool> UnregisterAdapterAsync(string adapter, Dispatch dispatch, CancellationToken cancel) =>
                 new(_adapterMap.Remove(adapter));
 
             public ValueTask<bool> UnregisterWellKnownProxyAsync(
                 Identity identity,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(_identityMap.Remove(identity));
         }
 
         private class GreeterTestService : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

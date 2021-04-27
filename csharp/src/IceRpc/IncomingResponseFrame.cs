@@ -242,7 +242,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming response frame from an outgoing response frame. Used for colocated calls.
         /// </summary>
         /// <param name="response">The outgoing response frame.</param>
-        internal IncomingResponseFrame(OutgoingResponseFrame response)
+        internal IncomingResponseFrame(OutgoingResponse response)
             : base(response.Protocol, int.MaxValue)
         {
             if (Protocol == Protocol.Ice2)

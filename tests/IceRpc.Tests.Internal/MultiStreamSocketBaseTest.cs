@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Internal
             _serverSocket?.Dispose();
         }
 
-        static protected OutgoingResponseFrame GetResponseFrame(IncomingRequestFrame request) =>
+        static protected OutgoingResponse GetResponseFrame(IncomingRequest request) =>
             // TODO: Fix once OutgoingRespongFrame construction is simplified to not depend on Current
             new(request, new UnhandledException(new InvalidOperationException()));
     }

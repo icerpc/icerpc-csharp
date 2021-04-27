@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Internal
             var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(
-                new OutgoingResponseFrame(incomingRequest, new UnhandledException(ex)),
+                new OutgoingResponse(incomingRequest, new UnhandledException(ex)),
                 default);
 
             var acceptTask = ClientSocket.AcceptStreamAsync(default);
@@ -266,7 +266,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<SocketStream>();
             var serverStreams = new List<SocketStream>();
-            IncomingRequestFrame? incomingRequest = null;
+            IncomingRequest? incomingRequest = null;
             for (int i = 0; i < ServerConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(true);

@@ -53,21 +53,21 @@ namespace IceRpc.Tests.CodeGeneration
 
     public class NamespaceMDOperations : IAsyncNamespaceMDOperations
     {
-        public ValueTask<S2> GetNestedM0M2M3S2Async(Current current, CancellationToken cancel) =>
+        public ValueTask<S2> GetNestedM0M2M3S2Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new S2());
 
-        public ValueTask<C1> GetWithNamespaceC2AsC1Async(Current current, CancellationToken cancel) =>
+        public ValueTask<C1> GetWithNamespaceC2AsC1Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new C2());
 
-        public ValueTask<C2> GetWithNamespaceC2AsC2Async(Current current, CancellationToken cancel) =>
+        public ValueTask<C2> GetWithNamespaceC2AsC2Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new C2());
 
-        public ValueTask<S1> GetWithNamespaceN1N2S1Async(Current current, CancellationToken cancel) =>
+        public ValueTask<S1> GetWithNamespaceN1N2S1Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new S1());
 
-        public ValueTask ThrowWithNamespaceE1Async(Current current, CancellationToken cancel) =>
+        public ValueTask ThrowWithNamespaceE1Async(Dispatch dispatch, CancellationToken cancel) =>
             throw new E1();
-        public ValueTask ThrowWithNamespaceE2Async(Current current, CancellationToken cancel) =>
+        public ValueTask ThrowWithNamespaceE2Async(Dispatch dispatch, CancellationToken cancel) =>
             throw new E2();
     }
 }
