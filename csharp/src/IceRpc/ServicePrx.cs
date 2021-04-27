@@ -162,9 +162,6 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        private bool IsFixed => _endpoint == null &&
-            _connection != null &&
-            _connection.Endpoint.Transport != Transport.Coloc; // (_connection?.IsIncoming ?? false);
         internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
 
@@ -774,7 +771,7 @@ namespace IceRpc
 
             List<Endpoint>? endpoints = null;
 
-            if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
+            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
@@ -978,7 +975,7 @@ namespace IceRpc
                     "cannot make two-way invocation using a cached datagram connection");
             }
 
-            if ((connection == null || (!IsFixed && !connection.IsActive)) && PreferExistingConnection)
+            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
@@ -1153,13 +1150,13 @@ namespace IceRpc
 
                 // Check if we can retry, we cannot retry if we have consumed all attempts, the current retry
                 // policy doesn't allow retries, the request was already released, there are no more endpoints
-                // or a fixed reference receives an exception with OtherReplica retry policy.
+                // or an incoming connection receives an exception with OtherReplica retry policy.
 
                 if (attempt == Communicator.InvocationMaxAttempts ||
                     retryPolicy == RetryPolicy.NoRetry ||
                     (sent && releaseRequestAfterSent) ||
                     (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
-                    (IsFixed && retryPolicy == RetryPolicy.OtherReplica))
+                    ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
                 {
                     tryAgain = false;
                 }
@@ -1203,7 +1200,7 @@ namespace IceRpc
 
                     observer?.Retried();
 
-                    if (!IsFixed && connection != null)
+                    if (_endpoint != null && connection != null && !connection.IsIncoming)
                     {
                         // Retry with a new connection!
                         connection = null;
