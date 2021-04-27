@@ -160,7 +160,7 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an incoming request frame.</summary>
-        /// <param name="protocol">The protocol of this request</param>
+        /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to

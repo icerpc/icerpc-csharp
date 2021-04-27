@@ -98,7 +98,7 @@ namespace IceRpc
         {
             if (istr.ProxyOptions == null)
             {
-                throw new InvalidOperationException("cannot read a proxy from an InputStream with no proxy options");
+                throw new InvalidOperationException("cannot read a proxy from an InputStream without proxy options");
             }
 
             if (istr.Encoding == Encoding.V11)
