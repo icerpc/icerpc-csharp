@@ -175,7 +175,9 @@ namespace IceRpc
                     Connection? connection = null;
                     if (endpoint == null)
                     {
-                        (connection, endpoint) = FromNullEndpoint();
+                        // Use the connection endpoint if the connection is an outgoing connection
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
                     }
 
                     try
@@ -253,7 +255,9 @@ namespace IceRpc
                     Connection? connection = null;
                     if (endpoint == null)
                     {
-                        (connection, endpoint) = FromNullEndpoint();
+                        // Use the connection endpoint if the connection is an outgoing connection
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
                     }
 
                     try
@@ -270,20 +274,6 @@ namespace IceRpc
                     {
                         throw new InvalidDataException("received invalid proxy", ex);
                     }
-                }
-            }
-
-            (Connection? Connection, Endpoint? Endpoint) FromNullEndpoint(Identity? identity = null)
-            {
-                if ((istr.ProxyOptions!.LocationResolver != null || istr.Connection == null) && identity is Identity id)
-                {
-                    Endpoint endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
-                    return (null, endpoint);
-                }
-                else
-                {
-                    Endpoint? endpoint = !(istr.Connection?.IsIncoming ?? true) ? istr.Connection.Endpoint : null;
-                    return (istr.Connection, endpoint);
                 }
             }
 
@@ -306,7 +296,15 @@ namespace IceRpc
                 Connection? connection = null;
                 if (endpoint == null)
                 {
-                    (connection, endpoint) = FromNullEndpoint(identity);
+                    if ((options.LocationResolver != null || istr.Connection == null) && identity is Identity id)
+                    {
+                        endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
+                    }
+                    else
+                    {
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        connection = istr.Connection;
+                    }
                 }
 
                 try
