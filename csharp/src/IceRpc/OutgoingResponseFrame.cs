@@ -378,8 +378,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() =>
-            new IncomingResponseFrame(Protocol, this);
+        internal override IncomingFrame ToIncoming() => new IncomingResponseFrame(this);
 
         /// <inheritdoc/>
         internal override void WriteHeader(OutputStream ostr)

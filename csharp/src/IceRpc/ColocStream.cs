@@ -149,8 +149,7 @@ namespace IceRpc
 
         internal void ReceivedFrame(object frame, bool fin) => QueueResult((frame, fin));
 
-        internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(
-            CancellationToken cancel)
+        internal override async ValueTask<IncomingRequestFrame> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
             (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequestFrame);
@@ -174,8 +173,7 @@ namespace IceRpc
             base.ReceivedReset(errorCode);
         }
 
-        internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(
-            CancellationToken cancel)
+        internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
             object frameObject;
             bool fin;

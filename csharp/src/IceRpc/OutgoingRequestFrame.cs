@@ -318,7 +318,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() => new IncomingRequestFrame(Protocol, this);
+        internal override IncomingFrame ToIncoming() => new IncomingRequestFrame(this);
 
         internal void WriteActivityContext(Activity activity)
         {

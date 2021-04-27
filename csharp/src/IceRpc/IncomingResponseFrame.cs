@@ -26,7 +26,7 @@ namespace IceRpc
         internal SocketStream? SocketStream { get; set; }
 
         /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The protocol that received this frame.</param>
+        /// <param name="protocol">The protocol of the response.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
         public IncomingResponseFrame(Protocol protocol, ArraySegment<byte> data, int maxSize)
@@ -232,10 +232,9 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response frame from an outgoing response frame. Used for colocated calls.
         /// </summary>
-        /// <param name="protocol">The protocol of this frame.</param>
         /// <param name="response">The outgoing response frame.</param>
-        internal IncomingResponseFrame(Protocol protocol, OutgoingResponseFrame response)
-            : base(protocol, int.MaxValue)
+        internal IncomingResponseFrame(OutgoingResponseFrame response)
+            : base(response.Protocol, int.MaxValue)
         {
             if (Protocol == Protocol.Ice2)
             {
