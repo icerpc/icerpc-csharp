@@ -6,38 +6,35 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.AMI
 {
-    public class TestIntf : ITestIntf
+    public class TestIntf : IAsyncTestIntf
     {
         private readonly object _mutex = new();
         private bool _shutdown;
         private TaskCompletionSource<object?>? _pending;
         private int _value;
 
-        public void Op(Dispatch dispatch, CancellationToken cancel)
-        {
-        }
+        public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
-        public int OpWithResult(Dispatch dispatch, CancellationToken cancel) => 15;
+        public ValueTask<int> OpWithResultAsync(Dispatch dispatch, CancellationToken cancel) => new(15);
 
-        public void OpWithUE(Dispatch dispatch, CancellationToken cancel) => throw new TestIntfException();
+        public ValueTask OpWithUEAsync(Dispatch dispatch, CancellationToken cancel) => throw new TestIntfException();
 
-        public void OpWithPayload(byte[] seq, Dispatch dispatch, CancellationToken cancel)
-        {
-        }
+        public ValueTask OpWithPayloadAsync(byte[] seq, Dispatch dispatch, CancellationToken cancel) => default;
 
-        public void Close(CloseMode mode, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask CloseAsync(CloseMode mode, Dispatch dispatch, CancellationToken cancel)
         {
             if (mode == CloseMode.Gracefully)
             {
-                dispatch.Connection.GoAwayAsync(cancel: cancel);
+                _ = dispatch.Connection.GoAwayAsync(cancel: cancel);
             }
             else
             {
-                dispatch.Connection.AbortAsync();
+                _ = dispatch.Connection.AbortAsync();
             }
+            return default;
         }
 
-        public void Sleep(int ms, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask SleepAsync(int ms, Dispatch dispatch, CancellationToken cancel)
         {
             try
             {
@@ -52,9 +49,10 @@ namespace IceRpc.Test.AMI
                 // Expected if the request is canceled.
                 TestHelper.Assert(dispatch.Context.ContainsKey("cancel"));
             }
+            return default;
         }
 
-        public void Shutdown(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask ShutdownAsync(Dispatch dispatch, CancellationToken cancel)
         {
             lock (_mutex)
             {
@@ -64,13 +62,14 @@ namespace IceRpc.Test.AMI
                     _pending.SetResult(null);
                     _pending = null;
                 }
-                dispatch.Server!.ShutdownAsync();
+                _ = dispatch.Server!.ShutdownAsync();
             }
+            return default;
         }
 
-        public bool SupportsAMD(Dispatch dispatch, CancellationToken cancel) => true;
+        public ValueTask<bool> SupportsAMDAsync(Dispatch dispatch, CancellationToken cancel) => new(true);
 
-        public bool SupportsFunctionalTests(Dispatch dispatch, CancellationToken cancel) => false;
+        public ValueTask<bool> SupportsFunctionalTestsAsync(Dispatch dispatch, CancellationToken cancel) => new(false);
 
         public async ValueTask OpAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel) =>
             await Task.Delay(10, cancel);
@@ -119,13 +118,13 @@ namespace IceRpc.Test.AMI
             }
         }
 
-        public void FinishDispatch(Dispatch dispatch, CancellationToken cancel)
+        public ValueTask FinishDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {
             lock (_mutex)
             {
                 if (_shutdown)
                 {
-                    return;
+                    return default;
                 }
                 else if (_pending != null) // Pending might not be set yet if startDispatch is dispatch out-of-order
                 {
@@ -133,16 +132,17 @@ namespace IceRpc.Test.AMI
                     _pending = null;
                 }
             }
+            return default;
         }
 
-        public int Set(int newValue, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<int> SetAsync(int newValue, Dispatch dispatch, CancellationToken cancel)
         {
             int oldValue = _value;
             _value = newValue;
-            return oldValue;
+            return new(oldValue);
         }
 
-        public void SetOneway(int previousValue, int newValue, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask SetOnewayAsync(int previousValue, int newValue, Dispatch dispatch, CancellationToken cancel)
         {
             if (_value != previousValue)
             {
@@ -150,11 +150,12 @@ namespace IceRpc.Test.AMI
             }
             TestHelper.Assert(_value == previousValue);
             _value = newValue;
+            return default;
         }
     }
 
-    public class TestIntf2 : Outer.Inner.ITestIntf
+    public class TestIntf2 : Outer.Inner.IAsyncTestIntf
     {
-        public (int, int) Op(int i, Dispatch dispatch, CancellationToken cancel) => (i, i);
+        public ValueTask<(int, int)> OpAsync(int i, Dispatch dispatch, CancellationToken cancel) => new((i, i));
     }
 }

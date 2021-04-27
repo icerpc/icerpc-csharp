@@ -1149,9 +1149,6 @@ Slice::Gen::generate(const UnitPtr& p)
     ProxyVisitor proxyVisitor(_out);
     p->visit(&proxyVisitor, false);
 
-    DispatcherVisitor dispatcherVisitor(_out, false);
-    p->visit(&dispatcherVisitor, false);
-
     DispatcherVisitor asyncDispatcherVisitor(_out, true);
     p->visit(&asyncDispatcherVisitor, false);
 }

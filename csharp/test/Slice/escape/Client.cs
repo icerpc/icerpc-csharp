@@ -11,39 +11,37 @@ using System.Threading.Tasks;
 
 public class Client : TestHelper
 {
-    public sealed class Case : Icase
+    public sealed class Case : IAsynccase
     {
         public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
     }
 
-    public sealed class Decimal : Idecimal
+    public sealed class Decimal : IAsyncdecimal
     {
-        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel)
-        {
-        }
+        public ValueTask defaultAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public sealed class Explicit : Iexplicit
+    public sealed class Explicit : IAsyncexplicit
     {
         public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
 
-        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel) => Assert(dispatch.Operation == "default");
-    }
-
-    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
-    {
-        public void op(IceRpc.Dispatch dispatch, CancellationToken cancel)
+        public ValueTask defaultAsync(IceRpc.Dispatch dispatch, CancellationToken cancel)
         {
+            Assert(dispatch.Operation == "default");
+            return default;
         }
     }
 
-    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
+    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.IAsyncTest
     {
-        public void op(IceRpc.Dispatch dispatch, CancellationToken cancel)
-        {
-        }
+        public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
+    }
+
+    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.IAsyncTest
+    {
+        public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
     public static void TestTypes()
