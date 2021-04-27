@@ -21,7 +21,7 @@ namespace IceRpc
         /// <summary>The request context.</summary>
         public SortedDictionary<string, string> Context { get; }
 
-        /// <summary>The connection that received this requested.</summary>
+        /// <summary>The connection that received this request.</summary>
         public Connection Connection
         {
             get => _connection ?? throw new InvalidOperationException("connection is not set");
