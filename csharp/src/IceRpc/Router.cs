@@ -50,8 +50,8 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel) =>
-            (_pipeline ??= CreatePipeline()).DispatchAsync(current, cancel);
+        ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
+            (_pipeline ??= CreatePipeline()).DispatchAsync(request, cancel);
 
         /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
         /// </summary>

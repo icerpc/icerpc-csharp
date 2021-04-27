@@ -191,7 +191,6 @@ namespace IceRpc.Tests.ClientServer
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();
-
             Assert.IsNotNull(invocationActivity);
             Assert.AreEqual(testActivity, invocationActivity.Parent);
             Assert.IsNotNull(dispatchActivity);
@@ -209,7 +208,7 @@ namespace IceRpc.Tests.ClientServer
 
         public class GreeterService : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

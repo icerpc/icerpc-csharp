@@ -132,8 +132,6 @@ namespace IceRpc
             }
         }
 
-        internal IServicePrx? Source { get; }
-
         private bool OldEncoding => Encoding == Encoding.V11;
 
         // The byte buffer we are reading.
@@ -958,7 +956,6 @@ namespace IceRpc
         /// <summary>Constructs a new InputStream over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="source">The source proxy (optional).</param>
         /// <param name="connection">The connection (optional).</param>
         /// <param name="proxyOptions">The proxy options, used when connection is not null.</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
@@ -972,7 +969,6 @@ namespace IceRpc
         internal InputStream(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
-            IServicePrx? source = null,
             Connection? connection = null,
             ProxyOptions? proxyOptions = null,
             bool startEncapsulation = false,
@@ -980,13 +976,9 @@ namespace IceRpc
             IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
             IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
         {
-            Source = source;
             Connection = connection;
             ProxyOptions = proxyOptions;
-
-            // TODO should we always pass a non-null connection to InputStream?
-            // keeping ?? 100 here allows unmarshaling classes with a connection less InputStream
-            _classGraphMaxDepth = source?.Connection?.ClassGraphMaxDepth ?? connection?.ClassGraphMaxDepth ?? 100;
+            _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
 
             Pos = 0;
             _buffer = buffer;

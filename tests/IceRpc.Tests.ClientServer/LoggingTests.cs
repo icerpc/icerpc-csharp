@@ -277,7 +277,7 @@ namespace IceRpc.Tests.ClientServer
 
         public class TestService : IAsyncLoggingTestService
         {
-            public ValueTask OpAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

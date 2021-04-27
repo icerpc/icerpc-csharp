@@ -113,7 +113,7 @@ namespace IceRpc
                     throw new NotSupportedException($"cannot compress with compression format '{format}'");
                 }
 
-                int encapsulationOffset = this is OutgoingResponseFrame ? 1 : 0;
+                int encapsulationOffset = this is OutgoingResponse ? 1 : 0;
 
                 // The encapsulation always starts in the first segment of the payload (at position 0 or 1).
                 Debug.Assert(encapsulationOffset < Payload[0].Count);

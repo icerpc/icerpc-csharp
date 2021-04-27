@@ -372,11 +372,11 @@ namespace IceRpc.Tests.ClientServer
                 // to fail with ConnectionClosedException.
                 await using var connection = await Connection.CreateAsync(Endpoint.Parse(prx.Endpoint), prx.Communicator);
                 cb = new ProgressCallback();
-                IConnectionTestPrx fixedPrx = prx.Clone();
-                fixedPrx.Connection = connection;
-                fixedPrx.Endpoint = "";
+                IConnectionTestPrx endpointless = prx.Clone();
+                endpointless.Connection = connection;
+                endpointless.Endpoint = "";
 
-                Task t = fixedPrx.StartDispatchAsync(progress: cb);
+                Task t = endpointless.StartDispatchAsync(progress: cb);
                 await cb.Completed.Task; // Ensure the request was sent before closing the connection.
                 _ = connection.GoAwayAsync();
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
@@ -442,23 +442,23 @@ namespace IceRpc.Tests.ClientServer
             private readonly SemaphoreSlim _semaphore = new(0);
             private TaskCompletionSource<object?>? _pending;
 
-            public ValueTask CloseAsync(CloseMode mode, Current current, CancellationToken cancel)
+            public ValueTask CloseAsync(CloseMode mode, Dispatch dispatch, CancellationToken cancel)
             {
                 if (mode == CloseMode.Gracefully)
                 {
-                    current.Connection.GoAwayAsync(cancel: cancel);
+                    dispatch.Connection.GoAwayAsync(cancel: cancel);
                 }
                 else
                 {
-                    current.Connection.AbortAsync();
+                    dispatch.Connection.AbortAsync();
                 }
                 return default;
             }
 
-            public async ValueTask EnterAsync(Current _, CancellationToken cancel) =>
+            public async ValueTask EnterAsync(Dispatch _, CancellationToken cancel) =>
                 await _semaphore.WaitAsync(cancel);
 
-            public ValueTask FinishDispatchAsync(Current current, CancellationToken cancel)
+            public ValueTask FinishDispatchAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 if (_pending != null) // Pending might not be set yet if startDispatch is dispatch out-of-order
                 {
@@ -468,21 +468,21 @@ namespace IceRpc.Tests.ClientServer
                 return default;
             }
 
-            public async ValueTask InitiatePingAsync(Current current, CancellationToken cancel) =>
-                await current.Connection.PingAsync(cancel: cancel);
+            public async ValueTask InitiatePingAsync(Dispatch dispatch, CancellationToken cancel) =>
+                await dispatch.Connection.PingAsync(cancel: cancel);
 
-            public ValueTask OpWithPayloadAsync(byte[] seq, Current current, CancellationToken cancel) => default;
+            public ValueTask OpWithPayloadAsync(byte[] seq, Dispatch dispatch, CancellationToken cancel) => default;
 
-            public ValueTask ReleaseAsync(Current current, CancellationToken cancel)
+            public ValueTask ReleaseAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 _semaphore.Release();
                 return default;
             }
 
-            public async ValueTask SleepAsync(int ms, Current current, CancellationToken cancel) =>
+            public async ValueTask SleepAsync(int ms, Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromMilliseconds(ms), cancel);
 
-            public ValueTask StartDispatchAsync(Current current, CancellationToken cancel)
+            public ValueTask StartDispatchAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 if (_pending != null)
                 {

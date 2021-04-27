@@ -13,7 +13,7 @@ namespace IceRpc.Test.Binding
         public ValueTask<IRemoteServerPrx> CreateServerAsync(
             string name,
             string transport,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel)
         {
             int retry = 5;
@@ -22,19 +22,19 @@ namespace IceRpc.Test.Binding
                 try
                 {
                     string endpoint =
-                        TestHelper.GetTestEndpoint(current.Communicator.GetProperties(), _nextPort++, transport);
+                        TestHelper.GetTestEndpoint(dispatch.Communicator.GetProperties(), _nextPort++, transport);
 
                     var server = new Server
                     {
-                        Communicator = current.Communicator,
+                        Communicator = dispatch.Communicator,
                         Dispatcher = new TestIntf(name),
                         Endpoint = endpoint,
-                        ProxyHost = TestHelper.GetTestHost(current.Communicator.GetProperties())
+                        ProxyHost = TestHelper.GetTestHost(dispatch.Communicator.GetProperties())
                     };
 
                     server.Listen();
 
-                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
+                    return new(TestHelper.AddWithGuid<IRemoteServerPrx>(dispatch.Server!, new RemoteServer(server)));
                 }
                 catch (TransportException)
                 {
@@ -49,30 +49,30 @@ namespace IceRpc.Test.Binding
         public ValueTask<IRemoteServerPrx> CreateServerWithEndpointsAsync(
             string name,
             string endpoints,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel)
         {
             var server = new Server
             {
-                Communicator = current.Communicator,
+                Communicator = dispatch.Communicator,
                 Dispatcher = new TestIntf(name),
                 Endpoint = endpoints
             };
 
             server.Listen();
-            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(current.Server!, new RemoteServer(server)));
+            return new(TestHelper.AddWithGuid<IRemoteServerPrx>(dispatch.Server!, new RemoteServer(server)));
         }
 
         // Coloc call.
         public ValueTask DeactivateServerAsync(
             IRemoteServerPrx server,
-            Current current,
+            Dispatch dispatch,
             CancellationToken cancel) =>
             new(server.DeactivateAsync(cancel: cancel));
 
-        public ValueTask ShutdownAsync(Current current, CancellationToken cancel)
+        public ValueTask ShutdownAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            _ = current.Server!.ShutdownAsync(); // only initiate shutdown
+            _ = dispatch.Server!.ShutdownAsync(); // only initiate shutdown
             return default;
         }
     }

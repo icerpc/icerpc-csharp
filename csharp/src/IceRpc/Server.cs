@@ -24,6 +24,10 @@ namespace IceRpc
         /// <summary>Gets or sets the options of incoming connections created by this server.</summary>
         public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
 
+        /// <summary>The event source for tracing dispatch events, when this is null the default
+        /// <see cref="DispatchEventSource.Log"/> will be used.</summary>
+        public DispatchEventSource? DispatchEventSource { get; set; }
+
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
         /// <seealso cref="IDispatcher"/>
@@ -136,18 +140,17 @@ namespace IceRpc
 
         private Lazy<Task>? _shutdownTask;
 
-        /// <summary>Creates a relative proxy for a service hosted by this server. This relative proxy holds a colocated
-        /// connection to this server.</summary>
+        /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="path">The path of the service.</param>
-        /// <returns>A new relative proxy.</returns>
-        public T CreateRelativeProxy<T>(string path) where T : class, IServicePrx
+        /// <returns>A new proxy.</returns>
+        public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
         {
             // temporary
             ProxyOptions.Communicator ??= Communicator;
 
             // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
-            // unless the user gives a connection to the new relative proxy.
+            // unless the user gives a connection to this new proxy.
 
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,

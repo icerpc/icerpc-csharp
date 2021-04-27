@@ -189,13 +189,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(100, 10, 10)]
         [TestCase(50, 200, 10)]
         [TestCase(50, 10, 200)]
-        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDeph, int serverClassGraphMaxDeph)
+        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
             await using var communicator = new Communicator()
             {
                 ConnectionOptions = new OutgoingConnectionOptions
                 {
-                    ClassGraphMaxDepth = clientClassGraphMaxDeph
+                    ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }
             };
             await using var server = new Server
@@ -203,7 +203,7 @@ namespace IceRpc.Tests.Encoding
                 Communicator = communicator,
                 ConnectionOptions = new IncomingConnectionOptions()
                 {
-                    ClassGraphMaxDepth = serverClassGraphMaxDeph
+                    ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
                 Dispatcher = new ClassGraphOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -212,8 +212,8 @@ namespace IceRpc.Tests.Encoding
 
             var prx = server.CreateProxy<IClassGraphOperationsPrx>("/classgraph");
             await prx.IcePingAsync();
-            Assert.AreEqual(clientClassGraphMaxDeph, prx.Connection?.ClassGraphMaxDepth);
-            if (graphSize > clientClassGraphMaxDeph)
+            Assert.AreEqual(clientClassGraphMaxDepth, prx.Connection?.ClassGraphMaxDepth);
+            if (graphSize > clientClassGraphMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
@@ -222,7 +222,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.DoesNotThrowAsync(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
 
-            if (graphSize > serverClassGraphMaxDeph)
+            if (graphSize > serverClassGraphMaxDepth)
             {
                 Assert.ThrowsAsync<UnhandledException>(
                     async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));
@@ -237,7 +237,7 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
@@ -253,20 +253,20 @@ namespace IceRpc.Tests.Encoding
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
 
             public ValueTask<MyClassCustomFormat> OpMyClassSlicedFormatAsync(
                 MyClassCustomFormat p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
         }
 
         class ClassGraphOperations : IAsyncClassGraphOperations
         {
-            public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Current current, CancellationToken cancel) =>
+            public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Dispatch dispatch, CancellationToken cancel) =>
                 new(CreateClassGraph(size));
-            public ValueTask SendClassGraphAsync(Recursive p1, Current current, CancellationToken cancel) => default;
+            public ValueTask SendClassGraphAsync(Recursive p1, Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private static Recursive CreateClassGraph(int size)

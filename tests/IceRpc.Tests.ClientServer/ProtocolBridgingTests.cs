@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
 
-            // When colocated, the proxy is a relative proxy and inherits the forwarder's proxy protocol.
+            // When colocated, the proxy is an endpointless proxy and "inherits" the forwarder's proxy protocol.
             Assert.AreEqual(colocated ? forwarderProtocol : targetProtocol, newPrx.Protocol);
 
             _ = await TestProxyAsync(newPrx, direct: true);
@@ -109,41 +109,41 @@ namespace IceRpc.Tests.ClientServer
 
         internal class ProtocolBridgingService : IAsyncProtocolBridgingService
         {
-            public ValueTask<int> OpAsync(int x, Current current, CancellationToken cancel) =>
+            public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);
 
-            public ValueTask OpExceptionAsync(Current current, CancellationToken cancel) =>
+            public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ProtocolBridgingException(42);
 
-            public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Current current, CancellationToken cancel)
+            public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                var proxy = current.Server!.CreateProxy<IProtocolBridgingServicePrx>(current.Path);
-                proxy.Encoding = current.Encoding; // use the request's encoding instead of the server's encoding.
+                var proxy = dispatch.Server!.CreateProxy<IProtocolBridgingServicePrx>(dispatch.Path);
+                proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }
 
-            public ValueTask OpOnewayAsync(int x, Current current, CancellationToken cancel) => default;
+            public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
 
             public ValueTask<(int ReturnValue, string Y)> OpReturnOutAsync(
                 int x,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new((x, $"value={x}"));
 
-            public ValueTask OpServiceNotFoundExceptionAsync(Current current, CancellationToken cancel) =>
+            public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ServiceNotFoundException();
 
-            public ValueTask OpVoidAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         public sealed class Forwarder : IService
         {
             private readonly IServicePrx _target;
 
-            ValueTask<OutgoingResponseFrame> IDispatcher.DispatchAsync(Current current, CancellationToken cancel)
+            ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
             {
-                current.Context["Forwarded"] = "1";
-                return _target.ForwardAsync(current.IncomingRequestFrame, current.IsOneway, cancel: cancel);
+                request.Context["Forwarded"] = "1";
+                return _target.ForwardAsync(request, request.IsOneway, cancel: cancel);
             }
 
             internal Forwarder(IServicePrx target) => _target = target;

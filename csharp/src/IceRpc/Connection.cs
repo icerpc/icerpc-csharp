@@ -621,6 +621,7 @@ namespace IceRpc
             string operation = "";
             string path = "";
             bool dispatchStarted = false;
+            DispatchEventSource eventSource = Server?.DispatchEventSource ?? DispatchEventSource.Log;
             try
             {
                 using var cancelSource = new CancellationTokenSource();
@@ -636,13 +637,15 @@ namespace IceRpc
                 }
 
                 // Receives the request frame from the stream
-                using IncomingRequestFrame request =
+                using IncomingRequest request =
                     await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+                request.Connection = this;
+                request.StreamId = stream.Id;
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
                 activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) ||  Activity.Current != null))
+                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
                     // TODO we should start the activity after restoring its context, we should update this once
@@ -659,25 +662,24 @@ namespace IceRpc
 
                 path = request.Path;
                 operation = request.Operation;
-                DispatchEventSource.Log.RequestStart(path, operation);
+                eventSource.RequestStart(path, operation);
                 dispatchStarted = true;
 
                 // It is important to start the activity above before logging in case the logger has been configured to
                 // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
 
-                OutgoingResponseFrame? response;
+                OutgoingResponse? response;
 
                 try
                 {
-                    var current = new Current(Server, request, stream, this);
-                    response = await DispatchAsync(current, cancel).ConfigureAwait(false);
+                    response = await DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
                     // No need to send the response if the dispatch is canceled by the client.
                     Debug.Assert(cancel.IsCancellationRequested);
-                    DispatchEventSource.Log.RequestCanceled(path, operation);
+                    eventSource.RequestCanceled(path, operation);
                     return;
                 }
 
@@ -693,7 +695,7 @@ namespace IceRpc
                     {
                         // Send the exception as the response instead of sending the response from the dispatch
                         // if sending raises a remote exception.
-                        response = new OutgoingResponseFrame(request, ex);
+                        response = new OutgoingResponse(request, ex);
                         await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
                     }
                     Socket.Logger.LogSentResponse(response);
@@ -704,7 +706,7 @@ namespace IceRpc
                 if (dispatchStarted)
                 {
                     // We only call DispatchFailed the IncommingRequest was read and Log.DispatchStart was called
-                    DispatchEventSource.Log.RequestFailed(path!, operation!, ex);
+                    eventSource.RequestFailed(path, operation, ex);
                 }
                 _ = AbortAsync(ex);
             }
@@ -712,7 +714,7 @@ namespace IceRpc
             {
                 if (dispatchStarted)
                 {
-                    DispatchEventSource.Log.RequestStop(path, operation);
+                    eventSource.RequestStop(path, operation);
                 }
                 activity?.Stop();
                 stream?.Release();
@@ -724,23 +726,23 @@ namespace IceRpc
         /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
         /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
         /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="current">The request being dispatched.</param>
+        /// <param name="request">The request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponseFrame"/> for the request.</returns>
-        private async ValueTask<OutgoingResponseFrame> DispatchAsync(Current current, CancellationToken cancel)
+        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
+        private async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             if (Dispatcher is IDispatcher dispatcher)
             {
                 // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
                 // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
                 // a server.
-                using CancellationTokenSource? combinedSource = current.Server != null ?
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, current.Server.CancelDispatch) : null;
+                using CancellationTokenSource? combinedSource = request.Connection.Server != null ?
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, request.Connection.Server.CancelDispatch) : null;
 
                 try
                 {
-                    OutgoingResponseFrame response =
-                        await dispatcher.DispatchAsync(current, combinedSource?.Token ?? cancel).ConfigureAwait(false);
+                    OutgoingResponse response =
+                        await dispatcher.DispatchAsync(request, combinedSource?.Token ?? cancel).ConfigureAwait(false);
 
                     cancel.ThrowIfCancellationRequested();
                     return response;
@@ -748,13 +750,13 @@ namespace IceRpc
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested)
                 {
                     // The client requested cancellation, we log it and let it propagate.
-                    Socket.Logger.LogDispatchCanceledByClient(current);
+                    Socket.Logger.LogDispatchCanceledByClient(request);
                     throw;
                 }
                 catch (Exception ex)
                 {
                     if (ex is OperationCanceledException &&
-                        current.Server is Server server &&
+                        request.Connection.Server is Server server &&
                         server.CancelDispatch.IsCancellationRequested)
                     {
                         // Replace exception
@@ -763,11 +765,11 @@ namespace IceRpc
                     // else it's another OperationCanceledException that the implementation should have caught, and it
                     // will become an UnhandledException below.
 
-                    if (current.IsOneway)
+                    if (request.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
-                        Socket.Logger.LogDispatchException(current, ex);
-                        return OutgoingResponseFrame.WithVoidReturnValue(current);
+                        Socket.Logger.LogDispatchException(request, ex);
+                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
                     }
                     else
                     {
@@ -781,16 +783,15 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                            Socket.Logger.LogDispatchException(current, ex);
+                            Socket.Logger.LogDispatchException(request, ex);
                         }
-                        return new OutgoingResponseFrame(current.IncomingRequestFrame, actualEx);
+                        return new OutgoingResponse(request, actualEx);
                     }
                 }
             }
             else
             {
-                return new OutgoingResponseFrame(current.IncomingRequestFrame,
-                                                 new ServiceNotFoundException(RetryPolicy.OtherReplica));
+                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 

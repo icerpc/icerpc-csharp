@@ -226,7 +226,6 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
             await proxy.SendProxyAsync(proxy);
-            // The server always unmarshals the proxy as a fixed proxy
             Assert.IsNotNull(service.Proxy);
             CheckProxy(service.Proxy!);
 
@@ -308,7 +307,7 @@ namespace IceRpc.Tests.Api
             await proxy.IcePingAsync();
             proxy.Connection!.Dispatcher = service;
 
-            await proxy.CallbackAsync(server.CreateRelativeProxy<IProxyTestPrx>("/callback"));
+            await proxy.CallbackAsync(server.CreateEndpointlessProxy<IProxyTestPrx>("/callback"));
         }
 
         [Test]
@@ -378,16 +377,16 @@ namespace IceRpc.Tests.Api
             private TaskCompletionSource<object?> _waitForCancelInProgressSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Current current, CancellationToken cancel) =>
-                new(current.Server!.CreateRelativeProxy<IProxyTestPrx>(current.Path));
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+                new(dispatch.Server!.CreateEndpointlessProxy<IProxyTestPrx>(dispatch.Path));
 
-            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Current current, CancellationToken cancel)
+            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {
                 Proxy = proxy;
                 return default;
             }
 
-            public async ValueTask WaitForCancelAsync(Current current, CancellationToken cancel)
+            public async ValueTask WaitForCancelAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.IsTrue(cancel.CanBeCanceled);
                 _waitForCancelInProgressSource.SetResult(null);
@@ -405,7 +404,7 @@ namespace IceRpc.Tests.Api
 
             public async ValueTask CallbackAsync(
                 IProxyTestPrx callback,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 using var cancellationSource = new CancellationTokenSource();

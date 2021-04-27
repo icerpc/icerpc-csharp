@@ -197,7 +197,7 @@ namespace IceRpc
             }
         }
 
-        internal static void LogReceivedRequest(this ILogger logger, IncomingRequestFrame request) =>
+        internal static void LogReceivedRequest(this ILogger logger, IncomingRequest request) =>
             _receivedRequestFrame(
                 logger,
                 request.Path,
@@ -289,7 +289,7 @@ namespace IceRpc
                 request.Context,
                 null!);
 
-        internal static void LogSentResponse(this ILogger logger, OutgoingResponseFrame response) =>
+        internal static void LogSentResponse(this ILogger logger, OutgoingResponse response) =>
             _sentResponseFrame(
                 logger,
                 response.ResultType,

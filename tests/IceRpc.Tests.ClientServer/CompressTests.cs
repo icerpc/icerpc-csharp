@@ -47,13 +47,13 @@ namespace IceRpc.Tests.ClientServer
 
             var router = new Router();
             router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                async (request, cancel) =>
                 {
                     try
                     {
-                        compressedRequestSize = current.IncomingRequestFrame.PayloadSize;
-                        compressedRequest = current.IncomingRequestFrame.HasCompressedPayload;
-                        var response = await next.DispatchAsync(current, cancel);
+                        compressedRequestSize = request.PayloadSize;
+                        compressedRequest = request.HasCompressedPayload;
+                        var response = await next.DispatchAsync(request, cancel);
                         compressedResponse = response.HasCompressedPayload;
                         compressedResponseSize = response.PayloadSize;
                         return response;
@@ -108,7 +108,7 @@ namespace IceRpc.Tests.ClientServer
             _ = await prx.OpCompressReturnAsync(size);
 
             Assert.IsFalse(compressedRequest);
-            if(compressedResponse)
+            if (compressedResponse)
             {
                 Assert.GreaterOrEqual(size, compressionMinSize);
                 Assert.Greater(size, compressedResponseSize);
@@ -128,26 +128,26 @@ namespace IceRpc.Tests.ClientServer
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
                 byte[] p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new ValueTask<ReadOnlyMemory<byte>>(p1);
 
             public ValueTask OpCompressArgsAsync(
                 int size,
                 byte[] p1,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 default;
 
             public ValueTask<ReadOnlyMemory<byte>> OpCompressReturnAsync(
                 int size,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
 
             public ValueTask OpWithUserExceptionAsync(
                 int size,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel) =>
                 throw new CompressMyException(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
         }

@@ -138,17 +138,17 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class Base : IAsyncMyInterfaceBase
         {
-            public ValueTask OpBaseAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask OpBaseAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         public class Derived : Base, IAsyncMyInterfaceDerived
         {
-            public ValueTask OpDerivedAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask OpDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         public class MostDerived : Derived, IAsyncMyInterfaceMostDerived
         {
-            public ValueTask OpMostDerivedAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask OpMostDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

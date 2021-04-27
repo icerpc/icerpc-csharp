@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Retry_FixedReference()
+        public async Task Retry_EndpointlessProxy()
         {
             await using var communicator = new Communicator();
             await using var server = new Server
@@ -88,7 +88,7 @@ namespace IceRpc.Tests.ClientServer
             connection.Dispatcher = server.Dispatcher;
             IRetryBidirServicePrx bidir = proxy.Clone();
             bidir.Connection = connection;
-            bidir.Endpoint = ""; // fixed proxy
+            bidir.Endpoint = ""; // endpointless proxy with a connection
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
@@ -241,10 +241,10 @@ namespace IceRpc.Tests.ClientServer
                     for (int i = 0; i < routers.Length; ++i)
                     {
                         routers[i].Use(next => new InlineDispatcher(
-                            async (current, cancel) =>
+                            async (request, cancel) =>
                             {
-                                calls.Add(current.Server!.ToString());
-                                return await next.DispatchAsync(current, cancel);
+                                calls.Add(request.Connection.Server!.ToString());
+                                return await next.DispatchAsync(request, cancel);
                             }));
                         servers[i].Dispatcher = routers[i];
                         servers[i].Listen();
@@ -280,18 +280,18 @@ namespace IceRpc.Tests.ClientServer
                     foreach (var router in routers)
                     {
                         router.Use(next => new InlineDispatcher(
-                            async (current, cancel) =>
+                            async (request, cancel) =>
                             {
-                                calls.Add(current.Server!.ToString());
-                                return await next.DispatchAsync(current, cancel);
+                                calls.Add(request.Connection.Server!.ToString());
+                                return await next.DispatchAsync(request, cancel);
                             }));
                     }
                     routers[1].Map("/replicated", new Replicated(fail: true));
                     routers[2].Use(next => new InlineDispatcher(
-                        async (current, cancel) =>
+                        async (request, cancel) =>
                         {
-                            await current.Connection.AbortAsync("forcefully close connection!");
-                            return await next.DispatchAsync(current, cancel);
+                            await request.Connection.AbortAsync("forcefully close connection!");
+                            return await next.DispatchAsync(request, cancel);
                         }));
 
                     for (int i = 0; i < servers.Length; ++i)
@@ -351,14 +351,14 @@ namespace IceRpc.Tests.ClientServer
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;
-                    retry1.Endpoint = ""; // fixed proxy
+                    retry1.Endpoint = ""; // endpointless proxy
 
                     Task t1 = retry1.OpWithDataAsync(2, 5000, data);
                     await Task.Delay(1000); // Ensure the first request is sent before the second request
 
                     var retry2 = retry.Clone();
                     retry2.Connection = connection2;
-                    retry2.Endpoint = ""; // fixed proxy
+                    retry2.Endpoint = ""; // endpointless proxy
                     Task t2 = retry2.OpWithDataAsync(2, 0, data);
 
                     Assert.DoesNotThrowAsync(async () => await t1);
@@ -428,10 +428,10 @@ namespace IceRpc.Tests.ClientServer
 
             var router = new Router();
             router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                async (request, cancel) =>
                 {
                     service.Attempts++;
-                    return await next.DispatchAsync(current, cancel);
+                    return await next.DispatchAsync(request, cancel);
                 }));
             router.Map("/retry", service);
             server.Dispatcher = router;
@@ -455,14 +455,14 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpIdempotentAsync(
                 int failedAttempts,
                 bool killConnection,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 if (Attempts <= failedAttempts)
                 {
                     if (killConnection)
                     {
-                        current.Connection.AbortAsync();
+                        dispatch.Connection.AbortAsync();
                     }
                     else
                     {
@@ -475,14 +475,14 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpNotIdempotentAsync(
                 int failedAttempts,
                 bool killConnection,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 if (Attempts <= failedAttempts)
                 {
                     if (killConnection)
                     {
-                        current.Connection.AbortAsync();
+                        dispatch.Connection.AbortAsync();
                     }
                     else
                     {
@@ -496,7 +496,7 @@ namespace IceRpc.Tests.ClientServer
                 int failedAttempts,
                 int delay,
                 byte[] data,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 if (failedAttempts >= Attempts)
@@ -509,7 +509,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpRetryAfterDelayAsync(
                 int failedAttempts,
                 int delay,
-                Current current,
+                Dispatch dispatch,
                 CancellationToken cancel)
             {
                 if (failedAttempts >= Attempts)
@@ -519,7 +519,7 @@ namespace IceRpc.Tests.ClientServer
                 return default;
             }
 
-            public ValueTask OpRetryNoAsync(Current current, CancellationToken cancel) =>
+            public ValueTask OpRetryNoAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new RetrySystemFailure(RetryPolicy.NoRetry);
         }
     }
@@ -528,7 +528,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private int _n;
 
-        public ValueTask AfterDelayAsync(int n, Current current, CancellationToken cancel)
+        public ValueTask AfterDelayAsync(int n, Dispatch dispatch, CancellationToken cancel)
         {
             if (++_n < n)
             {
@@ -538,7 +538,7 @@ namespace IceRpc.Tests.ClientServer
             return default;
         }
 
-        public ValueTask OtherReplicaAsync(Current current, CancellationToken cancel) =>
+        public ValueTask OtherReplicaAsync(Dispatch dispatch, CancellationToken cancel) =>
             throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
     }
 
@@ -547,7 +547,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly bool _fail;
         public Replicated(bool fail) => _fail = fail;
 
-        public ValueTask OtherReplicaAsync(Current current, CancellationToken cancel)
+        public ValueTask OtherReplicaAsync(Dispatch dispatch, CancellationToken cancel)
         {
             if (_fail)
             {

@@ -20,6 +20,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
+                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
                 Dispatcher = new Greeter1(),
                 Endpoint = "ice+coloc://event_source"
             };
@@ -35,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             using var dispatchEventListener = new TestEventListener(
-                "IceRpc.Dispatch",
+                "IceRpc.Dispatch.Test",
                 new (string, string)[]
                 {
                     ("total-requests", "10"),
@@ -44,7 +45,6 @@ namespace IceRpc.Tests.ClientServer
                     ("requests-per-second", "1")
                 });
 
-            DispatchEventSource.Log.ResetCounters();
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
@@ -68,6 +68,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
+                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
                 Dispatcher = new Greeter2(),
                 Endpoint = "ice+coloc://event_source"
             };
@@ -83,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             using var dispatchEventListener = new TestEventListener(
-                "IceRpc.Dispatch",
+                "IceRpc.Dispatch.Test",
                 new (string, string)[]
                 {
                     ("total-requests", "10"),
@@ -92,7 +93,6 @@ namespace IceRpc.Tests.ClientServer
                     ("canceled-requests", "10")
                 });
 
-            DispatchEventSource.Log.ResetCounters();
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
@@ -118,6 +118,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Communicator = communicator,
+                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
                 Dispatcher = new Greeter3(),
                 Endpoint = "ice+coloc://event_source"
             };
@@ -133,7 +134,7 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             using var dispatchEventListener = new TestEventListener(
-                "IceRpc.Dispatch",
+                "IceRpc.Dispatch.Test",
                 new (string, string)[]
                 {
                     ("total-requests", "10"),
@@ -142,7 +143,6 @@ namespace IceRpc.Tests.ClientServer
                     ("failed-requests", "10")
                 });
 
-            DispatchEventSource.Log.ResetCounters();
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
@@ -157,25 +157,24 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter1 : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private class Greeter2 : IAsyncGreeterTestService
         {
-            public async ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
+            public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
         private class Greeter3 : IAsyncGreeterTestService
         {
-            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ServerException("failed");
         }
 
         private class TestEventListener : EventListener
         {
             public EventSource? EventSource { get; set; }
-
             private readonly string _sourceName;
             private readonly List<(string Key, string Value, TaskCompletionSource<object?> Source)> _tasks;
 

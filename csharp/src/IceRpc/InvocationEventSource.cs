@@ -7,9 +7,9 @@ using System.Threading;
 
 namespace IceRpc
 {
-    internal sealed class InvocationEventSource : EventSource
+    public sealed class InvocationEventSource : EventSource
     {
-        internal static readonly InvocationEventSource Log = new InvocationEventSource();
+        public static readonly InvocationEventSource Log = new InvocationEventSource("IceRpc.Invocation");
 #pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
         private PollingCounter? _canceledRequestsCounter;
         private long _canceledRequests;
@@ -23,7 +23,7 @@ namespace IceRpc
 #pragma warning restore IDE0052 // Remove unread private members
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(1, Level = EventLevel.Informational)]
+        [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
         public void RequestStart(string path, string operation)
         {
             Interlocked.Increment(ref _totalRequests);
@@ -35,7 +35,7 @@ namespace IceRpc
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(2, Level = EventLevel.Informational)]
+        [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
         public void RequestStop(string path, string operation)
         {
             Interlocked.Decrement(ref _currentRequests);
@@ -103,6 +103,7 @@ namespace IceRpc
                     () => Volatile.Read(ref _totalRequests))
                 {
                     DisplayName = "Request Rate",
+                    DisplayUnits = "req/s",
                     DisplayRateTimeScale = TimeSpan.FromSeconds(1)
                 };
 
@@ -116,12 +117,12 @@ namespace IceRpc
             }
         }
 
-        // Used for testing
-        internal InvocationEventSource(string eventSourceName)
+        public InvocationEventSource(string eventSourceName)
             : base(eventSourceName)
         {
         }
 
+        // Used for testing
         [NonEvent]
         internal void ResetCounters()
         {
@@ -129,10 +130,6 @@ namespace IceRpc
             _currentRequests = 0;
             _failedRequests = 0;
             _totalRequests = 0;
-        }
-
-        private InvocationEventSource() : base("IceRpc.Invocation")
-        {
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

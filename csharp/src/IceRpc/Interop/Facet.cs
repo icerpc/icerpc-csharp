@@ -14,7 +14,7 @@ namespace IceRpc.Interop
         /// <summary>Returns the facet carried by this incoming request frame.</summary>
         /// <param name="request">The incoming request frame.</param>
         /// <returns>The facet.</returns>
-        public static string GetFacet(this IncomingRequestFrame request) => request.Facet;
+        public static string GetFacet(this IncomingRequest request) => request.Facet;
 
         /// <summary>Returns the facet carried by this outgoing request frame.</summary>
         /// <param name="request">The outgoing request frame.</param>
