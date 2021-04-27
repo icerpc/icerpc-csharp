@@ -617,6 +617,10 @@ namespace IceRpc
             Activity? activity = null;
 
             Debug.Assert(stream != null);
+
+            string? operation = null;
+            string? path = null;
+            bool dispatchStarted = false;
             try
             {
                 using var cancelSource = new CancellationTokenSource();
@@ -653,6 +657,11 @@ namespace IceRpc
                     request.RestoreActivityContext(activity);
                 }
 
+                path = request.Path;
+                operation = request.Operation;
+                DispatchEventSource.Log.RequestStart(path, operation);
+                dispatchStarted = true;
+
                 // It is important to start the activity above before logging in case the logger has been configured to
                 // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
@@ -668,6 +677,7 @@ namespace IceRpc
                 {
                     // No need to send the response if the dispatch is canceled by the client.
                     Debug.Assert(cancel.IsCancellationRequested);
+                    DispatchEventSource.Log.RequestCanceled(path, operation);
                     return;
                 }
 
@@ -688,15 +698,21 @@ namespace IceRpc
                     }
                     Socket.Logger.LogSentResponse(response);
                 }
+                DispatchEventSource.Log.RequestStop(path, operation);
             }
             catch (Exception ex)
             {
+                if (dispatchStarted)
+                {
+                    // We only call DispatchFailed the IncommingRequest was read and Log.DispatchStart was called
+                    DispatchEventSource.Log.RequestFailed(path!, operation!, ex);
+                }
                 _ = AbortAsync(ex);
             }
             finally
             {
-                stream?.Release();
                 activity?.Stop();
+                stream?.Release();
             }
         }
 

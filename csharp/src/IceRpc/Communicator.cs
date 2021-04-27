@@ -21,10 +21,6 @@ namespace IceRpc
         /// <summary>The connection options.</summary>
         public OutgoingConnectionOptions ConnectionOptions;
 
-        /// <summary>Gets the communicator observer used by the Ice run-time or null if a communicator observer
-        /// was not set during communicator construction.</summary>
-        public Instrumentation.ICommunicatorObserver? Observer { get; }
-
         /// <summary>The output mode or format for ToString on Ice proxies when the protocol is ice1. See
         /// <see cref="IceRpc.Interop.ToStringMode"/>.</summary>
         public ToStringMode ToStringMode { get; }
@@ -70,17 +66,14 @@ namespace IceRpc
         /// <summary>Constructs a new communicator.</summary>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
-            Instrumentation.ICommunicatorObserver? observer = null,
             OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings: null,
                    loggerFactory,
-                   observer,
                    properties,
                    connectionOptions)
         {
@@ -90,18 +83,15 @@ namespace IceRpc
         /// <param name="args">An array of command-line arguments used to set or override Ice.* properties.</param>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             IReadOnlyDictionary<string, string> properties,
             ILoggerFactory? loggerFactory = null,
-            Instrumentation.ICommunicatorObserver? observer = null,
             OutgoingConnectionOptions? connectionOptions = null)
             : this(ref args,
                    appSettings: null,
                    loggerFactory,
-                   observer,
                    properties,
                    connectionOptions)
         {
@@ -111,19 +101,16 @@ namespace IceRpc
         /// <param name="appSettings">Collection of settings to configure the new communicator properties. The
         /// appSettings param has precedence over the properties param.</param>
         /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="observer">The communicator observer used by the Ice run-time.</param>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
-            Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
             OutgoingConnectionOptions? connectionOptions = null)
             : this(ref _emptyArgs,
                    appSettings,
                    loggerFactory,
-                   observer,
                    properties,
                    connectionOptions)
         {
@@ -134,20 +121,17 @@ namespace IceRpc
         /// <param name="appSettings">Collection of settings to configure the new communicator properties. The
         /// appSettings param has precedence over the properties param.</param>
         /// <param name="loggerFactory">The loggerFactory used by the new communicator.</param>
-        /// <param name="observer">The communicator observer used by the new communicator.</param>
         /// <param name="properties">The properties of the new communicator.</param>
         /// <param name="connectionOptions">Connection options.</param>
         public Communicator(
             ref string[] args,
             NameValueCollection? appSettings = null,
             ILoggerFactory? loggerFactory = null,
-            Instrumentation.ICommunicatorObserver? observer = null,
             IReadOnlyDictionary<string, string>? properties = null,
             OutgoingConnectionOptions? connectionOptions = null)
         {
             loggerFactory ??= NullLoggerFactory.Instance;
             Logger = loggerFactory.CreateLogger("IceRpc");
-            Observer = observer;
 
             // clone properties as we don't want to modify the properties given to this constructor
             var combinedProperties =

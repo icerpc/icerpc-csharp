@@ -1,0 +1,230 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Tracing;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace IceRpc.Tests.ClientServer
+{
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    public class EventSourceTests
+    {
+        [Test]
+        public async Task EventSource_RequestsAsync()
+        {
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new Greeter1(),
+                Endpoint = "ice+coloc://event_source:0"
+            };
+
+            using var invocationEventListener = new TestEventListener(
+                "IceRpc.Invocation",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1")
+                });
+
+            using var dispatchEventListener = new TestEventListener(
+                "IceRpc.Dispatch",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1")
+                });
+
+            DispatchEventSource.Log.ResetCounters();
+            InvocationEventSource.Log.ResetCounters();
+
+            server.Listen();
+            await greeter.SayHelloAsync();
+
+            Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
+            Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
+        }
+
+        [Test]
+        public async Task EventSource_RequestsCanceledAsync()
+        {
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new Greeter2(),
+                Endpoint = "ice+coloc://event_source:0"
+            };
+
+            using var invocationEventListener = new TestEventListener(
+                "IceRpc.Invocation",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1"),
+                    ("canceled-requests", "1")
+                });
+
+            using var dispatchEventListener = new TestEventListener(
+                "IceRpc.Dispatch",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1"),
+                    ("canceled-requests", "1")
+                });
+
+            DispatchEventSource.Log.ResetCounters();
+            InvocationEventSource.Log.ResetCounters();
+
+            server.Listen();
+            greeter.InvocationTimeout = TimeSpan.FromSeconds(1);
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await greeter.SayHelloAsync());
+
+            Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
+            Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
+        }
+
+        [Test]
+        public async Task EventSource_RequestsFailedAsync()
+        {
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source:0/test", communicator);
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Dispatcher = new Greeter3(),
+                Endpoint = "ice+coloc://event_source:0"
+            };
+
+            using var invocationEventListener = new TestEventListener(
+                "IceRpc.Invocation",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1"),
+                    ("failed-requests", "1")
+                });
+
+            using var dispatchEventListener = new TestEventListener(
+                "IceRpc.Dispatch",
+                new (string, string)[]
+                {
+                    ("total-requests", "1"),
+                    ("current-requests", "1"),
+                    ("failed-requests", "1")
+                });
+
+            DispatchEventSource.Log.ResetCounters();
+            InvocationEventSource.Log.ResetCounters();
+
+            server.Listen();
+            Assert.ThrowsAsync<ServerException>(async() => await greeter.SayHelloAsync());
+
+            Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
+            Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
+        }
+
+        private class Greeter1 : IAsyncGreeterTestService
+        {
+            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) => default;
+        }
+
+        private class Greeter2 : IAsyncGreeterTestService
+        {
+            public async ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
+                await Task.Delay(TimeSpan.FromSeconds(10), cancel);
+        }
+
+        private class Greeter3 : IAsyncGreeterTestService
+        {
+            public ValueTask SayHelloAsync(Current current, CancellationToken cancel) =>
+                throw new ServerException("failed");
+        }
+
+        private class TestEventListener : EventListener
+        {
+            public EventSource? EventSource { get; set; }
+
+            private readonly string _sourceName;
+            private readonly List<(string Key, string Value, TaskCompletionSource<object?> Source)> _tasks;
+
+            public TestEventListener(string sourceName, (string Name, string Value)[] expectedCounters)
+            {
+                _tasks = new List<(string, string, TaskCompletionSource<object?>)>();
+                foreach ((string key, string value) in expectedCounters)
+                {
+                    _tasks.Add((key, value, new TaskCompletionSource<object?>()));
+                }
+                _sourceName = sourceName;
+            }
+
+            protected override void OnEventSourceCreated(EventSource eventSource)
+            {
+                // OnEventSourceCreated can be called as soon as the base constructor runs and before
+                // _sourceName is assigned, if that is the case we ignore the source.
+                if (_sourceName == null)
+                {
+                    return;
+                }
+
+                if (_sourceName == eventSource.Name)
+                {
+                    EventSource = eventSource;
+                    EnableEvents(eventSource,
+                                 EventLevel.Verbose,
+                                 EventKeywords.All,
+                                 new Dictionary<string, string?>
+                                 {
+                                     { "EventCounterIntervalSec", "0.001" }
+                                 });
+                }
+                base.OnEventSourceCreated(eventSource);
+            }
+
+            protected override void OnEventWritten(EventWrittenEventArgs eventData)
+            {
+                if (eventData.EventId == -1) // counter event
+                {
+                    Assert.IsNotNull(eventData.Payload);
+                    var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
+
+                    if (eventPayload.TryGetValue("Name", out object? nameValue) && 
+                        eventPayload.TryGetValue("Count", out object? countValue))
+                    {
+                        string name = nameValue?.ToString() ?? "";
+                        string value = countValue?.ToString() ?? "";
+
+                        foreach (var entry in _tasks)
+                        {
+                            if (entry.Key == name && entry.Value == value)
+                            {
+                                entry.Source.TrySetResult(null);
+                                break;
+                            }
+                        }
+                    }
+                }
+                base.OnEventWritten(eventData);
+            }
+
+            public async Task WaitForCounterEventsAsync()
+            {
+                foreach ((string key, string value, TaskCompletionSource<object?> source) in _tasks)
+                {
+                    Task t = await Task.WhenAny(source.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+                    if (t != source.Task)
+                    {
+                        throw new Exception($"Didn't receive the expected event counter {key} with value {value}");
+                    }
+                }
+            }
+        }
+    }
+}
