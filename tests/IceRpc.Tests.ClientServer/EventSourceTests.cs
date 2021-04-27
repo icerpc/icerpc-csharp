@@ -104,7 +104,7 @@ namespace IceRpc.Tests.ClientServer
                 tasks.Add(greeter.SayHelloAsync());
             }
 
-            Assert.ThrowsAsync< OperationCanceledException>(async () => await Task.WhenAll(tasks));
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await Task.WhenAll(tasks));
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());

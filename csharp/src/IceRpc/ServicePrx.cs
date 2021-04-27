@@ -670,7 +670,7 @@ namespace IceRpc
                     0,
                     progress,
                     request.CancellationToken).ConfigureAwait(false);
-                
+
                 if (response.ResultType != ResultType.Success)
                 {
                     InvocationEventSource.Log.RequestFailed(request.Path, request.Operation, null);

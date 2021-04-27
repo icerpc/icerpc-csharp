@@ -7,6 +7,7 @@ using System.Threading;
 
 namespace IceRpc
 {
+    /// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events. Instances of this</summary>
     public sealed class DispatchEventSource : EventSource
     {
         public static readonly DispatchEventSource Log = new DispatchEventSource("IceRpc.Dispatch");
@@ -21,6 +22,14 @@ namespace IceRpc
         private PollingCounter? _totalRequestsCounter;
         private long _totalRequests;
 #pragma warning restore IDE0052 // Remove unread private members
+
+        /// <summary>Creates a new instance of the <see cref="DispatchEventSource"/> class with the specified name.
+        /// </summary>
+        /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
+        public DispatchEventSource(string eventSourceName)
+            : base(eventSourceName)
+        {
+        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
@@ -115,11 +124,6 @@ namespace IceRpc
                     DisplayName = "Total Requests",
                 };
             }
-        }
-
-        public DispatchEventSource(string eventSourceName)
-            : base(eventSourceName)
-        {
         }
 
         // Used for testing
