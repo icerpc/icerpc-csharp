@@ -29,11 +29,11 @@ namespace IceRpc.Test.AMI
         {
             if (mode == CloseMode.Gracefully)
             {
-                current.Connection.GoAwayAsync(cancel: cancel);
+                dispatch.Connection.GoAwayAsync(cancel: cancel);
             }
             else
             {
-                current.Connection.AbortAsync();
+                dispatch.Connection.AbortAsync();
             }
         }
 
@@ -43,14 +43,14 @@ namespace IceRpc.Test.AMI
             {
                 Task.Delay(ms, cancel).Wait(cancel);
                 // Cancellation isn't supported with Ice1
-                TestHelper.Assert(!current.Context.ContainsKey("cancel") ||
-                                  current.Context["cancel"] == "mightSucceed" ||
-                                  current.Protocol == Protocol.Ice1);
+                TestHelper.Assert(!dispatch.Context.ContainsKey("cancel") ||
+                                  dispatch.Context["cancel"] == "mightSucceed" ||
+                                  dispatch.Protocol == Protocol.Ice1);
             }
             catch (System.AggregateException ex) when (ex.InnerException is TaskCanceledException)
             {
                 // Expected if the request is canceled.
-                TestHelper.Assert(current.Context.ContainsKey("cancel"));
+                TestHelper.Assert(dispatch.Context.ContainsKey("cancel"));
             }
         }
 
@@ -64,7 +64,7 @@ namespace IceRpc.Test.AMI
                     _pending.SetResult(null);
                     _pending = null;
                 }
-                current.Server!.ShutdownAsync();
+                dispatch.Server!.ShutdownAsync();
             }
         }
 
@@ -78,7 +78,7 @@ namespace IceRpc.Test.AMI
         public async ValueTask<int> OpWithResultAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {
             await Task.Delay(10, cancel);
-            return await Self(current).OpWithResultAsync(cancel: cancel);
+            return await Self(dispatch).OpWithResultAsync(cancel: cancel);
         }
 
         public async ValueTask OpWithUEAsyncDispatchAsync(Dispatch dispatch, CancellationToken cancel)
@@ -86,7 +86,7 @@ namespace IceRpc.Test.AMI
             await Task.Delay(10, cancel);
             try
             {
-                await Self(current).OpWithUEAsync(cancel: cancel);
+                await Self(dispatch).OpWithUEAsync(cancel: cancel);
             }
             catch (RemoteException ex)
             {
@@ -96,7 +96,7 @@ namespace IceRpc.Test.AMI
         }
 
         private static ITestIntfPrx Self(Dispatch dispatch) =>
-            dispatch.Server!.CreateProxy<ITestIntfPrx>(current.Path);
+            dispatch.Server!.CreateProxy<ITestIntfPrx>(dispatch.Path);
 
         public ValueTask StartDispatchAsync(Dispatch dispatch, CancellationToken cancel)
         {

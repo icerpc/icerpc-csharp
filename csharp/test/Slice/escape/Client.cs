@@ -29,7 +29,7 @@ public class Client : TestHelper
         public ValueTask<int> catchAsync(int @checked, IceRpc.Dispatch dispatch, CancellationToken cancel) =>
             new(0);
 
-        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel) => Assert(current.Operation == "default");
+        public void @default(IceRpc.Dispatch dispatch, CancellationToken cancel) => Assert(dispatch.Operation == "default");
     }
 
     public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest

@@ -2954,7 +2954,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             << " = Request." << fixId(opName) << "(request);";
     }
 
-    _out << nl << "var dispatch = new Dispatch(request);";
+    _out << nl << "var dispatch = new IceRpc.Dispatch(request);";
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
 
