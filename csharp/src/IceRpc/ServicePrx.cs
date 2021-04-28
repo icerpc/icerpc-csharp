@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Instrumentation;
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
@@ -661,17 +660,31 @@ namespace IceRpc
                 activity.Start();
             }
 
+            InvocationEventSource.Log.RequestStart(request.Path, request.Operation);
             try
             {
-                return await InvokeWithInterceptorsAsync(proxy,
-                                                         request,
-                                                         oneway,
-                                                         0,
-                                                         progress,
-                                                         request.CancellationToken).ConfigureAwait(false);
+                IncomingResponseFrame response = await InvokeWithInterceptorsAsync(
+                    proxy,
+                    request,
+                    oneway,
+                    0,
+                    progress,
+                    request.CancellationToken).ConfigureAwait(false);
+
+                if (response.ResultType != ResultType.Success)
+                {
+                    InvocationEventSource.Log.RequestFailed(request.Path, request.Operation, null);
+                }
+                return response;
+            }
+            catch (OperationCanceledException)
+            {
+                InvocationEventSource.Log.RequestCanceled(request.Path, request.Operation);
+                throw;
             }
             finally
             {
+                InvocationEventSource.Log.RequestStop(request.Path, request.Operation);
                 activity?.Stop();
             }
 
@@ -712,17 +725,12 @@ namespace IceRpc
                         requestSize > communicator.RetryRequestMaxSize ||
                         !communicator.IncRetryBufferSize(requestSize);
 
-                    IInvocationObserver? observer = communicator.Observer?.GetInvocationObserver(proxy,
-                                                                                                 request.Operation,
-                                                                                                 request.Context);
-                    observer?.Attach();
                     try
                     {
                         return await impl.PerformInvokeAsync(request,
                                                              oneway,
                                                              progress,
                                                              releaseRequestAfterSent,
-                                                             observer,
                                                              cancel).ConfigureAwait(false);
                     }
                     finally
@@ -732,8 +740,6 @@ namespace IceRpc
                             communicator.DecRetryBufferSize(requestSize);
                         }
                         // TODO release the request memory if not already done after sent.
-                        // TODO: Use IDisposable for observers, this will allow using "using".
-                        observer?.Detach();
                     }
                 }
             }
@@ -963,7 +969,6 @@ namespace IceRpc
             bool oneway,
             IProgress<bool>? progress,
             bool releaseRequestAfterSent,
-            IInvocationObserver? observer,
             CancellationToken cancel)
         {
             Connection? connection = _connection;
@@ -1087,14 +1092,12 @@ namespace IceRpc
                     {
                         return response;
                     }
-                    observer?.RemoteException();
                 }
                 catch (NoEndpointException ex) when (tryAgain)
                 {
                     // If we get NoEndpointException while retrying, either all endpoints have been excluded or the
                     // proxy has no endpoints. So we cannot retry, and we return here to preserve any previous
                     // exception that might have been thrown.
-                    observer?.Failed(ex.GetType().FullName ?? "System.Exception"); // TODO cleanup observer logic
                     return response ?? throw exception ?? ex;
                 }
                 catch (Exception ex)
@@ -1198,8 +1201,6 @@ namespace IceRpc
                         await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                     }
 
-                    observer?.Retried();
-
                     if (_endpoint != null && connection != null && !connection.IsIncoming)
                     {
                         // Retry with a new connection!
@@ -1214,8 +1215,6 @@ namespace IceRpc
                 logger.LogRequestException(request, exception);
             }
 
-            // TODO cleanup observer logic we report "System.Exception" for all remote exceptions
-            observer?.Failed(exception?.GetType().FullName ?? "System.Exception");
             Debug.Assert(response != null || exception != null);
             Debug.Assert(response == null || response.ResultType == ResultType.Failure);
             return response ?? throw ExceptionUtil.Throw(exception!);

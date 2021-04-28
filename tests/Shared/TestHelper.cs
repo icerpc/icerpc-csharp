@@ -15,12 +15,12 @@ namespace IceRpc.Tests
                 _ => address.Contains(":") ? $"[{address}]" : address
             };
 
-       public static string GetTestEndpoint(
-            string host = "127.0.0.1",
-            int port = 0,
-            string transport = "tcp",
-            bool tls = false,
-            Protocol protocol = Protocol.Ice2)
+        public static string GetTestEndpoint(
+             string host = "127.0.0.1",
+             int port = 0,
+             string transport = "tcp",
+             bool tls = false,
+             Protocol protocol = Protocol.Ice2)
         {
             if (protocol == Protocol.Ice2)
             {

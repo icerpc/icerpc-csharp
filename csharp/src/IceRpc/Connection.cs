@@ -617,6 +617,11 @@ namespace IceRpc
             Activity? activity = null;
 
             Debug.Assert(stream != null);
+
+            string operation = "";
+            string path = "";
+            bool dispatchStarted = false;
+            DispatchEventSource eventSource = Server?.DispatchEventSource ?? DispatchEventSource.Log;
             try
             {
                 using var cancelSource = new CancellationTokenSource();
@@ -655,6 +660,11 @@ namespace IceRpc
                     request.RestoreActivityContext(activity);
                 }
 
+                path = request.Path;
+                operation = request.Operation;
+                eventSource.RequestStart(path, operation);
+                dispatchStarted = true;
+
                 // It is important to start the activity above before logging in case the logger has been configured to
                 // include the activity tracking options.
                 Socket.Logger.LogReceivedRequest(request);
@@ -669,6 +679,7 @@ namespace IceRpc
                 {
                     // No need to send the response if the dispatch is canceled by the client.
                     Debug.Assert(cancel.IsCancellationRequested);
+                    eventSource.RequestCanceled(path, operation);
                     return;
                 }
 
@@ -692,12 +703,21 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
+                if (dispatchStarted)
+                {
+                    // We only call DispatchFailed the IncommingRequest was read and Log.DispatchStart was called
+                    eventSource.RequestFailed(path, operation, ex);
+                }
                 _ = AbortAsync(ex);
             }
             finally
             {
-                stream?.Release();
+                if (dispatchStarted)
+                {
+                    eventSource.RequestStop(path, operation);
+                }
                 activity?.Stop();
+                stream?.Release();
             }
         }
 

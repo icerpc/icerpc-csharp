@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
-using IceRpc.Instrumentation;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -78,15 +77,10 @@ namespace IceRpc.Test
             Environment.Exit(1);
         }
 
-        public static Communicator CreateCommunicator(
-            ref string[] args,
-            Dictionary<string, string>? defaults = null,
-            ICommunicatorObserver? observer = null) =>
-            CreateCommunicator(CreateTestProperties(ref args, defaults), observer);
+        public static Communicator CreateCommunicator(ref string[] args, Dictionary<string, string>? defaults = null) =>
+            CreateCommunicator(CreateTestProperties(ref args, defaults));
 
-        public static Communicator CreateCommunicator(
-            Dictionary<string, string> properties,
-            ICommunicatorObserver? observer = null)
+        public static Communicator CreateCommunicator(Dictionary<string, string> properties)
         {
             var loggerFactory = LoggerFactory.Create(
                 builder =>
@@ -94,7 +88,7 @@ namespace IceRpc.Test
                     // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.SetMinimumLevel(LogLevel.Debug);
                 });
-            return new Communicator(properties, observer: observer, loggerFactory: loggerFactory);
+            return new Communicator(properties, loggerFactory: loggerFactory);
         }
 
         public string GetTestEndpoint(
