@@ -151,7 +151,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, idempotent, context, cancel);
-            // TODO: deal with compress, format, and cancel paramters
+            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
         }
@@ -236,7 +236,7 @@ namespace IceRpc
                                         startAt: default,
                                         request.PayloadEncoding,
                                         format);
-            // TODO: deal with compress, format, and cancel paramters
+            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = writer(ostr, in args, cancel);
             ostr.Finish();
             if (compress && proxy.Encoding == Encoding.V20)
@@ -400,7 +400,7 @@ namespace IceRpc
                         // Tracestate encoded as an string
                         ostr.WriteString(activity.TraceStateString ?? "");
 
-                        // Baggage encoded as a sequence<(string, string)>
+                        // Baggage encoded as a sequence<BaggageEntry>
                         ostr.WriteSequence(activity.Baggage, (ostr, entry) =>
                         {
                             ostr.WriteString(entry.Key);

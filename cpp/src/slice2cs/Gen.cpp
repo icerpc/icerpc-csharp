@@ -2881,8 +2881,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << "var returnValue = ";
         }
 
-        _out << "await ";
-        _out << "this." << name << spar;
+        _out << "await this." << name << spar;
         if (params.size() > 1)
         {
             _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });
@@ -2891,10 +2890,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << paramName(params.front(), "iceP_");
         }
-        _out << "dispatch" << "cancel" << epar;
-        _out << ".ConfigureAwait(false)";
-
-        _out << ";";
+        _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
 
         if (returnType.size() == 0)
         {
@@ -2902,9 +2898,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         else
         {
-            _out << nl << "return ";
-            _out << "Response." << fixId(opName) << "(dispatch, returnValue)";
-            _out << ";";
+            _out << nl << "return Response." << fixId(opName) << "(dispatch, returnValue);";
         }
         _out << eb;
     }

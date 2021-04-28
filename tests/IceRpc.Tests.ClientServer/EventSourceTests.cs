@@ -17,10 +17,11 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter1(),
                 Endpoint = "ice+coloc://event_source"
             };
@@ -65,10 +66,11 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter2(),
                 Endpoint = "ice+coloc://event_source"
             };
@@ -115,10 +117,11 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter3(),
                 Endpoint = "ice+coloc://event_source"
             };
