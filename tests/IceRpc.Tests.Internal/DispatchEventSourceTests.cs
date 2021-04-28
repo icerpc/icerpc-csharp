@@ -88,7 +88,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
             Assert.AreEqual("operation", eventData.Payload![1]);
-            Assert.AreEqual("", eventData.Payload![2]);
+            Assert.AreEqual("IceRpc.RemoteException", eventData.Payload![2]);
         }
 
         private class TestEventListener : EventListener
