@@ -154,7 +154,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, idempotent, context, cancel);
-            // TODO: deal with compress, format, and cancel paramters
+            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
         }
