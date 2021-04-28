@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc\ice.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />
     <!-- Do not refercence the assemblies below, this ensures that factories are not automatically registered
          see AssemblyLoadTests -->
