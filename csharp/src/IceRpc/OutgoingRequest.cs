@@ -45,6 +45,9 @@ namespace IceRpc
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
 
+        /// <summary>The proxy that is sending this request.</summary>
+        public IServicePrx Proxy { get; }
+
         /// <summary>WritableContext is a writable version of Context. Its entries are always the same as Context's
         /// entries.</summary>
         public SortedDictionary<string, string> WritableContext
@@ -272,8 +275,7 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an outgoing request frame from the given incoming request frame.</summary>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet
-        /// and context of this proxy to create the request frame.</param>
+        /// <param name="proxy">The proxy sending this request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
         /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming request frame's
         /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
@@ -286,6 +288,7 @@ namespace IceRpc
             CancellationToken cancel = default)
             : this(proxy, request.Operation, request.IsIdempotent, request.Context, cancel)
         {
+            Proxy = proxy;
             PayloadEncoding = request.PayloadEncoding;
 
             if (request.Protocol == Protocol)
@@ -445,6 +448,8 @@ namespace IceRpc
                    proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
                    proxy.Connection?.CompressionMinSize ?? 100)
         {
+            Proxy = proxy;
+
             if (Protocol == Protocol.Ice1)
             {
                 Facet = proxy.Impl.Facet;
