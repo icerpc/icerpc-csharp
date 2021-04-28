@@ -54,7 +54,7 @@ protected:
     void writeServantDocComment(const InterfaceDefPtr&, const std::string&);
 
     void writeTypeDocComment(const ContainedPtr&, const std::string&);
-    void writeOperationDocComment(const OperationPtr&, const std::string&, bool, bool);
+    void writeOperationDocComment(const OperationPtr&, const std::string&, bool);
 
     enum ParamDir { InParam, OutParam };
     void writeParamDocComment(const OperationPtr&, const CommentInfo&, ParamDir);
@@ -159,10 +159,6 @@ private:
 
         void writeIncomingRequestReader(const OperationPtr&);
         void writeOutgoingResponseWriter(const OperationPtr&);
-
-    private:
-
-        const bool _generateAllAsync;
     };
 
     class ClassAttributeVisitor : public CsVisitor
