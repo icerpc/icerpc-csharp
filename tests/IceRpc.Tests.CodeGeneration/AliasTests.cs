@@ -38,8 +38,8 @@ namespace IceRpc.Tests.CodeGeneration
             DeclarationsAreEquals(typeof(IAliasOperationsPrx).GetMethod($"{baseName}AAsync"),
                                   typeof(IAliasOperationsPrx).GetMethod($"{baseName}Async"));
 
-            DeclarationsAreEquals(typeof(IAsyncAliasOperations).GetMethod($"{baseName}AAsync"),
-                                  typeof(IAsyncAliasOperations).GetMethod($"{baseName}Async"));
+            DeclarationsAreEquals(typeof(IAliasOperations).GetMethod($"{baseName}AAsync"),
+                                  typeof(IAliasOperations).GetMethod($"{baseName}Async"));
 
             static void DeclarationsAreEquals(MethodInfo? m1, MethodInfo? m2)
             {

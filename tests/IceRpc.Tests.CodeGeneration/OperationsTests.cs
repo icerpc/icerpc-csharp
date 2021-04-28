@@ -89,7 +89,7 @@ namespace IceRpc.Tests.CodeGeneration
             await onewayPrx.OpOnewayMetadataAsync();
         }
 
-        public class Operations : IAsyncOperations
+        public class Operations : IOperations
         {
             // Builtin types
             public ValueTask<(byte, byte)> OpByteAsync(

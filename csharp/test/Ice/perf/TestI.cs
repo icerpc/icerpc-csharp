@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Perf
 {
@@ -9,17 +11,18 @@ namespace IceRpc.Test.Perf
     {
         private static readonly byte[] _bytes = new byte[1024000]; // 1MB];
 
-        public void SendBytes(byte[] seq, Dispatch dispatch, CancellationToken cancel)
-        {
-        }
+        public ValueTask SendBytesAsync(byte[] seq, Dispatch dispatch, CancellationToken cancel) => default;
 
-        public System.ReadOnlyMemory<byte> ReceiveBytes(int size, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<ReadOnlyMemory<byte>> ReceiveBytesAsync(int size, Dispatch dispatch, CancellationToken cancel)
         {
             Debug.Assert(size <= _bytes.Length);
-            return new(_bytes, 0, size);
+            return new(new ReadOnlyMemory<byte>(_bytes, 0, size));
         }
 
-        public void Shutdown(Dispatch dispatch, CancellationToken cancel) =>
-            dispatch.Server!.ShutdownAsync();
+        public ValueTask ShutdownAsync(Dispatch dispatch, CancellationToken cancel)
+        {
+            _ = dispatch.Server!.ShutdownAsync();
+            return default;
+        }
     }
 }

@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
-        public class TestService : IAsyncMiddlewareTestService
+        public class TestService : IMiddlewareTestService
         {
             public bool Called { get; private set; }
             public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel)

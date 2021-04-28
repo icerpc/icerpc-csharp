@@ -206,7 +206,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
-        public class GreeterService : IAsyncGreeterTestService
+        public class GreeterService : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

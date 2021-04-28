@@ -436,7 +436,7 @@ namespace IceRpc.Tests.CodeGeneration
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
         }
 
-        public class SequenceOperations : IAsyncSequenceOperations
+        public class SequenceOperations : ISequenceOperations
         {
             // Builtin type sequences
 

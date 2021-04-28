@@ -282,48 +282,6 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
 
-        /// <summary>Sends a request that returns a value and returns the result synchronously.</summary>
-        /// <typeparam name="T">The operation's return type.</typeparam>
-        /// <param name="request">The <see cref="OutgoingRequestFrame"/> for this invocation.</param>
-        /// <param name="reader">An <see cref="ResponseReader{T}"/> for the operation's return value. Typically
-        /// {IInterfaceNamePrx}.Response.{OperationName}.</param>
-        /// <returns>The operation's return value.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected T IceInvoke<T>(OutgoingRequestFrame request, ResponseReader<T> reader)
-        {
-            try
-            {
-                IncomingResponseFrame response =
-                    ServicePrx.InvokeAsync(this, request, oneway: false).GetAwaiter().GetResult();
-                return reader(this, response);
-            }
-            finally
-            {
-                request.Dispose();
-            }
-        }
-
-        /// <summary>Sends a request that returns void and waits synchronously for the result.</summary>
-        /// <param name="request">The <see cref="OutgoingRequestFrame"/> for this invocation.</param>
-        /// <param name="oneway">When true, the request is sent as a oneway request. When false, it is sent as a
-        /// twoway request.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        protected void IceInvoke(OutgoingRequestFrame request, bool oneway)
-        {
-            try
-            {
-                IncomingResponseFrame response = ServicePrx.InvokeAsync(this, request, oneway).GetAwaiter().GetResult();
-                if (!oneway)
-                {
-                    response.ReadVoidReturnValue(this);
-                }
-            }
-            finally
-            {
-                request.Dispose();
-            }
-        }
-
         /// <summary>Sends a request that returns a value and returns the result asynchronously.</summary>
         /// <typeparam name="T">The operation's return type.</typeparam>
         /// <param name="request">The <see cref="OutgoingRequestFrame"/> for this invocation.</param>

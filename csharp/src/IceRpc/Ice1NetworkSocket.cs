@@ -127,6 +127,13 @@ namespace IceRpc
                             Debug.Assert(stream.IsControl);
                             continue;
                         }
+                        else if (frameType == Ice1FrameType.CloseConnection && Endpoint.IsDatagram)
+                        {
+                            Debug.Assert(stream.IsControl);
+                            Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
+                            continue;
+                        }
+
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
@@ -327,7 +334,6 @@ namespace IceRpc
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
 

@@ -54,7 +54,7 @@ namespace IceRpc
         /// <summary>Returns True if the stream is a control stream, False otherwise.</summary>
         public bool IsControl { get; }
 
-        protected abstract bool ReceivedEndOfStream { get; }
+        protected internal abstract bool ReceivedEndOfStream { get; }
 
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing

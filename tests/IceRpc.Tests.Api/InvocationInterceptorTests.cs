@@ -129,7 +129,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(1, ctx.Count);
         }
 
-        internal class TestService : IAsyncInvocationInterceptorTestService
+        internal class TestService : IInvocationInterceptorTestService
         {
             public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
                 new(dispatch.Context);

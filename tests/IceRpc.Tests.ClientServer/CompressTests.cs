@@ -124,7 +124,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsFalse(compressedResponse);
         }
 
-        internal class CompressService : IAsyncCompressService
+        internal class CompressService : ICompressService
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
                 byte[] p1,

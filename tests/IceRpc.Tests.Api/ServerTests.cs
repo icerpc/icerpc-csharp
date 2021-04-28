@@ -368,7 +368,7 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await disposeTask);
         }
 
-        private class ProxyTest : IAsyncProxyTest
+        private class ProxyTest : IProxyTest
         {
             internal IProxyTestPrx? Proxy { get; set; }
 
@@ -398,7 +398,7 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        private class ServerTest : IAsyncServerTest
+        private class ServerTest : IServerTest
         {
             private readonly ProxyTest _service;
 

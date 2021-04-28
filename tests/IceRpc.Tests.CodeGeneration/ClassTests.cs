@@ -254,7 +254,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class ClassOperations : IAsyncClassOperations
+        public class ClassOperations : IClassOperations
         {
             private readonly MyClassB _b1;
             private readonly MyClassB _b2;

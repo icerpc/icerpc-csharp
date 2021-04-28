@@ -70,7 +70,7 @@ namespace IceRpc.Tests.ClientServer
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
-                prx = prx.OpNewProxy();
+                prx = await prx.OpNewProxyAsync();
                 prx.Context = new Dictionary<string, string> { { "Direct", "1" } };
                 return prx;
             }
@@ -107,7 +107,7 @@ namespace IceRpc.Tests.ClientServer
                 };
         }
 
-        internal class ProtocolBridgingService : IAsyncProtocolBridgingService
+        internal class ProtocolBridgingService : IProtocolBridgingService
         {
             public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);

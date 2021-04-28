@@ -17,17 +17,18 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter1(),
                 Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
@@ -37,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch.Test",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
@@ -65,17 +66,18 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter2(),
                 Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
@@ -85,7 +87,7 @@ namespace IceRpc.Tests.ClientServer
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch.Test",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
@@ -115,17 +117,18 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test"),
+                DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter3(),
                 Endpoint = "ice+coloc://event_source"
             };
 
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "1"),
@@ -135,7 +138,7 @@ namespace IceRpc.Tests.ClientServer
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch.Test",
-                new (string, string)[]
+                new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "1"),
@@ -155,18 +158,18 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
         }
 
-        private class Greeter1 : IAsyncGreeterTestService
+        private class Greeter1 : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        private class Greeter2 : IAsyncGreeterTestService
+        private class Greeter2 : IGreeterTestService
         {
             public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
-        private class Greeter3 : IAsyncGreeterTestService
+        private class Greeter3 : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ServerException("failed");
@@ -175,16 +178,16 @@ namespace IceRpc.Tests.ClientServer
         private class TestEventListener : EventListener
         {
             public EventSource? EventSource { get; set; }
+            public List<(string Key, string Value)> ExpectedEventCounters { get; }
+            public List<(string Key, string Value)> ReceivedEventCounters { get; } = new();
             private readonly string _sourceName;
-            private readonly List<(string Key, string Value, TaskCompletionSource<object?> Source)> _tasks;
+            private SemaphoreSlim _semaphore;
+            private object _mutex = new(); // protects ReceivedEventCounters
 
-            public TestEventListener(string sourceName, (string Name, string Value)[] expectedCounters)
+            public TestEventListener(string sourceName, List<(string Key, string Value)> expectedCounters)
             {
-                _tasks = new List<(string, string, TaskCompletionSource<object?>)>();
-                foreach ((string key, string value) in expectedCounters)
-                {
-                    _tasks.Add((key, value, new TaskCompletionSource<object?>()));
-                }
+                ExpectedEventCounters = expectedCounters;
+                _semaphore = new SemaphoreSlim(0);
                 _sourceName = sourceName;
             }
 
@@ -234,11 +237,15 @@ namespace IceRpc.Tests.ClientServer
                         value = meanValue?.ToString() ?? "";
                     }
 
-                    foreach (var entry in _tasks)
+                    foreach (var entry in ExpectedEventCounters)
                     {
-                        if (entry.Key == name && entry.Value == value)
+                        if (entry.Key == name && entry.Value == value && !ReceivedEventCounters.Contains(entry))
                         {
-                            entry.Source.TrySetResult(null);
+                            lock (_mutex)
+                            {
+                                ReceivedEventCounters.Add(entry);
+                            }
+                            _semaphore.Release();
                             break;
                         }
                     }
@@ -249,13 +256,16 @@ namespace IceRpc.Tests.ClientServer
 
             public async Task WaitForCounterEventsAsync()
             {
-                foreach ((string key, string value, TaskCompletionSource<object?> source) in _tasks)
+                for (int i = 0; i < ExpectedEventCounters.Count; ++i)
                 {
-                    Task t = await Task.WhenAny(source.Task, Task.Delay(TimeSpan.FromSeconds(2)));
-                    if (t != source.Task)
+                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
                     {
-                        throw new Exception($"Didn't receive the expected event counter {key} with value {value}");
+                        break;
                     }
+                }
+                lock (_mutex)
+                {
+                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
                 }
             }
         }

@@ -75,6 +75,11 @@ namespace IceRpc
             }
             set
             {
+                if (value == TimeSpan.Zero)
+                {
+                    throw new ArgumentException("0 is not a valid value for IdleTimeout");
+                }
+
                 lock (_mutex)
                 {
                     if (_state == ConnectionState.Active)
@@ -82,10 +87,6 @@ namespace IceRpc
                         // Setting the IdleTimeout might throw if it's not supported by the underlying transport. For
                         // example with Slic, the idle timeout is negotiated when the connection is established, it
                         // can't be updated after.
-                        if (value == TimeSpan.Zero)
-                        {
-                            throw new InvalidConfigurationException("0 is not a valid value for IdleTimeout");
-                        }
                         Socket.IdleTimeout = value;
 
                         _timer?.Dispose();
@@ -163,6 +164,8 @@ namespace IceRpc
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
         // performed atomically.
         private readonly object _mutex = new();
+        private SocketStream? _peerControlStream;
+
         private Action<Connection>? _remove;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
@@ -393,7 +396,7 @@ namespace IceRpc
                     // Wait for the peer to close the connection.
                     while (true)
                     {
-                        // We can't just wait for the accept stream task failure as the task can sometime succeeds
+                        // We can't just wait for the accept stream task failure as the task can sometime succeed
                         // depending on the thread scheduling. So we also check for the state to ensure the loop
                         // eventually terminates once the peer connection is closed.
                         if (_state == ConnectionState.Closed)
@@ -428,13 +431,7 @@ namespace IceRpc
                     _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
                     // Wait for the peer control stream to be accepted and read the initialize frame
-                    SocketStream peerControlStream =
-                        await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-
-                    // Setup a task to wait for the close frame on the peer's control stream.
-                    _ = Task.Run(
-                        async () => await WaitForGoAwayAsync(peerControlStream).ConfigureAwait(false),
-                        default);
+                    _peerControlStream = await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -453,11 +450,17 @@ namespace IceRpc
                                                         RetryPolicy.AfterDelay(TimeSpan.Zero));
                 }
                 SetState(ConnectionState.Active);
-
-                // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
-                // synchronously new frames from this thread.
-                _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
             }
+
+            // Start a task to wait for the GoAway frame on the peer's control stream.
+            if (!Endpoint.IsDatagram)
+            {
+                _ = Task.Run(async () => await WaitForGoAwayAsync().ConfigureAwait(false), default);
+            }
+
+            // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
+            // synchronously new frames from this thread.
+            _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
         }
 
         internal void Monitor()
@@ -553,6 +556,7 @@ namespace IceRpc
                     _closeTask = PerformAbortAsync();
                 }
             }
+
             await _closeTask!.ConfigureAwait(false);
 
             async Task PerformAbortAsync()
@@ -595,13 +599,14 @@ namespace IceRpc
                     // Accept a new stream.
                     stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
                 }
-                catch (Exception) when (_state >= ConnectionState.Closing)
+                catch (ConnectionClosedException) when (
+                    (_state != ConnectionState.Closed && _peerControlStream!.ReceivedEndOfStream) ||
+                    _state == ConnectionState.Closing)
                 {
-                    // Don't abort, just end the accept stream task. The code is waiting for the
-                    // connection closure when graceful connection closure is in progress and we
-                    // wait the connection to be aborted by the graceful connection closure code
-                    // to report an appropriate exception.
-                    throw;
+                    // Don't abort the connection if the connection is being gracefully closed (either the peer
+                    // control stream is done which indicates the reception of the GoAway frame or the connection
+                    // is in the closing state). We just ignore the failure to accept the new stream until the
+                    // connection is closed (which is indicated by a ConnectionLostException).
                 }
                 catch (Exception ex)
                 {
@@ -817,13 +822,13 @@ namespace IceRpc
             _state = state;
         }
 
-        private async Task WaitForGoAwayAsync(SocketStream peerControlStream)
+        private async Task WaitForGoAwayAsync()
         {
             try
             {
                 // Wait to receive the GoAway frame on the control stream.
                 ((long Bidirectional, long Unidirectional) lastStreamIds, string message) =
-                    await peerControlStream.ReceiveGoAwayFrameAsync().ConfigureAwait(false);
+                    await _peerControlStream!.ReceiveGoAwayFrameAsync().ConfigureAwait(false);
 
                 Task goAwayTask;
                 lock (_mutex)
@@ -835,10 +840,6 @@ namespace IceRpc
                     {
                         SetState(ConnectionState.Closing, exception);
                         goAwayTask = PerformGoAwayAsync(lastStreamIds, exception);
-                        if (_closeTask == null)
-                        {
-                            _closeTask = goAwayTask;
-                        }
                     }
                     else if (_state == ConnectionState.Closing)
                     {

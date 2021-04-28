@@ -892,10 +892,8 @@ namespace IceRpc
             }
         }
 
-        private void ClearConnection(Connection connection)
-        {
+        private void ClearConnection(Connection connection) =>
             Interlocked.CompareExchange(ref _connection, null, connection);
-        }
 
         private async ValueTask<List<Endpoint>> ComputeEndpointsAsync(
             bool refreshCache,
@@ -980,7 +978,7 @@ namespace IceRpc
                     "cannot make two-way invocation using a cached datagram connection");
             }
 
-            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
+            if ((connection == null || (_endpoint != null && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
@@ -1212,6 +1210,7 @@ namespace IceRpc
 
             if (exception != null)
             {
+                using IDisposable? socketScope = connection?.Socket.StartScope();
                 logger.LogRequestException(request, exception);
             }
 
