@@ -9,9 +9,9 @@ namespace IceRpc
     /// <param name="request">The outgoing request being sent.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The incoming response frame.</returns>
-    public delegate Task<IncomingResponseFrame> Invoker(
+    public delegate Task<IncomingResponse> Invoker(
         IServicePrx target,
-        OutgoingRequestFrame request,
+        OutgoingRequest request,
         CancellationToken cancel);
 
     /// <summary>An invocation interceptor can be registered with a Communicator to intercept proxy invocations.
@@ -21,9 +21,9 @@ namespace IceRpc
     /// <param name="next">The next invoker in the invocation chain.</param>
     /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
     /// <returns>The incoming response frame.</returns>
-    public delegate Task<IncomingResponseFrame> InvocationInterceptor(
+    public delegate Task<IncomingResponse> InvocationInterceptor(
         IServicePrx target,
-        OutgoingRequestFrame request,
+        OutgoingRequest request,
         Invoker next,
         CancellationToken cancel);
 }

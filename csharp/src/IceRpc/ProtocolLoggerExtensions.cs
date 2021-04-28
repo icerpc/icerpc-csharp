@@ -208,7 +208,7 @@ namespace IceRpc
                 request.Context,
                 null!);
 
-        internal static void LogReceivedResponse(this ILogger logger, IncomingResponseFrame response) =>
+        internal static void LogReceivedResponse(this ILogger logger, IncomingResponse response) =>
             _receivedResponseFrame(logger, response.ResultType, null!);
 
         internal static void LogRetryRequestRetryableException(
@@ -216,7 +216,7 @@ namespace IceRpc
             RetryPolicy retryPolicy,
             int attempt,
             int maxAttempts,
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             Exception? ex) =>
             _retryRequestRetryableException(
                 logger,
@@ -232,7 +232,7 @@ namespace IceRpc
             RetryPolicy retryPolicy,
             int attempt,
             int maxAttempts,
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             Exception? ex) =>
             _retryRequestConnectionException(
                 logger,
@@ -243,7 +243,7 @@ namespace IceRpc
                 maxAttempts,
                 ex!);
 
-        internal static void LogRequestException(this ILogger logger, OutgoingRequestFrame request, Exception ex) =>
+        internal static void LogRequestException(this ILogger logger, OutgoingRequest request, Exception ex) =>
             _requestException(logger, request.Path, request.Operation, ex);
 
         internal static void LogSentGoAwayFrame(
@@ -278,7 +278,7 @@ namespace IceRpc
             }
         }
 
-        internal static void LogSentRequest(this ILogger logger, OutgoingRequestFrame request) =>
+        internal static void LogSentRequest(this ILogger logger, OutgoingRequest request) =>
             _sentRequestFrame(
                 logger,
                 request.Path,

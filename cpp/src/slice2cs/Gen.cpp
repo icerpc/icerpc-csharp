@@ -418,49 +418,20 @@ getInvocationParams(const OperationPtr& op, const string& ns, bool defaultValues
         params.push_back(param.str());
     }
 
-    string context = prefix.empty() ? getEscapedParamName(op, "context") : "context";
-    string progress = prefix.empty() ? getEscapedParamName(op, "progress") : "progress";
+    string invocation = prefix.empty() ? getEscapedParamName(op, "invocation") : "invocation";
     string cancel = prefix.empty() ? getEscapedParamName(op, "cancel") : "cancel";
 
     if(defaultValues)
     {
-        params.push_back("global::System.Collections.Generic.IReadOnlyDictionary<string, string>? " + context +
-                         " = null");
-        params.push_back("global::System.IProgress<bool>? " + progress + " = null");
+        params.push_back("IceRpc.Invocation? " + invocation + " = null");
         params.push_back("global::System.Threading.CancellationToken " + cancel + " = default");
     }
     else
     {
-        params.push_back("global::System.Collections.Generic.IReadOnlyDictionary<string, string>? " + context);
-        params.push_back("global::System.IProgress<bool>? " + progress);
+        params.push_back("IceRpc.Invocation? " + invocation);
         params.push_back("global::System.Threading.CancellationToken " + cancel);
     }
     return params;
-}
-
-vector<string>
-getInvocationArgsAMI(const OperationPtr& op,
-                     const string& context = "",
-                     const string& progress = "null",
-                     const string cancellationToken = "global::System.Threading.CancellationToken.None",
-                     const string& async = "true")
-{
-    vector<string> args = getNames(op->params());
-
-    if(context.empty())
-    {
-        args.push_back(getEscapedParamName(op, "context"));
-    }
-    else
-    {
-        args.push_back(context);
-    }
-
-    args.push_back(progress);
-    args.push_back(cancellationToken);
-    args.push_back(async);
-
-    return args;
 }
 
 void
@@ -935,15 +906,12 @@ Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& 
     if(dispatch)
     {
         _out << nl << "/// <param name=\"" << getEscapedParamName(p, "dispatch")
-             << "\">The Dispatch object for the request.</param>";
+             << "\">The dispatch properties.</param>";
     }
     else
     {
-        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "context")
-            << "\">Context map to send with the invocation.</param>";
-
-        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "progress")
-            << "\">Sent progress provider.</param>";
+        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "invocation")
+            << "\">The invocation properties.</param>";
     }
     _out << nl << "/// <param name=\"" << getEscapedParamName(p, "cancel")
          << "\">A cancellation token that receives the cancellation requests.</param>";
@@ -2184,7 +2152,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         bool generateResponseClass = false;
 
-        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingRequestFrame\"/> factory method for each "
+        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingRequest\"/> factory method for each "
              << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static new class Request";
         _out << sb;
@@ -2195,7 +2163,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             bool inValue = false;
 
             _out << sp;
-            _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingRequestFrame\"/> for "
+            _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingRequest\"/> for "
                  << fixId(operationName(operation)) << " operation.</summary>";
             _out << nl << "/// <param name=\"proxy\">Proxy to the target service.</param>";
             if (paramCount > 0)
@@ -2205,7 +2173,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             _out << nl << "/// <param name=\"context\">The context to write into the request.</param>";
             _out << nl << "/// <param name=\"cancel\">A cancellation token that receives the cancellation requests."
                  << "</param>";
-            _out << nl << "public static IceRpc.OutgoingRequestFrame " << fixId(operationName(operation))
+            _out << nl << "public static IceRpc.OutgoingRequest " << fixId(operationName(operation))
                 << "(IceRpc.IServicePrx proxy, ";
 
             if (paramCount > 0)
@@ -2219,13 +2187,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
             if (paramCount == 0)
             {
-                _out << nl << "IceRpc.OutgoingRequestFrame.WithEmptyArgs(proxy, \"";
+                _out << nl << "IceRpc.OutgoingRequest.WithEmptyArgs(proxy, \"";
                 _out << operation->name() << "\", "
                     << "idempotent: " << (operation->isIdempotent() ? "true" : "false") << ", context, cancel);";
             }
             else
             {
-                _out << nl << "IceRpc.OutgoingRequestFrame.WithArgs(";
+                _out << nl << "IceRpc.OutgoingRequest.WithArgs(";
                 _out.inc();
                 _out << nl << "proxy,"
                      << nl << "\"" << operation->name() << "\","
@@ -2262,7 +2230,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return type "
                          << "of operation " << opName << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                    _out << "(IceRpc.IServicePrx proxy, IceRpc.IncomingResponseFrame response) =>";
+                    _out << "(IceRpc.IServicePrx proxy, IceRpc.IncomingResponse response) =>";
                     _out.inc();
                     _out << nl;
                     _out << "response.ReadReturnValue(proxy, ";
@@ -2422,9 +2390,8 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     TypePtr ret = operation->deprecatedReturnType();
     string retS = typeToString(operation->deprecatedReturnType(), ns);
 
-    string context = getEscapedParamName(operation, "context");
+    string invocation = getEscapedParamName(operation, "invocation");
     string cancel = getEscapedParamName(operation, "cancel");
-    string progress = getEscapedParamName(operation, "progress");
 
     bool voidOp = returnType.empty();
 
@@ -2444,7 +2411,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << toTuple(params) << ", ";
     }
-    _out << context << ", " << cancel << "), ";
+    _out << invocation << "?.Context, " << cancel << "), ";
     if (voidOp)
     {
         _out << (oneway ? "oneway: true" : "IsOneway") << ", ";
@@ -2453,7 +2420,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << "Response." << name << ", ";
     }
-    _out << progress << ");";
+    _out << invocation << "?.Progress);";
     _out.dec();
 
     // TODO: move this check to the Slice parser.

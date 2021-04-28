@@ -84,7 +84,7 @@ namespace IceRpc
             var ostr = new OutputStream(Encoding.V11, buffer);
 
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
-            ostr.Write(frame is OutgoingRequestFrame ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             ostr.WriteByte(0); // compression status
             OutputStream.Position start = ostr.StartFixedLengthSize();
 

@@ -161,7 +161,7 @@ namespace IceRpc
         /// except for entries previously added by dispatch interceptors.</param>
         public OutgoingResponse(
             IncomingRequest request,
-            IncomingResponseFrame response,
+            IncomingResponse response,
             bool forwardBinaryContext = true)
             : this(request.Protocol, response.PayloadEncoding)
         {
@@ -378,7 +378,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() => new IncomingResponseFrame(this);
+        internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
 
         /// <inheritdoc/>
         internal override void WriteHeader(OutputStream ostr)

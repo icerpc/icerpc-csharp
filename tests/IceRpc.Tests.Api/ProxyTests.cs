@@ -53,20 +53,24 @@ namespace IceRpc.Tests.Api
             Assert.ThrowsAsync<OperationCanceledException>(
                 async () => await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(cancel: canceled));
 
-            // Test that builtin operation correctly forward the context param
-            var context = new Dictionary<string, string> { { "foo", "bar" } };
+            // Test that builtin operation correctly forward the context
+            var invocation = new Invocation
+            {
+                Context = new() { ["foo"] = "bar" }
+            };
+
             prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
                async (target, request, next, cancel) =>
                {
-                   Assert.AreEqual(request.Context, context);
+                   Assert.AreEqual(request.Context, invocation.Context);
                    return await next(target, request, cancel);
                });
 
-            await prx.IcePingAsync(context);
-            await prx.IceIdAsync(context);
-            await prx.IceIdsAsync(context);
-            await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", context);
-            await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(context);
+            await prx.IcePingAsync(invocation);
+            await prx.IceIdAsync(invocation);
+            await prx.IceIdsAsync(invocation);
+            await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", invocation);
+            await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(invocation);
         }
 
         [TestCase("ice+tcp://localhost:10000/test")]
@@ -411,8 +415,8 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
-            OutgoingRequestFrame request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
-            IncomingResponseFrame response = await prx.InvokeAsync(request);
+            OutgoingRequest request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
+            IncomingResponse response = await prx.InvokeAsync(request);
             Assert.AreEqual(ResultType.Success, response.ResultType);
         }
 

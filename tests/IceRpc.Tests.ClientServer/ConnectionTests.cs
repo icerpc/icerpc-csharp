@@ -324,6 +324,8 @@ namespace IceRpc.Tests.ClientServer
             await WithServerAsync(async (Server server, IConnectionTestPrx prx) =>
             {
                 ProgressCallback cb;
+                Invocation invocation;
+
                 // Remote case: send multiple opWithPayload, followed by a close and followed by multiple opWithPaylod.
                 // The goal is to make sure that none of the opWithPayload fail even if the server closes the
                 // connection gracefully in between.
@@ -341,14 +343,15 @@ namespace IceRpc.Tests.ClientServer
                     }
 
                     cb = new ProgressCallback();
-                    _ = prx.CloseAsync(CloseMode.Gracefully, progress: cb);
+                    invocation = new Invocation { Progress = cb };
+                    _ = prx.CloseAsync(CloseMode.Gracefully, invocation);
 
                     if (!cb.Sent)
                     {
                         for (int i = 0; i < maxQueue; i++)
                         {
                             cb = new ProgressCallback();
-                            results.Add(prx.OpWithPayloadAsync(seq, progress: cb));
+                            results.Add(prx.OpWithPayloadAsync(seq, invocation));
                             if (cb.Sent)
                             {
                                 done = false;
@@ -371,11 +374,12 @@ namespace IceRpc.Tests.ClientServer
                 // to fail with ConnectionClosedException.
                 await using var connection = await Connection.CreateAsync(Endpoint.Parse(prx.Endpoint), prx.Communicator);
                 cb = new ProgressCallback();
+                invocation = new Invocation { Progress = cb };
                 IConnectionTestPrx endpointless = prx.Clone();
                 endpointless.Connection = connection;
                 endpointless.Endpoint = "";
 
-                Task t = endpointless.StartDispatchAsync(progress: cb);
+                Task t = endpointless.StartDispatchAsync(invocation);
                 await cb.Completed.Task; // Ensure the request was sent before closing the connection.
                 _ = connection.GoAwayAsync();
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
@@ -404,7 +408,8 @@ namespace IceRpc.Tests.ClientServer
                 await prx.IcePingAsync();
                 Connection con = await prx.GetConnectionAsync();
                 var cb = new ProgressCallback();
-                Task t = prx.StartDispatchAsync(progress: cb);
+                var invocation = new Invocation { Progress = cb };
+                Task t = prx.StartDispatchAsync(invocation);
                 await cb.Completed.Task; // Ensure the request was sent before we close the connection.
                 _ = con.AbortAsync();
 
