@@ -5,8 +5,8 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    /// <summary>Holds properties to customize a new request and to get back information from the corresponding
-    /// response.</summary>
+    /// <summary>Holds properties to customize a request and to get back information from the corresponding response.
+    /// </summary>
     public sealed class Invocation
     {
         /// <summary>The context dictionary carried by the request.</summary>
