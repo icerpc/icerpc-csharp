@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Api
         [TestCase(0, 1)]
         public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
         {
-            IncomingResponseFrame? response = null;
+            IncomingResponse? response = null;
             var prx = Prx.Clone();
             prx.InvocationInterceptors = new InvocationInterceptor[]
                 {

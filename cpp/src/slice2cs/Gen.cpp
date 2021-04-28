@@ -2184,7 +2184,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         bool generateResponseClass = false;
 
-        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingRequestFrame\"/> factory method for each "
+        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingRequest\"/> factory method for each "
              << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static new class Request";
         _out << sb;
@@ -2195,7 +2195,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             bool inValue = false;
 
             _out << sp;
-            _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingRequestFrame\"/> for "
+            _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingRequest\"/> for "
                  << fixId(operationName(operation)) << " operation.</summary>";
             _out << nl << "/// <param name=\"proxy\">Proxy to the target service.</param>";
             if (paramCount > 0)
@@ -2205,7 +2205,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             _out << nl << "/// <param name=\"context\">The context to write into the request.</param>";
             _out << nl << "/// <param name=\"cancel\">A cancellation token that receives the cancellation requests."
                  << "</param>";
-            _out << nl << "public static IceRpc.OutgoingRequestFrame " << fixId(operationName(operation))
+            _out << nl << "public static IceRpc.OutgoingRequest " << fixId(operationName(operation))
                 << "(IceRpc.IServicePrx proxy, ";
 
             if (paramCount > 0)
@@ -2219,13 +2219,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
             if (paramCount == 0)
             {
-                _out << nl << "IceRpc.OutgoingRequestFrame.WithEmptyArgs(proxy, \"";
+                _out << nl << "IceRpc.OutgoingRequest.WithEmptyArgs(proxy, \"";
                 _out << operation->name() << "\", "
                     << "idempotent: " << (operation->isIdempotent() ? "true" : "false") << ", context, cancel);";
             }
             else
             {
-                _out << nl << "IceRpc.OutgoingRequestFrame.WithArgs(";
+                _out << nl << "IceRpc.OutgoingRequest.WithArgs(";
                 _out.inc();
                 _out << nl << "proxy,"
                      << nl << "\"" << operation->name() << "\","
@@ -2262,7 +2262,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return type "
                          << "of operation " << opName << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                    _out << "(IceRpc.IServicePrx proxy, IceRpc.IncomingResponseFrame response) =>";
+                    _out << "(IceRpc.IServicePrx proxy, IceRpc.IncomingResponse response) =>";
                     _out.inc();
                     _out << nl;
                     _out << "response.ReadReturnValue(proxy, ";

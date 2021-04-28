@@ -14,49 +14,49 @@ namespace IceRpc
     /// <param name="proxy">The proxy used to send the request.</param>
     /// <param name="response">The response frame.</param>
     /// <returns>The response return value.</returns>
-    public delegate T ResponseReader<T>(IServicePrx proxy, IncomingResponseFrame response);
+    public delegate T ResponseReader<T>(IServicePrx proxy, IncomingResponse response);
 
     /// <summary>Base interface of all service proxies.</summary>
     public interface IServicePrx : IEquatable<IServicePrx>
     {
-        /// <summary>Provides an <see cref="OutgoingRequestFrame"/> factory method for each remote operation defined in
+        /// <summary>Provides an <see cref="OutgoingRequest"/> factory method for each remote operation defined in
         /// the pseudo-interface Object.</summary>
         public static class Request
         {
-            /// <summary>Creates an <see cref="OutgoingRequestFrame"/> for operation ice_id.</summary>
+            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_id.</summary>
             /// <param name="proxy">Proxy to the target Ice Object.</param>
             /// <param name="context">The context to write into the request.</param>
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
-            public static OutgoingRequestFrame IceId(
+            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
+            public static OutgoingRequest IceId(
                 IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
-                OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_id", idempotent: true, context, cancel);
+                OutgoingRequest.WithEmptyArgs(proxy, "ice_id", idempotent: true, context, cancel);
 
-            /// <summary>Creates an <see cref="OutgoingRequestFrame"/> for operation ice_ids.</summary>
+            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_ids.</summary>
             /// <param name="proxy">Proxy to the target Ice Object.</param>
             /// <param name="context">The context to write into the request.</param>
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
-            public static OutgoingRequestFrame IceIds(
+            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
+            public static OutgoingRequest IceIds(
                 IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
-                OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_ids", idempotent: true, context, cancel);
+                OutgoingRequest.WithEmptyArgs(proxy, "ice_ids", idempotent: true, context, cancel);
 
-            /// <summary>Creates an <see cref="OutgoingRequestFrame"/> for operation ice_isA.</summary>
+            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_isA.</summary>
             /// <param name="proxy">Proxy to the target Ice Object.</param>
             /// <param name="id">The type ID argument to write into the request.</param>
             /// <param name="context">The context to write into the request.</param>
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
-            public static OutgoingRequestFrame IceIsA(
+            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
+            public static OutgoingRequest IceIsA(
                 IServicePrx proxy,
                 string id,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
-                OutgoingRequestFrame.WithArgs(
+                OutgoingRequest.WithArgs(
                     proxy,
                     "ice_isA",
                     idempotent: true,
@@ -67,16 +67,16 @@ namespace IceRpc
                     OutputStream.IceWriterFromString,
                     cancel);
 
-            /// <summary>Creates an <see cref="OutgoingRequestFrame"/> for operation ice_ping.</summary>
+            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_ping.</summary>
             /// <param name="proxy">Proxy to the target Ice Object.</param>
             /// <param name="context">The context to write into the request.</param>
             /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequestFrame"/>.</returns>
-            public static OutgoingRequestFrame IcePing(
+            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
+            public static OutgoingRequest IcePing(
                 IServicePrx proxy,
                 IReadOnlyDictionary<string, string>? context,
                 CancellationToken cancel) =>
-                OutgoingRequestFrame.WithEmptyArgs(proxy, "ice_ping", idempotent: true, context, cancel);
+                OutgoingRequest.WithEmptyArgs(proxy, "ice_ping", idempotent: true, context, cancel);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
@@ -85,18 +85,18 @@ namespace IceRpc
         {
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
             /// </summary>
-            public static string IceId(IServicePrx proxy, IncomingResponseFrame response) =>
+            public static string IceId(IServicePrx proxy, IncomingResponse response) =>
                  response.ReadReturnValue(proxy, InputStream.IceReaderIntoString);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
-            public static string[] IceIds(IServicePrx proxy, IncomingResponseFrame response) =>
+            public static string[] IceIds(IServicePrx proxy, IncomingResponse response) =>
                 response.ReadReturnValue(
                     proxy, istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString));
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
             /// </summary>
-            public static bool IceIsA(IServicePrx proxy, IncomingResponseFrame response) =>
+            public static bool IceIsA(IServicePrx proxy, IncomingResponse response) =>
                 response.ReadReturnValue(proxy, InputStream.IceReaderIntoBool);
         }
 
@@ -284,18 +284,18 @@ namespace IceRpc
 
         /// <summary>Sends a request that returns a value and returns the result asynchronously.</summary>
         /// <typeparam name="T">The operation's return type.</typeparam>
-        /// <param name="request">The <see cref="OutgoingRequestFrame"/> for this invocation.</param>
+        /// <param name="request">The <see cref="OutgoingRequest"/> for this invocation.</param>
         /// <param name="reader">An <see cref="ResponseReader{T}"/> for the operation's return value. Typically
         /// {IInterfaceNamePrx}.Response.{OperationName}.</param>
         /// <param name="progress">Sent progress provider.</param>
         /// <returns>A task that provides the return value asynchronously.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task<T> IceInvokeAsync<T>(
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             ResponseReader<T> reader,
             IProgress<bool>? progress)
         {
-            Task<IncomingResponseFrame> responseTask;
+            Task<IncomingResponse> responseTask;
             try
             {
                 responseTask = ServicePrx.InvokeAsync(this, request, oneway: false, progress);
@@ -312,7 +312,7 @@ namespace IceRpc
             {
                 try
                 {
-                    using IncomingResponseFrame response = await responseTask.ConfigureAwait(false);
+                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
                     return reader(this, response);
                 }
                 finally
@@ -323,18 +323,18 @@ namespace IceRpc
         }
 
         /// <summary>Sends a request that returns void and returns the result asynchronously.</summary>
-        /// <param name="request">The <see cref="OutgoingRequestFrame"/> for this invocation.</param>
+        /// <param name="request">The <see cref="OutgoingRequest"/> for this invocation.</param>
         /// <param name="oneway">When true, the request is sent as a oneway request. When false, it is sent as a
         /// twoway request.</param>
         /// <param name="progress">Sent progress provider.</param>
         /// <returns>A task that completes when the request completes.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task IceInvokeAsync(
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             bool oneway,
             IProgress<bool>? progress)
         {
-            Task<IncomingResponseFrame> responseTask;
+            Task<IncomingResponse> responseTask;
             try
             {
                 responseTask = ServicePrx.InvokeAsync(this, request, oneway, progress);
@@ -351,7 +351,7 @@ namespace IceRpc
             {
                 try
                 {
-                    using IncomingResponseFrame response = await responseTask.ConfigureAwait(false);
+                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
                     if (!oneway)
                     {
                         response.ReadVoidReturnValue(this);

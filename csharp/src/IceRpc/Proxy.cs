@@ -81,11 +81,11 @@ namespace IceRpc
             IProgress<bool>? progress = null,
             CancellationToken cancel = default)
         {
-            var forwardedRequest = new OutgoingRequestFrame(proxy, request, cancel: cancel);
+            var forwardedRequest = new OutgoingRequest(proxy, request, cancel: cancel);
             try
             {
                 // TODO: add support for stream data forwarding.
-                using IncomingResponseFrame response =
+                using IncomingResponse response =
                     await ServicePrx.InvokeAsync(proxy, forwardedRequest, oneway, progress).ConfigureAwait(false);
                 return new OutgoingResponse(request, response);
             }
@@ -132,9 +132,9 @@ namespace IceRpc
         /// two-way request.</param>
         /// <param name="progress">Sent progress provider.</param>
         /// <returns>A task holding the response frame.</returns>
-        public static Task<IncomingResponseFrame> InvokeAsync(
+        public static Task<IncomingResponse> InvokeAsync(
             this IServicePrx proxy,
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             bool oneway = false,
             IProgress<bool>? progress = null) =>
             ServicePrx.InvokeAsync(proxy, request, oneway, progress);

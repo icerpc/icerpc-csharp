@@ -12,7 +12,7 @@ using System.Web;
 namespace IceRpc
 {
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
-    public sealed class OutgoingRequestFrame : OutgoingFrame, IDisposable
+    public sealed class OutgoingRequest : OutgoingFrame, IDisposable
     {
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
         public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
@@ -74,7 +74,7 @@ namespace IceRpc
             _linkedCancellationSource.Dispose();
         }
 
-        /// <summary>Creates a new <see cref="OutgoingRequestFrame"/> for an operation with a single non-struct
+        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single non-struct
         /// parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
@@ -92,7 +92,7 @@ namespace IceRpc
         /// </param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequestFrame WithArgs<T>(
+        public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
             bool idempotent,
@@ -103,7 +103,7 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             CancellationToken cancel = default)
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -118,7 +118,7 @@ namespace IceRpc
             return request;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingRequestFrame"/> for an operation with a single stream
+        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
         /// parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
@@ -139,7 +139,7 @@ namespace IceRpc
             "Microsoft.Performance",
             "CA1801: Review unused parameters",
             Justification = "TODO")]
-        public static OutgoingRequestFrame WithArgs<T>(
+        public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
             bool idempotent,
@@ -150,13 +150,13 @@ namespace IceRpc
             Action<SocketStream, T, CancellationToken> writer,
             CancellationToken cancel = default)
         {
-            OutgoingRequestFrame request = WithEmptyArgs(proxy, operation, idempotent, context, cancel);
+            OutgoingRequest request = WithEmptyArgs(proxy, operation, idempotent, context, cancel);
             // TODO: deal with compress, format, and cancel paramters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingRequestFrame"/> for an operation with multiple parameters or a
+        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with multiple parameters or a
         /// single struct parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
         /// parameters.</typeparam>
@@ -175,7 +175,7 @@ namespace IceRpc
         /// </param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequestFrame WithArgs<T>(
+        public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
             bool idempotent,
@@ -186,7 +186,7 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -201,7 +201,7 @@ namespace IceRpc
             return request;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingRequestFrame"/> for an operation with multiple parameters where
+        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with multiple parameters where
         /// one of the parameter is a stream parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
         /// parameters.</typeparam>
@@ -219,7 +219,7 @@ namespace IceRpc
         /// <param name="writer">The delegate that writes the arguments into the frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequestFrame WithArgs<T>(
+        public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
             bool idempotent,
@@ -230,7 +230,7 @@ namespace IceRpc
             OutputStreamValueWriterWithStreamable<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequestFrame(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
@@ -246,7 +246,7 @@ namespace IceRpc
             return request;
         }
 
-        /// <summary>Creates a new <see cref="OutgoingRequestFrame"/> for an operation with no parameter.</summary>
+        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with no parameter.</summary>
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
@@ -255,14 +255,14 @@ namespace IceRpc
         /// proxy and the communicator's current context (if any).</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequestFrame WithEmptyArgs(
+        public static OutgoingRequest WithEmptyArgs(
             IServicePrx proxy,
             string operation,
             bool idempotent,
             IReadOnlyDictionary<string, string>? context = null,
             CancellationToken cancel = default)
         {
-            var emptyArgsFrame = new OutgoingRequestFrame(proxy,
+            var emptyArgsFrame = new OutgoingRequest(proxy,
                                                           operation,
                                                           idempotent,
                                                           context,
@@ -279,7 +279,7 @@ namespace IceRpc
         /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
         /// except for entries previously added by invocation interceptors.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public OutgoingRequestFrame(
+        public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
             bool forwardBinaryContext = true,
@@ -434,7 +434,7 @@ namespace IceRpc
             }
         }
 
-        private OutgoingRequestFrame(
+        private OutgoingRequest(
             IServicePrx proxy,
             string operation,
             bool idempotent,

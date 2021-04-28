@@ -192,7 +192,7 @@ namespace IceRpc.Interop
         /// <summary>Returns the identity carried by this outgoing request frame.</summary>
         /// <param name="request">The outgoing request frame.</param>
         /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this OutgoingRequestFrame request) => request.Identity;
+        public static Identity GetIdentity(this OutgoingRequest request) => request.Identity;
     }
 
     /// <summary>The output mode or format for <see cref="Identity.ToString(ToStringMode)"/>.</summary>
