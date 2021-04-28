@@ -45,16 +45,14 @@ namespace IceRpc
         /// </summary>
         /// <paramtype name="T">The type of the desired service proxy.</paramtype>
         /// <param name="proxy">The source proxy being tested.</param>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new proxy with the desired type, or null.</returns>
         public static async Task<T?> CheckedCastAsync<T>(
             this IServicePrx proxy,
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
+            Invocation? invocation = null,
             CancellationToken cancel = default) where T : class, IServicePrx =>
-            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, context, progress, cancel).ConfigureAwait(false) ?
+            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).ConfigureAwait(false) ?
                 (proxy is T t ? t : proxy.As<T>()) : null;
 
         /// <summary>Creates a clone of this proxy.</summary>

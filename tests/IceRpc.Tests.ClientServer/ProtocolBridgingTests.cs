@@ -52,16 +52,16 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.AreEqual(prx.Path, direct ? "/target" : "/forward");
 
-                var ctx = new Dictionary<string, string>(prx.Context)
+                var invocation = new Invocation
                 {
-                    { "MyCtx", "hello" }
+                    Context = new() { ["MyCtx"] = "hello" }
                 };
 
-                Assert.AreEqual(13, await prx.OpAsync(13, ctx));
+                Assert.AreEqual(13, await prx.OpAsync(13, invocation));
 
-                await prx.OpVoidAsync(ctx);
+                await prx.OpVoidAsync(invocation);
 
-                (int v, string s) = await prx.OpReturnOutAsync(34, ctx);
+                (int v, string s) = await prx.OpReturnOutAsync(34, invocation);
                 Assert.AreEqual(34, v);
                 Assert.AreEqual("value=34", s);
 

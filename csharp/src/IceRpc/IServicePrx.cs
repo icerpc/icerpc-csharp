@@ -231,51 +231,36 @@ namespace IceRpc
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by the target object of this
         /// proxy.</summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        public Task<string> IceIdAsync(
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
-            CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceId(this, context, cancel), Response.IceId, progress);
+        public Task<string> IceIdAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
+            IceInvokeAsync(Request.IceId(this, invocation?.Context, cancel), Response.IceId, invocation?.Progress);
 
         /// <summary>Returns the Slice type IDs of the interfaces supported by the target object of this proxy.
         /// </summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        public Task<string[]> IceIdsAsync(
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
-            CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceIds(this, context, cancel), Response.IceIds, progress);
+        public Task<string[]> IceIdsAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
+            IceInvokeAsync(Request.IceIds(this, invocation?.Context, cancel), Response.IceIds, invocation?.Progress);
 
         /// <summary>Tests whether this object supports a specific Slice interface.</summary>
         /// <param name="id">The type ID of the Slice interface to test against.</param>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        public Task<bool> IceIsAAsync(
-            string id,
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
-            CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceIsA(this, id, context, cancel), Response.IceIsA, progress);
+        public Task<bool> IceIsAAsync(string id, Invocation? invocation = null, CancellationToken cancel = default) =>
+            IceInvokeAsync(Request.IceIsA(this, id, invocation?.Context, cancel),
+                           Response.IceIsA,
+                           invocation?.Progress);
 
         /// <summary>Tests whether the target object of this proxy can be reached.</summary>
-        /// <param name="context">The context dictionary for the invocation.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        public Task IcePingAsync(
-            IReadOnlyDictionary<string, string>? context = null,
-            IProgress<bool>? progress = null,
-            CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IcePing(this, context, cancel), IsOneway, progress);
+        public Task IcePingAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
+            IceInvokeAsync(Request.IcePing(this, invocation?.Context, cancel), IsOneway, invocation?.Progress);
 
         /// <summary>Marshals the proxy into an OutputStream.</summary>
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
