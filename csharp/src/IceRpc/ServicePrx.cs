@@ -640,9 +640,9 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        internal static async Task<IncomingResponseFrame> InvokeAsync(
+        internal static async Task<IncomingResponse> InvokeAsync(
             IServicePrx proxy,
-            OutgoingRequestFrame request,
+            OutgoingRequest request,
             bool oneway,
             IProgress<bool>? progress = null)
         {
@@ -663,7 +663,7 @@ namespace IceRpc
             InvocationEventSource.Log.RequestStart(request.Path, request.Operation);
             try
             {
-                IncomingResponseFrame response = await InvokeWithInterceptorsAsync(
+                IncomingResponse response = await InvokeWithInterceptorsAsync(
                     proxy,
                     request,
                     oneway,
@@ -688,9 +688,9 @@ namespace IceRpc
                 activity?.Stop();
             }
 
-            async Task<IncomingResponseFrame> InvokeWithInterceptorsAsync(
+            async Task<IncomingResponse> InvokeWithInterceptorsAsync(
                 IServicePrx proxy,
-                OutgoingRequestFrame request,
+                OutgoingRequest request,
                 bool oneway,
                 int i,
                 IProgress<bool>? progress,
@@ -964,8 +964,8 @@ namespace IceRpc
             return filteredEndpoints;
         }
 
-        private async Task<IncomingResponseFrame> PerformInvokeAsync(
-            OutgoingRequestFrame request,
+        private async Task<IncomingResponse> PerformInvokeAsync(
+            OutgoingRequest request,
             bool oneway,
             IProgress<bool>? progress,
             bool releaseRequestAfterSent,
@@ -998,7 +998,7 @@ namespace IceRpc
             int attempt = 1;
             bool triedAllEndpoints = false;
             List<Endpoint>? excludedEndpoints = null;
-            IncomingResponseFrame? response = null;
+            IncomingResponse? response = null;
             Exception? exception = null;
 
             bool tryAgain = false;
@@ -1078,7 +1078,7 @@ namespace IceRpc
 
                     if (oneway)
                     {
-                        return new IncomingResponseFrame(connection, request.PayloadEncoding);
+                        return new IncomingResponse(connection, request.PayloadEncoding);
                     }
 
                     // Wait for the reception of the response.

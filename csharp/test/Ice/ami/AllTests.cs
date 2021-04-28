@@ -111,25 +111,25 @@ namespace IceRpc.Test.AMI
             output.Write("testing async invocation...");
             output.Flush();
             {
-                var ctx = new Dictionary<string, string>();
+                var invocation = new Invocation();
 
                 TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").Result);
-                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx).Result);
+                TestHelper.Assert(p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", invocation).Result);
 
                 await p.IcePingAsync();
-                await p.IcePingAsync(ctx);
+                await p.IcePingAsync(invocation);
 
                 TestHelper.Assert(p.IceIdAsync().Result.Equals("::IceRpc::Test::AMI::TestIntf"));
-                TestHelper.Assert(p.IceIdAsync(ctx).Result.Equals("::IceRpc::Test::AMI::TestIntf"));
+                TestHelper.Assert(p.IceIdAsync(invocation).Result.Equals("::IceRpc::Test::AMI::TestIntf"));
 
                 TestHelper.Assert(p.IceIdsAsync().Result.Length == 2);
-                TestHelper.Assert(p.IceIdsAsync(ctx).Result.Length == 2);
+                TestHelper.Assert(p.IceIdsAsync(invocation).Result.Length == 2);
 
                 p.OpAsync().Wait();
-                p.OpAsync(ctx).Wait();
+                p.OpAsync(invocation).Wait();
 
                 TestHelper.Assert(p.OpWithResultAsync().Result == 15);
-                TestHelper.Assert(p.OpWithResultAsync(ctx).Result == 15);
+                TestHelper.Assert(p.OpWithResultAsync(invocation).Result == 15);
 
                 try
                 {
@@ -143,7 +143,7 @@ namespace IceRpc.Test.AMI
 
                 try
                 {
-                    p.OpWithUEAsync(ctx).Wait();
+                    p.OpWithUEAsync(invocation).Wait();
                     TestHelper.Assert(false);
                 }
                 catch (AggregateException ae)
@@ -158,30 +158,30 @@ namespace IceRpc.Test.AMI
             {
                 Task.Run(async () =>
                     {
-                        var ctx = new Dictionary<string, string>();
+                        var invocation = new Invocation();
 
                         TestHelper.Assert(await p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf"));
-                        TestHelper.Assert(await p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx));
+                        TestHelper.Assert(await p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", invocation));
 
                         await p.IcePingAsync();
-                        await p.IcePingAsync(ctx);
+                        await p.IcePingAsync(invocation);
 
                         string id = await p.IceIdAsync();
                         TestHelper.Assert(id.Equals("::IceRpc::Test::AMI::TestIntf"));
-                        id = await p.IceIdAsync(ctx);
+                        id = await p.IceIdAsync(invocation);
                         TestHelper.Assert(id.Equals("::IceRpc::Test::AMI::TestIntf"));
 
                         string[] ids = await p.IceIdsAsync();
                         TestHelper.Assert(ids.Length == 2);
-                        ids = await p.IceIdsAsync(ctx);
+                        ids = await p.IceIdsAsync(invocation);
                         TestHelper.Assert(ids.Length == 2);
 
                         await p.OpAsync();
-                        await p.OpAsync(ctx);
+                        await p.OpAsync(invocation);
 
                         int result = await p.OpWithResultAsync();
                         TestHelper.Assert(result == 15);
-                        result = await p.OpWithResultAsync(ctx);
+                        result = await p.OpWithResultAsync(invocation);
                         TestHelper.Assert(result == 15);
 
                         try
@@ -196,7 +196,7 @@ namespace IceRpc.Test.AMI
 
                         try
                         {
-                            await p.OpWithUEAsync(ctx);
+                            await p.OpWithUEAsync(invocation);
                             TestHelper.Assert(false);
                         }
                         catch (Exception ex)
@@ -210,39 +210,39 @@ namespace IceRpc.Test.AMI
             output.Write("testing async continuations...");
             output.Flush();
             {
-                var ctx = new Dictionary<string, string>();
+                var invocation = new Invocation();
 
                 p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf").ContinueWith(
                     previous => TestHelper.Assert(previous.Result), TaskScheduler.Default).Wait();
 
-                p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", ctx).ContinueWith(
+                p.IceIsAAsync("::IceRpc::Test::AMI::TestIntf", invocation).ContinueWith(
                     previous => TestHelper.Assert(previous.Result), TaskScheduler.Default).Wait();
 
                 p.IcePingAsync().ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
 
-                p.IcePingAsync(ctx).ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
+                p.IcePingAsync(invocation).ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
 
                 p.IceIdAsync().ContinueWith(
                     previous => TestHelper.Assert(previous.Result == "::IceRpc::Test::AMI::TestIntf"),
                     TaskScheduler.Default).Wait();
 
-                p.IceIdAsync(ctx).ContinueWith(
+                p.IceIdAsync(invocation).ContinueWith(
                     previous => TestHelper.Assert(previous.Result == "::IceRpc::Test::AMI::TestIntf"),
                     TaskScheduler.Default).Wait();
 
                 p.IceIdsAsync().ContinueWith(previous => TestHelper.Assert(previous.Result.Length == 2),
                                              TaskScheduler.Default).Wait();
 
-                p.IceIdsAsync(ctx).ContinueWith(previous => TestHelper.Assert(previous.Result.Length == 2),
+                p.IceIdsAsync(invocation).ContinueWith(previous => TestHelper.Assert(previous.Result.Length == 2),
                                                 TaskScheduler.Default).Wait();
 
                 p.OpAsync().ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
-                p.OpAsync(ctx).ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
+                p.OpAsync(invocation).ContinueWith(previous => previous.Wait(), TaskScheduler.Default).Wait();
 
                 p.OpWithResultAsync().ContinueWith(
                     previous => TestHelper.Assert(previous.Result == 15), TaskScheduler.Default).Wait();
 
-                p.OpWithResultAsync(ctx).ContinueWith(previous => TestHelper.Assert(previous.Result == 15),
+                p.OpWithResultAsync(invocation).ContinueWith(previous => TestHelper.Assert(previous.Result == 15),
                                                       TaskScheduler.Default).Wait();
 
                 p.OpWithUEAsync().ContinueWith(
@@ -259,7 +259,7 @@ namespace IceRpc.Test.AMI
                     },
                     TaskScheduler.Default).Wait();
 
-                p.OpWithUEAsync(ctx).ContinueWith(
+                p.OpWithUEAsync(invocation).ContinueWith(
                     previous =>
                     {
                         try
@@ -379,25 +379,28 @@ namespace IceRpc.Test.AMI
             {
                 {
                     var cb = new CallbackBase();
+                    var invocation = new Invocation
+                    {
+                        Progress = new Progress(sentSynchronously => cb.Called())
+                    };
 
-                    Task t = p.IceIsAAsync("",
-                        progress: new Progress(sentSynchronously => cb.Called()));
+                    Task t = p.IceIsAAsync("", invocation);
                     cb.Check();
                     t.Wait();
 
-                    t = p.IcePingAsync(progress: new Progress(sentSynchronously => cb.Called()));
+                    t = p.IcePingAsync(invocation);
                     cb.Check();
                     t.Wait();
 
-                    t = p.IceIdAsync(progress: new Progress(sentSynchronously => cb.Called()));
+                    t = p.IceIdAsync(invocation);
                     cb.Check();
                     t.Wait();
 
-                    t = p.IceIdsAsync(progress: new Progress(sentSynchronously => cb.Called()));
+                    t = p.IceIdsAsync(invocation);
                     cb.Check();
                     t.Wait();
 
-                    t = p.OpAsync(progress: new Progress(sentSynchronously => cb.Called()));
+                    t = p.OpAsync(invocation);
                     cb.Check();
                     t.Wait();
                 }
@@ -407,14 +410,16 @@ namespace IceRpc.Test.AMI
                 new Random().NextBytes(seq);
                 {
                     Task t;
-                    ProgressCallback cb;
+                    var invocation = new Invocation
+                    {
+                        Progress = new ProgressCallback()
+                    };
                     do
                     {
-                        cb = new ProgressCallback();
-                        t = p.OpWithPayloadAsync(seq, progress: cb);
+                        t = p.OpWithPayloadAsync(seq, invocation);
                         tasks.Add(t);
                     }
-                    while (cb.SentSynchronously);
+                    while (((ProgressCallback)invocation.Progress).SentSynchronously);
                 }
                 foreach (Task t in tasks)
                 {
@@ -505,9 +510,13 @@ namespace IceRpc.Test.AMI
                 Task? t3;
                 try
                 {
-                    var cancelCtx = new Dictionary<string, string> { { "cancel", "" } };
-                    t1 = p.SleepAsync(1000, cancel: cs1.Token, context: cancelCtx);
-                    t2 = p.SleepAsync(1000, cancel: cs2.Token, context: cancelCtx);
+                    var cancelInvocation = new Invocation
+                    {
+                        Context = new() { ["cancel"] = "" }
+                    };
+
+                    t1 = p.SleepAsync(1000, cancelInvocation, cs1.Token);
+                    t2 = p.SleepAsync(1000, cancelInvocation, cs2.Token);
                     cs1.Cancel();
                     cs2.Cancel();
                     cs3.Cancel();
@@ -560,14 +569,18 @@ namespace IceRpc.Test.AMI
             {
                 // Stress test cancellation to ensure we exercise the various cancellation points. Cancellation of
                 // the sleep might fail or succeed on the server side depending how long we sleep.
-                var cancelCtx = new Dictionary<string, string> { { "cancel", "mightSucceed" } };
+                var cancelInvocation = new Invocation
+                {
+                    Context = new() { ["cancel"] = "mightSucceed" }
+                };
+
                 for (int i = 0; i < 20; ++i)
                 {
                     var source = new CancellationTokenSource();
                     source.CancelAfter(TimeSpan.FromMilliseconds(i));
                     try
                     {
-                        p.Clone().SleepAsync(2000, cancel: source.Token, context: cancelCtx).Wait();
+                        p.Clone().SleepAsync(2000, cancelInvocation, source.Token).Wait();
                         TestHelper.Assert(false);
                     }
                     catch (OperationCanceledException)

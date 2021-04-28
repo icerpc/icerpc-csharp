@@ -59,7 +59,7 @@ namespace IceRpc
             }
             else
             {
-                int encapsulationOffset = this is IncomingResponseFrame ? 1 : 0;
+                int encapsulationOffset = this is IncomingResponse ? 1 : 0;
 
                 ReadOnlySpan<byte> buffer = Payload.Slice(encapsulationOffset);
                 int sizeLength = Protocol == Protocol.Ice2 ? buffer[0].ReadSizeLength20() : 4;

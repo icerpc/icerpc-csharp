@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame received by the application.</summary>
-    public sealed class IncomingResponseFrame : IncomingFrame, IDisposable
+    public sealed class IncomingResponse : IncomingFrame, IDisposable
     {
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; } =
@@ -28,7 +28,7 @@ namespace IceRpc
         /// <param name="protocol">The protocol of the response.</param>
         /// <param name="data">The frame data as an array segment.</param>
         /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
-        public IncomingResponseFrame(Protocol protocol, ArraySegment<byte> data, int maxSize)
+        public IncomingResponse(Protocol protocol, ArraySegment<byte> data, int maxSize)
             : this(protocol, data, maxSize, null)
         {
         }
@@ -173,7 +173,7 @@ namespace IceRpc
         /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the response frame.</param>
-        internal IncomingResponseFrame(
+        internal IncomingResponse(
             Protocol protocol,
             ArraySegment<byte> data,
             int maxSize,
@@ -232,7 +232,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming response frame from an outgoing response frame. Used for colocated calls.
         /// </summary>
         /// <param name="response">The outgoing response frame.</param>
-        internal IncomingResponseFrame(OutgoingResponse response)
+        internal IncomingResponse(OutgoingResponse response)
             : base(response.Protocol, int.MaxValue)
         {
             if (Protocol == Protocol.Ice2)
@@ -246,7 +246,7 @@ namespace IceRpc
         }
 
         // Constructor for oneway response pseudo frame.
-        internal IncomingResponseFrame(Connection connection, Encoding encoding)
+        internal IncomingResponse(Connection connection, Encoding encoding)
             : base(connection.Protocol, int.MaxValue)
         {
             Connection = connection;
