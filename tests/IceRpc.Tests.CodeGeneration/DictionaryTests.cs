@@ -277,7 +277,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class DictionaryOperations : IAsyncDictionaryOperations
+        public class DictionaryOperations : IDictionaryOperations
         {
             // Builtin types dictionaries
             public ValueTask<(IReadOnlyDictionary<byte, byte> R1, IReadOnlyDictionary<byte, byte> R2)> OpByteDictAsync(

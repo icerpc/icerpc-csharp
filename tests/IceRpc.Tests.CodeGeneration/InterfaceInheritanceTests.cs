@@ -130,23 +130,23 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(typeof(IMyInterfaceDerivedPrx).IsAssignableFrom(typeof(IMyInterfaceMostDerivedPrx)),
                         Is.True);
 
-            Assert.That(typeof(IAsyncMyInterfaceBase).IsAssignableFrom(typeof(IAsyncMyInterfaceDerived)), Is.True);
-            Assert.That(typeof(IAsyncMyInterfaceBase).IsAssignableFrom(typeof(IAsyncMyInterfaceMostDerived)), Is.True);
-            Assert.That(typeof(IAsyncMyInterfaceDerived).IsAssignableFrom(typeof(IAsyncMyInterfaceMostDerived)),
+            Assert.That(typeof(IMyInterfaceBase).IsAssignableFrom(typeof(IMyInterfaceDerived)), Is.True);
+            Assert.That(typeof(IMyInterfaceBase).IsAssignableFrom(typeof(IMyInterfaceMostDerived)), Is.True);
+            Assert.That(typeof(IMyInterfaceDerived).IsAssignableFrom(typeof(IMyInterfaceMostDerived)),
                         Is.True);
         }
 
-        public class Base : IAsyncMyInterfaceBase
+        public class Base : IMyInterfaceBase
         {
             public ValueTask OpBaseAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        public class Derived : Base, IAsyncMyInterfaceDerived
+        public class Derived : Base, IMyInterfaceDerived
         {
             public ValueTask OpDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        public class MostDerived : Derived, IAsyncMyInterfaceMostDerived
+        public class MostDerived : Derived, IMyInterfaceMostDerived
         {
             public ValueTask OpMostDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

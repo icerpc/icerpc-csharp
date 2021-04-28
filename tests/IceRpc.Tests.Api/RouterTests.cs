@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Api
         private IGreeterServicePrx GetGreeter(string path) =>
             _server.CreateProxy<IGreeterServicePrx>(path);
 
-        public class GreeterService : IAsyncGreeterService
+        public class GreeterService : IGreeterService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

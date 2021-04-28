@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Test.Binding
 {
-    public class RemoteServer : IAsyncRemoteServer
+    public class RemoteServer : IRemoteServer
     {
         private readonly Server _server;
 

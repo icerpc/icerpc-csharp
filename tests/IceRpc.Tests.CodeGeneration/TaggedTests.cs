@@ -648,7 +648,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
     }
 
-    public class TaggedOperations : IAsyncTaggedOperations
+    public class TaggedOperations : ITaggedOperations
     {
         public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
             AnotherStruct? p1,

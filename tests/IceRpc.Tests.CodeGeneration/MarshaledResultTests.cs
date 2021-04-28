@@ -84,7 +84,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class MarshaledResultOperations : IAsyncMarshaledResultOperations
+        public class MarshaledResultOperations : IMarshaledResultOperations
         {
             // Marshalled result
             public ValueTask<IMarshaledResultOperations.OpAnotherStruct1MarshaledReturnValue> OpAnotherStruct1Async(

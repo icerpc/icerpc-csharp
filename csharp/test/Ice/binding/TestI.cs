@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace IceRpc.Test.Binding
 {
@@ -8,7 +9,7 @@ namespace IceRpc.Test.Binding
     {
         private string _serverName;
 
-        public string GetAdapterName(Dispatch dispatch, CancellationToken cancel) => _serverName;
+        public ValueTask<string> GetAdapterNameAsync(Dispatch dispatch, CancellationToken cancel) => new(_serverName);
 
         internal TestIntf(string serverName) => _serverName = serverName;
     }

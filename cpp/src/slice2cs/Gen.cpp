@@ -407,24 +407,7 @@ getParamAttributes(const MemberPtr& p)
 }
 
 vector<string>
-getInvocationParams(const OperationPtr& op, const string& ns)
-{
-    vector<string> params;
-    for (const auto& p : op->params())
-    {
-        ostringstream param;
-        param << getParamAttributes(p);
-        param << CsGenerator::typeToString(p->type(), ns, true, true, p->stream()) << " " << paramName(p);
-        params.push_back(param.str());
-    }
-    params.push_back("global::System.Collections.Generic.IReadOnlyDictionary<string, string>? " +
-                     getEscapedParamName(op, "context") + " = null");
-    params.push_back("global::System.Threading.CancellationToken " + getEscapedParamName(op, "cancel") + " = default");
-    return params;
-}
-
-vector<string>
-getInvocationParamsAMI(const OperationPtr& op, const string& ns, bool defaultValues, const string& prefix = "")
+getInvocationParams(const OperationPtr& op, const string& ns, bool defaultValues, const string& prefix = "")
 {
     vector<string> params;
     for (const auto& p : op->params())
@@ -941,8 +924,7 @@ Slice::CsVisitor::writeServantDocComment(const InterfaceDefPtr& p, const std::st
 }
 
 void
-Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& deprecateReason,
-                                           bool dispatch, bool async)
+Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& deprecateReason, bool dispatch)
 {
     CommentInfo comment = processComment(p, deprecateReason);
     writeDocCommentLines(_out, comment.summaryLines, "summary");
@@ -958,13 +940,10 @@ Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& 
     else
     {
         _out << nl << "/// <param name=\"" << getEscapedParamName(p, "context")
-             << "\">Context map to send with the invocation.</param>";
+            << "\">Context map to send with the invocation.</param>";
 
-        if(async)
-        {
-            _out << nl << "/// <param name=\"" << getEscapedParamName(p, "progress")
-                 << "\">Sent progress provider.</param>";
-        }
+        _out << nl << "/// <param name=\"" << getEscapedParamName(p, "progress")
+            << "\">Sent progress provider.</param>";
     }
     _out << nl << "/// <param name=\"" << getEscapedParamName(p, "cancel")
          << "\">A cancellation token that receives the cancellation requests.</param>";
@@ -972,10 +951,6 @@ Slice::CsVisitor::writeOperationDocComment(const OperationPtr& p, const string& 
     if(dispatch && p->hasMarshaledResult())
     {
         _out << nl << "/// <returns>The operation marshaled result.</returns>";
-    }
-    else if(async)
-    {
-        _out << nl << "/// <returns>The task object representing the asynchronous operation.</returns>";
     }
     else if(returnType.size() == 1)
     {
@@ -1149,11 +1124,8 @@ Slice::Gen::generate(const UnitPtr& p)
     ProxyVisitor proxyVisitor(_out);
     p->visit(&proxyVisitor, false);
 
-    DispatcherVisitor dispatcherVisitor(_out, false);
+    DispatcherVisitor dispatcherVisitor(_out);
     p->visit(&dispatcherVisitor, false);
-
-    DispatcherVisitor asyncDispatcherVisitor(_out, true);
-    p->visit(&asyncDispatcherVisitor, false);
 }
 
 void
@@ -2456,43 +2428,15 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 
     bool voidOp = returnType.empty();
 
-    // Write the synchronous version of the operation.
     _out << sp;
-    writeOperationDocComment(operation, deprecateReason, false, false);
-    if (!deprecateReason.empty())
-    {
-        _out << nl << "[global::System.Obsolete(\"" << deprecateReason << "\")]";
-    }
-    _out << nl << returnTypeStr(operation, ns, false) << " " << name << spar << getInvocationParams(operation, ns)
-         << epar << " =>";
-    _out.inc();
-
-    _out << nl << "IceInvoke(Request." << name << "(this, ";
-    if (params.size() > 0)
-    {
-        _out << toTuple(params) << ", ";
-    }
-    _out << context << ", " << cancel << "), ";
-    if (voidOp)
-    {
-        _out << (oneway ? "oneway: true" : "IsOneway") << ");";
-    }
-    else
-    {
-        _out << "Response." << name << ");";
-    }
-    _out.dec();
-
-    // Write the async version of the operation
-    _out << sp;
-    writeOperationDocComment(operation, deprecateReason, false, true);
+    writeOperationDocComment(operation, deprecateReason, false);
     if (!deprecateReason.empty())
     {
         _out << nl << "[global::System.Obsolete(\"" << deprecateReason << "\")]";
     }
 
     _out << nl << returnTaskStr(operation, ns, false) << " " << asyncName << spar
-        << getInvocationParamsAMI(operation, ns, true) << epar << " =>";
+        << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
     _out << nl << "IceInvokeAsync(Request." << name << "(this, ";
@@ -2599,8 +2543,8 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     }
 }
 
-Slice::Gen::DispatcherVisitor::DispatcherVisitor(::IceUtilInternal::Output& out, bool generateAllAsync) :
-    CsVisitor(out), _generateAllAsync(generateAllAsync)
+Slice::Gen::DispatcherVisitor::DispatcherVisitor(::IceUtilInternal::Output& out) :
+    CsVisitor(out)
 {
 }
 
@@ -2626,7 +2570,7 @@ bool
 Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 {
     InterfaceList bases = p->bases();
-    string name = interfaceName(p, _generateAllAsync);
+    string name = interfaceName(p);
     string ns = getNamespace(p);
 
     _out << sp;
@@ -2643,7 +2587,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         for(InterfaceList::const_iterator q = bases.begin(); q != bases.end();)
         {
-            _out << getUnqualified(getNamespace(*q) + "." + interfaceName(*q, _generateAllAsync), ns);
+            _out << getUnqualified(getNamespace(*q) + "." + interfaceName(*q), ns);
             if(++q != bases.end())
             {
                 _out << ", ";
@@ -2881,21 +2825,13 @@ Slice::Gen::DispatcherVisitor::writeMethodDeclaration(const OperationPtr& operat
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
     string deprecateReason = getDeprecateReason(operation, true);
-    bool amd = _generateAllAsync || interface->hasMetadata("amd") || operation->hasMetadata("amd");
-    const string name = fixId(operationName(operation) + (amd ? "Async" : ""));
+    const string name = fixId(operationName(operation) + "Async");
 
     _out << sp;
-    writeOperationDocComment(operation, deprecateReason, true, amd);
+    writeOperationDocComment(operation, deprecateReason, true);
     _out << nl << "public ";
 
-    if(amd)
-    {
-        _out << returnTaskStr(operation, ns, true);
-    }
-    else
-    {
-        _out << returnTypeStr(operation, ns, true);
-    }
+    _out << returnTaskStr(operation, ns, true);
 
     _out << " " << name << spar;
     _out << getNames(operation->params(),
@@ -2912,10 +2848,9 @@ void
 Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
-    bool amd = _generateAllAsync || interface->hasMetadata("amd") || operation->hasMetadata("amd");
     string ns = getNamespace(interface);
     string opName = operationName(operation);
-    string name = fixId(opName + (amd ? "Async" : ""));
+    string name = fixId(opName + "Async");
     string internalName = "IceD" + opName + "Async";
 
     auto params = operation->params();
@@ -2923,10 +2858,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     _out << sp;
     _out << nl << "protected ";
-    if (amd)
-    {
-        _out << "async ";
-    }
+    _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
     _out << " " << internalName << "(IceRpc.IncomingRequest request, global::System.Threading.CancellationToken cancel)";
     _out << sb;
@@ -2960,34 +2892,18 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (operation->hasMarshaledResult())
     {
-        if (amd)
+        _out << nl << "var returnValue = await this." << name << spar;
+        if(params.size() > 1)
         {
-            _out << nl << "var returnValue = await this." << name << spar;
-            if (params.size() > 1)
-            {
-                _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });
-            }
-            else if (params.size() == 1)
-            {
-                _out << paramName(params.front(), "iceP_");
-            }
-            _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
-            _out << nl << "return returnValue.Response;";
+            _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });
         }
-        else
+        else if(params.size() == 1)
         {
-            _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(this."
-                 << name << spar;
-            if (params.size() > 1)
-            {
-                _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });
-            }
-            else if (params.size() == 1)
-            {
-                _out << paramName(params.front(), "iceP_");
-            }
-            _out << "dispatch" << "cancel" << epar << ".Response);";
+            _out << paramName(params.front(), "iceP_");
         }
+        _out << "dispatch"
+             << "cancel" << epar << ".ConfigureAwait(false);";
+        _out << nl << "return returnValue.Response;";
         _out << eb;
     }
     else
@@ -2998,10 +2914,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << "var returnValue = ";
         }
 
-        if (amd)
-        {
-            _out << "await ";
-        }
+        _out << "await ";
         _out << "this." << name << spar;
         if (params.size() > 1)
         {
@@ -3012,42 +2925,18 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << paramName(params.front(), "iceP_");
         }
         _out << "dispatch" << "cancel" << epar;
-        if (amd)
-        {
-            _out << ".ConfigureAwait(false)";
-        }
+        _out << ".ConfigureAwait(false)";
+
         _out << ";";
 
         if (returnType.size() == 0)
         {
-            if (amd)
-            {
-                _out << nl << "return IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch);";
-            }
-            else
-            {
-                _out << nl << "return new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(";
-                _out.inc();
-                _out << nl << "IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch));";
-                _out.dec();
-            }
+            _out << nl << "return IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch);";
         }
         else
         {
             _out << nl << "return ";
-            if (!amd)
-            {
-                _out << "new global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>(";
-                _out.inc();
-                _out << nl;
-            }
             _out << "Response." << fixId(opName) << "(dispatch, returnValue)";
-
-            if (!amd)
-            {
-                _out << ")";
-                _out.dec();
-            }
             _out << ";";
         }
         _out << eb;

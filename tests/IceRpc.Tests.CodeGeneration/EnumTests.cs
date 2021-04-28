@@ -137,7 +137,7 @@ namespace IceRpc.Tests.CodeGeneration
             await closure(prx);
         }
 
-        public class EnumOperations : IAsyncEnumOperations
+        public class EnumOperations : IEnumOperations
         {
             public ValueTask<(MyEnum R1, MyEnum R2)> OpMyEnumAsync(
                 MyEnum p1,

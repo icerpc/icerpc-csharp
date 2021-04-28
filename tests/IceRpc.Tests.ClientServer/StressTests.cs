@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);
         }
 
-        public class TestService : IAsyncStressTestService
+        public class TestService : IStressTestService
         {
             public TestService()
             {

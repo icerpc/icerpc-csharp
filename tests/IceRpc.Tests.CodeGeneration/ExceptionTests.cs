@@ -81,7 +81,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(0, b.M1);
         }
 
-        public class ExceptionOperations : IAsyncExceptionOperations
+        public class ExceptionOperations : IExceptionOperations
         {
             public ValueTask ThrowAAsync(int a, Dispatch dispatch, CancellationToken cancel) => throw new MyExceptionA(a);
             public ValueTask ThrowAorBAsync(int a, Dispatch dispatch, CancellationToken cancel)

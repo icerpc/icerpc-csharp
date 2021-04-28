@@ -163,7 +163,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope
     {
-        public class Operations : IAsyncOperations
+        public class Operations : IOperations
         {
             public ValueTask<C1> OpC1Async(C1 c1, Dispatch dispatch, CancellationToken cancel) => new(c1);
 
@@ -198,7 +198,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner
     {
-        public class Operations : IAsyncOperations
+        public class Operations : IOperations
         {
             public ValueTask<Inner2.C> OpCAsync(Inner2.C p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
@@ -228,7 +228,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner.Inner2
     {
-        public class Operations : IAsyncOperations
+        public class Operations : IOperations
         {
             public ValueTask<C> OpCAsync(C c1, Dispatch dispatch, CancellationToken cancel) => new(c1);
 
@@ -258,7 +258,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner.Test.Inner2
     {
-        public class Operations : IAsyncOperations
+        public class Operations : IOperations
         {
             public ValueTask<Scope.C> OpCAsync(
                 Scope.C p1,

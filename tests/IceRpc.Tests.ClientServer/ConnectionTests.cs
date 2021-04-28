@@ -409,7 +409,7 @@ namespace IceRpc.Tests.ClientServer
                 _ = con.AbortAsync();
 
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await t);
-                prx.FinishDispatch();
+                await prx.FinishDispatchAsync();
 
                 // Remote case: the server closes the connection forcefully. This causes the request to fail with
                 // a ConnectionLostException. Since the close() operation is not idempotent, the client will not
@@ -436,7 +436,7 @@ namespace IceRpc.Tests.ClientServer
             await closure(server, server.CreateProxy<IConnectionTestPrx>("/test"));
         }
 
-        class ConnectionTest : IAsyncConnectionTest
+        class ConnectionTest : IConnectionTest
         {
             private readonly SemaphoreSlim _semaphore = new(0);
             private TaskCompletionSource<object?>? _pending;
