@@ -35,7 +35,7 @@ namespace IceRpc
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
         public bool IsOneway => !IsBirectional;
 
-        /// <summary>Returns <c>True</c> if the stream that received this reqest is a bidirectional stream,
+        /// <summary>Returns <c>True</c> if the stream that received this request is a bidirectional stream,
         /// <c>False</c> otherwise.</summary>
         public bool IsBirectional => StreamId % 4 < 2;
 
@@ -323,8 +323,7 @@ namespace IceRpc
                     var istr = new InputStream(buffer[i..], Encoding.V20);
                     activity.TraceStateString = istr.ReadString();
 
-                    // The min element size is 2 bytes empty string is 1 byte, and null value string
-                    // 1 byte for the bit sequence.
+                    // The min element size is 2 bytes for a struct with two empty strings.
                     IEnumerable<(string key, string value)> baggage = istr.ReadSequence(
                         minElementSize: 2,
                         istr =>
