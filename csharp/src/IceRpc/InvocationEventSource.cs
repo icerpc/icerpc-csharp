@@ -71,7 +71,7 @@ namespace IceRpc
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestFailed(path, operation, exception?.ToString() ?? "");
+                RequestFailed(path, operation, exception?.GetType().FullName ?? "IceRpc.RemoteException");
             }
         }
 
