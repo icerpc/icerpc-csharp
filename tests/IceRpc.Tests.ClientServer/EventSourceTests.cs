@@ -155,18 +155,18 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
         }
 
-        private class Greeter1 : IAsyncGreeterTestService
+        private class Greeter1 : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        private class Greeter2 : IAsyncGreeterTestService
+        private class Greeter2 : IGreeterTestService
         {
             public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
-        private class Greeter3 : IAsyncGreeterTestService
+        private class Greeter3 : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ServerException("failed");
