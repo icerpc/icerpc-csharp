@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
-        private protected ILogger Logger { get; }
+        private protected ILogger Logger => Server.Logger;
         protected Server Server { get; }
         protected IncomingConnectionOptions ServerConnectionOptions => Server.ConnectionOptions;
         private protected bool IsIPv6 { get; }
@@ -35,7 +35,6 @@ namespace IceRpc.Tests.Internal
 
         private IAcceptor? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        private readonly ILoggerFactory _loggerFactory;
         // Protects the _acceptor data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
@@ -58,24 +57,6 @@ namespace IceRpc.Tests.Internal
             TransportName = transport;
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
-
-            _loggerFactory = LoggerFactory.Create(
-                builder =>
-                {
-                    // builder.AddConsole(configure => configure.LogToStandardErrorThreshold = LogLevel.Debug);
-                    // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
-                    // builder.AddJsonConsole(configure =>
-                    // {
-                    //     configure.IncludeScopes = true;
-                    //     configure.JsonWriterOptions = new System.Text.Json.JsonWriterOptions()
-                    //     {
-                    //         Indented = true
-                    //     };
-                    // });
-                    builder.SetMinimumLevel(LogLevel.Debug);
-                });
-
-            Logger = _loggerFactory.CreateLogger("IceRPC");
 
             var clientConnectionOptions = new OutgoingConnectionOptions()
             {
@@ -103,7 +84,6 @@ namespace IceRpc.Tests.Internal
             {
                 Communicator = Communicator,
                 ConnectionOptions = serverConnectionOptions,
-                LoggerFactory = _loggerFactory
             };
 
             if (transport == "coloc")
@@ -145,7 +125,6 @@ namespace IceRpc.Tests.Internal
             _acceptor?.Dispose();
             await Communicator.DisposeAsync();
             await Server.DisposeAsync();
-            _loggerFactory.Dispose();
         }
 
         static protected async ValueTask<SingleStreamSocket> SingleStreamSocketAsync(Task<MultiStreamSocket> socket) =>

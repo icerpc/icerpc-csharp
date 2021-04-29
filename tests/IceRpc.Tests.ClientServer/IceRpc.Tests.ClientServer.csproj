@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
+    <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
     <Compile Include="..\Shared\TestLogger.cs">
       <Link>TestLogger.cs</Link>
     </Compile>

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -13,6 +11,7 @@ namespace IceRpc.Tests.Internal
 {
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
+    // [Log(LogAttributeLevel.Debug)]
     public class ConnectionTests
     {
         /// <summary>The connection factory is a small helper to allow creating a client and server connection
@@ -32,8 +31,6 @@ namespace IceRpc.Tests.Internal
             }
 
             public Endpoint Endpoint { get; }
-
-            public ILogger Logger => _server.Logger;
 
             public Connection Server
             {
@@ -137,21 +134,9 @@ namespace IceRpc.Tests.Internal
                 IncomingConnectionOptions? serverConnectionOptions = null,
                 IDispatcher? dispatcher = null)
             {
-                using ILoggerFactory loggerFactory = LoggerFactory.Create(
-                    builder =>
-                    {
-                        // builder.AddSimpleConsole(configure =>
-                        // {
-                        //      configure.IncludeScopes = true;
-                        //      configure.TimestampFormat = "[HH:mm:ss:fff] ";
-                        //      configure.ColorBehavior = LoggerColorBehavior.Disabled;
-                        // });
-                        // builder.SetMinimumLevel(LogLevel.Debug);
-                    });
 
                 _communicator = new Communicator(
                     new Dictionary<string, string>() { { "Ice.InvocationMaxAttempts", "1" } },
-                    loggerFactory: loggerFactory,
                     connectionOptions: clientConnectionOptions);
 
                 _server = new Server
@@ -159,7 +144,6 @@ namespace IceRpc.Tests.Internal
                     Communicator = _communicator,
                     ConnectionOptions = serverConnectionOptions ?? new(),
                     Dispatcher = dispatcher,
-                    LoggerFactory = loggerFactory,
                 };
                 _ = _server.Logger;
 
