@@ -43,7 +43,6 @@ namespace IceRpc
         /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
         /// invocation. It must be a number greater than 0.</summary>
         internal int InvocationMaxAttempts { get; }
-        internal bool IsDisposed => _shutdownTask != null;
 
         /// <summary>The default logger for this communicator.</summary>
         internal ILogger Logger { get; }

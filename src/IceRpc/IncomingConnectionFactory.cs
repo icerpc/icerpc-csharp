@@ -107,8 +107,6 @@ namespace IceRpc
                 try
                 {
                     connection = await _acceptor.AcceptAsync();
-                    // TODO: Hack, remove once we get rid of the communicator
-                    connection.Communicator = _server.Communicator;
                 }
                 catch (Exception ex)
                 {
@@ -183,8 +181,6 @@ namespace IceRpc
         {
             _server = server;
             _connection = endpoint.CreateDatagramServerConnection(server);
-            // TODO: Hack, remove once we get rid of the communicator
-            _connection.Communicator = _server.Communicator;
             Endpoint = _connection.Endpoint;
         }
 

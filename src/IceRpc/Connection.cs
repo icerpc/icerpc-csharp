@@ -32,12 +32,6 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public abstract class Connection : IAsyncDisposable
     {
-        /// <summary>Gets the communicator.</summary>
-        // TODO: Remove this once we add Runtime and once we removed the InputStream dependency on Communicator
-        // to the endpoint, class, exception factories. It's only use for this purpose.
-        // HACK ALERT: the communicator is set after connection construction for now and until it's removed.
-        public Communicator? Communicator { get; set; }
-
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For outgoing connections, set can be called during configuration.</summary>
@@ -181,7 +175,6 @@ namespace IceRpc
                 options ?? OutgoingConnectionOptions.Default,
                 communicator.Logger,
                 cancel).ConfigureAwait(false);
-            connection.Communicator = communicator;
 
             // Perform protocol level initialization.
             await connection.InitializeAsync(cancel).ConfigureAwait(false);
