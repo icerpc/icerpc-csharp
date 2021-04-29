@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Diagnostics.Tracing;
+using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
@@ -15,13 +16,16 @@ namespace IceRpc.Tests.Internal
             _eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
 
         [Test]
-        public void DispatchEventSource_RequestStart()
+        public async Task DispatchEventSource_RequestStartAsync()
         {
             var expectedEventId = 1;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStart("/service", "operation");
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            _eventSource.RequestStart(request);
 
             var eventData = eventListener.EventData;
             Assert.NotNull(eventData);
@@ -30,17 +34,20 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
-            Assert.AreEqual("operation", eventData.Payload![1]);
+            Assert.AreEqual("ice_id", eventData.Payload![1]);
         }
 
         [Test]
-        public void DispatchEventSource_RequestStop()
+        public async Task DispatchEventSource_RequestStopAsync()
         {
             var expectedEventId = 2;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStop("/service", "operation");
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            _eventSource.RequestStop(request);
 
             var eventData = eventListener.EventData;
             Assert.NotNull(eventData);
@@ -49,17 +56,20 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
-            Assert.AreEqual("operation", eventData.Payload![1]);
+            Assert.AreEqual("ice_id", eventData.Payload![1]);
         }
 
         [Test]
-        public void DispatchEventSource_RequestCanceled()
+        public async Task DispatchEventSource_RequestCanceledAsync()
         {
             var expectedEventId = 3;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestCanceled("/service", "operation");
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            _eventSource.RequestCanceled(request);
 
             var eventData = eventListener.EventData;
             Assert.NotNull(eventData);
@@ -68,17 +78,20 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
-            Assert.AreEqual("operation", eventData.Payload![1]);
+            Assert.AreEqual("ice_id", eventData.Payload![1]);
         }
 
         [Test]
-        public void DispatchEventSource_RequestFailed()
+        public async Task DispatchEventSource_RequestFailedAsync()
         {
             var expectedEventId = 4;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestFailed("/service", "operation", null);
+            await using var communicator = new Communicator();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
             var eventData = eventListener.EventData;
             Assert.NotNull(eventData);
@@ -87,7 +100,7 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
-            Assert.AreEqual("operation", eventData.Payload![1]);
+            Assert.AreEqual("ice_id", eventData.Payload![1]);
             Assert.AreEqual("IceRpc.RemoteException", eventData.Payload![2]);
         }
 
