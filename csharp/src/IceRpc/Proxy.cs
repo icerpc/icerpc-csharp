@@ -119,13 +119,6 @@ namespace IceRpc
         /// <returns>An instance of the options class.</returns>
         public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
 
-        /// <summary>Invokes a request.</summary>
-        /// <param name="request">The request frame.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A task holding the response frame.</returns>
-        public static Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-            ServicePrx.InvokeAsync(request, cancel);
-
         /// <summary>Converts a proxy to a set of proxy properties.</summary>
         /// <param name="proxy">The proxy for the target Ice object.</param>
         /// <param name="property">The base property name.</param>

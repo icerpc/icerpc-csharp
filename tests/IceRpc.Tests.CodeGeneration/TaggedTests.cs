@@ -199,7 +199,8 @@ namespace IceRpc.Tests.CodeGeneration
                         ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                     });
 
-            using IncomingResponse response = await Proxy.InvokeAsync(requestFrame, requestFrame.CancellationToken);
+            using IncomingResponse response =
+                await ServicePrx.InvokeAsync(requestFrame, requestFrame.CancellationToken);
             Assert.AreEqual(ResultType.Success, response.ResultType);
 
             var b = (B)await _prx.PingPongAsync(new B());

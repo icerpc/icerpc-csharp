@@ -409,7 +409,7 @@ namespace IceRpc.Tests.Api
 
             IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
             OutgoingRequest request = IGreeterServicePrx.Request.SayHello(prx, invocation: null, cancel: default);
-            IncomingResponse response = await Proxy.InvokeAsync(request, request.CancellationToken);
+            IncomingResponse response = await ServicePrx.InvokeAsync(request, request.CancellationToken);
             Assert.AreEqual(ResultType.Success, response.ResultType);
         }
 

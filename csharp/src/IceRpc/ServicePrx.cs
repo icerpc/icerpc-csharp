@@ -643,7 +643,9 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        internal static async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate
+        // request.CancellationToken.
+        public static async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             Activity? activity = null;
 
