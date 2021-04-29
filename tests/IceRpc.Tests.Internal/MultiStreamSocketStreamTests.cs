@@ -9,6 +9,7 @@ namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
+    [Log(LogAttributeLevel.Debug)]
     [TestFixture(MultiStreamSocketType.Slic)]
     [TestFixture(MultiStreamSocketType.Coloc)]
     [TestFixture(MultiStreamSocketType.Ice1)]
