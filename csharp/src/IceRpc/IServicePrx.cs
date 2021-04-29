@@ -315,7 +315,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task IceInvokeAsync(OutgoingRequest request, bool oneway)
         {
-            request.IsOneway = oneway;
+            request.IsOneway |= oneway;
 
             Task<IncomingResponse> responseTask;
             try
