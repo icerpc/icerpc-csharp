@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     // Test the varions multi-stream socket implementations.
-    [Timeout(10000)]
+    [Timeout(30000)]
     [TestFixture(MultiStreamSocketType.Slic)]
     [TestFixture(MultiStreamSocketType.Coloc)]
     [TestFixture(MultiStreamSocketType.Ice1)]

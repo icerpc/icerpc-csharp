@@ -360,21 +360,21 @@ namespace IceRpc
             }
         }
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, SocketStream stream)
+        internal static IDisposable? StartStreamScope(this ILogger logger, long id)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
                 return null;
             }
 
-            (string initiatedBy, string kind) = (stream.Id % 4) switch
+            (string initiatedBy, string kind) = (id % 4) switch
             {
                 0 => ("Client", "Bidirectional"),
                 1 => ("Server", "Bidirectional"),
                 2 => ("Client", "Unidirectional"),
                 _ => ("Server", "Unidirectional")
             };
-            return _streamScope(logger, stream.Id, initiatedBy, kind);
+            return _streamScope(logger, id, initiatedBy, kind);
         }
 
         internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)

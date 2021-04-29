@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", true)]
     [TestFixture("ws", true)]
     [TestFixture("udp", false)]
-    [Timeout(5000)]
+    [Timeout(10000)]
     public class SingleStreamSocketTests : SingleStreamSocketBaseTest
     {
         public SingleStreamSocketTests(string transport, bool tls)

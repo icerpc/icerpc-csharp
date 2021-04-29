@@ -12,7 +12,7 @@ namespace IceRpc
     /// <summary>The SocketStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledSocketStream<(object, bool)>
     {
-        protected override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
         private readonly ColocSocket _socket;

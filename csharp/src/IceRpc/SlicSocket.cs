@@ -125,11 +125,11 @@ namespace IceRpc
                             }
                             catch
                             {
-                                // The socket is being closed,  we make sure to receive the frame data. If the
-                                // connection is being closed gracefully, the connection waits for the socket
-                                // to receive the RST from the peer so it's important to receive and skip all
-                                // the data until the RST is received.
-                                FinishedReceivedStreamData(size, fin, size);
+                                // The socket is being closed, we make sure to receive the frame data. When the
+                                // connection is being closed gracefully, the connection waits for the socket to
+                                // receive the RST from the peer so it's important to receive and skip all the
+                                // data until the RST is received.
+                                _receiveStreamCompletionTaskSource.SetResult(size);
                                 throw;
                             }
 
@@ -187,6 +187,7 @@ namespace IceRpc
                                 }
                             }
 
+                            using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
                             Logger.LogReceivedSlicFrame(
                                 fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream, size);
                         }
@@ -210,6 +211,8 @@ namespace IceRpc
                         {
                             stream.ReceivedReset((long)streamReset.ApplicationProtocolErrorCode);
                         }
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
                         Logger.LogReceivedSlicResetFrame(
                             size,
                             (StreamResetErrorCode)streamReset.ApplicationProtocolErrorCode);
@@ -218,6 +221,8 @@ namespace IceRpc
                     case SlicDefinitions.FrameType.StreamConsumed:
                     {
                         Debug.Assert(streamId != null);
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
                         Logger.LogReceivedSlicFrame(type, size);
 
                         if (streamId == 2 || streamId == 3)

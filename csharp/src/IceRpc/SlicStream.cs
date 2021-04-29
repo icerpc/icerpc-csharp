@@ -23,7 +23,7 @@ namespace IceRpc
     internal class SlicStream : SignaledSocketStream<(int, bool)>
     {
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
-        protected override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
         // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
@@ -56,6 +56,7 @@ namespace IceRpc
             {
                 try
                 {
+                    using IDisposable? scope = StartScope();
                     if (_receivedOffset == _receivedSize)
                     {
                         ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);

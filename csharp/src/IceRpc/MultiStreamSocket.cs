@@ -64,8 +64,7 @@ namespace IceRpc
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
-        public abstract ValueTask<SocketStream> AcceptStreamAsync(
-            CancellationToken cancel);
+        public abstract ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel);
 
         /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
         /// to establish the connection and perform  blocking socket level initialization (TLS handshake, etc).

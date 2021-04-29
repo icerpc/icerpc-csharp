@@ -179,7 +179,7 @@ namespace IceRpc
         /// otherwise</param>
         /// <param name="retryPolicy">The exception retry policy.</param>
         public ConnectionClosedException(bool isClosedByPeer = false, RetryPolicy retryPolicy = default)
-            : base("Cannot access closed connection.", retryPolicy) =>
+            : base("cannot access closed connection", retryPolicy) =>
             IsClosedByPeer = isClosedByPeer;
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified
