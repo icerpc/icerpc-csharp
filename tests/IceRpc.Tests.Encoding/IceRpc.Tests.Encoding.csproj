@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc\ice.csproj" />
   </ItemGroup>
 
 </Project>
