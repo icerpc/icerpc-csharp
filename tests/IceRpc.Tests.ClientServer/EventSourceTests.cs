@@ -19,7 +19,7 @@ namespace IceRpc.Tests.ClientServer
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter1());
             await using var server = new Server
             {
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.ClientServer
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter2());
             await using var server = new Server
             {
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.ClientServer
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter3());
             await using var server = new Server
             {
