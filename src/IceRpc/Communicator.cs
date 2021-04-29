@@ -246,6 +246,7 @@ namespace IceRpc
             _interceptorList = _interceptorList.AddRange(interceptor);
         }
 
+        // TODO: with the current logic, all interceptors actually execute before bind, where bind is needed or not.
         public void UseBeforeBind(params Func<IInvoker, IInvoker>[] interceptor) =>
             throw new NotImplementedException();
 
@@ -288,9 +289,7 @@ namespace IceRpc
 
                 try
                 {
-                    return await request.Proxy.Impl.PerformInvokeAsync(request,
-                                                                       releaseRequestAfterSent,
-                                                                       cancel).ConfigureAwait(false);
+                    return await PerformInvokeAsync(request, releaseRequestAfterSent, cancel).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -308,6 +307,265 @@ namespace IceRpc
                 pipeline = interceptor(pipeline);
             }
             return pipeline;
+        }
+
+        private async Task<IncomingResponse> PerformInvokeAsync(
+            OutgoingRequest request,
+            bool releaseRequestAfterSent,
+            CancellationToken cancel)
+        {
+            ServicePrx proxy = request.Proxy.Impl;
+
+            Connection? connection = proxy.Connection;
+            List<Endpoint>? endpoints = null;
+            bool oneway = request.IsOneway;
+            IProgress<bool>? progress = request.Progress;
+
+            if (connection != null && !oneway && connection.Endpoint.IsDatagram)
+            {
+                throw new InvalidOperationException(
+                    "cannot make two-way invocation using a cached datagram connection");
+            }
+
+            if ((connection == null || (proxy.ParsedEndpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
+            {
+                // No cached connection, so now check if there is an existing connection that we can reuse.
+                endpoints = await proxy.ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
+                connection = GetConnection(endpoints);
+                if (proxy.CacheConnection)
+                {
+                    proxy.Connection = connection;
+                }
+            }
+
+            OutgoingConnectionOptions connectionOptions = ConnectionOptions.Clone();
+
+            ILogger logger = Logger;
+            int nextEndpoint = 0;
+            int attempt = 1;
+            bool triedAllEndpoints = false;
+            List<Endpoint>? excludedEndpoints = null;
+            IncomingResponse? response = null;
+            Exception? exception = null;
+
+            bool tryAgain = false;
+
+            if (Activity.Current != null && Activity.Current.Id != null)
+            {
+                request.WriteActivityContext(Activity.Current);
+            }
+
+            do
+            {
+                bool sent = false;
+                SocketStream? stream = null;
+                try
+                {
+                    if (connection == null)
+                    {
+                        if (endpoints == null)
+                        {
+                            Debug.Assert(nextEndpoint == 0);
+
+                            // ComputeEndpointsAsync throws if it can't figure out the endpoints
+                            // We also request fresh endpoints when retrying, but not for the first attempt.
+                            endpoints = await proxy.ComputeEndpointsAsync(refreshCache: tryAgain,
+                                                                    oneway,
+                                                                    cancel).ConfigureAwait(false);
+                            if (excludedEndpoints != null)
+                            {
+                                endpoints = endpoints.Except(excludedEndpoints).ToList();
+                                if (endpoints.Count == 0)
+                                {
+                                    endpoints = null;
+                                    throw new NoEndpointException();
+                                }
+                            }
+                        }
+
+                        connection = await ConnectAsync(endpoints[nextEndpoint],
+                                                                     connectionOptions,
+                                                                     cancel).ConfigureAwait(false);
+
+                        if (proxy.CacheConnection)
+                        {
+                            proxy.Connection = connection;
+                        }
+                    }
+
+                    cancel.ThrowIfCancellationRequested();
+
+                    response?.Dispose();
+                    response = null;
+
+                    using IDisposable? socketScope = connection.Socket.StartScope();
+
+                    // Create the outgoing stream.
+                    stream = connection.CreateStream(!oneway);
+
+                    // Send the request and wait for the sending to complete.
+                    await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+
+                    using IDisposable? streamSocket = stream.StartScope();
+                    logger.LogSentRequest(request);
+
+                    // The request is sent, notify the progress callback.
+                    // TODO: Get rid of the sentSynchronously parameter which is always false now?
+                    if (progress != null)
+                    {
+                        progress.Report(false);
+                        progress = null; // Only call the progress callback once (TODO: revisit this?)
+                    }
+                    if (releaseRequestAfterSent)
+                    {
+                        // TODO release the request
+                    }
+                    sent = true;
+                    exception = null;
+
+                    if (oneway)
+                    {
+                        return new IncomingResponse(connection, request.PayloadEncoding);
+                    }
+
+                    // Wait for the reception of the response.
+                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    response.Connection = connection;
+
+                    logger.LogReceivedResponse(response);
+
+                    // If success, just return the response!
+                    if (response.ResultType == ResultType.Success)
+                    {
+                        return response;
+                    }
+                }
+                catch (NoEndpointException ex) when (tryAgain)
+                {
+                    // If we get NoEndpointException while retrying, either all endpoints have been excluded or the
+                    // proxy has no endpoints. So we cannot retry, and we return here to preserve any previous
+                    // exception that might have been thrown.
+                    return response ?? throw exception ?? ex;
+                }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                }
+                finally
+                {
+                    stream?.Release();
+                }
+
+                // Compute retry policy based on the exception or response retry policy, whether or not the connection
+                // is established or the request sent and idempotent
+                Debug.Assert(response != null || exception != null);
+                RetryPolicy retryPolicy =
+                    response?.GetRetryPolicy(proxy) ?? exception!.GetRetryPolicy(request.IsIdempotent, sent);
+
+                // With the retry-policy OtherReplica we add the current endpoint to the list of excluded
+                // endpoints this prevents the endpoints to be tried again during the current retry sequence.
+                if (retryPolicy == RetryPolicy.OtherReplica &&
+                    (endpoints?[nextEndpoint] ?? connection?.Endpoint) is Endpoint endpoint)
+                {
+                    excludedEndpoints ??= new();
+                    excludedEndpoints.Add(endpoint);
+                }
+
+                if (endpoints != null && (connection == null || retryPolicy == RetryPolicy.OtherReplica))
+                {
+                    // If connection establishment failed or if the endpoint was excluded, try the next endpoint
+                    nextEndpoint = ++nextEndpoint % endpoints.Count;
+                    if (nextEndpoint == 0)
+                    {
+                        // nextEndpoint == 0 indicates that we already tried all the endpoints.
+                        if (proxy.IsIndirect && !tryAgain)
+                        {
+                            // If we were potentially using cached endpoints, so we clear the endpoints before trying
+                            // again.
+                            endpoints = null;
+                        }
+                        else
+                        {
+                            // Otherwise we set triedAllEndpoints to true to ensure further connection establishment
+                            // failures will now count as attempts (to prevent indefinitely looping if connection
+                            // establishment failure results in a retryable exception).
+                            triedAllEndpoints = true;
+                            if (excludedEndpoints != null)
+                            {
+                                endpoints = endpoints.Except(excludedEndpoints).ToList();
+                            }
+                        }
+                    }
+                }
+
+                // Check if we can retry, we cannot retry if we have consumed all attempts, the current retry
+                // policy doesn't allow retries, the request was already released, there are no more endpoints
+                // or an incoming connection receives an exception with OtherReplica retry policy.
+
+                if (attempt == InvocationMaxAttempts ||
+                    retryPolicy == RetryPolicy.NoRetry ||
+                    (sent && releaseRequestAfterSent) ||
+                    (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
+                    ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
+                {
+                    tryAgain = false;
+                }
+                else
+                {
+                    tryAgain = true;
+
+                    // Only count an attempt if the connection was established or if all the endpoints were tried
+                    // at least once. This ensures that we don't end up into an infinite loop for connection
+                    // establishment failures which don't result in endpoint exclusion.
+                    if (connection != null)
+                    {
+                        attempt++;
+
+                        using IDisposable? socketScope = connection?.Socket.StartScope();
+                        logger.LogRetryRequestRetryableException(
+                            retryPolicy,
+                            attempt,
+                            InvocationMaxAttempts,
+                            request,
+                            exception);
+                    }
+                    else if (triedAllEndpoints)
+                    {
+                        attempt++;
+
+                        logger.LogRetryRequestConnectionException(
+                            retryPolicy,
+                            attempt,
+                            InvocationMaxAttempts,
+                            request,
+                            exception);
+                    }
+
+                    if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
+                    {
+                        // The delay task can be canceled either by the user code using the provided cancellation
+                        // token or if the communicator is destroyed.
+                        await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
+                    }
+
+                    if (proxy.ParsedEndpoint != null && connection != null && !connection.IsIncoming)
+                    {
+                        // Retry with a new connection!
+                        connection = null;
+                    }
+                }
+            }
+            while (tryAgain);
+
+            if (exception != null)
+            {
+                using IDisposable? socketScope = connection?.Socket.StartScope();
+                logger.LogRequestException(request, exception);
+            }
+
+            Debug.Assert(response != null || exception != null);
+            Debug.Assert(response == null || response.ResultType == ResultType.Failure);
+            return response ?? throw ExceptionUtil.Throw(exception!);
         }
     }
 }
