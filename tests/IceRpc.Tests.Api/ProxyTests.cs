@@ -59,7 +59,9 @@ namespace IceRpc.Tests.Api
                 Context = new() { ["foo"] = "bar" }
             };
 
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.AreEqual(request.Context, invocation.Context);
                 return next.InvokeAsync(request, cancel);
@@ -420,7 +422,7 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_ParseWithOptionsAsync(string proxyString)
         {
             await using var communicator = new Communicator();
-            var proxyOptions = new ProxyOptions() { Communicator = communicator };
+            var proxyOptions = new ProxyOptions() { Invoker = communicator };
 
             var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
             Assert.IsTrue(proxy.CacheConnection);

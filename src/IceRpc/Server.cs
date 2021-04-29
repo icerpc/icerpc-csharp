@@ -147,7 +147,7 @@ namespace IceRpc
         public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
         {
             // temporary
-            ProxyOptions.Communicator ??= Communicator;
+            ProxyOptions.Invoker ??= Communicator;
 
             // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
             // unless the user gives a connection to this new proxy.
@@ -173,7 +173,7 @@ namespace IceRpc
             }
 
             ProxyOptions options = ProxyOptions;
-            options.Communicator ??= Communicator;
+            options.Invoker ??= Communicator;
 
             if (_proxyEndpoint.IsDatagram && !options.IsOneway)
             {

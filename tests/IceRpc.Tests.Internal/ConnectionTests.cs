@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Internal
                     endpoint: null,
                     altEndpoints: ImmutableList<Endpoint>.Empty,
                     connection,
-                    new ProxyOptions { Communicator = _communicator });
+                    new ProxyOptions { Invoker = _communicator });
 
             public async ValueTask DisposeAsync()
             {

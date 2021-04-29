@@ -14,9 +14,10 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The central object in Ice. One or more communicators can be instantiated for an Ice application.
+    /// <summary>An invoker that manages a pool of outgoing connections and supports the installation of interceptors.
     /// </summary>
-    public sealed partial class Communicator : IAsyncDisposable
+    // TODO: rename to ConnectionPool
+    public sealed partial class Communicator : IInvoker, IAsyncDisposable
     {
         /// <summary>The connection options.</summary>
         public OutgoingConnectionOptions ConnectionOptions;
@@ -52,6 +53,10 @@ namespace IceRpc
         private static string[] _emptyArgs = Array.Empty<string>();
 
         private readonly CancellationTokenSource _cancellationTokenSource = new();
+
+        private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
+            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
+        private IInvoker? _invoker;
 
         private Task? _shutdownTask;
 
@@ -179,6 +184,9 @@ namespace IceRpc
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
         }
 
+        Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+            (_invoker ??= CreatePipeline()).InvokeAsync(request, cancel);
+
         /// <summary>Releases all resources used by this communicator. This method can be called multiple times.
         /// </summary>
         /// <returns>A task that completes when the destruction is complete.</returns>
@@ -228,6 +236,19 @@ namespace IceRpc
         /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
         public ValueTask DisposeAsync() => new(ShutdownAsync());
 
+        public void Use(params Func<IInvoker, IInvoker>[] interceptor)
+        {
+            if (_invoker != null)
+            {
+                throw new InvalidOperationException(
+                    "interceptors must be installed before the first call to InvokeAsync");
+            }
+            _interceptorList = _interceptorList.AddRange(interceptor);
+        }
+
+        public void UseBeforeBind(params Func<IInvoker, IInvoker>[] interceptor) =>
+            throw new NotImplementedException();
+
         internal void DecRetryBufferSize(int size)
         {
             lock (_mutex)
@@ -248,6 +269,45 @@ namespace IceRpc
                 }
             }
             return false;
+        }
+
+        private IInvoker CreatePipeline()
+        {
+            IInvoker pipeline = new InlineInvoker(async (request, cancel) =>
+            {
+                // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
+                // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
+                // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
+
+                // TODO: this "request size" is now just the payload size. Should we rename the property to
+                // RetryRequestPayloadMaxSize?
+
+                int requestSize = request.PayloadSize;
+                bool releaseRequestAfterSent =
+                    requestSize > RetryRequestMaxSize || !IncRetryBufferSize(requestSize);
+
+                try
+                {
+                    return await request.Proxy.Impl.PerformInvokeAsync(request,
+                                                                       releaseRequestAfterSent,
+                                                                       cancel).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (!releaseRequestAfterSent)
+                    {
+                        DecRetryBufferSize(requestSize);
+                    }
+                    // TODO release the request memory if not already done after sent.
+                }
+            });
+
+            IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
+            foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
+            {
+                pipeline = interceptor(pipeline);
+            }
+            return pipeline;
         }
     }
 }

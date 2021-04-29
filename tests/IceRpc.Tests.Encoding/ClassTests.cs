@@ -49,7 +49,9 @@ namespace IceRpc.Tests.Encoding
         public async Task Class_FormatMetadata()
         {
             var prx1 = _sliced.Clone();
-            prx1.Use(next => new InlineInvoker(async (request, cancel) =>
+            await using var pool1 = new Communicator();
+            prx1.Invoker = pool1;
+            pool1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx1.Encoding);
@@ -83,7 +85,9 @@ namespace IceRpc.Tests.Encoding
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
             var prx2 = _compact.Clone();
-            prx2.Use(next => new InlineInvoker(async (request, cancel) =>
+            await using var pool2 = new Communicator();
+            prx2.Invoker = pool2;
+            pool2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx2.Encoding);
@@ -116,7 +120,9 @@ namespace IceRpc.Tests.Encoding
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
             var prx3 = _classformat.Clone();
-            prx3.Use(next => new InlineInvoker(async (request, cancel) =>
+            await using var pool3 = new Communicator();
+            prx3.Invoker = pool3;
+            pool3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
@@ -148,8 +154,9 @@ namespace IceRpc.Tests.Encoding
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            prx3 = _classformat.Clone(); // to clear the interceptor
-            prx3.Use(next => new InlineInvoker(async (request, cancel) =>
+            await using var pool4 = new Communicator();
+            prx3.Invoker = pool4;
+            pool4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);

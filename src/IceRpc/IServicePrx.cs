@@ -138,6 +138,7 @@ namespace IceRpc
 
         /// <summary>Returns the communicator that created this proxy.</summary>
         /// <returns>The communicator that created this proxy.</returns>
+        // TODO: remove
         public Communicator Communicator { get; }
 
         /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
@@ -159,6 +160,9 @@ namespace IceRpc
 
         /// <summary>The invocation timeout of this proxy.</summary>
         public TimeSpan InvocationTimeout { get; set; }
+
+        /// <summary>The invoker of this proxy.</summary>
+        public IInvoker Invoker { get; set; }
 
         /// <summary>Indicates whether or not using this proxy to invoke an operation that does not return anything
         /// waits for an empty response from the target Ice object.</summary>
@@ -267,9 +271,6 @@ namespace IceRpc
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
-
-        // Temporary: installs an interceptor on this proxy
-        public void Use(params Func<IInvoker, IInvoker>[] interceptor);
 
         /// <summary>Sends a request that returns a value and returns the result asynchronously.</summary>
         /// <typeparam name="T">The operation's return type.</typeparam>

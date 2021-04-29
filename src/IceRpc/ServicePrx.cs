@@ -28,13 +28,14 @@ namespace IceRpc
         public bool CacheConnection { get; set; }
 
         /// <inheritdoc/>
+        public Communicator Communicator => (Communicator)Invoker;
+
+        /// <inheritdoc/>
         public Connection? Connection
         {
             get => _connection;
             set => _connection = value;
         }
-
-        public Communicator Communicator { get; }
 
         /// <inheritdoc/>
         public IReadOnlyDictionary<string, string> Context
@@ -61,6 +62,9 @@ namespace IceRpc
             set => _invocationTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
         }
+
+        /// <inheritdoc/>
+        public IInvoker Invoker { get; set; }
 
         /// <inheritdoc/>
         public bool IsOneway { get; set; }
@@ -151,7 +155,6 @@ namespace IceRpc
 
         ServicePrx IServicePrx.Impl => this;
 
-        internal IInvoker Invoker => _invoker ??= CreatePipeline();
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
@@ -165,10 +168,6 @@ namespace IceRpc
         private Endpoint? _endpoint;
 
         private TimeSpan _invocationTimeout;
-
-        private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
-            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
-        private IInvoker? _invoker;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -228,11 +227,11 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Facet != other.Facet)
+            if (Invoker != other.Invoker)
             {
                 return false;
             }
-            if (!_interceptorList.SequenceEqual(other._interceptorList))
+            if (Facet != other.Facet)
             {
                 return false;
             }
@@ -282,6 +281,7 @@ namespace IceRpc
             var hash = new HashCode();
             hash.Add(Facet);
             hash.Add(_invocationTimeout);
+            hash.Add(Invoker);
             hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
@@ -387,14 +387,6 @@ namespace IceRpc
 
                 proxyData.IceWrite(ostr);
             }
-        }
-
-        public void Use(params Func<IInvoker, IInvoker>[] interceptor)
-        {
-            _interceptorList = _interceptorList.AddRange(interceptor);
-
-            // Clear pipeline
-            _invoker = null;
         }
 
         /// <summary>Converts the reference into a string. The format of this string depends on the protocol: for ice1,
@@ -693,10 +685,9 @@ namespace IceRpc
              new()
              {
                  CacheConnection = CacheConnection,
-                 Communicator = Communicator,
                  Context = _context,
-                 InterceptorList = _interceptorList,
                  InvocationTimeout = _invocationTimeout,
+                 Invoker = Invoker,
                  IsOneway = IsOneway,
                  LocationResolver = LocationResolver,
                  PreferExistingConnection = PreferExistingConnection
@@ -814,12 +805,11 @@ namespace IceRpc
             ProxyOptions options)
         {
             CacheConnection = options.CacheConnection;
-            Communicator = options.Communicator!;
             _connection = connection;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
-            _interceptorList = options.InterceptorList.ToImmutableList();
             _invocationTimeout = options.InvocationTimeout;
+            Invoker = options.Invoker!;
             IsOneway = options.IsOneway;
             LocationResolver = options.LocationResolver;
             PreferExistingConnection = options.PreferExistingConnection;
@@ -902,44 +892,7 @@ namespace IceRpc
             return filteredEndpoints;
         }
 
-        private IInvoker CreatePipeline()
-        {
-            IInvoker pipeline = new InlineInvoker(async (request, cancel) =>
-            {
-                // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
-                // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
-                // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
-
-                // TODO: this "request size" is now just the payload size. Should we rename the property to
-                // RetryRequestPayloadMaxSize?
-
-                int requestSize = request.PayloadSize;
-                bool releaseRequestAfterSent =
-                    requestSize > Communicator.RetryRequestMaxSize || !Communicator.IncRetryBufferSize(requestSize);
-
-                try
-                {
-                    return await PerformInvokeAsync(request, releaseRequestAfterSent, cancel).ConfigureAwait(false);
-                }
-                finally
-                {
-                    if (!releaseRequestAfterSent)
-                    {
-                        Communicator.DecRetryBufferSize(requestSize);
-                    }
-                    // TODO release the request memory if not already done after sent.
-                }
-            });
-
-            IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
-            foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
-            {
-                pipeline = interceptor(pipeline);
-            }
-            return pipeline;
-        }
-
-        private async Task<IncomingResponse> PerformInvokeAsync(
+        internal async Task<IncomingResponse> PerformInvokeAsync(
             OutgoingRequest request,
             bool releaseRequestAfterSent,
             CancellationToken cancel)
