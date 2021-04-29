@@ -200,6 +200,21 @@ namespace IceRpc.Tests.ClientServer
                 }
             }
 
+            public async Task WaitForCounterEventsAsync()
+            {
+                for (int i = 0; i < ExpectedEventCounters.Count; ++i)
+                {
+                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
+                    {
+                        break;
+                    }
+                }
+                lock (_mutex)
+                {
+                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                }
+            }
+
             protected override void OnEventSourceCreated(EventSource eventSource)
             {
                 // OnEventSourceCreated can be called as soon as the base constructor runs and before
@@ -212,24 +227,6 @@ namespace IceRpc.Tests.ClientServer
                 if (_sourceName == eventSource.Name)
                 {
                     EnableEvents(eventSource);
-                }
-            }
-
-            private void EnableEvents(EventSource eventSource)
-            {
-                lock (_mutex)
-                {
-                    if (EventSource == null)
-                    {
-                        EventSource = eventSource;
-                        EnableEvents(eventSource,
-                                    EventLevel.LogAlways,
-                                    EventKeywords.All,
-                                    new Dictionary<string, string?>
-                                    {
-                                        { "EventCounterIntervalSec", "0.001" }
-                                    });
-                    }
                 }
             }
 
@@ -272,18 +269,21 @@ namespace IceRpc.Tests.ClientServer
                 }
             }
 
-            public async Task WaitForCounterEventsAsync()
+            private void EnableEvents(EventSource eventSource)
             {
-                for (int i = 0; i < ExpectedEventCounters.Count; ++i)
-                {
-                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
-                    {
-                        break;
-                    }
-                }
                 lock (_mutex)
                 {
-                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                    if (EventSource == null)
+                    {
+                        EventSource = eventSource;
+                        EnableEvents(eventSource,
+                                     EventLevel.LogAlways,
+                                     EventKeywords.All,
+                                     new Dictionary<string, string?>
+                                     {
+                                        { "EventCounterIntervalSec", "0.001" }
+                                     });
+                    }
                 }
             }
         }
