@@ -20,7 +20,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.Api
 
             var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -403,7 +403,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };

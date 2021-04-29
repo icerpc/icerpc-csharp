@@ -141,7 +141,7 @@ namespace IceRpc.Tests.Internal
 
                 _server = new Server
                 {
-                    Communicator = _communicator,
+                    Invoker = _communicator,
                     ConnectionOptions = serverConnectionOptions ?? new(),
                     Dispatcher = dispatcher,
                 };

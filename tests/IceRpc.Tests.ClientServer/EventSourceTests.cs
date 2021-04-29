@@ -20,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter1(),
                 Endpoint = "ice+coloc://event_source"
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter2(),
                 Endpoint = "ice+coloc://event_source"
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 DispatchEventSource = dispatchEventSource,
                 Dispatcher = new Greeter3(),
                 Endpoint = "ice+coloc://event_source"

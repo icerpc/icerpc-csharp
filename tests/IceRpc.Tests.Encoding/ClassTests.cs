@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Encoding
             _server = new Server()
             {
                 Dispatcher = router,
-                Communicator = _communicator,
+                Invoker = _communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
@@ -204,7 +204,7 @@ namespace IceRpc.Tests.Encoding
             };
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 ConnectionOptions = new IncomingConnectionOptions()
                 {
                     ClassGraphMaxDepth = serverClassGraphMaxDepth

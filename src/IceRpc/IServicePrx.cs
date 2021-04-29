@@ -210,23 +210,23 @@ namespace IceRpc
 
         /// <summary>Creates a proxy from its string representation.</summary>
         /// <param name="s">The string representation of the proxy.</param>
-        /// <param name="communicator">The communicator for the new proxy.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IServicePrx Parse(string s, Communicator communicator) => Factory.Parse(s, communicator);
+        public static IServicePrx Parse(string s, IInvoker invoker) => Factory.Parse(s, invoker);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
-        /// <param name="communicator">The communicator for the new proxy.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <param name="proxy">When this method returns it contains the new proxy, if the conversion succeeded or null
         /// if the conversion failed.</param>
         /// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, Communicator communicator, out IServicePrx? proxy)
+        public static bool TryParse(string s, IInvoker invoker, out IServicePrx? proxy)
         {
             try
             {
-                proxy = Factory.Parse(s, communicator);
+                proxy = Factory.Parse(s, invoker);
             }
             catch
             {

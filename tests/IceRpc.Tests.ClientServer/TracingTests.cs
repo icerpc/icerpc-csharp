@@ -19,7 +19,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = new GreeterService()
             };
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server1 = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router
             };
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.ClientServer
             // Now configure the server with an ActivitySource to trigger the creation of the Dispatch activity.
             await using var server2 = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router,
                 ActivitySource = activitySource
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.ClientServer
             using var activitySource = new ActivitySource("TracingTestActivitySource");
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
                 Dispatcher = router,
                 ActivitySource = activitySource

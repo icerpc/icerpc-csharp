@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map(path, new GreeterTestService());
             _server = new Server
             {
-                Communicator = _communicator,
+                Invoker = _communicator,
                 HasColocEndpoint = false,
                 Dispatcher = router,
                 Endpoint = "tcp -h 127.0.0.1 -p 0",
