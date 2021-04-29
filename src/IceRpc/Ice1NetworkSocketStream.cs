@@ -11,7 +11,7 @@ namespace IceRpc
     /// Ice1 protocol.</summary>
     internal class Ice1NetworkSocketStream : SignaledSocketStream<(Ice1FrameType, ArraySegment<byte>)>
     {
-        protected override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private bool _receivedEndOfStream;
         private readonly Ice1NetworkSocket _socket;
@@ -36,10 +36,7 @@ namespace IceRpc
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
         internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, long streamId)
-            : base(socket, streamId)
-        {
-            _socket = socket;
-        }
+            : base(socket, streamId) => _socket = socket;
 
         internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
