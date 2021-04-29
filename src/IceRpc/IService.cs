@@ -211,7 +211,7 @@ namespace IceRpc
                 {
                     // We log this exception, since otherwise it would be lost.
                     // Socket.Logger.LogDispatchException(request, ex);
-                    return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
+                    return OutgoingResponse.WithVoidReturnValue(dispatch);
                 }
                 else
                 {
@@ -227,7 +227,7 @@ namespace IceRpc
                         // We log the "source" exception as UnhandledException may not include all details.
                         // Socket.Logger.LogDispatchException(request, ex);
                     }
-                    return new OutgoingResponse(new Dispatch(request), actualEx);
+                    return new OutgoingResponse(dispatch, actualEx);
                 }
             }
         }

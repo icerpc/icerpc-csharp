@@ -71,8 +71,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            IInvocationInterceptorTestServicePrx prx =
-                server.CreateProxy<IInvocationInterceptorTestServicePrx>("/test");
+            IFeatureServicePrx prx = server.CreateProxy<IFeatureServicePrx>("/test");
 
             Multiplier multiplier = 10;
             // This interceptor stores the multiplier into the binary context to be read by the middleware.
@@ -82,18 +81,21 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            int ret = await prx.OpIntAsync(2);
+            int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);
+            Assert.That(responseFeature, Is.Not.Null);
+            Assert.That(responseFeature!, Is.True);
+
+            responseFeature = null;
+            Assert.ThrowsAsync<UnhandledException>(async () => await prx.FailAsync());
             Assert.That(responseFeature, Is.Not.Null);
             Assert.That(responseFeature!, Is.True);
         }
     }
 
-    public class FeatureService : IInvocationInterceptorTestService
+    public class FeatureService : IFeatureService
     {
-        public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
-               throw new NotImplementedException();
-        public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {
             if (dispatch.RequestFeatures.Get<Multiplier>() is Multiplier multiplier)
             {
@@ -102,5 +104,12 @@ namespace IceRpc.Tests.Api
             }
             return new(value);
         }
+
+        public ValueTask FailAsync(Dispatch dispatch, CancellationToken cancel)
+        {
+            dispatch.ResponseFeatures.Set(true);
+            throw new NotImplementedException();
+        }
+
     }
 }

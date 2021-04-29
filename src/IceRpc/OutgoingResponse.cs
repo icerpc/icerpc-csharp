@@ -430,9 +430,6 @@ namespace IceRpc
             : base(protocol,
                    compressionLevel,
                    compressionMinSize,
-                   features)
-        {
-            PayloadEncoding = encoding;
-        }
+                   features) => PayloadEncoding = encoding;
     }
 }

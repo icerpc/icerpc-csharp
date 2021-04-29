@@ -33,4 +33,10 @@ module IceRpc::Tests::Api
     {
         void callback(ProxyTest callback);
     }
+
+    interface FeatureService
+    {
+        int compute(int value);
+        void fail();
+    }
 }
