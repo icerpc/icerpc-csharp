@@ -1,0 +1,109 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Multiplier = System.Int32;
+
+namespace IceRpc.Tests.Api
+{
+    public class FeatureTests
+    {
+        [Test]
+        public void FeatureCollection_GetSet()
+        {
+            var features = new FeatureCollection();
+
+            Assert.That(features.Get<string>(), Is.Null);
+
+            features.Set("foo");
+            string? s = features.Get<string>();
+            Assert.That(s, Is.Not.Null);
+            Assert.AreEqual("foo", s!);
+        }
+
+        [Test]
+        public void FeatureCollection_Index()
+        {
+            var features = new FeatureCollection();
+
+            Assert.That(features[typeof(int)], Is.Null);
+
+            features[typeof(int)] = 42;
+            Assert.AreEqual(42, (int)features[typeof(int)]!);
+        }
+
+        [Test]
+        public async Task Dispatch_Features()
+        {
+            var router = new Router();
+
+            bool? responseFeature = null;
+
+            // This middleare reads the multiplier from the binary context and sets a request feature. It also
+            // reads an expected response feature.
+            router.Use(next => new InlineDispatcher(
+                async (request, cancel) =>
+                {
+                    if (request.BinaryContext.TryGetValue(1, out ReadOnlyMemory<byte> value))
+                    {
+                        Multiplier multiplier = value.Read(istr => InputStream.IceReaderIntoInt(istr));
+                        request.Features.Set(multiplier);
+                    }
+                    OutgoingResponse response = await next.DispatchAsync(request, cancel);
+
+                    responseFeature = response.Features.Get<bool>();
+
+                    return response;
+                }));
+            router.Mount("/test", new FeatureService());
+
+            await using var communicator = new Communicator();
+            await using var server = new Server
+            {
+                Communicator = communicator,
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                Dispatcher = router
+            };
+
+            server.Listen();
+
+            IInvocationInterceptorTestServicePrx prx =
+                server.CreateProxy<IInvocationInterceptorTestServicePrx>("/test");
+
+            Multiplier multiplier = 10;
+            // This interceptor stores the multiplier into the binary context to be read by the middleware.
+            prx.InvocationInterceptors = new InvocationInterceptor[]
+                {
+                    async (target, request, next, cancel) =>
+                        {
+                            request.BinaryContextOverride.Add(1, ostr => ostr.WriteInt(multiplier));
+                            return await next(target, request, cancel);
+                        }
+                };
+
+            int ret = await prx.OpIntAsync(2);
+            Assert.AreEqual(2 * multiplier, ret);
+            Assert.That(responseFeature, Is.Not.Null);
+            Assert.That(responseFeature!, Is.True);
+        }
+    }
+
+    public class FeatureService : IInvocationInterceptorTestService
+    {
+        public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
+               throw new NotImplementedException();
+        public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel)
+        {
+            if (dispatch.RequestFeatures.Get<Multiplier>() is Multiplier multiplier)
+            {
+                dispatch.ResponseFeatures.Set(true);
+                return new(value * multiplier);
+            }
+            return new(value);
+        }
+    }
+}

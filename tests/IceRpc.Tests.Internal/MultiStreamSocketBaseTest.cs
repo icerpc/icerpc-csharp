@@ -65,6 +65,6 @@ namespace IceRpc.Tests.Internal
 
         static protected OutgoingResponse GetResponseFrame(IncomingRequest request) =>
             // TODO: Fix once OutgoingRespongFrame construction is simplified to not depend on Current
-            new(request, new UnhandledException(new InvalidOperationException()));
+            new(new Dispatch(request), new UnhandledException(new InvalidOperationException()));
     }
 }

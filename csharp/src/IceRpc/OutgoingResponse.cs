@@ -30,7 +30,7 @@ namespace IceRpc
         /// <returns>A new OutgoingResponse.</returns>
         public static OutgoingResponse WithVoidReturnValue(Dispatch dispatch)
         {
-            var response = new OutgoingResponse(dispatch.Protocol, dispatch.Encoding);
+            var response = new OutgoingResponse(dispatch.Protocol, dispatch.Encoding, dispatch.ResponseFeatures);
             response.Payload.Add(dispatch.Protocol.GetVoidReturnPayload(dispatch.Encoding));
             return response;
         }
@@ -153,17 +153,17 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an outgoing response frame from the given incoming response frame. The new response will
-        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.</summary>
-        /// <param name="request">The request for which this constructor creates a response.</param>
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response frame.</param>
         /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming response frame's
         /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
         /// except for entries previously added by dispatch interceptors.</param>
         public OutgoingResponse(
-            IncomingRequest request,
+            Dispatch dispatch,
             IncomingResponse response,
             bool forwardBinaryContext = true)
-            : this(request.Protocol, response.PayloadEncoding)
+            : this(dispatch.Protocol, response.PayloadEncoding, dispatch.ResponseFeatures)
         {
             if (Protocol == response.Protocol)
             {
@@ -271,10 +271,11 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a response frame that represents a failure and contains an exception.</summary>
-        /// <param name="request">The incoming request for which this constructor creates a response.</param>
+        /// <param name="dispatch">The dispatch for the incoming request for which this constructor
+        ///  creates a response.</param>
         /// <param name="exception">The exception to store into the frame's payload.</param>
-        public OutgoingResponse(IncomingRequest request, RemoteException exception)
-            : this(request.Protocol, request.PayloadEncoding)
+        public OutgoingResponse(Dispatch dispatch, RemoteException exception)
+            : this(dispatch.Protocol, dispatch.Encoding, dispatch.ResponseFeatures)
         {
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (PayloadEncoding == Encoding.V11)
@@ -316,23 +317,23 @@ namespace IceRpc
                 ostr.Write(replyStatus);
             }
 
-            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            exception.Origin = new RemoteExceptionOrigin(dispatch.Path, dispatch.Operation);
             if (PayloadEncoding == Encoding.V11)
             {
                 switch (replyStatus)
                 {
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
-                        if (request.Protocol == Protocol.Ice1)
+                        if (dispatch.Protocol == Protocol.Ice1)
                         {
-                            request.Identity.IceWrite(ostr);
+                            dispatch.IncomingRequest.Identity.IceWrite(ostr);
                         }
                         else
                         {
                             var identity = Identity.Empty;
                             try
                             {
-                                identity = Identity.FromPath(request.Path);
+                                identity = Identity.FromPath(dispatch.Path);
                             }
                             catch (FormatException)
                             {
@@ -340,8 +341,8 @@ namespace IceRpc
                             }
                             identity.IceWrite(ostr);
                         }
-                        ostr.WriteIce1Facet(request.Facet);
-                        ostr.WriteString(request.Operation);
+                        ostr.WriteIce1Facet(dispatch.IncomingRequest.Facet);
+                        ostr.WriteString(dispatch.Operation);
                         break;
 
                     case ReplyStatus.UnknownLocalException:
@@ -404,6 +405,7 @@ namespace IceRpc
         {
             var response = new OutgoingResponse(dispatch.Protocol,
                                                 dispatch.Encoding,
+                                                dispatch.ResponseFeatures,
                                                 dispatch.Connection.CompressionLevel,
                                                 dispatch.Connection.CompressionMinSize);
 
@@ -422,11 +424,15 @@ namespace IceRpc
         private OutgoingResponse(
             Protocol protocol,
             Encoding encoding,
+            IFeatureCollection features,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
             int compressionMinSize = 100)
             : base(protocol,
                    compressionLevel,
-                   compressionMinSize) =>
+                   compressionMinSize,
+                   features)
+        {
             PayloadEncoding = encoding;
+        }
     }
 }

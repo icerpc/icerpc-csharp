@@ -44,6 +44,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The features of this response.</summary>
+        public IFeatureCollection Features { get; set; }
+
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
 
@@ -213,12 +216,14 @@ namespace IceRpc
         private protected OutgoingFrame(
             Protocol protocol,
             CompressionLevel compressionLevel,
-            int compressionMinSize)
+            int compressionMinSize,
+            IFeatureCollection features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
             _compressionLevel = compressionLevel;
             _compressionMinSize = compressionMinSize;
+            Features = features;
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)
