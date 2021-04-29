@@ -232,13 +232,21 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
-            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
-            Assert.AreEqual(prx, prx2); // round-trip works
 
             if (path != null)
             {
                 Assert.AreEqual(path, prx.Path);
             }
+
+            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
+            Assert.AreEqual(prx, prx2); // round-trip works
+
+            // Also try with non-default ToStringMode
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.ASCII), Communicator);
+            Assert.AreEqual(prx, prx2);
+
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.Compat), Communicator);
+            Assert.AreEqual(prx, prx2);
         }
 
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>

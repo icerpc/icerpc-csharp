@@ -136,11 +136,6 @@ namespace IceRpc
         /// <value>True when the proxy caches its connection; otherwise, false.</value>
         public bool CacheConnection { get; set; }
 
-        /// <summary>Returns the communicator that created this proxy.</summary>
-        /// <returns>The communicator that created this proxy.</returns>
-        // TODO: remove
-        public Communicator Communicator { get; }
-
         /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
         /// endpoints (if any); in particular, set does check the new connection is compatible with these endpoints.
         /// </summary>

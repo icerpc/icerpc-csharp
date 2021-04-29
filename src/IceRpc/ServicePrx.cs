@@ -28,9 +28,6 @@ namespace IceRpc
         public bool CacheConnection { get; set; }
 
         /// <inheritdoc/>
-        public Communicator Communicator => (Communicator)Invoker;
-
-        /// <inheritdoc/>
         public Connection? Connection
         {
             get => _connection;
@@ -389,105 +386,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Converts the reference into a string. The format of this string depends on the protocol: for ice1,
-        /// this method uses the ice1 format, which can be customized by Communicator.ToStringMode. For ice2 and
-        /// greater, this method uses the URI format.</summary>
+        /// <inherit-doc/>
         public override string ToString()
         {
             if (Protocol == Protocol.Ice1)
             {
-                var sb = new StringBuilder();
-
-                // If the encoded identity string contains characters which the reference parser uses as separators,
-                // then we enclose the identity string in quotes.
-                string id = Identity.ToString(Communicator.ToStringMode);
-                if (StringUtil.FindFirstOf(id, " :@") != -1)
-                {
-                    sb.Append('"');
-                    sb.Append(id);
-                    sb.Append('"');
-                }
-                else
-                {
-                    sb.Append(id);
-                }
-
-                if (Facet.Length > 0)
-                {
-                    // If the encoded facet string contains characters which the reference parser uses as separators,
-                    // then we enclose the facet string in quotes.
-                    sb.Append(" -f ");
-                    string fs = StringUtil.EscapeString(Facet, Communicator.ToStringMode);
-                    if (StringUtil.FindFirstOf(fs, " :@") != -1)
-                    {
-                        sb.Append('"');
-                        sb.Append(fs);
-                        sb.Append('"');
-                    }
-                    else
-                    {
-                        sb.Append(fs);
-                    }
-                }
-
-                if (IsOneway)
-                {
-                    if (_endpoint?.IsDatagram ?? false)
-                    {
-                        sb.Append(" -d");
-                    }
-                    else
-                    {
-                        sb.Append(" -o");
-                    }
-                }
-                else
-                {
-                    sb.Append(" -t");
-                }
-
-                // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
-                // same encoding with StringToProxy. (Only needed for backwards compatibility).
-                sb.Append(" -e ");
-                sb.Append(Encoding.ToString());
-
-                if (IsIndirect)
-                {
-                    if (!IsWellKnown)
-                    {
-                        string adapterId = _endpoint!.Host;
-
-                        sb.Append(" @ ");
-
-                        // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
-                        // we enclose the adapter ID string in double quotes.
-                        adapterId = StringUtil.EscapeString(adapterId, Communicator.ToStringMode);
-                        if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
-                        {
-                            sb.Append('"');
-                            sb.Append(adapterId);
-                            sb.Append('"');
-                        }
-                        else
-                        {
-                            sb.Append(adapterId);
-                        }
-                    }
-                }
-                else
-                {
-                    if (_endpoint != null)
-                    {
-                        sb.Append(':');
-                        sb.Append(_endpoint);
-                    }
-                    foreach (Endpoint e in _altEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(e);
-                    }
-                }
-                return sb.ToString();
+                return Interop.Proxy.ToString(this, default);
             }
             else // >= ice2, use URI format
             {
@@ -641,10 +545,12 @@ namespace IceRpc
         {
             Activity? activity = null;
 
+            var communicator = (Communicator)request.Proxy.Invoker;
+
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors. Activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (request.Proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
                 activity = new Activity("IceRpc.Invocation");
                 activity.AddTag("Operation", request.Operation);
@@ -701,9 +607,12 @@ namespace IceRpc
             {
                 return connection;
             }
+
+            var communicator = (Communicator)Invoker;
+
             using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
                 cancel,
-                Communicator.CancellationToken);
+                communicator.CancellationToken);
             cancel = linkedCancellationSource.Token;
 
             List<Endpoint>? endpoints = null;
@@ -711,16 +620,18 @@ namespace IceRpc
             if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                endpoints =
-                    await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints);
+                endpoints = await communicator.ComputeEndpointsAsync(this,
+                                                                     refreshCache: false,
+                                                                     IsOneway,
+                                                                     cancel).ConfigureAwait(false);
+                connection = communicator.GetConnection(endpoints);
                 if (CacheConnection)
                 {
                     _connection = connection;
                 }
             }
 
-            OutgoingConnectionOptions options = Communicator.ConnectionOptions.Clone();
+            OutgoingConnectionOptions options = communicator.ConnectionOptions.Clone();
 
             bool refreshCache = false;
 
@@ -728,7 +639,10 @@ namespace IceRpc
             {
                 if (endpoints == null)
                 {
-                    endpoints = await ComputeEndpointsAsync(refreshCache, IsOneway, cancel).ConfigureAwait(false);
+                    endpoints = await communicator.ComputeEndpointsAsync(this,
+                                                                         refreshCache,
+                                                                         IsOneway,
+                                                                         cancel).ConfigureAwait(false);
                 }
 
                 Endpoint last = endpoints[^1];
@@ -736,7 +650,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        connection = await Communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
+                        connection = await communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
                         if (CacheConnection)
                         {
                             _connection = connection;
@@ -820,73 +734,6 @@ namespace IceRpc
             {
                 ParsedAltEndpoints = altEndpoints.ToImmutableList();
             }
-        }
-
-        internal async ValueTask<List<Endpoint>> ComputeEndpointsAsync(
-            bool refreshCache,
-            bool oneway,
-            CancellationToken cancel)
-        {
-            if (_endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
-            {
-                return new List<Endpoint>() { colocEndpoint };
-            }
-
-            foreach (Endpoint endpoint in _altEndpoints)
-            {
-                if (endpoint.ToColocEndpoint() is Endpoint colocAltEndpoint)
-                {
-                    return new List<Endpoint>() { colocAltEndpoint };
-                }
-            }
-
-            IEnumerable<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
-
-            // Get the proxy's endpoint or query the location resolver to get endpoints.
-
-            if (IsIndirect)
-            {
-                if (LocationResolver is ILocationResolver locationResolver)
-                {
-                    endpoints = await locationResolver.ResolveAsync(_endpoint!,
-                                                                    refreshCache,
-                                                                    cancel).ConfigureAwait(false);
-                }
-                // else endpoints remains empty.
-            }
-            else if (_endpoint != null)
-            {
-                endpoints = ImmutableList.Create(_endpoint).AddRange(_altEndpoints);
-            }
-
-            // Apply overrides and filter endpoints
-            var filteredEndpoints = endpoints.Where(endpoint =>
-            {
-                // Filter out opaque and universal endpoints
-                if (endpoint is OpaqueEndpoint || endpoint is UniversalEndpoint)
-                {
-                    return false;
-                }
-
-                // Filter out datagram endpoints when oneway is false.
-                if (endpoint.IsDatagram)
-                {
-                    return oneway;
-                }
-
-                return true;
-            }).ToList();
-
-            if (filteredEndpoints.Count == 0)
-            {
-                throw new NoEndpointException(ToString());
-            }
-
-            if (filteredEndpoints.Count > 1)
-            {
-                filteredEndpoints = Communicator.OrderEndpointsByTransportFailures(filteredEndpoints);
-            }
-            return filteredEndpoints;
         }
     }
 }

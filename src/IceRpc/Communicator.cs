@@ -246,9 +246,77 @@ namespace IceRpc
             _interceptorList = _interceptorList.AddRange(interceptor);
         }
 
-        // TODO: with the current logic, all interceptors actually execute before bind, where bind is needed or not.
+        // TODO: with the current logic, all interceptors actually execute before bind, whether bind is needed or not.
         public void UseBeforeBind(params Func<IInvoker, IInvoker>[] interceptor) =>
             throw new NotImplementedException();
+
+        internal async ValueTask<List<Endpoint>> ComputeEndpointsAsync(
+            ServicePrx proxy,
+            bool refreshCache,
+            bool oneway,
+            CancellationToken cancel)
+        {
+            if (proxy.ParsedEndpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
+            {
+                return new List<Endpoint>() { colocEndpoint };
+            }
+
+            foreach (Endpoint endpoint in proxy.ParsedAltEndpoints)
+            {
+                if (endpoint.ToColocEndpoint() is Endpoint colocAltEndpoint)
+                {
+                    return new List<Endpoint>() { colocAltEndpoint };
+                }
+            }
+
+            IEnumerable<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
+
+            // Get the proxy's endpoint or query the location resolver to get endpoints.
+
+            if (proxy.IsIndirect)
+            {
+                if (proxy.LocationResolver is ILocationResolver locationResolver)
+                {
+                    endpoints = await locationResolver.ResolveAsync(proxy.ParsedEndpoint!,
+                                                                    refreshCache,
+                                                                    cancel).ConfigureAwait(false);
+                }
+                // else endpoints remains empty.
+            }
+            else if (proxy.ParsedEndpoint != null)
+            {
+                endpoints = ImmutableList.Create(proxy.ParsedEndpoint).AddRange(proxy.ParsedAltEndpoints);
+            }
+
+            // Apply overrides and filter endpoints
+            var filteredEndpoints = endpoints.Where(endpoint =>
+            {
+                // Filter out opaque and universal endpoints
+                if (endpoint is OpaqueEndpoint || endpoint is UniversalEndpoint)
+                {
+                    return false;
+                }
+
+                // Filter out datagram endpoints when oneway is false.
+                if (endpoint.IsDatagram)
+                {
+                    return oneway;
+                }
+
+                return true;
+            }).ToList();
+
+            if (filteredEndpoints.Count == 0)
+            {
+                throw new NoEndpointException(proxy.ToString());
+            }
+
+            if (filteredEndpoints.Count > 1)
+            {
+                filteredEndpoints = OrderEndpointsByTransportFailures(filteredEndpoints);
+            }
+            return filteredEndpoints;
+        }
 
         internal void DecRetryBufferSize(int size)
         {
@@ -330,7 +398,8 @@ namespace IceRpc
             if ((connection == null || (proxy.ParsedEndpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                endpoints = await proxy.ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
+                endpoints =
+                    await ComputeEndpointsAsync(proxy, refreshCache: false, oneway, cancel).ConfigureAwait(false);
                 connection = GetConnection(endpoints);
                 if (proxy.CacheConnection)
                 {
@@ -369,7 +438,8 @@ namespace IceRpc
 
                             // ComputeEndpointsAsync throws if it can't figure out the endpoints
                             // We also request fresh endpoints when retrying, but not for the first attempt.
-                            endpoints = await proxy.ComputeEndpointsAsync(refreshCache: tryAgain,
+                            endpoints = await ComputeEndpointsAsync(proxy,
+                                                                    refreshCache: tryAgain,
                                                                     oneway,
                                                                     cancel).ConfigureAwait(false);
                             if (excludedEndpoints != null)
