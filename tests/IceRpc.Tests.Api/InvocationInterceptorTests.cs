@@ -27,8 +27,7 @@ namespace IceRpc.Tests.Api
         public void InvocationInterceptor_Throws_ArgumentException()
         {
             var prx = Prx.Clone();
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) => throw new ArgumentException());
+            prx.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
@@ -38,12 +37,12 @@ namespace IceRpc.Tests.Api
         {
             var prx = Prx.Clone();
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    async (target, request, next, cancel) =>
-                        {
-                            await Task.Delay(100, default);
-                            return await next(target, request, cancel);
-                        });
+            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                await Task.Delay(100, default);
+                return await next.InvokeAsync(request, cancel);
+            }));
+
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
         }
 
@@ -53,23 +52,21 @@ namespace IceRpc.Tests.Api
         {
             var interceptorCalls = new List<string>();
             var prx = Prx.Clone();
-            prx.InvocationInterceptors = new InvocationInterceptor[]
+            prx.Use(
+                next => new InlineInvoker(async (request, cancel) =>
                 {
-                    async (target, request, next, cancel) =>
-                        {
-                            interceptorCalls.Add("ProxyInvocationInterceptors -> 0");
-                            var result = await next(target, request, cancel);
-                            interceptorCalls.Add("ProxyInvocationInterceptors <- 0");
-                            return result;
-                        },
-                    async (target, request, next, cancel) =>
-                        {
-                            interceptorCalls.Add("ProxyInvocationInterceptors -> 1");
-                            var result = await next(target, request, cancel);
-                            interceptorCalls.Add("ProxyInvocationInterceptors <- 1");
-                            return result;
-                        }
-                };
+                    interceptorCalls.Add("ProxyInvocationInterceptors -> 0");
+                    var result = await next.InvokeAsync(request, cancel);
+                    interceptorCalls.Add("ProxyInvocationInterceptors <- 0");
+                    return result;
+                }),
+                next => new InlineInvoker(async (request, cancel) =>
+                {
+                    interceptorCalls.Add("ProxyInvocationInterceptors -> 1");
+                    var result = await next.InvokeAsync(request, cancel);
+                    interceptorCalls.Add("ProxyInvocationInterceptors <- 1");
+                    return result;
+                }));
 
             await prx.IcePingAsync();
 
@@ -87,17 +84,14 @@ namespace IceRpc.Tests.Api
         {
             IncomingResponse? response = null;
             var prx = Prx.Clone();
-            prx.InvocationInterceptors = new InvocationInterceptor[]
+            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                if (response == null)
                 {
-                    async (target, request, next, cancel) =>
-                        {
-                            if (response == null)
-                            {
-                                response = await next(target, request, cancel);
-                            }
-                            return response;
-                        },
-                };
+                    response = await next.InvokeAsync(request, cancel);
+                }
+                return response;
+            }));
 
             int r1 = await prx.OpIntAsync(p1);
             int r2 = await prx.OpIntAsync(p2);
@@ -116,14 +110,12 @@ namespace IceRpc.Tests.Api
                     { "foo", "foo" }
                 };
 
-            prx.InvocationInterceptors = new InvocationInterceptor[]
-                {
-                    async (target, request, next, cancel) =>
-                        {
-                            request.WritableContext["foo"] = "bar";
-                            return await next(target, request, cancel);
-                        },
-                };
+            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                request.WritableContext["foo"] = "bar";
+                return await next.InvokeAsync(request, cancel);
+            }));
+
             var ctx = await prx.OpContextAsync();
             Assert.AreEqual("bar", ctx["foo"]);
             Assert.AreEqual(1, ctx.Count);

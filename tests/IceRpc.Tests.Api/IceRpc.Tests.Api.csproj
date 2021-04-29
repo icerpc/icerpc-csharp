@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
     <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
+    <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
     <Compile Update="generated\SliceDefinitions.cs">
       <SliceCompileSource>SliceDefinitions.ice</SliceCompileSource>
     </Compile>
@@ -22,15 +23,15 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1" />
-    <PackageReference Include="NUnit.Analyzers" Version="3.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
+    <PackageReference Include="NUnit.Analyzers" Version="3.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
     <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
-    <PackageReference Include="NUnit" Version="3.13.1" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\csharp\src\IceRpc\ice.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
   </ItemGroup>
 
   <ItemGroup>

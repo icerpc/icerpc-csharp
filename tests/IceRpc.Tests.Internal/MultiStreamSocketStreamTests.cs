@@ -35,10 +35,7 @@ namespace IceRpc.Tests.Internal
             var request = OutgoingRequest.WithArgs(
                 Proxy,
                 "op",
-                idempotent: false,
-                compress: false,
-                format: default,
-                null,
+                invocation: null,
                 new byte[size],
                 (OutputStream ostr, in ReadOnlyMemory<byte> value) => ostr.WriteSequence(value.Span));
 
@@ -77,10 +74,7 @@ namespace IceRpc.Tests.Internal
                 var request = OutgoingRequest.WithArgs(
                     Proxy,
                     "op",
-                    idempotent: false,
-                    compress: false,
-                    format: default,
-                    null,
+                    invocation: null,
                     new byte[256 * 1024],
                     (OutputStream ostr, in ReadOnlyMemory<byte> value) => ostr.WriteSequence(value.Span));
 

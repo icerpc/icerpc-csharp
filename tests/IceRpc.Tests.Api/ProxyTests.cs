@@ -59,12 +59,11 @@ namespace IceRpc.Tests.Api
                 Context = new() { ["foo"] = "bar" }
             };
 
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-               async (target, request, next, cancel) =>
-               {
-                   Assert.AreEqual(request.Context, invocation.Context);
-                   return await next(target, request, cancel);
-               });
+            prx.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                Assert.AreEqual(request.Context, invocation.Context);
+                return next.InvokeAsync(request, cancel);
+            }));
 
             await prx.IcePingAsync(invocation);
             await prx.IceIdAsync(invocation);
@@ -128,12 +127,6 @@ namespace IceRpc.Tests.Api
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
-
-            var interceptors = ImmutableList.Create<InvocationInterceptor>(
-                (target, request, next, cancel) => throw new ArgumentException());
-
-            prx.InvocationInterceptors = interceptors;
-            Assert.AreEqual(interceptors, prx.InvocationInterceptors);
 
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromMilliseconds(10));
@@ -415,8 +408,8 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
-            OutgoingRequest request = IGreeterServicePrx.Request.SayHello(prx, context: null, cancel: default);
-            IncomingResponse response = await prx.InvokeAsync(request);
+            OutgoingRequest request = IGreeterServicePrx.Request.SayHello(prx, invocation: null, cancel: default);
+            IncomingResponse response = await ServicePrx.InvokeAsync(request, request.CancellationToken);
             Assert.AreEqual(ResultType.Success, response.ResultType);
         }
 

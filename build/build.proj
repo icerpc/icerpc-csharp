@@ -4,11 +4,23 @@
         <PackageVersion>4.0.0-alpha.0</PackageVersion>
     </PropertyGroup>
 
+       <!-- Targets required to build Slice compilers -->
     <ItemGroup>
-        <DistSolution Include="$(MSBuildThisFileDirectory)../IceRpc.sln"/>
+        <SliceCompilers Include="slice2cs"/>
+        <DistSolution Include="$(MSBuildThisFileDirectory)../IceRpc.sln">
+            <Properties>Configuration=$(Configuration);Platform=Any CPU;CppPlatform=$(CppPlatform)</Properties>
+        </DistSolution>
         <ExampleSolution Include="$(MSBuildThisFileDirectory)../examples/**/*.sln" />
         <PackageName Include="zeroc.ice.net" />
     </ItemGroup>
+
+
+    <Target Name="Build">
+
+        <MSBuild Projects="@(DistSolution)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)"/>
+    </Target>
 
     <Target Name="InstallLocalPackages">
         <Exec Command="dotnet nuget locals --list global-packages" ConsoleToMSBuild="true" EchoOff="yes">
@@ -53,5 +65,9 @@
             Properties="PostBuildEvent="
             Targets="Restore"
             BuildInParallel="true" />
+    </Target>
+
+    <Target Name="BuildDoc" DependsOnTargets="Build">
+        <Exec Command="docfx" WorkingDirectory="$(MSBuildThisFileDirectory)..\doc"/>
     </Target>
 </Project>

@@ -13,7 +13,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <Reference Include="$(MSBuildThisFileDirectory)../lib/net5.0/IceRpc.dll" />
+                <Reference Include="$(MSBuildThisFileDirectory)../../lib/net5.0/IceRpc.dll" />
             </ItemGroup>
         </Otherwise>
     </Choose>
