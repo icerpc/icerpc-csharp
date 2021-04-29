@@ -78,3 +78,6 @@ generated
 tests/**/Test.cs
 tests/CodeCoverageRerport
 TestResults
+
+# docfx
+doc/_site

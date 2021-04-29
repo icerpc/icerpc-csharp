@@ -99,6 +99,36 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
+        [TestCase(2)]
+        [TestCase(10)]
+        [TestCase(20)]
+        public async Task Retry_GracefulClose(int maxQueue)
+        {
+            await WithRetryServiceAsync(async (service, retry) =>
+            {
+                // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData.
+                // The goal is to make sure that none of the OpWithData fail even if the server closes the
+                // connection gracefully in between.
+                byte[] seq = new byte[1024 * 10];
+
+                await retry.IcePingAsync();
+                var results = new List<Task>();
+                for (int i = 0; i < maxQueue; ++i)
+                {
+                    results.Add(retry.OpWithDataAsync(-1, 0, seq));
+                }
+
+                _ = service.Connection!.GoAwayAsync();
+
+                for (int i = 0; i < maxQueue; i++)
+                {
+                    results.Add(retry.OpWithDataAsync(-1, 0, seq));
+                }
+
+                await Task.WhenAll(results);
+            });
+        }
+
         [TestCase(Protocol.Ice2, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
         [TestCase(Protocol.Ice2, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
         [TestCase(Protocol.Ice2, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
@@ -431,6 +461,7 @@ namespace IceRpc.Tests.ClientServer
                 async (request, cancel) =>
                 {
                     service.Attempts++;
+                    service.Connection = request.Connection;
                     return await next.DispatchAsync(request, cancel);
                 }));
             router.Map("/retry", service);
@@ -451,6 +482,7 @@ namespace IceRpc.Tests.ClientServer
         internal class RetryService : IRetryService
         {
             internal int Attempts;
+            internal Connection? Connection;
 
             public ValueTask OpIdempotentAsync(
                 int failedAttempts,
