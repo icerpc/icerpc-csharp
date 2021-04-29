@@ -51,9 +51,6 @@ namespace IceRpc
 
         private static string[] _emptyArgs = Array.Empty<string>();
 
-        private static bool _printProcessIdDone;
-
-        private static readonly object _staticMutex = new();
         private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         private Task? _shutdownTask;
@@ -159,33 +156,12 @@ namespace IceRpc
                 }
             }
 
-            if (!combinedProperties.ContainsKey("Ice.ProgramName"))
-            {
-                combinedProperties["Ice.ProgramName"] = AppDomain.CurrentDomain.FriendlyName;
-            }
-
             combinedProperties.ParseIceArgs(ref args);
             SetProperties(combinedProperties);
             Logger = loggerFactory.CreateLogger("IceRpc");
 
             ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
             ConnectionOptions.TransportOptions ??= new TcpOptions();
-
-            // TODO: remove once old tests which rely on properties are removed
-            if (ConnectionOptions.TransportOptions is UdpOptions udpOptions)
-            {
-                udpOptions.ReceiveBufferSize =
-                    this.GetPropertyAsByteSize($"Ice.UDP.RcvSize") ?? udpOptions.ReceiveBufferSize;
-                udpOptions.SendBufferSize =
-                    this.GetPropertyAsByteSize($"Ice.UDP.SndSize") ?? udpOptions.SendBufferSize;
-            }
-            else if (ConnectionOptions.TransportOptions is TcpOptions tcpOptions)
-            {
-                tcpOptions.ReceiveBufferSize =
-                    this.GetPropertyAsByteSize($"Ice.TCP.RcvSize") ?? tcpOptions.ReceiveBufferSize;
-                tcpOptions.SendBufferSize =
-                    this.GetPropertyAsByteSize($"Ice.TCP.SndSize") ?? tcpOptions.SendBufferSize;
-            }
 
             ConnectionOptions.IncomingFrameMaxSize =
                 this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
@@ -201,17 +177,6 @@ namespace IceRpc
             RetryRequestMaxSize = this.GetPropertyAsByteSize("Ice.RetryRequestMaxSize") ?? 1024 * 1024;
 
             ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
-
-            // Show process id if requested (but only once).
-            lock (_staticMutex)
-            {
-                if (!_printProcessIdDone && (this.GetPropertyAsBool("Ice.PrintProcessId") ?? false))
-                {
-                    using var p = System.Diagnostics.Process.GetCurrentProcess();
-                    Console.WriteLine(p.Id);
-                    _printProcessIdDone = true;
-                }
-            }
         }
 
         /// <summary>Releases all resources used by this communicator. This method can be called multiple times.
