@@ -20,11 +20,11 @@ namespace IceRpc
      /// <summary>Adapts an invoker delegate to the <see cref="IInvoker"/> interface.</summary>
     public class InlineInvoker : IInvoker
     {
-        private readonly Func<OutgoingRequest, CancellationToken, ValueTask<IncomingResponse>> _function;
+        private readonly Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> _function;
 
         /// <summary>Constructs an InlineInvoker using a delegate.</summary>
         /// <param name="function">The function that implements the invoker's InvokerAsync method.</param>
-        public InlineInvoker(Func<OutgoingRequest, CancellationToken, ValueTask<IncomingResponse>> function) =>
+        public InlineInvoker(Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> function) =>
             _function = function;
 
         /// <inheritdoc/>

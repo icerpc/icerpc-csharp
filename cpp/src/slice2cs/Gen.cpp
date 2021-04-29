@@ -2170,7 +2170,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << nl << "/// <param name=\"args\">The remote operation arguments.</param>";
             }
-            _out << nl << "/// <param name=\"context\">The context to write into the request.</param>";
+            _out << nl << "/// <param name=\"invocation\">The invocation properties.</param>";
             _out << nl << "/// <param name=\"cancel\">A cancellation token that receives the cancellation requests."
                  << "</param>";
             _out << nl << "public static IceRpc.OutgoingRequest " << fixId(operationName(operation))
@@ -2181,33 +2181,78 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 inValue = paramCount > 1;
                 _out << (inValue ? "in " : "") << toTupleType(params, true) << " args" << ", ";
             }
-            _out << "global::System.Collections.Generic.IReadOnlyDictionary<string, string>? context, "
-                 << "global::System.Threading.CancellationToken cancel) =>";
-            _out.inc();
+            _out << "IceRpc.Invocation? invocation, "
+                 << "global::System.Threading.CancellationToken cancel)";
 
             if (paramCount == 0)
             {
-                _out << nl << "IceRpc.OutgoingRequest.WithEmptyArgs(proxy, \"";
-                _out << operation->name() << "\", "
-                    << "idempotent: " << (operation->isIdempotent() ? "true" : "false") << ", context, cancel);";
+                if (operation->isIdempotent())
+                {
+                    _out << sb;
+                    _out << nl << "invocation ?\?= new IceRpc.Invocation();";
+                    _out << nl << "invocation.IsIdempotent = true;";
+                    _out << nl << "return IceRpc.OutgoingRequest.WithEmptyArgs(proxy, ";
+                    _out << "\"" << operation->name() << "\", invocation, cancel);";
+                    _out << eb;
+
+                }
+                else
+                {
+                    _out << " =>";
+                    _out.inc();
+                    _out << nl << "IceRpc.OutgoingRequest.WithEmptyArgs(proxy, ";
+                    _out << "\"" << operation->name() << "\", invocation, cancel);";
+                    _out.dec();
+                }
             }
             else
             {
-                _out << nl << "IceRpc.OutgoingRequest.WithArgs(";
-                _out.inc();
-                _out << nl << "proxy,"
-                     << nl << "\"" << operation->name() << "\","
-                     << nl << "idempotent: " << (operation->isIdempotent() ? "true" : "false") << ","
-                     << nl << "compress: " << (opCompressArgs(operation) ? "true" : "false") << ","
-                     << nl << "format: " << opFormatTypeToString(operation) << ","
-                     << nl << "context,"
-                     << nl << (inValue ? "in " : "") << "args,"
-                     << nl;
-                writeOutgoingRequestWriter(operation);
-                _out << "," << nl << "cancel);";
-                _out.dec();
+                if (operation->isIdempotent() || opCompressArgs(operation) || opFormatTypeToString(operation) != "default")
+                {
+                    _out << sb;
+                    _out << nl << "invocation ?\?= new IceRpc.Invocation();";
+                    if (operation->isIdempotent())
+                    {
+                        _out << nl << "invocation.IsIdempotent = true;";
+                    }
+                    if (opCompressArgs(operation))
+                    {
+                        _out << nl << "invocation.CompressRequestPayload = true;";
+                    }
+                    if (opFormatTypeToString(operation) != "default")
+                    {
+                        _out << nl << "invocation.ClassFormat = " << opFormatTypeToString(operation) << ";";
+                    }
+
+                    _out << nl << "return IceRpc.OutgoingRequest.WithArgs(";
+                    _out.inc();
+                    _out << nl << "proxy,"
+                        << nl << "\"" << operation->name() << "\","
+                        << nl << "invocation,"
+                        << nl << (inValue ? "in " : "") << "args,"
+                        << nl;
+                    writeOutgoingRequestWriter(operation);
+                    _out << "," << nl << "cancel);";
+                    _out.dec();
+                    _out << eb;
+                }
+                else
+                {
+                    _out << " =>";
+                    _out.inc();
+                    _out << nl << "IceRpc.OutgoingRequest.WithArgs(";
+                    _out.inc();
+                    _out << nl << "proxy,"
+                        << nl << "\"" << operation->name() << "\","
+                        << nl << "invocation,"
+                        << nl << (inValue ? "in " : "") << "args,"
+                        << nl;
+                    writeOutgoingRequestWriter(operation);
+                    _out << "," << nl << "cancel);";
+                    _out.dec();
+                    _out.dec();
+                }
             }
-            _out.dec();
 
             generateResponseClass = generateResponseClass || !operation->returnType().empty();
         }
@@ -2411,16 +2456,15 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << toTuple(params) << ", ";
     }
-    _out << invocation << "?.Context, " << cancel << "), ";
+    _out << invocation << ", " << cancel << "), ";
     if (voidOp)
     {
-        _out << (oneway ? "oneway: true" : "IsOneway") << ", ";
+        _out << (oneway ? "oneway: true" : "IsOneway") << ");";
     }
     else
     {
-        _out << "Response." << name << ", ";
+        _out << "Response." << name << ");";
     }
-    _out << invocation << "?.Progress);";
     _out.dec();
 
     // TODO: move this check to the Slice parser.

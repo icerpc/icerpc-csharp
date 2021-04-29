@@ -55,13 +55,6 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public IReadOnlyList<InvocationInterceptor> InvocationInterceptors
-        {
-            get => _invocationInterceptors;
-            set => _invocationInterceptors = value.ToImmutableList();
-        }
-
-        /// <inheritdoc/>
         public TimeSpan InvocationTimeout
         {
             get => _invocationTimeout;
@@ -158,6 +151,7 @@ namespace IceRpc
 
         ServicePrx IServicePrx.Impl => this;
 
+        internal IInvoker Invoker => _invoker ??= CreatePipeline();
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
@@ -166,14 +160,15 @@ namespace IceRpc
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
-
         private ImmutableSortedDictionary<string, string> _context;
 
         private Endpoint? _endpoint;
 
-        private ImmutableList<InvocationInterceptor> _invocationInterceptors;
-
         private TimeSpan _invocationTimeout;
+
+        private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
+            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
+        private IInvoker? _invoker;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -237,7 +232,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (!_invocationInterceptors.SequenceEqual(other._invocationInterceptors))
+            if (!_interceptorList.SequenceEqual(other._interceptorList))
             {
                 return false;
             }
@@ -392,6 +387,14 @@ namespace IceRpc
 
                 proxyData.IceWrite(ostr);
             }
+        }
+
+        public void Use(params Func<IInvoker, IInvoker>[] interceptor)
+        {
+            _interceptorList = _interceptorList.AddRange(interceptor);
+
+            // Clear pipeline
+            _invoker = null;
         }
 
         /// <summary>Converts the reference into a string. The format of this string depends on the protocol: for ice1,
@@ -640,19 +643,14 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        internal static async Task<IncomingResponse> InvokeAsync(
-            IServicePrx proxy,
-            OutgoingRequest request,
-            bool oneway,
-            IProgress<bool>? progress = null)
+        internal static async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            IReadOnlyList<InvocationInterceptor> invocationInterceptors = proxy.InvocationInterceptors;
             Activity? activity = null;
 
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors. Activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            if (request.Proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
                 activity = new Activity("IceRpc.Invocation");
                 activity.AddTag("Operation", request.Operation);
@@ -661,15 +659,11 @@ namespace IceRpc
             }
 
             InvocationEventSource.Log.RequestStart(request.Path, request.Operation);
+
+            ServicePrx proxy = request.Proxy.Impl;
             try
             {
-                IncomingResponse response = await InvokeWithInterceptorsAsync(
-                    proxy,
-                    request,
-                    oneway,
-                    0,
-                    progress,
-                    request.CancellationToken).ConfigureAwait(false);
+                IncomingResponse response = await proxy.Invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                 if (response.ResultType != ResultType.Success)
                 {
@@ -687,62 +681,6 @@ namespace IceRpc
                 InvocationEventSource.Log.RequestStop(request.Path, request.Operation);
                 activity?.Stop();
             }
-
-            async Task<IncomingResponse> InvokeWithInterceptorsAsync(
-                IServicePrx proxy,
-                OutgoingRequest request,
-                bool oneway,
-                int i,
-                IProgress<bool>? progress,
-                CancellationToken cancel)
-            {
-                cancel.ThrowIfCancellationRequested();
-
-                if (i < invocationInterceptors.Count)
-                {
-                    // Call the next interceptor in the chain
-                    return await invocationInterceptors[i](
-                        proxy,
-                        request,
-                        (target, request, cancel) =>
-                            InvokeWithInterceptorsAsync(target, request, oneway, i + 1, progress, cancel),
-                        cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    // After we went down the interceptor chain make the invocation.
-                    ServicePrx impl = proxy.Impl;
-                    Communicator communicator = impl.Communicator;
-                    // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
-                    // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
-                    // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
-
-                    // TODO: this "request size" is now just the payload size. Should we rename the property to
-                    // RetryRequestPayloadMaxSize?
-
-                    int requestSize = request.PayloadSize;
-                    bool releaseRequestAfterSent =
-                        requestSize > communicator.RetryRequestMaxSize ||
-                        !communicator.IncRetryBufferSize(requestSize);
-
-                    try
-                    {
-                        return await impl.PerformInvokeAsync(request,
-                                                             oneway,
-                                                             progress,
-                                                             releaseRequestAfterSent,
-                                                             cancel).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        if (!releaseRequestAfterSent)
-                        {
-                            communicator.DecRetryBufferSize(requestSize);
-                        }
-                        // TODO release the request memory if not already done after sent.
-                    }
-                }
-            }
         }
 
         /// <summary>Creates a shallow copy of this service proxy.</summary>
@@ -755,7 +693,7 @@ namespace IceRpc
                  CacheConnection = CacheConnection,
                  Communicator = Communicator,
                  Context = _context,
-                 InvocationInterceptors = _invocationInterceptors,
+                 InterceptorList = _interceptorList,
                  InvocationTimeout = _invocationTimeout,
                  IsOneway = IsOneway,
                  LocationResolver = LocationResolver,
@@ -878,7 +816,7 @@ namespace IceRpc
             _connection = connection;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
-            _invocationInterceptors = options.InvocationInterceptors.ToImmutableList();
+            _interceptorList = options.InterceptorList.ToImmutableList();
             _invocationTimeout = options.InvocationTimeout;
             IsOneway = options.IsOneway;
             LocationResolver = options.LocationResolver;
@@ -964,15 +902,24 @@ namespace IceRpc
             return filteredEndpoints;
         }
 
-        private async Task<IncomingResponse> PerformInvokeAsync(
-            OutgoingRequest request,
-            bool oneway,
-            IProgress<bool>? progress,
-            bool releaseRequestAfterSent,
-            CancellationToken cancel)
+        private IInvoker CreatePipeline()
+        {
+            IInvoker pipeline = new InlineInvoker((request, cancel) => PerformInvokeAsync(request, cancel));
+
+            IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
+            foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
+            {
+                pipeline = interceptor(pipeline);
+            }
+            return pipeline;
+        }
+
+        private async Task<IncomingResponse> PerformInvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             Connection? connection = _connection;
             List<Endpoint>? endpoints = null;
+            bool oneway = request.IsOneway;
+            IProgress<bool>? progress = request.Progress;
 
             if (connection != null && !oneway && connection.Endpoint.IsDatagram)
             {
@@ -1069,10 +1016,10 @@ namespace IceRpc
                         progress.Report(false);
                         progress = null; // Only call the progress callback once (TODO: revisit this?)
                     }
-                    if (releaseRequestAfterSent)
-                    {
+                    // if (releaseRequestAfterSent)
+                    // {
                         // TODO release the request
-                    }
+                    // }
                     sent = true;
                     exception = null;
 
@@ -1157,7 +1104,7 @@ namespace IceRpc
 
                 if (attempt == Communicator.InvocationMaxAttempts ||
                     retryPolicy == RetryPolicy.NoRetry ||
-                    (sent && releaseRequestAfterSent) ||
+                  // TODO  (sent && releaseRequestAfterSent) ||
                     (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
                     ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
                 {

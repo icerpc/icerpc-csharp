@@ -29,13 +29,12 @@ namespace IceRpc.Tests.ClientServer
             var prx = server.CreateProxy<IGreeterTestServicePrx>("/");
             Activity? invocationActivity = null;
             bool called = false;
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    async (target, request, next, cancel) =>
-                    {
-                        called = true;
-                        invocationActivity = Activity.Current;
-                        return await next(target, request, cancel);
-                    });
+            prx.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                called = true;
+                invocationActivity = Activity.Current;
+                return next.InvokeAsync(request, cancel);
+            }));
             await prx.IcePingAsync();
             Assert.IsTrue(called);
             Assert.IsNull(invocationActivity);
@@ -46,12 +45,11 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    async (target, request, next, cancel) =>
-                    {
-                        invocationActivity = Activity.Current;
-                        return await next(target, request, cancel);
-                    });
+            prx.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                invocationActivity = Activity.Current;
+                return next.InvokeAsync(request, cancel);
+            }));
             await prx.IcePingAsync();
             Assert.IsNotNull(invocationActivity);
             Assert.AreEqual("IceRpc.Invocation", invocationActivity.DisplayName);
@@ -180,17 +178,16 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    async (target, request, next, cancel) =>
-                    {
-                        invocationActivity = Activity.Current;
-                        // Add some entries to the baggage to ensure that it is correctly propagated
-                        // to the server activity.
-                        invocationActivity?.AddBaggage("Foo", "Bar");
-                        invocationActivity?.AddBaggage("Foo", "Baz");
-                        invocationActivity?.AddBaggage("TraceLevel", "Information");
-                        return await next(target, request, cancel);
-                    });
+            prx.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                invocationActivity = Activity.Current;
+                // Add some entries to the baggage to ensure that it is correctly propagated
+                // to the server activity.
+                invocationActivity?.AddBaggage("Foo", "Bar");
+                invocationActivity?.AddBaggage("Foo", "Baz");
+                invocationActivity?.AddBaggage("TraceLevel", "Information");
+                return next.InvokeAsync(request, cancel);
+            }));
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();
