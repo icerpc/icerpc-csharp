@@ -360,9 +360,6 @@ namespace IceRpc
             }
         }
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, SocketStream stream) =>
-            StartStreamScope(logger, stream.Id);
-
         internal static IDisposable? StartStreamScope(this ILogger logger, long id)
         {
             if (!logger.IsEnabled(LogLevel.Error))

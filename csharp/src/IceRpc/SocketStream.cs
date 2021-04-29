@@ -500,7 +500,7 @@ namespace IceRpc
             response.StreamDataWriter?.Invoke(this);
         }
 
-        internal IDisposable? StartScope() => _socket.Logger.StartStreamScope(this);
+        internal IDisposable? StartScope() => _socket.Logger.StartStreamScope(Id);
 
         internal void Release()
         {

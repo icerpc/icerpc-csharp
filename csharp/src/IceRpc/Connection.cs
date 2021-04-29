@@ -458,7 +458,7 @@ namespace IceRpc
                 _ = Task.Run(async () => await WaitForGoAwayAsync().ConfigureAwait(false), default);
             }
 
-            // Start the asynchronous AcceptStream operation from the thread pool to prevent eventually reading
+            // Start the asynchronous AcceptStream operation from the thread pool to prevent reading
             // synchronously new frames from this thread.
             _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
         }

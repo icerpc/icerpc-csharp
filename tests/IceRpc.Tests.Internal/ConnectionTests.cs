@@ -15,6 +15,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(30000)]
     public class ConnectionTests
     {
+        /// <summary>The connection factory is a small helper to allow creating a client and server connection
+        /// directly from the transport API rather than going through the Communicator/Server APIs.</summary>
         private class ConnectionFactory : IAsyncDisposable
         {
             public Connection Client
@@ -39,7 +41,7 @@ namespace IceRpc.Tests.Internal
                 {
                     if (_cachedServerConnection == null)
                     {
-                        _ = Client;
+                        (_cachedServerConnection, _cachedClientConnection) = AcceptAndConnectAsync().Result;
                     }
                     return _cachedServerConnection!;
                 }
@@ -112,8 +114,8 @@ namespace IceRpc.Tests.Internal
                     "/foo",
                     Endpoint.Protocol,
                     Endpoint.Protocol.GetEncoding(),
-                    null,
-                    ImmutableList<Endpoint>.Empty,
+                    endpoint: null,
+                    altEndpoints: ImmutableList<Endpoint>.Empty,
                     connection,
                     new ProxyOptions { Communicator = _communicator });
 
@@ -193,13 +195,14 @@ namespace IceRpc.Tests.Internal
             IServicePrx proxy = factory.CreateProxy(factory.Client);
             Task pingTask = proxy.IcePingAsync();
 
-            await (closeClientSide ? factory.Client : factory.Server).AbortAsync();
             if (closeClientSide)
             {
+                await factory.Client.AbortAsync();
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
             }
             else
             {
+                await factory.Server.AbortAsync();
                 Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
             semaphore.Release();
@@ -211,13 +214,14 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory();
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             factory.Client.Closed += (sender, args) => semaphore.Release();
             factory.Server.Closed += (sender, args) => semaphore.Release();
 
             await (closeClientSide ? factory.Client : factory.Server).GoAwayAsync();
 
-            await semaphore.WaitAsync(2);
+            await semaphore.WaitAsync();
+            await semaphore.WaitAsync();
         }
 
         [TestCase(Protocol.Ice1, false)]
@@ -273,10 +277,12 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(transport);
 
+            Assert.That(factory.Client, Is.AssignableTo<IPConnection>());
+            Assert.That(factory.Server, Is.AssignableTo<IPConnection>());
+
             var connection = (IPConnection)factory.Client;
             var serverConnection = (IPConnection)factory.Server;
 
-            Assert.That(connection, Is.Not.Null);
             Assert.That(connection.RemoteEndpoint, Is.Not.Null);
             Assert.That(connection.LocalEndpoint, Is.Not.Null);
 
@@ -295,8 +301,9 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "ws")
             {
+                Assert.That(connection, Is.AssignableTo<WSConnection>());
                 var wsConnection = (WSConnection)connection;
-                Assert.That(wsConnection, Is.Not.Null);
+
                 Assert.AreEqual("websocket", wsConnection.Headers["Upgrade"]);
                 Assert.AreEqual("Upgrade", wsConnection.Headers["Connection"]);
                 Assert.AreEqual("ice.zeroc.com", wsConnection.Headers["Sec-WebSocket-Protocol"]);
@@ -466,16 +473,13 @@ namespace IceRpc.Tests.Internal
 
                 await goAwayTask;
 
-                try
-                {
-                    await pingTask;
-                }
-                catch (ConnectionClosedException ex)
-                {
-                    Assert.That(ex.Message, Is.EqualTo("client message"));
-                    Assert.That(ex.IsClosedByPeer, Is.False);
-                    Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
-                }
+                // Next invocation on the connection should throw the ConnectionClosedException
+                ConnectionClosedException? ex =
+                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
+                Assert.That(ex, Is.Not.Null);
+                Assert.That(ex!.Message, Is.EqualTo("client message"));
+                Assert.That(ex.IsClosedByPeer, Is.False);
+                Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
             }
             else
             {
@@ -488,20 +492,17 @@ namespace IceRpc.Tests.Internal
                 // Ensure the invocation is successful
                 Assert.DoesNotThrowAsync(async () => await pingTask);
 
-                try
-                {
-                    // Next invocation on the connection should throw the ConnectionClosedException
-                    await proxy.IcePingAsync();
-                }
-                catch (ConnectionClosedException ex)
-                {
-                    // TODO: after connetion refactoring, should a non-resumable connection remember if
-                    // it was closed by the peer and the closure reason? The server message isn't very
-                    // useful right now except for tracing.
-                    Assert.That(ex.Message, Is.EqualTo("cannot access closed connection"));
-                    Assert.That(ex.IsClosedByPeer, Is.False);
-                    Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
-                }
+                // Next invocation on the connection should throw the ConnectionClosedException
+                ConnectionClosedException? ex =
+                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
+                Assert.That(ex, Is.Not.Null);
+
+                // TODO: after connetion refactoring, should a non-resumable connection remember if
+                // it was closed by the peer and the closure reason? The server message isn't very
+                // useful right now except for tracing.
+                Assert.That(ex!.Message, Is.EqualTo("cannot access closed connection"));
+                Assert.That(ex.IsClosedByPeer, Is.False);
+                Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
             }
         }
 

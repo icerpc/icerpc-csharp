@@ -125,7 +125,7 @@ namespace IceRpc
                             }
                             catch
                             {
-                                // The socket is being closed,  we make sure to receive the frame data. When the
+                                // The socket is being closed, we make sure to receive the frame data. When the
                                 // connection is being closed gracefully, the connection waits for the socket to
                                 // receive the RST from the peer so it's important to receive and skip all the
                                 // data until the RST is received.
