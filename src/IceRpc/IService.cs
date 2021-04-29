@@ -125,7 +125,9 @@ namespace IceRpc
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIceIdAsync(
-            IncomingRequest request, Dispatch dispatch, CancellationToken cancel)
+            IncomingRequest request,
+            Dispatch dispatch,
+            CancellationToken cancel)
         {
             request.ReadEmptyArgs();
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
