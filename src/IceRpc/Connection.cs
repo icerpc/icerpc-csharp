@@ -120,6 +120,8 @@ namespace IceRpc
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
 
+        internal ILogger Logger => Socket.Logger;
+
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
         {

@@ -45,10 +45,10 @@ namespace IceRpc
         public Protocol Protocol => IncomingRequest.Protocol;
 
         /// <summary>The features associated with the request.</summary>
-        public IFeatureCollection RequestFeatures => IncomingRequest.Features;
+        public FeatureCollection RequestFeatures => IncomingRequest.Features;
 
         /// <summary>The features associated with the response.</summary>
-        public IFeatureCollection ResponseFeatures { get; set; } = new FeatureCollection();
+        public FeatureCollection ResponseFeatures { get; set; } = new();
 
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;

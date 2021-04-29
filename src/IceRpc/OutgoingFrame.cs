@@ -45,7 +45,7 @@ namespace IceRpc
         }
 
         /// <summary>The features of this response.</summary>
-        public IFeatureCollection Features { get; set; }
+        public FeatureCollection Features { get; set; }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
@@ -217,7 +217,7 @@ namespace IceRpc
             Protocol protocol,
             CompressionLevel compressionLevel,
             int compressionMinSize,
-            IFeatureCollection features)
+            FeatureCollection features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();

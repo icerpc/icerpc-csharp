@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -189,20 +190,21 @@ namespace IceRpc
             {
                 return await DispatchAsync(request, dispatch, cancel).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-            {
-                // The client requested cancellation, we log it and let it propagate.
-                // Socket.Logger.LogDispatchCanceledByClient(request);
-                throw;
-            }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException &&
-                    request.Connection.Server is Server server &&
-                    server.CancelDispatch.IsCancellationRequested)
+                if (ex is OperationCanceledException)
                 {
-                    // Replace exception
-                    ex = new ServerException("dispatch canceled by server shutdown");
+                    if (request.Connection.Server is Server server &&
+                        server.CancelDispatch.IsCancellationRequested)
+                    {
+                        // Replace exception
+                        ex = new ServerException("dispatch canceled by server shutdown");
+                    }
+                    else if (cancel.IsCancellationRequested)
+                    {
+                        // The client requested cancellation.
+                        throw;
+                    }
                 }
                 // else it's another OperationCanceledException that the implementation should have caught, and it
                 // will become an UnhandledException below.
@@ -210,7 +212,7 @@ namespace IceRpc
                 if (request.IsOneway)
                 {
                     // We log this exception, since otherwise it would be lost.
-                    // Socket.Logger.LogDispatchException(request, ex);
+                    request.Connection.Logger.LogDispatchException(request, ex);
                     return OutgoingResponse.WithVoidReturnValue(dispatch);
                 }
                 else
@@ -225,7 +227,7 @@ namespace IceRpc
                         actualEx = new UnhandledException(ex);
 
                         // We log the "source" exception as UnhandledException may not include all details.
-                        // Socket.Logger.LogDispatchException(request, ex);
+                        request.Connection.Logger.LogDispatchException(request, ex);
                     }
                     return new OutgoingResponse(dispatch, actualEx);
                 }

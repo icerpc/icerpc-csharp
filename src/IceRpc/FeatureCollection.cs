@@ -6,12 +6,14 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    /// <summary>The default implementation of <see cref="IFeatureCollection"/>.</summary>
-    public class FeatureCollection : IFeatureCollection
+    /// <summary>A collection of IceRpc features used during invocations and dispatches</summary>
+    public class FeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     {
         private readonly Dictionary<Type, object> _features = new();
 
-        /// <inheritdoc />
+        /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>
+        /// <param name="key">The feature key.</param>
+        /// <returns>The requested feature.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Microsoft.Design",
             "CA1043:Use Integral Or String Argument For Indexers",
@@ -33,10 +35,14 @@ namespace IceRpc
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
+        /// <typeparam name="TFeature">The feature key.</typeparam>
+        /// <returns>The requested feature.</returns>
         public TFeature? Get<TFeature>() => (TFeature?)this[typeof(TFeature)];
 
-        /// <inheritdoc />
+        /// <summary>Sets a new feature. Setting null removes the feature.</summary>
+        /// <typeparam name="TFeature">The feature key.</typeparam>
+        /// <param name="feature">The feature value.</param>
         public void Set<TFeature>(TFeature feature) => this[typeof(TFeature)] = feature;
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

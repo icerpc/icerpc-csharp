@@ -424,7 +424,7 @@ namespace IceRpc
         private OutgoingResponse(
             Protocol protocol,
             Encoding encoding,
-            IFeatureCollection features,
+            FeatureCollection features,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
             int compressionMinSize = 100)
             : base(protocol,
