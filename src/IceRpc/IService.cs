@@ -157,7 +157,9 @@ namespace IceRpc
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIceIsAAsync(
-            IncomingRequest request, Dispatch dispatch, CancellationToken cancel)
+            IncomingRequest request,
+            Dispatch dispatch,
+            CancellationToken cancel)
         {
             string id = Request.IceIsA(request);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
