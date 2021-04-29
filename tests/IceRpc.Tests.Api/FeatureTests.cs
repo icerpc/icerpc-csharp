@@ -76,14 +76,11 @@ namespace IceRpc.Tests.Api
 
             Multiplier multiplier = 10;
             // This interceptor stores the multiplier into the binary context to be read by the middleware.
-            prx.InvocationInterceptors = new InvocationInterceptor[]
-                {
-                    async (target, request, next, cancel) =>
-                        {
-                            request.BinaryContextOverride.Add(1, ostr => ostr.WriteInt(multiplier));
-                            return await next(target, request, cancel);
-                        }
-                };
+            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                request.BinaryContextOverride.Add(1, ostr => ostr.WriteInt(multiplier));
+                return await next.InvokeAsync(request, cancel);
+            }));
 
             int ret = await prx.OpIntAsync(2);
             Assert.AreEqual(2 * multiplier, ret);
