@@ -173,7 +173,9 @@ namespace IceRpc
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIcePingAsync(
-            IncomingRequest request, Dispatch dispatch, CancellationToken cancel)
+            IncomingRequest request,
+            Dispatch dispatch,
+            CancellationToken cancel)
         {
             request.ReadEmptyArgs();
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
