@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Console;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System;
-using System.Linq;
 using System.Collections.Generic;
 
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -55,7 +54,7 @@ namespace IceRpc.Tests
                                 configure.TimestampFormat = "[HH:mm:ss:fff] ";
                                 configure.ColorBehavior = LoggerColorBehavior.Disabled;
                             });
-                            builder.SetMinimumLevel((LogLevel)LogLevel.Debug);
+                            builder.SetMinimumLevel((LogLevel)logLevel);
                         });
                     foreach (ILoggerProvider provider in _providers)
                     {
