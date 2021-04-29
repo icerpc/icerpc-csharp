@@ -81,8 +81,6 @@ namespace IceRpc
                 try
                 {
                     Connection connection = await endpoint.ConnectAsync(options, Logger, cancel).ConfigureAwait(false);
-                    // TODO: Hack, remove once we get rid of the communicator
-                    connection.Communicator = this;
 
                     // Perform protocol level initialization.
                     await connection.InitializeAsync(cancel).ConfigureAwait(false);

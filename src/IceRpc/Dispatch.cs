@@ -12,9 +12,6 @@ namespace IceRpc
         /// <summary>The binary context carried by the incoming request frame.</summary>
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequest.BinaryContext;
 
-        /// <summary>The communicator.</summary>
-        public Communicator Communicator => Connection.Communicator!;
-
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection => IncomingRequest.Connection;
 
