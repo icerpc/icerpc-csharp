@@ -62,6 +62,7 @@ namespace IceRpc
                 }
             }
         }
+
         internal static new WSEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
