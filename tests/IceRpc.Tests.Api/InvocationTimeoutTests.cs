@@ -56,12 +56,11 @@ namespace IceRpc.Tests.Api
 
             IServicePrx prx = _server.CreateProxy<IServicePrx>("/test");
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);
-            prx.InvocationInterceptors = ImmutableList.Create<InvocationInterceptor>(
-                    async (target, request, next, cancel) =>
-                    {
-                        invocationDeadline = request.Deadline;
-                        return await next(target, request, cancel);
-                    });
+            prx.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                invocationDeadline = request.Deadline;
+                return next.InvokeAsync(request, cancel);
+            }));
 
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());

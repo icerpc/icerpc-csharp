@@ -3,17 +3,16 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 namespace IceRpc
 {
-    /// <summary>A dispatcher handles (dispatches) requests received by a server.</summary>
+    /// <summary>A dispatcher handles (dispatches) incoming requests and returns outgoing responses.</summary>
     public interface IDispatcher
     {
-        /// <summary>Dispatches a request received by a server.</summary>
-        /// <param name="request">The request being dispatched.</param>
+        /// <summary>Dispatches an incoming request and returns the corresponding outgoing response.</summary>
+        /// <param name="request">The incoming request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
-        /// <exception cref="Exception">Any exception thrown by DispatchAsync will be marshaled into the response
-        /// frame.</exception>
+        /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
         public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
             throw new NotImplementedException();
     }

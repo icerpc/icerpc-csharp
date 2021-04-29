@@ -67,24 +67,21 @@ namespace IceRpc
         /// request frame is never compressed.</remarks>
         /// <param name="proxy">The proxy for the target Ice object.</param>
         /// <param name="request">The incoming request frame to forward to proxy's target.</param>
-        /// <param name="oneway">When true, the request is sent as a oneway request. When false, it is sent as a
-        /// two-way request.</param>
-        /// <param name="progress">Sent progress provider.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task holding the response frame.</returns>
         public static async ValueTask<OutgoingResponse> ForwardAsync(
             this IServicePrx proxy,
             IncomingRequest request,
-            bool oneway,
-            IProgress<bool>? progress = null,
+            Invocation? invocation,
             CancellationToken cancel = default)
         {
-            var forwardedRequest = new OutgoingRequest(proxy, request, cancel: cancel);
+            var forwardedRequest = new OutgoingRequest(proxy, request, invocation, cancel: cancel);
             try
             {
                 // TODO: add support for stream data forwarding.
-                using IncomingResponse response =
-                    await ServicePrx.InvokeAsync(proxy, forwardedRequest, oneway, progress).ConfigureAwait(false);
+                using IncomingResponse response = await ServicePrx.InvokeAsync(forwardedRequest,
+                    forwardedRequest.CancellationToken).ConfigureAwait(false);
                 return new OutgoingResponse(request, response);
             }
             catch (LimitExceededException exception)
@@ -121,21 +118,6 @@ namespace IceRpc
         /// <summary>Returns a new copy of the underlying options.</summary>
         /// <returns>An instance of the options class.</returns>
         public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
-
-        /// <summary>Invokes a request on a proxy.</summary>
-        /// <remarks>request.CancellationToken holds the cancellation token.</remarks>
-        /// <param name="proxy">The proxy for the target Ice object.</param>
-        /// <param name="request">The request frame.</param>
-        /// <param name="oneway">When true, the request is sent as a oneway request. When false, it is sent as a
-        /// two-way request.</param>
-        /// <param name="progress">Sent progress provider.</param>
-        /// <returns>A task holding the response frame.</returns>
-        public static Task<IncomingResponse> InvokeAsync(
-            this IServicePrx proxy,
-            OutgoingRequest request,
-            bool oneway = false,
-            IProgress<bool>? progress = null) =>
-            ServicePrx.InvokeAsync(proxy, request, oneway, progress);
 
         /// <summary>Converts a proxy to a set of proxy properties.</summary>
         /// <param name="proxy">The proxy for the target Ice object.</param>

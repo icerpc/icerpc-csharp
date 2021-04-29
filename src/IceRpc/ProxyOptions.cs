@@ -22,9 +22,9 @@ namespace IceRpc
         public IReadOnlyDictionary<string, string> Context { get; set; } =
             ImmutableSortedDictionary<string, string>.Empty;
 
-        /// <summary>The invocation interceptors of the proxy.</summary>
-        public IEnumerable<InvocationInterceptor> InvocationInterceptors { get; set; } =
-            ImmutableList<InvocationInterceptor>.Empty;
+        /// <summary>The interceptors of the proxy.</summary>
+        public IEnumerable<Func<IInvoker, IInvoker>> InterceptorList { get; set; } =
+            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
         /// <summary>The invocation timeout of the proxy.</summary>
         public TimeSpan InvocationTimeout

@@ -191,10 +191,7 @@ namespace IceRpc.Tests.CodeGeneration
             using var requestFrame = OutgoingRequest.WithArgs(
                     _prx,
                     "opVoid",
-                    idempotent: false,
-                    compress: false,
-                    format: default,
-                    context: null,
+                    invocation: null,
                     (15, "test"),
                     (OutputStream ostr, in (int n, string s) value) =>
                     {
@@ -202,7 +199,8 @@ namespace IceRpc.Tests.CodeGeneration
                         ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                     });
 
-            using IncomingResponse response = await _prx.InvokeAsync(requestFrame);
+            using IncomingResponse response =
+                await ServicePrx.InvokeAsync(requestFrame, requestFrame.CancellationToken);
             Assert.AreEqual(ResultType.Success, response.ResultType);
 
             var b = (B)await _prx.PingPongAsync(new B());

@@ -36,6 +36,10 @@ namespace IceRpc
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
 
+        /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
+        /// request is sent as a twoway request.</summary>
+        public bool IsOneway { get; set; }
+
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
 
@@ -44,6 +48,12 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
+
+        /// <summary>The progress provider.</summary>
+        public IProgress<bool>? Progress { get; }
+
+        /// <summary>The proxy that is sending this request.</summary>
+        public IServicePrx Proxy { get; }
 
         /// <summary>WritableContext is a writable version of Context. Its entries are always the same as Context's
         /// entries.</summary>
@@ -80,13 +90,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
-        /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
-        /// to the 2.0 encoding.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
-        /// instances.</param>
-        /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
-        /// proxy and the communicator's current context (if any).</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
         /// </param>
@@ -95,23 +99,20 @@ namespace IceRpc
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            bool compress,
-            FormatType format,
-            IReadOnlyDictionary<string, string>? context,
+            Invocation? invocation,
             T args,
             OutputStreamWriter<T> writer,
             CancellationToken cancel = default)
         {
-            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
                                         request.PayloadEncoding,
-                                        format);
+                                        invocation?.ClassFormat ?? default);
             writer(ostr, args);
             ostr.Finish();
-            if (compress && proxy.Encoding == Encoding.V20)
+            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
             {
                 request.CompressPayload();
             }
@@ -124,13 +125,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
-        /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
-        /// to the 2.0 encoding.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
-        /// instances.</param>
-        /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
-        /// proxy and the communicator's current context (if any).</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The delegate that will send the streamable.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -142,15 +137,12 @@ namespace IceRpc
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            bool compress,
-            FormatType format,
-            IReadOnlyDictionary<string, string>? context,
+            Invocation? invocation,
             T args,
             Action<SocketStream, T, CancellationToken> writer,
             CancellationToken cancel = default)
         {
-            OutgoingRequest request = WithEmptyArgs(proxy, operation, idempotent, context, cancel);
+            OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);
             // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
@@ -163,13 +155,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
-        /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only
-        /// to the 2.0 encoding.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
-        /// instances.</param>
-        /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
-        /// proxy and the communicator's current context (if any).</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
         /// </param>
@@ -178,23 +164,20 @@ namespace IceRpc
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            bool compress,
-            FormatType format,
-            IReadOnlyDictionary<string, string>? context,
+            Invocation? invocation,
             in T args,
             OutputStreamValueWriter<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
                                         request.PayloadEncoding,
-                                        format);
+                                        invocation?.ClassFormat ?? default);
             writer(ostr, in args);
             ostr.Finish();
-            if (compress && proxy.Encoding == Encoding.V20)
+            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
             {
                 request.CompressPayload();
             }
@@ -208,13 +191,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
-        /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="compress">True if the request payload should be compressed, false otherwise. Applies only to
-        /// the 2.0 encoding.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>args</c> contains class
-        /// instances.</param>
-        /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
-        /// proxy and the communicator's current context (if any).</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The delegate that writes the arguments into the frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -222,24 +199,21 @@ namespace IceRpc
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            bool compress,
-            FormatType format,
-            IReadOnlyDictionary<string, string>? context,
+            Invocation? invocation,
             in T args,
             OutputStreamValueWriterWithStreamable<T> writer,
             CancellationToken cancel = default) where T : struct
         {
-            var request = new OutgoingRequest(proxy, operation, idempotent, context, cancel);
+            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
             var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
                                         request.Payload,
                                         startAt: default,
                                         request.PayloadEncoding,
-                                        format);
+                                        invocation?.ClassFormat ?? default);
             // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = writer(ostr, in args, cancel);
             ostr.Finish();
-            if (compress && proxy.Encoding == Encoding.V20)
+            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
             {
                 request.CompressPayload();
             }
@@ -250,31 +224,24 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
         /// <param name="operation">The operation to invoke on the target Ice object.</param>
-        /// <param name="idempotent">True when operation is idempotent, otherwise false.</param>
-        /// <param name="context">An optional explicit context. When non null, it overrides both the context of the
-        /// proxy and the communicator's current context (if any).</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
         public static OutgoingRequest WithEmptyArgs(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            IReadOnlyDictionary<string, string>? context = null,
+            Invocation? invocation = null,
             CancellationToken cancel = default)
         {
-            var emptyArgsFrame = new OutgoingRequest(proxy,
-                                                          operation,
-                                                          idempotent,
-                                                          context,
-                                                          cancel);
+            var emptyArgsFrame = new OutgoingRequest(proxy, operation, invocation, cancel);
             emptyArgsFrame.Payload.Add(proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding));
             return emptyArgsFrame;
         }
 
         /// <summary>Constructs an outgoing request frame from the given incoming request frame.</summary>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet
-        /// and context of this proxy to create the request frame.</param>
+        /// <param name="proxy">The proxy sending this request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
+        /// <param name="invocation">The invocation properties.</param>
         /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming request frame's
         /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
         /// except for entries previously added by invocation interceptors.</param>
@@ -282,10 +249,12 @@ namespace IceRpc
         public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
+            Invocation? invocation = null,
             bool forwardBinaryContext = true,
             CancellationToken cancel = default)
-            : this(proxy, request.Operation, request.IsIdempotent, request.Context, cancel)
+            : this(proxy, request.Operation, invocation, cancel)
         {
+            Proxy = proxy;
             PayloadEncoding = request.PayloadEncoding;
 
             if (request.Protocol == Protocol)
@@ -437,21 +406,23 @@ namespace IceRpc
         private OutgoingRequest(
             IServicePrx proxy,
             string operation,
-            bool idempotent,
-            IReadOnlyDictionary<string, string>? context,
+            Invocation? invocation,
             CancellationToken cancel)
             : base(proxy.Protocol,
                    // TODO if Connection is null there should be a ConnectionPool to read the settings from
                    proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
                    proxy.Connection?.CompressionMinSize ?? 100)
         {
+            Proxy = proxy;
+            Progress = invocation?.Progress;
+
             if (Protocol == Protocol.Ice1)
             {
                 Facet = proxy.Impl.Facet;
                 Identity = proxy.Impl.Identity;
             }
 
-            IsIdempotent = idempotent;
+            IsIdempotent = invocation?.IsIdempotent ?? false;
             Operation = operation;
             Path = proxy.Path;
             PayloadEncoding = proxy.Encoding;
@@ -471,7 +442,7 @@ namespace IceRpc
                 cancel);
 
             // This makes a copy if context is not immutable.
-            _initialContext = context?.ToImmutableSortedDictionary() ?? proxy.Context;
+            _initialContext = invocation?.Context?.ToImmutableSortedDictionary() ?? proxy.Context;
         }
     }
 }

@@ -152,9 +152,9 @@ namespace IceRpc
         {
             // The last dispatcher of the pipeline:
             IDispatcher pipeline = new InlineDispatcher(
-                (current, cancel) =>
+                (request, cancel) =>
                 {
-                    string path = current.Path;
+                    string path = request.Path;
 
                     if (AbsolutePrefix.Length > 0)
                     {
@@ -185,7 +185,7 @@ namespace IceRpc
                     // First check for an exact match
                     if (_exactMatchRoutes.TryGetValue(path, out IDispatcher? dispatcher))
                     {
-                        return dispatcher.DispatchAsync(current, cancel);
+                        return dispatcher.DispatchAsync(request, cancel);
                     }
                     else
                     {
@@ -196,7 +196,7 @@ namespace IceRpc
                         {
                             if (_prefixMatchRoutes.TryGetValue(prefix, out dispatcher))
                             {
-                                return dispatcher.DispatchAsync(current, cancel);
+                                return dispatcher.DispatchAsync(request, cancel);
                             }
 
                             if (prefix == "/")
