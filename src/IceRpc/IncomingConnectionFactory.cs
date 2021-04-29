@@ -173,13 +173,11 @@ namespace IceRpc
         internal override Endpoint Endpoint { get; }
 
         private readonly Connection _connection;
-        private readonly Server _server;
 
         public override string ToString() => _connection.ToString()!;
 
         internal DatagramIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _server = server;
             _connection = endpoint.CreateDatagramServerConnection(server);
             Endpoint = _connection.Endpoint;
         }
