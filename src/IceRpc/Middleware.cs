@@ -28,5 +28,43 @@ namespace IceRpc
                     }
                 });
         }
+
+
+        /// <summary>Creates a middleware that emits dispatch metrics, <see cref="DispatchEventSource"/>.</summary>
+        /// <param name="eventSource">The event source used to publish the metrics events, when null the default
+        /// <see cref="DispatchEventSource.Log"/> is used.</param>
+        public static Func<IDispatcher, IDispatcher> DispatchMetrics(DispatchEventSource? eventSource = null)
+        {
+            eventSource ??= DispatchEventSource.Log;
+            return next => new InlineDispatcher(
+                async (request, cancel) =>
+                {
+                    eventSource.RequestStart(request);
+                    try
+                    {
+                        var response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                        if (response.ResultType == ResultType.Failure)
+                        {
+                            eventSource.RequestFailed(request, "IceRpc.RemoteException");
+                        }
+                        return response;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        eventSource.RequestCanceled(request);
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        eventSource.RequestFailed(request, ex);
+                        throw;
+                    }
+                    finally
+                    {
+                        eventSource.RequestStop(request);
+                    }
+                });
+        }
+
     }
 }

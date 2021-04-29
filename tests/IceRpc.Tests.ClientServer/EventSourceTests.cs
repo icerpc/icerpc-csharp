@@ -18,11 +18,13 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Map("/test", new Greeter1());
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter1(),
+                Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
 
@@ -67,11 +69,13 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Map("/test", new Greeter2());
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter2(),
+                Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
 
@@ -118,11 +122,13 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.DispatchMetrics(dispatchEventSource));
+            router.Map("/test", new Greeter3());
             await using var server = new Server
             {
                 Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter3(),
+                Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
 
@@ -181,8 +187,8 @@ namespace IceRpc.Tests.ClientServer
             public List<(string Key, string Value)> ExpectedEventCounters { get; }
             public List<(string Key, string Value)> ReceivedEventCounters { get; } = new();
             private readonly string _sourceName;
-            private SemaphoreSlim _semaphore;
-            private object _mutex = new(); // protects ReceivedEventCounters
+            private readonly SemaphoreSlim _semaphore;
+            private readonly object _mutex = new(); // protects ReceivedEventCounters
 
             public TestEventListener(string sourceName, List<(string Key, string Value)> expectedCounters)
             {
@@ -204,21 +210,20 @@ namespace IceRpc.Tests.ClientServer
                 {
                     EventSource = eventSource;
                     EnableEvents(eventSource,
-                                 EventLevel.Verbose,
+                                 EventLevel.LogAlways,
                                  EventKeywords.All,
                                  new Dictionary<string, string?>
                                  {
                                      { "EventCounterIntervalSec", "0.001" }
                                  });
                 }
-                base.OnEventSourceCreated(eventSource);
             }
 
             protected override void OnEventWritten(EventWrittenEventArgs eventData)
             {
                 if (eventData.EventId == -1) // counter event
                 {
-                    Assert.IsNotNull(eventData.Payload);
+                    Assert.That(eventData.Payload, Is.Not.Null);
                     var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
 
                     string name = "";
@@ -237,7 +242,7 @@ namespace IceRpc.Tests.ClientServer
                         value = meanValue?.ToString() ?? "";
                     }
 
-                    foreach (var entry in ExpectedEventCounters)
+                    foreach ((string Key, string Value) entry in ExpectedEventCounters)
                     {
                         if (entry.Key == name && entry.Value == value && !ReceivedEventCounters.Contains(entry))
                         {
@@ -251,7 +256,6 @@ namespace IceRpc.Tests.ClientServer
                     }
 
                 }
-                base.OnEventWritten(eventData);
             }
 
             public async Task WaitForCounterEventsAsync()

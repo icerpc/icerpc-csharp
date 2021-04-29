@@ -31,47 +31,54 @@ namespace IceRpc
         {
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-        public void RequestStart(string path, string operation)
+        [NonEvent]
+        public void RequestStart(IncomingRequest request)
         {
             Interlocked.Increment(ref _totalRequests);
             Interlocked.Increment(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                WriteEvent(1, path, operation);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-        public void RequestStop(string path, string operation)
-        {
-            Interlocked.Decrement(ref _currentRequests);
-            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-            {
-                WriteEvent(2, path, operation);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(3, Level = EventLevel.Informational)]
-        public void RequestCanceled(string path, string operation)
-        {
-            Interlocked.Increment(ref _canceledRequests);
-            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-            {
-                WriteEvent(3, path, operation);
+                RequestStart(request.Path, request.Operation);
             }
         }
 
         [NonEvent]
-        public void RequestFailed(string path, string operation, Exception? exception)
+        public void RequestStop(IncomingRequest request)
+        {
+            Interlocked.Decrement(ref _currentRequests);
+            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+            {
+                RequestStop(request.Path, request.Operation);
+            }
+        }
+
+        [NonEvent]
+        public void RequestCanceled(IncomingRequest request)
+        {
+            Interlocked.Increment(ref _canceledRequests);
+            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+            {
+                RequestCanceled(request.Path, request.Operation);
+            }
+        }
+
+        [NonEvent]
+        public void RequestFailed(IncomingRequest request, Exception exception)
         {
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestFailed(path, operation, exception?.GetType().FullName ?? "IceRpc.RemoteException");
+                RequestFailed(request.Path, request.Operation, exception?.GetType().FullName ?? "");
+            }
+        }
+
+        [NonEvent]
+        public void RequestFailed(IncomingRequest request, string exception)
+        {
+            Interlocked.Increment(ref _failedRequests);
+            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+            {
+                RequestFailed(request.Path, request.Operation, exception);
             }
         }
 
@@ -137,8 +144,23 @@ namespace IceRpc
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(3, Level = EventLevel.Informational)]
+        private void RequestCanceled(string path, string operation) =>
+            WriteEvent(3, path, operation);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [Event(4, Level = EventLevel.Informational)]
         private void RequestFailed(string path, string operation, string exception) =>
             WriteEvent(4, path, operation, exception);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+        private void RequestStart(string path, string operation) =>
+            WriteEvent(1, path, operation);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+        private void RequestStop(string path, string operation) =>
+            WriteEvent(2, path, operation);
     }
 }
