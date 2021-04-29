@@ -38,10 +38,9 @@ namespace IceRpc
             {
                 Debug.Assert(_id == -1);
                 // First add the stream and then assign the ID. AddStream can throw if the socket is closed and
-                // in this case we want to make sure the id isn't assigned since the stream isn't considered if
-                // not added to the socket.
-                _socket.AddStream(value, this, IsControl);
-                _id = value;
+                // in this case we want to make sure the id isn't assigned since the stream isn't considered
+                // allocated if not added to the socket.
+                _socket.AddStream(value, this, IsControl, ref _id);
             }
         }
 
@@ -175,11 +174,9 @@ namespace IceRpc
         protected SocketStream(MultiStreamSocket socket, long streamId)
         {
             _socket = socket;
-            _id = streamId;
-            IsBidirectional = _id % 4 < 2;
-            IsControl = _id == 2 || _id == 3;
-
-            _socket.AddStream(_id, this, IsControl);
+            IsBidirectional = streamId % 4 < 2;
+            IsControl = streamId == 2 || streamId == 3;
+            _socket.AddStream(streamId, this, IsControl, ref _id);
         }
 
         /// <summary>Constructs an outgoing stream.</summary>

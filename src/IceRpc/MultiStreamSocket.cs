@@ -251,7 +251,7 @@ namespace IceRpc
             return (largestBidirectionalStreamId, largestUnidirectionalStreamId);
         }
 
-        internal void AddStream(long id, SocketStream stream, bool control)
+        internal void AddStream(long id, SocketStream stream, bool control, ref long streamId)
         {
             lock (_mutex)
             {
@@ -262,6 +262,10 @@ namespace IceRpc
                     throw new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
                 }
                 _streams[id] = stream;
+
+                // Assign the stream ID within the mutex as well to ensure that the addition of the stream to
+                // the socket and the stream ID assignment are atomic.
+                streamId = id;
             }
 
             if (!control)
