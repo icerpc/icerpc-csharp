@@ -80,8 +80,8 @@ namespace IceRpc
             try
             {
                 // TODO: add support for stream data forwarding.
-                using IncomingResponse response =
-                    await ServicePrx.InvokeAsync(forwardedRequest, forwardedRequest.CancellationToken).ConfigureAwait(false);
+                using IncomingResponse response = await ServicePrx.InvokeAsync(forwardedRequest,
+                    forwardedRequest.CancellationToken).ConfigureAwait(false);
                 return new OutgoingResponse(request, response);
             }
             catch (LimitExceededException exception)

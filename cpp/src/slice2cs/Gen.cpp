@@ -2194,7 +2194,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "return IceRpc.OutgoingRequest.WithEmptyArgs(proxy, ";
                     _out << "\"" << operation->name() << "\", invocation, cancel);";
                     _out << eb;
-
                 }
                 else
                 {

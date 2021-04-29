@@ -904,7 +904,32 @@ namespace IceRpc
 
         private IInvoker CreatePipeline()
         {
-            IInvoker pipeline = new InlineInvoker((request, cancel) => PerformInvokeAsync(request, cancel));
+            IInvoker pipeline = new InlineInvoker(async (request, cancel) =>
+            {
+                // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
+                // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
+                // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
+
+                // TODO: this "request size" is now just the payload size. Should we rename the property to
+                // RetryRequestPayloadMaxSize?
+
+                int requestSize = request.PayloadSize;
+                bool releaseRequestAfterSent =
+                    requestSize > Communicator.RetryRequestMaxSize || !Communicator.IncRetryBufferSize(requestSize);
+
+                try
+                {
+                    return await PerformInvokeAsync(request, releaseRequestAfterSent, cancel).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (!releaseRequestAfterSent)
+                    {
+                        Communicator.DecRetryBufferSize(requestSize);
+                    }
+                    // TODO release the request memory if not already done after sent.
+                }
+            });
 
             IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
             foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
@@ -914,7 +939,10 @@ namespace IceRpc
             return pipeline;
         }
 
-        private async Task<IncomingResponse> PerformInvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        private async Task<IncomingResponse> PerformInvokeAsync(
+            OutgoingRequest request,
+            bool releaseRequestAfterSent,
+            CancellationToken cancel)
         {
             Connection? connection = _connection;
             List<Endpoint>? endpoints = null;
@@ -1016,10 +1044,10 @@ namespace IceRpc
                         progress.Report(false);
                         progress = null; // Only call the progress callback once (TODO: revisit this?)
                     }
-                    // if (releaseRequestAfterSent)
-                    // {
+                    if (releaseRequestAfterSent)
+                    {
                         // TODO release the request
-                    // }
+                    }
                     sent = true;
                     exception = null;
 
@@ -1104,7 +1132,7 @@ namespace IceRpc
 
                 if (attempt == Communicator.InvocationMaxAttempts ||
                     retryPolicy == RetryPolicy.NoRetry ||
-                  // TODO  (sent && releaseRequestAfterSent) ||
+                    (sent && releaseRequestAfterSent) ||
                     (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
                     ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
                 {
