@@ -173,7 +173,7 @@ namespace IceRpc
             base.ReceivedReset(errorCode);
         }
 
-        internal override async ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(CancellationToken cancel)
+        internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
             object frameObject;
             bool fin;
@@ -192,8 +192,8 @@ namespace IceRpc
                 throw;
             }
 
-            Debug.Assert(frameObject is IncomingResponseFrame);
-            var frame = (IncomingResponseFrame)frameObject;
+            Debug.Assert(frameObject is IncomingResponse);
+            var frame = (IncomingResponse)frameObject;
 
             if (fin)
             {

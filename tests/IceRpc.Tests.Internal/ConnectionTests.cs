@@ -483,7 +483,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                // GoAway waits for the client-side connection closure, which can't occur until all the invocation
+                // GoAway waits for the client-side connection closure, which can't occur until all the invocations
                 // complete on the connection. We release the dispatch here and ensure GoAway completes.
                 Task goAwayTask = factory.Server.GoAwayAsync("server message");
                 Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
@@ -494,7 +494,7 @@ namespace IceRpc.Tests.Internal
 
                 // Next invocation on the connection should throw the ConnectionClosedException
                 ConnectionClosedException? ex =
-                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
+                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await proxy.IcePingAsync());
                 Assert.That(ex, Is.Not.Null);
 
                 // TODO: after connetion refactoring, should a non-resumable connection remember if

@@ -108,7 +108,7 @@ namespace IceRpc.Tests.ClientServer
             var dispatchStoppedActivities = new List<Activity>();
             using var listener = new ActivityListener
             {
-                ShouldListenTo = source => source.Name == activitySource.Name,
+                ShouldListenTo = source => source == activitySource,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
                 ActivityStarted = activity => dispatchStartedActivities.Add(activity),
                 ActivityStopped = activity => dispatchStoppedActivities.Add(activity)
@@ -123,6 +123,9 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNotNull(dispatchActivity);
             Assert.AreEqual("IceRpc.Dispatch", dispatchActivity.DisplayName);
             Assert.AreEqual(1, dispatchStartedActivities.Count);
+            Assert.AreEqual(1, dispatchStoppedActivities.Count);
+            Assert.AreEqual(dispatchStartedActivities[0].DisplayName, dispatchStoppedActivities[0].DisplayName);
+            Assert.AreEqual(dispatchStartedActivities[0].Id, dispatchStoppedActivities[0].Id);
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
@@ -160,7 +163,7 @@ namespace IceRpc.Tests.ClientServer
             var dispatchStoppedActivities = new List<Activity>();
             using var listener = new ActivityListener
             {
-                ShouldListenTo = source => source.Name == activitySource.Name,
+                ShouldListenTo = source => source == activitySource,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
                 ActivityStarted = activity => dispatchStartedActivities.Add(activity),
                 ActivityStopped = activity => dispatchStoppedActivities.Add(activity)
@@ -203,6 +206,9 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("Baz", dispatchActivity.GetBaggageItem("Foo"));
             Assert.AreEqual("Information", dispatchActivity.GetBaggageItem("TraceLevel"));
             Assert.AreEqual(1, dispatchStartedActivities.Count);
+            Assert.AreEqual(1, dispatchStoppedActivities.Count);
+            Assert.AreEqual(dispatchStartedActivities[0].DisplayName, dispatchStoppedActivities[0].DisplayName);
+            Assert.AreEqual(dispatchStartedActivities[0].Id, dispatchStoppedActivities[0].Id);
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 

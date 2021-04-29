@@ -188,7 +188,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(multiTagged.MMyStructDict, multiTagged1.MMyStructDict);
             Assert.IsNull(multiTagged1.MAnotherStructDict);
 
-            using var requestFrame = OutgoingRequestFrame.WithArgs(
+            using var requestFrame = OutgoingRequest.WithArgs(
                     _prx,
                     "opVoid",
                     idempotent: false,
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.CodeGeneration
                         ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                     });
 
-            using IncomingResponseFrame response = await _prx.InvokeAsync(requestFrame);
+            using IncomingResponse response = await _prx.InvokeAsync(requestFrame);
             Assert.AreEqual(ResultType.Success, response.ResultType);
 
             var b = (B)await _prx.PingPongAsync(new B());

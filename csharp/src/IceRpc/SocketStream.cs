@@ -349,7 +349,7 @@ namespace IceRpc
             return request;
         }
 
-        internal async virtual ValueTask<IncomingResponseFrame> ReceiveResponseFrameAsync(
+        internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
             ArraySegment<byte> data;
@@ -370,10 +370,10 @@ namespace IceRpc
                 throw;
             }
 
-            IncomingResponseFrame response;
+            IncomingResponse response;
             if (ReceivedEndOfStream)
             {
-                response = new IncomingResponseFrame(
+                response = new IncomingResponse(
                     _socket.Endpoint.Protocol,
                     data,
                     _socket.IncomingFrameMaxSize,
@@ -382,7 +382,7 @@ namespace IceRpc
             else
             {
                 EnableReceiveFlowControl();
-                response = new IncomingResponseFrame(
+                response = new IncomingResponse(
                     _socket.Endpoint.Protocol,
                     data,
                     _socket.IncomingFrameMaxSize,
@@ -466,7 +466,7 @@ namespace IceRpc
             _socket.Logger.LogSentInitializeFrame(_socket, _socket.IncomingFrameMaxSize);
         }
 
-        internal async ValueTask SendRequestFrameAsync(OutgoingRequestFrame request, CancellationToken cancel = default)
+        internal async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel = default)
         {
             try
             {
@@ -560,7 +560,7 @@ namespace IceRpc
             var ostr = new OutputStream(Encoding.V20, buffer);
             ostr.WriteByteSpan(TransportHeader.Span);
 
-            ostr.Write(frame is OutgoingRequestFrame ? Ice2FrameType.Request : Ice2FrameType.Response);
+            ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
             ostr.Finish();
@@ -571,7 +571,7 @@ namespace IceRpc
 
             if (frameSize > _socket.PeerIncomingFrameMaxSize)
             {
-                if (frame is OutgoingRequestFrame)
+                if (frame is OutgoingRequest)
                 {
                     throw new LimitExceededException(
                         $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameSizeMax ({
