@@ -29,7 +29,6 @@ namespace IceRpc
                 });
         }
 
-
         /// <summary>Creates a middleware that emits dispatch metrics, <see cref="DispatchEventSource"/>.</summary>
         /// <param name="eventSource">The event source used to publish the metrics events, when null the default
         /// <see cref="DispatchEventSource.Log"/> is used.</param>
@@ -65,6 +64,5 @@ namespace IceRpc
                     }
                 });
         }
-
     }
 }
