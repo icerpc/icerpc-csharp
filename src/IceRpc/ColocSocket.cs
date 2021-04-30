@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
-    internal class ColocSocket : MultiStreamSocket, ISocket
+    internal class ColocSocket : MultiStreamSocket, IColocSocket
     {
         /// <inheritdoc/>
         public override TimeSpan IdleTimeout
@@ -21,11 +21,10 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public bool IsSecure => true;
+        public long Id { get; }
 
-        internal long Id { get; }
-
-        internal override ISocket Socket => this;
+        /// <inheritdoc/>
+        public override ISocket Socket => this;
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
@@ -157,9 +156,6 @@ namespace IceRpc
                 throw new TransportException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
             }
         }
-
-        public override string ToString() =>
-            $"{base.ToString()} (ID={Id}, Endpoint={Endpoint}, Incoming={IsIncoming})";
 
         internal ColocSocket(
             ColocEndpoint endpoint,

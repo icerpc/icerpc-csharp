@@ -157,10 +157,10 @@ namespace IceRpc
         }
 
         internal override SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
-            new WSSocket(base.CreateSocket(addr, options, logger));
+            new WSSocket((TcpSocket)base.CreateSocket(addr, options, logger));
 
         internal override SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>
-            new WSSocket(base.CreateSocket(socket, logger));
+            new WSSocket((TcpSocket)base.CreateSocket(socket, logger));
 
         // Constructor used for ice2 parsing.
         private WSEndpoint(EndpointData data, bool? tls)

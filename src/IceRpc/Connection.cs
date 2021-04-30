@@ -252,10 +252,10 @@ namespace IceRpc
             progress?.Report(true);
         }
 
-        /// <summary>Returns a description of the connection as human readable text, suitable for logging or error
-        /// messages.</summary>
+        /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
-        public override string ToString() => MultiStreamSocket.ToString()!;
+        public override string? ToString() =>
+            $"{Socket.GetType().FullName} ({Socket.Description}, IsIncoming={IsIncoming})";
 
         internal Connection(
             Endpoint endpoint,

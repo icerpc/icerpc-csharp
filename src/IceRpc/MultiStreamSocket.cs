@@ -30,6 +30,9 @@ namespace IceRpc
         /// </summary>
         public bool IsIncoming { get; }
 
+        /// <summary>The public socket interface to obtain information on the socket.</summary>
+        public abstract ISocket Socket { get; }
+
         internal int IncomingFrameMaxSize { get; }
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
         internal TimeSpan LastActivity { get; private set; }
@@ -41,7 +44,6 @@ namespace IceRpc
         internal int? PeerIncomingFrameMaxSize { get; set; }
         internal ILogger Logger { get; }
         internal event EventHandler? Ping;
-        internal abstract ISocket Socket { get; }
 
         private int _incomingStreamCount;
         // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.

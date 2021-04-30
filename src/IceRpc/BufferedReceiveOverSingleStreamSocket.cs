@@ -77,9 +77,6 @@ namespace IceRpc
         public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             Underlying.SendDatagramAsync(buffer, cancel);
 
-        /// <inheritdoc/>
-        public override string? ToString() => Underlying.ToString();
-
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
         internal BufferedReceiveOverSingleStreamSocket(SingleStreamSocket underlying, int bufferSize = 256)

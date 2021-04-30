@@ -13,10 +13,10 @@ namespace IceRpc
     /// raw binary data over a transport such as TCP, UDP or WebSocket.</summary>
     public abstract class SingleStreamSocket : IDisposable
     {
-        internal ILogger Logger { get; }
-
         /// <summary>The public socket interface to obtain information on the socket.</summary>
         public abstract ISocket Socket { get; }
+
+        internal ILogger Logger { get; }
 
         /// <summary>This property should be used for testing purpose only.</summary>
         internal abstract System.Net.Sockets.Socket? NetworkSocket { get; }

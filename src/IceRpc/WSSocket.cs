@@ -177,15 +177,13 @@ namespace IceRpc
         public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             _bufferedSocket.SendDatagramAsync(buffer, cancel);
 
-        public override string ToString() => _bufferedSocket.ToString()!;
-
         protected override void Dispose(bool disposing)
         {
             _bufferedSocket.Dispose();
             _rand.Dispose();
         }
 
-        internal WSSocket(SingleStreamSocket socket)
+        internal WSSocket(TcpSocket socket)
             : base(socket.Logger)
         {
             _bufferedSocket = new BufferedReceiveOverSingleStreamSocket(socket);

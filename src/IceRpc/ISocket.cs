@@ -16,8 +16,24 @@ namespace IceRpc
     {
         /// <summary><c>true</c> if the socket uses encryption <c>false</c> otherwise.</summary>
         bool IsSecure { get; }
+
+        /// <summary>The description of the socket.</summary>
+        string Description => $"IsSecure={IsSecure}";
     }
 
+    public interface IColocSocket : ISocket
+    {
+        /// <summary>The Id of the colocated socket.</summary>
+        long Id { get; }
+
+        /// <inheritdoc/>
+        bool ISocket.IsSecure => true;
+
+        /// <inheritdoc/>
+        string ISocket.Description => $"ID={Id}";
+    }
+
+    /// <summary>The ITcpSocket interface provides properties for an IP socket.</summary>
     public interface IIpSocket : ISocket
     {
         /// <summary>The socket local IP-endpoint or null if it is not available.</summary>
@@ -26,26 +42,34 @@ namespace IceRpc
         /// <summary>The socket remote IP-endpoint or null if it is not available.</summary>
         IPEndPoint? RemoteEndPoint { get; }
 
-        string? ToString()
+        /// <inheritdoc/>
+        string ISocket.Description
         {
-            try
+            get
             {
-                string localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
-                string remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
-                return $"{GetType().Name}(LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint})";
-            }
-            catch (SocketException)
-            {
-                return $"{GetType().Name}(not connected)";
-            }
-            catch (ObjectDisposedException)
-            {
-                return $"{GetType().Name}(closed)";
+                string localEndPoint;
+                string remoteEndPoint;
+                try
+                {
+                    localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
+                    remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
+                }
+                catch (SocketException)
+                {
+                    localEndPoint = "<not connected>";
+                    remoteEndPoint = "<not connected>";
+                }
+                catch
+                {
+                    localEndPoint = "<closed>";
+                    remoteEndPoint = "<closed>";
+                }
+                return $"LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint}, IsSecure={IsSecure}";
             }
         }
     }
 
-    /// <summary>The ITcpSocket interface provides properties for a Tcp socket.</summary>
+    /// <summary>The ITcpSocket interface provides properties for a TCP socket.</summary>
     public interface ITcpSocket : IIpSocket
     {
         /// <summary>Gets a Boolean value that indicates whether the certificate revocation list is checked during the
