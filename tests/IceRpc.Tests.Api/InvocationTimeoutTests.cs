@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Api
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(1000, 500)]
+        [TestCase(10000, 1000)]
         public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int delay, int timeout)
         {
             DateTime? dispatchDeadline = null;
