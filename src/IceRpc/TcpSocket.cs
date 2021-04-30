@@ -117,7 +117,7 @@ namespace IceRpc
                 }
 
                 // If a secure connection is needed, a new SslSocket is created and returned from this method.
-                // The caller is responsible for using the returned SslSocket in place of this Tcp_socket.
+                // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
                 if (endpoint.IsSecure ?? secure)
                 {
                     var socket = new SslSocket(this, _socket);
@@ -159,7 +159,7 @@ namespace IceRpc
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
                 // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
-                // responsible for using the returned SslSocket instead of using this Tcp_socket.
+                // responsible for using the returned SslSocket instead of using this TcpSocket.
 
                 if (authenticationOptions != null)
                 {
@@ -264,6 +264,8 @@ namespace IceRpc
             : base(logger)
         {
             _addr = addr;
+
+            // The socket is not connected if a client socket, it's connected otherwise.
             _socket = fd;
         }
     }

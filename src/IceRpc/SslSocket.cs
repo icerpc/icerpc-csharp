@@ -15,7 +15,7 @@ namespace IceRpc
     {
         public override ISocket Socket => _underlying.Socket;
 
-        internal SslStream? SslStream;
+        internal SslStream? SslStream { get; private set; }
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _underlying.NetworkSocket;

@@ -94,7 +94,7 @@ namespace IceRpc
         }
 
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
-        public bool IsIncoming { get; }
+        public bool IsIncoming => Server != null;
 
         /// <summary><c>true</c> if the connection uses encryption <c>false</c> otherwise.</summary>
         public virtual bool IsSecure => Socket.IsSecure;
@@ -269,7 +269,6 @@ namespace IceRpc
             MultiStreamSocket = socket;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
-            IsIncoming = server != null;
             _closeTimeout = options.CloseTimeout;
             Server = server;
             _state = ConnectionState.NotInitialized;
@@ -841,11 +840,12 @@ namespace IceRpc
             async Task PerformGoAwayAsync((long Bidirectional, long Unidirectional) lastStreamIds, Exception exception)
             {
                 // Abort non-processed outgoing streams and all incoming streams.
-                MultiStreamSocket.AbortStreams(exception,
-                                    stream => stream.IsIncoming ||
-                                              stream.IsBidirectional ?
-                                                  stream.Id > lastStreamIds.Bidirectional :
-                                                  stream.Id > lastStreamIds.Unidirectional);
+                MultiStreamSocket.AbortStreams(
+                    exception,
+                    stream => stream.IsIncoming ||
+                                stream.IsBidirectional ?
+                                    stream.Id > lastStreamIds.Bidirectional :
+                                    stream.Id > lastStreamIds.Unidirectional);
 
                 // Wait for all the streams to complete.
                 await MultiStreamSocket.WaitForEmptyStreamsAsync().ConfigureAwait(false);

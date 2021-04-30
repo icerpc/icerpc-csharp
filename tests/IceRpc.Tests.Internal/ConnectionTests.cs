@@ -297,11 +297,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(transport, secure: secure);
 
-            Assert.That(factory.Client.Socket, Is.AssignableTo<IIpSocket>());
-            Assert.That(factory.Server.Socket, Is.AssignableTo<IIpSocket>());
+            Assert.That(factory.Client.Socket, Is.AssignableTo<IIPSocket>());
+            Assert.That(factory.Server.Socket, Is.AssignableTo<IIPSocket>());
 
-            var clientSocket = (IIpSocket)factory.Client.Socket;
-            var serverSocket = (IIpSocket)factory.Server.Socket;
+            var clientSocket = (IIPSocket)factory.Client.Socket;
+            var serverSocket = (IIPSocket)factory.Server.Socket;
 
             Assert.That(clientSocket.IsSecure, Is.EqualTo(secure));
             Assert.That(serverSocket.IsSecure, Is.EqualTo(secure));

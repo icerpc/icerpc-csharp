@@ -208,12 +208,12 @@ namespace IceRpc.Tests.Internal
                 Communicator = Communicator,
             };
             return (connection.MultiStreamSocket, IServicePrx.Factory.Create("/dummy",
-                                                                  ClientEndpoint.Protocol,
-                                                                  ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoint: null,
-                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                                  connection,
-                                                                  options));
+                                                                             ClientEndpoint.Protocol,
+                                                                             ClientEndpoint.Protocol.GetEncoding(),
+                                                                             endpoint: null,
+                                                                             altEndpoints: ImmutableList<Endpoint>.Empty,
+                                                                             connection,
+                                                                             options));
         }
 
         protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
