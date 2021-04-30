@@ -6,7 +6,7 @@ namespace IceRpc
 {
     public static class Interceptor
     {
-        /// <summary>Creates a interceptor that publish invocation metrics using a <see cref="InvocationEventSource"/>.
+        /// <summary>Creates an interceptor that publishes invocation metrics using an <see cref="InvocationEventSource"/>.
         /// </summary>
         /// <param name="eventSource">The event source used to publish the metrics events.</param>
         public static Func<IInvoker, IInvoker> CreateMetricsPublisher(InvocationEventSource eventSource) =>
