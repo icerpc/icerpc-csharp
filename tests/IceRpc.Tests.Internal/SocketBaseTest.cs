@@ -67,7 +67,8 @@ namespace IceRpc.Tests.Internal
                                 certificateAuthorities: new X509Certificate2Collection()
                                 {
                                     new X509Certificate2("../../../certs/cacert.pem")
-                                })
+                                }),
+                    TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
                 }
             };
             Communicator = new Communicator(connectionOptions: clientConnectionOptions);
@@ -142,18 +143,18 @@ namespace IceRpc.Tests.Internal
             {
                 Connection connection = await _acceptor.AcceptAsync();
                 Debug.Assert(connection.Endpoint.TransportName == TransportName);
-                await connection.Socket.AcceptAsync(ServerAuthenticationOptions, default);
+                await connection.MultiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
                 if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the socket.
                     // See above for the reason.
-                    if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
+                    if (connection.MultiStreamSocket is MultiStreamOverSingleStreamSocket socket)
                     {
                         Memory<byte> buffer = new byte[1];
                         await socket.Underlying.ReceiveAsync(buffer, default);
                     }
                 }
-                return connection.Socket;
+                return connection.MultiStreamSocket;
             }
             catch (Exception ex)
             {
@@ -190,7 +191,7 @@ namespace IceRpc.Tests.Internal
                 // a single byte over the socket to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (connection.Socket is MultiStreamOverSingleStreamSocket socket)
+                if (connection.MultiStreamSocket is MultiStreamOverSingleStreamSocket socket)
                 {
                     var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
                     await socket.Underlying.SendAsync(buffer, default);
@@ -200,24 +201,24 @@ namespace IceRpc.Tests.Internal
             if (connection.Endpoint.TransportName != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(connection.Socket is ColocSocket);
+                Debug.Assert(connection.MultiStreamSocket is ColocSocket);
             }
             var options = new ProxyOptions()
             {
                 Invoker = Communicator,
             };
-            return (connection.Socket, IServicePrx.Factory.Create("/dummy",
-                                                                  ClientEndpoint.Protocol,
-                                                                  ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoint: null,
-                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                                  connection,
-                                                                  options));
+            return (connection.MultiStreamSocket, IServicePrx.Factory.Create("/dummy",
+                                                                             ClientEndpoint.Protocol,
+                                                                             ClientEndpoint.Protocol.GetEncoding(),
+                                                                             endpoint: null,
+                                                                             altEndpoints: ImmutableList<Endpoint>.Empty,
+                                                                             connection,
+                                                                             options));
         }
 
         protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
 
         protected MultiStreamSocket CreateDatagramServerSocket() =>
-            ServerEndpoint.CreateDatagramServerConnection(Server).Socket;
+            ServerEndpoint.CreateDatagramServerConnection(Server).MultiStreamSocket;
     }
 }

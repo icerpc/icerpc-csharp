@@ -468,7 +468,7 @@ namespace IceRpc
                     response?.Dispose();
                     response = null;
 
-                    using IDisposable? socketScope = connection.Socket.StartScope();
+                    using IDisposable? socketScope = connection.StartScope();
 
                     // Create the outgoing stream.
                     stream = connection.CreateStream(!oneway);
@@ -591,7 +591,7 @@ namespace IceRpc
                     {
                         attempt++;
 
-                        using IDisposable? socketScope = connection?.Socket.StartScope();
+                        using IDisposable? socketScope = connection?.StartScope();
                         logger.LogRetryRequestRetryableException(
                             retryPolicy,
                             attempt,
@@ -629,7 +629,7 @@ namespace IceRpc
 
             if (exception != null)
             {
-                using IDisposable? socketScope = connection?.Socket.StartScope();
+                using IDisposable? socketScope = connection?.StartScope();
                 logger.LogRequestException(request, exception);
             }
 

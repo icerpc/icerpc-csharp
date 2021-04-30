@@ -13,12 +13,16 @@ namespace IceRpc
 {
     internal sealed class SslSocket : SingleStreamSocket
     {
-        public override Socket? Socket => _underlying.Socket;
-        public override SslStream? SslStream => _sslStream;
+        public override ISocket Socket => _underlying.Socket;
 
-        private SslStream? _sslStream;
+        internal SslStream? SslStream { get; private set; }
+
+        /// <inheritdoc/>
+        internal override Socket? NetworkSocket => _underlying.NetworkSocket;
+
         private BufferedStream? _writeStream;
         private readonly SingleStreamSocket _underlying;
+        private readonly Socket _socket;
 
         public override async ValueTask<SingleStreamSocket> AcceptAsync(
             Endpoint endpoint,
@@ -39,15 +43,8 @@ namespace IceRpc
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            SslClientAuthenticationOptions options = authenticationOptions!;
-            if (options.TargetHost == null)
-            {
-                options = options.Clone();
-                options.TargetHost = endpoint.Host;
-            }
-
             await AuthenticateAsync(sslStream =>
-                sslStream.AuthenticateAsClientAsync(options, cancel)).ConfigureAwait(false);
+                sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel)).ConfigureAwait(false);
             return this;
         }
 
@@ -66,7 +63,7 @@ namespace IceRpc
             int received;
             try
             {
-                received = await _sslStream!.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                received = await SslStream!.ReadAsync(buffer, cancel).ConfigureAwait(false);
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
@@ -126,7 +123,7 @@ namespace IceRpc
         {
             _underlying.Dispose();
 
-            _sslStream?.Dispose();
+            SslStream!.Dispose();
 
             try
             {
@@ -138,16 +135,20 @@ namespace IceRpc
             }
         }
 
-        internal SslSocket(SingleStreamSocket underlying)
-            : base(underlying.Logger) => _underlying = underlying;
+        internal SslSocket(SingleStreamSocket underlying, Socket socket)
+            : base(underlying.Logger)
+        {
+            _socket = socket;
+            _underlying = underlying;
+        }
 
         private async Task AuthenticateAsync(Func<SslStream, Task> authenticate)
         {
             // This can only be created with a connected socket.
-            _sslStream = new SslStream(new NetworkStream(_underlying.Socket!, false), false);
+            SslStream = new SslStream(new NetworkStream(_socket, false), false);
             try
             {
-                await authenticate(_sslStream).ConfigureAwait(false);
+                await authenticate(SslStream).ConfigureAwait(false);
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
@@ -159,15 +160,15 @@ namespace IceRpc
             }
             catch (AuthenticationException ex)
             {
-                Logger.LogTlsAuthenticationFailed(_sslStream, ex);
+                Logger.LogTlsAuthenticationFailed(SslStream, ex);
                 throw new TransportException(ex, RetryPolicy.OtherReplica);
             }
 
-            Logger.LogTlsAuthenticationSucceeded(_sslStream);
+            Logger.LogTlsAuthenticationSucceeded(SslStream);
 
             // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
             // small buffers will be sent within a single SSL frame.
-            _writeStream = new BufferedStream(_sslStream);
+            _writeStream = new BufferedStream(SslStream);
         }
     }
 }
