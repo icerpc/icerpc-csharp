@@ -358,12 +358,13 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class ClassOperationsUnexpectedClass : IService
         {
-            public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
-                new(OutgoingResponse.WithReturnValue(new Dispatch(request),
-                                                           compress: false,
-                                                           format: default,
-                                                           new MyClassAlsoEmpty(),
-                                                           (ostr, ae) => ostr.WriteClass(ae, null)));
+            public ValueTask<OutgoingResponse> DispatchAsync(
+                IncomingRequest request, Dispatch dispatch, CancellationToken cancel) =>
+                new(OutgoingResponse.WithReturnValue(dispatch,
+                                                     compress: false,
+                                                     format: default,
+                                                     new MyClassAlsoEmpty(),
+                                                     (ostr, ae) => ostr.WriteClass(ae, null)));
         }
     }
 }

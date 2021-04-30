@@ -120,6 +120,8 @@ namespace IceRpc
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
 
+        internal ILogger Logger => MultiStreamSocket.Logger;
+
         // This property should be private but it's used for testing as well.
         internal MultiStreamSocket MultiStreamSocket { get; }
 
@@ -751,7 +753,7 @@ namespace IceRpc
                     {
                         // We log this exception, since otherwise it would be lost.
                         MultiStreamSocket.Logger.LogDispatchException(request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
+                        return OutgoingResponse.WithVoidReturnValue(request);
                     }
                     else
                     {

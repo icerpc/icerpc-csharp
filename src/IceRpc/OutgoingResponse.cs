@@ -28,10 +28,19 @@ namespace IceRpc
         /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
         /// <param name="dispatch">The dispatch object for the corresponding incoming request.</param>
         /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithVoidReturnValue(Dispatch dispatch)
+        public static OutgoingResponse WithVoidReturnValue(Dispatch dispatch) =>
+            WithVoidReturnValue(dispatch.IncomingRequest, dispatch.ResponseFeatures);
+
+        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="features">The features for the response.</param>
+        /// <returns>A new OutgoingResponse.</returns>
+        public static OutgoingResponse WithVoidReturnValue(IncomingRequest request, FeatureCollection? features = null)
         {
-            var response = new OutgoingResponse(dispatch.Protocol, dispatch.Encoding);
-            response.Payload.Add(dispatch.Protocol.GetVoidReturnPayload(dispatch.Encoding));
+            var response = new OutgoingResponse(request.Protocol,
+                                                request.PayloadEncoding,
+                                                features ?? new FeatureCollection());
+            response.Payload.Add(request.Protocol.GetVoidReturnPayload(request.PayloadEncoding));
             return response;
         }
 
@@ -152,18 +161,35 @@ namespace IceRpc
             return response;
         }
 
-        /// <summary>Constructs an outgoing response frame from the given incoming response frame. The new response will
-        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.</summary>
-        /// <param name="request">The request for which this constructor creates a response.</param>
-        /// <param name="response">The incoming response used to construct the new outgoing response frame.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming response frame's
-        /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
+        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
+        /// <param name="response">The incoming response used to construct the new outgoing response.</param>
+        /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
+        /// binary context as a fallback - all the entries in this binary context are added before the response is sent,
         /// except for entries previously added by dispatch interceptors.</param>
+        public OutgoingResponse(
+            Dispatch dispatch,
+            IncomingResponse response,
+            bool forwardBinaryContext = true)
+            : this(dispatch.IncomingRequest, response, forwardBinaryContext, dispatch.ResponseFeatures)
+        {
+        }
+
+        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <param name="request">The request on which this constructor creates a response.</param>
+        /// <param name="response">The incoming response used to construct the new outgoing response.</param>
+        /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
+        /// binary context as a fallback - all the entries in this binary context are added before the response is sent,
+        /// except for entries previously added by dispatch interceptors.</param>
+        /// <param name="features">The features for this response.</param>
         public OutgoingResponse(
             IncomingRequest request,
             IncomingResponse response,
-            bool forwardBinaryContext = true)
-            : this(request.Protocol, response.PayloadEncoding)
+            bool forwardBinaryContext = true,
+            FeatureCollection? features = null)
+            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
         {
             if (Protocol == response.Protocol)
             {
@@ -270,11 +296,22 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs a response frame that represents a failure and contains an exception.</summary>
-        /// <param name="request">The incoming request for which this constructor creates a response.</param>
-        /// <param name="exception">The exception to store into the frame's payload.</param>
-        public OutgoingResponse(IncomingRequest request, RemoteException exception)
-            : this(request.Protocol, request.PayloadEncoding)
+        /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
+        /// <param name="dispatch">The dispatch for the incoming request for which this constructor
+        ///  creates a response.</param>
+        /// <param name="exception">The exception to store into the response's payload.</param>
+        public OutgoingResponse(Dispatch dispatch, RemoteException exception)
+            : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
+        {
+        }
+
+        /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
+        /// <param name="request">The incoming request for which this constructor
+        ///  creates a response.</param>
+        /// <param name="exception">The exception to store into the response's payload.</param>
+        /// <param name="features">The features for this response.</param>
+        public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
+            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
         {
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (PayloadEncoding == Encoding.V11)
@@ -404,6 +441,7 @@ namespace IceRpc
         {
             var response = new OutgoingResponse(dispatch.Protocol,
                                                 dispatch.Encoding,
+                                                dispatch.ResponseFeatures,
                                                 dispatch.Connection.CompressionLevel,
                                                 dispatch.Connection.CompressionMinSize);
 
@@ -422,11 +460,12 @@ namespace IceRpc
         private OutgoingResponse(
             Protocol protocol,
             Encoding encoding,
+            FeatureCollection features,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
             int compressionMinSize = 100)
             : base(protocol,
                    compressionLevel,
-                   compressionMinSize) =>
-            PayloadEncoding = encoding;
+                   compressionMinSize,
+                   features) => PayloadEncoding = encoding;
     }
 }
