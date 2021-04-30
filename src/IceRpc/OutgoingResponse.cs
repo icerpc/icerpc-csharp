@@ -311,7 +311,7 @@ namespace IceRpc
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <param name="features">The features for this response.</param>
         public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
         {
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (PayloadEncoding == Encoding.V11)
