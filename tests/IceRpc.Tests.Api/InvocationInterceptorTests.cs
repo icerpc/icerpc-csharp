@@ -24,20 +24,24 @@ namespace IceRpc.Tests.Api
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>
         [Test]
-        public void InvocationInterceptor_Throws_ArgumentException()
+        public async Task InvocationInterceptor_Throws_ArgumentExceptionAsync()
         {
             var prx = Prx.Clone();
-            prx.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
         [Test]
-        public void InvocationInterceptor_Timeout_OperationCanceledException()
+        public async Task InvocationInterceptor_Timeout_OperationCanceledExceptionAsync()
         {
             var prx = Prx.Clone();
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
-            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            pool.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 await Task.Delay(100, default);
                 return await next.InvokeAsync(request, cancel);
@@ -52,7 +56,9 @@ namespace IceRpc.Tests.Api
         {
             var interceptorCalls = new List<string>();
             var prx = Prx.Clone();
-            prx.Use(
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
                     interceptorCalls.Add("ProxyInvocationInterceptors -> 0");
@@ -84,7 +90,9 @@ namespace IceRpc.Tests.Api
         {
             IncomingResponse? response = null;
             var prx = Prx.Clone();
-            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 if (response == null)
                 {
@@ -105,12 +113,14 @@ namespace IceRpc.Tests.Api
         public async Task InvocationInterceptor_Overwrite_RequestContext()
         {
             var prx = Prx.Clone();
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
             prx.Context = new Dictionary<string, string>()
                 {
                     { "foo", "foo" }
                 };
 
-            prx.Use(next => new InlineInvoker(async (request, cancel) =>
+            pool.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 request.WritableContext["foo"] = "bar";
                 return await next.InvokeAsync(request, cancel);

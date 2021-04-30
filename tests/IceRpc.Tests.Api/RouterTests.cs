@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Api
             _communicator = new Communicator();
             _server = new Server
             {
-                Communicator = _communicator,
+                Invoker = _communicator,
                 Dispatcher = _router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };

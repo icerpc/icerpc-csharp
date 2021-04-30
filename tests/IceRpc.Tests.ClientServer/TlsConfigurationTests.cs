@@ -339,7 +339,7 @@ namespace IceRpc.Tests.ClientServer
                 (server, prx) =>
                 {
                     Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                    Assert.That(prx.Connection!.Socket, Is.AssignableFrom<ITcpSocket>());
+                    Assert.That(prx.Connection!.Socket, Is.AssignableTo<ITcpSocket>());
                     var socket = (TcpSocket)prx.Connection.Socket;
                     Assert.IsTrue(socket.IsSecure);
                     Assert.AreEqual(SslProtocols.Tls12, socket.SslProtocol);
@@ -411,7 +411,7 @@ namespace IceRpc.Tests.ClientServer
             await using var serverCommunicator = new Communicator(); ;
             await using var server = new Server
             {
-                Communicator = serverCommunicator,
+                Invoker = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 Endpoint = GetTestEndpoint(serverHost, tls: true),

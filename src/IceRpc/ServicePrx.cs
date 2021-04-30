@@ -34,8 +34,6 @@ namespace IceRpc
             set => _connection = value;
         }
 
-        public Communicator Communicator { get; }
-
         /// <inheritdoc/>
         public IReadOnlyDictionary<string, string> Context
         {
@@ -61,6 +59,9 @@ namespace IceRpc
             set => _invocationTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
         }
+
+        /// <inheritdoc/>
+        public IInvoker Invoker { get; set; }
 
         /// <inheritdoc/>
         public bool IsOneway { get; set; }
@@ -151,7 +152,6 @@ namespace IceRpc
 
         ServicePrx IServicePrx.Impl => this;
 
-        internal IInvoker Invoker => _invoker ??= CreatePipeline();
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
@@ -165,10 +165,6 @@ namespace IceRpc
         private Endpoint? _endpoint;
 
         private TimeSpan _invocationTimeout;
-
-        private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
-            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
-        private IInvoker? _invoker;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -228,11 +224,11 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Facet != other.Facet)
+            if (Invoker != other.Invoker)
             {
                 return false;
             }
-            if (!_interceptorList.SequenceEqual(other._interceptorList))
+            if (Facet != other.Facet)
             {
                 return false;
             }
@@ -282,6 +278,7 @@ namespace IceRpc
             var hash = new HashCode();
             hash.Add(Facet);
             hash.Add(_invocationTimeout);
+            hash.Add(Invoker);
             hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
@@ -389,113 +386,12 @@ namespace IceRpc
             }
         }
 
-        public void Use(params Func<IInvoker, IInvoker>[] interceptor)
-        {
-            _interceptorList = _interceptorList.AddRange(interceptor);
-
-            // Clear pipeline
-            _invoker = null;
-        }
-
-        /// <summary>Converts the reference into a string. The format of this string depends on the protocol: for ice1,
-        /// this method uses the ice1 format, which can be customized by Communicator.ToStringMode. For ice2 and
-        /// greater, this method uses the URI format.</summary>
+        /// <inherit-doc/>
         public override string ToString()
         {
             if (Protocol == Protocol.Ice1)
             {
-                var sb = new StringBuilder();
-
-                // If the encoded identity string contains characters which the reference parser uses as separators,
-                // then we enclose the identity string in quotes.
-                string id = Identity.ToString(Communicator.ToStringMode);
-                if (StringUtil.FindFirstOf(id, " :@") != -1)
-                {
-                    sb.Append('"');
-                    sb.Append(id);
-                    sb.Append('"');
-                }
-                else
-                {
-                    sb.Append(id);
-                }
-
-                if (Facet.Length > 0)
-                {
-                    // If the encoded facet string contains characters which the reference parser uses as separators,
-                    // then we enclose the facet string in quotes.
-                    sb.Append(" -f ");
-                    string fs = StringUtil.EscapeString(Facet, Communicator.ToStringMode);
-                    if (StringUtil.FindFirstOf(fs, " :@") != -1)
-                    {
-                        sb.Append('"');
-                        sb.Append(fs);
-                        sb.Append('"');
-                    }
-                    else
-                    {
-                        sb.Append(fs);
-                    }
-                }
-
-                if (IsOneway)
-                {
-                    if (_endpoint?.IsDatagram ?? false)
-                    {
-                        sb.Append(" -d");
-                    }
-                    else
-                    {
-                        sb.Append(" -o");
-                    }
-                }
-                else
-                {
-                    sb.Append(" -t");
-                }
-
-                // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
-                // same encoding with StringToProxy. (Only needed for backwards compatibility).
-                sb.Append(" -e ");
-                sb.Append(Encoding.ToString());
-
-                if (IsIndirect)
-                {
-                    if (!IsWellKnown)
-                    {
-                        string adapterId = _endpoint!.Host;
-
-                        sb.Append(" @ ");
-
-                        // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
-                        // we enclose the adapter ID string in double quotes.
-                        adapterId = StringUtil.EscapeString(adapterId, Communicator.ToStringMode);
-                        if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
-                        {
-                            sb.Append('"');
-                            sb.Append(adapterId);
-                            sb.Append('"');
-                        }
-                        else
-                        {
-                            sb.Append(adapterId);
-                        }
-                    }
-                }
-                else
-                {
-                    if (_endpoint != null)
-                    {
-                        sb.Append(':');
-                        sb.Append(_endpoint);
-                    }
-                    foreach (Endpoint e in _altEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(e);
-                    }
-                }
-                return sb.ToString();
+                return Interop.Proxy.ToString(this, default);
             }
             else // >= ice2, use URI format
             {
@@ -649,10 +545,12 @@ namespace IceRpc
         {
             Activity? activity = null;
 
+            var communicator = (Communicator)request.Proxy.Invoker;
+
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors. Activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (request.Proxy.Communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
                 activity = new Activity("IceRpc.Invocation");
                 activity.AddTag("Operation", request.Operation);
@@ -693,10 +591,9 @@ namespace IceRpc
              new()
              {
                  CacheConnection = CacheConnection,
-                 Communicator = Communicator,
                  Context = _context,
-                 InterceptorList = _interceptorList,
                  InvocationTimeout = _invocationTimeout,
+                 Invoker = Invoker,
                  IsOneway = IsOneway,
                  LocationResolver = LocationResolver,
                  PreferExistingConnection = PreferExistingConnection
@@ -710,9 +607,12 @@ namespace IceRpc
             {
                 return connection;
             }
+
+            var communicator = (Communicator)Invoker;
+
             using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
                 cancel,
-                Communicator.CancellationToken);
+                communicator.CancellationToken);
             cancel = linkedCancellationSource.Token;
 
             List<Endpoint>? endpoints = null;
@@ -720,16 +620,18 @@ namespace IceRpc
             if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
-                endpoints =
-                    await ComputeEndpointsAsync(refreshCache: false, IsOneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints);
+                endpoints = await communicator.ComputeEndpointsAsync(this,
+                                                                     refreshCache: false,
+                                                                     IsOneway,
+                                                                     cancel).ConfigureAwait(false);
+                connection = communicator.GetConnection(endpoints);
                 if (CacheConnection)
                 {
                     _connection = connection;
                 }
             }
 
-            OutgoingConnectionOptions options = Communicator.ConnectionOptions.Clone();
+            OutgoingConnectionOptions options = communicator.ConnectionOptions.Clone();
 
             bool refreshCache = false;
 
@@ -737,7 +639,10 @@ namespace IceRpc
             {
                 if (endpoints == null)
                 {
-                    endpoints = await ComputeEndpointsAsync(refreshCache, IsOneway, cancel).ConfigureAwait(false);
+                    endpoints = await communicator.ComputeEndpointsAsync(this,
+                                                                         refreshCache,
+                                                                         IsOneway,
+                                                                         cancel).ConfigureAwait(false);
                 }
 
                 Endpoint last = endpoints[^1];
@@ -745,7 +650,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        connection = await Communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
+                        connection = await communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
                         if (CacheConnection)
                         {
                             _connection = connection;
@@ -814,12 +719,11 @@ namespace IceRpc
             ProxyOptions options)
         {
             CacheConnection = options.CacheConnection;
-            Communicator = options.Communicator!;
             _connection = connection;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
-            _interceptorList = options.InterceptorList.ToImmutableList();
             _invocationTimeout = options.InvocationTimeout;
+            Invoker = options.Invoker!;
             IsOneway = options.IsOneway;
             LocationResolver = options.LocationResolver;
             PreferExistingConnection = options.PreferExistingConnection;
@@ -830,370 +734,6 @@ namespace IceRpc
             {
                 ParsedAltEndpoints = altEndpoints.ToImmutableList();
             }
-        }
-
-        private void ClearConnection(Connection connection) =>
-            Interlocked.CompareExchange(ref _connection, null, connection);
-
-        private async ValueTask<List<Endpoint>> ComputeEndpointsAsync(
-            bool refreshCache,
-            bool oneway,
-            CancellationToken cancel)
-        {
-            if (_endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
-            {
-                return new List<Endpoint>() { colocEndpoint };
-            }
-
-            foreach (Endpoint endpoint in _altEndpoints)
-            {
-                if (endpoint.ToColocEndpoint() is Endpoint colocAltEndpoint)
-                {
-                    return new List<Endpoint>() { colocAltEndpoint };
-                }
-            }
-
-            IEnumerable<Endpoint> endpoints = ImmutableList<Endpoint>.Empty;
-
-            // Get the proxy's endpoint or query the location resolver to get endpoints.
-
-            if (IsIndirect)
-            {
-                if (LocationResolver is ILocationResolver locationResolver)
-                {
-                    endpoints = await locationResolver.ResolveAsync(_endpoint!,
-                                                                    refreshCache,
-                                                                    cancel).ConfigureAwait(false);
-                }
-                // else endpoints remains empty.
-            }
-            else if (_endpoint != null)
-            {
-                endpoints = ImmutableList.Create(_endpoint).AddRange(_altEndpoints);
-            }
-
-            // Apply overrides and filter endpoints
-            var filteredEndpoints = endpoints.Where(endpoint =>
-            {
-                // Filter out opaque and universal endpoints
-                if (endpoint is OpaqueEndpoint || endpoint is UniversalEndpoint)
-                {
-                    return false;
-                }
-
-                // Filter out datagram endpoints when oneway is false.
-                if (endpoint.IsDatagram)
-                {
-                    return oneway;
-                }
-
-                return true;
-            }).ToList();
-
-            if (filteredEndpoints.Count == 0)
-            {
-                throw new NoEndpointException(ToString());
-            }
-
-            if (filteredEndpoints.Count > 1)
-            {
-                filteredEndpoints = Communicator.OrderEndpointsByTransportFailures(filteredEndpoints);
-            }
-            return filteredEndpoints;
-        }
-
-        private IInvoker CreatePipeline()
-        {
-            IInvoker pipeline = new InlineInvoker(async (request, cancel) =>
-            {
-                // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
-                // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
-                // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
-
-                // TODO: this "request size" is now just the payload size. Should we rename the property to
-                // RetryRequestPayloadMaxSize?
-
-                int requestSize = request.PayloadSize;
-                bool releaseRequestAfterSent =
-                    requestSize > Communicator.RetryRequestMaxSize || !Communicator.IncRetryBufferSize(requestSize);
-
-                try
-                {
-                    return await PerformInvokeAsync(request, releaseRequestAfterSent, cancel).ConfigureAwait(false);
-                }
-                finally
-                {
-                    if (!releaseRequestAfterSent)
-                    {
-                        Communicator.DecRetryBufferSize(requestSize);
-                    }
-                    // TODO release the request memory if not already done after sent.
-                }
-            });
-
-            IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
-            foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
-            {
-                pipeline = interceptor(pipeline);
-            }
-            return pipeline;
-        }
-
-        private async Task<IncomingResponse> PerformInvokeAsync(
-            OutgoingRequest request,
-            bool releaseRequestAfterSent,
-            CancellationToken cancel)
-        {
-            Connection? connection = _connection;
-            List<Endpoint>? endpoints = null;
-            bool oneway = request.IsOneway;
-            IProgress<bool>? progress = request.Progress;
-
-            if (connection != null && !oneway && connection.Endpoint.IsDatagram)
-            {
-                throw new InvalidOperationException(
-                    "cannot make two-way invocation using a cached datagram connection");
-            }
-
-            if ((connection == null || (_endpoint != null && !connection.IsActive)) && PreferExistingConnection)
-            {
-                // No cached connection, so now check if there is an existing connection that we can reuse.
-                endpoints = await ComputeEndpointsAsync(refreshCache: false, oneway, cancel).ConfigureAwait(false);
-                connection = Communicator.GetConnection(endpoints);
-                if (CacheConnection)
-                {
-                    _connection = connection;
-                }
-            }
-
-            OutgoingConnectionOptions connectionOptions = Communicator.ConnectionOptions.Clone();
-
-            ILogger logger = Communicator.Logger;
-            int nextEndpoint = 0;
-            int attempt = 1;
-            bool triedAllEndpoints = false;
-            List<Endpoint>? excludedEndpoints = null;
-            IncomingResponse? response = null;
-            Exception? exception = null;
-
-            bool tryAgain = false;
-
-            if (Activity.Current != null && Activity.Current.Id != null)
-            {
-                request.WriteActivityContext(Activity.Current);
-            }
-
-            do
-            {
-                bool sent = false;
-                SocketStream? stream = null;
-                try
-                {
-                    if (connection == null)
-                    {
-                        if (endpoints == null)
-                        {
-                            Debug.Assert(nextEndpoint == 0);
-
-                            // ComputeEndpointsAsync throws if it can't figure out the endpoints
-                            // We also request fresh endpoints when retrying, but not for the first attempt.
-                            endpoints = await ComputeEndpointsAsync(refreshCache: tryAgain,
-                                                                    oneway,
-                                                                    cancel).ConfigureAwait(false);
-                            if (excludedEndpoints != null)
-                            {
-                                endpoints = endpoints.Except(excludedEndpoints).ToList();
-                                if (endpoints.Count == 0)
-                                {
-                                    endpoints = null;
-                                    throw new NoEndpointException();
-                                }
-                            }
-                        }
-
-                        connection = await Communicator.ConnectAsync(endpoints[nextEndpoint],
-                                                                     connectionOptions,
-                                                                     cancel).ConfigureAwait(false);
-
-                        if (CacheConnection)
-                        {
-                            _connection = connection;
-                        }
-                    }
-
-                    cancel.ThrowIfCancellationRequested();
-
-                    response?.Dispose();
-                    response = null;
-
-                    using IDisposable? socketScope = connection.StartScope();
-
-                    // Create the outgoing stream.
-                    stream = connection.CreateStream(!oneway);
-
-                    // Send the request and wait for the sending to complete.
-                    await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
-
-                    using IDisposable? streamSocket = stream.StartScope();
-                    logger.LogSentRequest(request);
-
-                    // The request is sent, notify the progress callback.
-                    // TODO: Get rid of the sentSynchronously parameter which is always false now?
-                    if (progress != null)
-                    {
-                        progress.Report(false);
-                        progress = null; // Only call the progress callback once (TODO: revisit this?)
-                    }
-                    if (releaseRequestAfterSent)
-                    {
-                        // TODO release the request
-                    }
-                    sent = true;
-                    exception = null;
-
-                    if (oneway)
-                    {
-                        return new IncomingResponse(connection, request.PayloadEncoding);
-                    }
-
-                    // Wait for the reception of the response.
-                    response = await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
-                    response.Connection = connection;
-
-                    logger.LogReceivedResponse(response);
-
-                    // If success, just return the response!
-                    if (response.ResultType == ResultType.Success)
-                    {
-                        return response;
-                    }
-                }
-                catch (NoEndpointException ex) when (tryAgain)
-                {
-                    // If we get NoEndpointException while retrying, either all endpoints have been excluded or the
-                    // proxy has no endpoints. So we cannot retry, and we return here to preserve any previous
-                    // exception that might have been thrown.
-                    return response ?? throw exception ?? ex;
-                }
-                catch (Exception ex)
-                {
-                    exception = ex;
-                }
-                finally
-                {
-                    stream?.Release();
-                }
-
-                // Compute retry policy based on the exception or response retry policy, whether or not the connection
-                // is established or the request sent and idempotent
-                Debug.Assert(response != null || exception != null);
-                RetryPolicy retryPolicy =
-                    response?.GetRetryPolicy(this) ?? exception!.GetRetryPolicy(request.IsIdempotent, sent);
-
-                // With the retry-policy OtherReplica we add the current endpoint to the list of excluded
-                // endpoints this prevents the endpoints to be tried again during the current retry sequence.
-                if (retryPolicy == RetryPolicy.OtherReplica &&
-                    (endpoints?[nextEndpoint] ?? connection?.Endpoint) is Endpoint endpoint)
-                {
-                    excludedEndpoints ??= new();
-                    excludedEndpoints.Add(endpoint);
-                }
-
-                if (endpoints != null && (connection == null || retryPolicy == RetryPolicy.OtherReplica))
-                {
-                    // If connection establishment failed or if the endpoint was excluded, try the next endpoint
-                    nextEndpoint = ++nextEndpoint % endpoints.Count;
-                    if (nextEndpoint == 0)
-                    {
-                        // nextEndpoint == 0 indicates that we already tried all the endpoints.
-                        if (IsIndirect && !tryAgain)
-                        {
-                            // If we were potentially using cached endpoints, so we clear the endpoints before trying
-                            // again.
-                            endpoints = null;
-                        }
-                        else
-                        {
-                            // Otherwise we set triedAllEndpoints to true to ensure further connection establishment
-                            // failures will now count as attempts (to prevent indefinitely looping if connection
-                            // establishment failure results in a retryable exception).
-                            triedAllEndpoints = true;
-                            if (excludedEndpoints != null)
-                            {
-                                endpoints = endpoints.Except(excludedEndpoints).ToList();
-                            }
-                        }
-                    }
-                }
-
-                // Check if we can retry, we cannot retry if we have consumed all attempts, the current retry
-                // policy doesn't allow retries, the request was already released, there are no more endpoints
-                // or an incoming connection receives an exception with OtherReplica retry policy.
-
-                if (attempt == Communicator.InvocationMaxAttempts ||
-                    retryPolicy == RetryPolicy.NoRetry ||
-                    (sent && releaseRequestAfterSent) ||
-                    (triedAllEndpoints && endpoints != null && endpoints.Count == 0) ||
-                    ((connection?.IsIncoming ?? false) && retryPolicy == RetryPolicy.OtherReplica))
-                {
-                    tryAgain = false;
-                }
-                else
-                {
-                    tryAgain = true;
-
-                    // Only count an attempt if the connection was established or if all the endpoints were tried
-                    // at least once. This ensures that we don't end up into an infinite loop for connection
-                    // establishment failures which don't result in endpoint exclusion.
-                    if (connection != null)
-                    {
-                        attempt++;
-
-                        using IDisposable? socketScope = connection?.StartScope();
-                        logger.LogRetryRequestRetryableException(
-                            retryPolicy,
-                            attempt,
-                            Communicator.InvocationMaxAttempts,
-                            request,
-                            exception);
-                    }
-                    else if (triedAllEndpoints)
-                    {
-                        attempt++;
-
-                        logger.LogRetryRequestConnectionException(
-                            retryPolicy,
-                            attempt,
-                            Communicator.InvocationMaxAttempts,
-                            request,
-                            exception);
-                    }
-
-                    if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
-                    {
-                        // The delay task can be canceled either by the user code using the provided cancellation
-                        // token or if the communicator is destroyed.
-                        await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
-                    }
-
-                    if (_endpoint != null && connection != null && !connection.IsIncoming)
-                    {
-                        // Retry with a new connection!
-                        connection = null;
-                    }
-                }
-            }
-            while (tryAgain);
-
-            if (exception != null)
-            {
-                using IDisposable? socketScope = connection?.StartScope();
-                logger.LogRequestException(request, exception);
-            }
-
-            Debug.Assert(response != null || exception != null);
-            Debug.Assert(response == null || response.ResultType == ResultType.Failure);
-            return response ?? throw ExceptionUtil.Throw(exception!);
         }
     }
 }

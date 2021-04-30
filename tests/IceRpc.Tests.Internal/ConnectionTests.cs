@@ -116,7 +116,7 @@ namespace IceRpc.Tests.Internal
                     endpoint: null,
                     altEndpoints: ImmutableList<Endpoint>.Empty,
                     connection,
-                    new ProxyOptions { Communicator = _communicator });
+                    new ProxyOptions { Invoker = _communicator });
 
             public async ValueTask DisposeAsync()
             {
@@ -164,7 +164,7 @@ namespace IceRpc.Tests.Internal
 
                 _server = new Server
                 {
-                    Communicator = _communicator,
+                    Invoker = _communicator,
                     ConnectionOptions = serverConnectionOptions ?? new(),
                     Dispatcher = dispatcher,
                 };
