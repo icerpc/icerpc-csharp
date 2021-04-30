@@ -301,7 +301,7 @@ namespace IceRpc
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         public OutgoingResponse(Dispatch dispatch, RemoteException exception)
-        : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
+            : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
         {
         }
 
