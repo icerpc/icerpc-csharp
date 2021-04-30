@@ -94,7 +94,7 @@ namespace IceRpc
         public bool IsDatagram => _socket.IsDatagram;
 
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
-        public bool IsIncoming { get; }
+        public bool IsIncoming => Server != null;
 
         /// <summary><c>true</c> if the connection uses encryption <c>false</c> otherwise.</summary>
         public virtual bool IsSecure => Socket.IsSecure;
@@ -267,7 +267,7 @@ namespace IceRpc
             CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
             KeepAlive = options.KeepAlive;
-            IsIncoming = server != null;
+            _closeTimeout = options.CloseTimeout;
             Server = server;
             _closeTimeout = options.CloseTimeout;
             _options = options;
@@ -869,11 +869,12 @@ namespace IceRpc
             async Task PerformGoAwayAsync((long Bidirectional, long Unidirectional) lastStreamIds, Exception exception)
             {
                 // Abort non-processed outgoing streams and all incoming streams.
-                _socket.AbortStreams(exception,
-                                    stream => stream.IsIncoming ||
-                                              stream.IsBidirectional ?
-                                                  stream.Id > lastStreamIds.Bidirectional :
-                                                  stream.Id > lastStreamIds.Unidirectional);
+                _socket.AbortStreams(
+                    exception,
+                    stream => stream.IsIncoming ||
+                                stream.IsBidirectional ?
+                                    stream.Id > lastStreamIds.Bidirectional :
+                                    stream.Id > lastStreamIds.Unidirectional);
 
                 // Wait for all the streams to complete.
                 await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);

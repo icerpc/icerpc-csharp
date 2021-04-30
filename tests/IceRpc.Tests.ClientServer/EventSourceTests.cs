@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/test", new Greeter1());
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/test", new Greeter2());
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
@@ -145,7 +145,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/test", new Greeter3());
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };

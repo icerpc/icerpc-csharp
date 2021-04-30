@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Internal
                                                                   endpoint: null,
                                                                   altEndpoints: ImmutableList<Endpoint>.Empty,
                                                                   null,
-                                                                  new ProxyOptions { Communicator = Communicator });
+                                                                  new ProxyOptions { Invoker = Communicator });
         protected MultiStreamSocket ServerSocket => _serverSocket!;
         protected MultiStreamSocketType SocketType { get; }
         private MultiStreamSocket? _clientSocket;

@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
 
             _server = new Server
             {
-                Communicator = _communicator,
+                Invoker = _communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 // TODO: should GetTestEndpoint be capable of returning port 0?

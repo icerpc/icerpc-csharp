@@ -82,7 +82,7 @@ namespace IceRpc.Tests.Internal
             };
             Server = new Server
             {
-                Communicator = Communicator,
+                Invoker = Communicator,
                 ConnectionOptions = serverConnectionOptions,
             };
 

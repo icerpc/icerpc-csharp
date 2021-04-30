@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
             Servant = new TestService();
             Server = new Server
             {
-                Communicator = Communicator,
+                Invoker = Communicator,
                 HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),

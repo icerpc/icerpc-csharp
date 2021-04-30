@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Encoding
             _data = new List<ArraySegment<byte>>() { new byte[256] };
             _server = new Server
             {
-                Communicator = _communicator,
+                Invoker = _communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();

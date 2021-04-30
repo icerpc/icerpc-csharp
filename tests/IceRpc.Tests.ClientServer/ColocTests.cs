@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new Greeter(),
                 Endpoint = greeter.Endpoint
             };
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
                 HasColocEndpoint = hasColocEndpoint,

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Generic;
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.Security;
@@ -10,16 +9,18 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc
 {
-    /// <summary>The <c>ISocket</c> base interface. Interfaces extending this information provide information
+    /// <summary>The <c>ISocket</c> base interface. Interfaces extending this interface provide information
     /// on the socket used by a connection.</summary>
     public interface ISocket
     {
-        /// <summary><c>true</c> if the socket uses encryption <c>false</c> otherwise.</summary>
+        /// <summary><c>true</c> if the socket uses encryption, <c>false</c> otherwise.</summary>
         bool IsSecure { get; }
 
         /// <summary>The description of the socket.</summary>
         string Description => $"IsSecure={IsSecure}";
     }
+
+    /// <summary>The IColocSocket interface provides information for a coloc socket.</summary>
 
     public interface IColocSocket : ISocket
     {
@@ -34,7 +35,7 @@ namespace IceRpc
     }
 
     /// <summary>The ITcpSocket interface provides properties for an IP socket.</summary>
-    public interface IIpSocket : ISocket
+    public interface IIPSocket : ISocket
     {
         /// <summary>The socket local IP-endpoint or null if it is not available.</summary>
         IPEndPoint? LocalEndPoint { get; }
@@ -70,7 +71,7 @@ namespace IceRpc
     }
 
     /// <summary>The ITcpSocket interface provides properties for a TCP socket.</summary>
-    public interface ITcpSocket : IIpSocket
+    public interface ITcpSocket : IIPSocket
     {
         /// <summary>Gets a Boolean value that indicates whether the certificate revocation list is checked during the
         /// certificate validation process.</summary>
@@ -106,7 +107,7 @@ namespace IceRpc
     }
 
     /// <summary>The UdpSocket interface provides properties for a UDP socket.</summary>
-    interface IUdpSocket : IIpSocket
+    interface IUdpSocket : IIPSocket
     {
         /// <summary>The multicast IP-endpoint for a multicast connection otherwise null.</summary>
         IPEndPoint? MulticastEndpoint { get; }
