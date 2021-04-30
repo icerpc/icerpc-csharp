@@ -127,7 +127,7 @@ namespace IceRpc.Tests.CodeGeneration
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new EnumOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };

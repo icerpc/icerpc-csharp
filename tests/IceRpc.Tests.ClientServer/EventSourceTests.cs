@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,17 +16,6 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task EventSource_RequestsAsync()
         {
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
-            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            await using var server = new Server
-            {
-                Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter1(),
-                Endpoint = "ice+coloc://event_source"
-            };
-
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
                 new List<(string, string)>
@@ -45,7 +35,18 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "0"),  // Back to 0 after the request finish
                     ("requests-per-second", "1")
                 });
-
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Map("/test", new Greeter1());
+            await using var server = new Server
+            {
+                Invoker = communicator,
+                Dispatcher = router,
+                Endpoint = "ice+coloc://event_source"
+            };
             InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
@@ -64,17 +65,6 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task EventSource_RequestsCanceledAsync()
         {
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
-            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            await using var server = new Server
-            {
-                Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter2(),
-                Endpoint = "ice+coloc://event_source"
-            };
-
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
                 new List<(string, string)>
@@ -94,9 +84,20 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "0"), // Back to 0 after the request finish
                     ("canceled-requests", "10")
                 });
-
             InvocationEventSource.Log.ResetCounters();
 
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Map("/test", new Greeter2());
+            await using var server = new Server
+            {
+                Invoker = communicator,
+                Dispatcher = router,
+                Endpoint = "ice+coloc://event_source"
+            };
             server.Listen();
             greeter.InvocationTimeout = TimeSpan.FromSeconds(1);
 
@@ -115,18 +116,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task EventSource_RequestsFailedAsync()
         {
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
-            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            await using var server = new Server
-            {
-                Communicator = communicator,
-                DispatchEventSource = dispatchEventSource,
-                Dispatcher = new Greeter3(),
-                Endpoint = "ice+coloc://event_source"
-            };
-
-            using var invocationEventListener = new TestEventListener(
+             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation",
                 new List<(string, string)>
                 {
@@ -145,8 +135,20 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "10")
                 });
-
             InvocationEventSource.Log.ResetCounters();
+
+            await using var communicator = new Communicator();
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
+            var router = new Router();
+            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Map("/test", new Greeter3());
+            await using var server = new Server
+            {
+                Invoker = communicator,
+                Dispatcher = router,
+                Endpoint = "ice+coloc://event_source"
+            };
 
             server.Listen();
             for (int i = 0; i < 10; ++i)
@@ -160,7 +162,9 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter1 : IGreeterTestService
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            // Delay the dispatch to ensure current-requests gets to 10
+            public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
+                await Task.Delay(2, cancel);
         }
 
         private class Greeter2 : IGreeterTestService
@@ -181,14 +185,34 @@ namespace IceRpc.Tests.ClientServer
             public List<(string Key, string Value)> ExpectedEventCounters { get; }
             public List<(string Key, string Value)> ReceivedEventCounters { get; } = new();
             private readonly string _sourceName;
-            private SemaphoreSlim _semaphore;
-            private object _mutex = new(); // protects ReceivedEventCounters
+            private readonly SemaphoreSlim _semaphore;
+            private readonly object _mutex = new(); // protects ReceivedEventCounters
 
             public TestEventListener(string sourceName, List<(string Key, string Value)> expectedCounters)
             {
                 ExpectedEventCounters = expectedCounters;
                 _semaphore = new SemaphoreSlim(0);
                 _sourceName = sourceName;
+                var eventSource = EventSource.GetSources().FirstOrDefault(source => source.Name == _sourceName);
+                if (eventSource != null)
+                {
+                    EnableEvents(eventSource);
+                }
+            }
+
+            public async Task WaitForCounterEventsAsync()
+            {
+                for (int i = 0; i < ExpectedEventCounters.Count; ++i)
+                {
+                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
+                    {
+                        break;
+                    }
+                }
+                lock (_mutex)
+                {
+                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                }
             }
 
             protected override void OnEventSourceCreated(EventSource eventSource)
@@ -202,23 +226,15 @@ namespace IceRpc.Tests.ClientServer
 
                 if (_sourceName == eventSource.Name)
                 {
-                    EventSource = eventSource;
-                    EnableEvents(eventSource,
-                                 EventLevel.Verbose,
-                                 EventKeywords.All,
-                                 new Dictionary<string, string?>
-                                 {
-                                     { "EventCounterIntervalSec", "0.001" }
-                                 });
+                    EnableEvents(eventSource);
                 }
-                base.OnEventSourceCreated(eventSource);
             }
 
             protected override void OnEventWritten(EventWrittenEventArgs eventData)
             {
                 if (eventData.EventId == -1) // counter event
                 {
-                    Assert.IsNotNull(eventData.Payload);
+                    Assert.That(eventData.Payload, Is.Not.Null);
                     var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
 
                     string name = "";
@@ -237,7 +253,7 @@ namespace IceRpc.Tests.ClientServer
                         value = meanValue?.ToString() ?? "";
                     }
 
-                    foreach (var entry in ExpectedEventCounters)
+                    foreach ((string Key, string Value) entry in ExpectedEventCounters)
                     {
                         if (entry.Key == name && entry.Value == value && !ReceivedEventCounters.Contains(entry))
                         {
@@ -251,21 +267,23 @@ namespace IceRpc.Tests.ClientServer
                     }
 
                 }
-                base.OnEventWritten(eventData);
             }
 
-            public async Task WaitForCounterEventsAsync()
+            private void EnableEvents(EventSource eventSource)
             {
-                for (int i = 0; i < ExpectedEventCounters.Count; ++i)
-                {
-                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
-                    {
-                        break;
-                    }
-                }
                 lock (_mutex)
                 {
-                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                    if (EventSource == null)
+                    {
+                        EventSource = eventSource;
+                        EnableEvents(eventSource,
+                                     EventLevel.LogAlways,
+                                     EventKeywords.All,
+                                     new Dictionary<string, string?>
+                                     {
+                                        { "EventCounterIntervalSec", "0.001" }
+                                     });
+                    }
                 }
             }
         }

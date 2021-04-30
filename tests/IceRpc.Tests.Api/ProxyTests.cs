@@ -20,7 +20,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -59,7 +59,9 @@ namespace IceRpc.Tests.Api
                 Context = new() { ["foo"] = "bar" }
             };
 
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.AreEqual(request.Context, invocation.Context);
                 return next.InvokeAsync(request, cancel);
@@ -118,7 +120,7 @@ namespace IceRpc.Tests.Api
 
             var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -230,13 +232,21 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var prx = IServicePrx.Parse(str, Communicator);
-            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
-            Assert.AreEqual(prx, prx2); // round-trip works
 
             if (path != null)
             {
                 Assert.AreEqual(path, prx.Path);
             }
+
+            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
+            Assert.AreEqual(prx, prx2); // round-trip works
+
+            // Also try with non-default ToStringMode
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.ASCII), Communicator);
+            Assert.AreEqual(prx, prx2);
+
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.Compat), Communicator);
+            Assert.AreEqual(prx, prx2);
         }
 
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
@@ -401,7 +411,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -420,7 +430,7 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_ParseWithOptionsAsync(string proxyString)
         {
             await using var communicator = new Communicator();
-            var proxyOptions = new ProxyOptions() { Communicator = communicator };
+            var proxyOptions = new ProxyOptions() { Invoker = communicator };
 
             var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
             Assert.IsTrue(proxy.CacheConnection);

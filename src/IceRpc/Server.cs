@@ -18,15 +18,9 @@ namespace IceRpc
         /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
         /// instances for dispatches.</summary>
         public ActivitySource? ActivitySource { get; set; }
-        // temporary
-        public Communicator? Communicator { get; set; }
 
         /// <summary>Gets or sets the options of incoming connections created by this server.</summary>
         public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
-
-        /// <summary>The event source for tracing dispatch events, when this is null the default
-        /// <see cref="DispatchEventSource.Log"/> will be used.</summary>
-        public DispatchEventSource? DispatchEventSource { get; set; }
 
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
@@ -58,6 +52,9 @@ namespace IceRpc
         /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
         /// value is true.</value>
         public bool HasColocEndpoint { get; set; } = true;
+
+        /// <summary>The invoker of proxies created or unmarshaled by this server.</summary>
+        public IInvoker? Invoker { get; set; }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -147,7 +144,7 @@ namespace IceRpc
         public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
         {
             // temporary
-            ProxyOptions.Communicator ??= Communicator;
+            ProxyOptions.Invoker ??= Invoker;
 
             // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
             // unless the user gives a connection to this new proxy.
@@ -173,7 +170,7 @@ namespace IceRpc
             }
 
             ProxyOptions options = ProxyOptions;
-            options.Communicator ??= Communicator;
+            options.Invoker ??= Invoker;
 
             if (_proxyEndpoint.IsDatagram && !options.IsOneway)
             {
@@ -244,7 +241,7 @@ namespace IceRpc
                 }
 
                 // TODO: remove
-                if (Communicator?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
+                if ((Invoker as Communicator)?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
                 {
                     Console.Out.WriteLine($"{this} ready");
                 }

@@ -22,7 +22,7 @@ namespace IceRpc
         public bool IsIdempotent { get; set; }
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
-        /// request is sent as a two-way request.</summary>
+        /// request is sent as a twoway request.</summary>
         public bool IsOneway { get; set; }
 
         /// <summary>The progress provider.</summary>

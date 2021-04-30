@@ -244,7 +244,7 @@ namespace IceRpc.Tests.ClientServer
             new Server
             {
                 HasColocEndpoint = false,
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
                 ProxyHost = "localhost"

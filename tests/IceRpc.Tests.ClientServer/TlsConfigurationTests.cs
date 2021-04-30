@@ -411,7 +411,7 @@ namespace IceRpc.Tests.ClientServer
             await using var serverCommunicator = new Communicator(); ;
             await using var server = new Server
             {
-                Communicator = serverCommunicator,
+                Invoker = serverCommunicator,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 Endpoint = GetTestEndpoint(serverHost, tls: true),

@@ -87,9 +87,9 @@ namespace IceRpc
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single non-struct
         /// parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
+        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target Ice object.</param>
+        /// <param name="operation">The operation to invoke on the target service.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
@@ -122,9 +122,9 @@ namespace IceRpc
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
         /// parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
+        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target Ice object.</param>
+        /// <param name="operation">The operation to invoke on the target service.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The delegate that will send the streamable.</param>
@@ -152,9 +152,9 @@ namespace IceRpc
         /// single struct parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
         /// parameters.</typeparam>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
+        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target Ice object.</param>
+        /// <param name="operation">The operation to invoke on the target service.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
@@ -188,9 +188,8 @@ namespace IceRpc
         /// one of the parameter is a stream parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
         /// parameters.</typeparam>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
-        /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target Ice object.</param>
+        /// <param name="proxy">A proxy to the target service.</param>
+        /// <param name="operation">The operation to invoke on the target service.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="args">The argument(s) to write into the frame.</param>
         /// <param name="writer">The delegate that writes the arguments into the frame.</param>
@@ -221,9 +220,9 @@ namespace IceRpc
         }
 
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with no parameter.</summary>
-        /// <param name="proxy">A proxy to the target Ice object. This method uses the communicator, identity, facet,
+        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
         /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target Ice object.</param>
+        /// <param name="operation">The operation to invoke on the target service.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
@@ -438,9 +437,11 @@ namespace IceRpc
                 _invocationTimeoutCancellationSource = new CancellationTokenSource(proxy.InvocationTimeout);
             }
 
+            var communicator = (Communicator)proxy.Invoker;
+
             _linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
                 _invocationTimeoutCancellationSource?.Token ?? default,
-                proxy.Communicator.CancellationToken,
+                communicator.CancellationToken,
                 cancel);
 
             // This makes a copy if context is not immutable.

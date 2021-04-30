@@ -62,7 +62,7 @@ string
 opFormatTypeToString(const OperationPtr& op)
 {
     // TODO: eliminate DefaultFormat in the parser (DefaultFormat means the communicator default that was removed in
-    // Ice 4.0)
+    // IceRPC)
     switch (op->format())
     {
         case DefaultFormat:
@@ -2325,28 +2325,28 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name << "\"/> "
          << "equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
-    _out << nl << "/// <param name=\"communicator\">The communicator for the new proxy</param>";
+    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy</param>";
     _out << nl << "/// <returns>The new proxy</returns>";
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
-    _out << nl << "public static new " << name << " Parse(string s, IceRpc.Communicator communicator) => "
-         << "IceRpc.ProxyFactory.Parse(Factory, s, communicator);";
+    _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker invoker) => "
+         << "IceRpc.ProxyFactory.Parse(Factory, s, invoker);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
          << "\"/> equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
-    _out << nl << "/// <param name=\"communicator\">The communicator for the new proxy</param>";
+    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy</param>";
     _out << nl << "/// <param name=\"proxy\">When this method returns it contains the new proxy, if the conversion "
          << "succeeded or null if the conversion failed.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
-    _out << nl << "public static bool TryParse(string s, IceRpc.Communicator communicator, out "
+    _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker invoker, out "
         << name << "? proxy)";
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "proxy = IceRpc.ProxyFactory.Parse(Factory, s, communicator);";
+    _out << nl << "proxy = IceRpc.ProxyFactory.Parse(Factory, s, invoker);";
     _out << eb;
     _out << nl << "catch";
     _out << sb;
