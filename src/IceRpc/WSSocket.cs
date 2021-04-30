@@ -132,7 +132,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
             await _bufferedSocket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            WSEndpoint wsEndpoint = (WSEndpoint)endpoint;
+            var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return this;
         }

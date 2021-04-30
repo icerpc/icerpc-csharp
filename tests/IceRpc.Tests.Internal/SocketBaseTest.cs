@@ -67,7 +67,8 @@ namespace IceRpc.Tests.Internal
                                 certificateAuthorities: new X509Certificate2Collection()
                                 {
                                     new X509Certificate2("../../../certs/cacert.pem")
-                                })
+                                }),
+                    TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
                 }
             };
             Communicator = new Communicator(connectionOptions: clientConnectionOptions);

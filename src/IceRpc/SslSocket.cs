@@ -43,15 +43,8 @@ namespace IceRpc
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            SslClientAuthenticationOptions options = authenticationOptions!;
-            if (options.TargetHost == null)
-            {
-                options = options.Clone();
-                options.TargetHost = endpoint.Host;
-            }
-
             await AuthenticateAsync(sslStream =>
-                sslStream.AuthenticateAsClientAsync(options, cancel)).ConfigureAwait(false);
+                sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel)).ConfigureAwait(false);
             return this;
         }
 
