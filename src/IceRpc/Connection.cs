@@ -695,7 +695,7 @@ namespace IceRpc
                     {
                         // Send the exception as the response instead of sending the response from the dispatch
                         // if sending raises a remote exception.
-                        response = new OutgoingResponse(new Dispatch(request), ex);
+                        response = new OutgoingResponse(request, ex);
                         await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
                     }
                     Socket.Logger.LogSentResponse(response);
@@ -769,7 +769,7 @@ namespace IceRpc
                     {
                         // We log this exception, since otherwise it would be lost.
                         Socket.Logger.LogDispatchException(request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
+                        return OutgoingResponse.WithVoidReturnValue(request);
                     }
                     else
                     {
@@ -785,14 +785,13 @@ namespace IceRpc
                             // We log the "source" exception as UnhandledException may not include all details.
                             Socket.Logger.LogDispatchException(request, ex);
                         }
-                        return new OutgoingResponse(new Dispatch(request), actualEx);
+                        return new OutgoingResponse(request, actualEx);
                     }
                 }
             }
             else
             {
-                return new OutgoingResponse(new Dispatch(request),
-                                            new ServiceNotFoundException(RetryPolicy.OtherReplica));
+                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
             }
         }
 

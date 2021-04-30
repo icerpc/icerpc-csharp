@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Internal
             var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(
-                new OutgoingResponse(new Dispatch(incomingRequest), new UnhandledException(ex)),
+                new OutgoingResponse(incomingRequest, new UnhandledException(ex)),
                 default);
 
             var acceptTask = ClientSocket.AcceptStreamAsync(default);

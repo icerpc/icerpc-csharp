@@ -72,6 +72,13 @@ namespace IceRpc
                     OutputStream.IceWriterFromBool);
         }
 
+        /// <summary>Dispatches an incoming request and returns the corresponding outgoing response.</summary>
+        /// <param name="request">The incoming request being dispatched.</param>
+        /// <param name="dispatch">The dispatch object for the request being dispatched.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, Dispatch dispatch, CancellationToken cancel);
+
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
         /// <param name="dispatch">The Current object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
@@ -205,9 +212,9 @@ namespace IceRpc
                         // The client requested cancellation.
                         throw;
                     }
+                    // else it's another OperationCanceledException that the implementation should have caught, and it
+                    // will become an UnhandledException below.
                 }
-                // else it's another OperationCanceledException that the implementation should have caught, and it
-                // will become an UnhandledException below.
 
                 if (request.IsOneway)
                 {
@@ -233,7 +240,5 @@ namespace IceRpc
                 }
             }
         }
-
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, Dispatch dispatch, CancellationToken cancel);
     }
 }
