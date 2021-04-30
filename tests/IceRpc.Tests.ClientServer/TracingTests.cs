@@ -20,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = new GreeterService()
             };
@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = server.CreateProxy<IGreeterTestServicePrx>("/");
             Activity? invocationActivity = null;
             bool called = false;
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            communicator.Use(next => new InlineInvoker((request, cancel) =>
             {
                 called = true;
                 invocationActivity = Activity.Current;
@@ -46,7 +46,9 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
+            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;
                 return next.InvokeAsync(request, cancel);
@@ -78,7 +80,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server1 = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router
             };
@@ -114,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
             // Now configure the server with an ActivitySource to trigger the creation of the Dispatch activity.
             await using var server2 = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router,
                 ActivitySource = activitySource
@@ -172,7 +174,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
                 Dispatcher = router,
                 ActivitySource = activitySource
@@ -188,7 +190,7 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            communicator.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;
                 // Add some entries to the baggage to ensure that it is correctly propagated

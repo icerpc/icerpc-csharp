@@ -82,7 +82,7 @@ namespace IceRpc.Tests.Internal
             };
             Server = new Server
             {
-                Communicator = Communicator,
+                Invoker = Communicator,
                 ConnectionOptions = serverConnectionOptions,
             };
 
@@ -204,7 +204,7 @@ namespace IceRpc.Tests.Internal
             }
             var options = new ProxyOptions()
             {
-                Communicator = Communicator,
+                Invoker = Communicator,
             };
             return (connection.Socket, IServicePrx.Factory.Create("/dummy",
                                                                   ClientEndpoint.Protocol,
