@@ -57,7 +57,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 await using var server = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     HasColocEndpoint = false,
                     Dispatcher = new RetryService(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.ClientServer
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
                 Endpoint = GetTestEndpoint(),
@@ -376,8 +376,10 @@ namespace IceRpc.Tests.ClientServer
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
 
-                    await using var connection1 = await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), retry.Communicator);
-                    await using var connection2 = await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), retry.Communicator);
+                    await using var connection1 =
+                        await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), (Communicator)retry.Invoker);
+                    await using var connection2 =
+                        await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), (Communicator)retry.Invoker);
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;
@@ -429,7 +431,7 @@ namespace IceRpc.Tests.ClientServer
             var servers = Enumerable.Range(0, replicas).Select(
                 i => new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     HasColocEndpoint = false,
                     Endpoint = GetTestEndpoint(port: i),
                     ProxyHost = "localhost"
@@ -450,7 +452,7 @@ namespace IceRpc.Tests.ClientServer
             var service = new RetryService();
             var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ProxyHost = "localhost"

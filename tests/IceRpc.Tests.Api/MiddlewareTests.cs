@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 

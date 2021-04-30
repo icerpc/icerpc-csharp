@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
             _communicator = new Communicator();
             _server = new Server
             {
-                Communicator = _communicator,
+                Invoker = _communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
         }
@@ -34,8 +34,8 @@ namespace IceRpc.Tests.Api
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(1000, 500)]
-        public void InvocationTimeout_Throws_OperationCanceledException(int delay, int timeout)
+        [TestCase(10000, 1000)]
+        public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int delay, int timeout)
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
@@ -54,8 +54,10 @@ namespace IceRpc.Tests.Api
             _server.Listen();
 
             IServicePrx prx = _server.CreateProxy<IServicePrx>("/test");
+            await using var pool = new Communicator();
+            prx.Invoker = pool;
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);
-            prx.Use(next => new InlineInvoker((request, cancel) =>
+            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);
@@ -67,7 +69,6 @@ namespace IceRpc.Tests.Api
             Assert.That(invocationDeadline, Is.Not.Null);
             Assert.AreEqual(dispatchDeadline, invocationDeadline);
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
-
         }
 
         public class TestService : IGreeterService

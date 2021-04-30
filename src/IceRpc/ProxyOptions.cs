@@ -15,16 +15,9 @@ namespace IceRpc
         /// <summary>Specifies whether or not the proxy caches its connection. The default value is true.</summary>
         public bool CacheConnection { get; set; } = true;
 
-        /// <summary>The communicator (temporary).</summary>
-        public Communicator? Communicator { get; set; }
-
         /// <summary>The context of the proxy.</summary>
         public IReadOnlyDictionary<string, string> Context { get; set; } =
             ImmutableSortedDictionary<string, string>.Empty;
-
-        /// <summary>The interceptors of the proxy.</summary>
-        public IEnumerable<Func<IInvoker, IInvoker>> InterceptorList { get; set; } =
-            ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
         /// <summary>The invocation timeout of the proxy.</summary>
         public TimeSpan InvocationTimeout
@@ -33,6 +26,9 @@ namespace IceRpc
             set => _invocationTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
         }
+
+        /// <summary>The invoker.</summary>
+        public IInvoker? Invoker { get; set; }
 
         /// <summary>When true, a void-returning operation on the proxy is invoked "oneway" even when no oneway metadata
         /// is specified.</summary>

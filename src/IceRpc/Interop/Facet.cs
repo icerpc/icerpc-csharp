@@ -44,13 +44,13 @@ namespace IceRpc.Interop
             }
             else if (proxy.Protocol == Protocol.Ice1)
             {
-                return Proxy.GetFactory<T>().Create(proxy.GetIdentity(),
-                                                    facet,
-                                                    proxy.Encoding,
-                                                    proxy.Impl.ParsedEndpoint,
-                                                    proxy.Impl.ParsedAltEndpoints,
-                                                    proxy.Connection,
-                                                    proxy.GetOptions());
+                return IceRpc.Proxy.GetFactory<T>().Create(proxy.GetIdentity(),
+                                                           facet,
+                                                           proxy.Encoding,
+                                                           proxy.Impl.ParsedEndpoint,
+                                                           proxy.Impl.ParsedAltEndpoints,
+                                                           proxy.Connection,
+                                                           proxy.GetOptions());
             }
             else
             {

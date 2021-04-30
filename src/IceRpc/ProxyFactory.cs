@@ -39,9 +39,9 @@ namespace IceRpc
         }
 
         // Temporary adapter
-        public static T Parse<T>(this IProxyFactory<T> factory, string s, Communicator communicator)
+        public static T Parse<T>(this IProxyFactory<T> factory, string s, IInvoker invoker)
             where T : class, IServicePrx =>
-            Parse(factory, s, new ProxyOptions() { Communicator = communicator });
+            Parse(factory, s, new ProxyOptions() { Invoker = invoker });
 
         /// <summary>Creates a proxy from a string and proxy options.</summary>
         public static T Parse<T>(this IProxyFactory<T> factory, string s, ProxyOptions proxyOptions)

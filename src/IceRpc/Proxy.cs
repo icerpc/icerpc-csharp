@@ -67,7 +67,7 @@ namespace IceRpc
         /// <remarks>When the incoming request frame's protocol and proxy's protocol are different, this method
         /// automatically bridges between these two protocols. When proxy's protocol is ice1, the resulting outgoing
         /// request frame is never compressed.</remarks>
-        /// <param name="proxy">The proxy for the target Ice object.</param>
+        /// <param name="proxy">The proxy for the target service.</param>
         /// <param name="request">The incoming request frame to forward to proxy's target.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -122,7 +122,7 @@ namespace IceRpc
         public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
 
         /// <summary>Converts a proxy to a set of proxy properties.</summary>
-        /// <param name="proxy">The proxy for the target Ice object.</param>
+        /// <param name="proxy">The proxy for the target service.</param>
         /// <param name="property">The base property name.</param>
         /// <returns>The property set.</returns>
         public static Dictionary<string, string> ToProperty(this IServicePrx proxy, string property) =>

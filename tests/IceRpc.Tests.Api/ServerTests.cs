@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Endpoint = "tcp -h foo -p 10000"
                 };
 
@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Api
                 // Listen twice is incorrect
                 await using var server = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
                 server.Listen();
@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Dispatcher = new ProxyTest(),
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
                 server1.Listen();
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Communicator = communicator,
+                            Invoker = communicator,
                             Endpoint = "ice+tcp://127.0.0.1:15001"
                         };
                         server2.Listen();
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Api
                 string endpoint = TestHelper.GetUniqueColocEndpoint();
                 await using var server1 = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Endpoint = endpoint
                 };
                 server1.Listen();
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Communicator = communicator,
+                            Invoker = communicator,
                             Endpoint = endpoint
                         };
                         server2.Listen();
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Communicator = communicator,
+                    Invoker = communicator,
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
 
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Endpoint = endpoint
             };
 
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Communicator = communicator
+                Invoker = communicator
             };
 
             Assert.IsEmpty(server.ProxyEndpoint);
@@ -211,7 +211,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 ProxyOptions = proxyOptions,
                 Dispatcher = service,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -252,7 +252,7 @@ namespace IceRpc.Tests.Api
         public async Task Server_InvalidEndpoints(string endpoint)
         {
             await using var communicator = new Communicator();
-            Assert.Throws<FormatException>(() => new Server { Communicator = communicator, Endpoint = endpoint });
+            Assert.Throws<FormatException>(() => new Server { Invoker = communicator, Endpoint = endpoint });
         }
 
         [Test]
@@ -264,7 +264,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = service,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -296,7 +296,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = serverTest,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -320,7 +320,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = service,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -351,7 +351,7 @@ namespace IceRpc.Tests.Api
 
             var server = new Server
             {
-                Communicator = communicator,
+                Invoker = communicator,
                 Dispatcher = service,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };

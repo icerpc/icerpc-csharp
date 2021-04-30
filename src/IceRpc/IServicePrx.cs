@@ -136,10 +136,6 @@ namespace IceRpc
         /// <value>True when the proxy caches its connection; otherwise, false.</value>
         public bool CacheConnection { get; set; }
 
-        /// <summary>Returns the communicator that created this proxy.</summary>
-        /// <returns>The communicator that created this proxy.</returns>
-        public Communicator Communicator { get; }
-
         /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
         /// endpoints (if any); in particular, set does check the new connection is compatible with these endpoints.
         /// </summary>
@@ -159,6 +155,9 @@ namespace IceRpc
 
         /// <summary>The invocation timeout of this proxy.</summary>
         public TimeSpan InvocationTimeout { get; set; }
+
+        /// <summary>The invoker of this proxy.</summary>
+        public IInvoker Invoker { get; set; }
 
         /// <summary>Indicates whether or not using this proxy to invoke an operation that does not return anything
         /// waits for an empty response from the target Ice object.</summary>
@@ -206,23 +205,23 @@ namespace IceRpc
 
         /// <summary>Creates a proxy from its string representation.</summary>
         /// <param name="s">The string representation of the proxy.</param>
-        /// <param name="communicator">The communicator for the new proxy.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IServicePrx Parse(string s, Communicator communicator) => Factory.Parse(s, communicator);
+        public static IServicePrx Parse(string s, IInvoker invoker) => Factory.Parse(s, invoker);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
-        /// <param name="communicator">The communicator for the new proxy.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <param name="proxy">When this method returns it contains the new proxy, if the conversion succeeded or null
         /// if the conversion failed.</param>
         /// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, Communicator communicator, out IServicePrx? proxy)
+        public static bool TryParse(string s, IInvoker invoker, out IServicePrx? proxy)
         {
             try
             {
-                proxy = Factory.Parse(s, communicator);
+                proxy = Factory.Parse(s, invoker);
             }
             catch
             {
@@ -267,9 +266,6 @@ namespace IceRpc
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
-
-        // Temporary: installs an interceptor on this proxy
-        public void Use(params Func<IInvoker, IInvoker>[] interceptor);
 
         /// <summary>Sends a request that returns a value and returns the result asynchronously.</summary>
         /// <typeparam name="T">The operation's return type.</typeparam>

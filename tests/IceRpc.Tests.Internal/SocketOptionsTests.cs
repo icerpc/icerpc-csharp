@@ -159,7 +159,7 @@ namespace IceRpc.Tests.Internal
                 };
                 await using var server = new Server
                 {
-                    Communicator = Communicator,
+                    Invoker = Communicator,
                     ConnectionOptions = connectionOptions
                 };
 
@@ -253,7 +253,7 @@ namespace IceRpc.Tests.Internal
             connectionOptions.TransportOptions = options;
             var server = new Server
             {
-                Communicator = Communicator,
+                Invoker = Communicator,
                 ConnectionOptions = connectionOptions
             };
             return (server, ServerEndpoint.Acceptor(server));
