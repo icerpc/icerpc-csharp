@@ -19,16 +19,14 @@ namespace IceRpc
         {
             Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-            ConnectionOptions options = _server.ConnectionOptions;
-
             SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _server.Logger);
 
             MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, options),
-                _ => new SlicSocket(Endpoint, socket, options)
+                Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, _server.ConnectionOptions),
+                _ => new SlicSocket(Endpoint, socket, _server.ConnectionOptions)
             };
-            return ((TcpEndpoint)Endpoint).CreateConnection(multiStreamSocket, options, _server);
+            return new Connection(Endpoint, multiStreamSocket, _server.ConnectionOptions, server: _server);
         }
 
         public void Dispose() => _socket.CloseNoThrow();

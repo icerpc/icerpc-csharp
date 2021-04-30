@@ -2,11 +2,8 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +27,7 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public abstract class Connection : IAsyncDisposable
+    public class Connection : IAsyncDisposable
     {
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
@@ -64,7 +61,7 @@ namespace IceRpc
             {
                 lock (_mutex)
                 {
-                    return Socket.IdleTimeout;
+                    return MultiStreamSocket.IdleTimeout;
                 }
             }
             set
@@ -81,7 +78,7 @@ namespace IceRpc
                         // Setting the IdleTimeout might throw if it's not supported by the underlying transport. For
                         // example with Slic, the idle timeout is negotiated when the connection is established, it
                         // can't be updated after.
-                        Socket.IdleTimeout = value;
+                        MultiStreamSocket.IdleTimeout = value;
 
                         _timer?.Dispose();
                         _timer = null;
@@ -97,10 +94,10 @@ namespace IceRpc
         }
 
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
-        public bool IsIncoming { get; }
+        public bool IsIncoming => Server != null;
 
         /// <summary><c>true</c> if the connection uses encryption <c>false</c> otherwise.</summary>
-        public virtual bool IsSecure => false;
+        public virtual bool IsSecure => Socket.IsSecure;
 
         /// <summary>Enables or disables the keep alive. When enabled, the connection is kept alive by sending ping
         /// frames at regular time intervals when the connection is idle.</summary>
@@ -108,7 +105,7 @@ namespace IceRpc
 
         /// <summary>The peer's incoming frame maximum size. This is only supported with ice2 connections. For
         /// ice1 connections, the value is always -1.</summary>
-        public int PeerIncomingFrameMaxSize => Protocol == Protocol.Ice1 ? -1 : Socket.PeerIncomingFrameMaxSize!.Value;
+        public int PeerIncomingFrameMaxSize => Protocol == Protocol.Ice1 ? -1 : MultiStreamSocket.PeerIncomingFrameMaxSize!.Value;
 
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => Endpoint.Protocol;
@@ -116,11 +113,17 @@ namespace IceRpc
         /// <summary>The server that created this incoming connection.</summary>
         public Server? Server { get; }
 
+        /// <summary>The socket interface provides information on the socket used by the connection.</summary>
+        public ISocket Socket => MultiStreamSocket.Socket;
+
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
 
-        internal ILogger Logger => Socket.Logger;
+        internal ILogger Logger => MultiStreamSocket.Logger;
+
+        // This property should be private but it's used for testing as well.
+        internal MultiStreamSocket MultiStreamSocket { get; }
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -143,8 +146,6 @@ namespace IceRpc
             }
         }
 
-        // This property should be private protected, it's internal instead for testing purpose.
-        internal MultiStreamSocket Socket { get; }
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
 
@@ -188,7 +189,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = Socket.StartScope(Server);
+            using IDisposable? scope = MultiStreamSocket.StartScope(Server);
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully",
                                                             isClosedByPeer: false,
                                                             RetryPolicy.AfterDelay(TimeSpan.Zero)));
@@ -233,8 +234,8 @@ namespace IceRpc
         /// passed as the event sender argument.</summary>
         public event EventHandler? PingReceived
         {
-            add => Socket.Ping += value;
-            remove => Socket.Ping -= value;
+            add => MultiStreamSocket.Ping += value;
+            remove => MultiStreamSocket.Ping -= value;
         }
 
         /// <summary>Returns <c>true</c> if the connection is active. Outgoing streams can be created and incoming
@@ -249,14 +250,14 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public async Task PingAsync(IProgress<bool>? progress = null, CancellationToken cancel = default)
         {
-            await Socket.PingAsync(cancel).ConfigureAwait(false);
+            await MultiStreamSocket.PingAsync(cancel).ConfigureAwait(false);
             progress?.Report(true);
         }
 
-        /// <summary>Returns a description of the connection as human readable text, suitable for logging or error
-        /// messages.</summary>
+        /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
-        public override string ToString() => Socket.ToString()!;
+        public override string? ToString() =>
+            $"{Socket.GetType().FullName} ({Socket.Description}, IsIncoming={IsIncoming})";
 
         internal Connection(
             Endpoint endpoint,
@@ -267,29 +268,30 @@ namespace IceRpc
             CompressionLevel = options.CompressionLevel;
             CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
-            Socket = socket;
+            MultiStreamSocket = socket;
             Endpoint = endpoint;
             KeepAlive = options.KeepAlive;
-            IsIncoming = server != null;
             _closeTimeout = options.CloseTimeout;
             Server = server;
             _state = ConnectionState.NotInitialized;
         }
 
-        internal async Task AcceptAsync(SslServerAuthenticationOptions? authentication, CancellationToken cancel)
+        internal async Task AcceptAsync(CancellationToken cancel)
         {
-            await Socket.AcceptAsync(authentication, cancel).ConfigureAwait(false);
+            await MultiStreamSocket.AcceptAsync(
+                Server?.ConnectionOptions.AuthenticationOptions,
+                cancel).ConfigureAwait(false);
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(Server);
+                using IDisposable? scope = MultiStreamSocket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
-                    Socket.Logger.LogStartReceivingDatagrams();
+                    MultiStreamSocket.Logger.LogStartReceivingDatagrams();
                 }
                 else
                 {
-                    Socket.Logger.LogConnectionAccepted();
+                    MultiStreamSocket.Logger.LogConnectionAccepted();
                 }
 
                 _state = ConnectionState.Initializing;
@@ -298,18 +300,18 @@ namespace IceRpc
 
         internal async Task ConnectAsync(SslClientAuthenticationOptions? authentication, CancellationToken cancel)
         {
-            await Socket.ConnectAsync(authentication, cancel).ConfigureAwait(false);
+            await MultiStreamSocket.ConnectAsync(authentication, cancel).ConfigureAwait(false);
 
             lock (_mutex)
             {
-                using IDisposable? scope = Socket.StartScope(Server);
+                using IDisposable? scope = MultiStreamSocket.StartScope(Server);
                 if (Endpoint.IsDatagram)
                 {
-                    Socket.Logger.LogStartSendingDatagrams();
+                    MultiStreamSocket.Logger.LogStartSendingDatagrams();
                 }
                 else
                 {
-                    Socket.Logger.LogConnectionEstablished();
+                    MultiStreamSocket.Logger.LogConnectionEstablished();
                 }
 
                 _state = ConnectionState.Initializing;
@@ -327,13 +329,13 @@ namespace IceRpc
                     throw new ConnectionClosedException(isClosedByPeer: false,
                                                         RetryPolicy.AfterDelay(TimeSpan.Zero));
                 }
-                return Socket.CreateStream(bidirectional);
+                return MultiStreamSocket.CreateStream(bidirectional);
             }
         }
 
         internal async Task GoAwayAsync(Exception exception, CancellationToken cancel = default)
         {
-            using IDisposable? socketScope = Socket.StartScope(Server);
+            using IDisposable? socketScope = MultiStreamSocket.StartScope(Server);
             try
             {
                 Task goAwayTask;
@@ -365,12 +367,12 @@ namespace IceRpc
                 // the incoming streams to complete before sending the GoAway frame but instead provide the ID
                 // of the latest incoming stream IDs to the peer. The peer will close the connection only once
                 // the streams with IDs inferior or equal to the largest stream IDs are complete.
-                (long, long) lastIncomingStreamIds = Socket.AbortStreams(exception, stream => !stream.IsIncoming);
+                (long, long) lastIncomingStreamIds = MultiStreamSocket.AbortStreams(exception, stream => !stream.IsIncoming);
 
                 // With Ice1, we first wait for all incoming streams to complete before sending the GoAway frame.
                 if (Endpoint.Protocol == Protocol.Ice1)
                 {
-                    await Socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
+                    await MultiStreamSocket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
                 }
 
                 try
@@ -414,19 +416,19 @@ namespace IceRpc
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
-            using IDisposable? socketScope = Socket.StartScope(Server);
+            using IDisposable? socketScope = MultiStreamSocket.StartScope(Server);
             try
             {
                 // Initialize the transport.
-                await Socket.InitializeAsync(cancel).ConfigureAwait(false);
+                await MultiStreamSocket.InitializeAsync(cancel).ConfigureAwait(false);
 
                 if (!Endpoint.IsDatagram)
                 {
                     // Create the control stream and send the initialize frame
-                    _controlStream = await Socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    _controlStream = await MultiStreamSocket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
                     // Wait for the peer control stream to be accepted and read the initialize frame
-                    _peerControlStream = await Socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
+                    _peerControlStream = await MultiStreamSocket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -467,9 +469,9 @@ namespace IceRpc
                     return;
                 }
 
-                TimeSpan idleTime = Time.Elapsed - Socket.LastActivity;
+                TimeSpan idleTime = Time.Elapsed - MultiStreamSocket.LastActivity;
 
-                if (idleTime > IdleTimeout / 4 && (KeepAlive || Socket.IncomingStreamCount > 0))
+                if (idleTime > IdleTimeout / 4 && (KeepAlive || MultiStreamSocket.IncomingStreamCount > 0))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
                     // sooner than really needed is safer to ensure that the receiver will receive the ping in
@@ -479,11 +481,11 @@ namespace IceRpc
                     //
                     // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because
                     // Monitor is still only called every (IdleTimeout / 2) period.
-                    _ = Socket.PingAsync(CancellationToken.None);
+                    _ = MultiStreamSocket.PingAsync(CancellationToken.None);
                 }
                 else if (idleTime > IdleTimeout)
                 {
-                    if (Socket.OutgoingStreamCount > 0)
+                    if (MultiStreamSocket.OutgoingStreamCount > 0)
                     {
                         // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
                         // ACM activity in the last period.
@@ -514,36 +516,36 @@ namespace IceRpc
                         // accepted before printing out the connection closed trace.
                         if (Endpoint.IsDatagram)
                         {
-                            Socket.Logger.LogStartReceivingDatagrams();
+                            MultiStreamSocket.Logger.LogStartReceivingDatagrams();
                         }
                         else
                         {
-                            Socket.Logger.LogConnectionAccepted();
+                            MultiStreamSocket.Logger.LogConnectionAccepted();
                         }
                     }
 
                     if (Endpoint.IsDatagram && IsIncoming)
                     {
-                        Socket.Logger.LogStopReceivingDatagrams();
+                        MultiStreamSocket.Logger.LogStopReceivingDatagrams();
                     }
                     else
                     {
                         // Trace the cause of unexpected connection closures
                         if (exception is ConnectionClosedException closedException)
                         {
-                            Socket.Logger.LogConnectionClosed(exception.Message, closedException.IsClosedByPeer);
+                            MultiStreamSocket.Logger.LogConnectionClosed(exception.Message, closedException.IsClosedByPeer);
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            Socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false);
+                            MultiStreamSocket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            Socket.Logger.LogConnectionClosed("connection lost", closedByPeer: true);
+                            MultiStreamSocket.Logger.LogConnectionClosed("connection lost", closedByPeer: true);
                         }
                         else
                         {
-                            Socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false, exception);
+                            MultiStreamSocket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false, exception);
                         }
                     }
 
@@ -556,10 +558,10 @@ namespace IceRpc
 
             async Task PerformAbortAsync()
             {
-                Socket.Abort(exception);
+                MultiStreamSocket.Abort(exception);
 
                 // Dispose of the socket.
-                Socket.Dispose();
+                MultiStreamSocket.Dispose();
 
                 _timer?.Dispose();
 
@@ -574,7 +576,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Socket.Logger.LogConnectionEventHandlerException("close", ex);
+                    MultiStreamSocket.Logger.LogConnectionEventHandlerException("close", ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -584,6 +586,8 @@ namespace IceRpc
             }
         }
 
+        internal IDisposable? StartScope() => MultiStreamSocket.StartScope();
+
         private async ValueTask AcceptStreamAsync()
         {
             SocketStream? stream = null;
@@ -592,7 +596,7 @@ namespace IceRpc
                 try
                 {
                     // Accept a new stream.
-                    stream = await Socket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
+                    stream = await MultiStreamSocket.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (ConnectionClosedException) when (
                     (_state != ConnectionState.Closed && _peerControlStream!.ReceivedEndOfStream) ||
@@ -640,7 +644,7 @@ namespace IceRpc
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
                 activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-                if (activity == null && (Socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                if (activity == null && (MultiStreamSocket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
                     activity = new Activity("IceRpc.Dispatch");
                     // TODO we should start the activity after restoring its context, we should update this once
@@ -657,7 +661,7 @@ namespace IceRpc
 
                 // It is important to start the activity above before logging in case the logger has been configured to
                 // include the activity tracking options.
-                Socket.Logger.LogReceivedRequest(request);
+                MultiStreamSocket.Logger.LogReceivedRequest(request);
 
                 OutgoingResponse? response;
 
@@ -687,7 +691,7 @@ namespace IceRpc
                         response = new OutgoingResponse(request, ex);
                         await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
                     }
-                    Socket.Logger.LogSentResponse(response);
+                    MultiStreamSocket.Logger.LogSentResponse(response);
                 }
             }
             catch (Exception ex)
@@ -730,7 +734,7 @@ namespace IceRpc
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested)
                 {
                     // The client requested cancellation, we log it and let it propagate.
-                    Socket.Logger.LogDispatchCanceledByClient(request);
+                    MultiStreamSocket.Logger.LogDispatchCanceledByClient(request);
                     throw;
                 }
                 catch (Exception ex)
@@ -748,7 +752,7 @@ namespace IceRpc
                     if (request.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
-                        Socket.Logger.LogDispatchException(request, ex);
+                        MultiStreamSocket.Logger.LogDispatchException(request, ex);
                         return OutgoingResponse.WithVoidReturnValue(request);
                     }
                     else
@@ -763,7 +767,7 @@ namespace IceRpc
                             actualEx = new UnhandledException(ex);
 
                             // We log the "source" exception as UnhandledException may not include all details.
-                            Socket.Logger.LogDispatchException(request, ex);
+                            MultiStreamSocket.Logger.LogDispatchException(request, ex);
                         }
                         return new OutgoingResponse(request, actualEx);
                     }
@@ -787,9 +791,9 @@ namespace IceRpc
             {
                 // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the transport
                 // doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be infinite.
-                if (Socket.IdleTimeout != Timeout.InfiniteTimeSpan)
+                if (MultiStreamSocket.IdleTimeout != Timeout.InfiniteTimeSpan)
                 {
-                    TimeSpan period = Socket.IdleTimeout / 2;
+                    TimeSpan period = MultiStreamSocket.IdleTimeout / 2;
                     _timer = new Timer(value => Monitor(), null, period, period);
                 }
             }
@@ -838,19 +842,20 @@ namespace IceRpc
             async Task PerformGoAwayAsync((long Bidirectional, long Unidirectional) lastStreamIds, Exception exception)
             {
                 // Abort non-processed outgoing streams and all incoming streams.
-                Socket.AbortStreams(exception,
-                                    stream => stream.IsIncoming ||
-                                              stream.IsBidirectional ?
-                                                  stream.Id > lastStreamIds.Bidirectional :
-                                                  stream.Id > lastStreamIds.Unidirectional);
+                MultiStreamSocket.AbortStreams(
+                    exception,
+                    stream => stream.IsIncoming ||
+                                stream.IsBidirectional ?
+                                    stream.Id > lastStreamIds.Bidirectional :
+                                    stream.Id > lastStreamIds.Unidirectional);
 
                 // Wait for all the streams to complete.
-                await Socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
+                await MultiStreamSocket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
 
                 try
                 {
                     // Close the transport
-                    await Socket.CloseAsync(exception, CancellationToken.None).ConfigureAwait(false);
+                    await MultiStreamSocket.CloseAsync(exception, CancellationToken.None).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -859,142 +864,5 @@ namespace IceRpc
                 }
             }
         }
-    }
-
-    /// <summary>Represents a connection to a colocated server.</summary>
-    public class ColocConnection : Connection
-    {
-        internal ColocConnection(
-            Endpoint endpoint,
-            ColocSocket socket,
-            ConnectionOptions options,
-            Server? server)
-            : base(endpoint, socket, options, server)
-        {
-        }
-    }
-
-    /// <summary>Represents a connection to an IP-endpoint.</summary>
-    public abstract class IPConnection : Connection
-    {
-        private protected readonly MultiStreamOverSingleStreamSocket _socket;
-
-        /// <summary>The socket local IP-endpoint or null if it is not available.</summary>
-        public System.Net.IPEndPoint? LocalEndpoint
-        {
-            get
-            {
-                try
-                {
-                    return _socket.Underlying.Socket?.LocalEndPoint as System.Net.IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        /// <summary>The socket remote IP-endpoint or null if it is not available.</summary>
-        public System.Net.IPEndPoint? RemoteEndpoint
-        {
-            get
-            {
-                try
-                {
-                    return _socket.Underlying.Socket?.RemoteEndPoint as System.Net.IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        internal IPConnection(
-            Endpoint endpoint,
-            MultiStreamOverSingleStreamSocket socket,
-            ConnectionOptions options,
-            Server? server)
-            : base(endpoint, socket, options, server) => _socket = socket;
-    }
-
-    /// <summary>Represents a connection to a TCP-endpoint.</summary>
-    public class TcpConnection : IPConnection
-    {
-        /// <summary>Gets a Boolean value that indicates whether the certificate revocation list is checked during the
-        /// certificate validation process.</summary>
-        public bool CheckCertRevocationStatus => SslStream?.CheckCertRevocationStatus ?? false;
-        /// <summary>Gets a Boolean value that indicates whether this SslStream uses data encryption.</summary>
-        public bool IsEncrypted => SslStream?.IsEncrypted ?? false;
-        /// <summary>Gets a Boolean value that indicates whether both server and client have been authenticated.
-        /// </summary>
-        public bool IsMutuallyAuthenticated => SslStream?.IsMutuallyAuthenticated ?? false;
-        /// <inheritdoc/>
-        public override bool IsSecure => SslStream != null;
-        /// <summary>Gets a Boolean value that indicates whether the data sent using this stream is signed.</summary>
-        public bool IsSigned => SslStream?.IsSigned ?? false;
-
-        /// <summary>Gets the certificate used to authenticate the local endpoint or null if no certificate was
-        /// supplied.</summary>
-        public X509Certificate? LocalCertificate => SslStream?.LocalCertificate;
-
-        /// <summary>The negotiated application protocol in TLS handshake.</summary>
-        public SslApplicationProtocol? NegotiatedApplicationProtocol => SslStream?.NegotiatedApplicationProtocol;
-
-        /// <summary>Gets the cipher suite which was negotiated for this connection.</summary>
-        public TlsCipherSuite? NegotiatedCipherSuite => SslStream?.NegotiatedCipherSuite;
-        /// <summary>Gets the certificate used to authenticate the remote endpoint or null if no certificate was
-        /// supplied.</summary>
-        public X509Certificate? RemoteCertificate => SslStream?.RemoteCertificate;
-
-        /// <summary>Gets a value that indicates the security protocol used to authenticate this connection or
-        /// null if the connection is not secure.</summary>
-        public SslProtocols? SslProtocol => SslStream?.SslProtocol;
-
-        private SslStream? SslStream => _socket.Underlying.SslStream;
-
-        internal TcpConnection(
-            Endpoint endpoint,
-            MultiStreamOverSingleStreamSocket socket,
-            ConnectionOptions options,
-            Server? server)
-            : base(endpoint, socket, options, server)
-        {
-        }
-    }
-
-    /// <summary>Represents a connection to a UDP-endpoint.</summary>
-    public class UdpConnection : IPConnection
-    {
-        /// <summary>The multicast IP-endpoint for a multicast connection otherwise null.</summary>
-        public System.Net.IPEndPoint? MulticastEndpoint => _udpSocket.MulticastAddress;
-
-        private readonly UdpSocket _udpSocket;
-
-        internal UdpConnection(
-            Endpoint endpoint,
-            MultiStreamOverSingleStreamSocket socket,
-            ConnectionOptions options,
-            Server? server)
-            : base(endpoint, socket, options, server) =>
-            _udpSocket = (UdpSocket)_socket.Underlying;
-    }
-
-    /// <summary>Represents a connection to a WS-endpoint.</summary>
-    public class WSConnection : TcpConnection
-    {
-        /// <summary>The HTTP headers in the WebSocket upgrade request.</summary>
-        public IReadOnlyDictionary<string, string> Headers => _wsSocket.Headers;
-
-        private readonly WSSocket _wsSocket;
-
-        internal WSConnection(
-            Endpoint endpoint,
-            MultiStreamOverSingleStreamSocket socket,
-            ConnectionOptions options,
-            Server? server)
-            : base(endpoint, socket, options, server) =>
-            _wsSocket = (WSSocket)_socket.Underlying;
     }
 }

@@ -2,9 +2,11 @@
 
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -220,6 +222,15 @@ namespace IceRpc
 
                 _endpoint = _incomingConnectionFactory.Endpoint;
                 UpdateProxyEndpoint();
+
+                if (ConnectionOptions.AuthenticationOptions != null)
+                {
+                    ConnectionOptions.AuthenticationOptions = ConnectionOptions.AuthenticationOptions.Clone();
+                    ConnectionOptions.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                    {
+                        new SslApplicationProtocol(_endpoint.Protocol.GetName())
+                    };
+                }
 
                 _incomingConnectionFactory.Activate();
 

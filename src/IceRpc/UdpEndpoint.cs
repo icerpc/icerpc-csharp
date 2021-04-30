@@ -101,7 +101,7 @@ namespace IceRpc
                 Endpoint endpoint = Clone(port);
                 var udpSocket = new UdpSocket(socket, server.Logger, isIncoming: true, multicastAddress);
                 var multiStreamSocket = new Ice1NetworkSocket(endpoint, udpSocket, options);
-                return new UdpConnection(endpoint, multiStreamSocket, options, server);
+                return new Connection(endpoint, multiStreamSocket, options, server);
             }
             catch (SocketException ex)
             {
@@ -229,7 +229,7 @@ namespace IceRpc
 
             var udpSocket = new UdpSocket(socket, logger, isIncoming: false, endpoint);
             var multiStreamSocket = new Ice1NetworkSocket(this, udpSocket, options);
-            var connection = new UdpConnection(this, multiStreamSocket, options, server: null);
+            var connection = new Connection(this, multiStreamSocket, options, server: null);
             await connection.ConnectAsync(null, cancel).ConfigureAwait(false);
             return connection;
         }
