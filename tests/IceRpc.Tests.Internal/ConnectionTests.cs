@@ -353,8 +353,17 @@ namespace IceRpc.Tests.Internal
                 Assert.That(tcpClientSocket.IsSigned, Is.True);
                 Assert.That(tcpClientSocket.LocalCertificate, Is.Null);
                 Assert.That(tcpClientSocket.NegotiatedApplicationProtocol, Is.Not.Null);
-                Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(),
-                            Is.EqualTo(Protocol.Ice2.GetName()));
+
+                if (OperatingSystem.IsMacOS())
+                {
+                    // APLN doesn't work on macOS (we keep this check to figure out when it will be supported)
+                    Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(), Is.Empty);
+                }
+                else
+                {
+                    Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(),
+                                Is.EqualTo(Protocol.Ice2.GetName()));
+                }
                 Assert.That(tcpClientSocket.RemoteCertificate, Is.Not.Null);
                 Assert.That(tcpClientSocket.SslProtocol, Is.Not.Null);
 
