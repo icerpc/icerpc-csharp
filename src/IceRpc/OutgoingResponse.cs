@@ -172,7 +172,7 @@ namespace IceRpc
             Dispatch dispatch,
             IncomingResponse response,
             bool forwardBinaryContext = true)
-        : this(dispatch.IncomingRequest, response, forwardBinaryContext, dispatch.ResponseFeatures)
+            : this(dispatch.IncomingRequest, response, forwardBinaryContext, dispatch.ResponseFeatures)
         {
         }
 
