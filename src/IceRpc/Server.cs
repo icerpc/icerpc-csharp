@@ -227,7 +227,7 @@ namespace IceRpc
                     ConnectionOptions.AuthenticationOptions = ConnectionOptions.AuthenticationOptions.Clone();
                     ConnectionOptions.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
-                        new SslApplicationProtocol("foo")
+                        new SslApplicationProtocol(_endpoint.Protocol.GetName())
                     };
                 }
 
