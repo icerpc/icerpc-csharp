@@ -4,6 +4,8 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -79,7 +81,7 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> AcceptAsync(IAcceptor acceptor)
                 {
                     Connection connection = await acceptor.AcceptAsync();
-                    await connection.AcceptAsync(null, default);
+                    await connection.AcceptAsync(default);
                     await connection.InitializeAsync(default);
                     return connection;
                 }
@@ -130,10 +132,31 @@ namespace IceRpc.Tests.Internal
             public ConnectionFactory(
                 string transport = "coloc",
                 Protocol protocol = Protocol.Ice2,
+                bool secure = false,
                 OutgoingConnectionOptions? clientConnectionOptions = null,
                 IncomingConnectionOptions? serverConnectionOptions = null,
                 IDispatcher? dispatcher = null)
             {
+                if (secure)
+                {
+                    clientConnectionOptions ??= new();
+                    clientConnectionOptions.AuthenticationOptions = new()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection()
+                                {
+                                    new X509Certificate2("../../../certs/cacert.pem")
+                                })
+                    };
+
+                    serverConnectionOptions ??= new();
+                    serverConnectionOptions.AuthenticationOptions = new()
+                    {
+                        ClientCertificateRequired = false,
+                        ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                    };
+                }
 
                 _communicator = new Communicator(
                     new Dictionary<string, string>() { { "Ice.InvocationMaxAttempts", "1" } },
@@ -153,11 +176,22 @@ namespace IceRpc.Tests.Internal
                 }
                 else if (transport == "udp" || protocol == Protocol.Ice1)
                 {
+                    if (secure)
+                    {
+                        if (transport == "tcp")
+                        {
+                            transport = "ssl";
+                        }
+                        else if (transport == "ws")
+                        {
+                            transport = "wss";
+                        }
+                    }
                     Endpoint = Endpoint.Parse($"{transport} -h 127.0.0.1");
                 }
                 else
                 {
-                    Endpoint = Endpoint.Parse($"ice+{transport}://127.0.0.1:0?tls=false");
+                    Endpoint = Endpoint.Parse($"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}");
                 }
             }
         }
@@ -254,44 +288,80 @@ namespace IceRpc.Tests.Internal
             // is handled by the outgoing connection factory.
         }
 
-        [TestCase("tcp")]
-        [TestCase("ws")]
-        [TestCase("udp")]
-        public async Task Connection_InformationAsync(string transport)
+        [TestCase("tcp", false)]
+        [TestCase("ws", false)]
+        [TestCase("tcp", true)]
+        [TestCase("ws", true)]
+        [TestCase("udp", false)]
+        public async Task Connection_InformationAsync(string transport, bool secure)
         {
-            await using var factory = new ConnectionFactory(transport);
+            await using var factory = new ConnectionFactory(transport, secure: secure);
 
-            Assert.That(factory.Client, Is.AssignableTo<IPConnection>());
-            Assert.That(factory.Server, Is.AssignableTo<IPConnection>());
+            Assert.That(factory.Client.Socket, Is.AssignableTo<IIpSocket>());
+            Assert.That(factory.Server.Socket, Is.AssignableTo<IIpSocket>());
 
-            var connection = (IPConnection)factory.Client;
-            var serverConnection = (IPConnection)factory.Server;
+            var clientSocket = (IIpSocket)factory.Client.Socket;
+            var serverSocket = (IIpSocket)factory.Server.Socket;
 
-            Assert.That(connection.RemoteEndpoint, Is.Not.Null);
-            Assert.That(connection.LocalEndpoint, Is.Not.Null);
+            Assert.That(clientSocket.IsSecure, Is.EqualTo(secure));
+            Assert.That(serverSocket.IsSecure, Is.EqualTo(secure));
 
-            Assert.AreEqual("127.0.0.1", connection!.Endpoint.Host);
-            Assert.That(connection.Endpoint.Port, Is.GreaterThan(0));
-            Assert.AreEqual(null, connection.Endpoint["compress"]);
-            Assert.That(connection.IsIncoming, Is.False);
-            Assert.That(serverConnection.IsIncoming, Is.True);
+            Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
+            Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
 
-            Assert.AreEqual(null, connection.Server);
-            Assert.AreEqual(connection.Endpoint.Port, connection.RemoteEndpoint!.Port);
-            Assert.That(connection.LocalEndpoint!.Port, Is.GreaterThan(0));
+            Assert.AreEqual("127.0.0.1", factory.Client.Endpoint.Host);
+            Assert.That(factory.Client.Endpoint.Port, Is.GreaterThan(0));
+            Assert.AreEqual(null, factory.Client.Endpoint["compress"]);
+            Assert.That(factory.Client.IsIncoming, Is.False);
+            Assert.That(factory.Server.IsIncoming, Is.True);
 
-            Assert.AreEqual("127.0.0.1", connection.LocalEndpoint!.Address.ToString());
-            Assert.AreEqual("127.0.0.1", connection.RemoteEndpoint!.Address.ToString());
+            Assert.AreEqual(null, factory.Client.Server);
+            Assert.AreEqual(factory.Client.Endpoint.Port, clientSocket.RemoteEndPoint!.Port);
+            Assert.That(clientSocket.LocalEndPoint!.Port, Is.GreaterThan(0));
 
+            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint!.Address.ToString());
+            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint!.Address.ToString());
+
+            if (transport == "udp")
+            {
+                Assert.That(clientSocket, Is.AssignableTo<IUdpSocket>());
+            }
+            else if (transport == "tcp")
+            {
+                Assert.That(clientSocket, Is.AssignableTo<ITcpSocket>());
+            }
             if (transport == "ws")
             {
-                Assert.That(connection, Is.AssignableTo<WSConnection>());
-                var wsConnection = (WSConnection)connection;
+                Assert.That(clientSocket, Is.AssignableTo<IWSSocket>());
+                var wsSocket = (IWSSocket)clientSocket;
 
-                Assert.AreEqual("websocket", wsConnection.Headers["Upgrade"]);
-                Assert.AreEqual("Upgrade", wsConnection.Headers["Connection"]);
-                Assert.AreEqual("ice.zeroc.com", wsConnection.Headers["Sec-WebSocket-Protocol"]);
-                Assert.That(wsConnection.Headers["Sec-WebSocket-Accept"], Is.Not.Null);
+                Assert.AreEqual("websocket", wsSocket.Headers["Upgrade"]);
+                Assert.AreEqual("Upgrade", wsSocket.Headers["Connection"]);
+                Assert.AreEqual("ice.zeroc.com", wsSocket.Headers["Sec-WebSocket-Protocol"]);
+                Assert.That(wsSocket.Headers["Sec-WebSocket-Accept"], Is.Not.Null);
+            }
+
+            if (secure)
+            {
+                CollectionAssert.Contains(new List<string> { "tcp", "ws" }, transport);
+                var tcpClientSocket = (ITcpSocket)clientSocket;
+                var tcpServerSocket = (ITcpSocket)serverSocket;
+
+                Assert.That(tcpClientSocket.CheckCertRevocationStatus, Is.False);
+                Assert.That(tcpClientSocket.IsEncrypted, Is.True);
+                Assert.That(tcpClientSocket.IsMutuallyAuthenticated, Is.False);
+                Assert.That(tcpClientSocket.IsSigned, Is.True);
+                Assert.That(tcpClientSocket.LocalCertificate, Is.Null);
+                Assert.That(tcpClientSocket.NegotiatedApplicationProtocol, Is.Not.Null);
+                Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(),
+                            Is.EqualTo(Protocol.Ice2.GetName()));
+                Assert.That(tcpClientSocket.RemoteCertificate, Is.Not.Null);
+                Assert.That(tcpClientSocket.SslProtocol, Is.Not.Null);
+
+                Assert.That(tcpServerSocket.NegotiatedApplicationProtocol,
+                            Is.EqualTo(tcpClientSocket.NegotiatedApplicationProtocol));
+                Assert.That(tcpServerSocket.LocalCertificate, Is.Not.Null);
+                Assert.That(tcpServerSocket.RemoteCertificate, Is.Null);
             }
         }
 

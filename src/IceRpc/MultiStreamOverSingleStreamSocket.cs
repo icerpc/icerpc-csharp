@@ -10,6 +10,8 @@ namespace IceRpc
     /// data.</summary>
     internal abstract class MultiStreamOverSingleStreamSocket : MultiStreamSocket
     {
+        internal override ISocket Socket => Underlying.Socket;
+
         internal SingleStreamSocket Underlying { get; private set; }
 
         public override string ToString() => $"{base.ToString()} ({Underlying})";

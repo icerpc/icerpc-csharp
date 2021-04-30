@@ -41,6 +41,7 @@ namespace IceRpc
         internal int? PeerIncomingFrameMaxSize { get; set; }
         internal ILogger Logger { get; }
         internal event EventHandler? Ping;
+        internal abstract ISocket Socket { get; }
 
         private int _incomingStreamCount;
         // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.

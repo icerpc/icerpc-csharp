@@ -200,11 +200,12 @@ namespace IceRpc
         {
             // If the endpoint is secure, connect with the SSL client authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsSecure ?? true)
+            if (IsSecure ?? options.AuthenticationOptions != null)
             {
-                authenticationOptions = options.AuthenticationOptions ?? new SslClientAuthenticationOptions()
-                {
-                    TargetHost = Host
+                authenticationOptions = options.AuthenticationOptions?.Clone() ?? new SslClientAuthenticationOptions();
+                authenticationOptions.TargetHost ??= Host;
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                    new SslApplicationProtocol(Protocol.GetName())
                 };
             }
 
@@ -216,16 +217,10 @@ namespace IceRpc
                 Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
                 _ => new SlicSocket(this, socket, options)
             };
-            Connection connection = CreateConnection(multiStreamSocket, options, server: null);
+            var connection = new Connection(this, multiStreamSocket, options, server: null);
             await connection.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
             return connection;
         }
-
-        protected internal virtual Connection CreateConnection(
-            MultiStreamOverSingleStreamSocket socket,
-            ConnectionOptions options,
-            Server? server) =>
-            new TcpConnection(this, socket, options, server);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {

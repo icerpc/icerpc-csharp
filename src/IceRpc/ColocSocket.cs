@@ -11,15 +11,21 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
-    internal class ColocSocket : MultiStreamSocket
+    internal class ColocSocket : MultiStreamSocket, ISocket
     {
+        /// <inheritdoc/>
         public override TimeSpan IdleTimeout
         {
             get => Timeout.InfiniteTimeSpan;
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
+        /// <inheritdoc/>
+        public bool IsSecure => true;
+
         internal long Id { get; }
+
+        internal override ISocket Socket => this;
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;

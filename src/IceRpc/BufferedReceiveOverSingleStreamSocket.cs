@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,13 +12,15 @@ namespace IceRpc
     /// <summary>The BufferedReceiveOverSingleStreamSocket is a wrapper around SingleStreamSocket to provide
     /// buffered data receive. This helps to limit the number of operating system Receive calls when the user
     /// needs to read only few bytes before reading more (typically to read a frame header) by receiving the
-    /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used to implement
-    /// Slic and WebSocket.
+    /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by the
+    /// <c>SlicSocket</c> and <c>WSSocket</c>.
     /// </summary>
     internal class BufferedReceiveOverSingleStreamSocket : SingleStreamSocket
     {
-        public override Socket? Socket => Underlying.Socket;
-        public override SslStream? SslStream => Underlying.SslStream;
+        public override ISocket Socket => Underlying.Socket;
+
+        /// <inheritdoc/>
+        internal override System.Net.Sockets.Socket? NetworkSocket => Underlying.NetworkSocket;
 
         internal SingleStreamSocket Underlying { get; private set; }
 
@@ -77,7 +78,7 @@ namespace IceRpc
             Underlying.SendDatagramAsync(buffer, cancel);
 
         /// <inheritdoc/>
-        public override string ToString() => Underlying.ToString();
+        public override string? ToString() => Underlying.ToString();
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 

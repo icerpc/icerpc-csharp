@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,11 +15,11 @@ namespace IceRpc
     {
         internal ILogger Logger { get; }
 
-        /// <summary>Gets the optional .NET socket associated with this single-stream socket.</summary>
-        public abstract Socket? Socket { get; }
+        /// <summary>The public socket interface to obtain information on the socket.</summary>
+        public abstract ISocket Socket { get; }
 
-        /// <summary>Gets the optional SslStream associated with this socket.</summary>
-        public abstract SslStream? SslStream { get; }
+        /// <summary>This property should be used for testing purpose only.</summary>
+        internal abstract System.Net.Sockets.Socket? NetworkSocket { get; }
 
         /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
         /// of the connection closure.</summary>
@@ -82,31 +81,6 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The number of bytes sent.</return>
         public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
-
-        public override string ToString()
-        {
-            if (Socket == null)
-            {
-                return base.ToString()!;
-            }
-            else
-            {
-                try
-                {
-                    string localEndpoint = Socket?.LocalEndPoint?.ToString() ?? "undefined";
-                    string remoteEndpoint = Socket?.RemoteEndPoint?.ToString() ?? "undefined";
-                    return $"{base.ToString()} (LocalEndpoint={localEndpoint}, RemoteEndpoint={remoteEndpoint})";
-                }
-                catch (SocketException)
-                {
-                    return $"{base.ToString()} (not connected)";
-                }
-                catch (ObjectDisposedException)
-                {
-                    return $"{base.ToString()} (closed)";
-                }
-            }
-        }
 
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only

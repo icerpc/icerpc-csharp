@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Internal
 
             // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            await clientSocket.Socket!.ConnectAsync(
+            await clientSocket.NetworkSocket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
             using SingleStreamSocket serverSocket = await acceptTask;
@@ -233,13 +233,13 @@ namespace IceRpc.Tests.Internal
                 Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
                 _ => new SlicSocket(ClientEndpoint, socket, options)
             };
-            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
-            return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+            var connection = new Connection(endpoint, multiStreamSocket, options, server: null);
+            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
 
         private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
         {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
+            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).MultiStreamSocket;
             return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }
