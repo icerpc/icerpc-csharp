@@ -23,31 +23,22 @@ namespace IceRpc
 
         internal const ushort DefaultColocPort = 4062;
 
-        public override IAcceptor Acceptor(Server server) => new ColocAcceptor(this, server);
-
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
-        public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new InvalidOperationException();
+        protected internal override IAcceptor CreateAcceptor(Server server) => new ColocAcceptor(this, server);
 
-        protected internal override Task<Connection> ConnectAsync(
+        protected internal override MultiStreamSocket CreateClientSocket(
             OutgoingConnectionOptions options,
-            ILogger logger,
-            CancellationToken cancel)
+            ILogger logger)
         {
             if (ColocAcceptor.TryGetValue(this, out ColocAcceptor? acceptor))
             {
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = acceptor.NewClientConnection();
-
-                return Task.FromResult(new Connection(
-                    this,
-                    new ColocSocket(this, id, writer, reader, options, logger),
-                    options,
-                    server: null));
+                return new ColocSocket(this, id, writer, reader, options, logger);
             }
             else
             {

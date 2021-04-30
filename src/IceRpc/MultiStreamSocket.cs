@@ -19,7 +19,8 @@ namespace IceRpc
     /// </summary>
     public abstract class MultiStreamSocket : IDisposable
     {
-        /// <summary>The endpoint from which the socket was created.</summary>
+        /// <summary>The endpoint from which the socket was created. For a server socket, it's the local endpoint.
+        /// For a client socket, it's the remote endpoint.</summary>
         public Endpoint Endpoint { get; }
 
         /// <summary>Gets or set the idle timeout.</summary>

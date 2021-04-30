@@ -34,10 +34,10 @@ namespace IceRpc
         internal AcceptorIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
             _server = server;
-            _acceptor = endpoint.Acceptor(_server);
+            _acceptor = endpoint.CreateAcceptor(_server);
             Endpoint = _acceptor.Endpoint;
 
-            using IDisposable? scope = _acceptor.StartScope(_server);
+            using IDisposable? scope = server.Logger.StartAcceptorScope(server, _acceptor);
             if (!(_acceptor is ColocAcceptor))
             {
                 server.Logger.LogAcceptingConnections();
@@ -68,7 +68,7 @@ namespace IceRpc
 
         internal override async Task ShutdownAsync()
         {
-            using IDisposable? scope = _acceptor.StartScope(_server);
+            using IDisposable? scope = _server.Logger.StartAcceptorScope(_server, _acceptor);
             _server.Logger.LogStopAcceptingConnections();
 
             // Dispose of the acceptor and close the connections. It's important to perform this synchronously without
@@ -98,15 +98,15 @@ namespace IceRpc
             Justification = "Ensure continuations execute on the server scheduler if it is set")]
         private async ValueTask AcceptAsync()
         {
-            using IDisposable? scope = _acceptor.StartScope(_server);
+            using IDisposable? scope = _server.Logger.StartAcceptorScope(_server, _acceptor);
             _server.Logger.LogStartAcceptingConnections();
 
             while (true)
             {
-                Connection connection;
+                MultiStreamSocket socket;
                 try
                 {
-                    connection = await _acceptor.AcceptAsync();
+                    socket = await _acceptor.AcceptAsync();
                 }
                 catch (Exception ex)
                 {
@@ -123,6 +123,7 @@ namespace IceRpc
                     continue;
                 }
 
+                var connection = new Connection(socket, _server.ConnectionOptions, _server);
                 lock (_mutex)
                 {
                     if (_shutdown)
@@ -150,11 +151,8 @@ namespace IceRpc
                 CancellationToken cancel = source.Token;
                 try
                 {
-                    // Perform socket level initialization (handshake, etc)
+                    // Accept the connection (handshake, protocol initialization, ...)
                     await connection.AcceptAsync(cancel).ConfigureAwait(false);
-
-                    // Perform protocol level initialization
-                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -176,7 +174,8 @@ namespace IceRpc
 
         internal DatagramIncomingConnectionFactory(Server server, Endpoint endpoint)
         {
-            _connection = endpoint.CreateDatagramServerConnection(server);
+            MultiStreamSocket socket = endpoint.CreateServerSocket(server.ConnectionOptions, server.Logger);
+            _connection = new Connection(socket, server.ConnectionOptions, server);
             Endpoint = _connection.Endpoint;
         }
 

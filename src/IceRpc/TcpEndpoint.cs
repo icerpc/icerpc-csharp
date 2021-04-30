@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -42,44 +41,6 @@ namespace IceRpc
         /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
         /// </value>
         private readonly bool? _tls;
-
-        // TODO: should not be public
-        public override IAcceptor Acceptor(Server server)
-        {
-            if (Address == IPAddress.None)
-            {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
-            }
-
-            var address = new IPEndPoint(Address, Port);
-            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                TcpOptions tcpOptions = server.ConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                socket.ExclusiveAddressUse = true;
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, server.Logger);
-
-                socket.Bind(address);
-                address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(tcpOptions.ListenerBackLog);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), server);
-        }
-
-        public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new InvalidOperationException();
 
         public override bool Equals(Endpoint? other)
         {
@@ -124,6 +85,54 @@ namespace IceRpc
                 }
                 sb.Append($"tls={tls.ToString().ToLowerInvariant()}");
             }
+        }
+
+        protected internal override IAcceptor CreateAcceptor(Server server)
+        {
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
+            }
+
+            var address = new IPEndPoint(Address, Port);
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                TcpOptions tcpOptions = server.ConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                socket.ExclusiveAddressUse = true;
+
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, server.Logger);
+
+                socket.Bind(address);
+                address = (IPEndPoint)socket.LocalEndPoint!;
+                socket.Listen(tcpOptions.ListenerBackLog);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), server);
+        }
+
+        protected internal override MultiStreamSocket CreateClientSocket(
+            OutgoingConnectionOptions options,
+            ILogger logger)
+        {
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            SingleStreamSocket socket = CreateSocket(endpoint, tcpOptions, logger);
+            return Protocol switch
+            {
+                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
+                _ => new SlicSocket(this, socket, options)
+            };
         }
 
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
@@ -191,35 +200,6 @@ namespace IceRpc
                 options.Remove("tls");
             }
             return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()), tls);
-        }
-
-        protected internal override async Task<Connection> ConnectAsync(
-            OutgoingConnectionOptions options,
-            ILogger logger,
-            CancellationToken cancel)
-        {
-            // If the endpoint is secure, connect with the SSL client authentication options.
-            SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsSecure ?? true)
-            {
-                authenticationOptions = options.AuthenticationOptions?.Clone() ?? new SslClientAuthenticationOptions();
-                authenticationOptions.TargetHost ??= Host;
-                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                    new SslApplicationProtocol(Protocol.GetName())
-                };
-            }
-
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint, tcpOptions, logger);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = Protocol switch
-            {
-                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
-                _ => new SlicSocket(this, socket, options)
-            };
-            var connection = new Connection(this, multiStreamSocket, options, server: null);
-            await connection.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
-            return connection;
         }
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -141,20 +140,20 @@ namespace IceRpc.Tests.Internal
             await _acceptSemaphore.EnterAsync();
             try
             {
-                Connection connection = await _acceptor.AcceptAsync();
-                Debug.Assert(connection.Endpoint.TransportName == TransportName);
-                await connection.MultiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !connection.IsSecure)
+                MultiStreamSocket multiStreamSocket = await _acceptor.AcceptAsync();
+                Debug.Assert(multiStreamSocket.Endpoint.TransportName == TransportName);
+                await multiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamSocket.Socket.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the socket.
                     // See above for the reason.
-                    if (connection.MultiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                    if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
                     {
                         Memory<byte> buffer = new byte[1];
                         await socket.Underlying.ReceiveAsync(buffer, default);
                     }
                 }
-                return connection.MultiStreamSocket;
+                return multiStreamSocket;
             }
             catch (Exception ex)
             {
@@ -167,11 +166,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? options = null) =>
-            (await ConnectAndGetProxyAsync(options)).Socket;
-
-        protected async Task<(MultiStreamSocket Socket, IServicePrx Proxy)> ConnectAndGetProxyAsync(
-            OutgoingConnectionOptions? connectionOptions = null)
+        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
         {
             if (!ClientEndpoint.IsDatagram)
             {
@@ -181,44 +176,34 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            Connection connection = await ClientEndpoint.ConnectAsync(
+            MultiStreamSocket multiStreamSocket = ClientEndpoint.CreateClientSocket(
                 connectionOptions ?? ClientConnectionOptions,
-                Logger,
-                default);
+                Logger);
+            await multiStreamSocket.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
                 // a single byte over the socket to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (connection.MultiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
                 {
                     var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
                     await socket.Underlying.SendAsync(buffer, default);
                 }
             }
 
-            if (connection.Endpoint.TransportName != TransportName)
+            if (multiStreamSocket.Endpoint.TransportName != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(connection.MultiStreamSocket is ColocSocket);
+                Debug.Assert(multiStreamSocket is ColocSocket);
             }
-            var options = new ProxyOptions()
-            {
-                Communicator = Communicator,
-            };
-            return (connection.MultiStreamSocket, IServicePrx.Factory.Create("/dummy",
-                                                                  ClientEndpoint.Protocol,
-                                                                  ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoint: null,
-                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                                  connection,
-                                                                  options));
+            return multiStreamSocket;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.Acceptor(Server);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(Server);
 
-        protected MultiStreamSocket CreateDatagramServerSocket() =>
-            ServerEndpoint.CreateDatagramServerConnection(Server).MultiStreamSocket;
+        protected MultiStreamSocket CreateServerSocket() =>
+            ServerEndpoint.CreateServerSocket(Server.ConnectionOptions, Server.Logger);
     }
 }

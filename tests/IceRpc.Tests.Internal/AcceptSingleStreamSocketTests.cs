@@ -146,7 +146,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.Acceptor(Server);
+                acceptor = serverEndpoint.CreateAcceptor(Server);
             }
             else
             {
@@ -166,11 +166,11 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a socket is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => serverEndpoint.Acceptor(Server).Dispose());
+                    Assert.DoesNotThrow(() => serverEndpoint.CreateAcceptor(Server).Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => serverEndpoint.Acceptor(Server));
+                    Assert.Catch<TransportException>(() => serverEndpoint.CreateAcceptor(Server));
                 }
             }
             else
@@ -221,26 +221,12 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamSocket CreateClientSocket()
-        {
-            var endpoint = (TcpEndpoint)ClientEndpoint;
-            OutgoingConnectionOptions options = ClientConnectionOptions;
-            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
-            {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
-                _ => new SlicSocket(ClientEndpoint, socket, options)
-            };
-            var connection = new Connection(endpoint, multiStreamSocket, options, server: null);
-            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+        private SingleStreamSocket CreateClientSocket() =>
+            (ClientEndpoint.CreateClientSocket(
+                ClientConnectionOptions,
+                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
 
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
-        {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).MultiStreamSocket;
-            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor) =>
+            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamSocket)!.Underlying;
     }
 }

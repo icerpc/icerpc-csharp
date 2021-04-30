@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -80,10 +81,12 @@ namespace IceRpc
 
                 try
                 {
-                    Connection connection = await endpoint.ConnectAsync(options, Logger, cancel).ConfigureAwait(false);
+                    MultiStreamSocket socket = endpoint.CreateClientSocket(options, Logger);
 
-                    // Perform protocol level initialization.
-                    await connection.InitializeAsync(cancel).ConfigureAwait(false);
+                    var connection = new Connection(socket, options);
+
+                    // Connect the connection (handshake, protocol initialization, ...)
+                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
 
                     lock (_mutex)
                     {

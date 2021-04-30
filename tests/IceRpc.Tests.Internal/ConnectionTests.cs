@@ -58,18 +58,17 @@ namespace IceRpc.Tests.Internal
 
                 if (Endpoint.IsDatagram)
                 {
-                    serverConnection = Endpoint.CreateDatagramServerConnection(_server);
-                    clientConnection =
-                        await serverConnection.Endpoint.ConnectAsync(
-                            options: _communicator.ConnectionOptions,
-                            _server.Logger,
-                            default);
-                    await clientConnection.InitializeAsync(default);
-                    await serverConnection.InitializeAsync(default);
+                    serverConnection = new Connection(
+                        Endpoint.CreateServerSocket(_server.ConnectionOptions, _server.Logger),
+                        _server.ConnectionOptions,
+                        _server);
+                    Task<Connection> clientTask = ConnectAsync(serverConnection.Endpoint);
+                    await serverConnection.AcceptAsync(default);
+                    clientConnection = await clientTask;
                 }
                 else
                 {
-                    using IAcceptor acceptor = Endpoint.Acceptor(_server);
+                    using IAcceptor acceptor = Endpoint.CreateAcceptor(_server);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
                     Task<Connection> clientTask = ConnectAsync(acceptor.Endpoint);
                     serverConnection = await serverTask;
@@ -80,34 +79,25 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IAcceptor acceptor)
                 {
-                    Connection connection = await acceptor.AcceptAsync();
+                    var connection = new Connection(
+                        await acceptor.AcceptAsync(),
+                        _server.ConnectionOptions,
+                        _server);
                     await connection.AcceptAsync(default);
-                    await connection.InitializeAsync(default);
                     return connection;
                 }
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    Connection connection = await endpoint.ConnectAsync(
-                        _communicator.ConnectionOptions,
-                        _server.Logger,
-                        default);
-                    await connection.InitializeAsync(default);
+                    var connection = new Connection(
+                        endpoint.CreateClientSocket(_communicator.ConnectionOptions, _communicator.Logger),
+                        _communicator.ConnectionOptions);
+                    await connection.ConnectAsync(default);
                     return connection;
                 }
             }
 
-            public async Task<Connection> ConnectAsync()
-            {
-                Connection connection = await Endpoint.ConnectAsync(
-                    options: _communicator.ConnectionOptions,
-                    _server.Logger,
-                    default);
-                await connection.InitializeAsync(default);
-                return connection;
-            }
-
-            // TODO: add Connection.CreateProxy?
+            // TODO: fix once we have FromConnection factory method
             public IServicePrx CreateProxy(Connection connection) =>
                 IServicePrx.Factory.Create(
                     "/foo",
@@ -273,7 +263,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.Acceptor(new Server()
+            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new Server()
             {
                 ConnectionOptions = new()
                 {

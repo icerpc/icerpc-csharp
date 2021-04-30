@@ -15,7 +15,7 @@ namespace IceRpc
         private readonly Server _server;
         private readonly Socket _socket;
 
-        public async ValueTask<Connection> AcceptAsync()
+        public async ValueTask<MultiStreamSocket> AcceptAsync()
         {
             Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
@@ -26,7 +26,7 @@ namespace IceRpc
                 Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, _server.ConnectionOptions),
                 _ => new SlicSocket(Endpoint, socket, _server.ConnectionOptions)
             };
-            return new Connection(Endpoint, multiStreamSocket, _server.ConnectionOptions, server: _server);
+            return multiStreamSocket;
         }
 
         public void Dispose() => _socket.CloseNoThrow();

@@ -29,25 +29,12 @@ namespace IceRpc
         private long _nextId;
         private readonly Server _server;
 
-        public async ValueTask<Connection> AcceptAsync()
+        public async ValueTask<MultiStreamSocket> AcceptAsync()
         {
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            // For the server-side connection we pass the stream max count from the client since unlike Slic there's
-            // no transport initialization to negotiate this configuration and the server-side must limit the number
-            // of streams based on the stream max count from the client-side.
-            return new Connection(
-                _endpoint,
-                new ColocSocket(
-                    _endpoint,
-                    id,
-                    writer,
-                    reader,
-                    _server.ConnectionOptions,
-                    _server.Logger),
-                _server.ConnectionOptions,
-                _server);
+            return new ColocSocket(_endpoint, id, writer, reader, _server.ConnectionOptions, _server.Logger);
         }
 
         public void Dispose()
