@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
             Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
             Assert.AreEqual("/service", eventData.Payload![0]);
-            Assert.AreEqual("operation", eventData.Payload![1]);
+            Assert.AreEqual("ice_id", eventData.Payload![1]);
         }
 
         [Test]
