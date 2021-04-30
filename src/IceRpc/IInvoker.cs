@@ -17,7 +17,7 @@ namespace IceRpc
             throw new NotImplementedException();
     }
 
-     /// <summary>Adapts an invoker delegate to the <see cref="IInvoker"/> interface.</summary>
+    /// <summary>Adapts an invoker delegate to the <see cref="IInvoker"/> interface.</summary>
     public class InlineInvoker : IInvoker
     {
         private readonly Func<OutgoingRequest, CancellationToken, Task<IncomingResponse>> _function;

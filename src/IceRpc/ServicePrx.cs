@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
@@ -502,7 +503,7 @@ namespace IceRpc
             ProxyOptions options)
             : this(protocol, encoding, endpoint, altEndpoints, connection, options)
         {
-            UriParser.CheckPath(path, nameof(path));
+            Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
 
             if (Protocol == Protocol.Ice1)
