@@ -189,7 +189,7 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
         {
             if (Protocol == response.Protocol)
             {
