@@ -12,12 +12,51 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    internal sealed class UdpSocket : SingleStreamSocket
+    internal sealed class UdpSocket : SingleStreamSocket, IUdpSocket
     {
-        public override Socket Socket { get; }
-        public override SslStream? SslStream => null;
+        /// <inheritdoc/>
+        public bool IsSecure => false;
 
-        internal IPEndPoint? MulticastAddress { get; private set; }
+        /// <inheritdoc/>
+        public IPEndPoint? LocalEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.LocalEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public IPEndPoint? RemoteEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.RemoteEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public IPEndPoint? MulticastEndpoint { get; private set; }
+
+        /// <inheritdoc/>
+        public override ISocket Socket => this;
+
+        /// <inheritdoc/>
+        internal override Socket? NetworkSocket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -27,6 +66,7 @@ namespace IceRpc
         private readonly EndPoint? _addr;
         private readonly bool _incoming;
         private readonly int _rcvSize;
+        private readonly Socket _socket;
 
         public override ValueTask<SingleStreamSocket> AcceptAsync(
             Endpoint endpoint,
@@ -43,7 +83,7 @@ namespace IceRpc
             Debug.Assert(_addr != null);
             try
             {
-                await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 return this;
             }
             catch (Exception ex)
@@ -66,12 +106,12 @@ namespace IceRpc
                 if (_incoming)
                 {
                     EndPoint remoteAddress = new IPEndPoint(
-                        Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                        _socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
                         0);
 
                     // TODO: Use the cancellable API once https://github.com/dotnet/runtime/issues/33418 is fixed
                     SocketReceiveFromResult result =
-                        await Socket.ReceiveFromAsync(buffer,
+                        await _socket.ReceiveFromAsync(buffer,
                                                       SocketFlags.None,
                                                       remoteAddress).WaitAsync(cancel).ConfigureAwait(false);
 
@@ -79,7 +119,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
             catch (SocketException e) when (e.SocketErrorCode == SocketError.MessageSize)
@@ -117,7 +157,7 @@ namespace IceRpc
             try
             {
                 // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                return await Socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                return await _socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {
@@ -138,18 +178,18 @@ namespace IceRpc
             }
         }
 
-        protected override void Dispose(bool disposing) => Socket.Dispose();
+        protected override void Dispose(bool disposing) => _socket.Dispose();
 
         // Only for use by UdpEndpoint.
         internal UdpSocket(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
             : base(logger)
         {
-            Socket = socket;
+            _socket = socket;
             _incoming = isIncoming;
-            _rcvSize = Socket.ReceiveBufferSize;
+            _rcvSize = _socket.ReceiveBufferSize;
             if (isIncoming)
             {
-                MulticastAddress = addr as IPEndPoint;
+                MulticastEndpoint = addr as IPEndPoint;
             }
             else
             {

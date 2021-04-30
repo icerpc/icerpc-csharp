@@ -7,17 +7,87 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    internal sealed class TcpSocket : SingleStreamSocket
+    internal class TcpSocket : SingleStreamSocket, ITcpSocket
     {
-        public override Socket Socket { get; }
-        public override SslStream? SslStream => null;
+        /// <inheritdoc/>
+        public bool CheckCertRevocationStatus => _sslStream?.CheckCertRevocationStatus ?? false;
+
+        /// <inheritdoc/>
+        public bool IsEncrypted => _sslStream?.IsEncrypted ?? false;
+
+        /// <inheritdoc/>
+        public bool IsMutuallyAuthenticated => _sslStream?.IsMutuallyAuthenticated ?? false;
+
+        /// <inheritdoc/>
+        public bool IsSecure => _sslStream != null;
+
+        /// <inheritdoc/>
+        public bool IsSigned => _sslStream?.IsSigned ?? false;
+
+        /// <inheritdoc/>
+        public X509Certificate? LocalCertificate => _sslStream?.LocalCertificate;
+
+        /// <inheritdoc/>
+        public IPEndPoint? LocalEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.LocalEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public SslApplicationProtocol? NegotiatedApplicationProtocol => _sslStream?.NegotiatedApplicationProtocol;
+
+        /// <inheritdoc/>
+        public TlsCipherSuite? NegotiatedCipherSuite => _sslStream?.NegotiatedCipherSuite;
+
+        /// <inheritdoc/>
+        public X509Certificate? RemoteCertificate => _sslStream?.RemoteCertificate;
+
+        /// <inheritdoc/>
+        public IPEndPoint? RemoteEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.RemoteEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public override ISocket Socket => this;
+
+        /// <inheritdoc/>
+        public SslProtocols? SslProtocol => _sslStream?.SslProtocol;
+
+        /// <inheritdoc/>
+        internal override Socket? NetworkSocket => _socket;
 
         private readonly EndPoint? _addr;
+        private readonly Socket _socket;
+        private SslStream? _sslStream;
+
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
 
@@ -37,7 +107,7 @@ namespace IceRpc
                 {
                     // Peek one byte into the tcp stream to see if it contains the TLS handshake record
                     var buffer = new ArraySegment<byte>(new byte[1]);
-                    int received = await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
+                    int received = await _socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
                     if (received == 0)
                     {
                         throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
@@ -47,14 +117,18 @@ namespace IceRpc
                 }
 
                 // If a secure connection is needed, a new SslSocket is created and returned from this method.
-                // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
-                SingleStreamSocket socket = this;
+                // The caller is responsible for using the returned SslSocket in place of this Tcp_socket.
                 if (endpoint.IsSecure ?? secure)
                 {
-                    socket = new SslSocket(this);
+                    var socket = new SslSocket(this, _socket);
                     await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = socket.SslStream;
+                    return socket;
                 }
-                return socket;
+                else
+                {
+                    return this;
+                }
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -81,19 +155,23 @@ namespace IceRpc
 
             try
             {
-                // Connect to the peer and cache the description of the socket.
-                await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                // Connect to the peer and cache the description of the _socket.
+                await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
                 // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
-                // responsible for using the returned SslSocket instead of using this TcpSocket.
-                SingleStreamSocket socket = this;
+                // responsible for using the returned SslSocket instead of using this Tcp_socket.
+
                 if (authenticationOptions != null)
                 {
-                    socket = new SslSocket(this);
+                    var socket = new SslSocket(this, _socket);
                     await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = socket.SslStream;
+                    return socket;
                 }
-
-                return socket;
+                else
+                {
+                    return this;
+                }
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
@@ -123,7 +201,7 @@ namespace IceRpc
             int received;
             try
             {
-                received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -156,8 +234,8 @@ namespace IceRpc
             try
             {
                 // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                using CancellationTokenRegistration registration = cancel.Register(() => Socket.CloseNoThrow());
-                return await Socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
+                using CancellationTokenRegistration registration = cancel.Register(() => _socket.CloseNoThrow());
+                return await _socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -180,13 +258,13 @@ namespace IceRpc
         public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
-        protected override void Dispose(bool disposing) => Socket.Dispose();
+        protected override void Dispose(bool disposing) => _socket.Dispose();
 
         internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;
-            Socket = fd;
+            _socket = fd;
         }
     }
 }

@@ -68,14 +68,14 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task NonDatagramSocket_SendAsync_CancellationAsync()
         {
-            ServerSocket.Socket!.ReceiveBufferSize = 4096;
-            ClientSocket.Socket!.SendBufferSize = 4096;
+            ServerSocket.NetworkSocket!.ReceiveBufferSize = 4096;
+            ClientSocket.NetworkSocket!.SendBufferSize = 4096;
 
             // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
             // are at least not larger than 16KB. The test below relies on the SendAsync to block when the socket
             // send/receive buffers fill up.
-            Assert.Less(ServerSocket.Socket!.ReceiveBufferSize, 16 * 1024);
-            Assert.Less(ClientSocket.Socket!.SendBufferSize, 16 * 1024);
+            Assert.Less(ServerSocket.NetworkSocket!.ReceiveBufferSize, 16 * 1024);
+            Assert.Less(ClientSocket.NetworkSocket!.SendBufferSize, 16 * 1024);
 
             using var canceled = new CancellationTokenSource();
 

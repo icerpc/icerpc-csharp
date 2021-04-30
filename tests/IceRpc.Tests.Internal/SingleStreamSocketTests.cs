@@ -52,10 +52,9 @@ namespace IceRpc.Tests.Internal
             Test(ClientSocket);
             Test(ServerSocket);
 
-            void Test(SingleStreamSocket socket)
+            static void Test(SingleStreamSocket socket)
             {
                 Assert.NotNull(socket.Socket);
-                Assert.AreEqual(socket.SslStream != null, IsSecure);
                 Assert.IsNotEmpty(socket.ToString());
             }
         }

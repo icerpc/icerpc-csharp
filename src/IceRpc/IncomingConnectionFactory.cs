@@ -151,9 +151,7 @@ namespace IceRpc
                 try
                 {
                     // Perform socket level initialization (handshake, etc)
-                    await connection.AcceptAsync(
-                        _server.ConnectionOptions.AuthenticationOptions,
-                        cancel).ConfigureAwait(false);
+                    await connection.AcceptAsync(cancel).ConfigureAwait(false);
 
                     // Perform protocol level initialization
                     await connection.InitializeAsync(cancel).ConfigureAwait(false);
@@ -184,7 +182,7 @@ namespace IceRpc
 
         internal override void Activate()
         {
-            _ = _connection.AcceptAsync(null, default);
+            _ = _connection.AcceptAsync(default);
             _ = _connection.InitializeAsync(default);
         }
 
