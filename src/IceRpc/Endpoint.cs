@@ -24,7 +24,7 @@ namespace IceRpc
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static Endpoint Parse(string s) =>
-            UriParser.IsEndpointUri(s) ? UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
+            Internal.UriParser.IsEndpointUri(s) ? Internal.UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
 
         /// <summary>Creates an endpoint from its string representation.</summary>
         /// <param name="s">The string representation of the endpoint.</param>

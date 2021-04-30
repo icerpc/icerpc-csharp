@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions

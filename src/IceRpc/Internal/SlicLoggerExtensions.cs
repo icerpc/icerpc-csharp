@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging Slic transport messages.</summary>
     internal static class SlicLoggerExtensions

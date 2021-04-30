@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the URI format.</summary>
     internal static class UriParser

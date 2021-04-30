@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Helper methods for string manipulation.</summary>
-    public static class StringUtil
+    internal static class StringUtil
     {
         // Return the index of the first character in str to appear in match, starting from 0. Returns -1 if none is
         // found.

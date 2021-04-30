@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 using System.Diagnostics;
 
@@ -16,7 +17,7 @@ namespace IceRpc.Interop
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            UriParser.CheckPath(path, nameof(path));
+            IceRpc.Internal.UriParser.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/');
@@ -143,7 +144,7 @@ namespace IceRpc.Interop
                 $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
                 $"/{Uri.EscapeDataString(Name)}";
 
-            Debug.Assert(UriParser.IsValidPath(path));
+            Debug.Assert(IceRpc.Internal.UriParser.IsValidPath(path));
             return path;
         }
 

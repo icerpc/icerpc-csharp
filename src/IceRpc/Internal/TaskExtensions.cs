@@ -3,19 +3,19 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>WaitAsync task extensions allow to cancel the wait for the task completion without canceling the
     /// task. For example, the user might want to cancel an invocation that is waiting for connection establishment.
     /// Instead of canceling the connection establishment which might be shared by other invocations we cancel the wait
     /// on the connection establishment for the invocation. The same applies for invocations which are waiting on a
     /// connection to be sent.</summary>
-    public static class TaskExtensions
+    internal static class TaskExtensions
     {
         /// <summary>Waits for the task to complete and allows the wait to be canceled.</summary>
         /// <param name="task">The task to wait for.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public static async Task WaitAsync(this Task task, CancellationToken cancel)
+        internal static async Task WaitAsync(this Task task, CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();
 

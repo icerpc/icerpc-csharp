@@ -3,7 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging Server messages.</summary>
     internal static class ServerLoggerExtensions

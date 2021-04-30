@@ -3,7 +3,7 @@
 using System;
 using System.Net.Sockets;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     internal static class ExceptionExtensions
     {

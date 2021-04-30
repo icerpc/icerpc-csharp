@@ -44,7 +44,7 @@ namespace IceRpc
         /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
         public Router(string absolutePrefix)
         {
-            UriParser.CheckPath(absolutePrefix, nameof(absolutePrefix));
+            Internal.UriParser.CheckPath(absolutePrefix, nameof(absolutePrefix));
             absolutePrefix = NormalizePrefix(absolutePrefix);
             AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
@@ -62,7 +62,7 @@ namespace IceRpc
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
-            UriParser.CheckPath(path, nameof(path));
+            Internal.UriParser.CheckPath(path, nameof(path));
             _pipeline ??= CreatePipeline();
             _exactMatchRoutes[path] = dispatcher;
         }
@@ -76,7 +76,7 @@ namespace IceRpc
         /// <seealso cref="Map"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
-            UriParser.CheckPath(prefix, nameof(prefix));
+            Internal.UriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
 
             _pipeline ??= CreatePipeline();
@@ -91,7 +91,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
-            UriParser.CheckPath(prefix, nameof(prefix));
+            Internal.UriParser.CheckPath(prefix, nameof(prefix));
             var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);
@@ -104,7 +104,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
         public bool Unmap(string path)
         {
-            UriParser.CheckPath(path, nameof(path));
+            Internal.UriParser.CheckPath(path, nameof(path));
             return _exactMatchRoutes.Remove(path);
         }
 
@@ -114,7 +114,7 @@ namespace IceRpc
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public bool Unmount(string prefix)
         {
-            UriParser.CheckPath(prefix, nameof(prefix));
+            Internal.UriParser.CheckPath(prefix, nameof(prefix));
             return _prefixMatchRoutes.Remove(prefix);
         }
 

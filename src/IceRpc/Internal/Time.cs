@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
+
 using System;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     internal static class Time
     {
