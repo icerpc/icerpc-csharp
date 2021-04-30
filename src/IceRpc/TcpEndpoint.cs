@@ -200,7 +200,7 @@ namespace IceRpc
         {
             // If the endpoint is secure, connect with the SSL client authentication options.
             SslClientAuthenticationOptions? authenticationOptions = null;
-            if (IsSecure ?? options.AuthenticationOptions != null)
+            if (IsSecure ?? true)
             {
                 authenticationOptions = options.AuthenticationOptions?.Clone() ?? new SslClientAuthenticationOptions();
                 authenticationOptions.TargetHost ??= Host;

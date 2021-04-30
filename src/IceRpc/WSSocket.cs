@@ -100,7 +100,6 @@ namespace IceRpc
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
         private readonly ITcpSocket _tcpSocket;
-        private readonly Transport _transport;
 
         public override async ValueTask<SingleStreamSocket> AcceptAsync(
             Endpoint endpoint,
@@ -194,7 +193,6 @@ namespace IceRpc
             _sendMask = new byte[4];
             _key = "";
             _rand = RandomNumberGenerator.Create();
-            _transport = (socket is SslSocket) ? Transport.WSS : Transport.WS;
         }
 
         private async ValueTask InitializeAsync(bool incoming, string host, string resource, CancellationToken cancel)
