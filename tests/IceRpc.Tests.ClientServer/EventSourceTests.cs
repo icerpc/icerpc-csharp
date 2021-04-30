@@ -17,13 +17,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsAsync()
         {
             using var invocationEventListener = new TestEventListener(
-                "IceRpc.Invocation",
+                "IceRpc.Invocation.Test",
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
-                    ("current-requests", "0"),  // Back to 0 after the request finish
-                    ("requests-per-second", "1")
                 });
 
             using var dispatchEventListener = new TestEventListener(
@@ -32,22 +30,21 @@ namespace IceRpc.Tests.ClientServer
                 {
                     ("total-requests", "10"),
                     ("current-requests", "10"),
-                    ("current-requests", "0"),  // Back to 0 after the request finish
-                    ("requests-per-second", "1")
                 });
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            await using var pool = new Communicator();
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
+            pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter1());
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
-            InvocationEventSource.Log.ResetCounters();
 
             server.Listen();
             var tasks = new List<Task>();
@@ -66,7 +63,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsCanceledAsync()
         {
             using var invocationEventListener = new TestEventListener(
-                "IceRpc.Invocation",
+                "IceRpc.Invocation.Test",
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
@@ -84,17 +81,18 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "0"), // Back to 0 after the request finish
                     ("canceled-requests", "10")
                 });
-            InvocationEventSource.Log.ResetCounters();
 
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            await using var pool = new Communicator();
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
+            pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter2());
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
@@ -117,7 +115,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task EventSource_RequestsFailedAsync()
         {
              using var invocationEventListener = new TestEventListener(
-                "IceRpc.Invocation",
+                "IceRpc.Invocation.Test",
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
@@ -135,17 +133,18 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "10")
                 });
-            InvocationEventSource.Log.ResetCounters();
 
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", communicator);
+            await using var pool = new Communicator();
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
+            pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
+            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter3());
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
@@ -232,7 +231,7 @@ namespace IceRpc.Tests.ClientServer
 
             protected override void OnEventWritten(EventWrittenEventArgs eventData)
             {
-                if (eventData.EventId == -1) // counter event
+                if (eventData.EventSource == EventSource && eventData.EventId == -1) // counter event
                 {
                     Assert.That(eventData.Payload, Is.Not.Null);
                     var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;

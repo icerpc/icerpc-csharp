@@ -133,16 +133,6 @@ namespace IceRpc
             }
         }
 
-        // Used for testing
-        [NonEvent]
-        internal void ResetCounters()
-        {
-            _canceledRequests = 0;
-            _currentRequests = 0;
-            _failedRequests = 0;
-            _totalRequests = 0;
-        }
-
         [MethodImpl(MethodImplOptions.NoInlining)]
         [Event(3, Level = EventLevel.Informational)]
         private void RequestCanceled(string path, string operation) =>

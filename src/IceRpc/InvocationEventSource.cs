@@ -31,47 +31,48 @@ namespace IceRpc
         {
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
-        public void RequestStart(string path, string operation)
+        [NonEvent]
+        public void RequestStart(OutgoingRequest request)
         {
             Interlocked.Increment(ref _totalRequests);
             Interlocked.Increment(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                WriteEvent(1, path, operation);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
-        public void RequestStop(string path, string operation)
-        {
-            Interlocked.Decrement(ref _currentRequests);
-            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-            {
-                WriteEvent(2, path, operation);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        [Event(3, Level = EventLevel.Informational)]
-        public void RequestCanceled(string path, string operation)
-        {
-            Interlocked.Increment(ref _canceledRequests);
-            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
-            {
-                WriteEvent(3, path, operation);
+                RequestStart(request.Path, request.Operation);
             }
         }
 
         [NonEvent]
-        public void RequestFailed(string path, string operation, Exception? exception)
+        public void RequestStop(OutgoingRequest request)
+        {
+            Interlocked.Decrement(ref _currentRequests);
+            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+            {
+                RequestStop(request.Path, request.Operation);
+            }
+        }
+
+        [NonEvent]
+        public void RequestCanceled(OutgoingRequest request)
+        {
+            Interlocked.Increment(ref _canceledRequests);
+            if (IsEnabled(EventLevel.Informational, EventKeywords.None))
+            {
+                RequestCanceled(request.Path, request.Operation);
+            }
+        }
+
+        [NonEvent]
+        public void RequestFailed(OutgoingRequest request, Exception exception) =>
+            RequestFailed(request, exception?.GetType().FullName ?? "");
+
+        [NonEvent]
+        public void RequestFailed(OutgoingRequest request, string exception)
         {
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestFailed(path, operation, exception?.GetType().FullName ?? "IceRpc.RemoteException");
+                RequestFailed(request.Path, request.Operation, exception);
             }
         }
 
@@ -126,19 +127,24 @@ namespace IceRpc
             }
         }
 
-        // Used for testing
-        [NonEvent]
-        internal void ResetCounters()
-        {
-            _canceledRequests = 0;
-            _currentRequests = 0;
-            _failedRequests = 0;
-            _totalRequests = 0;
-        }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(3, Level = EventLevel.Informational)]
+        public void RequestCanceled(string path, string operation) =>
+            WriteEvent(3, path, operation);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         [Event(4, Level = EventLevel.Informational)]
         private void RequestFailed(string path, string operation, string exception) =>
             WriteEvent(4, path, operation, exception);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(1, Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+        private void RequestStart(string path, string operation) =>
+            WriteEvent(1, path, operation);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
+        private void RequestStop(string path, string operation) =>
+            WriteEvent(2, path, operation);
     }
 }
