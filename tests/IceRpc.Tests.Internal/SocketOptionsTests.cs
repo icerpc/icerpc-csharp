@@ -37,22 +37,22 @@ namespace IceRpc.Tests.Internal
             });
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(clientSocket.Socket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(clientSocket.Socket!.ReceiveBufferSize, size);
+            Assert.GreaterOrEqual(clientSocket.NetworkSocket!.SendBufferSize, size);
+            Assert.GreaterOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, size);
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size.
-                Assert.LessOrEqual(clientSocket.Socket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(clientSocket.Socket!.ReceiveBufferSize, 2.5 * size);
+                Assert.LessOrEqual(clientSocket.NetworkSocket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
             }
             else
             {
                 // Windows typically allocates the requested size and macOS allocates a little more than the
                 // requested size.
-                Assert.LessOrEqual(clientSocket.Socket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(clientSocket.Socket!.ReceiveBufferSize, 1.5 * size);
+                Assert.LessOrEqual(clientSocket.NetworkSocket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
             }
         }
 
@@ -66,12 +66,12 @@ namespace IceRpc.Tests.Internal
             });
             if (IsIPv6)
             {
-                Assert.IsFalse(clientSocket.Socket!.DualMode);
+                Assert.IsFalse(clientSocket.NetworkSocket!.DualMode);
             }
             else
             {
                 // Accessing DualMode for an IPv4 socket throws NotSupportedException
-                Assert.Catch<NotSupportedException>(() => _ = clientSocket.Socket!.DualMode);
+                Assert.Catch<NotSupportedException>(() => _ = clientSocket.NetworkSocket!.DualMode);
             }
         }
 
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.Internal
                     {
                         LocalEndPoint = localEndPoint
                     });
-                    Assert.AreEqual(localEndPoint, clientSocket.Socket!.LocalEndPoint);
+                    Assert.AreEqual(localEndPoint, clientSocket.NetworkSocket!.LocalEndPoint);
                     break;
                 }
                 catch (TransportException)
@@ -119,27 +119,27 @@ namespace IceRpc.Tests.Internal
             using SingleStreamSocket serverSocket = await acceptTask;
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(serverSocket.Socket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(serverSocket.Socket!.ReceiveBufferSize, size);
+            Assert.GreaterOrEqual(serverSocket.NetworkSocket!.SendBufferSize, size);
+            Assert.GreaterOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, size);
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsMacOS())
             {
                 // macOS Big Sur appears to have a low limit of a little more than 256KB for the receive buffer and
                 // 64KB for the send buffer.
-                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
-                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
             }
             else if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size
-                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 2.5 * size);
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
             }
             else
             {
-                Assert.LessOrEqual(serverSocket.Socket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(serverSocket.Socket!.ReceiveBufferSize, 1.5 * size);
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
             }
             acceptor.Dispose();
             await server.DisposeAsync();
@@ -271,12 +271,12 @@ namespace IceRpc.Tests.Internal
                 Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
                 _ => new SlicSocket(ClientEndpoint, socket, options)
             };
-            Connection connection = endpoint.CreateConnection(multiStreamSocket, options, server: null);
-            return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+            var connection = new Connection(endpoint, multiStreamSocket, options, server: null);
+            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
         private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
         {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).Socket;
+            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).MultiStreamSocket;
             return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }

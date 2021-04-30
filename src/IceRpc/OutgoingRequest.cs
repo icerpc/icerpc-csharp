@@ -411,7 +411,9 @@ namespace IceRpc
             : base(proxy.Protocol,
                    // TODO if Connection is null there should be a ConnectionPool to read the settings from
                    proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
-                   proxy.Connection?.CompressionMinSize ?? 100)
+                   proxy.Connection?.CompressionMinSize ?? 100,
+                   // TODO: set features from Invocation
+                   new FeatureCollection())
         {
             Proxy = proxy;
             Progress = invocation?.Progress;

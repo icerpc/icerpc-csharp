@@ -87,8 +87,8 @@ namespace IceRpc.Tests.Internal
                 Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, ClientConnectionOptions),
                 _ => new SlicSocket(ClientEndpoint, socket, ClientConnectionOptions)
             };
-            Connection connection = endpoint.CreateConnection(multiStreamSocket, ClientConnectionOptions, server: null);
-            return (connection.Socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+            var connection = new Connection(endpoint, multiStreamSocket, ClientConnectionOptions, server: null);
+            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
     }
 }

@@ -43,7 +43,7 @@ namespace IceRpc.Internal
             {
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = acceptor.NewClientConnection();
 
-                return Task.FromResult<Connection>(new ColocConnection(
+                return Task.FromResult(new Connection(
                     this,
                     new ColocSocket(this, id, writer, reader, options, logger),
                     options,

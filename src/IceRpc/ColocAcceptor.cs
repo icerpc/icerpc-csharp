@@ -38,7 +38,7 @@ namespace IceRpc
             // For the server-side connection we pass the stream max count from the client since unlike Slic there's
             // no transport initialization to negotiate this configuration and the server-side must limit the number
             // of streams based on the stream max count from the client-side.
-            return new ColocConnection(
+            return new Connection(
                 _endpoint,
                 new ColocSocket(
                     _endpoint,

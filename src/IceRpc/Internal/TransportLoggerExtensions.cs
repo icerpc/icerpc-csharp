@@ -268,8 +268,7 @@ namespace IceRpc.Internal
                             socket.Endpoint.ToString());
                     }
                 }
-                else if (socket is MultiStreamOverSingleStreamSocket overSingleStreamSocket &&
-                        overSingleStreamSocket.Underlying.Socket is System.Net.Sockets.Socket dotnetsocket)
+                else if (socket.Socket is ITcpSocket tcpSocket)
                 {
                     if (socket.Endpoint.IsDatagram && server != null)
                     {
@@ -280,7 +279,7 @@ namespace IceRpc.Internal
                                 socket.Endpoint.TransportName,
                                 socket.Endpoint.Protocol,
                                 server.ToString(),
-                                dotnetsocket.LocalEndPoint?.ToString() ?? "undefined");
+                                tcpSocket.LocalEndPoint?.ToString() ?? "undefined");
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
@@ -300,7 +299,7 @@ namespace IceRpc.Internal
                             {
                                 return _overSocketServerSocketScope(
                                     logger,
-                                    dotnetsocket.RemoteEndPoint?.ToString() ?? "undefined");
+                                    tcpSocket.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                             else
                             {
@@ -308,8 +307,8 @@ namespace IceRpc.Internal
                                     logger,
                                     socket.Endpoint.TransportName,
                                     socket.Endpoint.Protocol,
-                                    dotnetsocket.LocalEndPoint?.ToString() ?? "undefined",
-                                    dotnetsocket.RemoteEndPoint?.ToString() ?? "undefined");
+                                    tcpSocket.LocalEndPoint?.ToString() ?? "undefined",
+                                    tcpSocket.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                         }
                         catch (System.Net.Sockets.SocketException)

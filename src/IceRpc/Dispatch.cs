@@ -44,6 +44,12 @@ namespace IceRpc
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => IncomingRequest.Protocol;
 
+        /// <summary>The features associated with the request.</summary>
+        public FeatureCollection RequestFeatures => IncomingRequest.Features;
+
+        /// <summary>The features associated with the response.</summary>
+        public FeatureCollection ResponseFeatures { get; set; } = new();
+
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;
 
