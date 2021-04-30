@@ -160,23 +160,9 @@ namespace IceRpc
         private SocketStream? _peerControlStream;
 
         private Action<Connection>? _remove;
-        private MultiStreamSocket _socket { get; }
+        private readonly MultiStreamSocket _socket;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
-
-        public static async Task<Connection> CreateAsync(
-            Endpoint endpoint,
-            Communicator communicator,
-            OutgoingConnectionOptions? options = null,
-            CancellationToken cancel = default)
-        {
-            options ??= OutgoingConnectionOptions.Default;
-
-            MultiStreamSocket socket = endpoint.CreateClientSocket(options, communicator.Logger);
-            var connection = new Connection(socket, options);
-            await connection.ConnectAsync(cancel).ConfigureAwait(false);
-            return connection;
-        }
 
         /// <summary>Aborts the connection.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
@@ -252,10 +238,7 @@ namespace IceRpc
         public override string? ToString() =>
             $"{Socket.GetType().FullName} ({Socket.Description}, IsIncoming={IsIncoming})";
 
-        internal Connection(
-            MultiStreamSocket socket,
-            ConnectionOptions options,
-            Server? server = null)
+        internal Connection(MultiStreamSocket socket, ConnectionOptions options, Server? server = null)
         {
             CompressionLevel = options.CompressionLevel;
             CompressionMinSize = options.CompressionMinSize;
