@@ -480,6 +480,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_KeepAliveOnInvocationAsync(Protocol protocol)
         {
             using var dispatchSemaphore = new SemaphoreSlim(0);
