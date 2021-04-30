@@ -454,8 +454,8 @@ namespace IceRpc
                         }
 
                         connection = await ConnectAsync(endpoints[nextEndpoint],
-                                                                     connectionOptions,
-                                                                     cancel).ConfigureAwait(false);
+                                                        connectionOptions,
+                                                        cancel).ConfigureAwait(false);
 
                         if (proxy.CacheConnection)
                         {
