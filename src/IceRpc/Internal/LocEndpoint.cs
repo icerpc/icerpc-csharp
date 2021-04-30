@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Describes a special endpoint that needs to be resolved with a location resolver. See
     /// <see cref="ILocationResolver"/>.</summary>

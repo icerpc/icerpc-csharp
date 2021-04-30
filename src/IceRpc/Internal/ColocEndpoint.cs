@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
 using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The Endpoint class for the colocated transport.</summary>
     internal class ColocEndpoint : Endpoint

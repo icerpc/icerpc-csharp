@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     internal static class ExceptionUtil
     {

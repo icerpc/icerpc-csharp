@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     internal static class SlicDefinitions
     {

@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Describes an ice1 endpoint that the associated communicator cannot use, typically because it does not
     /// implement the endpoint's transport. The communicator can marshal a proxy with such an endpoint and send it to

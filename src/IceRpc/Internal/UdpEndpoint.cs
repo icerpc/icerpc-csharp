@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The Endpoint class for the UDP transport.</summary>
     internal sealed class UdpEndpoint : IPEndpoint

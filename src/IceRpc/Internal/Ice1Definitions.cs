@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     // Definitions for the ice1 protocol.
     internal static class Ice1Definitions

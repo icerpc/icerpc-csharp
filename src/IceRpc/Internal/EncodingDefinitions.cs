@@ -2,7 +2,7 @@
 
 using System;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     internal static class EncodingDefinitions
     {

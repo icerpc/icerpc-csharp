@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -8,7 +7,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint

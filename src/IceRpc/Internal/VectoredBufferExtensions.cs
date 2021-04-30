@@ -4,15 +4,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Provides public extensions methods to manage byte array segments.</summary>
-    public static class VectoredBufferExtensions
+    internal static class VectoredBufferExtensions
     {
         /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
         /// <param name="src">The list of segments.</param>
         /// <returns>The byte count of the segment list.</returns>
-        public static int GetByteCount(this IEnumerable<ArraySegment<byte>> src)
+        internal static int GetByteCount(this IEnumerable<ArraySegment<byte>> src)
         {
             int count = 0;
             foreach (ArraySegment<byte> segment in src)
@@ -20,67 +20,6 @@ namespace IceRpc
                 count += segment.Count;
             }
             return count;
-        }
-
-        /// <summary>Returns an array segment with the requested bytes, starting at the given
-        /// byte offset, if the required bytes are available in a single segment this method returns
-        /// an slice of the segment without copying the data, otherwise the data is copied into
-        /// a byte array and the segment is created from the copied data.</summary>
-        /// <param name="src">The source segment list.</param>
-        /// <param name="srcOffset">The zero-based byte offset into the source segment list.</param>
-        /// <param name="count">The size in bytes of the returned segment.</param>
-        /// <returns>A segment with the requested size.</returns>
-        public static ArraySegment<byte> GetSegment(this IList<ArraySegment<byte>> src, int srcOffset, int count)
-        {
-            Debug.Assert(src.GetByteCount() >= srcOffset + count,
-                @$"requested {count} bytes starting at offset {srcOffset
-                    } but there is only {src.GetByteCount() - srcOffset} bytes remaining.");
-
-            // Skip offset bytes into the source segment list
-            int srcIndex = 0;
-            int dstOffset = 0;
-            byte[]? data = null;
-            for (; srcIndex < src.Count; srcIndex++)
-            {
-                ArraySegment<byte> segment = src[srcIndex];
-                if (segment.Count > srcOffset)
-                {
-                    if (segment.Count - srcOffset >= count)
-                    {
-                        // If the requested data is available from a single segment return an Slice
-                        // of the segment.
-                        return segment.Slice(srcOffset, count);
-                    }
-                    else
-                    {
-                        // The requested data spans several segments, allocate an array of the requested
-                        // size and copy the data into it. We first copy the remaining of the current segment
-                        // here and the rest of the data is copied in the loop bellow.
-                        data = new byte[count];
-                        int remaining = segment.Count - srcOffset;
-                        Debug.Assert(segment.Array != null);
-                        Buffer.BlockCopy(segment.Array, srcOffset + segment.Offset, data, 0, remaining);
-                        dstOffset = remaining;
-                        srcIndex++;
-                        break;
-                    }
-                }
-                else
-                {
-                    srcOffset -= segment.Count;
-                }
-            }
-
-            Debug.Assert(data != null);
-            for (; srcIndex < src.Count && count - dstOffset > 0; srcIndex++)
-            {
-                ArraySegment<byte> segment = src[srcIndex];
-                int remaining = Math.Min(count - dstOffset, segment.Count);
-                Debug.Assert(segment.Array != null);
-                Buffer.BlockCopy(segment.Array, segment.Offset, data, dstOffset, remaining);
-                dstOffset += remaining;
-            }
-            return data;
         }
 
         internal static ArraySegment<byte> AsArraySegment(this IList<ArraySegment<byte>> src)

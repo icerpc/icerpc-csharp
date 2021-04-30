@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
 namespace IceRpc
 {
     /// <summary>A location resolver resolves endpoints with the loc transport into other endpoints and optionally

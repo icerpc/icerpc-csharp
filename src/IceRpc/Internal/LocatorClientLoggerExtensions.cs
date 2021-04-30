@@ -1,16 +1,17 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
-namespace IceRpc.Interop.Internal
+namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging messages in the
     /// "IceRpc.Interop.LocatorClient" category.</summary>
     internal static class LocatorClientLoggerExtensions
     {
-        private const int BaseEventId = IceRpc.Internal.LoggerExtensions.LocatorClientBaseEventId;
+        private const int BaseEventId = LoggerExtensions.LocatorClientBaseEventId;
         private const int ClearCacheEntry = BaseEventId + 0;
         private const int CouldNotResolveEndpoint = BaseEventId + 1;
         private const int FoundEntryInCache = BaseEventId + 2;

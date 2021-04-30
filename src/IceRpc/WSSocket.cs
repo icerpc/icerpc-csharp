@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +11,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using IceRpc.Internal;
 
 namespace IceRpc
 {

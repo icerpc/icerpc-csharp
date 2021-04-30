@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     // Definitions for the ice2 protocol.
 

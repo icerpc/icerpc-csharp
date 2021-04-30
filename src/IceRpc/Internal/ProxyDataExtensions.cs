@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Extension class for OutputStream to marshal ProxyData11 without creating a ProxyData11instance. This
     /// implementation is slightly more efficient than the generated code because it avoids the allocation of a string[]
