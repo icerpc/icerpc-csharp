@@ -147,4 +147,45 @@ namespace IceRpc
         private void RequestStop(string path, string operation) =>
             WriteEvent(2, path, operation);
     }
+
+    public static partial class Interceptor
+    {
+        /// <summary>Creates an interceptor that publishes invocation metrics using an <see cref="InvocationEventSource"/>.
+        /// </summary>
+        /// <param name="eventSource">The event source used to publish the metrics events.</param>
+        public static Func<IInvoker, IInvoker> CreateMetricsPublisher(InvocationEventSource eventSource) =>
+            next => new InlineInvoker(
+                async (request, cancel) =>
+                {
+                    eventSource.RequestStart(request);
+                    try
+                    {
+                        var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                        if (response.ResultType == ResultType.Failure)
+                        {
+                            eventSource.RequestFailed(request, "IceRpc.RemoteException");
+                        }
+                        return response;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        eventSource.RequestCanceled(request);
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        eventSource.RequestFailed(request, ex);
+                        throw;
+                    }
+                    finally
+                    {
+                        eventSource.RequestStop(request);
+                    }
+                });
+
+        /// <summary>A interceptor that publishes invocation metrics, using the default
+        /// <see cref="InvocationEventSource.Log"/> instance.</summary>
+        public static Func<IInvoker, IInvoker> MetricsPublisher { get; } =
+            CreateMetricsPublisher(InvocationEventSource.Log);
+    }
 }
