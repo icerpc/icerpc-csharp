@@ -21,13 +21,26 @@ namespace IceRpc
 
         public override async ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) =>
-            Underlying = await Underlying.AcceptAsync(Endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+            CancellationToken cancel)
+        {
+            Endpoint? remoteEndpoint;
+            (Underlying, remoteEndpoint) = await Underlying.AcceptAsync(
+                LocalEndpoint!,
+                authenticationOptions,
+                cancel).ConfigureAwait(false);
+            if (remoteEndpoint != null)
+            {
+                RemoteEndpoint = remoteEndpoint;
+            }
+        }
 
         public override async ValueTask ConnectAsync(
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) =>
-            Underlying = await Underlying.ConnectAsync(Endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+            (Underlying, LocalEndpoint) = await Underlying.ConnectAsync(
+                RemoteEndpoint!,
+                authenticationOptions,
+                cancel).ConfigureAwait(false);
 
         protected override void Dispose(bool disposing)
         {

@@ -394,10 +394,7 @@ namespace IceRpc
             return PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
         }
 
-        internal SlicSocket(
-            Endpoint endpoint,
-            SingleStreamSocket socket,
-            ConnectionOptions options)
+        internal SlicSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
             : base(endpoint, socket, options)
         {
             _idleTimeout = options.IdleTimeout;

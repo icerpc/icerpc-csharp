@@ -33,7 +33,7 @@ namespace IceRpc
             {
                 // Receive the Ice1 frame header.
                 ArraySegment<byte> buffer;
-                if (Endpoint.IsDatagram)
+                if (IsDatagram)
                 {
                     buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
                     if (buffer.Count < Ice1Definitions.HeaderSize)
@@ -54,7 +54,7 @@ namespace IceRpc
                 int size = buffer.AsReadOnlySpan(10, 4).ReadInt();
                 if (size < Ice1Definitions.HeaderSize)
                 {
-                    if (Endpoint.IsDatagram)
+                    if (IsDatagram)
                     {
                         Logger.LogReceivedInvalidDatagram(size);
                     }
@@ -66,7 +66,7 @@ namespace IceRpc
                 }
                 if (size > IncomingFrameMaxSize)
                 {
-                    if (Endpoint.IsDatagram)
+                    if (IsDatagram)
                     {
                         Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
                         continue;
@@ -81,7 +81,7 @@ namespace IceRpc
                 // Read the remainder of the frame if needed.
                 if (size > buffer.Count)
                 {
-                    if (Endpoint.IsDatagram)
+                    if (IsDatagram)
                     {
                         Logger.LogDatagramMaximumSizeExceeded(buffer.Count);
                         continue;
@@ -127,7 +127,7 @@ namespace IceRpc
                             Debug.Assert(stream.IsControl);
                             continue;
                         }
-                        else if (frameType == Ice1FrameType.CloseConnection && Endpoint.IsDatagram)
+                        else if (frameType == Ice1FrameType.CloseConnection && IsDatagram)
                         {
                             Debug.Assert(stream.IsControl);
                             Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
@@ -403,7 +403,7 @@ namespace IceRpc
         private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
         {
             int sent;
-            if (Endpoint.IsDatagram)
+            if (IsDatagram)
             {
                 sent = await Underlying.SendDatagramAsync(buffers, cancel).ConfigureAwait(false);
             }

@@ -519,10 +519,10 @@ namespace IceRpc.Tests.Internal
 
             static void Test(MultiStreamSocket socket)
             {
-                Assert.NotNull(socket.Endpoint != null);
+                Assert.NotNull(socket.LocalEndpoint != null);
                 Assert.AreNotEqual(socket.IdleTimeout, TimeSpan.Zero);
                 Assert.Greater(socket.IncomingFrameMaxSize, 0);
-                if (socket.Endpoint!.Protocol != Protocol.Ice1)
+                if (socket.Protocol != Protocol.Ice1)
                 {
                     Assert.Greater(socket.PeerIncomingFrameMaxSize, 0);
                 }

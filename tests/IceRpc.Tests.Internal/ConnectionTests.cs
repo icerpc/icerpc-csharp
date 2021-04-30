@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Internal
                         Endpoint.CreateServerSocket(_server.ConnectionOptions, _server.Logger),
                         _server.ConnectionOptions,
                         _server);
-                    Task<Connection> clientTask = ConnectAsync(serverConnection.Endpoint);
+                    Task<Connection> clientTask = ConnectAsync(serverConnection.LocalEndpoint);
                     await serverConnection.AcceptAsync(default);
                     clientConnection = await clientTask;
                 }
@@ -299,18 +299,28 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
             Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
 
-            Assert.AreEqual("127.0.0.1", factory.Client.Endpoint.Host);
-            Assert.That(factory.Client.Endpoint.Port, Is.GreaterThan(0));
-            Assert.AreEqual(null, factory.Client.Endpoint["compress"]);
+            Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint.Host);
+            Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
+            Assert.That(factory.Client.RemoteEndpoint.Port, Is.EqualTo(factory.Server.LocalEndpoint.Port));
+            if (transport == "udp")
+            {
+                Assert.Throws<InvalidOperationException>(() => _ = factory.Server.RemoteEndpoint);
+            }
+            else
+            {
+                Assert.That(factory.Client.LocalEndpoint.Port, Is.EqualTo(factory.Server.RemoteEndpoint.Port));
+                Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
+            }
+            Assert.AreEqual(null, factory.Client.RemoteEndpoint["compress"]);
             Assert.That(factory.Client.IsIncoming, Is.False);
             Assert.That(factory.Server.IsIncoming, Is.True);
 
             Assert.AreEqual(null, factory.Client.Server);
-            Assert.AreEqual(factory.Client.Endpoint.Port, clientSocket.RemoteEndPoint!.Port);
-            Assert.That(clientSocket.LocalEndPoint!.Port, Is.GreaterThan(0));
+            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, clientSocket.RemoteEndPoint.Port);
+            Assert.AreEqual(factory.Client.LocalEndpoint.Port, clientSocket.LocalEndPoint.Port);
 
-            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint!.Address.ToString());
-            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint!.Address.ToString());
+            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint.Address.ToString());
+            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint.Address.ToString());
 
             Assert.That($"{factory.Client}", Does.StartWith(clientSocket.GetType().FullName));
             Assert.That($"{factory.Server}", Does.StartWith(serverSocket.GetType().FullName));

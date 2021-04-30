@@ -176,7 +176,7 @@ namespace IceRpc
         {
             MultiStreamSocket socket = endpoint.CreateServerSocket(server.ConnectionOptions, server.Logger);
             _connection = new Connection(socket, server.ConnectionOptions, server);
-            Endpoint = _connection.Endpoint;
+            Endpoint = _connection.LocalEndpoint;
         }
 
         internal override void Activate()

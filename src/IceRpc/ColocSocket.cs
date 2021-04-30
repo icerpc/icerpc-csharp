@@ -166,6 +166,8 @@ namespace IceRpc
             ILogger logger)
             : base(endpoint, options, logger)
         {
+            LocalEndpoint = endpoint;
+            RemoteEndpoint = endpoint;
 
             Id = id;
             _writer = writer;

@@ -175,7 +175,7 @@ namespace IceRpc
             long lastUnidirectionalId,
             string message)
         {
-            if (socket.Endpoint.Protocol == Protocol.Ice1)
+            if (socket.Protocol == Protocol.Ice1)
             {
                 _receivedIce1CloseConnectionFrame(logger, null!);
             }
@@ -187,7 +187,7 @@ namespace IceRpc
 
         internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamSocket socket)
         {
-            if (socket.Endpoint.Protocol == Protocol.Ice1)
+            if (socket.Protocol == Protocol.Ice1)
             {
                 _receivedIce1ValidateConnectionFrame(logger, null!);
             }
@@ -253,7 +253,7 @@ namespace IceRpc
             long lastUnidirectionalId,
             string message)
         {
-            if (socket.Endpoint.Protocol == Protocol.Ice1)
+            if (socket.Protocol == Protocol.Ice1)
             {
                 _sentIce1CloseConnectionFrame(logger, message, null!);
             }
@@ -268,7 +268,7 @@ namespace IceRpc
             MultiStreamSocket socket,
             int incomingFrameMaxSize)
         {
-            if (socket.Endpoint.Protocol == Protocol.Ice1)
+            if (socket.Protocol == Protocol.Ice1)
             {
                 _sentIce1ValidateConnectionFrame(logger, null!);
             }

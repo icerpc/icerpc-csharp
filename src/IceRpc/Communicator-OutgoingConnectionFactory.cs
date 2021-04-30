@@ -216,11 +216,11 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                LinkedList<Connection> list = _outgoingConnections[connection.Endpoint];
+                LinkedList<Connection> list = _outgoingConnections[connection.RemoteEndpoint];
                 list.Remove(connection);
                 if (list.Count == 0)
                 {
-                    _outgoingConnections.Remove(connection.Endpoint);
+                    _outgoingConnections.Remove(connection.RemoteEndpoint);
                 }
             }
         }

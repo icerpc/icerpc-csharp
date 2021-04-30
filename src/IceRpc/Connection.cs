@@ -51,10 +51,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the endpoint from which the connection was created.</summary>
-        /// <value>The endpoint from which the connection was created.</value>
-        public Endpoint Endpoint => _socket.Endpoint;
-
         /// <summary>Gets the connection idle timeout.</summary>
         public TimeSpan IdleTimeout
         {
@@ -94,6 +90,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
+        public bool IsDatagram => _socket.IsDatagram;
+
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
         public bool IsIncoming { get; }
 
@@ -104,18 +103,33 @@ namespace IceRpc
         /// frames at regular time intervals when the connection is idle.</summary>
         public bool KeepAlive { get; set; }
 
+        /// <summary>The connection local endpoint.</summary>
+        /// <exception name="InvalidOperationException">Throw if the local endpoint is not available. This can occur
+        /// if the connection is client connection which is not connected yet.</exception>
+        public Endpoint LocalEndpoint => _socket.LocalEndpoint;
+
         /// <summary>The peer's incoming frame maximum size. This is only supported with ice2 connections. For
         /// ice1 connections, the value is always -1.</summary>
         public int PeerIncomingFrameMaxSize => Protocol == Protocol.Ice1 ? -1 : _socket.PeerIncomingFrameMaxSize!.Value;
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => Endpoint.Protocol;
+        public Protocol Protocol => _socket.Protocol;
+
+        /// <summary>The connection remote endpoint.</summary>
+        /// <exception name="InvalidOperationException">Throw if the remote endpoint is not available.</exception>
+        public Endpoint RemoteEndpoint => _socket.RemoteEndpoint;
 
         /// <summary>The server that created this incoming connection.</summary>
         public Server? Server { get; }
 
         /// <summary>The socket interface provides information on the socket used by the connection.</summary>
         public ISocket Socket => _socket.Socket;
+
+        /// <summary>The socket transport.</summary>
+        public Transport Transport => _socket.Transport;
+
+        /// <summary>The socket transport name.</summary>
+        public string TransportName => _socket.TransportName;
 
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
@@ -163,6 +177,15 @@ namespace IceRpc
         private readonly MultiStreamSocket _socket;
         private volatile ConnectionState _state; // The current state.
         private Timer? _timer;
+
+        // TODO: remove for testing purpose only
+        static public async Task<Connection> CreateAsync(Endpoint endpoint, Communicator communicator)
+        {
+            MultiStreamSocket socket = endpoint.CreateClientSocket(communicator.ConnectionOptions, communicator.Logger);
+            var connection = new Connection(socket, communicator.ConnectionOptions);
+            await connection.ConnectAsync(default).ConfigureAwait(false);
+            return connection;
+        }
 
         /// <summary>Aborts the connection.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
@@ -266,7 +289,7 @@ namespace IceRpc
             lock (_mutex)
             {
                 using IDisposable? scope = _socket.StartScope(Server);
-                if (Endpoint.IsDatagram)
+                if (IsDatagram)
                 {
                     _socket.Logger.LogStartReceivingDatagrams();
                 }
@@ -288,12 +311,12 @@ namespace IceRpc
             {
                 // If the endpoint is secure, connect with the SSL client authentication options.
                 SslClientAuthenticationOptions? authenticationOptions = null;
-                if (Endpoint.IsSecure ?? true)
+                if (_socket.RemoteEndpoint.IsSecure ?? true)
                 {
                     authenticationOptions = options.AuthenticationOptions?.Clone() ?? new();
-                    authenticationOptions.TargetHost ??= Endpoint.Host;
+                    authenticationOptions.TargetHost ??= _socket.RemoteEndpoint.Host;
                     authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                        new SslApplicationProtocol(Endpoint.Protocol.GetName())
+                        new SslApplicationProtocol(Protocol.GetName())
                     };
                 }
                 await _socket.ConnectAsync(authenticationOptions, cancel).ConfigureAwait(false);
@@ -306,7 +329,7 @@ namespace IceRpc
             lock (_mutex)
             {
                 using IDisposable? scope = _socket.StartScope(Server);
-                if (Endpoint.IsDatagram)
+                if (IsDatagram)
                 {
                     _socket.Logger.LogStartSendingDatagrams();
                 }
@@ -345,7 +368,7 @@ namespace IceRpc
                 Task goAwayTask;
                 lock (_mutex)
                 {
-                    if (_state == ConnectionState.Active && !Endpoint.IsDatagram)
+                    if (_state == ConnectionState.Active && !IsDatagram)
                     {
                         SetState(ConnectionState.Closing, exception);
                         _closeTask ??= PerformGoAwayAsync(exception);
@@ -374,7 +397,7 @@ namespace IceRpc
                 (long, long) lastIncomingStreamIds = _socket.AbortStreams(exception, stream => !stream.IsIncoming);
 
                 // With Ice1, we first wait for all incoming streams to complete before sending the GoAway frame.
-                if (Endpoint.Protocol == Protocol.Ice1)
+                if (Protocol == Protocol.Ice1)
                 {
                     await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
                 }
@@ -426,7 +449,7 @@ namespace IceRpc
                 // Initialize the transport.
                 await _socket.InitializeAsync(cancel).ConfigureAwait(false);
 
-                if (!Endpoint.IsDatagram)
+                if (!IsDatagram)
                 {
                     // Create the control stream and send the initialize frame
                     _controlStream = await _socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
@@ -454,7 +477,7 @@ namespace IceRpc
             }
 
             // Start a task to wait for the GoAway frame on the peer's control stream.
-            if (!Endpoint.IsDatagram)
+            if (!IsDatagram)
             {
                 _ = Task.Run(async () => await WaitForGoAwayAsync().ConfigureAwait(false), default);
             }
@@ -518,7 +541,7 @@ namespace IceRpc
                     {
                         // If the connection is not initialized yet, we print a trace to show that the connection got
                         // accepted before printing out the connection closed trace.
-                        if (Endpoint.IsDatagram)
+                        if (IsDatagram)
                         {
                             _socket.Logger.LogStartReceivingDatagrams();
                         }
@@ -528,7 +551,7 @@ namespace IceRpc
                         }
                     }
 
-                    if (Endpoint.IsDatagram && IsIncoming)
+                    if (IsDatagram && IsIncoming)
                     {
                         _socket.Logger.LogStopReceivingDatagrams();
                     }
