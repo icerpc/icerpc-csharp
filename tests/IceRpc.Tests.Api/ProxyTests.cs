@@ -418,9 +418,12 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
-            OutgoingRequest request = IGreeterServicePrx.Request.SayHello(prx, invocation: null, cancel: default);
-            IncomingResponse response = await ServicePrx.InvokeAsync(request, request.CancellationToken);
-            Assert.AreEqual(ResultType.Success, response.ResultType);
+
+            (ArraySegment<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
+                "SayHello",
+                Payload.FromEmptyArgs(prx));
+
+            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, connection));
         }
 
         [TestCase("ice+tcp://host/test")]

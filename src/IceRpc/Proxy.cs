@@ -62,6 +62,7 @@ namespace IceRpc
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
+        /*
         /// <summary>Forwards an incoming request to another Ice object represented by the <paramref name="proxy"/>
         /// parameter.</summary>
         /// <remarks>When the incoming request frame's protocol and proxy's protocol are different, this method
@@ -91,6 +92,7 @@ namespace IceRpc
                 return new OutgoingResponse(request, new ServerException(exception.Message, exception));
             }
         }
+        */
 
         /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
         /// it first attempts to create a connection.</summary>
@@ -120,6 +122,105 @@ namespace IceRpc
         /// <summary>Returns a new copy of the underlying options.</summary>
         /// <returns>An instance of the options class.</returns>
         public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
+
+        public static Task<(ArraySegment<byte>, Connection)> InvokeAsync(
+            this IServicePrx proxy,
+            string operation,
+            IList<ArraySegment<byte>> args,
+            Invocation? invocation = null,
+            bool compress = false,
+            bool idempotent = false,
+            bool oneway = false,
+            CancellationToken cancel = default)
+        {
+            CancellationTokenSource? timeoutSource = null;
+            CancellationTokenSource? combinedSource = null;
+
+            try
+            {
+                DateTime? deadline = invocation?.Deadline;
+                if (deadline == null)
+                {
+                    TimeSpan timeout = invocation?.Timeout ?? proxy.InvocationTimeout;
+                    if (timeout == Timeout.InfiniteTimeSpan)
+                    {
+                        deadline = DateTime.MaxValue;
+                    }
+                    else
+                    {
+                        deadline = DateTime.UtcNow + timeout;
+
+                        timeoutSource = new CancellationTokenSource(timeout);
+                        combinedSource = cancel == default ? timeoutSource :
+                            CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutSource.Token);
+
+                        cancel = combinedSource.Token;
+                    }
+                }
+                else if (deadline.Value < DateTime.MaxValue && !cancel.CanBeCanceled)
+                {
+                    throw new ArgumentException(@$"{nameof(cancel)
+                        } must be cancelable when the invocation deadline is set", nameof(cancel));
+                }
+
+                var request = new OutgoingRequest(proxy,
+                                                  operation,
+                                                  args,
+                                                  deadline.Value,
+                                                  invocation,
+                                                  compress,
+                                                  idempotent,
+                                                  oneway);
+
+                // We perform as much work as possible in a non async method to throw exceptions synchronously.
+                Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
+
+                return ReadResponseAsync(responseTask, timeoutSource, combinedSource);
+            }
+            catch
+            {
+                combinedSource?.Dispose();
+                if (timeoutSource != combinedSource)
+                {
+                    timeoutSource?.Dispose();
+                }
+                throw;
+
+                // If there is no synchronous exception, ReadResponseAsync disposes these cancellation sources.
+            }
+
+            async Task<(ArraySegment<byte>, Connection)> ReadResponseAsync(
+                Task<IncomingResponse> responseTask,
+                CancellationTokenSource? timeoutSource,
+                CancellationTokenSource? combinedSource)
+            {
+                try
+                {
+                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
+
+                    if (invocation != null)
+                    {
+                        invocation.ResponseFeatures = response.Features;
+                    }
+
+                    // Temporary
+                    if (response.PayloadCompressionFormat != CompressionFormat.Decompressed)
+                    {
+                        response.DecompressPayload();
+                    }
+
+                    return (response.Payload, response.Connection);
+                }
+                finally
+                {
+                    combinedSource?.Dispose();
+                    if (timeoutSource != combinedSource)
+                    {
+                        timeoutSource?.Dispose();
+                    }
+                }
+            }
+        }
 
         /// <summary>Converts a proxy to a set of proxy properties.</summary>
         /// <param name="proxy">The proxy for the target service.</param>

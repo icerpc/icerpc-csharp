@@ -18,6 +18,8 @@ namespace IceRpc
         /// <summary>The context dictionary carried by the request.</summary>
         public SortedDictionary<string, string> Context { get; set; } = new();
 
+        public DateTime? Deadline { get; set; }
+
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; set; }
 
@@ -27,5 +29,10 @@ namespace IceRpc
 
         /// <summary>The progress provider.</summary>
         public IProgress<bool>? Progress { get; set; }
+
+        public FeatureCollection RequestFeatures { get; set; } = new FeatureCollection();
+        public FeatureCollection ResponseFeatures { get; set; } = new FeatureCollection();
+
+        public TimeSpan? Timeout { get; set; }
     }
 }

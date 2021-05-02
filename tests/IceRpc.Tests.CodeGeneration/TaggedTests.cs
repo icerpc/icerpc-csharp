@@ -188,20 +188,21 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(multiTagged.MMyStructDict, multiTagged1.MMyStructDict);
             Assert.IsNull(multiTagged1.MAnotherStructDict);
 
-            using var requestFrame = OutgoingRequest.WithArgs(
-                    _prx,
-                    "opVoid",
-                    invocation: null,
-                    (15, "test"),
-                    (OutputStream ostr, in (int n, string s) value) =>
-                    {
-                        ostr.WriteTaggedInt(1, value.n);
-                        ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
-                    });
+            // Build a request payload with 2 tagged values
+            IList<ArraySegment<byte>> requestPayload = Payload.FromArgs(
+                _prx,
+                (15, "test"),
+                (OutputStream ostr, in (int n, string s) value) =>
+                {
+                    ostr.WriteTaggedInt(1, value.n);
+                    ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
+                });
 
-            using IncomingResponse response =
-                await ServicePrx.InvokeAsync(requestFrame, requestFrame.CancellationToken);
-            Assert.AreEqual(ResultType.Success, response.ResultType);
+            (ArraySegment<byte> responsePayload, Connection connection) = await _prx.InvokeAsync(
+                "opVoid",
+                requestPayload);
+
+            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(_prx, connection));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.IsFalse(b.MInt2.HasValue);

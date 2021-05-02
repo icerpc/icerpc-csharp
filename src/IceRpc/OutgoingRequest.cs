@@ -18,10 +18,6 @@ namespace IceRpc
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
         public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
 
-        /// <summary>A cancellation token that receives the cancellation requests. The cancellation token takes into
-        /// account the invocation timeout and the cancellation token provided by the application.</summary>
-        public CancellationToken CancellationToken => _linkedCancellationSource.Token;
-
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
         /// enforce this deadline - it's provided "for information" to the application. The Ice client runtime sets
@@ -42,10 +38,10 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; }
+        public string Operation { get; set; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; }
+        public string Path { get; set; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
@@ -68,21 +64,17 @@ namespace IceRpc
         }
 
         /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        internal string Facet { get; set; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
-        internal Identity Identity { get; }
+        internal Identity Identity { get; set; }
 
         private SortedDictionary<string, string>? _writableContext;
         private readonly IReadOnlyDictionary<string, string> _initialContext;
-        private readonly CancellationTokenSource? _invocationTimeoutCancellationSource;
-        private readonly CancellationTokenSource _linkedCancellationSource;
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            _invocationTimeoutCancellationSource?.Dispose();
-            _linkedCancellationSource.Dispose();
         }
 
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single non-struct
@@ -286,6 +278,46 @@ namespace IceRpc
             }
         }
 
+        internal OutgoingRequest(
+            IServicePrx proxy,
+            string operation,
+            IList<ArraySegment<byte>> args,
+            DateTime deadline,
+            Invocation? invocation,
+            bool compress,
+            bool idempotent,
+            bool oneway)
+            : base(proxy.Protocol,
+                   proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest, // TODO: eliminate
+                   proxy.Connection?.CompressionMinSize ?? 100, // TODO: eliminate
+                   invocation?.RequestFeatures ?? new FeatureCollection())
+        {
+            Proxy = proxy;
+            Path = proxy.Path;
+            Operation = operation;
+            Payload = args;
+            PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
+            Deadline = deadline;
+            IsOneway = oneway || (invocation?.IsOneway ?? false);
+            IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
+
+            _initialContext = invocation?.Context?.ToImmutableSortedDictionary() ?? proxy.Context;
+
+            Progress = invocation?.Progress;
+
+            if (Protocol == Protocol.Ice1)
+            {
+                Facet = proxy.Impl.Facet;
+                Identity = proxy.Impl.Identity;
+            }
+
+            // temporary
+            if ((compress || (invocation?.CompressRequestPayload ?? false)) && PayloadEncoding == Encoding.V20)
+            {
+                _ = CompressPayload();
+            }
+        }
+
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
@@ -304,7 +336,7 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 // For Ice1 the Activity context is write to the request Context using the standard keys
-                // traceparate, tracestate and baggage.
+                // traceparent, tracestate and baggage.
 
                 WritableContext["traceparent"] = activity.Id;
                 if (activity.TraceStateString != null)
@@ -407,7 +439,7 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             Invocation? invocation,
-            CancellationToken cancel)
+            CancellationToken _)
             : base(proxy.Protocol,
                    // TODO if Connection is null there should be a ConnectionPool to read the settings from
                    proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
@@ -432,18 +464,6 @@ namespace IceRpc
             Debug.Assert(proxy.InvocationTimeout != TimeSpan.Zero);
             Deadline = Protocol == Protocol.Ice1 || proxy.InvocationTimeout == Timeout.InfiniteTimeSpan ?
                 DateTime.MaxValue : DateTime.UtcNow + proxy.InvocationTimeout;
-
-            if (proxy.InvocationTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _invocationTimeoutCancellationSource = new CancellationTokenSource(proxy.InvocationTimeout);
-            }
-
-            var communicator = (Communicator)proxy.Invoker;
-
-            _linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _invocationTimeoutCancellationSource?.Token ?? default,
-                communicator.CancellationToken,
-                cancel);
 
             // This makes a copy if context is not immutable.
             _initialContext = invocation?.Context?.ToImmutableSortedDictionary() ?? proxy.Context;

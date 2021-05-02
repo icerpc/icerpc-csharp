@@ -24,7 +24,14 @@ namespace IceRpc.Tests.Internal
 
             await using var pool = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
-            var request = IServicePrx.Request.IceId(prx, null, default);
+            var request = new OutgoingRequest(prx,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(prx),
+                                              DateTime.MaxValue,
+                                              invocation: null,
+                                              compress: false,
+                                              idempotent: false,
+                                              oneway: false);
             _eventSource.RequestStart(request);
 
             var eventData = eventListener.EventData;
@@ -46,7 +53,14 @@ namespace IceRpc.Tests.Internal
 
             await using var pool = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
-            var request = IServicePrx.Request.IceId(prx, null, default);
+            var request = new OutgoingRequest(prx,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(prx),
+                                              DateTime.MaxValue,
+                                              invocation: null,
+                                              compress: false,
+                                              idempotent: false,
+                                              oneway: false);
             _eventSource.RequestStop(request);
 
             var eventData = eventListener.EventData;
@@ -68,7 +82,14 @@ namespace IceRpc.Tests.Internal
 
             await using var pool = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
-            var request = IServicePrx.Request.IceId(prx, null, default);
+            var request = new OutgoingRequest(prx,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(prx),
+                                              DateTime.MaxValue,
+                                              invocation: null,
+                                              compress: false,
+                                              idempotent: false,
+                                              oneway: false);
             _eventSource.RequestCanceled(request);
 
             var eventData = eventListener.EventData;
@@ -90,7 +111,14 @@ namespace IceRpc.Tests.Internal
 
             await using var pool = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
-            var request = IServicePrx.Request.IceId(prx, null, default);
+            var request = new OutgoingRequest(prx,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(prx),
+                                              DateTime.MaxValue,
+                                              invocation: null,
+                                              compress: false,
+                                              idempotent: false,
+                                              oneway: false);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
             var eventData = eventListener.EventData;

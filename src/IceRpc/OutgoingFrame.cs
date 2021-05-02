@@ -45,7 +45,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The features of this response.</summary>
+        /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
@@ -56,7 +56,7 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; }
 
         /// <summary>Returns the payload of this frame.</summary>
-        public IList<ArraySegment<byte>> Payload { get; } = new List<ArraySegment<byte>>();
+        public IList<ArraySegment<byte>> Payload { get; set; } = new List<ArraySegment<byte>>();
 
         /// <summary>Returns the payload's compression format.</summary>
         public CompressionFormat PayloadCompressionFormat { get; private set; }
