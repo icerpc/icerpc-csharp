@@ -29,7 +29,7 @@ namespace IceRpc
             /// <param name="args">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static IList<ArraySegment<byte>> IceIsA(IServicePrx proxy, string args) =>
-                Payload.FromArgs(proxy, args, OutputStream.IceWriterFromString);
+                Payload.FromSingleArg(proxy, args, OutputStream.IceWriterFromString);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the

@@ -2166,19 +2166,39 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
                     ".</summary>";
                 _out << nl << "/// <param name=\"proxy\">Proxy to the target service.</param>";
-                _out << nl << "/// <param name=\"args\">The request arguments.</param>";
+                if (params.size() == 1)
+                {
+                    _out << nl << "/// <param name=\"arg\">The request argument.</param>";
+                }
+                else
+                {
+                    _out << nl << "/// <param name=\"args\">The request arguments.</param>";
+                }
                 _out << nl << "/// <returns>The payload.</returns>";
 
                 _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "
                     << fixId(operationName(operation)) << "(IceRpc.IServicePrx proxy, ";
 
-                string inValue = params.size() > 1 ? "in " : "";
-                _out << inValue << toTupleType(params, true) << " args) =>";
+                if (params.size() == 1)
+                {
+                    _out << toTupleType(params, true) << " arg) =>";
+                }
+                else
+                {
+                    _out << "in " << toTupleType(params, true) << " args) =>";
+                }
                 _out.inc();
-                _out << nl << "IceRpc.Payload.FromArgs(";
+                if (params.size() == 1)
+                {
+                    _out << nl << "IceRpc.Payload.FromSingleArg(";
+                }
+                else
+                {
+                    _out << nl << "IceRpc.Payload.FromArgs(";
+                }
                 _out.inc();
                 _out << nl << "proxy,";
-                _out << nl << inValue << "args,";
+                _out << nl << (params.size() == 1 ? "arg," : "in args,");
                 _out << nl;
                 writeOutgoingRequestWriter(operation);
                 string classFormat = opFormatTypeToString(operation);
@@ -2209,7 +2229,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 {
                     _out << sp;
                     string opName = fixId(operationName(operation));
-                    _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return type "
+                    _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
                          << "of operation " << operation->name() << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                     _out << "(global::System.ArraySegment<byte> payload, ";

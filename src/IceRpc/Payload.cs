@@ -15,19 +15,19 @@ namespace IceRpc
     /// <summary>Helpers methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
-        /// <summary>Creates the payload of a request from the request's arguments. Use this method when the operation
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service. This method uses the protocol and encoding of the proxy
         /// to create the payload.</param>
-        /// <param name="args">The argument to write into the payload.</param>
+        /// <param name="arg">The argument to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromArgs<T>(
+        public static IList<ArraySegment<byte>> FromSingleArg<T>(
             IServicePrx proxy,
-            T args,
+            T arg,
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
@@ -38,7 +38,7 @@ namespace IceRpc
                                         startAt: default,
                                         proxy.Encoding,
                                         classFormat);
-            writer(ostr, args);
+            writer(ostr, arg);
             ostr.Finish();
             return payload;
         }

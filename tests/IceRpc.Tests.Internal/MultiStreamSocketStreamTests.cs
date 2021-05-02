@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task MultiStreamSocketStream_SendReceiveRequestAsync(int size)
         {
-            var requestPayload = Payload.FromArgs(Proxy,
+            var requestPayload = Payload.FromSingleArg(Proxy,
                                                   new byte[size],
                                                   (OutputStream ostr, ReadOnlyMemory<byte> value) =>
                                                     ostr.WriteSequence(value.Span));
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
                 // With Slic, large frames are sent with multiple packets. Here we ensure that cancelling the sending
                 // while the packets are being sent works.
 
-                var requestPayload = Payload.FromArgs(Proxy,
+                var requestPayload = Payload.FromSingleArg(Proxy,
                                                       new byte[256 * 1024],
                                                       (OutputStream ostr, ReadOnlyMemory<byte> value) =>
                                                         ostr.WriteSequence(value.Span));
