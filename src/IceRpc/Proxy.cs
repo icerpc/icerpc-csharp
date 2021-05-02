@@ -62,38 +62,6 @@ namespace IceRpc
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
-        /*
-        /// <summary>Forwards an incoming request to another Ice object represented by the <paramref name="proxy"/>
-        /// parameter.</summary>
-        /// <remarks>When the incoming request frame's protocol and proxy's protocol are different, this method
-        /// automatically bridges between these two protocols. When proxy's protocol is ice1, the resulting outgoing
-        /// request frame is never compressed.</remarks>
-        /// <param name="proxy">The proxy for the target service.</param>
-        /// <param name="request">The incoming request frame to forward to proxy's target.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A task holding the response frame.</returns>
-        public static async ValueTask<OutgoingResponse> ForwardAsync(
-            this IServicePrx proxy,
-            IncomingRequest request,
-            Invocation? invocation,
-            CancellationToken cancel = default)
-        {
-            var forwardedRequest = new OutgoingRequest(proxy, request, invocation, cancel: cancel);
-            try
-            {
-                // TODO: add support for stream data forwarding.
-                using IncomingResponse response = await ServicePrx.InvokeAsync(forwardedRequest,
-                    forwardedRequest.CancellationToken).ConfigureAwait(false);
-                return new OutgoingResponse(request, response);
-            }
-            catch (LimitExceededException exception)
-            {
-                return new OutgoingResponse(request, new ServerException(exception.Message, exception));
-            }
-        }
-        */
-
         /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
         /// it first attempts to create a connection.</summary>
         /// <param name="proxy">The proxy.</param>
@@ -123,6 +91,19 @@ namespace IceRpc
         /// <returns>An instance of the options class.</returns>
         public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
 
+        /// <summary>Sends a request to a service and returns the response.</summary>
+        /// <param name="proxy">A proxy to the target service.</param>
+        /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="args">The payload of the request.</param>
+        /// <param name="invocation">The invocation properties.</param>
+        /// <param name="compress">When true, the request payload should be compressed.</param>
+        /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
+        /// after sending the request.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The response payload and the connection that received the response.</returns>
+        /// <remarks>This method stores the response features into the invocation's response features when invocation is
+        /// not null.</remarks>
         public static Task<(ArraySegment<byte>, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
@@ -138,15 +119,11 @@ namespace IceRpc
 
             try
             {
-                DateTime? deadline = invocation?.Deadline;
-                if (deadline == null)
+                DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
+                if (deadline == DateTime.MaxValue)
                 {
                     TimeSpan timeout = invocation?.Timeout ?? proxy.InvocationTimeout;
-                    if (timeout == Timeout.InfiniteTimeSpan)
-                    {
-                        deadline = DateTime.MaxValue;
-                    }
-                    else
+                    if (timeout != Timeout.InfiniteTimeSpan)
                     {
                         deadline = DateTime.UtcNow + timeout;
 
@@ -156,8 +133,9 @@ namespace IceRpc
 
                         cancel = combinedSource.Token;
                     }
+                    // else deadline remains MaxValue
                 }
-                else if (deadline.Value < DateTime.MaxValue && !cancel.CanBeCanceled)
+                else if (!cancel.CanBeCanceled)
                 {
                     throw new ArgumentException(@$"{nameof(cancel)
                         } must be cancelable when the invocation deadline is set", nameof(cancel));
@@ -166,7 +144,7 @@ namespace IceRpc
                 var request = new OutgoingRequest(proxy,
                                                   operation,
                                                   args,
-                                                  deadline.Value,
+                                                  deadline,
                                                   invocation,
                                                   compress,
                                                   idempotent,
