@@ -235,10 +235,22 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
 
+        /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
+        /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="args">The payload of the request.</param>
+        /// <param name="responseReader">The reader for the response payload. It reads and throws a
+        /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
+        /// <param name="invocation">The invocation properties.</param>
+        /// <param name="compress">When true, the request payload should be compressed.</param>
+        /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The operation's return value read by response reader.</returns>
+        /// <remarks>This method stores the response features into the invocation's response features when invocation is
+        /// not null.</remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task<T> IceInvokeAsync<T>(
             string operation,
-            IList<ArraySegment<byte>> requestPayload,
+            IList<ArraySegment<byte>> args,
             ResponseReader<T> responseReader,
             Invocation? invocation,
             bool compress = false,
@@ -246,7 +258,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             Task<(ArraySegment<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway: false, cancel);
+                this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway: false, cancel);
 
             return ReadResponseAsync();
 
@@ -257,11 +269,22 @@ namespace IceRpc
             }
         }
 
-        // void return version
+        /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
+        /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="args">The payload of the request.</param>
+        /// <param name="invocation">The invocation properties.</param>
+        /// <param name="compress">When true, the request payload should be compressed.</param>
+        /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="oneway">When true, the request is oneway and an empty response is returned immediately after
+        /// sending the request.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A task that completes when the void response is returned. It can also hold an exception.</returns>
+        /// <remarks>This method stores the response features into the invocation's response features when invocation is
+        /// not null.</remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task IceInvokeAsync(
             string operation,
-            IList<ArraySegment<byte>> requestPayload,
+            IList<ArraySegment<byte>> args,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
@@ -269,7 +292,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             Task<(ArraySegment<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway, cancel);
+                this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway, cancel);
 
             return ReadVoidResponseAsync();
 

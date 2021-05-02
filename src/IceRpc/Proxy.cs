@@ -153,7 +153,7 @@ namespace IceRpc
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
 
-                return ReadResponseAsync(responseTask, timeoutSource, combinedSource);
+                return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
             catch
             {
@@ -164,10 +164,10 @@ namespace IceRpc
                 }
                 throw;
 
-                // If there is no synchronous exception, ReadResponseAsync disposes these cancellation sources.
+                // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ArraySegment<byte>, Connection)> ReadResponseAsync(
+            async Task<(ArraySegment<byte>, Connection)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
