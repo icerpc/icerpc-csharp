@@ -198,7 +198,7 @@ namespace IceRpc.Tests.CodeGeneration
                     ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
-            (ArraySegment<byte> responsePayload, Connection connection) = await _prx.InvokeAsync(
+            (ReadOnlyMemory<byte> responsePayload, Connection connection) = await _prx.InvokeAsync(
                 "opVoid",
                 requestPayload);
 

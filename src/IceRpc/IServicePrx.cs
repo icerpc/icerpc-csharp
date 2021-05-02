@@ -16,7 +16,7 @@ namespace IceRpc
     /// <param name="connection">The connection that received this response.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
-    public delegate T ResponseReader<T>(ArraySegment<byte> payload, IServicePrx proxy, Connection connection);
+    public delegate T ResponseReader<T>(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection);
 
     /// <summary>Base interface of all service proxies.</summary>
     public interface IServicePrx : IEquatable<IServicePrx>
@@ -26,10 +26,10 @@ namespace IceRpc
         {
             /// <summary>Creates the request payload for operation ice_isA.</summary>
             /// <param name="proxy">Proxy to the target service.</param>
-            /// <param name="args">The type ID argument to write into the request.</param>
+            /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
-            public static IList<ArraySegment<byte>> IceIsA(IServicePrx proxy, string args) =>
-                Payload.FromSingleArg(proxy, args, OutputStream.IceWriterFromString);
+            public static IList<ArraySegment<byte>> IceIsA(IServicePrx proxy, string arg) =>
+                Payload.FromSingleArg(proxy, arg, OutputStream.IceWriterFromString);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
@@ -38,19 +38,19 @@ namespace IceRpc
         {
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
             /// </summary>
-            public static string IceId(ArraySegment<byte> payload, IServicePrx proxy, Connection connection) =>
+            public static string IceId(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
                 payload.ToReturnValue(InputStream.IceReaderIntoString, proxy, connection);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
-            public static string[] IceIds(ArraySegment<byte> payload, IServicePrx proxy, Connection connection) =>
+            public static string[] IceIds(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
                 payload.ToReturnValue(istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
                                       proxy,
                                       connection);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
             /// </summary>
-            public static bool IceIsA(ArraySegment<byte> payload, IServicePrx proxy, Connection connection) =>
+            public static bool IceIsA(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
                 payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
         }
 
@@ -257,14 +257,15 @@ namespace IceRpc
             bool idempotent = false,
             CancellationToken cancel = default)
         {
-            Task<(ArraySegment<byte>, Connection)> responseTask =
+            Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
                 this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway: false, cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                (ArraySegment<byte> responsePayload, Connection connection) = await responseTask.ConfigureAwait(false);
+                (ReadOnlyMemory<byte> responsePayload, Connection connection) =
+                    await responseTask.ConfigureAwait(false);
                 return responseReader(responsePayload, this, connection);
             }
         }
@@ -291,14 +292,15 @@ namespace IceRpc
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(ArraySegment<byte>, Connection)> responseTask =
+            Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
                 this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway, cancel);
 
             return ReadVoidResponseAsync();
 
             async Task ReadVoidResponseAsync()
             {
-                (ArraySegment<byte> responsePayload, Connection connection) = await responseTask.ConfigureAwait(false);
+                (ReadOnlyMemory<byte> responsePayload, Connection connection) =
+                     await responseTask.ConfigureAwait(false);
                 responsePayload.ToVoidReturnValue(this, connection);
             }
         }

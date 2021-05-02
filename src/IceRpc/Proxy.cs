@@ -104,7 +104,7 @@ namespace IceRpc
         /// <returns>The response payload and the connection that received the response.</returns>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ArraySegment<byte>, Connection)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             IList<ArraySegment<byte>> args,
@@ -167,7 +167,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ArraySegment<byte>, Connection)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte>, Connection)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)

@@ -2232,7 +2232,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
                          << "of operation " << operation->name() << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                    _out << "(global::System.ArraySegment<byte> payload, ";
+                    _out << "(global::System.ReadOnlyMemory<byte> payload, ";
                     _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
                     _out.inc();
                     _out << nl << "Payload.ToReturnValue(";

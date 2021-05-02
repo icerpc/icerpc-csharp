@@ -419,7 +419,7 @@ namespace IceRpc.Tests.Api
 
             IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
 
-            (ArraySegment<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
+            (ReadOnlyMemory<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
                 "SayHello",
                 Payload.FromEmptyArgs(prx));
 

@@ -84,16 +84,16 @@ namespace IceRpc
         /// <param name="connection">The connection that received this response.</param>
         /// <returns>The remote exception.</returns>
         public static RemoteException ToRemoteException(
-            this ArraySegment<byte> payload,
+            this ReadOnlyMemory<byte> payload,
             IServicePrx proxy,
             Connection connection)
         {
-            if (payload.Count == 0 || (ResultType)payload[0] == ResultType.Success)
+            if (payload.Length == 0 || (ResultType)payload.Span[0] == ResultType.Success)
             {
                 throw new ArgumentException("payload does not carry a remote exception", nameof(payload));
             }
 
-            var replyStatus = (ReplyStatus)payload[0]; // can be reassigned below
+            var replyStatus = (ReplyStatus)payload.Span[0]; // can be reassigned below
 
             Protocol protocol = connection.Protocol;
             InputStream istr;
@@ -140,21 +140,21 @@ namespace IceRpc
         /// <returns>The return value.</returns>
         /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
         public static T ToReturnValue<T>(
-            this ArraySegment<byte> payload,
+            this ReadOnlyMemory<byte> payload,
             InputStreamReader<T> reader,
             IServicePrx proxy,
             Connection connection)
         {
-            if (payload.Count == 0)
+            if (payload.Length == 0)
             {
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
 
-            return (ResultType)payload[0] == ResultType.Success ?
-                payload.AsReadOnlyMemory(1).ReadEncapsulation(connection.Protocol.GetEncoding(),
-                                                              reader,
-                                                              connection,
-                                                              proxy.GetOptions()) :
+            return (ResultType)payload.Span[0] == ResultType.Success ?
+                payload.Slice(1).ReadEncapsulation(connection.Protocol.GetEncoding(),
+                                                   reader,
+                                                   connection,
+                                                   proxy.GetOptions()) :
                 throw payload.ToRemoteException(proxy, connection);
         }
 
@@ -164,18 +164,18 @@ namespace IceRpc
         /// <param name="connection">The connection that received this response.</param>
         /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
         public static void ToVoidReturnValue(
-            this ArraySegment<byte> payload,
+            this ReadOnlyMemory<byte> payload,
             IServicePrx proxy,
             Connection connection)
         {
-            if (payload.Count == 0)
+            if (payload.Length == 0)
             {
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
 
-            if ((ResultType)payload[0] == ResultType.Success)
+            if ((ResultType)payload.Span[0] == ResultType.Success)
             {
-                payload.AsReadOnlyMemory(1).ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
+                payload.Slice(1).ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
             }
             else
             {
