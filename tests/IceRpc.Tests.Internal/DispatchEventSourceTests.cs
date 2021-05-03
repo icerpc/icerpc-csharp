@@ -25,7 +25,13 @@ namespace IceRpc.Tests.Internal
 
             await using var communicator = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
-            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+
+            var outgoingRequest = new OutgoingRequest(prx,
+                                                      "ice_id",
+                                                      Payload.FromEmptyArgs(prx),
+                                                      DateTime.MaxValue);
+
+            var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestStart(request);
 
             var eventData = eventListener.EventData;
@@ -47,7 +53,12 @@ namespace IceRpc.Tests.Internal
 
             await using var communicator = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
-            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            var outgoingRequest = new OutgoingRequest(prx,
+                                                      "ice_id",
+                                                      Payload.FromEmptyArgs(prx),
+                                                      DateTime.MaxValue);
+
+            var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestStop(request);
 
             var eventData = eventListener.EventData;
@@ -69,7 +80,12 @@ namespace IceRpc.Tests.Internal
 
             await using var communicator = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
-            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            var outgoingRequest = new OutgoingRequest(prx,
+                                                      "ice_id",
+                                                      Payload.FromEmptyArgs(prx),
+                                                      DateTime.MaxValue);
+
+            var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestCanceled(request);
 
             var eventData = eventListener.EventData;
@@ -91,7 +107,12 @@ namespace IceRpc.Tests.Internal
 
             await using var communicator = new Communicator();
             var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
-            var request = new IncomingRequest(IServicePrx.Request.IceId(prx, null, default));
+            var outgoingRequest = new OutgoingRequest(prx,
+                                                      "ice_id",
+                                                      Payload.FromEmptyArgs(prx),
+                                                      DateTime.MaxValue);
+
+            var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
             var eventData = eventListener.EventData;

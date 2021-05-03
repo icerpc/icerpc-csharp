@@ -136,16 +136,18 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        public sealed class Forwarder : IService
+        public sealed class Forwarder : IDispatcher
         {
             private readonly IServicePrx _target;
 
-            ValueTask<OutgoingResponse> IService.DispatchAsync(
-                IncomingRequest request, Dispatch dispatch, CancellationToken cancel)
+            async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
+                IncomingRequest incomingRequest,
+                CancellationToken cancel)
             {
-                request.Context["Forwarded"] = "1";
-                Invocation? invocation = request.IsOneway ? new Invocation { IsOneway = true } : null;
-                return _target.ForwardAsync(request, invocation, cancel: cancel);
+                IncomingResponse incomingResponse =
+                    await _target.Invoker.InvokeAsync(new OutgoingRequest(_target, incomingRequest), cancel);
+
+                return new OutgoingResponse(incomingRequest, incomingResponse);
             }
 
             internal Forwarder(IServicePrx target) => _target = target;
