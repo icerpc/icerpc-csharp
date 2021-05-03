@@ -276,8 +276,8 @@ namespace IceRpc
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
-        /// <param name="oneway">When true, the request is oneway and an empty response is returned immediately after
-        /// sending the request.</param>
+        /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
+        /// after sending the request.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A task that completes when the void response is returned. It can also hold an exception.</returns>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
@@ -295,9 +295,9 @@ namespace IceRpc
             Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
                 this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway, cancel);
 
-            return ReadVoidResponseAsync();
+            return ReadResponseAsync();
 
-            async Task ReadVoidResponseAsync()
+            async Task ReadResponseAsync()
             {
                 (ReadOnlyMemory<byte> responsePayload, Connection connection) =
                      await responseTask.ConfigureAwait(false);
