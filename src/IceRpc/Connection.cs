@@ -183,8 +183,8 @@ namespace IceRpc
         // TODO: remove for testing purpose only
         static public async Task<Connection> CreateAsync(Endpoint endpoint, Communicator communicator)
         {
-            MultiStreamSocket socket = endpoint.CreateClientSocket(communicator.ConnectionOptions, communicator.Logger);
-            var connection = new Connection(socket, communicator.ConnectionOptions);
+            MultiStreamSocket socket = endpoint.CreateClientSocket(communicator.ConnectionOptions ?? new(), communicator.Logger);
+            var connection = new Connection(socket, communicator.ConnectionOptions ?? new());
             await connection.ConnectAsync(default).ConfigureAwait(false);
             return connection;
         }

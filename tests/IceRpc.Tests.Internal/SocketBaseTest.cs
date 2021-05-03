@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
         protected IncomingConnectionOptions ServerConnectionOptions => Server.ConnectionOptions;
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions ClientConnectionOptions => Communicator.ConnectionOptions;
+        protected OutgoingConnectionOptions ClientConnectionOptions => Communicator.ConnectionOptions ?? new();
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
             IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
@@ -71,7 +71,10 @@ namespace IceRpc.Tests.Internal
                     TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
                 }
             };
-            Communicator = new Communicator(connectionOptions: clientConnectionOptions);
+            Communicator = new Communicator
+            {
+                ConnectionOptions = clientConnectionOptions
+            };
 
             var serverConnectionOptions = new IncomingConnectionOptions()
             {

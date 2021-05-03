@@ -91,8 +91,8 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
                     var connection = new Connection(
-                        endpoint.CreateClientSocket(_communicator.ConnectionOptions, _communicator.Logger),
-                        _communicator.ConnectionOptions);
+                        endpoint.CreateClientSocket(_communicator.ConnectionOptions ?? new(), _communicator.Logger),
+                        _communicator.ConnectionOptions ?? new());
                     await connection.ConnectAsync(default);
                     return connection;
                 }
@@ -149,9 +149,11 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                _communicator = new Communicator(
-                    new Dictionary<string, string>() { { "Ice.InvocationMaxAttempts", "1" } },
-                    connectionOptions: clientConnectionOptions);
+                _communicator = new Communicator
+                {
+                    InvocationMaxAttempts = 1,
+                    ConnectionOptions = clientConnectionOptions
+                };
 
                 _server = new Server
                 {

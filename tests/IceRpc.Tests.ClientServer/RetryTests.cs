@@ -151,10 +151,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(failedAttempts > 0);
             await WithRetryServiceAsync(
                 protocol,
-                new Dictionary<string, string>
-                {
-                    {"Ice.InvocationMaxAttempts", $"{maxAttempts}"}
-                },
+                communicator => communicator.InvocationMaxAttempts = maxAttempts,
                 async (service, retry) =>
                 {
                     // Idempotent operations can always be retried, the operation must succeed if the failed attempts are
@@ -225,10 +222,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(failedAttempts > 0);
             await WithRetryServiceAsync(
                 protocol,
-                new Dictionary<string, string>
-                {
-                    {"Ice.InvocationMaxAttempts", $"{maxAttempts}"}
-                },
+                communicator => communicator.InvocationMaxAttempts = maxAttempts,
                 async (service, retry) =>
                 {
                     if (failedAttempts > 0 && killConnection)
@@ -366,10 +360,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
-                new Dictionary<string, string>
-                {
-                    { "Ice.RetryBufferMaxSize", "2048" }
-                },
+                communicator => communicator.RetryBufferMaxSize = 2048,
                 async (service, retry) =>
                 {
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
@@ -405,10 +396,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
         {
             await WithRetryServiceAsync(
-                new Dictionary<string, string>
-                {
-                    { "Ice.RetryRequestMaxSize", $"{maxSize}" }
-                },
+                communicator => communicator.RetryRequestMaxSize = maxSize,
                 async (service, retry) =>
                 {
                     // Check that only requests with size smaller than RetryRequestMaxSize are retried.
@@ -445,10 +433,11 @@ namespace IceRpc.Tests.ClientServer
 
         private async Task WithRetryServiceAsync(
             Protocol protocol,
-            Dictionary<string, string> properties,
+            Action<Communicator>? configure,
             Func<RetryService, IRetryServicePrx, Task> closure)
         {
-            await using var communicator = new Communicator(properties);
+            await using var communicator = new Communicator();
+            configure?.Invoke(communicator);
             var service = new RetryService();
             var server = new Server
             {
@@ -474,12 +463,12 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private Task WithRetryServiceAsync(Func<RetryService, IRetryServicePrx, Task> closure) =>
-            WithRetryServiceAsync(Protocol.Ice2, new Dictionary<string, string>(), closure);
+            WithRetryServiceAsync(Protocol.Ice2, null, closure);
 
         private Task WithRetryServiceAsync(
-            Dictionary<string, string> properties,
+            Action<Communicator>? configure,
             Func<RetryService, IRetryServicePrx, Task> closure) =>
-            WithRetryServiceAsync(Protocol.Ice2, properties, closure);
+            WithRetryServiceAsync(Protocol.Ice2, configure, closure);
 
         internal class RetryService : IRetryService
         {
