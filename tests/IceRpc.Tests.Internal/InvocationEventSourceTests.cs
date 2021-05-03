@@ -27,11 +27,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
-                                              DateTime.MaxValue,
-                                              invocation: null,
-                                              compress: false,
-                                              idempotent: false,
-                                              oneway: false);
+                                              DateTime.MaxValue);
             _eventSource.RequestStart(request);
 
             var eventData = eventListener.EventData;
@@ -56,11 +52,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
-                                              DateTime.MaxValue,
-                                              invocation: null,
-                                              compress: false,
-                                              idempotent: false,
-                                              oneway: false);
+                                              DateTime.MaxValue);
             _eventSource.RequestStop(request);
 
             var eventData = eventListener.EventData;
@@ -85,11 +77,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
-                                              DateTime.MaxValue,
-                                              invocation: null,
-                                              compress: false,
-                                              idempotent: false,
-                                              oneway: false);
+                                              DateTime.MaxValue);
             _eventSource.RequestCanceled(request);
 
             var eventData = eventListener.EventData;
@@ -114,11 +102,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
-                                              DateTime.MaxValue,
-                                              invocation: null,
-                                              compress: false,
-                                              idempotent: false,
-                                              oneway: false);
+                                              DateTime.MaxValue);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
             var eventData = eventListener.EventData;
