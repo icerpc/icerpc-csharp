@@ -27,7 +27,8 @@ namespace IceRpc
                 {
                     OutgoingResponse response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
                     if (response.PayloadEncoding == Encoding.V20 &&
-                        response.Features[typeof(CompressPayloadFeature)] == CompressPayloadFeature.Yes &&
+                        (response.Features[typeof(CompressPayloadFeature)] == CompressPayloadFeature.Yes  ||
+                         request.Connection.CompressPayload) &&
                         response.PayloadCompressionFormat == CompressionFormat.Decompressed)
                     {
                         response.CompressPayload(compressionFormat, compressionLevel, compressionMinSize);

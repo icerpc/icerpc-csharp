@@ -170,6 +170,10 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
+        /// <summary>When true instruct the interceptor and middleware compressors to compress the 2.0 encoded payload
+        /// of a request or a response send over this connection.</summary>
+        public bool CompressPayload { get; set; }
+
         /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
         /// value is 60s.</summary>

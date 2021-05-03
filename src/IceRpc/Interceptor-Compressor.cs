@@ -23,7 +23,9 @@ namespace IceRpc
             next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                    if (request.PayloadEncoding == Encoding.V20 && 
+                    if (request.PayloadEncoding == Encoding.V20 &&
+                        // TODO this should be an after bind interceptor that can check
+                        // request.Connection.CompressPayload
                         request.Features[typeof(CompressPayloadFeature)] == CompressPayloadFeature.Yes &&
                         request.PayloadCompressionFormat == CompressionFormat.Decompressed)
                     {
