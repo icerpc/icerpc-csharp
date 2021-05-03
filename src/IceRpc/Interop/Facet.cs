@@ -47,8 +47,8 @@ namespace IceRpc.Interop
                 return IceRpc.Proxy.GetFactory<T>().Create(proxy.GetIdentity(),
                                                            facet,
                                                            proxy.Encoding,
-                                                           proxy.Impl.Endpoint,
-                                                           proxy.Impl.AltEndpoints,
+                                                           proxy.Endpoint,
+                                                           proxy.AltEndpoints,
                                                            proxy.Connection,
                                                            proxy.GetOptions());
             }

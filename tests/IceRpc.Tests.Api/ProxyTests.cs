@@ -344,7 +344,7 @@ namespace IceRpc.Tests.Api
             var p1 = IServicePrx.Parse(prx, Communicator);
 
             var tcpEndpoint = p1.Endpoint;
-            Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
+            Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
             Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
             Assert.AreEqual(10000, tcpEndpoint.Port);
