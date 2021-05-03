@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>Helpers methods to read and write the payloads of requests and responses.</summary>
+    /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation

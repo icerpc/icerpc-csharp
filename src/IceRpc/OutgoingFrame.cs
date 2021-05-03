@@ -55,7 +55,7 @@ namespace IceRpc
         /// <see cref="BinaryContextOverride"/>.</summary>
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; }
 
-        /// <summary>Returns the payload of this frame.</summary>
+        /// <summary>Gets or sets the payload of this frame.</summary>
         public IList<ArraySegment<byte>> Payload { get; set; } = new List<ArraySegment<byte>>();
 
         /// <summary>Returns the payload's compression format.</summary>

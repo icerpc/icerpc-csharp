@@ -94,7 +94,7 @@ namespace IceRpc
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="args">The payload of the request.</param>
+        /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
@@ -107,7 +107,7 @@ namespace IceRpc
         public static Task<(ReadOnlyMemory<byte>, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
-            IList<ArraySegment<byte>> args,
+            IList<ArraySegment<byte>> requestPayload,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
@@ -128,8 +128,9 @@ namespace IceRpc
                         deadline = DateTime.UtcNow + timeout;
 
                         timeoutSource = new CancellationTokenSource(timeout);
-                        combinedSource = cancel == default ? timeoutSource :
-                            CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutSource.Token);
+                        combinedSource = cancel.CanBeCanceled ?
+                            CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutSource.Token) :
+                                timeoutSource;
 
                         cancel = combinedSource.Token;
                     }
@@ -143,7 +144,7 @@ namespace IceRpc
 
                 var request = new OutgoingRequest(proxy,
                                                   operation,
-                                                  args,
+                                                  requestPayload,
                                                   deadline,
                                                   invocation,
                                                   compress,

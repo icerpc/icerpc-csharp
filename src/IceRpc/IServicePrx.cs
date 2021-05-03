@@ -237,7 +237,7 @@ namespace IceRpc
 
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="args">The payload of the request.</param>
+        /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="responseReader">The reader for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
@@ -250,7 +250,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task<T> IceInvokeAsync<T>(
             string operation,
-            IList<ArraySegment<byte>> args,
+            IList<ArraySegment<byte>> requestPayload,
             ResponseReader<T> responseReader,
             Invocation? invocation,
             bool compress = false,
@@ -258,7 +258,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway: false, cancel);
+                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway: false, cancel);
 
             return ReadResponseAsync();
 
@@ -272,7 +272,7 @@ namespace IceRpc
 
         /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
-        /// <param name="args">The payload of the request.</param>
+        /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
@@ -285,7 +285,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task IceInvokeAsync(
             string operation,
-            IList<ArraySegment<byte>> args,
+            IList<ArraySegment<byte>> requestPayload,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
@@ -293,7 +293,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, args, invocation, compress, idempotent, oneway, cancel);
+                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway, cancel);
 
             return ReadResponseAsync();
 

@@ -71,9 +71,9 @@ namespace IceRpc.Tests.Internal
                 // while the packets are being sent works.
 
                 var requestPayload = Payload.FromSingleArg(Proxy,
-                                                      new byte[256 * 1024],
-                                                      (OutputStream ostr, ReadOnlyMemory<byte> value) =>
-                                                        ostr.WriteSequence(value.Span));
+                                                           new byte[256 * 1024],
+                                                           (OutputStream ostr, ReadOnlyMemory<byte> value) =>
+                                                                ostr.WriteSequence(value.Span));
 
                 var request = new OutgoingRequest(Proxy, "op", requestPayload, DateTime.MaxValue);
 
