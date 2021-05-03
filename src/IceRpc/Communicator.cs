@@ -210,7 +210,7 @@ namespace IceRpc
                 var disposedException = new CommunicatorDisposedException();
                 IEnumerable<Task> closeTasks =
                     _outgoingConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.GoAwayAsync(disposedException));
+                        connection => connection.ShutdownAsync(disposedException));
 
                 await Task.WhenAll(closeTasks).ConfigureAwait(false);
 
@@ -219,7 +219,7 @@ namespace IceRpc
                     try
                     {
                         Connection connection = await connect.ConfigureAwait(false);
-                        await connection.GoAwayAsync(disposedException).ConfigureAwait(false);
+                        await connection.ShutdownAsync(disposedException).ConfigureAwait(false);
                     }
                     catch
                     {

@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Encoding
                                                                 connection,
                                                                 proxyOptions: new ProxyOptions());
             Assert.AreEqual(connection, prx1.Connection);
-            Assert.AreEqual(prx1.Endpoint, connection.RemoteEndpoint.ToString());
+            Assert.AreEqual(prx1.Endpoint, connection.RemoteEndpoint!.ToString());
         }
     }
 }

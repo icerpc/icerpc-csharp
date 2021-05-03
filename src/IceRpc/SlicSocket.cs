@@ -63,7 +63,7 @@ namespace IceRpc
                             throw new InvalidDataException("unexpected data for Slic Ping fame");
                         }
                         _ = PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Pong, cancel: CancellationToken.None);
-                        ReceivedPing();
+                        PingReceived?.Invoke();
                         break;
                     }
                     case SlicDefinitions.FrameType.Pong:

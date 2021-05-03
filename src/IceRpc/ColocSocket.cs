@@ -92,7 +92,7 @@ namespace IceRpc
                     else if (streamId == -1)
                     {
                         Debug.Assert(frame == _pingFrame);
-                        ReceivedPing();
+                        PingReceived?.Invoke();
                     }
                     else
                     {

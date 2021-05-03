@@ -82,9 +82,12 @@ namespace IceRpc
 
                 try
                 {
-                    MultiStreamSocket socket = endpoint.CreateClientSocket(options, Logger);
-
-                    var connection = new Connection(socket, options);
+                    var connection = new Connection
+                    {
+                        RemoteEndpoint = endpoint,
+                        Logger = Logger,
+                        Options = options
+                    };
 
                     // Connect the connection (handshake, protocol initialization, ...)
                     await connection.ConnectAsync(cancel).ConfigureAwait(false);
@@ -217,11 +220,11 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                LinkedList<Connection> list = _outgoingConnections[connection.RemoteEndpoint];
+                LinkedList<Connection> list = _outgoingConnections[connection.RemoteEndpoint!];
                 list.Remove(connection);
                 if (list.Count == 0)
                 {
-                    _outgoingConnections.Remove(connection.RemoteEndpoint);
+                    _outgoingConnections.Remove(connection.RemoteEndpoint!);
                 }
             }
         }
