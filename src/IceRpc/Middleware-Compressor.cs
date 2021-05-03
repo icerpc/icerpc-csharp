@@ -10,7 +10,6 @@ namespace IceRpc
         public static Func<IDispatcher, IDispatcher> Compressor { get; } =
             CreateCompressor(CompressionFormat.GZip, CompressionLevel.Fastest, 500);
 
-
         /// <summary>Creates a middleware that compresses the response payload when
         /// <see cref="CompressPayloadFeature.Yes"/> is present in the response features.</summary>
         /// <param name="compressionFormat">The compression format for the compress operation.</param>
@@ -27,7 +26,7 @@ namespace IceRpc
                 {
                     OutgoingResponse response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
                     if (response.PayloadEncoding == Encoding.V20 &&
-                        (response.Features[typeof(CompressPayloadFeature)] == CompressPayloadFeature.Yes  ||
+                        (response.Features[typeof(CompressPayloadFeature)] == CompressPayloadFeature.Yes ||
                          request.Connection.CompressPayload) &&
                         response.PayloadCompressionFormat == CompressionFormat.Decompressed)
                     {
@@ -37,4 +36,3 @@ namespace IceRpc
                 });
     }
 }
- 

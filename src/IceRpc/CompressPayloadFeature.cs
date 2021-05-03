@@ -9,7 +9,7 @@ namespace IceRpc
         public static CompressPayloadFeature Yes = new CompressPayloadFeature();
 
         private CompressPayloadFeature()
-        { 
+        {
         }
     }
 }
