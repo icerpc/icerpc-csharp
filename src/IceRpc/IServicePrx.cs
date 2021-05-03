@@ -241,7 +241,6 @@ namespace IceRpc
         /// <param name="responseReader">The reader for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value read by response reader.</returns>
@@ -253,12 +252,11 @@ namespace IceRpc
             IList<ArraySegment<byte>> requestPayload,
             ResponseReader<T> responseReader,
             Invocation? invocation,
-            bool compress = false,
             bool idempotent = false,
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway: false, cancel);
+                this.InvokeAsync(operation, requestPayload, invocation, idempotent, oneway: false, cancel);
 
             return ReadResponseAsync();
 
@@ -274,7 +272,6 @@ namespace IceRpc
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
@@ -287,13 +284,12 @@ namespace IceRpc
             string operation,
             IList<ArraySegment<byte>> requestPayload,
             Invocation? invocation,
-            bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
-                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway, cancel);
+                this.InvokeAsync(operation, requestPayload, invocation, idempotent, oneway, cancel);
 
             return ReadResponseAsync();
 

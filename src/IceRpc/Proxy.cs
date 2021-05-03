@@ -96,7 +96,6 @@ namespace IceRpc
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
@@ -109,7 +108,6 @@ namespace IceRpc
             string operation,
             IList<ArraySegment<byte>> requestPayload,
             Invocation? invocation = null,
-            bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
@@ -147,7 +145,6 @@ namespace IceRpc
                                                   requestPayload,
                                                   deadline,
                                                   invocation,
-                                                  compress,
                                                   idempotent,
                                                   oneway);
 

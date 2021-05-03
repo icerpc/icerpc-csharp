@@ -2411,10 +2411,22 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
 
     _out << nl << returnTaskStr(operation, ns, false) << " " << asyncName << spar
-        << getInvocationParams(operation, ns, true) << epar << " =>";
-    _out.inc();
+        << getInvocationParams(operation, ns, true) << epar;
+    if (opCompressArgs(operation))
+    {
+        _out << sb;
+        _out << nl << "invocation ?\?= new IceRpc.Invocation();";
+        _out << nl << "invocation.RequestFeatures[typeof(IceRpc.CompressPayloadFeature)] = "
+             << "IceRpc.CompressPayloadFeature.Yes;";
+        _out << nl << "return IceInvokeAsync(\"" << operation->name() << "\", ";
+    }
+    else
+    {
+        _out << " =>";
+        _out.inc();
+        _out << nl << "IceInvokeAsync(\"" << operation->name() << "\", ";
+    }
 
-    _out << nl << "IceInvokeAsync(\"" << operation->name() << "\", ";
     if (params.size() == 0)
     {
         _out << "IceRpc.Payload.FromEmptyArgs(this), ";
@@ -2429,10 +2441,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         _out << "Response." << name << ", ";
     }
     _out << invocation << ", ";
-    if (opCompressArgs(operation))
-    {
-        _out << "compress: true, ";
-    }
     if (isIdempotent(operation))
     {
         _out << "idempotent: true, ";
@@ -2442,7 +2450,14 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         _out << (oneway ? "oneway: true" : "oneway: IsOneway") << ", ";
     }
     _out << "cancel: " << cancel << ");";
-    _out.dec();
+    if (opCompressArgs(operation))
+    {
+        _out << eb;
+    }
+    else
+    {
+        _out.dec();
+    }
 
     // TODO: move this check to the Slice parser.
     if (oneway && !voidOp)
@@ -2659,7 +2674,6 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
                 _out.inc();
                 _out << nl << "dispatch,"
-                    << nl << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ","
                     << nl << "format: " << opFormatTypeToString(operation) << ","
                     << nl << (inValue ? "in " : "") << "returnValue,"
                     << nl;
@@ -2773,7 +2787,6 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "Response = IceRpc.OutgoingResponse.WithReturnValue(";
         _out.inc();
         _out << nl << getEscapedParamName(operation, "dispatch") << ", "
-             << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ", "
              << "format: " << opFormatTypeToString(operation) << ", "
              << toTuple(returnType) << ",";
         if(returnType.size() > 1)
@@ -2848,15 +2861,22 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     auto returnType = operation->returnType();
 
     _out << sp;
-    _out << nl << "protected ";
-    _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
-    _out << " " << internalName << "(IceRpc.IncomingRequest request, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
+    _out << nl << "protected async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
+         << internalName << "("
+         << "IceRpc.IncomingRequest request, "
+         << "IceRpc.Dispatch dispatch, "
+         << "global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
     {
          _out << nl << "IceCheckNonIdempotent(request);";
+    }
+
+    if (opCompressReturn(operation))
+    {
+        _out << nl << "dispatch.ResponseFeatures[typeof(IceRpc.CompressPayloadFeature)] = "
+             << "IceRpc.CompressPayloadFeature.Yes;";
     }
 
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
@@ -2878,7 +2898,6 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
-
     if (operation->hasMarshaledResult())
     {
         _out << nl << "var returnValue = await this." << name << spar;
