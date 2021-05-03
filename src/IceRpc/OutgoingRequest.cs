@@ -13,22 +13,17 @@ using System.Web;
 namespace IceRpc
 {
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
-    public sealed class OutgoingRequest : OutgoingFrame, IDisposable
+    public sealed class OutgoingRequest : OutgoingFrame
     {
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
         public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
 
-        /// <summary>A cancellation token that receives the cancellation requests. The cancellation token takes into
-        /// account the invocation timeout and the cancellation token provided by the application.</summary>
-        public CancellationToken CancellationToken => _linkedCancellationSource.Token;
-
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
-        /// caller is no longer interested in the response and discards the request. The server-side runtime does not
-        /// enforce this deadline - it's provided "for information" to the application. The Ice client runtime sets
-        /// this deadline automatically using the proxy's invocation timeout and sends it with ice2 requests but not
-        /// with ice1 requests. As a result, the deadline for an ice1 request is always <see cref="DateTime.MaxValue"/>
-        /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline { get; }
+        /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
+        /// requests but not with ice1 requests.</summary>
+        /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
+        /// expected to enforce this deadline.</remarks>
+        public DateTime Deadline { get; set; }
 
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
@@ -42,10 +37,10 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; }
+        public string Operation { get; set; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; }
+        public string Path { get; set; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
@@ -68,54 +63,15 @@ namespace IceRpc
         }
 
         /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        internal string Facet { get; set; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
-        internal Identity Identity { get; }
+        internal Identity Identity { get; set; }
 
         private SortedDictionary<string, string>? _writableContext;
         private readonly IReadOnlyDictionary<string, string> _initialContext;
-        private readonly CancellationTokenSource? _invocationTimeoutCancellationSource;
-        private readonly CancellationTokenSource _linkedCancellationSource;
 
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            _invocationTimeoutCancellationSource?.Dispose();
-            _linkedCancellationSource.Dispose();
-        }
-
-        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single non-struct
-        /// parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
-        /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target service.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="args">The argument(s) to write into the frame.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
-        /// </param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequest WithArgs<T>(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation,
-            T args,
-            OutputStreamWriter<T> writer,
-            CancellationToken cancel = default)
-        {
-            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
-            var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
-                                        request.Payload,
-                                        startAt: default,
-                                        request.PayloadEncoding,
-                                        invocation?.ClassFormat ?? default);
-            writer(ostr, args);
-            ostr.Finish();
-            return request;
-        }
-
+        /*
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
         /// parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
@@ -127,6 +83,10 @@ namespace IceRpc
         /// <param name="writer">The delegate that will send the streamable.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Microsoft.Performance",
+            "CA1801: Review unused parameters",
+            Justification = "TODO")]
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
@@ -136,42 +96,13 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);
+            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
         }
+        */
 
-        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with multiple parameters or a
-        /// single struct parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
-        /// parameters.</typeparam>
-        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
-        /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target service.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="args">The argument(s) to write into the frame.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the frame.
-        /// </param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequest WithArgs<T>(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation,
-            in T args,
-            OutputStreamValueWriter<T> writer,
-            CancellationToken cancel = default) where T : struct
-        {
-            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
-            var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
-                                        request.Payload,
-                                        startAt: default,
-                                        request.PayloadEncoding,
-                                        invocation?.ClassFormat ?? default);
-            writer(ostr, in args);
-            ostr.Finish();
-            return request;
-        }
-
+        /*
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with multiple parameters where
         /// one of the parameter is a stream parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
@@ -197,47 +128,33 @@ namespace IceRpc
                                         startAt: default,
                                         request.PayloadEncoding,
                                         invocation?.ClassFormat ?? default);
+            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = writer(ostr, in args, cancel);
             ostr.Finish();
+            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
+            {
+                request.CompressPayload();
+            }
             return request;
         }
+        */
 
-        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with no parameter.</summary>
-        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
-        /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target service.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequest WithEmptyArgs(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation = null,
-            CancellationToken cancel = default)
-        {
-            var emptyArgsFrame = new OutgoingRequest(proxy, operation, invocation, cancel);
-            emptyArgsFrame.Payload.Add(proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding));
-            return emptyArgsFrame;
-        }
-
-        /// <summary>Constructs an outgoing request frame from the given incoming request frame.</summary>
-        /// <param name="proxy">The proxy sending this request.</param>
+        /// <summary>Constructs an outgoing request from the given incoming request.</summary>
+        /// <param name="proxy">The proxy sending the outgoing request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new frame uses the incoming request frame's
-        /// binary context as a fallback - all the entries in this binary context are added before the frame is sent,
-        /// except for entries previously added by invocation interceptors.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <param name="forwardBinaryContext">When true (the default), the new outgoing request uses the incoming
+        /// request frame's binary context as a fallback - all the entries in this binary context are added before the
+        /// request is sent, except for entries previously added by interceptors.</param>
         public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
-            Invocation? invocation = null,
-            bool forwardBinaryContext = true,
-            CancellationToken cancel = default)
-            : this(proxy, request.Operation, invocation, cancel)
+            bool forwardBinaryContext = true)
+            : this(proxy, request.Operation, request.Context)
         {
-            Proxy = proxy;
             PayloadEncoding = request.PayloadEncoding;
+            Deadline = request.Deadline;
+            IsIdempotent = request.IsIdempotent;
+            IsOneway = request.IsOneway;
 
             if (request.Protocol == Protocol)
             {
@@ -268,6 +185,31 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Constructs an outgoing request.</summary>
+        internal OutgoingRequest(
+            IServicePrx proxy,
+            string operation,
+            IList<ArraySegment<byte>> args,
+            DateTime deadline,
+            Invocation? invocation = null,
+            bool compress = false,
+            bool idempotent = false,
+            bool oneway = false)
+            : this(proxy, operation, invocation?.Context)
+        {
+            Payload = args;
+            Deadline = deadline;
+            IsOneway = oneway || (invocation?.IsOneway ?? false);
+            IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
+            Progress = invocation?.Progress;
+
+            // temporary
+            if ((compress || (invocation?.CompressRequestPayload ?? false)) && PayloadEncoding == Encoding.V20)
+            {
+                _ = CompressPayload();
+            }
+        }
+
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
@@ -286,7 +228,7 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 // For Ice1 the Activity context is write to the request Context using the standard keys
-                // traceparate, tracestate and baggage.
+                // traceparent, tracestate and baggage.
 
                 WritableContext["traceparent"] = activity.Id;
                 if (activity.TraceStateString != null)
@@ -385,15 +327,15 @@ namespace IceRpc
             }
         }
 
-        private OutgoingRequest(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation,
-            CancellationToken cancel)
-            : base(proxy.Protocol, invocation?.RequestFeatures)
+        private OutgoingRequest(IServicePrx proxy, string operation, IReadOnlyDictionary<string, string>? context)
+            : base(proxy.Protocol,
+                   // TODO if Connection is null there should be a ConnectionPool to read the settings from
+                   proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
+                   proxy.Connection?.CompressionMinSize ?? 100,
+                   // TODO: set features from Invocation
+                   new FeatureCollection())
         {
             Proxy = proxy;
-            Progress = invocation?.Progress;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -401,29 +343,12 @@ namespace IceRpc
                 Identity = proxy.Impl.Identity;
             }
 
-            IsIdempotent = invocation?.IsIdempotent ?? false;
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding;
-
-            Debug.Assert(proxy.InvocationTimeout != TimeSpan.Zero);
-            Deadline = Protocol == Protocol.Ice1 || proxy.InvocationTimeout == Timeout.InfiniteTimeSpan ?
-                DateTime.MaxValue : DateTime.UtcNow + proxy.InvocationTimeout;
-
-            if (proxy.InvocationTimeout != Timeout.InfiniteTimeSpan)
-            {
-                _invocationTimeoutCancellationSource = new CancellationTokenSource(proxy.InvocationTimeout);
-            }
-
-            var communicator = (Communicator)proxy.Invoker;
-
-            _linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
-                _invocationTimeoutCancellationSource?.Token ?? default,
-                communicator.CancellationToken,
-                cancel);
+            PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
 
             // This makes a copy if context is not immutable.
-            _initialContext = invocation?.Context?.ToImmutableSortedDictionary() ?? proxy.Context;
+            _initialContext = context?.ToImmutableSortedDictionary() ?? proxy.Context;
         }
     }
 }
