@@ -151,7 +151,10 @@ namespace IceRpc
                                                   oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
-                Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
+
+                // TODO: should be simply
+                // Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
+                Task<IncomingResponse> responseTask = ServicePrx.InvokeAsync(request, cancel);
 
                 return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
