@@ -594,48 +594,6 @@ namespace IceRpc.Internal
             return l.ToArray();
         }
 
-        /// <summary>Concatenates a collection of strings in a format that is compatible with
-        /// <see cref="Properties.GetPropertyAsList(Communicator, string)"/>.</summary>
-        /// <param name="values">The collection of strings to concatenate.</param>
-        /// <returns>The values concatenated in a string that is compatible with
-        /// <see cref="Properties.GetPropertyAsList(Communicator, string)"/>.</returns>
-        public static string ToPropertyValue(IEnumerable<string> values)
-        {
-            char[] delimiters = new char[] { ',', ' ', '\n', '\r', '\t' };
-            char quote = '"';
-            char delimiter = ',';
-            var result = new StringBuilder();
-
-            foreach (string value in values)
-            {
-                if (result.Length != 0)
-                {
-                    result.Append(delimiter);
-                }
-
-                bool addQuote = value.IndexOfAny(delimiters) != -1;
-                if (addQuote)
-                {
-                    result.Append(quote);
-                }
-
-                foreach (char c in value)
-                {
-                    if (c == quote)
-                    {
-                        result.Append('\\');
-                    }
-                    result.Append(c);
-                }
-
-                if (addQuote)
-                {
-                    result.Append(quote);
-                }
-            }
-            return result.ToString();
-        }
-
         // If a single or double quotation mark is found at the start position, then the position of the matching
         // closing quote is returned. If no quotation mark is found at the start position, then 0 is returned. If
         // no matching closing quote is found, then -1 is returned.

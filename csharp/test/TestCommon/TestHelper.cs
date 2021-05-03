@@ -75,7 +75,7 @@ namespace IceRpc.Test
                     // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.SetMinimumLevel(LogLevel.Debug);
                 });
-            return new Communicator(loggerFactory: loggerFactory);
+            return new Communicator { LoggerFactory = loggerFactory };
         }
 
         public abstract Task RunAsync(string[] args);

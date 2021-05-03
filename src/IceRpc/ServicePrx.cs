@@ -667,35 +667,6 @@ namespace IceRpc
             return connection;
         }
 
-        /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IServicePrx, string)"/>.</summary>
-        internal Dictionary<string, string> ToProperty(string prefix)
-        {
-            var properties = new Dictionary<string, string> { [prefix] = ToString() };
-
-            if (Protocol == Protocol.Ice1)
-            {
-                if (!CacheConnection)
-                {
-                    properties[$"{prefix}.CacheConnection"] = "false";
-                }
-
-                // We don't output context as this would require hard-to-generate escapes.
-
-                if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
-                {
-                    // For ice2 the invocation timeout is included in the URI
-                    properties[$"{prefix}.InvocationTimeout"] = _invocationTimeout.ToPropertyValue();
-                }
-                if (!PreferExistingConnection)
-                {
-                    properties[$"{prefix}.PreferExistingConnection"] = "false";
-                }
-            }
-            // else, only a single property in the dictionary
-
-            return properties;
-        }
-
         // Helper constructor
         private ServicePrx(
             Protocol protocol,
