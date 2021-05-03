@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.IsDatagram)
             {
-                _serverSocket = ((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying;
+                _serverSocket = ((MultiStreamOverSingleStreamSocket)CreateServerSocket()).Underlying;
                 ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
                 _clientSocket = await connectTask;
             }

@@ -23,7 +23,7 @@ namespace IceRpc
             where T : class, IServicePrx
         {
             ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
-            if (connection.Endpoint.IsDatagram && !options.IsOneway)
+            if (connection.IsDatagram && !options.IsOneway)
             {
                 options = options.Clone();
                 options.IsOneway = true;
@@ -32,7 +32,7 @@ namespace IceRpc
             return factory.Create(path,
                                   connection.Protocol,
                                   connection.Protocol.GetEncoding(),
-                                  connection.IsIncoming ? null : connection.Endpoint,
+                                  connection.IsIncoming ? null : connection.RemoteEndpoint,
                                   ImmutableList<Endpoint>.Empty,
                                   connection,
                                   options);
@@ -177,7 +177,7 @@ namespace IceRpc
                     if (endpoint == null)
                     {
                         // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
                         connection = istr.Connection;
                     }
 
@@ -257,7 +257,7 @@ namespace IceRpc
                     if (endpoint == null)
                     {
                         // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
                         connection = istr.Connection;
                     }
 
@@ -303,7 +303,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.Endpoint;
+                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
                         connection = istr.Connection;
                     }
                 }

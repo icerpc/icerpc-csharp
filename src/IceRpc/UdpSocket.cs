@@ -69,14 +69,14 @@ namespace IceRpc
         private readonly int _rcvSize;
         private readonly Socket _socket;
 
-        public override ValueTask<SingleStreamSocket> AcceptAsync(
+        public override ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new(this);
+            CancellationToken cancel) => new((this, null));
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
 
-        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -85,7 +85,7 @@ namespace IceRpc
             try
             {
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                return this;
+                return (this, ((UdpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
             }
             catch (Exception ex)
             {

@@ -8,13 +8,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
     /// <summary>An endpoint describes a server-side network sink for Ice requests: a server listens on one or
-    /// more endpoints and a client establishes a connection to a given server endpoint. Its properties are
+    /// more endpoints and a client establishes a socket to a given server endpoint. Its properties are
     /// a network transport protocol such as TCP or Bluetooth RFCOMM, a host or address, a port number, and
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
@@ -118,16 +116,6 @@ namespace IceRpc
         /// print. Always true for ice1 endpoints.</summary>
         protected internal abstract bool HasOptions { get; }
 
-        /// <summary>Creates a connection to this endpoint.</summary>
-        /// <param name="options">The client connection options.</param>
-        /// <param name="logger">The transport logger.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The new established connection.</returns>
-        protected internal abstract Task<Connection> ConnectAsync(
-            OutgoingConnectionOptions options,
-            ILogger logger,
-            CancellationToken cancel);
-
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
@@ -209,8 +197,43 @@ namespace IceRpc
             // else by default, no option to append.
         }
 
+        /// <summary>Returns an acceptor for this endpoint. An acceptor listens for connection establishment requests
+        /// from clients and creates a new socket for each client. This is typically used to implement a
+        /// stream-based transport such as TCP or Quic. Datagram or serial transports don't implement this method but
+        /// instead implement the <see cref="CreateServerSocket"/> method.</summary>
+        /// <param name="server">The server associated to the acceptor.</param>
+        /// <returns>An acceptor for this endpoint.</returns>
+        protected internal virtual IAcceptor CreateAcceptor(Server server) =>
+            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
+
+        /// <summary>Creates a client socket for this endpoint.</summary>
+        /// <param name="options">The client connection options.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>The client socket.</returns>
+        protected internal virtual MultiStreamSocket CreateClientSocket(
+            OutgoingConnectionOptions options,
+            ILogger logger) =>
+            throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
+
+        /// <summary>Creates a server socket for this endpoint to receive data from one or multiple client.
+        /// This is used to implement a transport which can only communicate with a single client (e.g. a serial
+        /// based transport) or which can received data from multiple clients with a single socket (e.g: UDP).</summary>
+        /// <param name="options">The server connection options.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>The server socket.</returns>
+        protected internal virtual MultiStreamSocket CreateServerSocket(
+            IncomingConnectionOptions options,
+            ILogger logger) =>
+            throw new NotSupportedException($"endpoint '{this}' cannot create a server connection");
+
         /// <summary>Provides the same hash code for two equivalent endpoints. See <see cref="IsEquivalent"/>.</summary>
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();
+
+        /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
+        /// <param name="proxyHost">The host portion of the proxy endpoint when the endpoint's type supports DNS
+        /// resolution of its hosts. Otherwise, <c>proxyHost</c> is not used.</param>
+        /// <returns>The proxy endpoint.</returns>
+        protected internal virtual Endpoint GetProxyEndpoint(string proxyHost) => this;
 
         /// <summary>Two endpoints are considered equivalent if they are equal or their differences should not trigger
         /// the establishment of separate connections to those endpoints. For example, two tcp endpoints that are
@@ -221,27 +244,6 @@ namespace IceRpc
         /// with the 1.1 encoding.</summary>
         /// <param name="ostr">The output stream.</param>
         protected internal abstract void WriteOptions11(OutputStream ostr);
-
-        /// <summary>Returns an acceptor for this endpoint. An acceptor listens for connection establishment requests
-        /// from clients and creates a new connection for each client. This is typically used to implement a
-        /// stream-based transport. Datagram transports don't implement this method but instead implement the
-        /// <see cref="CreateDatagramServerConnection"/> method.</summary>
-        /// <param name="server">The server associated to the acceptor.</param>
-        /// <returns>An acceptor for this endpoint.</returns>
-        public abstract IAcceptor Acceptor(Server server);
-
-        /// <summary>Creates a datagram server side connection for this endpoint to receive datagrams from clients.
-        /// Unlike stream-based transports, datagram endpoints don't support an acceptor responsible for accepting new
-        /// connections but implement this method to provide a connection responsible for receiving datagrams from
-        /// clients.</summary>
-        /// <returns>The datagram server side connection.</returns>
-        public abstract Connection CreateDatagramServerConnection(Server server);
-
-        /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
-        /// <param name="proxyHost">The host portion of the proxy endpoint when the endpoint's type supports DNS
-        /// resolution of its hosts. Otherwise, <c>proxyHost</c> is not used.</param>
-        /// <returns>The proxy endpoint.</returns>
-        protected internal virtual Endpoint GetProxyEndpoint(string proxyHost) => this;
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>

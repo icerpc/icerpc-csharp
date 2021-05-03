@@ -20,9 +20,6 @@ namespace IceRpc
     /// </summary>
     public abstract class MultiStreamSocket : IDisposable
     {
-        /// <summary>The endpoint from which the socket was created.</summary>
-        public Endpoint Endpoint { get; }
-
         /// <summary>Gets or set the idle timeout.</summary>
         public abstract TimeSpan IdleTimeout { get; internal set; }
 
@@ -31,8 +28,36 @@ namespace IceRpc
         /// </summary>
         public bool IsIncoming { get; }
 
+        /// <summary><c>true</c> for datagram sockets <c>false</c> otherwise.</summary>
+        public bool IsDatagram => _endpoint.IsDatagram;
+
+        /// <summary>The socket local endpoint. The socket might not be available until the socket is connected.
+        /// </summary>
+        public Endpoint LocalEndpoint
+        {
+            get => _localEndpoint ?? throw new InvalidOperationException("the socket is not connected");
+            set => _localEndpoint = value;
+        }
+
+        /// <summary>The protocol used by the socket.</summary>
+        public Protocol Protocol => _endpoint.Protocol;
+
+        /// <summary>The socket remote endpoint. The socket might not be available until the socket is accepted
+        /// or if the socket isn't a socket which is connected with a fixed peer.</summary>
+        public Endpoint RemoteEndpoint
+        {
+            get => _remoteEndpoint ?? throw new InvalidOperationException("the socket is not connected");
+            set => _remoteEndpoint = value;
+        }
+
         /// <summary>The public socket interface to obtain information on the socket.</summary>
         public abstract ISocket Socket { get; }
+
+        /// <summary>The socket transport.</summary>
+        public Transport Transport => _endpoint.Transport;
+
+        /// <summary>The socket transport name.</summary>
+        public string TransportName => _endpoint.TransportName;
 
         internal int IncomingFrameMaxSize { get; }
         internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
@@ -46,10 +71,15 @@ namespace IceRpc
         internal ILogger Logger { get; }
         internal event EventHandler? Ping;
 
+        // The endpoint which created the socket. If it's a server socket, it's the local endpoint or the remote
+        // endpoint otherwise.
+        private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
         // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
+        private Endpoint? _localEndpoint;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
+        private Endpoint? _remoteEndpoint;
         private readonly ConcurrentDictionary<long, SocketStream> _streams = new();
         private bool _streamsAborted;
         private volatile TaskCompletionSource? _streamsEmptySource;
@@ -107,13 +137,18 @@ namespace IceRpc
         public abstract Task PingAsync(CancellationToken cancel);
 
         /// <summary>The MultiStreamSocket constructor.</summary>
-        /// <param name="endpoint">The endpoint from which the socket was created.</param>
+        /// <param name="endpoint">The endpoint that created the socket.</param>
         /// <param name="options">The connection options.</param>
         /// <param name="logger">The logger.</param>
-        protected MultiStreamSocket(Endpoint endpoint, ConnectionOptions options, ILogger logger)
+        protected MultiStreamSocket(
+            Endpoint endpoint,
+            ConnectionOptions options,
+            ILogger logger)
         {
-            Endpoint = endpoint;
+            _endpoint = endpoint;
             IsIncoming = options is IncomingConnectionOptions;
+            _localEndpoint = IsIncoming ? _endpoint : null;
+            _remoteEndpoint = IsIncoming ? null : _endpoint;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;

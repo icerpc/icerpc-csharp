@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 using SingleStreamSocket clientSocket = CreateClientSocket();
-                ValueTask<SingleStreamSocket> connectTask =
+                ValueTask<(SingleStreamSocket, Endpoint)> connectTask =
                     clientSocket.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
@@ -76,19 +76,9 @@ namespace IceRpc.Tests.Internal
                     source2.Token));
         }
 
-        private SingleStreamSocket CreateClientSocket()
-        {
-            var endpoint = (TcpEndpoint)ClientEndpoint;
-            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            TcpOptions tcpOptions = ClientConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
-            {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, ClientConnectionOptions),
-                _ => new SlicSocket(ClientEndpoint, socket, ClientConnectionOptions)
-            };
-            var connection = new Connection(endpoint, multiStreamSocket, ClientConnectionOptions, server: null);
-            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+        private SingleStreamSocket CreateClientSocket() =>
+            (ClientEndpoint.CreateClientSocket(
+                ClientConnectionOptions,
+                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
     }
 }

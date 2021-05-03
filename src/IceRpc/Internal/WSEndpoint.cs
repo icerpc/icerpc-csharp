@@ -24,45 +24,6 @@ namespace IceRpc.Internal
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
-        protected internal override void WriteOptions11(OutputStream ostr)
-        {
-            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
-            base.WriteOptions11(ostr);
-            ostr.WriteString(Resource);
-        }
-
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-            base.AppendOptions(sb, optionSeparator);
-            if (Resource != "/")
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    sb.Append(" -r ");
-                    bool addQuote = Resource.IndexOf(':') != -1;
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(Resource);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                }
-                else
-                {
-                    if (base.HasOptions)
-                    {
-                        sb.Append(optionSeparator);
-                    }
-                    sb.Append("resource=");
-                    // resource must be in a URI-compatible format, with for example spaces escaped as %20.
-                    sb.Append(Resource);
-                }
-            }
-        }
-
         internal static new WSEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
@@ -156,6 +117,45 @@ namespace IceRpc.Internal
             return new WSEndpoint(data, tls);
         }
 
+        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            base.AppendOptions(sb, optionSeparator);
+            if (Resource != "/")
+            {
+                if (Protocol == Protocol.Ice1)
+                {
+                    sb.Append(" -r ");
+                    bool addQuote = Resource.IndexOf(':') != -1;
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                    sb.Append(Resource);
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                }
+                else
+                {
+                    if (base.HasOptions)
+                    {
+                        sb.Append(optionSeparator);
+                    }
+                    sb.Append("resource=");
+                    // resource must be in a URI-compatible format, with for example spaces escaped as %20.
+                    sb.Append(Resource);
+                }
+            }
+        }
+
+        protected internal override void WriteOptions11(OutputStream ostr)
+        {
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
+            base.WriteOptions11(ostr);
+            ostr.WriteString(Resource);
+        }
+
         internal override SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
             new WSSocket((TcpSocket)base.CreateSocket(addr, options, logger));
 
@@ -168,7 +168,7 @@ namespace IceRpc.Internal
         {
         }
 
-        // Constructor for ice1 parsing and ummarshaling
+        // Constructor for ice1 parsing and unmarshaling
         private WSEndpoint(EndpointData data, TimeSpan timeout, bool compress)
             : base(data, timeout, compress)
         {

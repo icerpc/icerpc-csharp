@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Internal
             });
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -171,7 +171,7 @@ namespace IceRpc.Tests.Internal
 
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
-                using IAcceptor acceptor = serverEndpoint.Acceptor(server);
+                using IAcceptor acceptor = serverEndpoint.CreateAcceptor(server);
 
                 ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
@@ -186,7 +186,8 @@ namespace IceRpc.Tests.Internal
 
                 using SingleStreamSocket clientSocket = CreateClientSocket(endpoint: clientEndpoint);
 
-                ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(clientEndpoint, null, default);
+                ValueTask<(SingleStreamSocket, Endpoint)> connectTask =
+                    clientSocket.ConnectAsync(clientEndpoint, null, default);
 
                 if (ipv6Only)
                 {
@@ -196,7 +197,8 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     using SingleStreamSocket serverSocket = await acceptTask;
-                    ValueTask<SingleStreamSocket> task = serverSocket.AcceptAsync(serverEndpoint, null, default);
+                    ValueTask<(SingleStreamSocket, Endpoint?)> task =
+                        serverSocket.AcceptAsync(serverEndpoint, null, default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);
@@ -256,28 +258,19 @@ namespace IceRpc.Tests.Internal
                 Invoker = Communicator,
                 ConnectionOptions = connectionOptions
             };
-            return (server, ServerEndpoint.Acceptor(server));
+            return (server, ServerEndpoint.CreateAcceptor(server));
         }
 
         private SingleStreamSocket CreateClientSocket(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
         {
-            OutgoingConnectionOptions options = ClientConnectionOptions;
-            tcpOptions ??= options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            endpoint ??= (TcpEndpoint)ClientEndpoint;
-            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
-            {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
-                _ => new SlicSocket(ClientEndpoint, socket, options)
-            };
-            var connection = new Connection(endpoint, multiStreamSocket, options, server: null);
-            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
+            OutgoingConnectionOptions options = ClientConnectionOptions.Clone();
+            options.TransportOptions = tcpOptions ?? options.TransportOptions;
+            return ((endpoint ?? ClientEndpoint).CreateClientSocket(
+                   options,
+                   Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
         }
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
-        {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).MultiStreamSocket;
-            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+
+        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor) =>
+            ((await acceptor.AcceptAsync()) as MultiStreamOverSingleStreamSocket)!.Underlying;
     }
 }

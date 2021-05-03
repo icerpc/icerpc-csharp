@@ -192,7 +192,8 @@ namespace IceRpc.Tests.ClientServer
                 ExpectedEventCounters = expectedCounters;
                 _semaphore = new SemaphoreSlim(0);
                 _sourceName = sourceName;
-                var eventSource = EventSource.GetSources().FirstOrDefault(source => source.Name == _sourceName);
+                EventSource? eventSource = EventSource.GetSources().FirstOrDefault(
+                    source => source.Name == _sourceName);
                 if (eventSource != null)
                 {
                     EnableEvents(eventSource);

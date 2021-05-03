@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -62,14 +62,14 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
             using SingleStreamSocket serverSocket = await acceptTask;
 
-            ValueTask<SingleStreamSocket> acceptTask2 = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask2 = serverSocket.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Internal
                 await clientSocket.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
             }
 
-            SingleStreamSocket socket = await acceptTask2;
+            (SingleStreamSocket socket, Endpoint _) = await acceptTask2;
 
             // The SslSocket is returned if a secure connection is requested.
             if (IsSecure && TransportName != "ws")
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.Acceptor(Server);
+                acceptor = serverEndpoint.CreateAcceptor(Server);
             }
             else
             {
@@ -167,11 +167,11 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a socket is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => serverEndpoint.Acceptor(Server).Dispose());
+                    Assert.DoesNotThrow(() => serverEndpoint.CreateAcceptor(Server).Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => serverEndpoint.Acceptor(Server));
+                    Assert.Catch<TransportException>(() => serverEndpoint.CreateAcceptor(Server));
                 }
             }
             else
@@ -197,7 +197,7 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = CreateAcceptor();
 
             using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<SingleStreamSocket> connectTask = clientSocket.ConnectAsync(
+            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -206,7 +206,7 @@ namespace IceRpc.Tests.Internal
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<SingleStreamSocket> acceptTask = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask = serverSocket.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);
@@ -222,26 +222,12 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamSocket CreateClientSocket()
-        {
-            var endpoint = (TcpEndpoint)ClientEndpoint;
-            OutgoingConnectionOptions options = ClientConnectionOptions;
-            EndPoint addr = new IPEndPoint(endpoint.Address, endpoint.Port);
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            SingleStreamSocket socket = endpoint.CreateSocket(addr, tcpOptions, Logger);
-            MultiStreamOverSingleStreamSocket multiStreamSocket = ClientEndpoint.Protocol switch
-            {
-                Protocol.Ice1 => new Ice1NetworkSocket(ClientEndpoint, socket, options),
-                _ => new SlicSocket(ClientEndpoint, socket, options)
-            };
-            var connection = new Connection(endpoint, multiStreamSocket, options, server: null);
-            return (connection.MultiStreamSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+        private SingleStreamSocket CreateClientSocket() =>
+            (ClientEndpoint.CreateClientSocket(
+                ClientConnectionOptions,
+                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
 
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor)
-        {
-            MultiStreamSocket multiStreamServerSocket = (await acceptor.AcceptAsync()).MultiStreamSocket;
-            return (multiStreamServerSocket as MultiStreamOverSingleStreamSocket)!.Underlying;
-        }
+        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor) =>
+            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamSocket)!.Underlying;
     }
 }

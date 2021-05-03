@@ -1,13 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
@@ -34,14 +31,6 @@ namespace IceRpc.Internal
 
         internal const ushort DefaultUniversalPort = 0;
 
-        public override IAcceptor Acceptor(Server server) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
-
-        // There is no Equals as it's identical to the base.
-
-        public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
-
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
             sb.Append("transport=");
@@ -61,12 +50,6 @@ namespace IceRpc.Internal
                 sb.Append(string.Join(",", Data.Options.Select(s => Uri.EscapeDataString(s))));
             }
         }
-
-        protected internal override Task<Connection> ConnectAsync(
-            OutgoingConnectionOptions options,
-            ILogger logger,
-            CancellationToken cancel) =>
-            throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
 
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // WriteOptions is only for ice1.

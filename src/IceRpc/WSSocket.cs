@@ -102,15 +102,17 @@ namespace IceRpc
         private Task _sendTask = Task.CompletedTask;
         private readonly ITcpSocket _tcpSocket;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            await _bufferedSocket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+            Endpoint? remoteEndpoint;
+            (_, remoteEndpoint) =
+                await _bufferedSocket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
-            return this;
+            return (this, remoteEndpoint);
         }
 
         public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
@@ -126,15 +128,17 @@ namespace IceRpc
             await SendImplAsync(OpCode.Close, new List<ArraySegment<byte>> { payload }, cancel).ConfigureAwait(false);
         }
 
-        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            await _bufferedSocket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+            Endpoint localEndpoint;
+            (_, localEndpoint) =
+                await _bufferedSocket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
-            return this;
+            return (this, localEndpoint);
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)

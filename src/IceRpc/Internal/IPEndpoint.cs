@@ -52,6 +52,18 @@ namespace IceRpc.Internal
         protected internal override Endpoint GetProxyEndpoint(string proxyHost) =>
             proxyHost == Host ? this : Clone(proxyHost, Port);
 
+        internal IPEndpoint Clone(EndPoint address)
+        {
+            if (address is IPEndPoint ipAddress)
+            {
+                return Clone(ipAddress.Address.ToString(), (ushort)ipAddress.Port);
+            }
+            else
+            {
+                throw new InvalidOperationException("unsupported address");
+            }
+        }
+
         internal IPEndpoint Clone(ushort port)
         {
             if (port == Port)

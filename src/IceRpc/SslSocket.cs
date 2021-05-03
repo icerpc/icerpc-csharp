@@ -25,7 +25,7 @@ namespace IceRpc
         private readonly SingleStreamSocket _underlying;
         private readonly Socket _socket;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -36,17 +36,17 @@ namespace IceRpc
             }
             await AuthenticateAsync(sslStream =>
                 sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
-            return this;
+            return (this, endpoint);
         }
 
-        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
             await AuthenticateAsync(sslStream =>
                 sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel)).ConfigureAwait(false);
-            return this;
+            return (this, endpoint);
         }
 
         public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>

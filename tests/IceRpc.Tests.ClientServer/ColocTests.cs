@@ -59,11 +59,11 @@ namespace IceRpc.Tests.ClientServer
 
             if (hasColocEndpoint)
             {
-                Assert.AreEqual(Transport.Coloc, greeter.Connection!.Endpoint.Transport);
+                Assert.AreEqual(Transport.Coloc, greeter.Connection!.Transport);
             }
             else
             {
-                Assert.AreEqual(Transport.TCP, greeter.Connection!.Endpoint.Transport);
+                Assert.AreEqual(Transport.TCP, greeter.Connection!.Transport);
             }
         }
 

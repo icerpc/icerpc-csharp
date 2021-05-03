@@ -262,22 +262,22 @@ namespace IceRpc.Internal
                         // TODO: revisit
                         return _colocClientSocketScope(
                             logger,
-                            socket.Endpoint.TransportName,
-                            socket.Endpoint.Protocol,
+                            socket.TransportName,
+                            socket.Protocol,
                             colocatedSocket.Id,
-                            socket.Endpoint.ToString());
+                            socket.LocalEndpoint.ToString());
                     }
                 }
                 else if (socket.Socket is ITcpSocket tcpSocket)
                 {
-                    if (socket.Endpoint.IsDatagram && server != null)
+                    if (socket.IsDatagram && server != null)
                     {
                         try
                         {
                             return _datagramOverSocketServerSocketScope(
                                 logger,
-                                socket.Endpoint.TransportName,
-                                socket.Endpoint.Protocol,
+                                socket.TransportName,
+                                socket.Protocol,
                                 server.ToString(),
                                 tcpSocket.LocalEndPoint?.ToString() ?? "undefined");
                         }
@@ -285,8 +285,8 @@ namespace IceRpc.Internal
                         {
                             return _datagramServerSocketScope(
                                 logger,
-                                socket.Endpoint.TransportName,
-                                socket.Endpoint.Protocol,
+                                socket.TransportName,
+                                socket.Protocol,
                                 server.ToString(),
                                 "not connected");
                         }
@@ -305,8 +305,8 @@ namespace IceRpc.Internal
                             {
                                 return _overSocketClientSocketScope(
                                     logger,
-                                    socket.Endpoint.TransportName,
-                                    socket.Endpoint.Protocol,
+                                    socket.TransportName,
+                                    socket.Protocol,
                                     tcpSocket.LocalEndPoint?.ToString() ?? "undefined",
                                     tcpSocket.RemoteEndPoint?.ToString() ?? "undefined");
                             }
@@ -321,8 +321,8 @@ namespace IceRpc.Internal
                             {
                                 return _clientSocketScope(
                                     logger,
-                                    socket.Endpoint.TransportName,
-                                    socket.Endpoint.Protocol,
+                                    socket.TransportName,
+                                    socket.Protocol,
                                     "not connected");
                             }
                         }
@@ -330,12 +330,12 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (socket.Endpoint.IsDatagram && server != null)
+                    if (socket.IsDatagram && server != null)
                     {
                         return _datagramServerSocketScope(
                             logger,
-                            socket.Endpoint.TransportName,
-                            socket.Endpoint.Protocol,
+                            socket.TransportName,
+                            socket.Protocol,
                             server.ToString(),
                             socket.ToString()!);
                     }
@@ -345,11 +345,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        return _clientSocketScope(
-                            logger,
-                            socket.Endpoint.TransportName,
-                            socket.Endpoint.Protocol,
-                            socket.ToString()!);
+                        return _clientSocketScope(logger, socket.TransportName, socket.Protocol, socket.ToString()!);
                     }
                 }
             }

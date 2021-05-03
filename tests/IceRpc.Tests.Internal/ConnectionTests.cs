@@ -59,18 +59,17 @@ namespace IceRpc.Tests.Internal
 
                 if (Endpoint.IsDatagram)
                 {
-                    serverConnection = Endpoint.CreateDatagramServerConnection(_server);
-                    clientConnection =
-                        await serverConnection.Endpoint.ConnectAsync(
-                            options: _communicator.ConnectionOptions,
-                            _server.Logger,
-                            default);
-                    await clientConnection.InitializeAsync(default);
-                    await serverConnection.InitializeAsync(default);
+                    serverConnection = new Connection(
+                        Endpoint.CreateServerSocket(_server.ConnectionOptions, _server.Logger),
+                        _server.ConnectionOptions,
+                        _server);
+                    Task<Connection> clientTask = ConnectAsync(serverConnection.LocalEndpoint);
+                    await serverConnection.AcceptAsync(default);
+                    clientConnection = await clientTask;
                 }
                 else
                 {
-                    using IAcceptor acceptor = Endpoint.Acceptor(_server);
+                    using IAcceptor acceptor = Endpoint.CreateAcceptor(_server);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
                     Task<Connection> clientTask = ConnectAsync(acceptor.Endpoint);
                     serverConnection = await serverTask;
@@ -81,34 +80,25 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IAcceptor acceptor)
                 {
-                    Connection connection = await acceptor.AcceptAsync();
+                    var connection = new Connection(
+                        await acceptor.AcceptAsync(),
+                        _server.ConnectionOptions,
+                        _server);
                     await connection.AcceptAsync(default);
-                    await connection.InitializeAsync(default);
                     return connection;
                 }
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    Connection connection = await endpoint.ConnectAsync(
-                        _communicator.ConnectionOptions,
-                        _server.Logger,
-                        default);
-                    await connection.InitializeAsync(default);
+                    var connection = new Connection(
+                        endpoint.CreateClientSocket(_communicator.ConnectionOptions, _communicator.Logger),
+                        _communicator.ConnectionOptions);
+                    await connection.ConnectAsync(default);
                     return connection;
                 }
             }
 
-            public async Task<Connection> ConnectAsync()
-            {
-                Connection connection = await Endpoint.ConnectAsync(
-                    options: _communicator.ConnectionOptions,
-                    _server.Logger,
-                    default);
-                await connection.InitializeAsync(default);
-                return connection;
-            }
-
-            // TODO: add Connection.CreateProxy?
+            // TODO: fix once we have FromConnection factory method
             public IServicePrx CreateProxy(Connection connection) =>
                 IServicePrx.Factory.Create(
                     "/foo",
@@ -274,7 +264,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.Acceptor(new Server()
+            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new Server()
             {
                 ConnectionOptions = new()
                 {
@@ -310,18 +300,28 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
             Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
 
-            Assert.AreEqual("127.0.0.1", factory.Client.Endpoint.Host);
-            Assert.That(factory.Client.Endpoint.Port, Is.GreaterThan(0));
-            Assert.AreEqual(null, factory.Client.Endpoint["compress"]);
+            Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint.Host);
+            Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
+            Assert.That(factory.Client.RemoteEndpoint.Port, Is.EqualTo(factory.Server.LocalEndpoint.Port));
+            if (transport == "udp")
+            {
+                Assert.Throws<InvalidOperationException>(() => _ = factory.Server.RemoteEndpoint);
+            }
+            else
+            {
+                Assert.That(factory.Client.LocalEndpoint.Port, Is.EqualTo(factory.Server.RemoteEndpoint.Port));
+                Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
+            }
+            Assert.AreEqual(null, factory.Client.RemoteEndpoint["compress"]);
             Assert.That(factory.Client.IsIncoming, Is.False);
             Assert.That(factory.Server.IsIncoming, Is.True);
 
             Assert.AreEqual(null, factory.Client.Server);
-            Assert.AreEqual(factory.Client.Endpoint.Port, clientSocket.RemoteEndPoint!.Port);
-            Assert.That(clientSocket.LocalEndPoint!.Port, Is.GreaterThan(0));
+            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, clientSocket.RemoteEndPoint.Port);
+            Assert.AreEqual(factory.Client.LocalEndpoint.Port, clientSocket.LocalEndPoint.Port);
 
-            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint!.Address.ToString());
-            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint!.Address.ToString());
+            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint.Address.ToString());
+            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint.Address.ToString());
 
             Assert.That($"{factory.Client}", Does.StartWith(clientSocket.GetType().FullName));
             Assert.That($"{factory.Server}", Does.StartWith(serverSocket.GetType().FullName));
@@ -481,6 +481,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_KeepAliveOnInvocationAsync(Protocol protocol)
         {
             using var dispatchSemaphore = new SemaphoreSlim(0);

@@ -34,11 +34,11 @@ namespace IceRpc
         public bool IsIdempotent { get; }
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => !IsBirectional;
+        public bool IsOneway => !IsBidirectional;
 
         /// <summary>Returns <c>True</c> if the stream that received this request is a bidirectional stream,
         /// <c>False</c> otherwise.</summary>
-        public bool IsBirectional => StreamId % 4 < 2;
+        public bool IsBidirectional => StreamId % 4 < 2;
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }

@@ -390,7 +390,7 @@ namespace IceRpc
             bool oneway = request.IsOneway;
             IProgress<bool>? progress = request.Progress;
 
-            if (connection != null && !oneway && connection.Endpoint.IsDatagram)
+            if (connection != null && !oneway && connection.IsDatagram)
             {
                 throw new InvalidOperationException(
                     "cannot make two-way invocation using a cached datagram connection");
@@ -536,7 +536,7 @@ namespace IceRpc
                 // With the retry-policy OtherReplica we add the current endpoint to the list of excluded
                 // endpoints this prevents the endpoints to be tried again during the current retry sequence.
                 if (retryPolicy == RetryPolicy.OtherReplica &&
-                    (endpoints?[nextEndpoint] ?? connection?.Endpoint) is Endpoint endpoint)
+                    (endpoints?[nextEndpoint] ?? connection?.RemoteEndpoint) is Endpoint endpoint)
                 {
                     excludedEndpoints ??= new();
                     excludedEndpoints.Add(endpoint);
