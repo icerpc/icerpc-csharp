@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace IceRpc
 {
-    /// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events. Instances of this</summary>
+    /// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events.</summary>
     public sealed class DispatchEventSource : EventSource
     {
         public static readonly DispatchEventSource Log = new DispatchEventSource("IceRpc.Dispatch");
@@ -32,7 +32,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestStart(IncomingRequest request)
+        internal void RequestStart(IncomingRequest request)
         {
             Interlocked.Increment(ref _totalRequests);
             Interlocked.Increment(ref _currentRequests);
@@ -43,7 +43,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestStop(IncomingRequest request)
+        internal void RequestStop(IncomingRequest request)
         {
             Interlocked.Decrement(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -53,7 +53,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestCanceled(IncomingRequest request)
+        internal void RequestCanceled(IncomingRequest request)
         {
             Interlocked.Increment(ref _canceledRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -63,7 +63,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestFailed(IncomingRequest request, Exception exception)
+        internal void RequestFailed(IncomingRequest request, Exception exception)
         {
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -73,7 +73,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestFailed(IncomingRequest request, string exception)
+        internal void RequestFailed(IncomingRequest request, string exception)
         {
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -152,46 +152,5 @@ namespace IceRpc
         [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
         private void RequestStop(string path, string operation) =>
             WriteEvent(2, path, operation);
-    }
-
-    public static partial class Middleware
-    {
-        /// <summary>Creates a middleware that publishes dispatch metrics using a <see cref="DispatchEventSource"/>.
-        /// </summary>
-        /// <param name="eventSource">The event source used to publish the metrics events.</param>
-        public static Func<IDispatcher, IDispatcher> CreateMetricsPublisher(DispatchEventSource eventSource) =>
-            next => new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    eventSource.RequestStart(request);
-                    try
-                    {
-                        var response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
-                        if (response.ResultType == ResultType.Failure)
-                        {
-                            eventSource.RequestFailed(request, "IceRpc.RemoteException");
-                        }
-                        return response;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        eventSource.RequestCanceled(request);
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        eventSource.RequestFailed(request, ex);
-                        throw;
-                    }
-                    finally
-                    {
-                        eventSource.RequestStop(request);
-                    }
-                });
-
-        /// <summary>A middleware that publishes dispatch metrics, using the default
-        /// <see cref="DispatchEventSource.Log"/> instance.</summary>
-        public static Func<IDispatcher, IDispatcher> MetricsPublisher { get; } =
-            CreateMetricsPublisher(DispatchEventSource.Log);
     }
 }
