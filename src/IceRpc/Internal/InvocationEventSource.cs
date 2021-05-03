@@ -5,12 +5,12 @@ using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
-    /// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events. Instances of this</summary>
-    public sealed class InvocationEventSource : EventSource
+    /// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
+    internal sealed class InvocationEventSource : EventSource
     {
-        public static readonly InvocationEventSource Log = new InvocationEventSource("IceRpc.Invocation");
+        internal static readonly InvocationEventSource Log = new InvocationEventSource("IceRpc.Invocation");
 #pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
         private PollingCounter? _canceledRequestsCounter;
         private long _canceledRequests;
@@ -26,13 +26,13 @@ namespace IceRpc
         /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
         /// </summary>
         /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
-        public InvocationEventSource(string eventSourceName)
+        internal InvocationEventSource(string eventSourceName)
             : base(eventSourceName)
         {
         }
 
         [NonEvent]
-        public void RequestStart(OutgoingRequest request)
+        internal void RequestStart(OutgoingRequest request)
         {
             Interlocked.Increment(ref _totalRequests);
             Interlocked.Increment(ref _currentRequests);
@@ -43,7 +43,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestStop(OutgoingRequest request)
+        internal void RequestStop(OutgoingRequest request)
         {
             Interlocked.Decrement(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -53,7 +53,7 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestCanceled(OutgoingRequest request)
+        internal void RequestCanceled(OutgoingRequest request)
         {
             Interlocked.Increment(ref _canceledRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -63,11 +63,11 @@ namespace IceRpc
         }
 
         [NonEvent]
-        public void RequestFailed(OutgoingRequest request, Exception exception) =>
+        internal void RequestFailed(OutgoingRequest request, Exception exception) =>
             RequestFailed(request, exception?.GetType().FullName ?? "");
 
         [NonEvent]
-        public void RequestFailed(OutgoingRequest request, string exception)
+        internal void RequestFailed(OutgoingRequest request, string exception)
         {
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
@@ -146,46 +146,5 @@ namespace IceRpc
         [Event(2, Level = EventLevel.Informational, Opcode = EventOpcode.Stop)]
         private void RequestStop(string path, string operation) =>
             WriteEvent(2, path, operation);
-    }
-
-    public static partial class Interceptor
-    {
-        /// <summary>Creates an interceptor that publishes invocation metrics using an <see cref="InvocationEventSource"/>.
-        /// </summary>
-        /// <param name="eventSource">The event source used to publish the metrics events.</param>
-        public static Func<IInvoker, IInvoker> CreateMetricsPublisher(InvocationEventSource eventSource) =>
-            next => new InlineInvoker(
-                async (request, cancel) =>
-                {
-                    eventSource.RequestStart(request);
-                    try
-                    {
-                        var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-                        if (response.ResultType == ResultType.Failure)
-                        {
-                            eventSource.RequestFailed(request, "IceRpc.RemoteException");
-                        }
-                        return response;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        eventSource.RequestCanceled(request);
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        eventSource.RequestFailed(request, ex);
-                        throw;
-                    }
-                    finally
-                    {
-                        eventSource.RequestStop(request);
-                    }
-                });
-
-        /// <summary>A interceptor that publishes invocation metrics, using the default
-        /// <see cref="InvocationEventSource.Log"/> instance.</summary>
-        public static Func<IInvoker, IInvoker> MetricsPublisher { get; } =
-            CreateMetricsPublisher(InvocationEventSource.Log);
     }
 }
