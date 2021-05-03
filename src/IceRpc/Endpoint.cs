@@ -17,7 +17,7 @@ namespace IceRpc
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
-        /// <summary>Converts a single into an endpoint implicitly using <see cref="FromString"/>.</summary>
+        /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.

@@ -178,11 +178,11 @@ namespace IceRpc.Tests.Internal
                             transport = "wss";
                         }
                     }
-                    Endpoint = Endpoint.FromString($"{transport} -h 127.0.0.1");
+                    Endpoint = $"{transport} -h 127.0.0.1";
                 }
                 else
                 {
-                    Endpoint = Endpoint.FromString($"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}");
+                    Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
                 }
             }
         }
