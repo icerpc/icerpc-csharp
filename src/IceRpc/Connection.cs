@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -134,6 +135,7 @@ namespace IceRpc
         internal CompressionLevel CompressionLevel { get; }
         internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
+        internal ILogger Logger => _socket.Logger;
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -780,7 +782,7 @@ namespace IceRpc
                     {
                         // We log this exception, since otherwise it would be lost.
                         _socket.Logger.LogDispatchException(request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(new Dispatch(request));
+                        return OutgoingResponse.WithVoidReturnValue(request);
                     }
                     else
                     {

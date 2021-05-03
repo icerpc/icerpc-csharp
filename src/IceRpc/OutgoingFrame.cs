@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -43,6 +44,9 @@ namespace IceRpc
                 return _binaryContextOverride;
             }
         }
+
+        /// <summary>The features of this response.</summary>
+        public FeatureCollection Features { get; set; }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
@@ -213,12 +217,14 @@ namespace IceRpc
         private protected OutgoingFrame(
             Protocol protocol,
             CompressionLevel compressionLevel,
-            int compressionMinSize)
+            int compressionMinSize,
+            FeatureCollection features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
             _compressionLevel = compressionLevel;
             _compressionMinSize = compressionMinSize;
+            Features = features;
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)

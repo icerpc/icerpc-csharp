@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
@@ -52,9 +53,9 @@ namespace IceRpc
                 throw new FormatException("an empty string does not represent a proxy");
             }
 
-            if (UriParser.IsProxyUri(proxyString))
+            if (Internal.UriParser.IsProxyUri(proxyString))
             {
-                var args = UriParser.ParseProxy(proxyString, proxyOptions);
+                var args = Internal.UriParser.ParseProxy(proxyString, proxyOptions);
                 Protocol protocol = args.Endpoint?.Protocol ?? Protocol.Ice2;
                 return factory.Create(args.Path,
                                       protocol,

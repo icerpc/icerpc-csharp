@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
@@ -144,15 +145,15 @@ namespace IceRpc
 
             if (ice2Parser != null)
             {
-                UriParser.RegisterTransport(transportName, defaultUriPort);
+                Internal.UriParser.RegisterTransport(transportName, defaultUriPort);
             }
         }
 
         static Runtime()
         {
             // Register the ice and ice+universal schemes with the system UriParser.
-            UriParser.RegisterTransport("universal", UniversalEndpoint.DefaultUniversalPort);
-            UriParser.RegisterIceScheme();
+            Internal.UriParser.RegisterTransport("universal", UniversalEndpoint.DefaultUniversalPort);
+            Internal.UriParser.RegisterIceScheme();
 
             RegisterTransport(Transport.Loc,
                               "loc",

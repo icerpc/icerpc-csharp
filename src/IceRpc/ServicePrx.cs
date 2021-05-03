@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
@@ -502,7 +503,7 @@ namespace IceRpc
             ProxyOptions options)
             : this(protocol, encoding, endpoint, altEndpoints, connection, options)
         {
-            UriParser.CheckPath(path, nameof(path));
+            Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
 
             if (Protocol == Protocol.Ice1)
@@ -558,27 +559,13 @@ namespace IceRpc
                 activity.Start();
             }
 
-            InvocationEventSource.Log.RequestStart(request.Path, request.Operation);
-
             ServicePrx proxy = request.Proxy.Impl;
             try
             {
-                IncomingResponse response = await proxy.Invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
-
-                if (response.ResultType != ResultType.Success)
-                {
-                    InvocationEventSource.Log.RequestFailed(request.Path, request.Operation, null);
-                }
-                return response;
-            }
-            catch (OperationCanceledException)
-            {
-                InvocationEventSource.Log.RequestCanceled(request.Path, request.Operation);
-                throw;
+                return await proxy.Invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
             finally
             {
-                InvocationEventSource.Log.RequestStop(request.Path, request.Operation);
                 activity?.Stop();
             }
         }

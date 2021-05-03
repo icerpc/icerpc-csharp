@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
-using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 

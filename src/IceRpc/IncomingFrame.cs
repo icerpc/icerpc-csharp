@@ -21,6 +21,9 @@ namespace IceRpc
             internal set => _connection = value;
         }
 
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = new();
+
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
 

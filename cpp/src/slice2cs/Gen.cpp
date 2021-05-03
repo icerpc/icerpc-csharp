@@ -2717,12 +2717,13 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> IceRpc.IDispatcher"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> IceRpc.IService"
          << ".DispatchAsync("
          << "IceRpc.IncomingRequest request, "
+         << "IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "DispatchAsync(this, request, cancel);";
+    _out << nl << "DispatchAsync(this, request, dispatch, cancel);";
     _out.dec();
 
     _out << sp;
@@ -2731,6 +2732,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "protected static global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
          << "DispatchAsync(" << fixId(name) << " servant, "
          << "IceRpc.IncomingRequest request, "
+         << "IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
     _out << nl << "request.Operation switch";
@@ -2747,7 +2749,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     for(const auto& opName : allOpNames)
     {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(request, cancel),";
+        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(request, dispatch, cancel),";
     }
 
     _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
@@ -2870,7 +2872,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "protected ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
-    _out << " " << internalName << "(IceRpc.IncomingRequest request, global::System.Threading.CancellationToken cancel)";
+    _out << " " << internalName << "(IceRpc.IncomingRequest request, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
@@ -2895,8 +2897,6 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
             << " = Request." << fixId(opName) << "(request);";
     }
-
-    _out << nl << "var dispatch = new IceRpc.Dispatch(request);";
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
 
