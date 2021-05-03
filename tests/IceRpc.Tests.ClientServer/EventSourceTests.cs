@@ -14,15 +14,6 @@ namespace IceRpc.Tests.ClientServer
     public class EventSourceTests
     {
         [Test]
-        public void EventSource_ArgumentException()
-        {
-            Assert.Throws<ArgumentException>(
-                () => Interceptor.CreateMetricsPublisher(Metrics.CreateDispatchEventSource("test")));
-            Assert.Throws<ArgumentException>(
-                () => Middleware.CreateMetricsPublisher(Metrics.CreateInvocationEventSource("test")));
-        }
-
-        [Test]
         public async Task EventSource_RequestsAsync()
         {
             using var invocationEventListener = new TestEventListener(
@@ -41,10 +32,10 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "10"),
                 });
             await using var pool = new Communicator();
-            using EventSource invocationEventSource = Metrics.CreateInvocationEventSource("IceRpc.Invocation.Test");
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
-            using EventSource dispatchEventSource = Metrics.CreateDispatchEventSource("IceRpc.Dispatch.Test");
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter1());
@@ -92,10 +83,10 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             await using var pool = new Communicator();
-            using EventSource invocationEventSource = Metrics.CreateInvocationEventSource("IceRpc.Invocation.Test");
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
-            using EventSource dispatchEventSource = Metrics.CreateDispatchEventSource("IceRpc.Dispatch.Test");
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter2());
@@ -144,10 +135,10 @@ namespace IceRpc.Tests.ClientServer
                 });
 
             await using var pool = new Communicator();
-            using EventSource invocationEventSource = Metrics.CreateInvocationEventSource("IceRpc.Invocation.Test");
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptor.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
-            using EventSource dispatchEventSource = Metrics.CreateDispatchEventSource("IceRpc.Dispatch.Test");
+            using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
             router.Map("/test", new Greeter3());

@@ -5,12 +5,12 @@ using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
-    internal sealed class InvocationEventSource : EventSource
+    public sealed class InvocationEventSource : EventSource
     {
-        internal static readonly InvocationEventSource Log = new InvocationEventSource("IceRpc.Invocation");
+        public static readonly InvocationEventSource Log = new InvocationEventSource("IceRpc.Invocation");
 #pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
         private PollingCounter? _canceledRequestsCounter;
         private long _canceledRequests;
@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
         /// </summary>
         /// <param name="eventSourceName">The name to apply to the event source. Must not be <c>null</c>.</param>
-        internal InvocationEventSource(string eventSourceName)
+        public InvocationEventSource(string eventSourceName)
             : base(eventSourceName)
         {
         }
