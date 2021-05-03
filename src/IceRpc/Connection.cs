@@ -105,7 +105,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception name="InvalidOperationException">Throw if the local endpoint is not available. This can occur
-        /// if the connection is client connection which is not connected yet.</exception>
+        /// if the connection is a client connection which is not connected yet.</exception>
         public Endpoint LocalEndpoint => _socket.LocalEndpoint;
 
         /// <summary>The peer's incoming frame maximum size. This is only supported with ice2 connections. For
