@@ -8,7 +8,7 @@ namespace IceRpc
 {
     public static partial class Interceptor
     {
-        /// <summary>Creates a interceptor that publishes invocation metrics using an invocation event source
+        /// <summary>Creates an interceptor that publishes invocation metrics using an invocation event source
         /// <see cref="Metrics.CreateInvocationEventSource(string)"/>.</summary>
         /// <param name="eventSource">The invocation event source used to publish the metrics events.</param>
         public static Func<IInvoker, IInvoker> CreateMetricsPublisher(EventSource eventSource)
