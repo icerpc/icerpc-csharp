@@ -257,12 +257,12 @@ namespace IceRpc
             bool oneway,
             CancellationToken cancel)
         {
-            if (proxy.ParsedEndpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
+            if (proxy.Endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
             {
                 return new List<Endpoint>() { colocEndpoint };
             }
 
-            foreach (Endpoint endpoint in proxy.ParsedAltEndpoints)
+            foreach (Endpoint endpoint in proxy.AltEndpoints)
             {
                 if (endpoint.ToColocEndpoint() is Endpoint colocAltEndpoint)
                 {
@@ -278,15 +278,15 @@ namespace IceRpc
             {
                 if (proxy.LocationResolver is ILocationResolver locationResolver)
                 {
-                    endpoints = await locationResolver.ResolveAsync(proxy.ParsedEndpoint!,
+                    endpoints = await locationResolver.ResolveAsync(proxy.Endpoint!,
                                                                     refreshCache,
                                                                     cancel).ConfigureAwait(false);
                 }
                 // else endpoints remains empty.
             }
-            else if (proxy.ParsedEndpoint != null)
+            else if (proxy.Endpoint != null)
             {
-                endpoints = ImmutableList.Create(proxy.ParsedEndpoint).AddRange(proxy.ParsedAltEndpoints);
+                endpoints = ImmutableList.Create(proxy.Endpoint).AddRange(proxy.AltEndpoints);
             }
 
             // Apply overrides and filter endpoints
@@ -396,7 +396,7 @@ namespace IceRpc
                     "cannot make two-way invocation using a cached datagram connection");
             }
 
-            if ((connection == null || (proxy.ParsedEndpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
+            if ((connection == null || (proxy.Endpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
@@ -619,7 +619,7 @@ namespace IceRpc
                         await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                     }
 
-                    if (proxy.ParsedEndpoint != null && connection != null && !connection.IsIncoming)
+                    if (proxy.Endpoint != null && connection != null && !connection.IsIncoming)
                     {
                         // Retry with a new connection!
                         connection = null;

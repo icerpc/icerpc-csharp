@@ -343,10 +343,7 @@ namespace IceRpc.Tests.Api
         {
             var p1 = IServicePrx.Parse(prx, Communicator);
 
-            string endpoint = p1.Endpoint;
-            IReadOnlyList<string> altEndpoints = p1.AltEndpoints.ToImmutableList();
-
-            var tcpEndpoint = Endpoint.FromString(endpoint);
+            var tcpEndpoint = p1.Endpoint;
             Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
             Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
@@ -361,7 +358,7 @@ namespace IceRpc.Tests.Api
 
             if (p1.Protocol == Protocol.Ice1)
             {
-                var udpEndpoint = Endpoint.FromString(altEndpoints[0]);
+                var udpEndpoint = p1.AltEndpoints[0];
                 Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
                 Assert.AreEqual(10001, udpEndpoint.Port);
                 Assert.AreEqual("eth0", udpEndpoint["interface"]);
@@ -372,13 +369,13 @@ namespace IceRpc.Tests.Api
                 Assert.IsTrue(udpEndpoint.IsDatagram);
                 Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
 
-                var opaqueEndpoint = Endpoint.FromString(altEndpoints[1]);
+                var opaqueEndpoint = p1.AltEndpoints[1];
                 Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
                 Assert.AreEqual("1.8", opaqueEndpoint["value-encoding"]);
             }
             else
             {
-                var universalEndpoint = Endpoint.FromString(altEndpoints[0]);
+                var universalEndpoint = p1.AltEndpoints[0];
                 Assert.AreEqual((Transport)100, universalEndpoint.Transport);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
@@ -537,8 +534,8 @@ namespace IceRpc.Tests.Api
                 "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
-            Endpoint altEndpoint = Endpoint.FromString(prx.AltEndpoints.First());
-            Assert.AreEqual(1, prx.AltEndpoints.Count());
+            Endpoint altEndpoint = prx.AltEndpoints[0];
+            Assert.AreEqual(1, prx.AltEndpoints.Count);
             Assert.AreEqual(Transport.WS, altEndpoint.Transport);
             Assert.AreEqual("/x/y", altEndpoint["resource"]);
             Assert.AreEqual(2, prx.Context.Count);

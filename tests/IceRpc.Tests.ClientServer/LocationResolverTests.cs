@@ -24,14 +24,13 @@ namespace IceRpc.Tests.ClientServer
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
-            var endpoint = Endpoint.FromString(greeter.Endpoint);
 
-            Assert.AreEqual(Transport.Loc, endpoint.Transport);
+            Assert.AreEqual(Transport.Loc, greeter.Endpoint!.Transport);
 
             ILocationResolver locationResolver = SetupServer(greeter.Protocol,
                                                              greeter.Path,
-                                                             endpoint.Host,
-                                                             endpoint["category"]);
+                                                             greeter.Endpoint.Host,
+                                                             greeter.Endpoint["category"]);
 
             Assert.IsNull(greeter.LocationResolver);
             Assert.ThrowsAsync<NoEndpointException>(async () => await greeter.SayHelloAsync());
@@ -43,8 +42,7 @@ namespace IceRpc.Tests.ClientServer
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
-                var badEndpoint = Endpoint.FromString(badGreeter.Endpoint);
-                Assert.AreEqual(Transport.Loc, badEndpoint.Transport);
+                Assert.AreEqual(Transport.Loc, badGreeter.Endpoint!.Transport);
 
                 badGreeter.LocationResolver = locationResolver;
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
@@ -77,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
 
-            Assert.AreNotEqual(0, Endpoint.FromString(greeter.Endpoint).Port);
+            Assert.AreNotEqual(0, greeter.Endpoint!.Port);
 
             return new LocationResolver(protocol, location, category, greeter.Endpoint);
         }
@@ -95,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
             private readonly string _location;
 
             private readonly Protocol _protocol;
-            private readonly Endpoint _resolvedAddress;
+            private readonly Endpoint _resolvedEndpoint;
 
             public ValueTask<IReadOnlyList<Endpoint>> ResolveAsync(
                 Endpoint endpoint,
@@ -106,7 +104,7 @@ namespace IceRpc.Tests.ClientServer
 
                 if (endpoint.Protocol == _protocol && endpoint.Host == _location && endpoint["category"] == _category)
                 {
-                    return new(ImmutableList.Create(_resolvedAddress));
+                    return new(ImmutableList.Create(_resolvedEndpoint));
                 }
                 else
                 {
@@ -118,12 +116,12 @@ namespace IceRpc.Tests.ClientServer
                 Protocol protocol,
                 string location,
                 string? category,
-                string resolvedAddress)
+                Endpoint resolvedEndpoint)
             {
                 _category = category;
                 _location = location;
                 _protocol = protocol;
-                _resolvedAddress = Endpoint.FromString(resolvedAddress);
+                _resolvedEndpoint = resolvedEndpoint;
             }
         }
     }

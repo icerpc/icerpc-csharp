@@ -59,7 +59,7 @@ namespace IceRpc.Interop
 
             if (proxy.IsOneway)
             {
-                if (impl.ParsedEndpoint?.IsDatagram ?? false)
+                if (impl.Endpoint?.IsDatagram ?? false)
                 {
                     sb.Append(" -d");
                 }
@@ -82,7 +82,7 @@ namespace IceRpc.Interop
             {
                 if (!impl.IsWellKnown)
                 {
-                    string adapterId = impl.ParsedEndpoint!.Host;
+                    string adapterId = impl.Endpoint!.Host;
 
                     sb.Append(" @ ");
 
@@ -103,12 +103,12 @@ namespace IceRpc.Interop
             }
             else
             {
-                if (impl.ParsedEndpoint != null)
+                if (impl.Endpoint != null)
                 {
                     sb.Append(':');
-                    sb.Append(impl.ParsedEndpoint);
+                    sb.Append(impl.Endpoint);
                 }
-                foreach (Endpoint e in impl.ParsedAltEndpoints)
+                foreach (Endpoint e in impl.AltEndpoints)
                 {
                     sb.Append(':');
                     sb.Append(e);
