@@ -92,7 +92,7 @@ namespace IceRpc
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
 
-        public override async ValueTask<SingleStreamSocket> AcceptAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -124,11 +124,11 @@ namespace IceRpc
                     var socket = new SslSocket(this, _socket);
                     await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
                     _sslStream = socket.SslStream;
-                    return socket;
+                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
                 else
                 {
-                    return this;
+                    return (this, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
@@ -147,7 +147,7 @@ namespace IceRpc
 
         public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => default;
 
-        public override async ValueTask<SingleStreamSocket> ConnectAsync(
+        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -161,17 +161,16 @@ namespace IceRpc
 
                 // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
                 // responsible for using the returned SslSocket instead of using this TcpSocket.
-
                 if (authenticationOptions != null)
                 {
                     var socket = new SslSocket(this, _socket);
                     await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
                     _sslStream = socket.SslStream;
-                    return socket;
+                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
                 }
                 else
                 {
-                    return this;
+                    return (this, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
                 }
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)

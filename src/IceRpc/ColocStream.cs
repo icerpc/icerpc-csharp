@@ -184,7 +184,7 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                if (_socket.Endpoint.Protocol != Protocol.Ice1)
+                if (_socket.Protocol != Protocol.Ice1)
                 {
                     // Don't await the sending of the reset since it might block if sending is blocking.
                     _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
@@ -220,7 +220,7 @@ namespace IceRpc
             if (frame is List<ArraySegment<byte>> data)
             {
                 // Initialize or GoAway frame.
-                if (_socket.Endpoint.Protocol == Protocol.Ice1)
+                if (_socket.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(expectedFrameType == data[0][8]);
                     return ArraySegment<byte>.Empty;

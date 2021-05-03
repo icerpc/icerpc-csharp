@@ -39,9 +39,9 @@ namespace IceRpc
         /// <param name="endpoint">The endpoint used to create the socket.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
-        /// implementation might return a different socket based on information read on the socket.</returns>
-        public abstract ValueTask<SingleStreamSocket> AcceptAsync(
+        /// <returns>A tuple with the single stream socket to use after the initialization and the remote endpoint.
+        /// The socket implementation might return a different socket based on information read on the socket.</returns>
+        public abstract ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
@@ -52,9 +52,9 @@ namespace IceRpc
         /// <param name="endpoint">The endpoint used to create the socket.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A single stream socket to use after the initialization instead of this socket. The socket
-        /// implementation might return a different socket based on information read on the socket.</returns>
-        public abstract ValueTask<SingleStreamSocket> ConnectAsync(
+        /// <returns>A tuple with the single stream socket to use after the initialization and the local endpoint.
+        /// The socket implementation might return a different socket based on information read on the socket.</returns>
+        public abstract ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);

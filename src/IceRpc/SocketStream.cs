@@ -232,7 +232,7 @@ namespace IceRpc
             Debug.Assert(IsStarted);
             using IDisposable? scope = StartScope();
 
-            byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
+            byte frameType = _socket.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
@@ -244,7 +244,7 @@ namespace IceRpc
             long lastBidirectionalId;
             long lastUnidirectionalId;
             string message;
-            if (_socket.Endpoint.Protocol == Protocol.Ice1)
+            if (_socket.Protocol == Protocol.Ice1)
             {
                 // LastResponseStreamId contains the stream ID of the last received response. We make sure to return
                 // this stream ID to ensure the request with this stream ID will complete successfully in case the
@@ -273,7 +273,7 @@ namespace IceRpc
             Debug.Assert(IsStarted);
             using IDisposable? scope = StartScope();
 
-            byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
+            byte frameType = _socket.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
@@ -282,7 +282,7 @@ namespace IceRpc
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
             }
 
-            if (_socket.Endpoint.Protocol == Protocol.Ice1)
+            if (_socket.Protocol == Protocol.Ice1)
             {
                 if (data.Count > 0)
                 {
@@ -328,7 +328,7 @@ namespace IceRpc
 
         internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
-            byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
+            byte frameType = _socket.Protocol == Protocol.Ice1 ?
                 (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
@@ -336,12 +336,12 @@ namespace IceRpc
             IncomingRequest request;
             if (ReceivedEndOfStream)
             {
-                request = new IncomingRequest(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, null);
+                request = new IncomingRequest(_socket.Protocol, data, _socket.IncomingFrameMaxSize, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                request = new IncomingRequest(_socket.Endpoint.Protocol, data, _socket.IncomingFrameMaxSize, this);
+                request = new IncomingRequest(_socket.Protocol, data, _socket.IncomingFrameMaxSize, this);
             }
 
             return request;
@@ -353,14 +353,14 @@ namespace IceRpc
             ArraySegment<byte> data;
             try
             {
-                byte frameType = _socket.Endpoint.Protocol == Protocol.Ice1 ?
+                byte frameType = _socket.Protocol == Protocol.Ice1 ?
                     (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
 
                 data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                if (_socket.Endpoint.Protocol != Protocol.Ice1)
+                if (_socket.Protocol != Protocol.Ice1)
                 {
                     // Don't await the sending of the reset since it might block if sending is blocking.
                     _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
@@ -372,7 +372,7 @@ namespace IceRpc
             if (ReceivedEndOfStream)
             {
                 response = new IncomingResponse(
-                    _socket.Endpoint.Protocol,
+                    _socket.Protocol,
                     data,
                     _socket.IncomingFrameMaxSize,
                     null);
@@ -381,7 +381,7 @@ namespace IceRpc
             {
                 EnableReceiveFlowControl();
                 response = new IncomingResponse(
-                    _socket.Endpoint.Protocol,
+                    _socket.Protocol,
                     data,
                     _socket.IncomingFrameMaxSize,
                     this);
@@ -398,7 +398,7 @@ namespace IceRpc
             Debug.Assert(IsStarted);
             using IDisposable? scope = StartScope();
 
-            if (_socket.Endpoint.Protocol == Protocol.Ice1)
+            if (_socket.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
             }
@@ -429,7 +429,7 @@ namespace IceRpc
 
         internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
         {
-            if (_socket.Endpoint.Protocol == Protocol.Ice1)
+            if (_socket.Protocol == Protocol.Ice1)
             {
                 await SendAsync(Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
             }
@@ -478,7 +478,7 @@ namespace IceRpc
             {
                 // If the stream is not started, there's no need to send a stream reset frame. The stream ID wasn't
                 // allocated and the peer doesn't know about this stream.
-                if (IsStarted && _socket.Endpoint.Protocol != Protocol.Ice1)
+                if (IsStarted && _socket.Protocol != Protocol.Ice1)
                 {
                     // Don't await the sending of the reset since it might block if sending is blocking.
                     _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
@@ -513,7 +513,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             // The default implementation only supports the Ice2 protocol
-            Debug.Assert(_socket.Endpoint.Protocol == Protocol.Ice2);
+            Debug.Assert(_socket.Protocol == Protocol.Ice2);
 
             // Read the Ice2 protocol header (byte frameType, varulong size)
             ArraySegment<byte> buffer = new byte[256];
@@ -552,7 +552,7 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             // The default implementation only supports the Ice2 protocol
-            Debug.Assert(_socket.Endpoint.Protocol == Protocol.Ice2);
+            Debug.Assert(_socket.Protocol == Protocol.Ice2);
 
             var buffer = new List<ArraySegment<byte>>(frame.Payload.Count + 1);
             var ostr = new OutputStream(Encoding.V20, buffer);

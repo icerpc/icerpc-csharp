@@ -1,14 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
@@ -37,8 +34,19 @@ namespace IceRpc.Internal
 
         internal Encoding ValueEncoding { get; }
 
-        public override IAcceptor Acceptor(Server server) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
+        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            sb.Append(" -t ");
+            sb.Append(((short)Transport).ToString(CultureInfo.InvariantCulture));
+
+            sb.Append(" -e ");
+            sb.Append(ValueEncoding.ToString());
+            if (!Value.IsEmpty)
+            {
+                sb.Append(" -v ");
+                sb.Append(Convert.ToBase64String(Value.Span));
+            }
+        }
 
         public override bool Equals(Endpoint? other)
         {
@@ -57,29 +65,6 @@ namespace IceRpc.Internal
             Debug.Assert(false);
             throw new NotImplementedException("cannot write the options of an opaque endpoint");
         }
-
-        public override Connection CreateDatagramServerConnection(Server server) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot accept datagram connections");
-
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-            sb.Append(" -t ");
-            sb.Append(((short)Transport).ToString(CultureInfo.InvariantCulture));
-
-            sb.Append(" -e ");
-            sb.Append(ValueEncoding.ToString());
-            if (!Value.IsEmpty)
-            {
-                sb.Append(" -v ");
-                sb.Append(Convert.ToBase64String(Value.Span));
-            }
-        }
-
-        protected internal override Task<Connection> ConnectAsync(
-            OutgoingConnectionOptions options,
-            ILogger logger,
-            CancellationToken cancel) =>
-            throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
 
         internal static OpaqueEndpoint Create(
             Transport transport,

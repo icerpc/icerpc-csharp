@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
             _serverSockets.Clear();
             for (int i = 0; i < _incomingConnectionCount; ++i)
             {
-                _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateDatagramServerSocket()).Underlying);
+                _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateServerSocket()).Underlying);
             }
 
             ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
