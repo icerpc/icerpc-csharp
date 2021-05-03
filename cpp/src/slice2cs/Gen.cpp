@@ -2208,7 +2208,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 if (operation->isIdempotent() ||
                     opCompressArgs(operation) ||
-                    opCompressReturn(operation) ||
                     opFormatTypeToString(operation) != "default")
                 {
                     _out << sb;
@@ -2220,12 +2219,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     if (opFormatTypeToString(operation) != "default")
                     {
                         _out << nl << "invocation.ClassFormat = " << opFormatTypeToString(operation) << ";";
-                    }
-
-                    if (opCompressReturn(operation))
-                    {
-                        _out << nl << "invocation.ResponseFeatures[typeof(IceRpc.DecompressPayloadFeature)] = "
-                             << "IceRpc.DecompressPayloadFeature.Yes;";
                     }
 
                     if (opCompressArgs(operation))
