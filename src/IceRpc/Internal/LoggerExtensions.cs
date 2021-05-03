@@ -18,26 +18,5 @@ namespace IceRpc.Internal
         internal const int LocatorClientBaseEventId = 7 * EventIdRange;
         internal const int ConnectionBaseEventId = 8 * EventIdRange;
         private const int EventIdRange = 128;
-
-        private const int UnknownProperty = OtherBaseEventId + 0;
-        private const int WarnDeprecatedProperty = OtherBaseEventId + 1;
-
-        private static readonly Action<ILogger, string, Exception> _unknownProperty =
-            LoggerMessage.Define<string>(
-                LogLevel.Warning,
-                new EventId(UnknownProperty, nameof(UnknownProperty)),
-                "unknown property {Property}");
-
-        private static readonly Action<ILogger, string, Exception> _warnDeprecatedProperty =
-            LoggerMessage.Define<string>(
-                LogLevel.Warning,
-                new EventId(WarnDeprecatedProperty, nameof(WarnDeprecatedProperty)),
-                "deprecated property {Property}");
-
-        internal static void LogUnknownProperty(this ILogger logger, string property) =>
-            _unknownProperty(logger, property, null!);
-
-        internal static void LogWarnDeprecatedProperty(this ILogger logger, string property) =>
-            _warnDeprecatedProperty(logger, property, null!);
     }
 }
