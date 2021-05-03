@@ -12,9 +12,6 @@ namespace IceRpc
         /// <summary>The marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
 
-        // temporary
-        public bool CompressRequestPayload { get; set; }
-
         /// <summary>The context dictionary carried by the request.</summary>
         public SortedDictionary<string, string> Context { get; set; } = new();
 
@@ -27,5 +24,11 @@ namespace IceRpc
 
         /// <summary>The progress provider.</summary>
         public IProgress<bool>? Progress { get; set; }
+
+        /// <summary>The features associated with the request.</summary>
+        public FeatureCollection RequestFeatures { get; set; } = new();
+
+        /// <summary>The features associated with the response.</summary>
+        public FeatureCollection ResponseFeatures { get; set; } = new();
     }
 }

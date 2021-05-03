@@ -170,21 +170,6 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>The compression level used when compressing messages sent over this connection. The default value
-        /// is <see cref="CompressionLevel.Fastest"/>.</summary>
-        public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-
-        /// <summary>The minimum size in bytes for a message sent over this connection to be compressed. If the size of
-        /// the messages is lower than this value it will not be compressed.</summary>
-        public int CompressionMinSize
-        {
-            get => _compressionMinSize;
-            set => _compressionMinSize = value > 0 ? value :
-                throw new ArgumentException(
-                    $"{nameof(CompressionMinSize)} can't be less than 1",
-                    nameof(value));
-        }
-
         /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
         /// value is 60s.</summary>
@@ -237,7 +222,6 @@ namespace IceRpc
         private int _bidirectionalStreamMaxCount = 100;
         private int _classGraphMaxDepth = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
-        private int _compressionMinSize = 100;
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _incomingFrameMaxSize = 1024 * 1024;
         private int _unidirectionalStreamMaxCount = 100;

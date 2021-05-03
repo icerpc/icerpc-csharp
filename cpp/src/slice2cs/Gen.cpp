@@ -2206,7 +2206,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             }
             else
             {
-                if (operation->isIdempotent() || opCompressArgs(operation) || opFormatTypeToString(operation) != "default")
+                if (operation->isIdempotent() ||
+                    opCompressArgs(operation) ||
+                    opCompressReturn(operation) ||
+                    opFormatTypeToString(operation) != "default")
                 {
                     _out << sb;
                     _out << nl << "invocation ?\?= new IceRpc.Invocation();";
@@ -2214,13 +2217,21 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     {
                         _out << nl << "invocation.IsIdempotent = true;";
                     }
-                    if (opCompressArgs(operation))
-                    {
-                        _out << nl << "invocation.CompressRequestPayload = true;";
-                    }
                     if (opFormatTypeToString(operation) != "default")
                     {
                         _out << nl << "invocation.ClassFormat = " << opFormatTypeToString(operation) << ";";
+                    }
+
+                    if (opCompressReturn(operation))
+                    {
+                        _out << nl << "invocation.ResponseFeatures[typeof(IceRpc.DecompressPayloadFeature)] = "
+                             << "IceRpc.DecompressPayloadFeature.Yes;";
+                    }
+
+                    if (opCompressArgs(operation))
+                    {
+                        _out << nl << "invocation.RequestFeatures[typeof(IceRpc.CompressPayloadFeature)] = "
+                             << "IceRpc.CompressPayloadFeature.Yes;";
                     }
 
                     _out << nl << "return IceRpc.OutgoingRequest.WithArgs(";
@@ -2675,19 +2686,38 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <returns>A new <see cref=\"IceRpc.OutgoingResponse\"/>.</returns>";
                 _out << nl << "public static IceRpc.OutgoingResponse "<< fixId(operationName(operation))
                     << "(IceRpc.Dispatch dispatch, "
-                    << (inValue ? "in " : "") << toTupleType(returns, true) << " returnValue) =>";
-                _out.inc();
-                _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
-                _out.inc();
-                _out << nl << "dispatch,"
-                    << nl << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ","
-                    << nl << "format: " << opFormatTypeToString(operation) << ","
-                    << nl << (inValue ? "in " : "") << "returnValue,"
-                    << nl;
-                writeOutgoingResponseWriter(operation);
-                _out << ");";
-                _out.dec();
-                _out.dec();
+                    << (inValue ? "in " : "") << toTupleType(returns, true) << " returnValue)";
+                if (opCompressReturn(operation))
+                {
+                    _out << sb;
+                    _out << nl << "dispatch.ResponseFeatures[typeof(IceRpc.CompressPayloadFeature)] = "
+                         << "IceRpc.CompressPayloadFeature.Yes;";
+                    _out << nl << "return IceRpc.OutgoingResponse.WithReturnValue(";
+                    _out.inc();
+                    _out << nl << "dispatch,"
+                         << nl << "format: " << opFormatTypeToString(operation) << ","
+                         << nl << (inValue ? "in " : "") << "returnValue,"
+                         << nl;
+                    writeOutgoingResponseWriter(operation);
+                    _out << ");";
+                    _out.dec();
+                    _out << eb;
+                }
+                else
+                {
+                    _out << " =>";
+                    _out.inc();
+                    _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
+                    _out.inc();
+                    _out << nl << "dispatch,"
+                         << nl << "format: " << opFormatTypeToString(operation) << ","
+                         << nl << (inValue ? "in " : "") << "returnValue,"
+                         << nl;
+                    writeOutgoingResponseWriter(operation);
+                    _out << ");";
+                    _out.dec();
+                    _out.dec();
+                }
             }
         }
         _out << eb;
@@ -2794,7 +2824,6 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "Response = IceRpc.OutgoingResponse.WithReturnValue(";
         _out.inc();
         _out << nl << getEscapedParamName(operation, "dispatch") << ", "
-             << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ", "
              << "format: " << opFormatTypeToString(operation) << ", "
              << toTuple(returnType) << ",";
         if(returnType.size() > 1)

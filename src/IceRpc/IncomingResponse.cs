@@ -46,11 +46,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReader<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream != null)
             {
                 throw new InvalidDataException("stream data available for operation without stream parameter");
@@ -73,11 +68,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReaderWithStreamable<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -115,11 +105,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -148,11 +133,6 @@ namespace IceRpc
         /// <param name="proxy">The proxy used to send the request.</param>
         public void ReadVoidReturnValue(IServicePrx proxy)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream != null)
             {
                 throw new InvalidDataException("stream data available for operation without stream parameter");

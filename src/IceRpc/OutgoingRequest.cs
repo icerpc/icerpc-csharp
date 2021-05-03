@@ -113,10 +113,6 @@ namespace IceRpc
                                         invocation?.ClassFormat ?? default);
             writer(ostr, args);
             ostr.Finish();
-            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
-            {
-                request.CompressPayload();
-            }
             return request;
         }
 
@@ -131,10 +127,6 @@ namespace IceRpc
         /// <param name="writer">The delegate that will send the streamable.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new OutgoingRequestFrame.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Microsoft.Performance",
-            "CA1801: Review unused parameters",
-            Justification = "TODO")]
         public static OutgoingRequest WithArgs<T>(
             IServicePrx proxy,
             string operation,
@@ -144,7 +136,6 @@ namespace IceRpc
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);
-            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
             return request;
         }
@@ -178,10 +169,6 @@ namespace IceRpc
                                         invocation?.ClassFormat ?? default);
             writer(ostr, in args);
             ostr.Finish();
-            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
-            {
-                request.CompressPayload();
-            }
             return request;
         }
 
@@ -210,13 +197,8 @@ namespace IceRpc
                                         startAt: default,
                                         request.PayloadEncoding,
                                         invocation?.ClassFormat ?? default);
-            // TODO: deal with compress, format, and cancel parameters
             request.StreamDataWriter = writer(ostr, in args, cancel);
             ostr.Finish();
-            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
-            {
-                request.CompressPayload();
-            }
             return request;
         }
 
@@ -408,12 +390,7 @@ namespace IceRpc
             string operation,
             Invocation? invocation,
             CancellationToken cancel)
-            : base(proxy.Protocol,
-                   // TODO if Connection is null there should be a ConnectionPool to read the settings from
-                   proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
-                   proxy.Connection?.CompressionMinSize ?? 100,
-                   // TODO: set features from Invocation
-                   new FeatureCollection())
+            : base(proxy.Protocol, invocation?.RequestFeatures)
         {
             Proxy = proxy;
             Progress = invocation?.Progress;

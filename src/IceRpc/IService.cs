@@ -42,7 +42,6 @@ namespace IceRpc
             public static OutgoingResponse IceId(Dispatch dispatch, string returnValue) =>
                 OutgoingResponse.WithReturnValue(
                     dispatch,
-                    compress: false,
                     format: default,
                     returnValue,
                     OutputStream.IceWriterFromString);
@@ -54,7 +53,6 @@ namespace IceRpc
             public static OutgoingResponse IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
                 OutgoingResponse.WithReturnValue(
                     dispatch,
-                    compress: false,
                     format: default,
                     returnValue,
                     (ostr, returnValue) => ostr.WriteSequence(returnValue, OutputStream.IceWriterFromString));
@@ -66,7 +64,6 @@ namespace IceRpc
             public static OutgoingResponse IceIsA(Dispatch dispatch, bool returnValue) =>
                 OutgoingResponse.WithReturnValue(
                     dispatch,
-                    compress: false,
                     format: default,
                     returnValue,
                     OutputStream.IceWriterFromBool);

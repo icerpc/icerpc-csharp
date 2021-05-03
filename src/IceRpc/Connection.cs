@@ -131,9 +131,6 @@ namespace IceRpc
 
         /// <summary>The socket transport name.</summary>
         public string TransportName => _socket.TransportName;
-
-        internal CompressionLevel CompressionLevel { get; }
-        internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
         internal ILogger Logger => _socket.Logger;
 
@@ -265,8 +262,6 @@ namespace IceRpc
 
         internal Connection(MultiStreamSocket socket, ConnectionOptions options, Server? server = null)
         {
-            CompressionLevel = options.CompressionLevel;
-            CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
             KeepAlive = options.KeepAlive;
             _closeTimeout = options.CloseTimeout;
