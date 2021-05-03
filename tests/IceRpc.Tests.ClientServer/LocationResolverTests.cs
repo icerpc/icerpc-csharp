@@ -24,7 +24,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
-            var endpoint = Endpoint.Parse(greeter.Endpoint);
+            var endpoint = Endpoint.FromString(greeter.Endpoint);
 
             Assert.AreEqual(Transport.Loc, endpoint.Transport);
 
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
-                var badEndpoint = Endpoint.Parse(badGreeter.Endpoint);
+                var badEndpoint = Endpoint.FromString(badGreeter.Endpoint);
                 Assert.AreEqual(Transport.Loc, badEndpoint.Transport);
 
                 badGreeter.LocationResolver = locationResolver;
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.ClientServer
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
 
-            Assert.AreNotEqual(0, Endpoint.Parse(greeter.Endpoint).Port);
+            Assert.AreNotEqual(0, Endpoint.FromString(greeter.Endpoint).Port);
 
             return new LocationResolver(protocol, location, category, greeter.Endpoint);
         }
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.ClientServer
                 _category = category;
                 _location = location;
                 _protocol = protocol;
-                _resolvedAddress = Endpoint.Parse(resolvedAddress);
+                _resolvedAddress = Endpoint.FromString(resolvedAddress);
             }
         }
     }

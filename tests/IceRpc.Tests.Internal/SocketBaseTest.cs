@@ -105,17 +105,17 @@ namespace IceRpc.Tests.Internal
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ??
                         $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ServerEndpoint = Endpoint.Parse(endpoint);
+                    ServerEndpoint = Endpoint.FromString(endpoint);
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ClientEndpoint = Endpoint.Parse(endpoint);
+                    ClientEndpoint = Endpoint.FromString(endpoint);
                 }
                 else
                 {
                     string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = Endpoint.Parse(endpoint);
+                    ServerEndpoint = Endpoint.FromString(endpoint);
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = Endpoint.Parse(endpoint);
+                    ClientEndpoint = Endpoint.FromString(endpoint);
                 }
             }
         }

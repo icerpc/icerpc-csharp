@@ -23,8 +23,8 @@ namespace IceRpc.Tests.Api
         [TestCase("coloc -h host -p 10000")]
         public void Endpoint_Parse_ValidInput(string str)
         {
-            var endpoint = Endpoint.Parse(str);
-            var endpoint2 = Endpoint.Parse(endpoint.ToString());
+            var endpoint = Endpoint.FromString(str);
+            var endpoint2 = Endpoint.FromString(endpoint.ToString());
             Assert.AreEqual(endpoint, endpoint2); // round trip works
         }
 
@@ -41,8 +41,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+udp://localhost")]
         public void Endpoint_Parse_InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => Endpoint.Parse(str));
-            Assert.That(Endpoint.TryParse(str, out _), Is.False);
+            Assert.Throws<FormatException>(() => Endpoint.FromString(str));
         }
 
         [TestCase("ice+universal://127.0.0.1:4062?transport=tcp", "ice+tcp://127.0.0.1")]
@@ -52,7 +51,7 @@ namespace IceRpc.Tests.Api
         [TestCase("opaque -t 99 -e 1.1 -v abch", "opaque -t 99 -e 1.1 -v abch")]
         public void Endpoint_Parse_UniversalOrOpaque(string original, string actual)
         {
-            var endpoint = Endpoint.Parse(original);
+            var endpoint = Endpoint.FromString(original);
             Assert.AreEqual(actual, endpoint.ToString());
         }
     }

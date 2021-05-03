@@ -377,9 +377,9 @@ namespace IceRpc.Tests.ClientServer
                     // and the second should fail because the buffer size max.
 
                     await using var connection1 =
-                        await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), (Communicator)retry.Invoker);
+                        await Connection.CreateAsync(Endpoint.FromString(retry.Endpoint), (Communicator)retry.Invoker);
                     await using var connection2 =
-                        await Connection.CreateAsync(Endpoint.Parse(retry.Endpoint), (Communicator)retry.Invoker);
+                        await Connection.CreateAsync(Endpoint.FromString(retry.Endpoint), (Communicator)retry.Invoker);
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;

@@ -22,7 +22,7 @@ namespace IceRpc
         public IEnumerable<string> AltEndpoints
         {
             get => ParsedAltEndpoints.Select(e => e.ToString());
-            set => ParsedAltEndpoints = value.Select(s => IceRpc.Endpoint.Parse(s)).ToImmutableList();
+            set => ParsedAltEndpoints = value.Select(s => IceRpc.Endpoint.FromString(s)).ToImmutableList();
         }
 
         /// <inheritdoc/>
@@ -50,7 +50,7 @@ namespace IceRpc
         public string Endpoint
         {
             get => _endpoint?.ToString() ?? "";
-            set => ParsedEndpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
+            set => ParsedEndpoint = value.Length > 0 ? IceRpc.Endpoint.FromString(value) : null;
         }
 
         /// <inheritdoc/>
