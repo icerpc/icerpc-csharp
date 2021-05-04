@@ -93,7 +93,9 @@ namespace IceRpc
         /// Compressed encapsulation payload is only supported with the 2.0 encoding.</summary>
         /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
         /// </returns>
-        public CompressionResult CompressPayload(CompressionFormat format, CompressionLevel level, int minSize)
+        public CompressionResult CompressPayload(
+            CompressionLevel compressionLevel,
+            int compressionMinSize)
         {
             if (PayloadEncoding != Encoding.V20)
             {
@@ -104,14 +106,6 @@ namespace IceRpc
                 if (PayloadCompressionFormat != CompressionFormat.Decompressed)
                 {
                     throw new InvalidOperationException("the payload is already compressed");
-                }
-                if (format == CompressionFormat.Decompressed)
-                {
-                    throw new ArgumentException("invalid compression format", nameof(format));
-                }
-                else if (format != CompressionFormat.GZip)
-                {
-                    throw new NotSupportedException($"cannot compress with compression format '{format}'");
                 }
 
                 int encapsulationOffset = this is OutgoingResponse ? 1 : 0;
@@ -124,7 +118,7 @@ namespace IceRpc
                 Debug.Assert(Payload.GetByte(encapsulationOffset + sizeLength + 2) == 0); // i.e. Decompressed
 
                 int encapsulationSize = Payload.GetByteCount() - encapsulationOffset; // this includes the size length
-                if (encapsulationSize < minSize)
+                if (encapsulationSize < compressionMinSize)
                 {
                     return CompressionResult.PayloadTooSmall;
                 }
@@ -149,7 +143,7 @@ namespace IceRpc
                 using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
                 using var gzipStream = new GZipStream(
                     memoryStream,
-                    level == CompressionLevel.Fastest ? System.IO.Compression.CompressionLevel.Fastest :
+                    compressionLevel == CompressionLevel.Fastest ? System.IO.Compression.CompressionLevel.Fastest :
                                                         System.IO.Compression.CompressionLevel.Optimal);
                 try
                 {

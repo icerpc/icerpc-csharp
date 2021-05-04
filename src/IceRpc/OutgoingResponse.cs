@@ -87,7 +87,7 @@ namespace IceRpc
             Action<SocketStream, T, System.Threading.CancellationToken> writer)
         {
             OutgoingResponse response = WithVoidReturnValue(dispatch);
-            // TODO: deal with compress and cancellation token
+            // TODO: deal with format
             response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
             return response;
         }
