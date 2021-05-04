@@ -151,7 +151,6 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-
                 _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
