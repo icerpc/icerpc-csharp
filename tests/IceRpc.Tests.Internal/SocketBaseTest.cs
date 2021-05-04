@@ -27,7 +27,8 @@ namespace IceRpc.Tests.Internal
         protected IncomingConnectionOptions ServerConnectionOptions => Server.ConnectionOptions;
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions ClientConnectionOptions => Communicator.ConnectionOptions;
+        protected OutgoingConnectionOptions ClientConnectionOptions =>
+            Communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default;
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
             IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
@@ -58,7 +59,7 @@ namespace IceRpc.Tests.Internal
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            var clientConnectionOptions = new OutgoingConnectionOptions()
+            var clientConnectionOptions = new OutgoingConnectionOptions
             {
                 AuthenticationOptions = new()
                 {
@@ -71,7 +72,10 @@ namespace IceRpc.Tests.Internal
                     TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
                 }
             };
-            Communicator = new Communicator(connectionOptions: clientConnectionOptions);
+            Communicator = new Communicator
+            {
+                ConnectionOptions = clientConnectionOptions
+            };
 
             var serverConnectionOptions = new IncomingConnectionOptions()
             {
@@ -105,17 +109,17 @@ namespace IceRpc.Tests.Internal
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ??
                         $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ServerEndpoint = Endpoint.Parse(endpoint);
+                    ServerEndpoint = endpoint;
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ClientEndpoint = Endpoint.Parse(endpoint);
+                    ClientEndpoint = endpoint;
                 }
                 else
                 {
                     string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
                     string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = Endpoint.Parse(endpoint);
+                    ServerEndpoint = endpoint;
                     endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = Endpoint.Parse(endpoint);
+                    ClientEndpoint = endpoint;
                 }
             }
         }

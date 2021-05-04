@@ -90,8 +90,10 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
                     var connection = new Connection(
-                        endpoint.CreateClientSocket(_communicator.ConnectionOptions, _communicator.Logger),
-                        _communicator.ConnectionOptions);
+                        endpoint.CreateClientSocket(
+                            _communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default,
+                            _communicator.Logger),
+                        _communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default);
                     await connection.ConnectAsync(default);
                     return connection;
                 }
@@ -148,9 +150,11 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                _communicator = new Communicator(
-                    new Dictionary<string, string>() { { "Ice.InvocationMaxAttempts", "1" } },
-                    connectionOptions: clientConnectionOptions);
+                _communicator = new Communicator
+                {
+                    InvocationMaxAttempts = 1,
+                    ConnectionOptions = clientConnectionOptions
+                };
 
                 _server = new Server
                 {
@@ -177,11 +181,11 @@ namespace IceRpc.Tests.Internal
                             transport = "wss";
                         }
                     }
-                    Endpoint = Endpoint.Parse($"{transport} -h 127.0.0.1");
+                    Endpoint = $"{transport} -h 127.0.0.1";
                 }
                 else
                 {
-                    Endpoint = Endpoint.Parse($"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}");
+                    Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
                 }
             }
         }

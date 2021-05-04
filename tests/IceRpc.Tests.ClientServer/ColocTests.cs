@@ -52,9 +52,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             var greeter = server.CreateProxy<IGreeterTestServicePrx>("/foo");
-            Assert.That(greeter.Endpoint!.StartsWith("ice+tcp", StringComparison.Ordinal) ||
-                        greeter.Endpoint.StartsWith("tcp", StringComparison.Ordinal),
-                        Is.True);
+            Assert.AreEqual(Transport.TCP, greeter.Endpoint!.Transport);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 
             if (hasColocEndpoint)

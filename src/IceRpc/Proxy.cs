@@ -24,8 +24,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(proxy.GetIdentity(),
                                               proxy.GetFacet(),
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }
@@ -34,8 +34,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(proxy.Path,
                                               proxy.Protocol,
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }
@@ -203,13 +203,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Converts a proxy to a set of proxy properties.</summary>
-        /// <param name="proxy">The proxy for the target service.</param>
-        /// <param name="property">The base property name.</param>
-        /// <returns>The property set.</returns>
-        public static Dictionary<string, string> ToProperty(this IServicePrx proxy, string property) =>
-            proxy.Impl.ToProperty(property);
-
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>
@@ -225,7 +218,7 @@ namespace IceRpc
             {
                 var identity = Identity.FromPath(path);
 
-                Endpoint? endpoint = proxy.Impl.ParsedEndpoint;
+                Endpoint? endpoint = proxy.Endpoint;
                 Connection? connection = proxy.Connection;
 
                 if (proxy.Impl.IsWellKnown)
@@ -239,7 +232,7 @@ namespace IceRpc
                                               proxy.GetFacet(),
                                               proxy.Encoding,
                                               endpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.AltEndpoints,
                                               connection,
                                               proxy.GetOptions());
             }
@@ -248,8 +241,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(path,
                                               proxy.Protocol,
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }

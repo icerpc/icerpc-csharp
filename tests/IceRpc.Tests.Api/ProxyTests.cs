@@ -343,11 +343,8 @@ namespace IceRpc.Tests.Api
         {
             var p1 = IServicePrx.Parse(prx, Communicator);
 
-            string endpoint = p1.Endpoint;
-            IReadOnlyList<string> altEndpoints = p1.AltEndpoints.ToImmutableList();
-
-            var tcpEndpoint = Endpoint.Parse(endpoint);
-            Assert.AreEqual(Transport.TCP, tcpEndpoint.Transport);
+            var tcpEndpoint = p1.Endpoint;
+            Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
             Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
             Assert.AreEqual(10000, tcpEndpoint.Port);
@@ -361,7 +358,7 @@ namespace IceRpc.Tests.Api
 
             if (p1.Protocol == Protocol.Ice1)
             {
-                var udpEndpoint = Endpoint.Parse(altEndpoints[0]);
+                var udpEndpoint = p1.AltEndpoints[0];
                 Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
                 Assert.AreEqual(10001, udpEndpoint.Port);
                 Assert.AreEqual("eth0", udpEndpoint["interface"]);
@@ -372,13 +369,13 @@ namespace IceRpc.Tests.Api
                 Assert.IsTrue(udpEndpoint.IsDatagram);
                 Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
 
-                var opaqueEndpoint = Endpoint.Parse(altEndpoints[1]);
+                var opaqueEndpoint = p1.AltEndpoints[1];
                 Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
                 Assert.AreEqual("1.8", opaqueEndpoint["value-encoding"]);
             }
             else
             {
-                var universalEndpoint = Endpoint.Parse(altEndpoints[0]);
+                var universalEndpoint = p1.AltEndpoints[0];
                 Assert.AreEqual((Transport)100, universalEndpoint.Transport);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
@@ -461,50 +458,6 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task Proxy_PropertyAsProxy()
-        {
-            string propertyPrefix = "Foo.Proxy";
-            string proxyString = "test:tcp -h localhost -p 10000";
-
-            await using var communicator = new Communicator();
-
-            communicator.SetProperty(propertyPrefix, proxyString);
-            var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual("/test", prx.Path);
-        }
-
-        [Test]
-        public async Task Proxy_ToProperty()
-        {
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator);
-            prx.CacheConnection = true;
-            prx.PreferExistingConnection = false;
-            prx.InvocationTimeout = TimeSpan.FromSeconds(10);
-
-            Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(3, proxyProps.Count);
-            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
-
-            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-
-            ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator);
-            locator.CacheConnection = false;
-            locator.PreferExistingConnection = false;
-
-            // TODO: LocatorClient should reject indirect locators.
-            ILocationResolver locationResolver = new LocatorClient(locator);
-            prx.LocationResolver = locationResolver;
-
-            proxyProps = prx.ToProperty("Test");
-
-            Assert.AreEqual(3, proxyProps.Count);
-            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
-            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("false", proxyProps["Test.PreferExistingConnection"]);
-        }
-
-        [Test]
         public async Task Proxy_UriOptions()
         {
             await using var communicator = new Communicator();
@@ -537,8 +490,8 @@ namespace IceRpc.Tests.Api
                 "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
             prx = IServicePrx.Parse(complicated, communicator);
 
-            Endpoint altEndpoint = Endpoint.Parse(prx.AltEndpoints.First());
-            Assert.AreEqual(1, prx.AltEndpoints.Count());
+            Endpoint altEndpoint = prx.AltEndpoints[0];
+            Assert.AreEqual(1, prx.AltEndpoints.Count);
             Assert.AreEqual(Transport.WS, altEndpoint.Transport);
             Assert.AreEqual("/x/y", altEndpoint["resource"]);
             Assert.AreEqual(2, prx.Context.Count);
