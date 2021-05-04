@@ -229,7 +229,7 @@ namespace IceRpc
         private int _incomingFrameMaxSize = 1024 * 1024;
         private int _unidirectionalStreamMaxCount = 100;
 
-        protected ConnectionOptions Clone()
+        protected internal ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
             options.TransportOptions = TransportOptions?.Clone();

@@ -379,7 +379,7 @@ namespace IceRpc
                 case Ice1FrameType.ValidateConnection:
                 {
                     // Notify the control stream of the reception of a Ping frame.
-                    ReceivedPing();
+                    PingReceived?.Invoke();
                     return (IsIncoming ? 2 : 3, frameType, default);
                 }
 

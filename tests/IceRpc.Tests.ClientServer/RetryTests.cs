@@ -117,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
                     results.Add(retry.OpWithDataAsync(-1, 0, seq));
                 }
 
-                _ = service.Connection!.GoAwayAsync();
+                _ = service.Connection!.ShutdownAsync();
 
                 for (int i = 0; i < maxQueue; i++)
                 {
@@ -366,10 +366,11 @@ namespace IceRpc.Tests.ClientServer
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
 
-                    await using var connection1 =
-                        await Connection.CreateAsync(retry.Endpoint!, (Communicator)retry.Invoker);
-                    await using var connection2 =
-                        await Connection.CreateAsync(retry.Endpoint!, (Communicator)retry.Invoker);
+                    await using var connection1 = new Connection { RemoteEndpoint = retry.Endpoint };
+                    await using var connection2 = new Connection { RemoteEndpoint = retry.Endpoint };
+
+                    await connection1.ConnectAsync();
+                    await connection2.ConnectAsync();
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;

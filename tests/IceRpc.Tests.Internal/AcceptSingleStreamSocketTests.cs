@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.CreateAcceptor(Server);
+                acceptor = serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
             }
             else
             {
@@ -167,11 +167,13 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a socket is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => serverEndpoint.CreateAcceptor(Server).Dispose());
+                    Assert.DoesNotThrow(
+                        () => serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger).Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => serverEndpoint.CreateAcceptor(Server));
+                    Assert.Catch<TransportException>(
+                        () => serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger));
                 }
             }
             else
