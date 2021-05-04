@@ -207,10 +207,9 @@ namespace IceRpc
 
                 // Shutdown and destroy all the incoming and outgoing Ice connections and wait for the connections to be
                 // finished.
-                var disposedException = new CommunicatorDisposedException();
                 IEnumerable<Task> closeTasks =
                     _outgoingConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.ShutdownAsync(disposedException));
+                        connection => connection.ShutdownAsync("connection pool shutdown"));
 
                 await Task.WhenAll(closeTasks).ConfigureAwait(false);
 

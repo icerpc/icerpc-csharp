@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The state of an Ice connection.</summary>
+    /// <summary>The state of an IceRpc connection.</summary>
     public enum ConnectionState : byte
     {
         /// <summary>The connection is not connected.</summary>
@@ -22,16 +21,35 @@ namespace IceRpc
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
         /// <summary>The connection is being gracefully shutdown and waits for the peer to close its end of the
-        /// connection.</summary>
+        /// connection before to switch to the <c>Closed</c> state. The peer while close its end of the connection
+        /// only once its dispatch complete.</summary>
         Closing,
-        /// <summary>The connection is closed and eventually waits for potential dispatch to be finished before being
-        /// destroyed.</summary>
+        /// <summary>The connection is closed.</summary>
         Closed
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public class Connection : IAsyncDisposable
+    public sealed class Connection : IAsyncDisposable
     {
+        /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about
+        /// the closure, it can call Connection.ThrowException. The connection object is passed as the event sender
+        /// argument.</summary>
+        public event EventHandler? Closed
+        {
+            add
+            {
+                lock (_mutex)
+                {
+                    if (_state >= ConnectionState.Closed)
+                    {
+                        Task.Run(() => value?.Invoke(this, EventArgs.Empty));
+                    }
+                    _closed += value;
+                }
+            }
+            remove => _closed -= value;
+        }
+
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For outgoing connections, set can be called during configuration.</summary>
@@ -54,7 +72,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the connection idle timeout. If not using Ice1, the IdleTimeout is negotiated when the
+        /// <summary>Gets the connection idle timeout. With Ice2, the IdleTimeout is negotiated when the
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
         public TimeSpan IdleTimeout => _socket?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
 
@@ -62,7 +80,8 @@ namespace IceRpc
         /// streams accepted when the connection is active. The connection is no longer considered active as soon
         /// as <see cref="ShutdownAsync(string?, CancellationToken)"/> is called to initiate a graceful connection
         /// closure.</summary>
-        /// <return><c>true</c> if the connection is active, <c>false</c> if it's closing or closed.</return>
+        /// <return><c>true</c> if the connection is in the <c>ConnectionState.Active</c> state, <c>false</c>
+        /// otherwise.</return>
         public bool IsActive => _state == ConnectionState.Active;
 
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
@@ -71,16 +90,15 @@ namespace IceRpc
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
         public bool IsIncoming => Server != null;
 
-        /// <summary><c>true</c> if the connection uses encryption <c>false</c> otherwise.</summary>
-        public virtual bool IsSecure => (_localEndpoint ?? _remoteEndpoint)?.IsSecure ?? false;
+        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
+        public bool IsSecure => (_localEndpoint ?? _remoteEndpoint)?.IsSecure ?? false;
 
         /// <summary>The connection local endpoint.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the local endpoint is not available or if setting
-        /// the local endpoint is not allowed (the connection is connected or it's an outgoing connection).</exception>
+        /// <exception name="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
         public Endpoint? LocalEndpoint
         {
             get => IsIncoming ? _localEndpoint : _socket?.LocalEndpoint;
-            set
+            internal set
             {
                 if (State > ConnectionState.NotConnected)
                 {
@@ -148,6 +166,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>This event is raised when the connection receives a ping frame. The connection object is
+        /// passed as the event sender argument.</summary>
+        public event EventHandler? PingReceived;
+
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 
@@ -210,10 +232,18 @@ namespace IceRpc
         }
 
         /// <summary>The socket transport.</summary>
-        public Transport? Transport => (_localEndpoint ?? _remoteEndpoint)?.Transport;
+        /// <exception name="InvalidOperationException">Thrown if there's no endpoint set.</exception>
+        public Transport Transport =>
+            (_localEndpoint ?? _remoteEndpoint)?.Transport ??
+            throw new InvalidOperationException(
+                $"{nameof(Transport)} is not available because there's no endpoint set");
 
         /// <summary>The socket transport name.</summary>
-        public string? TransportName => (_localEndpoint ?? _remoteEndpoint)?.TransportName;
+        /// <exception name="InvalidOperationException">Thrown if there's no endpoint set.</exception>
+        public string TransportName =>
+            (_localEndpoint ?? _remoteEndpoint)?.TransportName ??
+            throw new InvalidOperationException(
+                $"{nameof(TransportName)} is not available because there's no endpoint set");
 
         internal CompressionLevel CompressionLevel => _options!.CompressionLevel;
         internal int CompressionMinSize => _options!.CompressionMinSize;
@@ -273,7 +303,9 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Aborts the connection.</summary>
+        /// <summary>Aborts the connection. This methods switches the connection state to <c>ConnectionState.Closed</c>
+        /// If `Closed` events are registered, it waits for the events to be executed.
+        /// </summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
@@ -480,25 +512,6 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
         }
 
-        /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about
-        /// the closure, it can call Connection.ThrowException. The connection object is passed as the event sender
-        /// argument.</summary>
-        public event EventHandler? Closed
-        {
-            add
-            {
-                lock (_mutex)
-                {
-                    if (_state >= ConnectionState.Closed)
-                    {
-                        Task.Run(() => value?.Invoke(this, EventArgs.Empty));
-                    }
-                    _closed += value;
-                }
-            }
-            remove => _closed -= value;
-        }
-
         /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
@@ -514,41 +527,6 @@ namespace IceRpc
                 _socket?.Dispose();
             }
         }
-
-        /// <summary>Starts listening on the configured local endpoint. If the configured local endpoint is an
-        /// IP endpoint configured port 0, this methods updates the local endpooint to include the actual port
-        /// selected by the operating system.</summary>
-        /// <exception cref="NotSupportedException">Thrown if the connection doesn't support <c>Listen</c>.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is connected or if the local endpoints
-        /// are not set.</exception>
-        public void Listen()
-        {
-            if (!IsDatagram || !IsIncoming)
-            {
-                throw new NotSupportedException(
-                    $"the {nameof(Listen)} operation is only supported for incoming datagram connections");
-            }
-            else if (State > ConnectionState.NotConnected)
-            {
-                throw new InvalidOperationException(
-                    $"the {nameof(Listen)} operation can't be called after ${nameof(ConnectAsync)}");
-            }
-
-            _options ??= new IncomingConnectionOptions();
-            if (_options is IncomingConnectionOptions incomingOptions)
-            {
-                if (_localEndpoint == null)
-                {
-                    throw new InvalidOperationException("incoming connection has no local endpoint set");
-                }
-                _socket = _localEndpoint.CreateServerSocket(incomingOptions, Logger);
-                _localEndpoint = _socket.LocalEndpoint;
-            }
-        }
-
-        /// <summary>This event is raised when the connection receives a ping frame. The connection object is
-        /// passed as the event sender argument.</summary>
-        public event EventHandler? PingReceived;
 
         /// <summary>Sends an asynchronous ping frame.</summary>
         /// <param name="progress">Sent progress provider.</param>
@@ -602,89 +580,34 @@ namespace IceRpc
             }
         }
 
-        internal async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
+        /// <summary>Starts listening on the configured local endpoint. If the configured local endpoint is an
+        /// IP endpoint configured port 0, this methods updates the local endpooint to include the actual port
+        /// selected by the operating system.</summary>
+        /// <exception cref="NotSupportedException">Thrown if the connection doesn't support <c>Listen</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is connected or if the local endpoints
+        /// are not set.</exception>
+        internal void Listen()
         {
-            if (_socket == null)
+            if (!IsDatagram || !IsIncoming)
             {
-                throw new InvalidOperationException("connection is not established");
+                throw new NotSupportedException(
+                    $"the {nameof(Listen)} operation is only supported for incoming datagram connections");
+            }
+            else if (State > ConnectionState.NotConnected)
+            {
+                throw new InvalidOperationException(
+                    $"the {nameof(Listen)} operation can't be called after ${nameof(ConnectAsync)}");
             }
 
-            using IDisposable? socketScope = _socket.StartScope(Server);
-            try
+            _options ??= new IncomingConnectionOptions();
+            if (_options is IncomingConnectionOptions incomingOptions)
             {
-                Task shutdownTask;
-                lock (_mutex)
+                if (_localEndpoint == null)
                 {
-                    if (_state == ConnectionState.Active && !IsDatagram)
-                    {
-                        State = ConnectionState.Closing;
-                        _closeTask ??= PerformShutdownAsync(exception);
-                        Debug.Assert(_closeTask != null);
-                    }
-                    shutdownTask = _closeTask ?? AbortAsync(exception);
+                    throw new InvalidOperationException("incoming connection has no local endpoint set");
                 }
-                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore if user cancellation token got canceled.
-            }
-            catch (Exception ex)
-            {
-                // PerformShutdownAsync doesn't throw.
-                Debug.Assert(false, $"unexpected exception {ex}");
-            }
-
-            async Task PerformShutdownAsync(Exception exception)
-            {
-                // Abort outgoing streams and get the largest incoming stream IDs. With Ice2, we don't wait for
-                // the incoming streams to complete before sending the GoAway frame but instead provide the ID
-                // of the latest incoming stream IDs to the peer. The peer will close the connection only once
-                // the streams with IDs inferior or equal to the largest stream IDs are complete.
-                (long, long) lastIncomingStreamIds = _socket.AbortStreams(exception, stream => !stream.IsIncoming);
-
-                // With Ice1, we first wait for all incoming streams to complete before sending the GoAway frame.
-                if (Protocol == Protocol.Ice1)
-                {
-                    await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
-                }
-
-                try
-                {
-                    Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
-                    using var source = new CancellationTokenSource(_options.CloseTimeout);
-                    CancellationToken cancel = source.Token;
-
-                    // Write the close frame
-                    await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
-                                                               exception.Message,
-                                                               cancel).ConfigureAwait(false);
-
-                    // Make sure to yield to release the mutex. It's important to not hold the mutex because the
-                    // loop below waits for AbortAsync to be called and AbortAsync requires to lock the mutex.
-                    await Task.Yield();
-
-                    // Wait for the peer to close the connection.
-                    while (true)
-                    {
-                        // We can't just wait for the accept stream task failure as the task can sometime succeed
-                        // depending on the thread scheduling. So we also check for the state to ensure the loop
-                        // eventually terminates once the peer connection is closed.
-                        if (_state == ConnectionState.Closed)
-                        {
-                            throw exception;
-                        }
-                        await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    await AbortAsync(new TimeoutException("connection closure timed out")).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    await AbortAsync(exception).ConfigureAwait(false);
-                }
+                _socket = _localEndpoint.CreateServerSocket(incomingOptions, Logger);
+                _localEndpoint = _socket.LocalEndpoint;
             }
         }
 
@@ -1003,6 +926,91 @@ namespace IceRpc
             else
             {
                 return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
+            }
+        }
+
+        internal async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
+        {
+            if (_socket == null)
+            {
+                throw new InvalidOperationException("connection is not established");
+            }
+
+            using IDisposable? socketScope = _socket.StartScope(Server);
+            try
+            {
+                Task shutdownTask;
+                lock (_mutex)
+                {
+                    if (_state == ConnectionState.Active && !IsDatagram)
+                    {
+                        State = ConnectionState.Closing;
+                        _closeTask ??= PerformShutdownAsync(exception);
+                    }
+                    shutdownTask = _closeTask ?? AbortAsync(exception);
+                }
+                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore if user cancellation token got canceled.
+            }
+            catch (Exception ex)
+            {
+                // PerformShutdownAsync doesn't throw.
+                Debug.Assert(false, $"unexpected exception {ex}");
+            }
+
+            async Task PerformShutdownAsync(Exception exception)
+            {
+                // Abort outgoing streams and get the largest incoming stream IDs. With Ice2, we don't wait for
+                // the incoming streams to complete before sending the GoAway frame but instead provide the ID
+                // of the latest incoming stream IDs to the peer. The peer will close the connection only once
+                // the streams with IDs inferior or equal to the largest stream IDs are complete.
+                (long, long) lastIncomingStreamIds = _socket.AbortStreams(exception, stream => !stream.IsIncoming);
+
+                // With Ice1, we first wait for all incoming streams to complete before sending the GoAway frame.
+                if (Protocol == Protocol.Ice1)
+                {
+                    await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
+                }
+
+                try
+                {
+                    Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
+                    using var source = new CancellationTokenSource(_options.CloseTimeout);
+                    CancellationToken cancel = source.Token;
+
+                    // Write the close frame
+                    await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
+                                                               exception.Message,
+                                                               cancel).ConfigureAwait(false);
+
+                    // Make sure to yield to release the mutex. It's important to not hold the mutex because the
+                    // loop below waits for AbortAsync to be called and AbortAsync requires to lock the mutex.
+                    await Task.Yield();
+
+                    // Wait for the peer to close the connection.
+                    while (true)
+                    {
+                        // We can't just wait for the accept stream task failure as the task can sometime succeed
+                        // depending on the thread scheduling. So we also check for the state to ensure the loop
+                        // eventually terminates once the peer connection is closed.
+                        if (_state == ConnectionState.Closed)
+                        {
+                            throw exception;
+                        }
+                        await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    await AbortAsync(new TimeoutException("connection closure timed out")).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    await AbortAsync(exception).ConfigureAwait(false);
+                }
             }
         }
 

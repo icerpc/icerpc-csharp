@@ -357,6 +357,7 @@ namespace IceRpc
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
             if (_incomingConnection != null)
             {
+                // The connection is disposed by ShutdownAsync but we do it again here to prevent a warning.
                 await _incomingConnection.DisposeAsync().ConfigureAwait(false);
             }
             _cancelDispatchSource.Dispose();
