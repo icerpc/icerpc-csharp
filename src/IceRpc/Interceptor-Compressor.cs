@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
 using IceRpc.Internal;
+using System;
 
 namespace IceRpc
 {

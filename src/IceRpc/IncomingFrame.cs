@@ -2,9 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 
 namespace IceRpc
 {
@@ -46,7 +43,7 @@ namespace IceRpc
         public Protocol Protocol { get; }
 
         private Connection? _connection;
-        
+
         /// <summary>Constructs a new <see cref="IncomingFrame"/>.</summary>
         /// <param name="protocol">The protocol of this frame.</param>
         protected IncomingFrame(Protocol protocol) => Protocol = protocol;

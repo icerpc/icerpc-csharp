@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +9,7 @@ using System.IO.Compression;
 namespace IceRpc.Internal
 {
     /// <summary>Indicates the result of the <see cref="CompressionExtensions.CompressPayload"/> operation.</summary>
-    public enum CompressionResult
+    internal enum CompressionResult
     {
         /// <summary>The payload was successfully compressed.</summary>
         Success,
@@ -118,7 +117,7 @@ namespace IceRpc.Internal
 
         /// <summary>Decompresses the encapsulation payload if it is compressed. Compressed encapsulations are only
         /// supported with the 2.0 encoding.</summary>
-        public static void DecompressPayload(this IncomingFrame frame, int maxSize)
+        internal static void DecompressPayload(this IncomingFrame frame, int maxSize)
         {
             if (frame.PayloadCompressionFormat == CompressionFormat.Decompressed)
             {
@@ -182,7 +181,7 @@ namespace IceRpc.Internal
 
                 Debug.Assert(frame.Payload.Array != null);
                 using var compressed = new DeflateStream(
-                    new MemoryStream(frame.Payload.Array, 
+                    new MemoryStream(frame.Payload.Array,
                                      frame.Payload.Offset + compressedIndex,
                                      frame.Payload.Count - compressedIndex),
                     CompressionMode.Decompress);
