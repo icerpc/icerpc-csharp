@@ -16,36 +16,22 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2048, 100, "Optimal")]
         [TestCase(512, 512, "Optimal")]
         [TestCase(2048, 512, "Fastest")]
-        // [TestCase(512, 2048, "Fastest")] TODO: re-enable
+        [TestCase(512, 2048, "Fastest")]
         [TestCase(2048, 2048, "Fastest")]
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
-            await using var communicator = new Communicator
-            {
-                ConnectionOptions = new OutgoingConnectionOptions()
-                {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                }
-            };
-
-            await using var server = new Server
-            {
-                Invoker = communicator,
-                ConnectionOptions = new IncomingConnectionOptions()
-                {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                },
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
+            await using var pool = new Communicator { };
+            pool.Use(Interceptor.CreateCompressor(Enum.Parse<CompressionLevel>(compressionLevel),
+                                                  compressionMinSize));
+            pool.Use(Interceptor.Decompressor);
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
             int compressedResponseSize = 0;
-            bool compressedResponse = false;
 
             var router = new Router();
+            bool compressedResponse = false;
+
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
@@ -65,6 +51,15 @@ namespace IceRpc.Tests.ClientServer
                         throw;
                     }
                 }));
+            router.Use(Middleware.CreateCompressor(Enum.Parse<CompressionLevel>(compressionLevel),
+                                                   compressionMinSize));
+            router.Use(Middleware.Decompressor);
+            await using var server = new Server
+            {
+                Invoker = pool,
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
 
             server.Dispatcher = router;
             server.Listen();

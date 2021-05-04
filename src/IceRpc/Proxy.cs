@@ -117,6 +117,12 @@ namespace IceRpc
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
+            if (compress && invocation?.RequestFeatures[typeof(Features.CompressPayload)] == null)
+            {
+                invocation ??= new Invocation();
+                invocation.RequestFeatures[typeof(Features.CompressPayload)] = Features.CompressPayload.Yes;
+            }
+
             try
             {
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
@@ -147,7 +153,6 @@ namespace IceRpc
                                                   requestPayload,
                                                   deadline,
                                                   invocation,
-                                                  compress,
                                                   idempotent,
                                                   oneway);
 

@@ -87,16 +87,15 @@ namespace IceRpc
 
         private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
 
-        private readonly CompressionLevel _compressionLevel;
-        private readonly int _compressionMinSize;
-
         private int _payloadSize = -1; // -1 means not initialized
 
         /// <summary>Compresses the encapsulation payload using the specified compression format (by default, gzip).
         /// Compressed encapsulation payload is only supported with the 2.0 encoding.</summary>
         /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
         /// </returns>
-        public CompressionResult CompressPayload(CompressionFormat format = CompressionFormat.GZip)
+        public CompressionResult CompressPayload(
+            CompressionLevel compressionLevel,
+            int compressionMinSize)
         {
             if (PayloadEncoding != Encoding.V20)
             {
@@ -107,14 +106,6 @@ namespace IceRpc
                 if (PayloadCompressionFormat != CompressionFormat.Decompressed)
                 {
                     throw new InvalidOperationException("the payload is already compressed");
-                }
-                if (format == CompressionFormat.Decompressed)
-                {
-                    throw new ArgumentException("invalid compression format", nameof(format));
-                }
-                else if (format != CompressionFormat.GZip)
-                {
-                    throw new NotSupportedException($"cannot compress with compression format '{format}'");
                 }
 
                 int encapsulationOffset = this is OutgoingResponse ? 1 : 0;
@@ -127,7 +118,7 @@ namespace IceRpc
                 Debug.Assert(Payload.GetByte(encapsulationOffset + sizeLength + 2) == 0); // i.e. Decompressed
 
                 int encapsulationSize = Payload.GetByteCount() - encapsulationOffset; // this includes the size length
-                if (encapsulationSize < _compressionMinSize)
+                if (encapsulationSize < compressionMinSize)
                 {
                     return CompressionResult.PayloadTooSmall;
                 }
@@ -152,8 +143,9 @@ namespace IceRpc
                 using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
                 using var gzipStream = new GZipStream(
                     memoryStream,
-                    _compressionLevel == CompressionLevel.Fastest ? System.IO.Compression.CompressionLevel.Fastest :
-                                                                    System.IO.Compression.CompressionLevel.Optimal);
+                    compressionLevel == CompressionLevel.Fastest ? 
+                        System.IO.Compression.CompressionLevel.Fastest :
+                        System.IO.Compression.CompressionLevel.Optimal);
                 try
                 {
                     // The data to compress starts after the compression status byte, + 3 corresponds to (Encoding 2
@@ -214,17 +206,11 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(
-            Protocol protocol,
-            CompressionLevel compressionLevel,
-            int compressionMinSize,
-            FeatureCollection features)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection? features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
-            _compressionLevel = compressionLevel;
-            _compressionMinSize = compressionMinSize;
-            Features = features;
+            Features = features ?? new FeatureCollection();
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)

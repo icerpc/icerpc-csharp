@@ -134,13 +134,13 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task EventSource_RequestsFailedAsync()
         {
-             using var invocationEventListener = new TestEventListener(
-                "IceRpc.Invocation.Test",
-                new List<(string, string)>
-                {
+            using var invocationEventListener = new TestEventListener(
+               "IceRpc.Invocation.Test",
+               new List<(string, string)>
+               {
                     ("total-requests", "10"),
                     ("failed-requests", "10")
-                });
+               });
 
             using var dispatchEventListener = new TestEventListener(
                 "IceRpc.Dispatch.Test",
