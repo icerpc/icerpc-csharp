@@ -120,13 +120,17 @@ namespace IceRpc.Tests.Api
                 server1.Listen();
 
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
-                Connection connection = await prx.GetConnectionAsync();
+
+                // Establishes connection:
+                await prx.IcePingAsync(new Invocation { IsOneway = true });
+                Connection? connection = prx.Connection;
+                Assert.That(connection, Is.Not.Null);
 
                 IDispatcher dispatcher = new ProxyTest();
 
                 // We can set Dispatcher on an outgoing connection
-                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
-                Assert.DoesNotThrow(() => connection.Dispatcher = null);
+                Assert.DoesNotThrow(() => connection!.Dispatcher = dispatcher);
+                Assert.DoesNotThrow(() => connection!.Dispatcher = null);
             }
         }
 

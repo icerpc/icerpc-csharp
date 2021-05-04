@@ -82,11 +82,9 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
-
-            Connection connection = await proxy.GetConnectionAsync();
-            connection.Dispatcher = server.Dispatcher;
-            IRetryBidirServicePrx bidir = proxy.Clone();
-            bidir.Connection = connection;
+            await proxy.IcePingAsync();
+            proxy.Connection!.Dispatcher = server.Dispatcher;
+            IRetryBidirServicePrx bidir = proxy.Clone(); // keeps Connection
             bidir.Endpoint = null; // endpointless proxy with a connection
 
             Assert.ThrowsAsync<ServiceNotFoundException>(

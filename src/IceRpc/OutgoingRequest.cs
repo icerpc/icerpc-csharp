@@ -15,6 +15,9 @@ namespace IceRpc
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
+        public ImmutableList<Endpoint> AltEndpoints { get; set; }
+        public Connection? Connection { get; set; }
+
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
         public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
 
@@ -24,6 +27,8 @@ namespace IceRpc
         /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; }
+
+        public Endpoint? Endpoint { get; set; }
 
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
@@ -151,10 +156,10 @@ namespace IceRpc
             bool forwardBinaryContext = true)
             : this(proxy, request.Operation, request.Context, request.Features)
         {
-            PayloadEncoding = request.PayloadEncoding;
             Deadline = request.Deadline;
             IsIdempotent = request.IsIdempotent;
             IsOneway = request.IsOneway;
+            PayloadEncoding = request.PayloadEncoding;
 
             if (request.Protocol == Protocol)
             {
@@ -196,10 +201,10 @@ namespace IceRpc
             bool oneway = false)
             : this(proxy, operation, invocation?.Context, invocation?.RequestFeatures)
         {
-            Payload = args;
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
             IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
+            Payload = args;
             Progress = invocation?.Progress;
         }
 
@@ -327,6 +332,9 @@ namespace IceRpc
             FeatureCollection? features)
             : base(proxy.Protocol, features)
         {
+            AltEndpoints = proxy.AltEndpoints;
+            Connection = proxy.Connection;
+            Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
             if (Protocol == Protocol.Ice1)

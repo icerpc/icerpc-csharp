@@ -64,7 +64,9 @@ namespace IceRpc.Tests.Encoding
             IServicePrx endpointLess = _server.CreateEndpointlessProxy<IServicePrx>("/foo");
 
             IServicePrx regular = _server.CreateProxy<IServicePrx>("/bar");
-            Connection connection = await regular.GetConnectionAsync();
+
+            // Just to establish connection
+            await regular.IcePingAsync(new Invocation { IsOneway = true });
 
             // Marshal the endpointless proxy
             var ostr = new OutputStream(encoding, _data, startAt: default);
@@ -74,10 +76,10 @@ namespace IceRpc.Tests.Encoding
             // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
             IServicePrx prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
                                                                 IServicePrx.IceReader,
-                                                                connection,
+                                                                regular.Connection!,
                                                                 proxyOptions: new ProxyOptions());
-            Assert.AreEqual(connection, prx1.Connection);
-            Assert.AreEqual(prx1.Endpoint, connection.RemoteEndpoint);
+            Assert.AreEqual(regular.Connection, prx1.Connection);
+            Assert.AreEqual(prx1.Endpoint, regular.Connection!.RemoteEndpoint);
         }
     }
 }

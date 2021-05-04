@@ -126,7 +126,8 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
             prx = server.CreateProxy<IGreeterServicePrx>("/");
-            var connection = await prx.GetConnectionAsync();
+            await prx.IcePingAsync();
+            Connection connection = prx.Connection!;
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 
