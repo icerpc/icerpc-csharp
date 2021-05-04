@@ -91,8 +91,10 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
                     var connection = new Connection(
-                        endpoint.CreateClientSocket(_communicator.ConnectionOptions ?? new(), _communicator.Logger),
-                        _communicator.ConnectionOptions ?? new());
+                        endpoint.CreateClientSocket(
+                            _communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default,
+                            _communicator.Logger),
+                        _communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default);
                     await connection.ConnectAsync(default);
                     return connection;
                 }

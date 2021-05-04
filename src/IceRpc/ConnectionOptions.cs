@@ -253,6 +253,10 @@ namespace IceRpc
     /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
     public sealed class OutgoingConnectionOptions : ConnectionOptions
     {
+        public OutgoingConnectionOptions()
+        {
+        }
+
         /// <summary>The SSL authentication options to configure TLS client connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslClientAuthenticationOptions? AuthenticationOptions

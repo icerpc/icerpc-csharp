@@ -22,7 +22,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator
             {
-                ConnectionOptions = new OutgoingConnectionOptions()
+                ConnectionOptions = new OutgoingConnectionOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize

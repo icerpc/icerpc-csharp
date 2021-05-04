@@ -1,14 +1,10 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-using System;
-
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging messages in "IceRpc" category.</summary>
     internal static class LoggerExtensions
     {
-        internal const int OtherBaseEventId = 0 * EventIdRange;
         internal const int ProtocolBaseEventId = 1 * EventIdRange;
         internal const int ServerBaseEventId = 2 * EventIdRange;
         internal const int SlicBaseEventId = 3 * EventIdRange;

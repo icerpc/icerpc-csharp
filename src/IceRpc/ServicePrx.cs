@@ -618,7 +618,7 @@ namespace IceRpc
                 }
             }
 
-            OutgoingConnectionOptions options = communicator.ConnectionOptions?.Clone() ?? new();
+            OutgoingConnectionOptions options = communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default;
 
             bool refreshCache = false;
 

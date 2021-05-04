@@ -303,7 +303,7 @@ namespace IceRpc
                 }
             }
 
-            OutgoingConnectionOptions connectionOptions = ConnectionOptions?.Clone() ?? new();
+            OutgoingConnectionOptions connectionOptions = ConnectionOptions ?? OutgoingConnectionOptions.Default;
 
             ILogger logger = Logger;
             int nextEndpoint = 0;
