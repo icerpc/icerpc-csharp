@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 
 namespace IceRpc
@@ -16,8 +17,8 @@ namespace IceRpc
                         response.PayloadCompressionFormat != CompressionFormat.Decompressed &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        // TODO move DecompressPayload out of the IncomingFrame class
-                        response.DecompressPayload();
+                        // TODO maxSize should come from the connection
+                        response.DecompressPayload(maxSize: 1024 * 1024);
                     }
                     return response;
                 });

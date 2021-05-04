@@ -149,15 +149,13 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            int maxSize,
             SocketStream? socketStream)
-            : base(protocol, maxSize)
+            : base(protocol)
         {
             SocketStream = socketStream;
 
@@ -228,7 +226,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="request">The outgoing request frame.</param>
         internal IncomingRequest(OutgoingRequest request)
-            : base(request.Protocol, int.MaxValue)
+            : base(request.Protocol)
         {
             if (Protocol == Protocol.Ice1)
             {

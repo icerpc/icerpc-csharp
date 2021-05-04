@@ -190,12 +190,6 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    // Temporary
-                    if (response.PayloadCompressionFormat != CompressionFormat.Decompressed)
-                    {
-                        response.DecompressPayload();
-                    }
-
                     return (response.Payload, response.Connection);
                 }
                 finally
