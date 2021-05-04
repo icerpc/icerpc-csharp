@@ -143,8 +143,9 @@ namespace IceRpc
                 using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
                 using var gzipStream = new GZipStream(
                     memoryStream,
-                    compressionLevel == CompressionLevel.Fastest ? System.IO.Compression.CompressionLevel.Fastest :
-                                                        System.IO.Compression.CompressionLevel.Optimal);
+                    compressionLevel == CompressionLevel.Fastest ? 
+                        System.IO.Compression.CompressionLevel.Fastest :
+                        System.IO.Compression.CompressionLevel.Optimal);
                 try
                 {
                     // The data to compress starts after the compression status byte, + 3 corresponds to (Encoding 2

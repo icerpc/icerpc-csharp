@@ -170,7 +170,7 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
-        /// <summary>The features of this connection.</summary>
+        /// <summary>The features of the connection.</summary>
         public FeatureCollection Features { get; set; } = new();
 
         /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
