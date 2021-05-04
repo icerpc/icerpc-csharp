@@ -52,9 +52,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>When true instruct the interceptor and middleware compressors to compress the 2.0 encoded payload
-        /// of a request or a response send over this connection.</summary>
-        public bool CompressPayload { get; set; }
+        /// <summary>The features of this connection.</summary>
+        public FeatureCollection Features { get; set; }
 
         /// <summary>Gets the connection idle timeout.</summary>
         public TimeSpan IdleTimeout
@@ -267,6 +266,7 @@ namespace IceRpc
         internal Connection(MultiStreamSocket socket, ConnectionOptions options, Server? server = null)
         {
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
+            Features = options.Features;
             KeepAlive = options.KeepAlive;
             _closeTimeout = options.CloseTimeout;
             Server = server;

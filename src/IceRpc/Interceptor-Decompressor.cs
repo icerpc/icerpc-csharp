@@ -13,9 +13,10 @@ namespace IceRpc
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     if (response.PayloadEncoding == Encoding.V20 &&
-                        response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No &&
-                        response.PayloadCompressionFormat != CompressionFormat.Decompressed)
+                        response.PayloadCompressionFormat != CompressionFormat.Decompressed &&
+                        response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
+                        // TODO move DecompressPayload out of the IncomingFrame class
                         response.DecompressPayload();
                     }
                     return response;

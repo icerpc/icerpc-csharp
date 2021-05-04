@@ -12,9 +12,10 @@ namespace IceRpc
                 async (request, cancel) =>
                 {
                     if (request.PayloadEncoding == Encoding.V20 &&
-                        request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No &&
-                        request.PayloadCompressionFormat != CompressionFormat.Decompressed)
+                        request.PayloadCompressionFormat != CompressionFormat.Decompressed &&
+                        request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
+                        // TODO move DecompressPayload out of the IncomingFrame class
                         request.DecompressPayload();
                     }
                     return await next.DispatchAsync(request, cancel).ConfigureAwait(false);
