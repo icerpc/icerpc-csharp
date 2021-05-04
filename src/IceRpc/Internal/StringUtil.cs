@@ -10,170 +10,28 @@ namespace IceRpc.Internal
     /// <summary>Helper methods for string manipulation.</summary>
     internal static class StringUtil
     {
-        // Return the index of the first character in str to appear in match, starting from 0. Returns -1 if none is
-        // found.
-        internal static int FindFirstOf(string str, string match) => FindFirstOf(str, match, 0);
-
-        // Return the index of the first character in str to appear in match, starting from start. Returns -1 if none
-        // is found.
-        internal static int FindFirstOf(string str, string match, int start)
+        // If a single or double quotation mark is found at the start position, then the position of the matching
+        // closing quote is returned. If no quotation mark is found at the start position, then 0 is returned. If
+        // no matching closing quote is found, then -1 is returned.
+        internal static int CheckQuote(string s, int start)
         {
-            int len = str.Length;
-            for (int i = start; i < len; i++)
+            char quoteChar = s[start];
+            if (quoteChar == '"' || quoteChar == '\'')
             {
-                char ch = str[i];
-                if (match.IndexOf(ch) != -1)
+                start++;
+                int len = s.Length;
+                int pos;
+                while (start < len && (pos = s.IndexOf(quoteChar, start)) != -1)
                 {
-                    return i;
+                    if (s[pos - 1] != '\\')
+                    {
+                        return pos;
+                    }
+                    start = pos + 1;
                 }
+                return -1; // Unmatched quote
             }
-
-            return -1;
-        }
-
-        // Return the index of the first character in str which does not appear in match, starting from start. Returns
-        // -1 if none is found.
-        internal static int FindFirstNotOf(string str, string match, int start)
-        {
-            int len = str.Length;
-            for (int i = start; i < len; i++)
-            {
-                char ch = str[i];
-                if (!match.Contains(ch))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static void EncodeChar(char c, StringBuilder sb, ToStringMode toStringMode, char? special)
-        {
-            switch (c)
-            {
-                case '\\':
-                {
-                    sb.Append("\\\\");
-                    break;
-                }
-                case '\'':
-                {
-                    sb.Append("\\'");
-                    break;
-                }
-                case '"':
-                {
-                    sb.Append("\\\"");
-                    break;
-                }
-                case '\a':
-                {
-                    if (toStringMode == ToStringMode.Compat)
-                    {
-                        // Octal escape for compatibility with 3.6 and earlier
-                        sb.Append("\\007");
-                    }
-                    else
-                    {
-                        sb.Append("\\a");
-                    }
-                    break;
-                }
-                case '\b':
-                {
-                    sb.Append("\\b");
-                    break;
-                }
-                case '\f':
-                {
-                    sb.Append("\\f");
-                    break;
-                }
-                case '\n':
-                {
-                    sb.Append("\\n");
-                    break;
-                }
-                case '\r':
-                {
-                    sb.Append("\\r");
-                    break;
-                }
-                case '\t':
-                {
-                    sb.Append("\\t");
-                    break;
-                }
-                case '\v':
-                {
-                    if (toStringMode == ToStringMode.Compat)
-                    {
-                        // Octal escape for compatibility with 3.6 and earlier
-                        sb.Append("\\013");
-                    }
-                    else
-                    {
-                        sb.Append("\\v");
-                    }
-                    break;
-                }
-                default:
-                {
-                    if (c == special)
-                    {
-                        sb.Append('\\');
-                        sb.Append(c);
-                    }
-                    else
-                    {
-                        int i = c;
-                        if (i < 32 || i > 126)
-                        {
-                            if (toStringMode == ToStringMode.Compat)
-                            {
-                                // When ToStringMode=Compat, c is a UTF-8 byte
-                                Debug.Assert(i < 256);
-
-                                sb.Append('\\');
-                                string octal = System.Convert.ToString(i, 8);
-
-                                // Add leading zeros so that we avoid problems during decoding. For example, consider
-                                // the encoded string \0013 (i.e., a character with value 1 followed by the character
-                                // '3'). If the leading zeros were omitted, the result would be incorrectly interpreted
-                                // by the decoder as a single character with value 11.
-                                for (int j = octal.Length; j < 3; j++)
-                                {
-                                    sb.Append('0');
-                                }
-                                sb.Append(octal);
-                            }
-                            else if (i < 32 || i == 127 || (toStringMode == ToStringMode.ASCII))
-                            {
-                                // append \\unnnn
-                                sb.Append("\\u");
-                                string hex = System.Convert.ToString(i, 16);
-                                for (int j = hex.Length; j < 4; j++)
-                                {
-                                    sb.Append('0');
-                                }
-                                sb.Append(hex);
-                            }
-                            else
-                            {
-                                // keep as is
-                                sb.Append(c);
-                            }
-                        }
-                        else
-                        {
-                            // printable ASCII character
-                            sb.Append(c);
-                        }
-                    }
-                    break;
-                }
-            }
+            return 0; // Not quoted
         }
 
         // Adds escape sequences (such as "\n", or "\007") to the input string
@@ -232,6 +90,44 @@ namespace IceRpc.Internal
 
                 return result.ToString();
             }
+        }
+
+        // Return the index of the first character in str which does not appear in match, starting from start. Returns
+        // -1 if none is found.
+        internal static int FindFirstNotOf(string str, string match, int start)
+        {
+            int len = str.Length;
+            for (int i = start; i < len; i++)
+            {
+                char ch = str[i];
+                if (!match.Contains(ch))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        // Return the index of the first character in str to appear in match, starting from 0. Returns -1 if none is
+        // found.
+        internal static int FindFirstOf(string str, string match) => FindFirstOf(str, match, 0);
+
+        // Return the index of the first character in str to appear in match, starting from start. Returns -1 if none
+        // is found.
+        internal static int FindFirstOf(string str, string match, int start)
+        {
+            int len = str.Length;
+            for (int i = start; i < len; i++)
+            {
+                char ch = str[i];
+                if (match.IndexOf(ch) != -1)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private static char CheckChar(string s, int pos)
@@ -486,45 +382,131 @@ namespace IceRpc.Internal
             return start;
         }
 
-        /// <summary>Remove escape sequences added by <see cref="EscapeString"/>. Throws System.ArgumentException for
-        /// an invalid input string.</summary>
-        /// <param name="s">The string to escape.</param>
-        /// <param name="start">Index to start escaping the string.</param>
-        /// <param name="end">Index to end escaping the string.</param>
-        /// <param name="special">String containing special characters that must be escape.</param>
-        /// <returns>The escaped string.</returns>
-        public static string UnescapeString(string s, int start, int end, string special)
+        private static void EncodeChar(char c, StringBuilder sb, ToStringMode toStringMode, char? special)
         {
-            Debug.Assert(start >= 0 && start <= end && end <= s.Length);
+            switch (c)
+            {
+                case '\\':
+                {
+                    sb.Append("\\\\");
+                    break;
+                }
+                case '\'':
+                {
+                    sb.Append("\\'");
+                    break;
+                }
+                case '"':
+                {
+                    sb.Append("\\\"");
+                    break;
+                }
+                case '\a':
+                {
+                    if (toStringMode == ToStringMode.Compat)
+                    {
+                        // Octal escape for compatibility with 3.6 and earlier
+                        sb.Append("\\007");
+                    }
+                    else
+                    {
+                        sb.Append("\\a");
+                    }
+                    break;
+                }
+                case '\b':
+                {
+                    sb.Append("\\b");
+                    break;
+                }
+                case '\f':
+                {
+                    sb.Append("\\f");
+                    break;
+                }
+                case '\n':
+                {
+                    sb.Append("\\n");
+                    break;
+                }
+                case '\r':
+                {
+                    sb.Append("\\r");
+                    break;
+                }
+                case '\t':
+                {
+                    sb.Append("\\t");
+                    break;
+                }
+                case '\v':
+                {
+                    if (toStringMode == ToStringMode.Compat)
+                    {
+                        // Octal escape for compatibility with 3.6 and earlier
+                        sb.Append("\\013");
+                    }
+                    else
+                    {
+                        sb.Append("\\v");
+                    }
+                    break;
+                }
+                default:
+                {
+                    if (c == special)
+                    {
+                        sb.Append('\\');
+                        sb.Append(c);
+                    }
+                    else
+                    {
+                        int i = c;
+                        if (i < 32 || i > 126)
+                        {
+                            if (toStringMode == ToStringMode.Compat)
+                            {
+                                // When ToStringMode=Compat, c is a UTF-8 byte
+                                Debug.Assert(i < 256);
 
-            for (int i = 0; i < special.Length; ++i)
-            {
-                if (special[i] < 32 || special[i] > 126)
-                {
-                    throw new System.ArgumentException("special characters must be in ASCII range 32-126",
-                                                        nameof(special));
-                }
-            }
+                                sb.Append('\\');
+                                string octal = System.Convert.ToString(i, 8);
 
-            // Optimization for strings without escapes
-            if (start == end || s.IndexOf('\\', start, end - start) == -1)
-            {
-                int p = start;
-                while (p < end)
-                {
-                    CheckChar(s, p++);
+                                // Add leading zeros so that we avoid problems during decoding. For example, consider
+                                // the encoded string \0013 (i.e., a character with value 1 followed by the character
+                                // '3'). If the leading zeros were omitted, the result would be incorrectly interpreted
+                                // by the decoder as a single character with value 11.
+                                for (int j = octal.Length; j < 3; j++)
+                                {
+                                    sb.Append('0');
+                                }
+                                sb.Append(octal);
+                            }
+                            else if (i < 32 || i == 127 || (toStringMode == ToStringMode.ASCII))
+                            {
+                                // append \\unnnn
+                                sb.Append("\\u");
+                                string hex = System.Convert.ToString(i, 16);
+                                for (int j = hex.Length; j < 4; j++)
+                                {
+                                    sb.Append('0');
+                                }
+                                sb.Append(hex);
+                            }
+                            else
+                            {
+                                // keep as is
+                                sb.Append(c);
+                            }
+                        }
+                        else
+                        {
+                            // printable ASCII character
+                            sb.Append(c);
+                        }
+                    }
+                    break;
                 }
-                return s[start..end];
-            }
-            else
-            {
-                var sb = new StringBuilder(end - start);
-                var utf8Encoding = new UTF8Encoding(false, true);
-                while (start < end)
-                {
-                    start = DecodeChar(s, start, end, special, sb, utf8Encoding);
-                }
-                return sb.ToString();
             }
         }
 
@@ -533,7 +515,7 @@ namespace IceRpc.Internal
         /// <param name="separators">A string containing the characters used as separators.</param>
         /// <returns>An array of strings, whose elements correspond to the parts of the string separated by one of the
         /// separator characters.</returns>
-        public static string[]? SplitString(string str, string separators)
+        internal static string[]? SplitString(string str, string separators)
         {
             var l = new List<string>();
             char[] arr = new char[str.Length];
@@ -594,28 +576,46 @@ namespace IceRpc.Internal
             return l.ToArray();
         }
 
-        // If a single or double quotation mark is found at the start position, then the position of the matching
-        // closing quote is returned. If no quotation mark is found at the start position, then 0 is returned. If
-        // no matching closing quote is found, then -1 is returned.
-        internal static int CheckQuote(string s, int start)
+        /// <summary>Remove escape sequences added by <see cref="EscapeString"/>. Throws System.ArgumentException for
+        /// an invalid input string.</summary>
+        /// <param name="s">The string to escape.</param>
+        /// <param name="start">Index to start escaping the string.</param>
+        /// <param name="end">Index to end escaping the string.</param>
+        /// <param name="special">String containing special characters that must be escape.</param>
+        /// <returns>The escaped string.</returns>
+        internal static string UnescapeString(string s, int start, int end, string special)
         {
-            char quoteChar = s[start];
-            if (quoteChar == '"' || quoteChar == '\'')
+            Debug.Assert(start >= 0 && start <= end && end <= s.Length);
+
+            for (int i = 0; i < special.Length; ++i)
             {
-                start++;
-                int len = s.Length;
-                int pos;
-                while (start < len && (pos = s.IndexOf(quoteChar, start)) != -1)
+                if (special[i] < 32 || special[i] > 126)
                 {
-                    if (s[pos - 1] != '\\')
-                    {
-                        return pos;
-                    }
-                    start = pos + 1;
+                    throw new System.ArgumentException("special characters must be in ASCII range 32-126",
+                                                        nameof(special));
                 }
-                return -1; // Unmatched quote
             }
-            return 0; // Not quoted
+
+            // Optimization for strings without escapes
+            if (start == end || s.IndexOf('\\', start, end - start) == -1)
+            {
+                int p = start;
+                while (p < end)
+                {
+                    CheckChar(s, p++);
+                }
+                return s[start..end];
+            }
+            else
+            {
+                var sb = new StringBuilder(end - start);
+                var utf8Encoding = new UTF8Encoding(false, true);
+                while (start < end)
+                {
+                    start = DecodeChar(s, start, end, special, sb, utf8Encoding);
+                }
+                return sb.ToString();
+            }
         }
     }
 }
