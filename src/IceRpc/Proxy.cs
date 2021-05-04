@@ -24,8 +24,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(proxy.GetIdentity(),
                                               proxy.GetFacet(),
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }
@@ -34,8 +34,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(proxy.Path,
                                               proxy.Protocol,
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }
@@ -224,7 +224,7 @@ namespace IceRpc
             {
                 var identity = Identity.FromPath(path);
 
-                Endpoint? endpoint = proxy.Impl.ParsedEndpoint;
+                Endpoint? endpoint = proxy.Endpoint;
                 Connection? connection = proxy.Connection;
 
                 if (proxy.Impl.IsWellKnown)
@@ -238,7 +238,7 @@ namespace IceRpc
                                               proxy.GetFacet(),
                                               proxy.Encoding,
                                               endpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.AltEndpoints,
                                               connection,
                                               proxy.GetOptions());
             }
@@ -247,8 +247,8 @@ namespace IceRpc
                 return GetFactory<T>().Create(path,
                                               proxy.Protocol,
                                               proxy.Encoding,
-                                              proxy.Impl.ParsedEndpoint,
-                                              proxy.Impl.ParsedAltEndpoints,
+                                              proxy.Endpoint,
+                                              proxy.AltEndpoints,
                                               proxy.Connection,
                                               proxy.GetOptions());
             }

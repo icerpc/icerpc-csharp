@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Api
                 Assert.Throws<ArgumentException>(() => server.ProxyHost = "");
 
                 Assert.DoesNotThrow(() => server.CreateProxy<IServicePrx>("/foo"));
-                server.Endpoint = "";
+                server.Endpoint = null;
                 Assert.Throws<InvalidOperationException>(() => server.CreateProxy<IServicePrx>("/foo"));
             }
 
@@ -141,31 +141,30 @@ namespace IceRpc.Tests.Api
                 Endpoint = endpoint
             };
 
-            Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), Endpoint.Parse(server.ProxyEndpoint).Host);
+            Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), server.ProxyEndpoint?.Host);
             server.ProxyHost = "localhost";
-            Assert.AreEqual("localhost", Endpoint.Parse(server.ProxyEndpoint).Host);
+            Assert.AreEqual("localhost", server.ProxyEndpoint?.Host);
 
             server.Listen();
 
-            var serverEndpoint = Endpoint.Parse(server.Endpoint);
-            var proxyEndpoint = Endpoint.Parse(server.ProxyEndpoint);
+            Assert.IsNotNull(server.Endpoint);
+            Assert.AreEqual(Transport.TCP, server.Endpoint.Transport);
+            Assert.AreEqual("127.0.0.1", server.Endpoint.Host);
+            Assert.That(server.Endpoint.Port, Is.GreaterThan(0));
 
-            Assert.AreEqual(Transport.TCP, serverEndpoint.Transport);
-            Assert.AreEqual("127.0.0.1", serverEndpoint.Host);
-            Assert.That(serverEndpoint.Port, Is.GreaterThan(0));
-
-            if (serverEndpoint.Protocol == Protocol.Ice1)
+            if (server.Endpoint.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("15000", serverEndpoint["timeout"]);
+                Assert.AreEqual("15000", server.Endpoint["timeout"]);
             }
 
-            Assert.AreEqual(Transport.TCP, proxyEndpoint.Transport);
-            Assert.AreEqual("localhost", proxyEndpoint.Host);
-            Assert.AreEqual(serverEndpoint.Port, proxyEndpoint.Port);
+            Assert.IsNotNull(server.ProxyEndpoint);
+            Assert.AreEqual(Transport.TCP, server.ProxyEndpoint.Transport);
+            Assert.AreEqual("localhost", server.ProxyEndpoint.Host);
+            Assert.AreEqual(server.Endpoint.Port, server.ProxyEndpoint.Port);
 
-            if (proxyEndpoint.Protocol == Protocol.Ice1)
+            if (server.ProxyEndpoint.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("15000", proxyEndpoint["timeout"]);
+                Assert.AreEqual("15000", server.ProxyEndpoint["timeout"]);
             }
         }
 
@@ -180,17 +179,19 @@ namespace IceRpc.Tests.Api
                 Invoker = communicator
             };
 
-            Assert.IsEmpty(server.ProxyEndpoint);
+            Assert.IsNull(server.ProxyEndpoint);
             server.Endpoint = "ice+tcp://127.0.0.1";
-            Assert.AreEqual(server.Endpoint.Replace("127.0.0.1", server.ProxyHost), server.ProxyEndpoint);
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.ProxyHost),
+                            server.ProxyEndpoint!.ToString());
             server.ProxyHost = "foobar";
-            Assert.AreEqual(server.Endpoint.Replace("127.0.0.1", server.ProxyHost), server.ProxyEndpoint);
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.ProxyHost),
+                            server.ProxyEndpoint.ToString());
 
             // Verifies that changing Endpoint updates Protocol
             Assert.AreEqual(Protocol.Ice2, server.Protocol);
             server.Endpoint = "tcp -h 127.0.0.1 -p 0";
             Assert.AreEqual(Protocol.Ice1, server.Protocol);
-            server.Endpoint = "";
+            server.Endpoint = null;
             Assert.AreEqual(Protocol.Ice2, server.Protocol);
         }
 

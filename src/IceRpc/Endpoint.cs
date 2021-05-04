@@ -17,32 +17,20 @@ namespace IceRpc
     /// transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
-        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
-        /// <returns>The parsed endpoint.</returns>
+        /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static Endpoint Parse(string s) =>
-            Internal.UriParser.IsEndpointUri(s) ? Internal.UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
+        public static implicit operator Endpoint(string s) => FromString(s);
 
         /// <summary>Creates an endpoint from its string representation.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
-        /// <param name="endpoint">The parsed endpoint.</param>
-        /// <returns>True when <c>s</c> is a valid endpoint string and endpoint is not null; otherwise, false.
-        /// </returns>
-        public static bool TryParse(string s, out Endpoint? endpoint)
-        {
-            try
-            {
-                endpoint = Parse(s);
-                return true;
-            }
-            catch (FormatException)
-            {
-                endpoint = null;
-                return false;
-            }
-        }
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// </exception>
+        public static Endpoint FromString(string s) =>
+            Internal.UriParser.IsEndpointUri(s) ? Internal.UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
 
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this
