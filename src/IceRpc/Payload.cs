@@ -177,5 +177,28 @@ namespace IceRpc
                 throw payload.ToRemoteException(proxy, connection);
             }
         }
+
+        public static T ToArgs<T>(
+            this ReadOnlyMemory<byte> payload,
+            InputStreamReader<T> reader,
+            Connection connection)
+        {
+            if (payload.Length == 0)
+            {
+                throw new ArgumentException("invalid empty payload", nameof(payload));
+            }
+
+            return payload.ReadEncapsulation(connection.Protocol.GetEncoding(),
+                                             reader,
+                                             connection: connection,
+                                             proxyOptions: connection.Server?.ProxyOptions);
+        }
+
+        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
+        /// unknown tagged arguments.</summary>
+        public static void ToVoidArg(
+            this ReadOnlyMemory<byte> payload,
+            Connection connction) =>
+            payload.ReadEmptyEncapsulation(connction.Protocol.GetEncoding());
     }
 }

@@ -2235,7 +2235,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << "(global::System.ReadOnlyMemory<byte> payload, ";
                     _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
                     _out.inc();
-                    _out << nl << "Payload.ToReturnValue(";
+                    _out << nl << "IceRpc.Payload.ToReturnValue(";
                     _out.inc();
                     _out << nl << "payload,";
                     _out << nl;
@@ -2617,12 +2617,17 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
-                _out << "(IceRpc.IncomingRequest request) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload,";
+                _out << nl << "IceRpc.Connection connection) =>";
                 _out.inc();
+                _out << nl << "IceRpc.Payload.ToArgs(";
+                _out.inc();
+                _out << nl << "payload,";
                 _out << nl;
-                _out << "request.ReadArgs(";
                 writeIncomingRequestReader(operation);
-                _out << ");";
+                _out << ",";
+                _out << nl << "connection);";
+                _out.dec();
                 _out.dec();
             }
         }
@@ -2698,11 +2703,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> IceRpc.IService"
          << ".DispatchAsync("
-         << "IceRpc.IncomingRequest request, "
+         << "global::System.ReadOnlyMemory<byte> payload, "
          << "IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "DispatchAsync(this, request, dispatch, cancel);";
+    _out << nl << "DispatchAsync(this, payload, dispatch, cancel);";
     _out.dec();
 
     _out << sp;
@@ -2710,11 +2715,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "// and reuse the generated implementation.";
     _out << nl << "protected static global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
          << "DispatchAsync(" << fixId(name) << " servant, "
-         << "IceRpc.IncomingRequest request, "
+         << "global::System.ReadOnlyMemory<byte> payload, "
          << "IceRpc.Dispatch dispatch, "
          << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
-    _out << nl << "request.Operation switch";
+    _out << nl << "dispatch.Operation switch";
     _out << sb;
     vector<pair<string, string>> allOpNames;
     for(const auto& op : p->allOperations())
@@ -2728,7 +2733,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     for(const auto& opName : allOpNames)
     {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(request, dispatch, cancel),";
+        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(payload, dispatch, cancel),";
     }
 
     _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
@@ -2851,19 +2856,19 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "protected ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
-    _out << " " << internalName << "(IceRpc.IncomingRequest request, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
+    _out << " " << internalName << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
     {
-         _out << nl << "IceCheckNonIdempotent(request);";
+         _out << nl << "IceCheckNonIdempotent(dispatch);";
     }
 
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "request.ReadEmptyArgs();";
+        _out << nl << "IceRpc.Payload.ToVoidArg(payload, dispatch.Connection);";
     }
     else if(params.size() == 1 && params.front()->stream())
     {
@@ -2874,7 +2879,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     else
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(request);";
+            << " = Request." << fixId(opName) << "(payload, dispatch.Connection);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -358,8 +359,9 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class ClassOperationsUnexpectedClass : IService
         {
-            public ValueTask<OutgoingResponse> DispatchAsync(
-                IncomingRequest request, Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask<OutgoingResponse> DispatchAsync(ReadOnlyMemory<byte> payload,
+                                                             Dispatch dispatch,
+                                                             CancellationToken cancel) =>
                 new(OutgoingResponse.WithReturnValue(dispatch,
                                                      compress: false,
                                                      format: default,

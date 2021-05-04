@@ -97,15 +97,6 @@ namespace IceRpc
         /// <returns>The request arguments.</returns>
         public T ReadArgs<T>(InputStreamReader<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
 
             return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
                                                                 reader,

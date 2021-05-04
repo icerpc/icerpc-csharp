@@ -25,10 +25,11 @@ namespace IceRpc
         {
             /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
             /// <summary>Decodes the ice_id operation parameters from an <see cref="IncomingRequest"/>.</summary>
-            /// <param name="request">The request frame.</param>
+            /// <param name="payload">The request payload.</param>
+            /// <param name="connection">The connection that received this request.</param>
             /// <returns>The return value decoded from the frame.</returns>
-            public static string IceIsA(IncomingRequest request) =>
-                 request.ReadArgs(InputStream.IceReaderIntoString);
+            public static string IceIsA(ReadOnlyMemory<byte> payload, Connection connection) =>
+                Payload.ToArgs(payload, InputStream.IceReaderIntoString, connection);
         }
 
         /// <summary>Provides an <see cref="OutgoingResponse"/> factory method for each non-void remote operation
@@ -73,11 +74,11 @@ namespace IceRpc
         }
 
         /// <summary>Dispatches an incoming request and returns the corresponding outgoing response.</summary>
-        /// <param name="request">The incoming request being dispatched.</param>
+        /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch object for the request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, Dispatch dispatch, CancellationToken cancel);
+        public ValueTask<OutgoingResponse> DispatchAsync(ReadOnlyMemory<byte> payload, Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
         /// <param name="dispatch">The Current object for the dispatch.</param>
@@ -115,77 +116,78 @@ namespace IceRpc
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
         /// incorrectly believes this operation is idempotent.</summary>
-        /// <param name="request">The current request.</param>
-        protected static void IceCheckNonIdempotent(IncomingRequest request)
+        /// <param name="dispatch">The dispatch.</param>
+        protected static void IceCheckNonIdempotent(Dispatch dispatch)
         {
-            if (request.IsIdempotent)
+            if (dispatch.IsIdempotent)
             {
                 throw new InvalidDataException(
-                        $@"idempotent mismatch for operation '{request.Operation
+                        $@"idempotent mismatch for operation '{dispatch.Operation
                         }': received request marked idempotent for a non-idempotent operation");
             }
         }
 
         /// <summary>Dispatches an ice_id request.</summary>
-        /// <param name="request">The current request.</param>
+        /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIceIdAsync(
-            IncomingRequest request,
+            ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+
+            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceId(dispatch, returnValue);
         }
 
         /// <summary>Dispatches an ice_ids request.</summary>
-        /// <param name="request">The current request.</param>
+        /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIceIdsAsync(
-            IncomingRequest request,
+            ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceIds(dispatch, returnValue);
         }
 
         /// <summary>Dispatches an ice_isA request.</summary>
-        /// <param name="request">The current request.</param>
+        /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIceIsAAsync(
-            IncomingRequest request,
+            ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            string id = Request.IceIsA(request);
+            string id = Request.IceIsA(payload, dispatch.Connection);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return Response.IceIsA(dispatch, returnValue);
         }
 
         /// <summary>Dispatches an ice_ping request.</summary>
-        /// <param name="request">The current request.</param>
+        /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<OutgoingResponse> IceDIcePingAsync(
-            IncomingRequest request,
+            ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            request.ReadEmptyArgs();
+            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return OutgoingResponse.WithVoidReturnValue(dispatch);
         }
@@ -195,7 +197,11 @@ namespace IceRpc
             var dispatch = new Dispatch(request);
             try
             {
-                return await DispatchAsync(request, dispatch, cancel).ConfigureAwait(false);
+                if (request.PayloadCompressionFormat != CompressionFormat.Decompressed)
+                {
+                    request.DecompressPayload();
+                }
+                return await DispatchAsync(request.Payload.AsReadOnlyMemory(), dispatch, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
