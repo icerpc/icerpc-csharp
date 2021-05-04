@@ -45,7 +45,6 @@ namespace IceRpc.Tests.ClientServer
                 async (request, cancel) =>
                 {
                     // Hold the dispatch until we received 10 requests to ensure current-request grows to 10
-                    OutgoingResponse response = await next.DispatchAsync(request, cancel);
                     Task? t = null;
                     lock (mutex)
                     {
@@ -59,7 +58,9 @@ namespace IceRpc.Tests.ClientServer
                         }
                     }
                     await (t ?? Task.CompletedTask);
-                    return response;
+                    // This delay ensure the metrics would be refresh while current-requests is still 10
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+                    return await next.DispatchAsync(request, cancel);
                 }));
             router.Map("/test", new Greeter1());
             await using var server = new Server
