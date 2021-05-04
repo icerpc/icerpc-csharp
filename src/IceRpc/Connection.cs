@@ -72,6 +72,9 @@ namespace IceRpc
             }
         }
 
+        // /// <summary>The features of this connection.</summary>
+        // public FeatureCollection Features => _options?.Features ?? throw new InvalidOperationException();
+
         /// <summary>Gets the connection idle timeout. With Ice2, the IdleTimeout is negotiated when the
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
         public TimeSpan IdleTimeout => _socket?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
@@ -234,9 +237,8 @@ namespace IceRpc
             throw new InvalidOperationException(
                 $"{nameof(TransportName)} is not available because there's no endpoint set");
 
-        internal CompressionLevel CompressionLevel => _options!.CompressionLevel;
-        internal int CompressionMinSize => _options!.CompressionMinSize;
         internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
+
         internal ILogger Logger
         {
             get => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
@@ -266,7 +268,7 @@ namespace IceRpc
 
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
-        private ConnectionOptions? _options;
+        private bool _connected;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
         private SocketStream? _controlStream;
@@ -274,18 +276,19 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
-        private Endpoint? _localEndpoint;
+        private readonly Endpoint? _localEndpoint;
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
         // performed atomically.
         private readonly object _mutex = new();
+        private ConnectionOptions? _options;
         private SocketStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private Server? _server;
         private MultiStreamSocket? _socket;
-        private volatile ConnectionState _state = ConnectionState.NotConnected; // The current state.
+        private volatile ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
         public Connection()
@@ -352,8 +355,8 @@ namespace IceRpc
                         clientAuthenticationOptions = outgoingOptions.AuthenticationOptions?.Clone() ?? new();
                         clientAuthenticationOptions.TargetHost ??= _socket.RemoteEndpoint.Host;
                         clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                                new SslApplicationProtocol(Protocol.GetName())
-                            };
+                            new SslApplicationProtocol(Protocol.GetName())
+                        };
                     }
 
                     connectTask = _socket.ConnectAsync(clientAuthenticationOptions, cancel);
@@ -385,21 +388,6 @@ namespace IceRpc
                 }
 
                 Debug.Assert(_socket != null);
-                _socket.PingReceived = () =>
-                {
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            PingReceived?.Invoke(this, EventArgs.Empty);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogConnectionEventHandlerException("ping", ex);
-                        }
-                    });
-                };
-
                 State = ConnectionState.Connecting;
                 socket = _socket;
             }
@@ -408,26 +396,52 @@ namespace IceRpc
 
             async Task PerformConnectAsync()
             {
-                using IDisposable? scope = socket.StartScope(Server);
                 try
                 {
                     // Wait for the connection to be connected or accepted.
                     await connectTask.ConfigureAwait(false);
+
+                    // Start the scope only once the socket is connected/accepted to ensure that the .NET socket
+                    // endpoints are available.
+                    using IDisposable? scope = socket.StartScope(Server);
+                    lock (_mutex)
+                    {
+                        if (State == ConnectionState.Closed)
+                        {
+                            // This can occur if the communicator or server is disposed while the connection is being
+                            // initialized.
+                            throw new ConnectionClosedException();
+                        }
+
+                        // Set _connected to true to ensure that if AbortAsync is called concurrently, AbortAsync will
+                        // trace the correct message.
+                        _connected = true;
+
+                        Action logSuccess = (IsIncoming, IsDatagram) switch
+                        {
+                            (false, false) => _socket.Logger.LogConnectionEstablished,
+                            (false, true) => _socket.Logger.LogStartSendingDatagrams,
+                            (true, false) => _socket.Logger.LogConnectionAccepted,
+                            (true, true) => _socket.Logger.LogStartReceivingDatagrams
+                        };
+                        logSuccess();
+                    }
 
                     // Initialize the transport.
                     await socket.InitializeAsync(cancel).ConfigureAwait(false);
 
                     if (!IsDatagram)
                     {
-                        // Create the control stream and send the initialize frame
+                        // Create the control stream and send the protocol initialize frame
                         _controlStream = await socket.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
 
-                        // Wait for the peer control stream to be accepted and read the initialize frame
+                        // Wait for the peer control stream to be accepted and read the protocol initialize frame
                         _peerControlStream = await socket.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
                     }
                 }
                 catch (Exception exception)
                 {
+                    using IDisposable? scope = socket.StartScope(Server);
                     await AbortAsync(exception).ConfigureAwait(false);
                     throw;
                 }
@@ -441,27 +455,34 @@ namespace IceRpc
                         throw new ConnectionClosedException();
                     }
 
-                    Action logSuccess = (IsIncoming, IsDatagram) switch
+                    _socket.PingReceived = () =>
                     {
-                        (false, false) => _socket.Logger.LogConnectionEstablished,
-                        (false, true) => _socket.Logger.LogStartSendingDatagrams,
-                        (true, false) => _socket.Logger.LogConnectionAccepted,
-                        (true, true) => _socket.Logger.LogStartReceivingDatagrams
+                        Task.Run(() =>
+                        {
+                            try
+                            {
+                                PingReceived?.Invoke(this, EventArgs.Empty);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogConnectionEventHandlerException("ping", ex);
+                            }
+                        });
                     };
-                    logSuccess();
-
                     State = ConnectionState.Active;
-                }
 
-                // Start a task to wait for the GoAway frame on the peer's control stream.
-                if (!IsDatagram)
-                {
-                    _ = Task.Run(async () => await WaitForShutdownAsync().ConfigureAwait(false), default);
-                }
+                    using IDisposable? scope = socket.StartScope(Server);
 
-                // Start the asynchronous AcceptStream operation from the thread pool to prevent reading
-                // synchronously new frames from this thread.
-                _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                    // Start a task to wait for the GoAway frame on the peer's control stream.
+                    if (!IsDatagram)
+                    {
+                        _ = Task.Run(async () => await WaitForShutdownAsync().ConfigureAwait(false), default);
+                    }
+
+                    // Start the asynchronous AcceptStream operation from the thread pool to prevent reading
+                    // synchronously new frames from this thread.
+                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                }
             }
         }
 
@@ -511,9 +532,10 @@ namespace IceRpc
         internal Connection(MultiStreamSocket socket, Server server)
         {
             _socket = socket;
+            _localEndpoint = socket.LocalEndpoint!;
+
             Options = server.ConnectionOptions;
             Server = server;
-            _localEndpoint = socket.LocalEndpoint!;
             Logger = server.Logger;
         }
 
@@ -578,7 +600,7 @@ namespace IceRpc
             {
                 if (_socket != null && State < ConnectionState.Closed)
                 {
-                    if (State == ConnectionState.Connecting)
+                    if (State == ConnectionState.Connecting && !_connected)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
@@ -592,7 +614,7 @@ namespace IceRpc
                         };
                         logFailure(exception);
                     }
-                    else if (State > ConnectionState.Connecting)
+                    else if (State > ConnectionState.Connecting || _connected)
                     {
                         if (IsDatagram && IsIncoming)
                         {

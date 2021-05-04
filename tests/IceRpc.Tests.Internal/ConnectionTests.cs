@@ -6,7 +6,6 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -110,10 +109,7 @@ namespace IceRpc.Tests.Internal
                     connection,
                     new ProxyOptions
                     {
-                        Invoker = new Communicator(new Dictionary<string, string>()
-                        {
-                            { "Ice.InvocationMaxAttempts", "1" }
-                        })
+                        Invoker = new Communicator { InvocationMaxAttempts = 1 }
                     });
 
             public async ValueTask DisposeAsync()
@@ -155,6 +151,7 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
+
                 _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
@@ -175,11 +172,11 @@ namespace IceRpc.Tests.Internal
                             transport = "wss";
                         }
                     }
-                    Endpoint = Endpoint.Parse($"{transport} -h 127.0.0.1");
+                    Endpoint = $"{transport} -h 127.0.0.1";
                 }
                 else
                 {
-                    Endpoint = Endpoint.Parse($"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}");
+                    Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
                 }
             }
         }

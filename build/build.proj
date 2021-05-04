@@ -40,7 +40,7 @@
         <MSBuild Projects="@(DistSolution)" Targets="build"/>
         <Exec Command="dotnet pack @(DistSolution)" />
         <RemoveDir Directories="@(Package)" Condition="Exists('@(Package)')"/>
-        <Exec Command="dotnet nuget push $(MSBuildThisFileDirectory)../csharp/lib/@(PackageName).$(PackageVersion).nupkg --source $(NuGetGlobalPackages)" />
+        <Exec Command="dotnet nuget push $(MSBuildThisFileDirectory)../lib/@(PackageName).$(PackageVersion).nupkg --source $(NuGetGlobalPackages)" />
     </Target>
 
     <Target Name="BuildExamples">

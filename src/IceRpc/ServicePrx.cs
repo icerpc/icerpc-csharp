@@ -19,10 +19,44 @@ namespace IceRpc
     public class ServicePrx : IServicePrx, IEquatable<ServicePrx>
     {
         /// <inheritdoc/>
-        public IEnumerable<string> AltEndpoints
+        public ImmutableList<Endpoint> AltEndpoints
         {
-            get => ParsedAltEndpoints.Select(e => e.ToString());
-            set => ParsedAltEndpoints = value.Select(s => IceRpc.Endpoint.Parse(s)).ToImmutableList();
+            get => _altEndpoints;
+
+            set
+            {
+                if (value.Count > 0)
+                {
+                    if (_endpoint == null)
+                    {
+                        throw new ArgumentException(
+                            $"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} is empty",
+                            nameof(AltEndpoints));
+                    }
+
+                    if (_endpoint.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc)
+                    {
+                        throw new ArgumentException(
+                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)
+                            } uses the loc or coloc transports",
+                            nameof(AltEndpoints));
+                    }
+
+                    if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
+                    {
+                        throw new ArgumentException("cannot use loc or coloc transport", nameof(AltEndpoints));
+                    }
+
+                    if (value.Any(e => e.Protocol != Protocol))
+                    {
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
+                                                    nameof(AltEndpoints));
+                    }
+                }
+                // else, no need to check anything, an empty list is always fine.
+
+                _altEndpoints = value;
+            }
         }
 
         /// <inheritdoc/>
@@ -47,10 +81,34 @@ namespace IceRpc
         public Encoding Encoding { get; set; }
 
         /// <inheritdoc/>
-        public string Endpoint
+        public Endpoint? Endpoint
         {
-            get => _endpoint?.ToString() ?? "";
-            set => ParsedEndpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
+            get => _endpoint;
+
+            set
+            {
+                if (value != null)
+                {
+                    if (value.Protocol != Protocol)
+                    {
+                        throw new ArgumentException("the new endpoint must use the proxy's protocol",
+                                                    nameof(Endpoint));
+                    }
+                    if (_altEndpoints.Count > 0 &&
+                        (value.Transport == Transport.Loc || value.Transport == Transport.Coloc))
+                    {
+                        throw new ArgumentException(
+                            "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(Endpoint));
+                    }
+                }
+                else if (_altEndpoints.Count > 0)
+                {
+                    throw new ArgumentException(
+                        $"cannot clear {nameof(Endpoint)} when {nameof(AltEndpoints)} is not empty",
+                        nameof(Endpoint));
+                }
+                _endpoint = value;
+            }
         }
 
         /// <inheritdoc/>
@@ -69,78 +127,6 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public ILocationResolver? LocationResolver { get; set; }
-
-        /// <summary>Gets or sets the endpoint objects that back <see cref="AltEndpoints"/>.</summary>
-        public ImmutableList<Endpoint> ParsedAltEndpoints
-        {
-            get => _altEndpoints;
-
-            private set
-            {
-                if (value.Count > 0)
-                {
-                    if (_endpoint == null)
-                    {
-                        throw new ArgumentException(
-                            $"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)} is empty",
-                            nameof(ParsedAltEndpoints));
-                    }
-
-                    if (_endpoint.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc)
-                    {
-                        throw new ArgumentException(
-                            @$"cannot set {nameof(ParsedAltEndpoints)} when {nameof(ParsedEndpoint)
-                            } uses the loc or coloc transports",
-                            nameof(ParsedAltEndpoints));
-                    }
-
-                    if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
-                    {
-                        throw new ArgumentException("cannot use loc or coloc transport", nameof(ParsedAltEndpoints));
-                    }
-
-                    if (value.Any(e => e.Protocol != Protocol))
-                    {
-                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
-                                                     nameof(ParsedAltEndpoints));
-                    }
-                }
-                // else, no need to check anything, an empty list is always fine.
-
-                _altEndpoints = value;
-            }
-        }
-
-        /// <summary>Gets or sets the endpoint object that backs <see cref="Endpoint"/>.</summary>
-        public Endpoint? ParsedEndpoint
-        {
-            get => _endpoint;
-
-            private set
-            {
-                if (value != null)
-                {
-                    if (value.Protocol != Protocol)
-                    {
-                        throw new ArgumentException("the new endpoint must use the proxy's protocol",
-                                                    nameof(ParsedEndpoint));
-                    }
-                    if (_altEndpoints.Count > 0 &&
-                        (value.Transport == Transport.Loc || value.Transport == Transport.Coloc))
-                    {
-                        throw new ArgumentException(
-                            "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(ParsedEndpoint));
-                    }
-                }
-                else if (_altEndpoints.Count > 0)
-                {
-                    throw new ArgumentException(
-                        $"cannot clear {nameof(ParsedEndpoint)} when {nameof(ParsedAltEndpoints)} is not empty",
-                        nameof(ParsedEndpoint));
-                }
-                _endpoint = value;
-            }
-        }
 
         /// <inheritdoc/>
         public string Path { get; } = "";
@@ -618,7 +604,7 @@ namespace IceRpc
                 }
             }
 
-            OutgoingConnectionOptions options = communicator.ConnectionOptions.Clone();
+            OutgoingConnectionOptions options = communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default;
 
             bool refreshCache = false;
 
@@ -667,35 +653,6 @@ namespace IceRpc
             return connection;
         }
 
-        /// <summary>Provides the implementation of <see cref="Proxy.ToProperty(IServicePrx, string)"/>.</summary>
-        internal Dictionary<string, string> ToProperty(string prefix)
-        {
-            var properties = new Dictionary<string, string> { [prefix] = ToString() };
-
-            if (Protocol == Protocol.Ice1)
-            {
-                if (!CacheConnection)
-                {
-                    properties[$"{prefix}.CacheConnection"] = "false";
-                }
-
-                // We don't output context as this would require hard-to-generate escapes.
-
-                if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
-                {
-                    // For ice2 the invocation timeout is included in the URI
-                    properties[$"{prefix}.InvocationTimeout"] = _invocationTimeout.ToPropertyValue();
-                }
-                if (!PreferExistingConnection)
-                {
-                    properties[$"{prefix}.PreferExistingConnection"] = "false";
-                }
-            }
-            // else, only a single property in the dictionary
-
-            return properties;
-        }
-
         // Helper constructor
         private ServicePrx(
             Protocol protocol,
@@ -716,10 +673,10 @@ namespace IceRpc
             PreferExistingConnection = options.PreferExistingConnection;
             Protocol = protocol;
 
-            ParsedEndpoint = endpoint; // use the ParsedEndpoint set validation
+            Endpoint = endpoint; // use the Endpoint set validation
             if (altEndpoints.Any())
             {
-                ParsedAltEndpoints = altEndpoints.ToImmutableList();
+                AltEndpoints = altEndpoints.ToImmutableList();
             }
         }
     }

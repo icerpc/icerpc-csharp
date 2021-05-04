@@ -2235,7 +2235,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << "(global::System.ReadOnlyMemory<byte> payload, ";
                     _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
                     _out.inc();
-                    _out << nl << "Payload.ToReturnValue(";
+                    _out << nl << "IceRpc.Payload.ToReturnValue(";
                     _out.inc();
                     _out << nl << "payload,";
                     _out << nl;
@@ -2659,7 +2659,6 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
                 _out.inc();
                 _out << nl << "dispatch,"
-                    << nl << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ","
                     << nl << "format: " << opFormatTypeToString(operation) << ","
                     << nl << (inValue ? "in " : "") << "returnValue,"
                     << nl;
@@ -2773,7 +2772,6 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "Response = IceRpc.OutgoingResponse.WithReturnValue(";
         _out.inc();
         _out << nl << getEscapedParamName(operation, "dispatch") << ", "
-             << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ", "
              << "format: " << opFormatTypeToString(operation) << ", "
              << toTuple(returnType) << ",";
         if(returnType.size() > 1)
@@ -2848,15 +2846,25 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     auto returnType = operation->returnType();
 
     _out << sp;
-    _out << nl << "protected ";
-    _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
-    _out << " " << internalName << "(IceRpc.IncomingRequest request, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
+    _out << nl << "protected async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
+         << internalName << "("
+         << "IceRpc.IncomingRequest request, "
+         << "IceRpc.Dispatch dispatch, "
+         << "global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
     if (!isIdempotent(operation))
     {
          _out << nl << "IceCheckNonIdempotent(request);";
+    }
+
+    if (opCompressReturn(operation))
+    {
+        _out << nl << "if (dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] == null)";
+        _out << sb;
+        _out << nl << "dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] = "
+             << "IceRpc.Features.CompressPayload.Yes;";
+        _out << eb;
     }
 
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
@@ -2878,7 +2886,6 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
-
     if (operation->hasMarshaledResult())
     {
         _out << nl << "var returnValue = await this." << name << spar;

@@ -3,6 +3,7 @@
 using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -77,7 +78,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
-        public IEnumerable<string> AltEndpoints { get; set; }
+        public ImmutableList<Endpoint> AltEndpoints { get; set; }
 
         /// <summary>Indicates whether or not this proxy caches its connection. Setting this value does not clear
         /// <see cref="Connection"/></summary>
@@ -98,8 +99,8 @@ namespace IceRpc
         public Encoding Encoding { get; set; }
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
-        /// <value>The main endpoint of this proxy. The empty string means this proxy has no endpoint.</value>
-        public string Endpoint { get; set; }
+        /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
+        public Endpoint? Endpoint { get; set; }
 
         /// <summary>The invocation timeout of this proxy.</summary>
         public TimeSpan InvocationTimeout { get; set; }

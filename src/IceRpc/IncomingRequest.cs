@@ -78,11 +78,6 @@ namespace IceRpc
         /// unknown tagged arguments.</summary>
         public void ReadEmptyArgs()
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream != null)
             {
                 throw new InvalidDataException("stream data available for operation without stream parameter");
@@ -97,11 +92,6 @@ namespace IceRpc
         /// <returns>The request arguments.</returns>
         public T ReadArgs<T>(InputStreamReader<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream != null)
             {
                 throw new InvalidDataException("stream data available for operation without stream parameter");
@@ -118,11 +108,6 @@ namespace IceRpc
         /// <returns>The request argument.</returns>
         public T ReadArgs<T>(Func<SocketStream, T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
@@ -143,11 +128,6 @@ namespace IceRpc
         /// <returns>The request arguments.</returns>
         public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");

@@ -34,9 +34,9 @@ namespace IceRpc
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
-        public string Endpoint
+        public Endpoint? Endpoint
         {
-            get => _endpoint?.ToString() ?? "";
+            get => _endpoint;
             set
             {
                 if (_listening)
@@ -44,7 +44,7 @@ namespace IceRpc
                     throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
                 }
 
-                _endpoint = value.Length > 0 ? IceRpc.Endpoint.Parse(value) : null;
+                _endpoint = value;
                 UpdateProxyEndpoint();
             }
         }
@@ -78,8 +78,8 @@ namespace IceRpc
 
         /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
         /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
-        /// <value>An endpoint string when <see cref="Endpoint"/> is not empty; otherwise, an empty string.</value>
-        public string ProxyEndpoint => _proxyEndpoint?.ToString() ?? "";
+        /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
+        public Endpoint? ProxyEndpoint { get; private set; }
 
         /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
         /// address.</summary>
@@ -133,8 +133,6 @@ namespace IceRpc
         // protects _shutdownTask
         private readonly object _mutex = new();
 
-        private Endpoint? _proxyEndpoint;
-
         private string _proxyHost = Dns.GetHostName().ToLowerInvariant();
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
@@ -169,7 +167,7 @@ namespace IceRpc
         /// <returns>A new proxy with a single endpoint, <see cref="ProxyEndpoint"/>.</returns>
         public T CreateProxy<T>(string path) where T : class, IServicePrx
         {
-            if (_proxyEndpoint == null)
+            if (ProxyEndpoint == null)
             {
                 throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
             }
@@ -177,16 +175,16 @@ namespace IceRpc
             ProxyOptions options = ProxyOptions;
             options.Invoker ??= Invoker;
 
-            if (_proxyEndpoint.IsDatagram && !options.IsOneway)
+            if (ProxyEndpoint.IsDatagram && !options.IsOneway)
             {
                 options = options.Clone();
                 options.IsOneway = true;
             }
 
             return Proxy.GetFactory<T>().Create(path,
-                                                _proxyEndpoint.Protocol,
-                                                _proxyEndpoint.Protocol.GetEncoding(),
-                                                _proxyEndpoint,
+                                                ProxyEndpoint.Protocol,
+                                                ProxyEndpoint.Protocol.GetEncoding(),
+                                                ProxyEndpoint,
                                                 altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 options);
@@ -250,16 +248,10 @@ namespace IceRpc
                     _incomingColocConnectionFactory = new IncomingConnectionFactory(this, colocEndpoint);
                     _incomingColocConnectionFactory.Activate();
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
-                    if (_proxyEndpoint != _endpoint)
+                    if (ProxyEndpoint != _endpoint)
                     {
-                        EndpointExtensions.RegisterColocEndpoint(_proxyEndpoint!, colocEndpoint);
+                        EndpointExtensions.RegisterColocEndpoint(ProxyEndpoint!, colocEndpoint);
                     }
-                }
-
-                // TODO: remove
-                if ((Invoker as Communicator)?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
-                {
-                    Console.Out.WriteLine($"{this} ready");
                 }
 
                 Logger.LogServerListening(this);
@@ -311,9 +303,9 @@ namespace IceRpc
                     if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
                     {
                         EndpointExtensions.UnregisterColocEndpoint(endpoint);
-                        if (_proxyEndpoint != _endpoint)
+                        if (ProxyEndpoint != _endpoint)
                         {
-                            EndpointExtensions.UnregisterColocEndpoint(_proxyEndpoint!);
+                            EndpointExtensions.UnregisterColocEndpoint(ProxyEndpoint!);
                         }
                     }
 
@@ -358,6 +350,6 @@ namespace IceRpc
             _cancelDispatchSource.Dispose();
         }
 
-        private void UpdateProxyEndpoint() => _proxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
+        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
     }
 }

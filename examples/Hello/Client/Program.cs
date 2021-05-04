@@ -37,19 +37,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
         });*/
     });
 
-await using var communicator = new Communicator(ref args,
-                                                configuration.GetSection("AppSettings").GetChildren().ToDictionary(
-                                                    entry => entry.Key,
-                                                    entry => entry.Value),
-                                                loggerFactory);
+await using var pool = new Communicator
+{
+    LoggerFactory = loggerFactory
+};
 
-IHelloPrx twoway = communicator.GetPropertyAsProxy("Hello.Proxy", IHelloPrx.Factory) ??
-    throw new ArgumentException("invalid proxy");
-
+IHelloPrx twoway = IHelloPrx.Parse(configuration.GetSection("AppSettings").GetValue<string>("Hello.Proxy"), pool);
 Console.Write("Say Hello: ");
 string? greeting = Console.ReadLine();
-var context = new Dictionary<string, string>()
-{
-    { "User", "Jose" }
-};
-Console.Out.WriteLine(twoway.SayHello(greeting, context));
+Console.Out.WriteLine(await twoway.SayHelloAsync(greeting));

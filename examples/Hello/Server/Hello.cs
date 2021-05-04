@@ -3,15 +3,16 @@
 using IceRpc;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Demo
 {
     public class Hello : IHello
     {
-        public string? SayHello(string? greeting, Dispatch dispatch, CancellationToken cancel)
+        public ValueTask<string?> SayHelloAsync(string? greeting, Dispatch dispatch, CancellationToken cancel)
         {
             Console.Out.WriteLine("Hello World!");
-            return greeting + ", server!";
+            return new(greeting + ", server!");
         }
     }
 }

@@ -51,7 +51,7 @@ namespace IceRpc.Slice.Test.Structure
 
         public static async Task<int> Main(string[] args)
         {
-            await using var communicator = CreateCommunicator(ref args);
+            await using var communicator = CreateCommunicator();
             return await RunTestAsync<Client>(communicator, args);
         }
     }

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_Options_Clone()
         {
-            var options = new OutgoingConnectionOptions()
+            var options = new OutgoingConnectionOptions
             {
                 TransportOptions = new TcpOptions(),
                 AuthenticationOptions = new System.Net.Security.SslClientAuthenticationOptions()

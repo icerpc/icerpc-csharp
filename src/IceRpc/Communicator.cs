@@ -21,11 +21,27 @@ namespace IceRpc
     public sealed partial class Communicator : IInvoker, IAsyncDisposable
     {
         /// <summary>The connection options.</summary>
-        public OutgoingConnectionOptions ConnectionOptions;
+        public OutgoingConnectionOptions? ConnectionOptions { get; set; }
 
-        /// <summary>The output mode or format for ToString on Ice proxies when the protocol is ice1. See
-        /// <see cref="IceRpc.Interop.ToStringMode"/>.</summary>
-        public ToStringMode ToStringMode { get; }
+        /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
+        /// invocation. It must be a number greater than 0.</summary>
+        public int InvocationMaxAttempts { get; set; } = 5; // TODO: > 0 and <= 5
+
+        /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
+        /// its logger using <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// <value>The logger factory of this connection pool.</value>
+        public ILoggerFactory? LoggerFactory
+        {
+            get => _loggerFactory;
+            set
+            {
+                _loggerFactory = value;
+                _logger = null; // clears existing logger, if there is one
+            }
+        }
+
+        public int RetryBufferMaxSize { get; set; } = 1024 * 1024 * 100;
+        public int RetryRequestMaxSize { get; set; } = 1024 * 1024;
 
         internal CancellationToken CancellationToken
         {
@@ -42,16 +58,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the maximum number of invocation attempts made to send a request including the original
-        /// invocation. It must be a number greater than 0.</summary>
-        internal int InvocationMaxAttempts { get; }
-
         /// <summary>The default logger for this communicator.</summary>
-        internal ILogger Logger { get; }
-        internal int RetryBufferMaxSize { get; }
-        internal int RetryRequestMaxSize { get; }
-
-        private static string[] _emptyArgs = Array.Empty<string>();
+        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private readonly CancellationTokenSource _cancellationTokenSource = new();
 
@@ -59,130 +67,17 @@ namespace IceRpc
             ImmutableList<Func<IInvoker, IInvoker>>.Empty;
         private IInvoker? _invoker;
 
+        private ILogger? _logger;
+        private ILoggerFactory? _loggerFactory;
+
         private Task? _shutdownTask;
 
         private readonly object _mutex = new();
 
         private int _retryBufferSize;
 
-        /// <summary>Constructs a new communicator.</summary>
-        /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="connectionOptions">Connection options.</param>
-        public Communicator(
-            IReadOnlyDictionary<string, string> properties,
-            ILoggerFactory? loggerFactory = null,
-            OutgoingConnectionOptions? connectionOptions = null)
-            : this(ref _emptyArgs,
-                   appSettings: null,
-                   loggerFactory,
-                   properties,
-                   connectionOptions)
+        public Communicator()
         {
-        }
-
-        /// <summary>Constructs a new communicator.</summary>
-        /// <param name="args">An array of command-line arguments used to set or override Ice.* properties.</param>
-        /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="connectionOptions">Connection options.</param>
-        public Communicator(
-            ref string[] args,
-            IReadOnlyDictionary<string, string> properties,
-            ILoggerFactory? loggerFactory = null,
-            OutgoingConnectionOptions? connectionOptions = null)
-            : this(ref args,
-                   appSettings: null,
-                   loggerFactory,
-                   properties,
-                   connectionOptions)
-        {
-        }
-
-        /// <summary>Constructs a new communicator.</summary>
-        /// <param name="appSettings">Collection of settings to configure the new communicator properties. The
-        /// appSettings param has precedence over the properties param.</param>
-        /// <param name="loggerFactory">The logger factory used by the new communicator.</param>
-        /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="connectionOptions">Connection options.</param>
-        public Communicator(
-            NameValueCollection? appSettings = null,
-            ILoggerFactory? loggerFactory = null,
-            IReadOnlyDictionary<string, string>? properties = null,
-            OutgoingConnectionOptions? connectionOptions = null)
-            : this(ref _emptyArgs,
-                   appSettings,
-                   loggerFactory,
-                   properties,
-                   connectionOptions)
-        {
-        }
-
-        /// <summary>Constructs a new communicator.</summary>
-        /// <param name="args">An array of command-line arguments used to set or override Ice.* properties.</param>
-        /// <param name="appSettings">Collection of settings to configure the new communicator properties. The
-        /// appSettings param has precedence over the properties param.</param>
-        /// <param name="loggerFactory">The loggerFactory used by the new communicator.</param>
-        /// <param name="properties">The properties of the new communicator.</param>
-        /// <param name="connectionOptions">Connection options.</param>
-        public Communicator(
-            ref string[] args,
-            NameValueCollection? appSettings = null,
-            ILoggerFactory? loggerFactory = null,
-            IReadOnlyDictionary<string, string>? properties = null,
-            OutgoingConnectionOptions? connectionOptions = null)
-        {
-            loggerFactory ??= NullLoggerFactory.Instance;
-            Logger = loggerFactory.CreateLogger("IceRpc");
-
-            // clone properties as we don't want to modify the properties given to this constructor
-            var combinedProperties =
-                new Dictionary<string, string>(properties ?? ImmutableDictionary<string, string>.Empty);
-
-            if (appSettings != null)
-            {
-                foreach (string? key in appSettings.AllKeys)
-                {
-                    if (key != null)
-                    {
-                        string[]? values = appSettings.GetValues(key);
-                        if (values == null)
-                        {
-                            combinedProperties[key] = "";
-                        }
-                        else if (values.Length == 1)
-                        {
-                            combinedProperties[key] = values[0];
-                        }
-                        else
-                        {
-                            combinedProperties[key] = StringUtil.ToPropertyValue(values);
-                        }
-                    }
-                }
-            }
-
-            combinedProperties.ParseIceArgs(ref args);
-            SetProperties(combinedProperties);
-            Logger = loggerFactory.CreateLogger("IceRpc");
-
-            ConnectionOptions = connectionOptions?.Clone() ?? new OutgoingConnectionOptions();
-            ConnectionOptions.TransportOptions ??= new TcpOptions();
-
-            ConnectionOptions.IncomingFrameMaxSize =
-                this.GetPropertyAsByteSize("Ice.IncomingFrameMaxSize") ?? ConnectionOptions.IncomingFrameMaxSize;
-
-            InvocationMaxAttempts = this.GetPropertyAsInt("Ice.InvocationMaxAttempts") ?? 5;
-
-            if (InvocationMaxAttempts <= 0)
-            {
-                throw new InvalidConfigurationException($"Ice.InvocationMaxAttempts must be greater than 0");
-            }
-            InvocationMaxAttempts = Math.Min(InvocationMaxAttempts, 5);
-            RetryBufferMaxSize = this.GetPropertyAsByteSize("Ice.RetryBufferMaxSize") ?? 1024 * 1024 * 100;
-            RetryRequestMaxSize = this.GetPropertyAsByteSize("Ice.RetryRequestMaxSize") ?? 1024 * 1024;
-
-            ToStringMode = this.GetPropertyAsEnum<ToStringMode>("Ice.ToStringMode") ?? default;
         }
 
         Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
@@ -256,12 +151,12 @@ namespace IceRpc
             bool oneway,
             CancellationToken cancel)
         {
-            if (proxy.ParsedEndpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
+            if (proxy.Endpoint?.ToColocEndpoint() is Endpoint colocEndpoint)
             {
                 return new List<Endpoint>() { colocEndpoint };
             }
 
-            foreach (Endpoint endpoint in proxy.ParsedAltEndpoints)
+            foreach (Endpoint endpoint in proxy.AltEndpoints)
             {
                 if (endpoint.ToColocEndpoint() is Endpoint colocAltEndpoint)
                 {
@@ -277,15 +172,15 @@ namespace IceRpc
             {
                 if (proxy.LocationResolver is ILocationResolver locationResolver)
                 {
-                    endpoints = await locationResolver.ResolveAsync(proxy.ParsedEndpoint!,
+                    endpoints = await locationResolver.ResolveAsync(proxy.Endpoint!,
                                                                     refreshCache,
                                                                     cancel).ConfigureAwait(false);
                 }
                 // else endpoints remains empty.
             }
-            else if (proxy.ParsedEndpoint != null)
+            else if (proxy.Endpoint != null)
             {
-                endpoints = ImmutableList.Create(proxy.ParsedEndpoint).AddRange(proxy.ParsedAltEndpoints);
+                endpoints = ImmutableList.Create(proxy.Endpoint).AddRange(proxy.AltEndpoints);
             }
 
             // Apply overrides and filter endpoints
@@ -395,7 +290,7 @@ namespace IceRpc
                     "cannot make two-way invocation using a cached datagram connection");
             }
 
-            if ((connection == null || (proxy.ParsedEndpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
+            if ((connection == null || (proxy.Endpoint != null && !connection.IsActive)) && proxy.PreferExistingConnection)
             {
                 // No cached connection, so now check if there is an existing connection that we can reuse.
                 endpoints =
@@ -407,7 +302,7 @@ namespace IceRpc
                 }
             }
 
-            OutgoingConnectionOptions connectionOptions = ConnectionOptions.Clone();
+            OutgoingConnectionOptions connectionOptions = ConnectionOptions ?? OutgoingConnectionOptions.Default;
 
             ILogger logger = Logger;
             int nextEndpoint = 0;
@@ -618,7 +513,7 @@ namespace IceRpc
                         await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                     }
 
-                    if (proxy.ParsedEndpoint != null && connection != null && !connection.IsIncoming)
+                    if (proxy.Endpoint != null && connection != null && !connection.IsIncoming)
                     {
                         // Retry with a new connection!
                         connection = null;
