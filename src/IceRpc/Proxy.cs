@@ -209,13 +209,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Converts a proxy to a set of proxy properties.</summary>
-        /// <param name="proxy">The proxy for the target service.</param>
-        /// <param name="property">The base property name.</param>
-        /// <returns>The property set.</returns>
-        public static Dictionary<string, string> ToProperty(this IServicePrx proxy, string property) =>
-            proxy.Impl.ToProperty(property);
-
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>

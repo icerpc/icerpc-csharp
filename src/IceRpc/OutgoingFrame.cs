@@ -143,7 +143,7 @@ namespace IceRpc
                 using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
                 using var gzipStream = new GZipStream(
                     memoryStream,
-                    compressionLevel == CompressionLevel.Fastest ? 
+                    compressionLevel == CompressionLevel.Fastest ?
                         System.IO.Compression.CompressionLevel.Fastest :
                         System.IO.Compression.CompressionLevel.Optimal);
                 try
