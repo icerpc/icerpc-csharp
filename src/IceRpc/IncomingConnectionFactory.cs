@@ -22,12 +22,10 @@ namespace IceRpc
         private readonly object _mutex = new();
         private bool _shutdown;
 
-        public override string ToString() => _acceptor.ToString()!;
-
         internal IncomingConnectionFactory(Server server, Endpoint endpoint)
         {
             _server = server;
-            _acceptor = endpoint.CreateAcceptor(_server);
+            _acceptor = endpoint.CreateAcceptor(_server.ConnectionOptions, _server.Logger);
             Endpoint = _acceptor.Endpoint;
 
             using IDisposable? scope = server.Logger.StartAcceptorScope(server, _acceptor);

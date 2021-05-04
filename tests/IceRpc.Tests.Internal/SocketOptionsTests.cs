@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            (Server server, IAcceptor acceptor) = CreateAcceptorWithTcpOptions(new TcpOptions
+            IAcceptor acceptor = CreateAcceptorWithTcpOptions(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -142,7 +142,6 @@ namespace IceRpc.Tests.Internal
                 Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
             }
             acceptor.Dispose();
-            await server.DisposeAsync();
         }
 
         [TestCase(false)]
@@ -157,11 +156,6 @@ namespace IceRpc.Tests.Internal
                 {
                     IsIPv6Only = ipv6Only
                 };
-                await using var server = new Server
-                {
-                    Invoker = Communicator,
-                    ConnectionOptions = connectionOptions
-                };
 
                 var serverData = new EndpointData(
                     ServerEndpoint.Transport,
@@ -171,7 +165,7 @@ namespace IceRpc.Tests.Internal
 
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
-                using IAcceptor acceptor = serverEndpoint.CreateAcceptor(server);
+                using IAcceptor acceptor = serverEndpoint.CreateAcceptor(connectionOptions, Logger);
 
                 ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
 
@@ -205,7 +199,6 @@ namespace IceRpc.Tests.Internal
                 }
 
                 acceptor.Dispose();
-                await server.DisposeAsync();
             }
         }
 
@@ -216,7 +209,7 @@ namespace IceRpc.Tests.Internal
             // (TLS handshake or WebSocket initialization).
             if (TransportName == "tcp" && !IsSecure)
             {
-                (Server server, IAcceptor acceptor) = CreateAcceptorWithTcpOptions(new TcpOptions
+                IAcceptor acceptor = CreateAcceptorWithTcpOptions(new TcpOptions
                 {
                     ListenerBackLog = 18
                 });
@@ -245,20 +238,14 @@ namespace IceRpc.Tests.Internal
 
                 sockets.ForEach(socket => socket.Dispose());
                 acceptor.Dispose();
-                await server.DisposeAsync();
             }
         }
 
-        private (Server, IAcceptor) CreateAcceptorWithTcpOptions(TcpOptions options)
+        private IAcceptor CreateAcceptorWithTcpOptions(TcpOptions options)
         {
             IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
-            var server = new Server
-            {
-                Invoker = Communicator,
-                ConnectionOptions = connectionOptions
-            };
-            return (server, ServerEndpoint.CreateAcceptor(server));
+            return ServerEndpoint.CreateAcceptor(connectionOptions, Logger);
         }
 
         private SingleStreamSocket CreateClientSocket(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)

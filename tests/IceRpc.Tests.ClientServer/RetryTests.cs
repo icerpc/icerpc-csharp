@@ -387,6 +387,9 @@ namespace IceRpc.Tests.ClientServer
                         RemoteEndpoint = Endpoint.Parse(retry.Endpoint)
                     };
 
+                    await connection1.ConnectAsync();
+                    await connection2.ConnectAsync();
+
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;
                     retry1.Endpoint = ""; // endpointless proxy

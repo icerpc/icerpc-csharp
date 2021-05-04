@@ -218,7 +218,7 @@ namespace IceRpc
                     try
                     {
                         Connection connection = await connect.ConfigureAwait(false);
-                        await connection.ShutdownAsync(disposedException).ConfigureAwait(false);
+                        await connection.ShutdownAsync("connection pool shutdown").ConfigureAwait(false);
                     }
                     catch
                     {

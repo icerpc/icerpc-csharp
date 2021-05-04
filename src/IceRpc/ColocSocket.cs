@@ -195,7 +195,7 @@ namespace IceRpc
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            var ex = new ConnectionClosedException();
             _bidirectionalStreamSemaphore!.Complete(ex);
             _unidirectionalStreamSemaphore!.Complete(ex);
 

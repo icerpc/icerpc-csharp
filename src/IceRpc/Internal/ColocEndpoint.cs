@@ -14,6 +14,9 @@ namespace IceRpc.Internal
     internal class ColocEndpoint : Endpoint
     {
         public override bool? IsSecure => true;
+
+        protected internal override bool HasAcceptor => true;
+
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0, just like for IP endpoints.
@@ -27,7 +30,9 @@ namespace IceRpc.Internal
         protected internal override void WriteOptions11(OutputStream ostr) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
-        protected internal override IAcceptor CreateAcceptor(Server server) => new ColocAcceptor(this, server);
+        protected internal override IAcceptor CreateAcceptor(
+            IncomingConnectionOptions options,
+            ILogger logger) => new ColocAcceptor(this, options, logger);
 
         protected internal override MultiStreamSocket CreateClientSocket(
             OutgoingConnectionOptions options,

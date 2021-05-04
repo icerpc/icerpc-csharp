@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using IceRpc.Internal;
 using NUnit.Framework;
 using System;
@@ -33,6 +34,8 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
+            public OutgoingConnectionOptions ClientConnectionOptions { get; }
+
             public Endpoint Endpoint { get; }
 
             public Connection Server
@@ -47,9 +50,10 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
+            public ILogger Logger => _server.Logger;
+
             private Connection? _cachedClientConnection;
             private Connection? _cachedServerConnection;
-            private readonly Communicator _communicator;
             private readonly Server _server;
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
@@ -59,18 +63,15 @@ namespace IceRpc.Tests.Internal
 
                 if (Endpoint.IsDatagram)
                 {
-                    serverConnection = new Connection
-                    {
-                        LocalEndpoint = Endpoint,
-                        Options = _server.ConnectionOptions,
-                        Server = _server
-                    };
+                    serverConnection = new Connection(
+                        Endpoint.CreateServerSocket(_server.ConnectionOptions, _server.Logger),
+                        _server);
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
-                    using IAcceptor acceptor = Endpoint.CreateAcceptor(_server);
+                    using IAcceptor acceptor = Endpoint.CreateAcceptor(_server.ConnectionOptions, _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
                     Task<Connection> clientTask = ConnectAsync(acceptor.Endpoint);
                     serverConnection = await serverTask;
@@ -91,7 +92,7 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Options = _communicator.ConnectionOptions
+                        Options = ClientConnectionOptions
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -107,7 +108,13 @@ namespace IceRpc.Tests.Internal
                     endpoint: null,
                     altEndpoints: ImmutableList<Endpoint>.Empty,
                     connection,
-                    new ProxyOptions { Invoker = _communicator });
+                    new ProxyOptions
+                    {
+                        Invoker = new Communicator(new Dictionary<string, string>()
+                        {
+                            { "Ice.InvocationMaxAttempts", "1" }
+                        })
+                    });
 
             public async ValueTask DisposeAsync()
             {
@@ -117,7 +124,6 @@ namespace IceRpc.Tests.Internal
                     await _cachedServerConnection!.DisposeAsync();
                 }
                 await _server.DisposeAsync();
-                await _communicator.DisposeAsync();
             }
 
             public ConnectionFactory(
@@ -149,17 +155,8 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                _communicator = new Communicator(
-                    new Dictionary<string, string>() { { "Ice.InvocationMaxAttempts", "1" } },
-                    connectionOptions: clientConnectionOptions);
-
-                _server = new Server
-                {
-                    Invoker = _communicator,
-                    ConnectionOptions = serverConnectionOptions ?? new(),
-                    Dispatcher = dispatcher,
-                };
-                _ = _server.Logger;
+                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
+                ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")
                 {
@@ -264,16 +261,13 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new Server()
+            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new IncomingConnectionOptions()
             {
-                ConnectionOptions = new()
+                TransportOptions = new TcpOptions()
                 {
-                    TransportOptions = new TcpOptions()
-                    {
-                        ListenerBackLog = 1
-                    }
+                    ListenerBackLog = 1
                 }
-            });
+            }, factory.Logger);
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
             // is handled by the outgoing connection factory.

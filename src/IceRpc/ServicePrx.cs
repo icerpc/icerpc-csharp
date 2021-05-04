@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The base class for all service proxies. Applications should use proxies through interfaces and rarely
+    /// <summary>The base afor all service proxies. Applications should use proxies through interfaces and rarely
     /// use this class directly.</summary>
     public class ServicePrx : IServicePrx, IEquatable<ServicePrx>
     {

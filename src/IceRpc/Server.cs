@@ -219,22 +219,7 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint.IsDatagram)
-                {
-                    _incomingConnection = new Connection
-                    {
-                        LocalEndpoint = _endpoint,
-                        Options = ConnectionOptions,
-                        Server = this
-                    };
-                    _incomingConnection.Listen();
-                    _endpoint = _incomingConnection.LocalEndpoint;
-                    UpdateProxyEndpoint();
-
-                    // Connect the connection to start accepting new streams.
-                    _ = _incomingConnection.ConnectAsync(default);
-                }
-                else
+                if (_endpoint.HasAcceptor)
                 {
                     _incomingConnectionFactory = new IncomingConnectionFactory(this, _endpoint);
                     _endpoint = _incomingConnectionFactory.Endpoint;
@@ -242,6 +227,16 @@ namespace IceRpc
 
                     // Activate the factory to start accepting new connections.
                     _incomingConnectionFactory.Activate();
+                }
+                else
+                {
+                    MultiStreamSocket socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
+                    _incomingConnection = new Connection(socket, this);
+                    _endpoint = socket.LocalEndpoint!;
+                    UpdateProxyEndpoint();
+
+                    // Connect the connection to start accepting new streams.
+                    _ = _incomingConnection.ConnectAsync(default);
                 }
 
                 _listening = true;

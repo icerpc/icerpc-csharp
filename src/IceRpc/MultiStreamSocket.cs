@@ -276,7 +276,7 @@ namespace IceRpc
                 // addition to the dictionary is atomic.
                 if (_streamsAborted)
                 {
-                    throw new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new ConnectionClosedException();
                 }
                 _streams[id] = stream;
 
