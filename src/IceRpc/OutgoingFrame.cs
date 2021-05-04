@@ -47,8 +47,7 @@ namespace IceRpc
             set
             {
                 _payload = value;
-                // Clear the cached values
-                _payloadSize = -1;
+                _payloadSize = -1; // Clear the cached value
             }
         }
 
