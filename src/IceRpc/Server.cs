@@ -250,12 +250,6 @@ namespace IceRpc
                     }
                 }
 
-                // TODO: remove
-                if ((Invoker as Communicator)?.GetPropertyAsBool("Ice.PrintAdapterReady") ?? false)
-                {
-                    Console.Out.WriteLine($"{this} ready");
-                }
-
                 Logger.LogServerListening(this);
             }
         }

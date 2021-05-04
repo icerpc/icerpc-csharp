@@ -52,6 +52,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The features of this connection.</summary>
+        public FeatureCollection Features { get; set; }
+
         /// <summary>Gets the connection idle timeout.</summary>
         public TimeSpan IdleTimeout
         {
@@ -131,9 +134,6 @@ namespace IceRpc
 
         /// <summary>The socket transport name.</summary>
         public string TransportName => _socket.TransportName;
-
-        internal CompressionLevel CompressionLevel { get; }
-        internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
         internal ILogger Logger => _socket.Logger;
 
@@ -183,8 +183,10 @@ namespace IceRpc
         // TODO: remove for testing purpose only
         static public async Task<Connection> CreateAsync(Endpoint endpoint, Communicator communicator)
         {
-            MultiStreamSocket socket = endpoint.CreateClientSocket(communicator.ConnectionOptions, communicator.Logger);
-            var connection = new Connection(socket, communicator.ConnectionOptions);
+            MultiStreamSocket socket = endpoint.CreateClientSocket(
+                communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default,
+                communicator.Logger);
+            var connection = new Connection(socket, communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default);
             await connection.ConnectAsync(default).ConfigureAwait(false);
             return connection;
         }
@@ -265,9 +267,8 @@ namespace IceRpc
 
         internal Connection(MultiStreamSocket socket, ConnectionOptions options, Server? server = null)
         {
-            CompressionLevel = options.CompressionLevel;
-            CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
+            Features = options.Features;
             KeepAlive = options.KeepAlive;
             _closeTimeout = options.CloseTimeout;
             Server = server;

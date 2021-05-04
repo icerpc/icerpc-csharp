@@ -361,7 +361,6 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<OutgoingResponse> DispatchAsync(
                 IncomingRequest request, Dispatch dispatch, CancellationToken cancel) =>
                 new(OutgoingResponse.WithReturnValue(dispatch,
-                                                     compress: false,
                                                      format: default,
                                                      new MyClassAlsoEmpty(),
                                                      (ostr, ae) => ostr.WriteClass(ae, null)));

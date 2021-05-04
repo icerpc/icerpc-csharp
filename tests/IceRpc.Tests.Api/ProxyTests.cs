@@ -458,50 +458,6 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task Proxy_PropertyAsProxy()
-        {
-            string propertyPrefix = "Foo.Proxy";
-            string proxyString = "test:tcp -h localhost -p 10000";
-
-            await using var communicator = new Communicator();
-
-            communicator.SetProperty(propertyPrefix, proxyString);
-            var prx = communicator.GetPropertyAsProxy(propertyPrefix, IServicePrx.Factory)!;
-            Assert.AreEqual("/test", prx.Path);
-        }
-
-        [Test]
-        public async Task Proxy_ToProperty()
-        {
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", communicator);
-            prx.CacheConnection = true;
-            prx.PreferExistingConnection = false;
-            prx.InvocationTimeout = TimeSpan.FromSeconds(10);
-
-            Dictionary<string, string> proxyProps = prx.ToProperty("Test");
-            Assert.AreEqual(3, proxyProps.Count);
-            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
-
-            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-
-            ILocatorPrx locator = ILocatorPrx.Parse("locator", communicator);
-            locator.CacheConnection = false;
-            locator.PreferExistingConnection = false;
-
-            // TODO: LocatorClient should reject indirect locators.
-            ILocationResolver locationResolver = new LocatorClient(locator);
-            prx.LocationResolver = locationResolver;
-
-            proxyProps = prx.ToProperty("Test");
-
-            Assert.AreEqual(3, proxyProps.Count);
-            Assert.AreEqual("test -t -e 1.1:tcp -h 127.0.0.1 -p 12010 -t 1000", proxyProps["Test"]);
-            Assert.AreEqual("10s", proxyProps["Test.InvocationTimeout"]);
-            Assert.AreEqual("false", proxyProps["Test.PreferExistingConnection"]);
-        }
-
-        [Test]
         public async Task Proxy_UriOptions()
         {
             await using var communicator = new Communicator();
