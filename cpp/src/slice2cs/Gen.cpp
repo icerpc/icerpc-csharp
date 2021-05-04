@@ -2235,7 +2235,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << "(global::System.ReadOnlyMemory<byte> payload, ";
                     _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
                     _out.inc();
-                    _out << nl << "Payload.ToReturnValue(";
+                    _out << nl << "IceRpc.Payload.ToReturnValue(";
                     _out.inc();
                     _out << nl << "payload,";
                     _out << nl;
