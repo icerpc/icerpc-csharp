@@ -37,33 +37,7 @@ namespace IceRpc
         /// <summary>Releases resources used by the response frame.</summary>
         public void Dispose() => SocketStream?.Release();
 
-        /// <summary>Reads the return value. If this response frame carries a failure, reads and throws this exception.
-        /// </summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request.</param>
-        /// <param name="reader">An input stream reader used to read the frame return value, when the frame
-        /// return value contain multiple values the reader must use a tuple to return the values.</param>
-        /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReader<T> reader)
-        {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            return ResultType == ResultType.Success ?
-                Payload.AsReadOnlyMemory(1).ReadEncapsulation(Protocol.GetEncoding(),
-                                                              reader,
-                                                              Connection,
-                                                              proxy.GetOptions()) :
-                throw ReadException(proxy);
-        }
-
+        /*
         /// <summary>Reads the return value which contains a stream return value. If this response frame carries a
         /// failure, reads and throws this exception.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
@@ -142,31 +116,7 @@ namespace IceRpc
                 throw ReadException(proxy);
             }
         }
-
-        /// <summary>Reads the return value and makes sure this return value is empty (void) or has only unknown tagged
-        /// members. If this response frame carries a failure, reads and throws this exception.</summary>
-        /// <param name="proxy">The proxy used to send the request.</param>
-        public void ReadVoidReturnValue(IServicePrx proxy)
-        {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            if (ResultType == ResultType.Success)
-            {
-                Payload.AsReadOnlyMemory(1).ReadEmptyEncapsulation(Protocol.GetEncoding());
-            }
-            else
-            {
-                throw ReadException(proxy);
-            }
-        }
+        */
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
@@ -267,47 +217,6 @@ namespace IceRpc
                 retryPolicy = value.Read(istr => new RetryPolicy(istr));
             }
             return retryPolicy;
-        }
-
-        private Exception ReadException(IServicePrx proxy)
-        {
-            Debug.Assert(ResultType != ResultType.Success);
-
-            var replyStatus = (ReplyStatus)Payload[0]; // can be reassigned below
-
-            InputStream istr;
-
-            if (Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
-            {
-                istr = new InputStream(Payload.Slice(1),
-                                       Protocol.GetEncoding(),
-                                       Connection,
-                                       proxy.GetOptions(),
-                                       startEncapsulation: true);
-
-                if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)
-                {
-                    replyStatus = istr.ReadReplyStatus();
-                }
-            }
-            else
-            {
-                Debug.Assert(Protocol == Protocol.Ice1 && PayloadEncoding == Encoding.V11);
-                istr = new InputStream(Payload.Slice(1), Encoding.V11);
-            }
-
-            Exception exception;
-            if (PayloadEncoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
-            {
-                exception = istr.ReadIce1SystemException(replyStatus);
-                istr.CheckEndOfBuffer(skipTaggedParams: false);
-            }
-            else
-            {
-                exception = istr.ReadException();
-                istr.CheckEndOfBuffer(skipTaggedParams: true);
-            }
-            return exception;
         }
     }
 }

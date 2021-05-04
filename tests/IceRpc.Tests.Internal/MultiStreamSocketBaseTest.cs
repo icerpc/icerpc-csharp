@@ -17,7 +17,11 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamSocketBaseTest : SocketBaseTest
     {
-        protected OutgoingRequest DummyRequest => OutgoingRequest.WithEmptyArgs(Proxy, "foo");
+        // protected OutgoingRequest DummyRequest => OutgoingRequest.WithEmptyArgs(Proxy, "foo");
+
+        protected OutgoingRequest DummyRequest =>
+            new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
+
         protected MultiStreamSocket ClientSocket => _clientSocket!;
         protected IServicePrx Proxy => IServicePrx.Factory.Create("/dummy",
                                                                   ClientEndpoint.Protocol,

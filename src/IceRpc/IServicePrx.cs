@@ -9,101 +9,49 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A delegate that reads the response return value from a response frame.</summary>
+    /// <summary>A delegate that reads the return value from a response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
+    /// <param name="payload">The response payload.</param>
     /// <param name="proxy">The proxy used to send the request.</param>
-    /// <param name="response">The response frame.</param>
+    /// <param name="connection">The connection that received this response.</param>
     /// <returns>The response return value.</returns>
-    public delegate T ResponseReader<T>(IServicePrx proxy, IncomingResponse response);
+    /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
+    public delegate T ResponseReader<T>(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection);
 
     /// <summary>Base interface of all service proxies.</summary>
     public interface IServicePrx : IEquatable<IServicePrx>
     {
-        /// <summary>Provides an <see cref="OutgoingRequest"/> factory method for each remote operation defined in
-        /// the pseudo-interface Object.</summary>
+        /// <summary>Converts the arguments of each operation that takes arguments into a request payload.</summary>
         public static class Request
         {
-            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_id.</summary>
-            /// <param name="proxy">Proxy to the target Ice Object.</param>
-            /// <param name="invocation">The invocation properties.</param>
-            /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
-            public static OutgoingRequest IceId(IServicePrx proxy, Invocation? invocation, CancellationToken cancel)
-            {
-                invocation ??= new Invocation();
-                invocation.IsIdempotent = true;
-                return OutgoingRequest.WithEmptyArgs(proxy, "ice_id", invocation, cancel);
-            }
-
-            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_ids.</summary>
-            /// <param name="proxy">Proxy to the target Ice Object.</param>
-            /// <param name="invocation">The invocation properties.</param>
-            /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
-            public static OutgoingRequest IceIds(IServicePrx proxy, Invocation? invocation, CancellationToken cancel)
-            {
-                invocation ??= new Invocation();
-                invocation.IsIdempotent = true;
-                return OutgoingRequest.WithEmptyArgs(proxy, "ice_ids", invocation, cancel);
-            }
-
-            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_isA.</summary>
-            /// <param name="proxy">Proxy to the target Ice Object.</param>
-            /// <param name="id">The type ID argument to write into the request.</param>
-            /// <param name="invocation">The invocation properties.</param>
-            /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
-            public static OutgoingRequest IceIsA(
-                IServicePrx proxy,
-                string id,
-                Invocation? invocation,
-                CancellationToken cancel)
-            {
-                invocation ??= new Invocation();
-                invocation.IsIdempotent = true;
-                return OutgoingRequest.WithArgs(proxy,
-                                                "ice_isA",
-                                                invocation,
-                                                id,
-                                                OutputStream.IceWriterFromString,
-                                                cancel);
-            }
-
-            /// <summary>Creates an <see cref="OutgoingRequest"/> for operation ice_ping.</summary>
-            /// <param name="proxy">Proxy to the target Ice Object.</param>
-            /// <param name="invocation">The invocation properties.</param>
-            /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-            /// <returns>A new <see cref="OutgoingRequest"/>.</returns>
-            public static OutgoingRequest IcePing(
-                IServicePrx proxy,
-                Invocation? invocation,
-                CancellationToken cancel)
-            {
-                invocation ??= new Invocation();
-                invocation.IsIdempotent = true;
-                return OutgoingRequest.WithEmptyArgs(proxy, "ice_ping", invocation, cancel);
-            }
+            /// <summary>Creates the request payload for operation ice_isA.</summary>
+            /// <param name="proxy">Proxy to the target service.</param>
+            /// <param name="arg">The type ID argument to write into the request.</param>
+            /// <returns>The payload.</returns>
+            public static IList<ArraySegment<byte>> IceIsA(IServicePrx proxy, string arg) =>
+                Payload.FromSingleArg(proxy, arg, OutputStream.IceWriterFromString);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
-        /// pseudo-interface Object.</summary>
+        /// pseudo-interface Service.</summary>
         public static class Response
         {
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
             /// </summary>
-            public static string IceId(IServicePrx proxy, IncomingResponse response) =>
-                 response.ReadReturnValue(proxy, InputStream.IceReaderIntoString);
+            public static string IceId(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
+                payload.ToReturnValue(InputStream.IceReaderIntoString, proxy, connection);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
-            public static string[] IceIds(IServicePrx proxy, IncomingResponse response) =>
-                response.ReadReturnValue(
-                    proxy, istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString));
+            public static string[] IceIds(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
+                payload.ToReturnValue(istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
+                                      proxy,
+                                      connection);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
             /// </summary>
-            public static bool IceIsA(IServicePrx proxy, IncomingResponse response) =>
-                response.ReadReturnValue(proxy, InputStream.IceReaderIntoBool);
+            public static bool IceIsA(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
+                payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
         }
 
         /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
@@ -231,115 +179,129 @@ namespace IceRpc
             return true;
         }
 
-        /// <summary>Returns the Slice type ID of the most-derived interface supported by the target object of this
+        /// <summary>Returns the Slice type ID of the most derived interface supported by the target service of this
         /// proxy.</summary>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The task object representing the asynchronous operation.</returns>
+        /// <returns>The Slice type ID of the most derived interface.</returns>
         public Task<string> IceIdAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceId(this, invocation, cancel), Response.IceId);
+            IceInvokeAsync("ice_id",
+                           Payload.FromEmptyArgs(this),
+                           Response.IceId,
+                           invocation,
+                           idempotent: true,
+                           cancel: cancel);
 
-        /// <summary>Returns the Slice type IDs of the interfaces supported by the target object of this proxy.
+        /// <summary>Returns the Slice type IDs of the interfaces supported by the target service of this proxy.
         /// </summary>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The task object representing the asynchronous operation.</returns>
+        /// <returns>The Slice type IDs of the interfaces of the target service.</returns>
         public Task<string[]> IceIdsAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceIds(this, invocation, cancel), Response.IceIds);
+            IceInvokeAsync("ice_ids",
+                           Payload.FromEmptyArgs(this),
+                           Response.IceIds,
+                           invocation,
+                           idempotent: true,
+                           cancel: cancel);
 
-        /// <summary>Tests whether this object supports a specific Slice interface.</summary>
+        /// <summary>Tests whether this service supports a specific Slice interface.</summary>
         /// <param name="id">The type ID of the Slice interface to test against.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task<bool> IceIsAAsync(string id, Invocation? invocation = null, CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IceIsA(this, id, invocation, cancel), Response.IceIsA);
+            IceInvokeAsync("ice_isA",
+                           Request.IceIsA(this, id),
+                           Response.IceIsA,
+                           invocation,
+                           idempotent: true,
+                           cancel: cancel);
 
         /// <summary>Tests whether the target object of this proxy can be reached.</summary>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task IcePingAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
-            IceInvokeAsync(Request.IcePing(this, invocation, cancel), IsOneway);
+            IceInvokeAsync("ice_ping",
+                           Payload.FromEmptyArgs(this),
+                           invocation,
+                           idempotent: true,
+                           oneway: IsOneway,
+                           cancel: cancel);
 
         /// <summary>Marshals the proxy into an OutputStream.</summary>
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(OutputStream ostr);
 
-        /// <summary>Sends a request that returns a value and returns the result asynchronously.</summary>
-        /// <typeparam name="T">The operation's return type.</typeparam>
-        /// <param name="request">The <see cref="OutgoingRequest"/> for this invocation.</param>
-        /// <param name="reader">An <see cref="ResponseReader{T}"/> for the operation's return value. Typically
-        /// {IInterfaceNamePrx}.Response.{OperationName}.</param>
-        /// <returns>A task that provides the return value asynchronously.</returns>
+        /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
+        /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="responseReader">The reader for the response payload. It reads and throws a
+        /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
+        /// <param name="invocation">The invocation properties.</param>
+        /// <param name="compress">When true, the request payload should be compressed.</param>
+        /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The operation's return value read by response reader.</returns>
+        /// <remarks>This method stores the response features into the invocation's response features when invocation is
+        /// not null.</remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        protected Task<T> IceInvokeAsync<T>(OutgoingRequest request, ResponseReader<T> reader)
+        protected Task<T> IceInvokeAsync<T>(
+            string operation,
+            IList<ArraySegment<byte>> requestPayload,
+            ResponseReader<T> responseReader,
+            Invocation? invocation,
+            bool compress = false,
+            bool idempotent = false,
+            CancellationToken cancel = default)
         {
-            Task<IncomingResponse> responseTask;
-            try
-            {
-                responseTask = ServicePrx.InvokeAsync(request, request.CancellationToken);
-            }
-            catch
-            {
-                request.Dispose();
-                throw;
-            }
+            Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
+                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway: false, cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                try
-                {
-                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
-                    return reader(this, response);
-                }
-                finally
-                {
-                    request.Dispose();
-                }
+                (ReadOnlyMemory<byte> responsePayload, Connection connection) =
+                    await responseTask.ConfigureAwait(false);
+                return responseReader(responsePayload, this, connection);
             }
         }
 
-        /// <summary>Sends a request that returns void and returns the result asynchronously.</summary>
-        /// <param name="request">The <see cref="OutgoingRequest"/> for this invocation.</param>
-        /// <param name="oneway">When true, the request is sent as a oneway request. When false, it is sent as a
-        /// twoway request.</param>
-        /// <returns>A task that completes when the request completes.</returns>
+        /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
+        /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="invocation">The invocation properties.</param>
+        /// <param name="compress">When true, the request payload should be compressed.</param>
+        /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
+        /// after sending the request.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A task that completes when the void response is returned. It can also hold an exception.</returns>
+        /// <remarks>This method stores the response features into the invocation's response features when invocation is
+        /// not null.</remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        protected Task IceInvokeAsync(OutgoingRequest request, bool oneway)
+        protected Task IceInvokeAsync(
+            string operation,
+            IList<ArraySegment<byte>> requestPayload,
+            Invocation? invocation,
+            bool compress = false,
+            bool idempotent = false,
+            bool oneway = false,
+            CancellationToken cancel = default)
         {
-            request.IsOneway |= oneway;
+            Task<(ReadOnlyMemory<byte>, Connection)> responseTask =
+                this.InvokeAsync(operation, requestPayload, invocation, compress, idempotent, oneway, cancel);
 
-            Task<IncomingResponse> responseTask;
-            try
-            {
-                responseTask = ServicePrx.InvokeAsync(request, request.CancellationToken);
-            }
-            catch
-            {
-                request.Dispose();
-                throw;
-            }
-            // A oneway request still need to await the dummy response to return only once the request is sent.
             return ReadResponseAsync();
 
             async Task ReadResponseAsync()
             {
-                try
-                {
-                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
-                    if (!oneway)
-                    {
-                        response.ReadVoidReturnValue(this);
-                    }
-                }
-                finally
-                {
-                    request.Dispose();
-                }
+                (ReadOnlyMemory<byte> responsePayload, Connection connection) =
+                     await responseTask.ConfigureAwait(false);
+                responsePayload.ToVoidReturnValue(this, connection);
             }
         }
 
