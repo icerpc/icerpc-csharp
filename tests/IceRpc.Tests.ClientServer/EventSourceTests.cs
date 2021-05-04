@@ -38,6 +38,30 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            int dispatchRequests = 0;
+            var mutex = new object();
+            var dispatchSemaphore = new SemaphoreSlim(0);
+            router.Use(next => new InlineDispatcher(
+                async (request, cancel) =>
+                {
+                    // Hold the dispatch until we received 10 requests to ensure current-request grows to 10
+                    Task? t = null;
+                    lock (mutex)
+                    {
+                        if (++dispatchRequests < 10)
+                        {
+                            t = dispatchSemaphore.WaitAsync(cancel);
+                        }
+                        else
+                        {
+                            dispatchSemaphore.Release(dispatchRequests);
+                        }
+                    }
+                    await (t ?? Task.CompletedTask);
+                    // This delay ensure the metrics would be refresh while current-requests is still 10
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+                    return await next.DispatchAsync(request, cancel);
+                }));
             router.Map("/test", new Greeter1());
             await using var server = new Server
             {
@@ -67,8 +91,6 @@ namespace IceRpc.Tests.ClientServer
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
-                    ("current-requests", "10"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("canceled-requests", "10"),
                 });
 
@@ -77,8 +99,6 @@ namespace IceRpc.Tests.ClientServer
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
-                    ("current-requests", "10"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("canceled-requests", "10")
                 });
 
@@ -119,8 +139,6 @@ namespace IceRpc.Tests.ClientServer
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
-                    ("current-requests", "1"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "10")
                 });
 
@@ -129,8 +147,6 @@ namespace IceRpc.Tests.ClientServer
                 new List<(string, string)>
                 {
                     ("total-requests", "10"),
-                    ("current-requests", "1"),
-                    ("current-requests", "0"), // Back to 0 after the request finish
                     ("failed-requests", "10")
                 });
 
@@ -161,9 +177,7 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter1 : IGreeterTestService
         {
-            // Delay the dispatch to ensure current-requests gets to 10
-            public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
-                await Task.Delay(2, cancel);
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private class Greeter2 : IGreeterTestService
