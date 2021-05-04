@@ -50,7 +50,7 @@ namespace IceRpc
                     if (value.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
-                                                     nameof(AltEndpoints));
+                                                    nameof(AltEndpoints));
                     }
                 }
                 // else, no need to check anything, an empty list is always fine.
