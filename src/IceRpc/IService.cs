@@ -185,10 +185,6 @@ namespace IceRpc
             var dispatch = new Dispatch(request);
             try
             {
-                if (request.PayloadCompressionFormat != CompressionFormat.Decompressed)
-                {
-                    request.DecompressPayload();
-                }
                 IList<ArraySegment<byte>> payload =
                     await DispatchAsync(request.Payload.AsReadOnlyMemory(), dispatch, cancel).ConfigureAwait(false);
 

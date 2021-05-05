@@ -149,7 +149,7 @@ namespace IceRpc
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection(), request.Connection.CompressionLevel, request.Connection.CompressionMinSize) => Payload = IceRpc.Payload.FromVoidResponse(request);
+        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = IceRpc.Payload.FromVoidResponse(request);
 
         // <summary>Constructs an outgoing response from the given incoming response. The new response will
         /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
@@ -163,7 +163,7 @@ namespace IceRpc
         /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         public OutgoingResponse(IncomingRequest request, IList<ArraySegment<byte>> payload, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection(), request.Connection.CompressionLevel, request.Connection.CompressionMinSize) => Payload = payload;
+        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = payload;
 
         /// <summary>Constructs an outgoing response from the given incoming response. The new response will
         /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
