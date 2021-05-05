@@ -17,7 +17,59 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override IList<ArraySegment<byte>> Payload
+        {
+            get => _payload;
+            set
+            {
+                if (value.Count == 0 || value[0].Count == 0)
+                {
+                    throw new ArgumentException("the response payload cannot be empty");
+                }
+
+                // the payload encapsulation header is always in the payload first segment
+                var istr = new InputStream(value[0], Protocol.GetEncoding());
+                ReplyStatus replyStatus = istr.ReadReplyStatus();
+                if (_payload.Count > 0 && replyStatus != (ReplyStatus)_payload[0][0])
+                {
+                    throw new ArgumentException(
+                        "setting the Payload cannot change the ReplyStatus byte",
+                        nameof(Payload));
+                }
+
+                // If the response frame has an encapsulation reset the payload encoding and compression format values
+                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
+                {
+                    int _ = Protocol == Protocol.Ice1 ? istr.ReadInt() : istr.ReadSize();
+                    var payloadEncoding = new Encoding(istr);
+                    CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V11 ?
+                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                    PayloadCompressionFormat = payloadCompressionFormat;
+                    PayloadEncoding = payloadEncoding;
+                }
+                _payload = value;
+                _payloadSize = -1;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override int PayloadSize
+        {
+            get
+            {
+                if (_payloadSize == -1)
+                {
+                    _payloadSize = Payload.GetByteCount();
+                }
+                return _payloadSize;
+            }
+        }
 
         /// <summary>The result type; see <see cref="IceRpc.ResultType"/>.</summary>
         public ResultType ResultType => Payload[0][0] == 0 ? ResultType.Success : ResultType.Failure;
@@ -25,6 +77,9 @@ namespace IceRpc
         // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
         // and the first segment has always at least 2 bytes.
         private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
+
+        private IList<ArraySegment<byte>> _payload;
+        private int _payloadSize = -1;
 
         /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
         /// <param name="dispatch">The dispatch object for the corresponding incoming request.</param>
@@ -431,6 +486,11 @@ namespace IceRpc
         }
 
         private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection features)
-            : base(protocol, features) => PayloadEncoding = encoding;
+            : base(protocol, features)
+        {
+            PayloadEncoding = encoding;
+            _payload = new List<ArraySegment<byte>>();
+            _payloadSize = -1;
+        }
     }
 }

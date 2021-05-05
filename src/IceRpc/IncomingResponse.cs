@@ -16,7 +16,37 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override ArraySegment<byte> Payload
+        {
+            get => _payload;
+            set
+            {
+                var istr = new InputStream(value, Protocol.GetEncoding());
+                ReplyStatus replyStatus = istr.ReadReplyStatus();
+                if (_payload.Count > 0 && replyStatus != (ReplyStatus)_payload[0])
+                {
+                    throw new ArgumentException(
+                        "setting the Payload cannot change the ReplyStatus byte",
+                        nameof(Payload));
+                }
+
+                // If the response frame has an encapsulation reset the payload encoding and compression format values
+                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
+                {
+                    (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
+                    PayloadEncoding = payloadEncoding;
+                    PayloadCompressionFormat = payloadEncoding == Encoding.V11 ?
+                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                }
+                _payload = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response frame.</summary>
         public ResultType ResultType => Payload[0] == 0 ? ResultType.Success : ResultType.Failure;
@@ -24,6 +54,8 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
         internal SocketStream? SocketStream { get; set; }
+
+        private ArraySegment<byte> _payload;
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
