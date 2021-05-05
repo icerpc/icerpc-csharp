@@ -49,7 +49,8 @@ namespace IceRpc.Internal
                 // The encapsulation always starts in the first segment of the payload (at position 0 or 1).
                 Debug.Assert(encapsulationOffset < frame.Payload[0].Count);
 
-                int sizeLength = frame.Protocol == Protocol.Ice2 ? frame.Payload[0][encapsulationOffset].ReadSizeLength20() : 4;
+                int sizeLength = frame.Protocol == Protocol.Ice2 ?
+                    frame.Payload[0][encapsulationOffset].ReadSizeLength20() : 4;
 
                 Debug.Assert(frame.Payload.GetByte(encapsulationOffset + sizeLength + 2) == 0); // i.e. Decompressed
 
