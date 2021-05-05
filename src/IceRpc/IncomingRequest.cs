@@ -74,46 +74,11 @@ namespace IceRpc
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
 
-        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
-        /// unknown tagged arguments.</summary>
-        public void ReadEmptyArgs()
-        {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-        }
-
-        /// <summary>Reads the arguments from a request.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="reader">The delegate used to read the arguments.</param>
-        /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(InputStreamReader<T> reader)
-        {
-
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
-                                                                reader,
-                                                                connection: Connection,
-                                                                proxyOptions: Connection.Server?.ProxyOptions);
-        }
-
         /// <summary>Reads a single stream argument from the request.</summary>
         /// <param name="reader">The delegate used to read the argument.</param>
         /// <returns>The request argument.</returns>
         public T ReadArgs<T>(Func<SocketStream, T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
@@ -134,11 +99,6 @@ namespace IceRpc
         /// <returns>The request arguments.</returns>
         public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (SocketStream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
@@ -160,15 +120,13 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            int maxSize,
             SocketStream? socketStream)
-            : base(protocol, maxSize)
+            : base(protocol)
         {
             SocketStream = socketStream;
 
@@ -239,7 +197,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="request">The outgoing request frame.</param>
         internal IncomingRequest(OutgoingRequest request)
-            : base(request.Protocol, int.MaxValue)
+            : base(request.Protocol)
         {
             if (Protocol == Protocol.Ice1)
             {

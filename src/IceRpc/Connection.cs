@@ -52,6 +52,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The features of this connection.</summary>
+        public FeatureCollection Features { get; set; }
+
         /// <summary>Gets the connection idle timeout.</summary>
         public TimeSpan IdleTimeout
         {
@@ -131,9 +134,6 @@ namespace IceRpc
 
         /// <summary>The socket transport name.</summary>
         public string TransportName => _socket.TransportName;
-
-        internal CompressionLevel CompressionLevel { get; }
-        internal int CompressionMinSize { get; }
         internal int ClassGraphMaxDepth { get; }
         internal ILogger Logger => _socket.Logger;
 
@@ -183,8 +183,10 @@ namespace IceRpc
         // TODO: remove for testing purpose only
         static public async Task<Connection> CreateAsync(Endpoint endpoint, Communicator communicator)
         {
-            MultiStreamSocket socket = endpoint.CreateClientSocket(communicator.ConnectionOptions, communicator.Logger);
-            var connection = new Connection(socket, communicator.ConnectionOptions);
+            MultiStreamSocket socket = endpoint.CreateClientSocket(
+                communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default,
+                communicator.Logger);
+            var connection = new Connection(socket, communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default);
             await connection.ConnectAsync(default).ConfigureAwait(false);
             return connection;
         }
@@ -265,9 +267,8 @@ namespace IceRpc
 
         internal Connection(MultiStreamSocket socket, ConnectionOptions options, Server? server = null)
         {
-            CompressionLevel = options.CompressionLevel;
-            CompressionMinSize = options.CompressionMinSize;
             ClassGraphMaxDepth = options.ClassGraphMaxDepth;
+            Features = options.Features;
             KeepAlive = options.KeepAlive;
             _closeTimeout = options.CloseTimeout;
             Server = server;
@@ -672,10 +673,11 @@ namespace IceRpc
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
-                activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
+                activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}", 
+                                                                 ActivityKind.Server);
                 if (activity == null && (_socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
-                    activity = new Activity("IceRpc.Dispatch");
+                    activity = new Activity($"{request.Path}/{request.Operation}");
                     // TODO we should start the activity after restoring its context, we should update this once
                     // we move to CreateActivity in .NET 6
                     activity.Start();
@@ -683,8 +685,11 @@ namespace IceRpc
 
                 if (activity != null)
                 {
-                    activity.AddTag("Operation", request.Operation);
-                    activity.AddTag("Path", request.Path);
+                    activity.AddTag("rpc.system", "icerpc");
+                    activity.AddTag("rpc.service", request.Path);
+                    activity.AddTag("rpc.method", request.Operation);
+                    // TODO add additional attributes
+                    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                     request.RestoreActivityContext(activity);
                 }
 

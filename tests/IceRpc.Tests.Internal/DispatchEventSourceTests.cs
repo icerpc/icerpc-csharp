@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using NUnit.Framework;
 using System;
 using System.Diagnostics.Tracing;

@@ -28,13 +28,15 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
-            await using var communicator = new Communicator(
-                connectionOptions: new()
+            await using var communicator = new Communicator
+            {
+                ConnectionOptions = new()
                 {
                     // Speed up windows testing by speeding up the connection failure
                     ConnectTimeout = TimeSpan.FromMilliseconds(200)
                 },
-                loggerFactory: loggerFactory);
+                LoggerFactory = loggerFactory
+            };
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
@@ -60,13 +62,15 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
-            await using var communicator = new Communicator(
-                connectionOptions: new()
+            await using var communicator = new Communicator
+            {
+                ConnectionOptions = new()
                 {
                     // Speed up windows testing by speeding up the connection failure
                     ConnectTimeout = TimeSpan.FromMilliseconds(200)
                 },
-                loggerFactory: loggerFactory);
+                LoggerFactory = loggerFactory
+            };
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
@@ -91,7 +95,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
-            await using var communicator = new Communicator(loggerFactory: loggerFactory);
+            await using var communicator = new Communicator { LoggerFactory = loggerFactory };
 
             await using var server = CreateServer(communicator, colocated, portNumber: 1);
             server.Listen();
@@ -113,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
-            await using var communicator = new Communicator(loggerFactory: loggerFactory);
+            await using var communicator = new Communicator { LoggerFactory = loggerFactory };
             await using Server server = CreateServer(communicator, colocated, portNumber: 2);
             server.Listen();
 

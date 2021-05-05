@@ -47,6 +47,7 @@ vcproj
 .keychain
 
 # MSBuild Build System
+lib/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

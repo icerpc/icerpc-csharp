@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using System.Threading;
 using System.Web;
 
 namespace IceRpc
@@ -149,7 +148,7 @@ namespace IceRpc
             IServicePrx proxy,
             IncomingRequest request,
             bool forwardBinaryContext = true)
-            : this(proxy, request.Operation, request.Context)
+            : this(proxy, request.Operation, request.Context, request.Features)
         {
             PayloadEncoding = request.PayloadEncoding;
             Deadline = request.Deadline;
@@ -192,22 +191,15 @@ namespace IceRpc
             IList<ArraySegment<byte>> args,
             DateTime deadline,
             Invocation? invocation = null,
-            bool compress = false,
             bool idempotent = false,
             bool oneway = false)
-            : this(proxy, operation, invocation?.Context)
+            : this(proxy, operation, invocation?.Context, invocation?.RequestFeatures)
         {
             Payload = args;
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
             IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
             Progress = invocation?.Progress;
-
-            // temporary
-            if ((compress || (invocation?.CompressRequestPayload ?? false)) && PayloadEncoding == Encoding.V20)
-            {
-                _ = CompressPayload();
-            }
         }
 
         /// <inheritdoc/>
@@ -327,13 +319,12 @@ namespace IceRpc
             }
         }
 
-        private OutgoingRequest(IServicePrx proxy, string operation, IReadOnlyDictionary<string, string>? context)
-            : base(proxy.Protocol,
-                   // TODO if Connection is null there should be a ConnectionPool to read the settings from
-                   proxy.Connection?.CompressionLevel ?? CompressionLevel.Fastest,
-                   proxy.Connection?.CompressionMinSize ?? 100,
-                   // TODO: set features from Invocation
-                   new FeatureCollection())
+        private OutgoingRequest(
+            IServicePrx proxy,
+            string operation,
+            IReadOnlyDictionary<string, string>? context,
+            FeatureCollection? features)
+            : base(proxy.Protocol, features)
         {
             Proxy = proxy;
 

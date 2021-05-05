@@ -2883,6 +2883,15 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
          _out << nl << "IceCheckNonIdempotent(dispatch);";
     }
 
+    if (opCompressReturn(operation))
+    {
+        _out << nl << "if (dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] == null)";
+        _out << sb;
+        _out << nl << "dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] = "
+             << "IceRpc.Features.CompressPayload.Yes;";
+        _out << eb;
+    }
+
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
     // that we skip).
     if (params.empty())
@@ -2902,7 +2911,6 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
-
     if (operation->hasMarshaledResult())
     {
         _out << nl << "var returnValue = await this." << name << spar;

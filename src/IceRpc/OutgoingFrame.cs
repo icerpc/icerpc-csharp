@@ -4,24 +4,9 @@ using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 
 namespace IceRpc
 {
-    /// <summary>Indicates the result of the <see cref="OutgoingFrame.CompressPayload"/> operation.</summary>
-    public enum CompressionResult
-    {
-        /// <summary>The payload was successfully compressed.</summary>
-        Success,
-
-        /// <summary>The payload size is smaller than the configured compression threshold.</summary>
-        PayloadTooSmall,
-
-        /// <summary>The payload was not compressed, compressing it would increase its size.</summary>
-        PayloadNotCompressible
-    }
-
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
@@ -56,10 +41,18 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
-        public IList<ArraySegment<byte>> Payload { get; set; } = new List<ArraySegment<byte>>();
+        public IList<ArraySegment<byte>> Payload
+        {
+            get => _payload;
+            set
+            {
+                _payload = value;
+                _payloadSize = -1; // Clear the cached value
+            }
+        }
 
         /// <summary>Returns the payload's compression format.</summary>
-        public CompressionFormat PayloadCompressionFormat { get; private set; }
+        public CompressionFormat PayloadCompressionFormat { get; set; }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
@@ -87,105 +80,8 @@ namespace IceRpc
 
         private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
 
-        private readonly CompressionLevel _compressionLevel;
-        private readonly int _compressionMinSize;
-
+        private IList<ArraySegment<byte>> _payload = new List<ArraySegment<byte>>();
         private int _payloadSize = -1; // -1 means not initialized
-
-        /// <summary>Compresses the encapsulation payload using the specified compression format (by default, gzip).
-        /// Compressed encapsulation payload is only supported with the 2.0 encoding.</summary>
-        /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
-        /// </returns>
-        public CompressionResult CompressPayload(CompressionFormat format = CompressionFormat.GZip)
-        {
-            if (PayloadEncoding != Encoding.V20)
-            {
-                throw new NotSupportedException("payload compression is only supported with the 2.0 encoding");
-            }
-            else
-            {
-                if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-                {
-                    throw new InvalidOperationException("the payload is already compressed");
-                }
-                if (format == CompressionFormat.Decompressed)
-                {
-                    throw new ArgumentException("invalid compression format", nameof(format));
-                }
-                else if (format != CompressionFormat.GZip)
-                {
-                    throw new NotSupportedException($"cannot compress with compression format '{format}'");
-                }
-
-                int encapsulationOffset = this is OutgoingResponse ? 1 : 0;
-
-                // The encapsulation always starts in the first segment of the payload (at position 0 or 1).
-                Debug.Assert(encapsulationOffset < Payload[0].Count);
-
-                int sizeLength = Protocol == Protocol.Ice2 ? Payload[0][encapsulationOffset].ReadSizeLength20() : 4;
-
-                Debug.Assert(Payload.GetByte(encapsulationOffset + sizeLength + 2) == 0); // i.e. Decompressed
-
-                int encapsulationSize = Payload.GetByteCount() - encapsulationOffset; // this includes the size length
-                if (encapsulationSize < _compressionMinSize)
-                {
-                    return CompressionResult.PayloadTooSmall;
-                }
-                // Reserve memory for the compressed data, this should never be greater than the uncompressed data
-                // otherwise we will just send the uncompressed data.
-                byte[] compressedData = new byte[encapsulationOffset + encapsulationSize];
-                // Copy the byte before the encapsulation, if any
-                if (encapsulationOffset == 1)
-                {
-                    compressedData[0] = Payload[0][0];
-                }
-                // Write the encapsulation header
-                int offset = encapsulationOffset + sizeLength;
-                compressedData[offset++] = PayloadEncoding.Major;
-                compressedData[offset++] = PayloadEncoding.Minor;
-                // Set the compression status to '1' GZip compressed
-                compressedData[offset++] = 1;
-                // Write the size of the uncompressed data
-                compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(encapsulationSize - sizeLength);
-
-                offset += sizeLength;
-                using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
-                using var gzipStream = new GZipStream(
-                    memoryStream,
-                    _compressionLevel == CompressionLevel.Fastest ? System.IO.Compression.CompressionLevel.Fastest :
-                                                                    System.IO.Compression.CompressionLevel.Optimal);
-                try
-                {
-                    // The data to compress starts after the compression status byte, + 3 corresponds to (Encoding 2
-                    // bytes, Compression status 1 byte)
-                    foreach (ArraySegment<byte> segment in Payload.Slice(encapsulationOffset + sizeLength + 3))
-                    {
-                        gzipStream.Write(segment);
-                    }
-                    gzipStream.Flush();
-                }
-                catch (NotSupportedException)
-                {
-                    // If the data doesn't fit in the memory stream NotSupportedException is thrown when GZipStream
-                    // try to expand the fixed size MemoryStream.
-                    return CompressionResult.PayloadNotCompressible;
-                }
-
-                Payload.Clear();
-                offset += (int)memoryStream.Position;
-                Payload.Add(new ArraySegment<byte>(compressedData, 0, offset));
-                _payloadSize = -1; // reset cached value
-
-                // Rewrite the encapsulation size
-                compressedData.AsSpan(encapsulationOffset, sizeLength).WriteEncapsulationSize(
-                    offset - sizeLength - encapsulationOffset,
-                    Protocol.GetEncoding());
-
-                PayloadCompressionFormat = CompressionFormat.GZip;
-
-                return CompressionResult.Success;
-            }
-        }
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>
@@ -214,17 +110,11 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(
-            Protocol protocol,
-            CompressionLevel compressionLevel,
-            int compressionMinSize,
-            FeatureCollection features)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection? features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
-            _compressionLevel = compressionLevel;
-            _compressionMinSize = compressionMinSize;
-            Features = features;
+            Features = features ?? new FeatureCollection();
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)
