@@ -29,14 +29,14 @@ namespace IceRpc
                         request.PayloadCompressionFormat == CompressionFormat.Decompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
-                        (CompressionResult result, ArraySegment<byte> compressedPayload) = 
+                        (CompressionResult result, ArraySegment<byte> compressedPayload) =
                             request.Payload.Compress(request.Protocol,
                                                      request: true,
                                                      compressionLevel,
                                                      compressionMinSize);
                         if (result == CompressionResult.Success)
                         {
-                            request.Payload = new List<ArraySegment<byte>>{ compressedPayload };
+                            request.Payload = new List<ArraySegment<byte>> { compressedPayload };
                         }
                     }
                     return await next.InvokeAsync(request, cancel).ConfigureAwait(false);

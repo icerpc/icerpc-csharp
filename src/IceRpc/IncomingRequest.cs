@@ -55,9 +55,8 @@ namespace IceRpc
                 // reset the payload encoding and compression format values
                 var istr = new InputStream(value, Protocol.GetEncoding());
                 (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
-                CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V20 ?
+                PayloadCompressionFormat = payloadEncoding == Encoding.V20 ?
                     istr.ReadCompressionFormat() : CompressionFormat.Decompressed;
-                PayloadCompressionFormat = payloadCompressionFormat;
                 PayloadEncoding = payloadEncoding;
                 _payload = value;
             }

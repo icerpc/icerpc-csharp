@@ -34,9 +34,9 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
                 {
                     (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
-                    PayloadEncoding = payloadEncoding;
                     PayloadCompressionFormat = payloadEncoding == Encoding.V11 ?
                         CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                    PayloadEncoding = payloadEncoding;
                 }
                 _payload = value;
             }

@@ -17,7 +17,7 @@ namespace IceRpc
                         request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
                         // TODO maxSize should come from the connection
-                        request.Payload = request.Payload.Decompress(request.Protocol, 
+                        request.Payload = request.Payload.Decompress(request.Protocol,
                                                                      request: true,
                                                                      maxSize: 1024 * 1024);
                     }
