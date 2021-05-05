@@ -540,7 +540,7 @@ namespace IceRpc
             if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
                 activity = new Activity($"{request.Path}/{request.Operation}");
-                activity.AddTag("rpc.system", "IceRpc");
+                activity.AddTag("rpc.system", "icerpc");
                 activity.AddTag("rpc.service", request.Path);
                 activity.AddTag("rpc.method", request.Operation);
                 // TODO add additional attributes
