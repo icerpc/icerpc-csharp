@@ -673,7 +673,7 @@ namespace IceRpc
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
-                activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}", 
+                activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}",
                                                                  ActivityKind.Server);
                 if (activity == null && (_socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
