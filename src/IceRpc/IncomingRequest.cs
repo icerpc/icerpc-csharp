@@ -47,7 +47,26 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override ArraySegment<byte> Payload
+        {
+            get => _payload;
+            set
+            {
+                // reset the payload encoding and compression format values
+                var istr = new InputStream(value, Protocol.GetEncoding());
+                (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
+                PayloadCompressionFormat = payloadEncoding == Encoding.V20 ?
+                    istr.ReadCompressionFormat() : CompressionFormat.Decompressed;
+                PayloadEncoding = payloadEncoding;
+                _payload = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
         public Priority Priority { get; }
@@ -69,6 +88,7 @@ namespace IceRpc
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
 
+        ArraySegment<byte> _payload;
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
@@ -184,7 +204,7 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            Payload = data.Slice(istr.Pos);
+            _payload = data.Slice(istr.Pos);
 
             PayloadEncoding = istr.ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
             if (PayloadEncoding == Encoding.V20)

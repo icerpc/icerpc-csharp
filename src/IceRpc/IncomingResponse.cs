@@ -16,7 +16,35 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override ArraySegment<byte> Payload
+        {
+            get => _payload;
+            set
+            {
+                var istr = new InputStream(value, Protocol.GetEncoding());
+                ReplyStatus replyStatus = istr.ReadReplyStatus();
+
+                // If the response frame has an encapsulation reset the payload encoding and compression format values
+                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
+                {
+                    (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
+                    PayloadCompressionFormat = payloadEncoding == Encoding.V11 ?
+                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                    PayloadEncoding = payloadEncoding;
+                }
+                else
+                {
+                    PayloadEncoding = Encoding.V11;
+                }
+                _payload = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response frame.</summary>
         public ResultType ResultType => Payload[0] == 0 ? ResultType.Success : ResultType.Failure;
@@ -24,6 +52,8 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
         internal SocketStream? SocketStream { get; set; }
+
+        private ArraySegment<byte> _payload;
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
@@ -131,19 +161,9 @@ namespace IceRpc
             SocketStream = socketStream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
-
-            bool hasEncapsulation = false;
             if (Protocol == Protocol.Ice1)
             {
                 Payload = data; // there is no response frame header with ice1
-                if ((byte)istr.ReadReplyStatus() <= (byte)ReplyStatus.UserException)
-                {
-                    hasEncapsulation = true;
-                }
-                else
-                {
-                    PayloadEncoding = Encoding.V11;
-                }
             }
             else
             {
@@ -157,22 +177,7 @@ namespace IceRpc
                         @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-
                 Payload = data.Slice(istr.Pos);
-                _ = istr.ReadResultType(); // just to check the value
-                hasEncapsulation = true;
-            }
-
-            if (hasEncapsulation)
-            {
-                // Read encapsulation header, in particular the payload encoding.
-
-                PayloadEncoding = istr.ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
-
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = istr.ReadCompressionFormat();
-                }
             }
         }
 

@@ -119,6 +119,8 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
+        private Connection? _incomingConnection;
+
         private Endpoint? _endpoint;
 
         private ILogger? _logger;
@@ -215,23 +217,25 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                _incomingConnectionFactory = _endpoint.IsDatagram ?
-                    new DatagramIncomingConnectionFactory(this, _endpoint) :
-                    new AcceptorIncomingConnectionFactory(this, _endpoint);
-
-                _endpoint = _incomingConnectionFactory.Endpoint;
-                UpdateProxyEndpoint();
-
-                if (ConnectionOptions.AuthenticationOptions != null)
+                if (_endpoint.HasAcceptor)
                 {
-                    ConnectionOptions.AuthenticationOptions = ConnectionOptions.AuthenticationOptions.Clone();
-                    ConnectionOptions.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                    {
-                        new SslApplicationProtocol(_endpoint.Protocol.GetName())
-                    };
-                }
+                    _incomingConnectionFactory = new IncomingConnectionFactory(this, _endpoint);
+                    _endpoint = _incomingConnectionFactory.Endpoint;
+                    UpdateProxyEndpoint();
 
-                _incomingConnectionFactory.Activate();
+                    // Activate the factory to start accepting new connections.
+                    _incomingConnectionFactory.Activate();
+                }
+                else
+                {
+                    MultiStreamSocket socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
+                    _incomingConnection = new Connection(socket, this);
+                    _endpoint = socket.LocalEndpoint!;
+                    UpdateProxyEndpoint();
+
+                    // Connect the connection to start accepting new streams.
+                    _ = _incomingConnection.ConnectAsync(default);
+                }
 
                 _listening = true;
 
@@ -241,7 +245,7 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _incomingColocConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
+                    _incomingColocConnectionFactory = new IncomingConnectionFactory(this, colocEndpoint);
                     _incomingColocConnectionFactory.Activate();
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
@@ -309,10 +313,15 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
-                    Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
-
-                    await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
+                    // TODO: forward the cancellation token to the methods below. The connections should be
+                    // responsible for canceling dispatch.
+                    Task? colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync();
+                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
+                    Task? incomingConnectionShutdownTask = _incomingConnection?.ShutdownAsync(cancel: default);
+                    await Task.WhenAll(
+                        colocShutdownTask ?? Task.CompletedTask,
+                        incomingShutdownTask ?? Task.CompletedTask,
+                        incomingConnectionShutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -333,6 +342,11 @@ namespace IceRpc
         public async ValueTask DisposeAsync()
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+            if (_incomingConnection != null)
+            {
+                // The connection is disposed by ShutdownAsync but we do it again here to prevent a warning.
+                await _incomingConnection.DisposeAsync().ConfigureAwait(false);
+            }
             _cancelDispatchSource.Dispose();
         }
 

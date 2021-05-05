@@ -177,9 +177,8 @@ namespace IceRpc
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
         /// <param name="isClosedByPeer"><c>true</c> if the connection closure originated from the peer, <c>false</c>
         /// otherwise</param>
-        /// <param name="retryPolicy">The exception retry policy.</param>
-        public ConnectionClosedException(bool isClosedByPeer = false, RetryPolicy retryPolicy = default)
-            : base("cannot access closed connection", retryPolicy) =>
+        public ConnectionClosedException(bool isClosedByPeer = false)
+            : base("cannot access closed connection", RetryPolicy.AfterDelay(TimeSpan.Zero)) =>
             IsClosedByPeer = isClosedByPeer;
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified
@@ -187,12 +186,8 @@ namespace IceRpc
         /// <param name="message">The message that describes the error.</param>
         /// <param name="isClosedByPeer"><c>true</c> if the connection closure originated from the peer, <c>false</c>
         /// otherwise</param>
-        /// <param name="retryPolicy">The exception retry policy.</param>
-        public ConnectionClosedException(
-            string message,
-            bool isClosedByPeer = false,
-            RetryPolicy retryPolicy = default)
-            : base(message, retryPolicy) => IsClosedByPeer = isClosedByPeer;
+        public ConnectionClosedException(string message, bool isClosedByPeer = false)
+            : base(message, RetryPolicy.AfterDelay(TimeSpan.Zero)) => IsClosedByPeer = isClosedByPeer;
     }
 
     /// <summary>This exception reports that data (bytes) received by Ice are not in an expected format.</summary>

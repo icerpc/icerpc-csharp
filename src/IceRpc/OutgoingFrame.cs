@@ -41,35 +41,17 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
-        public IList<ArraySegment<byte>> Payload
-        {
-            get => _payload;
-            set
-            {
-                _payload = value;
-                _payloadSize = -1; // Clear the cached value
-            }
-        }
+        public abstract IList<ArraySegment<byte>> Payload { get; set; }
 
         /// <summary>Returns the payload's compression format.</summary>
-        public CompressionFormat PayloadCompressionFormat { get; set; }
+        public abstract CompressionFormat PayloadCompressionFormat { get; private protected set; }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public abstract Encoding PayloadEncoding { get; }
+        public abstract Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>Returns the number of bytes in the payload.</summary>
-        public int PayloadSize
-        {
-            get
-            {
-                if (_payloadSize == -1)
-                {
-                    _payloadSize = Payload.GetByteCount();
-                }
-                return _payloadSize;
-            }
-        }
+        public abstract int PayloadSize { get; }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
@@ -79,9 +61,6 @@ namespace IceRpc
         internal Action<SocketStream>? StreamDataWriter { get; set; }
 
         private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
-
-        private IList<ArraySegment<byte>> _payload = new List<ArraySegment<byte>>();
-        private int _payloadSize = -1; // -1 means not initialized
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>

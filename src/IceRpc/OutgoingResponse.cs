@@ -17,142 +17,184 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override IList<ArraySegment<byte>> Payload
+        {
+            get => _payload;
+            set
+            {
+                if (value.Count == 0 || value[0].Count == 0)
+                {
+                    throw new ArgumentException("the response payload cannot be empty");
+                }
+
+                // the payload encapsulation header is always in the payload first segment
+                var istr = new InputStream(value[0], Protocol.GetEncoding());
+                ReplyStatus replyStatus = istr.ReadReplyStatus();
+                if (_payload.Count > 0 && replyStatus != (ReplyStatus)_payload[0][0])
+                {
+                    throw new ArgumentException(
+                        "setting the Payload cannot change the ReplyStatus byte",
+                        nameof(Payload));
+                }
+
+                // If the response frame has an encapsulation reset the payload encoding and compression format values
+                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
+                {
+                    int _ = Protocol == Protocol.Ice1 ? istr.ReadInt() : istr.ReadSize();
+                    var payloadEncoding = new Encoding(istr);
+                    CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V11 ?
+                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                    PayloadCompressionFormat = payloadCompressionFormat;
+                    PayloadEncoding = payloadEncoding;
+                }
+                _payload = value;
+                _payloadSize = -1;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override int PayloadSize
+        {
+            get
+            {
+                if (_payloadSize == -1)
+                {
+                    _payloadSize = Payload.GetByteCount();
+                }
+                return _payloadSize;
+            }
+        }
 
         /// <summary>The result type; see <see cref="IceRpc.ResultType"/>.</summary>
         public ResultType ResultType => Payload[0][0] == 0 ? ResultType.Success : ResultType.Failure;
 
+        private IList<ArraySegment<byte>> _payload;
+        private int _payloadSize = -1;
+
         /*
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
-        /// <param name="dispatch">The dispatch object for the corresponding incoming request.</param>
-        /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithVoidReturnValue(Dispatch dispatch) =>
-            WithVoidReturnValue(dispatch.IncomingRequest, dispatch.ResponseFeatures);
+                /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a non-tuple non-struct
+                /// return type.</summary>
+                /// <typeparam name="T">The type of the return value.</typeparam>
+                /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
+                /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
+                /// class instances.</param>
+                /// <param name="returnValue">The return value to write into the frame.</param>
+                /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
+                /// </param>
+                /// <returns>A new OutgoingResponse.</returns>
+                public static OutgoingResponse WithReturnValue<T>(
+                    Dispatch dispatch,
+                    FormatType format,
+                    T returnValue,
+                    OutputStreamWriter<T> writer)
+                {
+                    (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
+                    writer(ostr, returnValue);
+                    ostr.Finish();
+                    return response;
+                }
 
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
-        /// <param name="request">The incoming request.</param>
-        /// <param name="features">The features for the response.</param>
-        /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithVoidReturnValue(IncomingRequest request, FeatureCollection? features = null)
-        {
-            var response = new OutgoingResponse(request.Protocol,
-                                                request.PayloadEncoding,
-                                                features ?? new FeatureCollection());
-            response.Payload.Add(request.Protocol.GetVoidReturnPayload(request.PayloadEncoding));
-            return response;
-        }
+                /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a single stream return
+                /// value.</summary>
+                /// <typeparam name="T">The type of the return value.</typeparam>
+                /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
+                /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
+                /// class instances.</param>
+                /// <param name="returnValue">The return value to write into the frame.</param>
+                /// <param name="writer">The delegate that will send the stream return value.</param>
+                /// <returns>A new OutgoingResponse.</returns>
+                [System.Diagnostics.CodeAnalysis.SuppressMessage(
+                    "Microsoft.Performance",
+                    "CA1801: Review unused parameters",
+                    Justification = "TODO")]
+                public static OutgoingResponse WithReturnValue<T>(
+                    Dispatch dispatch,
+                    FormatType format,
+                    T returnValue,
+                    Action<SocketStream, T, System.Threading.CancellationToken> writer)
+                {
+                    OutgoingResponse response = WithVoidReturnValue(dispatch);
+                    // TODO: deal with format
+                    response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
+                    return response;
+                }
 
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a non-tuple non-struct
-        /// return type.</summary>
-        /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
-        /// class instances.</param>
-        /// <param name="returnValue">The return value to write into the frame.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
-        /// </param>
-        /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithReturnValue<T>(
-            Dispatch dispatch,
-            FormatType format,
-            T returnValue,
-            OutputStreamWriter<T> writer)
-        {
-            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
-            writer(ostr, returnValue);
-            ostr.Finish();
-            return response;
-        }
+                /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple or struct return
+                /// type.</summary>
+                /// <typeparam name="T">The type of the return value.</typeparam>
+                /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
+                /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
+                /// class instances.</param>
+                /// <param name="returnValue">The return value to write into the frame.</param>
+                /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
+                /// </param>
+                /// <returns>A new OutgoingResponse.</returns>
+                public static OutgoingResponse WithReturnValue<T>(
+                    Dispatch dispatch,
+                    FormatType format,
+                    in T returnValue,
+                    OutputStreamValueWriter<T> writer)
+                    where T : struct
+                {
+                    (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
+                    writer(ostr, in returnValue);
+                    ostr.Finish();
+                    return response;
+                }
 
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a single stream return
-        /// value.</summary>
-        /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
-        /// class instances.</param>
-        /// <param name="returnValue">The return value to write into the frame.</param>
-        /// <param name="writer">The delegate that will send the stream return value.</param>
-        /// <returns>A new OutgoingResponse.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Microsoft.Performance",
-            "CA1801: Review unused parameters",
-            Justification = "TODO")]
-        public static OutgoingResponse WithReturnValue<T>(
-            Dispatch dispatch,
-            FormatType format,
-            T returnValue,
-            Action<SocketStream, T, System.Threading.CancellationToken> writer)
-        {
-            OutgoingResponse response = WithVoidReturnValue(dispatch);
-            // TODO: deal with format
-            response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
-            return response;
-        }
+                /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple return
+                /// type where the tuple return type contains a stream return value.</summary>
+                /// <typeparam name="T">The type of the return value.</typeparam>
+                /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
+                /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
+                /// class instances.</param>
+                /// <param name="returnValue">The return value to write into the frame.</param>
+                /// <param name="writer">The delegate that writes the return value into the frame.</param>
+                /// <returns>A new OutgoingResponse.</returns>
+                public static OutgoingResponse WithReturnValue<T>(
+                    Dispatch dispatch,
+                    FormatType format,
+                    in T returnValue,
+                    OutputStreamValueWriterWithStreamable<T> writer)
+                    where T : struct
+                {
+                    (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
+                    // TODO: deal with compress, format and cancellation token
+                    response.StreamDataWriter = writer(ostr, in returnValue, default);
+                    ostr.Finish();
+                    return response;
+                }
+                */
 
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple or struct return
-        /// type.</summary>
-        /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
-        /// class instances.</param>
-        /// <param name="returnValue">The return value to write into the frame.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the return value into the frame.
-        /// </param>
-        /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithReturnValue<T>(
-            Dispatch dispatch,
-            FormatType format,
-            in T returnValue,
-            OutputStreamValueWriter<T> writer)
-            where T : struct
-        {
-            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
-            writer(ostr, in returnValue);
-            ostr.Finish();
-            return response;
-        }
-
-        /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a tuple return
-        /// type where the tuple return type contains a stream return value.</summary>
-        /// <typeparam name="T">The type of the return value.</typeparam>
-        /// <param name="dispatch">The Dispatch object for the corresponding incoming request.</param>
-        /// <param name="format">The format to use when writing class instances in case <c>returnValue</c> contains
-        /// class instances.</param>
-        /// <param name="returnValue">The return value to write into the frame.</param>
-        /// <param name="writer">The delegate that writes the return value into the frame.</param>
-        /// <returns>A new OutgoingResponse.</returns>
-        public static OutgoingResponse WithReturnValue<T>(
-            Dispatch dispatch,
-            FormatType format,
-            in T returnValue,
-            OutputStreamValueWriterWithStreamable<T> writer)
-            where T : struct
-        {
-            (OutgoingResponse response, OutputStream ostr) = PrepareReturnValue(dispatch, format);
-            // TODO: deal with compress, format and cancellation token
-            response.StreamDataWriter = writer(ostr, in returnValue, default);
-            ostr.Finish();
-            return response;
-        }
-        */
-
-        /// <summary>Constructs an outgoing response from the given incoming response with a void payload. The new response will
-        /// use the protocol and encoding of <paramref name="dispatch"/>.</summary>
+        /// <summary>Constructs an outgoing response from the given incoming response with a void payload.
+        /// The new response will use the protocol and encoding of <paramref name="dispatch"/>.</summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         public OutgoingResponse(Dispatch dispatch)
         : this(dispatch.IncomingRequest, dispatch.ResponseFeatures)
         {
         }
 
-        /// <summary>Constructs an outgoing response from the given incoming response with a void payload. The new response will
-        /// use the protocol and encoding of <paramref name="request"/>.</summary>
+        /// <summary>Constructs an outgoing response from the given incoming response with a void payload.
+        /// The new response will use the protocol and encoding of <paramref name="request"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = IceRpc.Payload.FromVoidResponse(request);
+        : this(request.Protocol,
+               request.PayloadEncoding,
+               IceRpc.Payload.FromVoidResponse(request),
+               features ?? new FeatureCollection())
+        {
+        }
 
         /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="dispatch"/>.</summary>
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="dispatch"/>.
+        /// </summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
@@ -166,10 +208,13 @@ namespace IceRpc
         /// <param name="payload">The payload of this response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, IList<ArraySegment<byte>> payload, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = payload;
+        : this(request.Protocol, request.PayloadEncoding, payload, features ?? new FeatureCollection())
+        {
+        }
 
         /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.
+        /// </summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
         /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
@@ -184,7 +229,8 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.</summary>
+        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.
+        /// </summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
         /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
@@ -196,7 +242,10 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+            : this(request.Protocol,
+                   request.PayloadEncoding,
+                   new List<ArraySegment<byte>>(),
+                   features ?? new FeatureCollection())
         {
             if (Protocol == response.Protocol)
             {
@@ -318,10 +367,11 @@ namespace IceRpc
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <param name="features">The features for this response.</param>
         public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+            : this(request.Protocol,
+                   request.PayloadEncoding,
+                   IceRpc.Payload.FromRemoteException(request, exception),
+                   features ?? new FeatureCollection())
         {
-            Payload = IceRpc.Payload.FromRemoteException(request, exception);
-
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
                 RetryPolicy retryPolicy = exception.RetryPolicy;
@@ -360,7 +410,15 @@ namespace IceRpc
             }
         }
 
-        private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection features)
-            : base(protocol, features) => PayloadEncoding = encoding;
+        private OutgoingResponse(Protocol protocol,
+                                 Encoding encoding,
+                                 IList<ArraySegment<byte>> payload,
+                                 FeatureCollection features)
+            : base(protocol, features)
+        {
+            PayloadEncoding = encoding;
+            _payload = payload;
+            _payloadSize = -1;
+        }
     }
 }

@@ -69,7 +69,7 @@ namespace IceRpc
         internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
         internal int? PeerIncomingFrameMaxSize { get; set; }
         internal ILogger Logger { get; }
-        internal event EventHandler? Ping;
+        internal Action? PingReceived;
 
         // The endpoint which created the socket. If it's a server socket, it's the local endpoint or the remote
         // endpoint otherwise.
@@ -187,28 +187,6 @@ namespace IceRpc
             Logger.LogReceivedData(size);
         }
 
-        /// <summary>Notifies event handlers of the received ping. Transport implementations should call this method
-        /// when a ping is received.</summary>
-        protected void ReceivedPing()
-        {
-            // Capture the event handler which can be modified anytime by the user code.
-            EventHandler? callback = Ping;
-            if (callback != null)
-            {
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        callback.Invoke(this, EventArgs.Empty);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogConnectionEventHandlerException("ping", ex);
-                    }
-                });
-            }
-        }
-
         /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
         /// trace the data sent.</summary>
         /// <param name="size">The size in bytes of the data sent.</param>
@@ -298,7 +276,7 @@ namespace IceRpc
                 // addition to the dictionary is atomic.
                 if (_streamsAborted)
                 {
-                    throw new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new ConnectionClosedException();
                 }
                 _streams[id] = stream;
 

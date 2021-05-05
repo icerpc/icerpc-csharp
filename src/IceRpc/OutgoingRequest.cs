@@ -42,7 +42,47 @@ namespace IceRpc
         public string Path { get; set; }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override IList<ArraySegment<byte>> Payload
+        {
+            get => _payload;
+            set
+            {
+                if (value.Count == 0 || value[0].Count == 0)
+                {
+                    throw new ArgumentException("the request payload cannot be empty");
+                }
+
+                // the payload encapsulation header is always in the payload first segment
+                var istr = new InputStream(value[0], Protocol.GetEncoding());
+                int _ = Protocol == Protocol.Ice1 ? istr.ReadInt() : istr.ReadSize();
+                var payloadEncoding = new Encoding(istr);
+                CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V11 ?
+                    CompressionFormat.Decompressed : istr.ReadCompressionFormat();
+                PayloadCompressionFormat = payloadCompressionFormat;
+                PayloadEncoding = payloadEncoding;
+                _payload = value;
+                _payloadSize = -1;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override int PayloadSize
+        {
+            get
+            {
+                if (_payloadSize == -1)
+                {
+                    _payloadSize = Payload.GetByteCount();
+                }
+                return _payloadSize;
+            }
+        }
 
         /// <summary>The progress provider.</summary>
         public IProgress<bool>? Progress { get; }
@@ -67,8 +107,10 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; set; }
 
-        private SortedDictionary<string, string>? _writableContext;
         private readonly IReadOnlyDictionary<string, string> _initialContext;
+        private IList<ArraySegment<byte>> _payload;
+        private int _payloadSize = -1;
+        private SortedDictionary<string, string>? _writableContext;
 
         /*
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
@@ -340,6 +382,7 @@ namespace IceRpc
 
             // This makes a copy if context is not immutable.
             _initialContext = context?.ToImmutableSortedDictionary() ?? proxy.Context;
+            _payload = new List<ArraySegment<byte>>();
         }
     }
 }
