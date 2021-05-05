@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Api
         {
             _router.Mount("/", _failDispatcher);
             string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
-            Assert.ThrowsAsync<ServerException>(async () => await GetGreeter(badPath).IcePingAsync());
+            Assert.ThrowsAsync<DispatchException>(async () => await GetGreeter(badPath).IcePingAsync());
 
             Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
             Assert.Throws<ArgumentException>(() => _router.Mount("foo", _failDispatcher));
