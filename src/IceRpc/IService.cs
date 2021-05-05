@@ -32,53 +32,41 @@ namespace IceRpc
                 Payload.ToArgs(payload, InputStream.IceReaderIntoString, connection);
         }
 
-        /// <summary>Provides an <see cref="OutgoingResponse"/> factory method for each non-void remote operation
+        /// <summary>Provides a response payload factory method for each non-void remote operation
         /// defined in the pseudo-interface Object.</summary>
         public static class Response
         {
-            /// <summary>Creates an <see cref="OutgoingResponse"/> for operation ice_id.</summary>
+            /// <summary>Creates an response payload for operation ice_id.</summary>
             /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
             /// <param name="returnValue">The return value to write into the new frame.</param>
-            /// <returns>A new <see cref="OutgoingResponse"/>.</returns>
-            public static OutgoingResponse IceId(Dispatch dispatch, string returnValue) =>
-                OutgoingResponse.WithReturnValue(
-                    dispatch,
-                    compress: false,
-                    format: default,
-                    returnValue,
-                    OutputStream.IceWriterFromString);
+            /// <returns>A new response payload.</returns>
+            public static IList<ArraySegment<byte>> IceId(Dispatch dispatch, string returnValue) =>
+                Payload.FromSingleResponseArg(dispatch, returnValue, OutputStream.IceWriterFromString);
 
-            /// <summary>Creates an <see cref="OutgoingResponse"/> for operation ice_ids.</summary>
+            /// <summary>Creates an response payload for operation ice_ids.</summary>
             /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
             /// <param name="returnValue">The return value to write into the new frame.</param>
-            /// <returns>A new <see cref="OutgoingResponse"/>.</returns>
-            public static OutgoingResponse IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
-                OutgoingResponse.WithReturnValue(
+            /// <returns>A new response payload.</returns>
+            public static IList<ArraySegment<byte>> IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
+                Payload.FromSingleResponseArg(
                     dispatch,
-                    compress: false,
-                    format: default,
                     returnValue,
                     (ostr, returnValue) => ostr.WriteSequence(returnValue, OutputStream.IceWriterFromString));
 
-            /// <summary>Creates an <see cref="OutgoingResponse"/> for operation ice_isA.</summary>
+            /// <summary>Creates an response payload for operation ice_isA.</summary>
             /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
             /// <param name="returnValue">The return value to write into the new frame.</param>
-            /// <returns>A new <see cref="OutgoingResponse"/>.</returns>
-            public static OutgoingResponse IceIsA(Dispatch dispatch, bool returnValue) =>
-                OutgoingResponse.WithReturnValue(
-                    dispatch,
-                    compress: false,
-                    format: default,
-                    returnValue,
-                    OutputStream.IceWriterFromBool);
+            /// <returns>A new response payload.</returns>
+            public static IList<ArraySegment<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
+                Payload.FromSingleResponseArg(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
 
-        /// <summary>Dispatches an incoming request and returns the corresponding outgoing response.</summary>
+        /// <summary>Dispatches an incoming request payload and returns the corresponding response payload.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch object for the request being dispatched.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The corresponding <see cref="OutgoingResponse"/>.</returns>
-        public ValueTask<OutgoingResponse> DispatchAsync(ReadOnlyMemory<byte> payload, Dispatch dispatch, CancellationToken cancel);
+        /// <returns>The corresponding payload.</returns>
+        public ValueTask<IList<ArraySegment<byte>>> DispatchAsync(ReadOnlyMemory<byte> payload, Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
         /// <param name="dispatch">The Current object for the dispatch.</param>
@@ -133,7 +121,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponse> IceDIceIdAsync(
+        protected async ValueTask<IList<ArraySegment<byte>>> IceDIceIdAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -150,7 +138,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponse> IceDIceIdsAsync(
+        protected async ValueTask<IList<ArraySegment<byte>>> IceDIceIdsAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -166,7 +154,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponse> IceDIceIsAAsync(
+        protected async ValueTask<IList<ArraySegment<byte>>> IceDIceIsAAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -182,14 +170,14 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<OutgoingResponse> IceDIcePingAsync(
+        protected async ValueTask<IList<ArraySegment<byte>>> IceDIcePingAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
             payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
-            return OutgoingResponse.WithVoidReturnValue(dispatch);
+            return Payload.FromVoidResponse(dispatch);
         }
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
@@ -201,7 +189,10 @@ namespace IceRpc
                 {
                     request.DecompressPayload();
                 }
-                return await DispatchAsync(request.Payload.AsReadOnlyMemory(), dispatch, cancel).ConfigureAwait(false);
+                IList<ArraySegment<byte>> payload =
+                    await DispatchAsync(request.Payload.AsReadOnlyMemory(), dispatch, cancel).ConfigureAwait(false);
+
+                return new OutgoingResponse(dispatch, payload);
             }
             catch (Exception ex)
             {
@@ -226,7 +217,7 @@ namespace IceRpc
                 {
                     // We log this exception, since otherwise it would be lost.
                     request.Connection.Logger.LogDispatchException(request, ex);
-                    return OutgoingResponse.WithVoidReturnValue(dispatch);
+                    return new OutgoingResponse(dispatch);
                 }
                 else
                 {

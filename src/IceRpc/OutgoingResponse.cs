@@ -22,10 +22,7 @@ namespace IceRpc
         /// <summary>The result type; see <see cref="IceRpc.ResultType"/>.</summary>
         public ResultType ResultType => Payload[0][0] == 0 ? ResultType.Success : ResultType.Failure;
 
-        // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
-        // and the first segment has always at least 2 bytes.
-        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
-
+        /*
         /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation that returns void.</summary>
         /// <param name="dispatch">The dispatch object for the corresponding incoming request.</param>
         /// <returns>A new OutgoingResponse.</returns>
@@ -161,6 +158,36 @@ namespace IceRpc
             }
             return response;
         }
+        */
+
+        /// <summary>Constructs an outgoing response from the given incoming response with a void payload. The new response will
+        /// use the protocol and encoding of <paramref name="dispatch"/>.</summary>
+        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
+        public OutgoingResponse(Dispatch dispatch)
+        : this(dispatch.IncomingRequest, dispatch.ResponseFeatures)
+        {
+        }
+
+        /// <summary>Constructs an outgoing response from the given incoming response with a void payload. The new response will
+        /// use the protocol and encoding of <paramref name="request"/>.</summary>
+        /// <param name="request">The request on which this constructor creates a response.</param>
+        /// <param name="features">The features of this response.</param>
+        public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
+        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection(), request.Connection.CompressionLevel, request.Connection.CompressionMinSize) => Payload = IceRpc.Payload.FromVoidResponse(request);
+
+        // <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
+        public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
+        : this(dispatch.IncomingRequest, payload, dispatch.ResponseFeatures)
+        {
+        }
+
+        // <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <param name="request">The request on which this constructor creates a response.</param>
+        public OutgoingResponse(IncomingRequest request, IList<ArraySegment<byte>> payload, FeatureCollection? features = null)
+        : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection(), request.Connection.CompressionLevel, request.Connection.CompressionMinSize) => Payload = payload;
 
         /// <summary>Constructs an outgoing response from the given incoming response. The new response will
         /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
@@ -314,89 +341,7 @@ namespace IceRpc
         public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
             : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
         {
-            ReplyStatus replyStatus = ReplyStatus.UserException;
-            if (PayloadEncoding == Encoding.V11)
-            {
-                replyStatus = exception switch
-                {
-                    ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
-                    OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
-                    UnhandledException _ => ReplyStatus.UnknownLocalException,
-                    _ => ReplyStatus.UserException
-                };
-            }
-
-            OutputStream ostr;
-            if (Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
-            {
-                // Write ResultType.Failure or ReplyStatus.UserException (both have the same value, 1) followed by an
-                // encapsulation.
-                byte[] buffer = new byte[256];
-                buffer[0] = (byte)ResultType.Failure;
-                Payload.Add(buffer);
-
-                ostr = new OutputStream(Protocol.GetEncoding(),
-                                        Payload,
-                                        _encapsulationStart,
-                                        PayloadEncoding,
-                                        FormatType.Sliced);
-
-                if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.V11)
-                {
-                    // The first byte of the encapsulation data is the actual ReplyStatus
-                    ostr.Write(replyStatus);
-                }
-            }
-            else
-            {
-                Debug.Assert(Protocol == Protocol.Ice1 && (byte)replyStatus > (byte)ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding, Payload); // not an encapsulation
-                ostr.Write(replyStatus);
-            }
-
-            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-            if (PayloadEncoding == Encoding.V11)
-            {
-                switch (replyStatus)
-                {
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
-                        if (request.Protocol == Protocol.Ice1)
-                        {
-                            request.Identity.IceWrite(ostr);
-                        }
-                        else
-                        {
-                            var identity = Identity.Empty;
-                            try
-                            {
-                                identity = Identity.FromPath(request.Path);
-                            }
-                            catch (FormatException)
-                            {
-                                // ignored, i.e. we'll marshal an empty identity
-                            }
-                            identity.IceWrite(ostr);
-                        }
-                        ostr.WriteIce1Facet(request.Facet);
-                        ostr.WriteString(request.Operation);
-                        break;
-
-                    case ReplyStatus.UnknownLocalException:
-                        ostr.WriteString(exception.Message);
-                        break;
-
-                    default:
-                        ostr.WriteException(exception);
-                        break;
-                }
-            }
-            else
-            {
-                ostr.WriteException(exception);
-            }
-
-            ostr.Finish();
+            Payload = IceRpc.Payload.FromRemoteException(request, exception);
 
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
@@ -436,27 +381,27 @@ namespace IceRpc
             }
         }
 
-        private static (OutgoingResponse ResponseFrame, OutputStream Ostr) PrepareReturnValue(
-            Dispatch dispatch,
-            FormatType format)
-        {
-            var response = new OutgoingResponse(dispatch.Protocol,
-                                                dispatch.Encoding,
-                                                dispatch.ResponseFeatures,
-                                                dispatch.Connection.CompressionLevel,
-                                                dispatch.Connection.CompressionMinSize);
+        // private static (OutgoingResponse ResponseFrame, OutputStream Ostr) PrepareReturnValue(
+        //     Dispatch dispatch,
+        //     FormatType format)
+        // {
+        //     var response = new OutgoingResponse(dispatch.Protocol,
+        //                                         dispatch.Encoding,
+        //                                         dispatch.ResponseFeatures,
+        //                                         dispatch.Connection.CompressionLevel,
+        //                                         dispatch.Connection.CompressionMinSize);
 
-            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
-            byte[] buffer = new byte[256];
-            buffer[0] = (byte)ResultType.Success;
-            response.Payload.Add(buffer);
-            var ostr = new OutputStream(response.Protocol.GetEncoding(),
-                                        response.Payload,
-                                        _encapsulationStart,
-                                        response.PayloadEncoding,
-                                        format);
-            return (response, ostr);
-        }
+        //     // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
+        //     byte[] buffer = new byte[256];
+        //     buffer[0] = (byte)ResultType.Success;
+        //     response.Payload.Add(buffer);
+        //     var ostr = new OutputStream(response.Protocol.GetEncoding(),
+        //                                 response.Payload,
+        //                                 _encapsulationStart,
+        //                                 response.PayloadEncoding,
+        //                                 format);
+        //     return (response, ostr);
+        // }
 
         private OutgoingResponse(
             Protocol protocol,

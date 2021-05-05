@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -178,6 +179,151 @@ namespace IceRpc
             }
         }
 
+        public static IList<ArraySegment<byte>> FromSingleResponseArg<T>(
+            Dispatch dispatch,
+            T arg,
+            OutputStreamWriter<T> writer,
+            FormatType classFormat = default)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
+            byte[] buffer = new byte[256];
+            buffer[0] = (byte)ResultType.Success;
+            payload.Add(buffer);
+
+            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
+                                        payload,
+                                        _encapsulationStart,
+                                        dispatch.Encoding,
+                                        classFormat);
+            writer(ostr, arg);
+            ostr.Finish();
+            return payload;
+        }
+
+        public static IList<ArraySegment<byte>> FromResponseArgs<T>(
+            Dispatch dispatch,
+            in T args,
+            OutputStreamValueWriter<T> writer,
+            FormatType classFormat = default) where T : struct
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
+            byte[] buffer = new byte[256];
+            buffer[0] = (byte)ResultType.Success;
+            payload.Add(buffer);
+
+            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
+                                        payload,
+                                        _encapsulationStart,
+                                        dispatch.Encoding,
+                                        classFormat);
+            writer(ostr, in args);
+            ostr.Finish();
+            return payload;
+        }
+
+        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
+
+        public static IList<ArraySegment<byte>> FromRemoteException(IncomingRequest request, RemoteException exception)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            ReplyStatus replyStatus = ReplyStatus.UserException;
+            if (request.PayloadEncoding == Encoding.V11)
+            {
+                replyStatus = exception switch
+                {
+                    ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
+                    OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
+                    UnhandledException _ => ReplyStatus.UnknownLocalException,
+                    _ => ReplyStatus.UserException
+                };
+            }
+
+            OutputStream ostr;
+            if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
+            {
+                // Write ResultType.Failure or ReplyStatus.UserException (both have the same value, 1) followed by an
+                // encapsulation.
+                byte[] buffer = new byte[256];
+                buffer[0] = (byte)ResultType.Failure;
+                payload.Add(buffer);
+
+                ostr = new OutputStream(request.Protocol.GetEncoding(),
+                                        payload,
+                                        _encapsulationStart,
+                                        request.PayloadEncoding,
+                                        FormatType.Sliced);
+
+                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
+                {
+                    // The first byte of the encapsulation data is the actual ReplyStatus
+                    ostr.Write(replyStatus);
+                }
+            }
+            else
+            {
+                Debug.Assert(request.Protocol == Protocol.Ice1 && (byte)replyStatus > (byte)ReplyStatus.UserException);
+                ostr = new OutputStream(Ice1Definitions.Encoding, payload); // not an encapsulation
+                ostr.Write(replyStatus);
+            }
+
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            if (request.PayloadEncoding == Encoding.V11)
+            {
+                switch (replyStatus)
+                {
+                    case ReplyStatus.ObjectNotExistException:
+                    case ReplyStatus.OperationNotExistException:
+                        if (request.Protocol == Protocol.Ice1)
+                        {
+                            request.Identity.IceWrite(ostr);
+                        }
+                        else
+                        {
+                            var identity = Identity.Empty;
+                            try
+                            {
+                                identity = Identity.FromPath(request.Path);
+                            }
+                            catch (FormatException)
+                            {
+                                // ignored, i.e. we'll marshal an empty identity
+                            }
+                            identity.IceWrite(ostr);
+                        }
+                        ostr.WriteIce1Facet(request.Facet);
+                        ostr.WriteString(request.Operation);
+                        break;
+
+                    case ReplyStatus.UnknownLocalException:
+                        ostr.WriteString(exception.Message);
+                        break;
+
+                    default:
+                        ostr.WriteException(exception);
+                        break;
+                }
+            }
+            else
+            {
+                ostr.WriteException(exception);
+            }
+
+            ostr.Finish();
+
+            return payload;
+        }
+
+        public static IList<ArraySegment<byte>> FromVoidResponse(Dispatch dispatch) =>
+            new List<ArraySegment<byte>> { dispatch.Protocol.GetVoidReturnPayload(dispatch.Encoding) };
+
+        public static IList<ArraySegment<byte>> FromVoidResponse(IncomingRequest request) =>
+            new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
+
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             InputStreamReader<T> reader,
@@ -200,5 +346,6 @@ namespace IceRpc
             this ReadOnlyMemory<byte> payload,
             Connection connction) =>
             payload.ReadEmptyEncapsulation(connction.Protocol.GetEncoding());
+
     }
 }

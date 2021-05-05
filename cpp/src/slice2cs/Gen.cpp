@@ -2650,25 +2650,45 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             if (returnCount > 0)
             {
                 _out << sp;
-                bool inValue = returnCount > 1;
+                // bool inValue = returnCount > 1;
                 _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingResponse\"/> for operation "
                      << fixId(operationName(operation)) << ".</summary>";
                 _out << nl << "/// <param name=\"dispatch\">Holds decoded header data and other information about the "
                      << "current request.</param>";
                 _out << nl << "/// <param name=\"returnValue\">The return value to write into the new frame.</param>";
                 _out << nl << "/// <returns>A new <see cref=\"IceRpc.OutgoingResponse\"/>.</returns>";
-                _out << nl << "public static IceRpc.OutgoingResponse "<< fixId(operationName(operation))
-                    << "(IceRpc.Dispatch dispatch, "
-                    << (inValue ? "in " : "") << toTupleType(returns, true) << " returnValue) =>";
+                _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "<< fixId(operationName(operation))
+                    << "(IceRpc.Dispatch dispatch, ";
+
+                if (returns.size() == 1)
+                {
+                    _out << toTupleType(returns, true) << " arg) =>";
+                }
+                else
+                {
+                    _out << "in " << toTupleType(returns, true) << " args) =>";
+                }
+
                 _out.inc();
-                _out << nl << "IceRpc.OutgoingResponse.WithReturnValue(";
+                if (returns.size() == 1)
+                {
+                    _out << nl << "IceRpc.Payload.FromSingleResponseArg(";
+                }
+                else
+                {
+                    _out << nl << "IceRpc.Payload.FromResponseArgs(";
+                }
+
                 _out.inc();
-                _out << nl << "dispatch,"
-                    << nl << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ","
-                    << nl << "format: " << opFormatTypeToString(operation) << ","
-                    << nl << (inValue ? "in " : "") << "returnValue,"
-                    << nl;
+                _out << nl << "dispatch,";
+                _out << nl << (returns.size() == 1 ? "arg," : "in args,");
+                _out << nl;
                 writeOutgoingResponseWriter(operation);
+                string classFormat = opFormatTypeToString(operation);
+                if (classFormat != "default")
+                {
+                    _out << "," << nl << classFormat;
+                }
                 _out << ");";
                 _out.dec();
                 _out.dec();
@@ -2701,7 +2721,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> IceRpc.IService"
          << ".DispatchAsync("
          << "global::System.ReadOnlyMemory<byte> payload, "
          << "IceRpc.Dispatch dispatch, "
@@ -2713,7 +2733,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> "
          << "DispatchAsync(" << fixId(name) << " servant, "
          << "global::System.ReadOnlyMemory<byte> payload, "
          << "IceRpc.Dispatch dispatch, "
@@ -2759,8 +2779,8 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
              << "</summary>";
         _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
         _out << sb;
-        _out << nl << "/// <summary>The frame holding the marshaled response.</summary>";
-        _out << nl << "public IceRpc.OutgoingResponse Response { get; }";
+        _out << nl << "/// <summary>The payload holding the marshaled response.</summary>";
+        _out << nl << "public global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> Payload { get; }";
 
         emitEqualityOperators(name);
         _out << sp;
@@ -2775,25 +2795,24 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
              << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"))
              << epar;
         _out << sb;
-        _out << nl << "Response = IceRpc.OutgoingResponse.WithReturnValue(";
-        _out.inc();
-        _out << nl << getEscapedParamName(operation, "dispatch") << ", "
-             << "compress: " << (opCompressReturn(operation) ? "true" : "false") << ", "
-             << "format: " << opFormatTypeToString(operation) << ", "
-             << toTuple(returnType) << ",";
-        if(returnType.size() > 1)
+        _out << nl << "Payload = ";
+        if (returnType.size() == 1)
         {
-            _out << nl << "(IceRpc.OutputStream ostr, " << toTupleType(returnType, true) << " value) =>";
-            _out << sb;
-            writeMarshal(operation, true);
-            _out << eb;
+            _out << "IceRpc.Payload.FromSingleResponseArg(";
         }
         else
         {
-            _out << nl << "(ostr, value) =>";
-            _out << sb;
-            writeMarshal(operation, true);
-            _out << eb;
+            _out << "IceRpc.Payload.FromResponseArgs(";
+        }
+        _out.inc();
+        _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
+        _out << nl << toTuple(returnType) << ",";
+        _out << nl;
+        writeOutgoingResponseWriter(operation);
+        string classFormat = opFormatTypeToString(operation);
+        if (classFormat != "default")
+        {
+            _out << "," << nl << "format: " << opFormatTypeToString(operation);
         }
         _out << ");";
         _out.dec();
@@ -2801,7 +2820,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
 
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public bool Equals(" << name << " other) => Response == other.Response;";
+        _out << nl << "public bool Equals(" << name << " other) => Payload == other.Payload;";
 
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
@@ -2809,7 +2828,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
 
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public override int GetHashCode() => Response.GetHashCode();";
+        _out << nl << "public override int GetHashCode() => Payload.GetHashCode();";
 
         _out << eb;
     }
@@ -2855,7 +2874,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse>";
+    _out << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>>";
     _out << " " << internalName << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
     _out << sb;
 
@@ -2897,7 +2916,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch"
              << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return returnValue.Response;";
+        _out << nl << "return returnValue.Payload;";
         _out << eb;
     }
     else
@@ -2921,7 +2940,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
         if (returnType.size() == 0)
         {
-            _out << nl << "return IceRpc.OutgoingResponse.WithVoidReturnValue(dispatch);";
+            _out << nl << "return IceRpc.Payload.FromVoidResponse(dispatch);";
         }
         else
         {
