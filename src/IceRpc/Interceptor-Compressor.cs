@@ -23,7 +23,7 @@ namespace IceRpc
             CompressionLevel compressionLevel,
             int compressionMinSize) =>
             next => new InlineInvoker(
-                async (request, cancel) =>
+                (request, cancel) =>
                 {
                     if (request.PayloadEncoding == Encoding.V20 &&
                         request.PayloadCompressionFormat == CompressionFormat.Decompressed &&
@@ -39,7 +39,7 @@ namespace IceRpc
                             request.Payload = new List<ArraySegment<byte>> { compressedPayload };
                         }
                     }
-                    return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                    return next.InvokeAsync(request, cancel);
                 });
     }
 }
