@@ -109,6 +109,8 @@ namespace IceRpc.Tests.Internal
                     connection,
                     new ProxyOptions
                     {
+                        // TODO: temporary, remove once the proxy no longer depends on the communicator for sending
+                        // invocations.
                         Invoker = new Communicator { InvocationMaxAttempts = 1 }
                     });
 
@@ -257,7 +259,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new IncomingConnectionOptions()
+            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new IncomingConnectionOptions
             {
                 TransportOptions = new TcpOptions()
                 {
@@ -516,7 +518,7 @@ namespace IceRpc.Tests.Internal
 
             if (closeClientSide)
             {
-                Task goAwayTask = factory.Client.ShutdownAsync("client message");
+                Task shutdownTask = factory.Client.ShutdownAsync("client message");
 
                 // GoAway waits for the server-side connection closure, which can't occur until all the dispatch
                 // complete on the connection. We release the dispatch here to ensure GoAway completes.
@@ -524,7 +526,7 @@ namespace IceRpc.Tests.Internal
                 // connection doesn't wait for the response?
                 Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
 
-                await goAwayTask;
+                await shutdownTask;
 
                 // Next invocation on the connection should throw the ConnectionClosedException
                 ConnectionClosedException? ex =
@@ -538,9 +540,9 @@ namespace IceRpc.Tests.Internal
             {
                 // GoAway waits for the client-side connection closure, which can't occur until all the invocations
                 // complete on the connection. We release the dispatch here and ensure GoAway completes.
-                Task goAwayTask = factory.Server.ShutdownAsync("server message");
+                Task shutdownTask = factory.Server.ShutdownAsync("server message");
                 Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
-                await goAwayTask;
+                await shutdownTask;
 
                 // Ensure the invocation is successful
                 Assert.DoesNotThrowAsync(async () => await pingTask);

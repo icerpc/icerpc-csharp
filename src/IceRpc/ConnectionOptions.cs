@@ -296,6 +296,8 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
 
+        internal static OutgoingConnectionOptions Default = new();
+
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;
 

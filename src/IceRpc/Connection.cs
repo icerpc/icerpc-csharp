@@ -28,13 +28,23 @@ namespace IceRpc
         Closed
     }
 
+    /// <summary>The ClosedEventArgument class is provided to closed event handlers.</summary>
+    public sealed class ClosedEventArgs : EventArgs
+    {
+        /// <summary>The exception responsible for the connection closure.</summary>
+        public Exception Exception { get; }
+
+        internal ClosedEventArgs(Exception exception) => Exception = exception;
+    }
+
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public sealed class Connection : IAsyncDisposable
     {
-        /// <summary>This event is raised when the connection is closed. If the subscriber needs more information about
-        /// the closure, it can call Connection.ThrowException. The connection object is passed as the event sender
-        /// argument.</summary>
-        public event EventHandler? Closed
+        /// <summary>This event is raised when the connection is closed. The connection object is passed as the
+        /// event sender argument.</summary>
+        /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
+        /// </exception>
+        public event EventHandler<ClosedEventArgs>? Closed
         {
             add
             {
@@ -42,7 +52,7 @@ namespace IceRpc
                 {
                     if (State >= ConnectionState.Closed)
                     {
-                        Task.Run(() => value?.Invoke(this, EventArgs.Empty));
+                        throw new InvalidOperationException("the connection is closed");
                     }
                     _closed += value;
                 }
@@ -55,6 +65,7 @@ namespace IceRpc
         /// connection. For outgoing connections, set can be called during configuration.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
         /// set.</value>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is an incoming connection.</summary>
         public IDispatcher? Dispatcher
         {
             get => Server?.Dispatcher ?? _dispatcher;
@@ -72,6 +83,9 @@ namespace IceRpc
             }
         }
 
+        // TODO: add this when we add support for connection features. Depending on what to do with
+        // connection options we might need to copy the features from the options if the features
+        // are not readonly.
         // /// <summary>The features of this connection.</summary>
         // public FeatureCollection Features => _options?.Features ?? throw new InvalidOperationException();
 
@@ -94,15 +108,15 @@ namespace IceRpc
         public bool IsIncoming => Server != null;
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the connection is not connected.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
         public bool IsSecure => Socket.IsSecure;
 
         /// <summary>The connection local endpoint.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
         public Endpoint? LocalEndpoint => IsIncoming ? _localEndpoint : _socket?.LocalEndpoint;
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the state of the connection is not
+        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
         /// <c>ConnectionState.NotEstablished</c>.</exception>
         public ILoggerFactory? LoggerFactory
         {
@@ -119,7 +133,7 @@ namespace IceRpc
         }
 
         /// <summary>The connection options.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the state of the connection is not
+        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
         /// <c>ConnectionState.NotEstablished</c>.</exception>
         public ConnectionOptions? Options
         {
@@ -140,8 +154,8 @@ namespace IceRpc
         }
 
         /// <summary>The peer's incoming frame maximum size. This is not supported with ice1 connections.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        /// <exception name="NotSupportedException">Thrown if the connection is an ice1 connection.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
+        /// <exception cref="NotSupportedException">Thrown if the connection is an ice1 connection.</exception>
         public int PeerIncomingFrameMaxSize
         {
             get
@@ -166,7 +180,7 @@ namespace IceRpc
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 
         /// <summary>The connection remote endpoint.</summary>
-        /// <exception name="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
+        /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
         /// the remote endpoint is not allowed (the connection is connected or it's an incoming connection).</exception>
         public Endpoint? RemoteEndpoint
         {
@@ -183,6 +197,8 @@ namespace IceRpc
         }
 
         /// <summary>The server that created this incoming connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
+        /// <c>ConnectionState.NotEstablished</c>.</exception>
         public Server? Server
         {
             get => _server;
@@ -198,6 +214,7 @@ namespace IceRpc
         }
 
         /// <summary>The socket interface provides information on the socket used by the connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
         public ISocket Socket =>
             _socket?.Socket ?? throw new InvalidOperationException("the connection is not connected");
 
@@ -224,14 +241,14 @@ namespace IceRpc
         }
 
         /// <summary>The socket transport.</summary>
-        /// <exception name="InvalidOperationException">Thrown if there's no endpoint set.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
         public Transport Transport =>
             (_localEndpoint ?? _remoteEndpoint)?.Transport ??
             throw new InvalidOperationException(
                 $"{nameof(Transport)} is not available because there's no endpoint set");
 
         /// <summary>The socket transport name.</summary>
-        /// <exception name="InvalidOperationException">Thrown if there's no endpoint set.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
         public string TransportName =>
             (_localEndpoint ?? _remoteEndpoint)?.TransportName ??
             throw new InvalidOperationException(
@@ -272,7 +289,7 @@ namespace IceRpc
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
         private SocketStream? _controlStream;
-        private EventHandler? _closed;
+        private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
@@ -325,7 +342,7 @@ namespace IceRpc
                     throw new InvalidOperationException($"connection is already connected");
                 }
 
-                _options ??= IsIncoming ? new IncomingConnectionOptions() : new OutgoingConnectionOptions();
+                _options ??= IsIncoming ? IncomingConnectionOptions.Default : OutgoingConnectionOptions.Default;
                 if (_options is OutgoingConnectionOptions outgoingOptions)
                 {
                     if (IsIncoming)
@@ -660,7 +677,7 @@ namespace IceRpc
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
                 try
                 {
-                    _closed?.Invoke(this, EventArgs.Empty);
+                    _closed?.Invoke(this, new ClosedEventArgs(exception));
                 }
                 catch (Exception ex)
                 {
@@ -732,7 +749,7 @@ namespace IceRpc
                 // before we restore its context.
                 activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}",
                                                                  ActivityKind.Server);
-                if (activity == null && (_socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                if (activity == null && (Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
                     activity = new Activity($"{request.Path}/{request.Operation}");
                     // TODO we should start the activity after restoring its context, we should update this once
