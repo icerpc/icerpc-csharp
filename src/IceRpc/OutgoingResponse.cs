@@ -151,17 +151,20 @@ namespace IceRpc
         public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
         : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = IceRpc.Payload.FromVoidResponse(request);
 
-        // <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="dispatch"/>.</summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
+        /// <param name="payload">The payload of this response.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
         : this(dispatch.IncomingRequest, payload, dispatch.ResponseFeatures)
         {
         }
 
-        // <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.</summary>
+        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
+        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="request"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
+        /// <param name="payload">The payload of this response.</param>
+        /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, IList<ArraySegment<byte>> payload, FeatureCollection? features = null)
         : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection()) => Payload = payload;
 

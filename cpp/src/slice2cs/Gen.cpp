@@ -2637,7 +2637,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if (generateResponseClass)
     {
-        _out << nl << "/// <summary>Provides a <see cref=\"IceRpc.OutgoingResponse\"/> factory method "
+        _out << nl << "/// <summary>Provides a response payload factory method "
              << "for each non-void remote operation";
         _out << nl << "/// defined in the <see cref=\"" << name << "\"/>.</summary>";
         _out << nl << "public static new class Response";
@@ -2650,23 +2650,29 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             if (returnCount > 0)
             {
                 _out << sp;
-                // bool inValue = returnCount > 1;
-                _out << nl << "/// <summary>Creates an <see cref=\"IceRpc.OutgoingResponse\"/> for operation "
+                _out << nl << "/// <summary>Creates response payload for operation "
                      << fixId(operationName(operation)) << ".</summary>";
                 _out << nl << "/// <param name=\"dispatch\">Holds decoded header data and other information about the "
                      << "current request.</param>";
-                _out << nl << "/// <param name=\"returnValue\">The return value to write into the new frame.</param>";
-                _out << nl << "/// <returns>A new <see cref=\"IceRpc.OutgoingResponse\"/>.</returns>";
+                if (returns.size() == 1)
+                {
+                    _out << nl << "/// <param name=\"returnValue\">The return value to write into the new frame.</param>";
+                }
+                else
+                {
+                    _out << nl << "/// <param name=\"returnValues\">The return values to write into the new frame.</param>";
+                }
+                _out << nl << "/// <returns>A new response payload.</returns>";
                 _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "<< fixId(operationName(operation))
                     << "(IceRpc.Dispatch dispatch, ";
 
                 if (returns.size() == 1)
                 {
-                    _out << toTupleType(returns, true) << " arg) =>";
+                    _out << toTupleType(returns, true) << " returnValue) =>";
                 }
                 else
                 {
-                    _out << "in " << toTupleType(returns, true) << " args) =>";
+                    _out << "in " << toTupleType(returns, true) << " returnValues) =>";
                 }
 
                 _out.inc();
@@ -2681,7 +2687,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 _out.inc();
                 _out << nl << "dispatch,";
-                _out << nl << (returns.size() == 1 ? "arg," : "in args,");
+                _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValues,");
                 _out << nl;
                 writeOutgoingResponseWriter(operation);
                 string classFormat = opFormatTypeToString(operation);
