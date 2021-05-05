@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 
 namespace IceRpc
@@ -27,7 +28,6 @@ namespace IceRpc
                         request.PayloadCompressionFormat == CompressionFormat.Decompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
-                        // TODO move CompressPayload out of the OutgoingFrame class
                         request.CompressPayload(compressionLevel, compressionMinSize);
                     }
                     return await next.InvokeAsync(request, cancel).ConfigureAwait(false);

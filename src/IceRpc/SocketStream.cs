@@ -336,12 +336,12 @@ namespace IceRpc
             IncomingRequest request;
             if (ReceivedEndOfStream)
             {
-                request = new IncomingRequest(_socket.Protocol, data, _socket.IncomingFrameMaxSize, null);
+                request = new IncomingRequest(_socket.Protocol, data, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                request = new IncomingRequest(_socket.Protocol, data, _socket.IncomingFrameMaxSize, this);
+                request = new IncomingRequest(_socket.Protocol, data, this);
             }
 
             return request;
@@ -371,20 +371,12 @@ namespace IceRpc
             IncomingResponse response;
             if (ReceivedEndOfStream)
             {
-                response = new IncomingResponse(
-                    _socket.Protocol,
-                    data,
-                    _socket.IncomingFrameMaxSize,
-                    null);
+                response = new IncomingResponse(_socket.Protocol, data, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                response = new IncomingResponse(
-                    _socket.Protocol,
-                    data,
-                    _socket.IncomingFrameMaxSize,
-                    this);
+                response = new IncomingResponse(_socket.Protocol, data, this);
             }
 
             return response;
