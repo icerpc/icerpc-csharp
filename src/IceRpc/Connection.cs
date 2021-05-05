@@ -508,8 +508,7 @@ namespace IceRpc
         {
             try
             {
-                return new(ShutdownAsync());
-
+                return new(ShutdownAsync("connection closed", new CancellationToken(canceled: true)));
             }
             finally
             {
@@ -552,8 +551,8 @@ namespace IceRpc
             _localEndpoint = socket.LocalEndpoint!;
 
             Options = server.ConnectionOptions;
-            Server = server;
             Logger = server.Logger;
+            Server = server;
         }
 
         internal SocketStream CreateStream(bool bidirectional)
@@ -728,17 +727,9 @@ namespace IceRpc
             Debug.Assert(stream != null);
             try
             {
-                using var cancelSource = new CancellationTokenSource();
-                CancellationToken cancel = cancelSource.Token;
-                if (stream.IsBidirectional)
-                {
-                    // Be notified if the peer resets the stream to cancel the dispatch.
-                    //
-                    // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
-                    // could consider setting the error code into Current to allow the user to figure out the
-                    // reason of the stream reset.
-                    stream.Reset += (long errorCode) => cancelSource.Cancel();
-                }
+                // Get a cancelleation token for the dispatch. The token is cancelled when the stream is reset by the
+                // peer or when the stream is aborted because the connection shutdown timed out.
+                CancellationToken cancel = stream.CancelDispatchToken;
 
                 // Receives the request frame from the stream
                 using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
@@ -771,8 +762,7 @@ namespace IceRpc
                 // include the activity tracking options.
                 _socket!.Logger.LogReceivedRequest(request);
 
-                OutgoingResponse? response;
-
+                OutgoingResponse response;
                 try
                 {
                     response = await DispatchAsync(request, cancel).ConfigureAwait(false);
@@ -786,7 +776,6 @@ namespace IceRpc
 
                 if (stream.IsBidirectional)
                 {
-                    Debug.Assert(response != null);
                     try
                     {
                         // Send the response over the stream
@@ -825,38 +814,29 @@ namespace IceRpc
         {
             if (Dispatcher is IDispatcher dispatcher)
             {
-                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
-                // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
-                // a server.
-                using CancellationTokenSource? combinedSource = request.Connection.Server != null ?
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, request.Connection.Server.CancelDispatch) : null;
-
                 try
                 {
-                    OutgoingResponse response =
-                        await dispatcher.DispatchAsync(request, combinedSource?.Token ?? cancel).ConfigureAwait(false);
-
+                    OutgoingResponse response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
                     cancel.ThrowIfCancellationRequested();
                     return response;
                 }
-                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+                catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
                 {
-                    // The client requested cancellation, we log it and let it propagate.
-                    _socket!.Logger.LogDispatchCanceledByClient(request);
-                    throw;
+                    if (State == ConnectionState.Active)
+                    {
+                        // The client requested cancellation, we log it and let it propagate.
+                        _socket!.Logger.LogDispatchCanceledByClient(request);
+                        throw;
+                    }
+                    else
+                    {
+                        // The connection is being shutdown and it aborted the dispatch
+                        Debug.Assert(State > ConnectionState.Active);
+                        return new OutgoingResponse(request, new DispatchException("dispatch canceled by shutdown"));
+                    }
                 }
                 catch (Exception ex)
                 {
-                    if (ex is OperationCanceledException &&
-                        request.Connection.Server is Server server &&
-                        server.CancelDispatch.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-
                     if (request.IsOneway)
                     {
                         // We log this exception, since otherwise it would be lost.
@@ -891,13 +871,14 @@ namespace IceRpc
         {
             if (_socket == null)
             {
-                throw new InvalidOperationException("connection is not established");
+                // The connection is not established, we're done.
+                return;
             }
 
             using IDisposable? socketScope = _socket.StartScope(Server);
+            Task shutdownTask;
             try
             {
-                Task shutdownTask;
                 lock (_mutex)
                 {
                     if (State == ConnectionState.Active && !IsDatagram)
@@ -911,7 +892,15 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                // Ignore if user cancellation token got canceled.
+                lock (_mutex)
+                {
+                    if (State == ConnectionState.Closing)
+                    {
+                        _socket.AbortStreams(exception);
+                    }
+                    shutdownTask = _closeTask!;
+                }
+                await shutdownTask.ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -936,8 +925,8 @@ namespace IceRpc
                 try
                 {
                     Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
-                    using var source = new CancellationTokenSource(_options.CloseTimeout);
-                    CancellationToken cancel = source.Token;
+                    using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
+                    CancellationToken cancel = cancelCloseSource.Token;
 
                     // Write the close frame
                     await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
@@ -951,7 +940,7 @@ namespace IceRpc
                     // Wait for the peer to close the connection.
                     while (true)
                     {
-                        // We can't just wait for the accept stream task failure as the task can sometime succeed
+                        // We can't just wait for the accept stream task failure as the task can sometime succeeds
                         // depending on the thread scheduling. So we also check for the state to ensure the loop
                         // eventually terminates once the peer connection is closed.
                         if (State == ConnectionState.Closed)

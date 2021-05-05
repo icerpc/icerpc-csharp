@@ -64,7 +64,7 @@ namespace IceRpc
                 {
                     SingleReader = true,
                     SingleWriter = false,
-                    AllowSynchronousContinuations = true
+                    AllowSynchronousContinuations = false
                 });
 
             if (!_colocAcceptorDictionary.TryAdd(_endpoint, this))

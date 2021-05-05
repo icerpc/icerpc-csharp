@@ -22,6 +22,10 @@ namespace IceRpc
         public static readonly Func<SocketStream, System.IO.Stream> IceReceiveDataIntoIOStream =
             socketStream => socketStream.ReceiveDataIntoIOStream();
 
+        /// <summary>Get the cancellation token to provide to the dispatcher. The token is canceled when the
+        /// the stream is aborted.</summary>
+        public CancellationToken CancelDispatchToken => (_cancelDispatchSource ??= new()).Token;
+
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the socket.</summary>
         /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
@@ -75,6 +79,8 @@ namespace IceRpc
         // to process stream parameters. The socket stream is disposed only once this count drops to 0.
         private protected int _useCount = 1;
 
+        private CancellationTokenSource? _cancelDispatchSource;
+
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
@@ -83,7 +89,7 @@ namespace IceRpc
 
         /// <summary>Aborts the stream. This is called by the connection when it's being closed. If needed, the stream
         /// implementation should abort the pending receive task.</summary>
-        public abstract void Abort(Exception ex);
+        public virtual void Abort(Exception ex) => _cancelDispatchSource?.Cancel();
 
         /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
@@ -202,6 +208,7 @@ namespace IceRpc
                 Debug.Assert(false);
                 throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
             }
+            _cancelDispatchSource?.Dispose();
         }
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
@@ -569,7 +576,7 @@ namespace IceRpc
                 {
                     // Throw a remote exception instead of this response, the Ice connection will catch it and send it
                     // as the response instead of sending this response which is too large.
-                    throw new ServerException(
+                    throw new DispatchException(
                         $@"the response size ({frameSize} bytes) is larger than IncomingFrameSizeMax ({
                         _socket.PeerIncomingFrameMaxSize} bytes)");
                 }

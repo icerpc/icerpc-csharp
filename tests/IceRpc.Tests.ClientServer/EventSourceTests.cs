@@ -168,7 +168,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
             for (int i = 0; i < 10; ++i)
             {
-                Assert.ThrowsAsync<ServerException>(async () => await greeter.SayHelloAsync());
+                Assert.ThrowsAsync<DispatchException>(async () => await greeter.SayHelloAsync());
             }
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
@@ -189,7 +189,7 @@ namespace IceRpc.Tests.ClientServer
         private class Greeter3 : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new ServerException("failed");
+                throw new DispatchException("failed");
         }
 
         private class TestEventListener : EventListener

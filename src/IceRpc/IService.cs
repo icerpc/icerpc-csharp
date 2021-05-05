@@ -194,47 +194,11 @@ namespace IceRpc
             {
                 return await DispatchAsync(request, dispatch, cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (RemoteException ex) when (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
             {
-                if (ex is OperationCanceledException)
-                {
-                    if (request.Connection.Server is Server server &&
-                        server.CancelDispatch.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    else if (cancel.IsCancellationRequested)
-                    {
-                        // The client requested cancellation.
-                        throw;
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-                }
-
-                if (request.IsOneway)
-                {
-                    // We log this exception, since otherwise it would be lost.
-                    request.Connection.Logger.LogDispatchException(request, ex);
-                    return OutgoingResponse.WithVoidReturnValue(dispatch);
-                }
-                else
-                {
-                    RemoteException actualEx;
-                    if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                    {
-                        actualEx = remoteEx;
-                    }
-                    else
-                    {
-                        actualEx = new UnhandledException(ex);
-
-                        // We log the "source" exception as UnhandledException may not include all details.
-                        request.Connection.Logger.LogDispatchException(request, ex);
-                    }
-                    return new OutgoingResponse(dispatch, actualEx);
-                }
+                // Remote exceptions are converted to an outgoing response here to allow middlewares to access
+                // the response features set on the dispatch.
+                return new OutgoingResponse(dispatch, ex);
             }
         }
     }
