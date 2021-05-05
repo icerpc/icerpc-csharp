@@ -2617,8 +2617,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
-                _out << "(global::System.ReadOnlyMemory<byte> payload,";
-                _out << nl << "IceRpc.Connection connection) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Connection connection) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToArgs(";
                 _out.inc();

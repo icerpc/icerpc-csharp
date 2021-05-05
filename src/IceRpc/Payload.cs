@@ -11,6 +11,8 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
+        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
+
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
@@ -179,6 +181,16 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Creates the payload of a response from the request's dispatch and response argument.
+        /// Use this method when the operation takes a single parameter.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+
         public static IList<ArraySegment<byte>> FromSingleResponseArg<T>(
             Dispatch dispatch,
             T arg,
@@ -202,6 +214,15 @@ namespace IceRpc
             return payload;
         }
 
+        /// <summary>Creates the payload of a response from the request's dispatch and response arguments.
+        /// Use this method when the operation takes multiple parameters.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="args">The arguments to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
         public static IList<ArraySegment<byte>> FromResponseArgs<T>(
             Dispatch dispatch,
             in T args,
@@ -225,8 +246,10 @@ namespace IceRpc
             return payload;
         }
 
-        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
-
+        /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
+        /// <param name="request">The incoming request used to create this response payload. </param>
+        /// <param name="exception">The exception.</param>
+        /// <returns>A response payload containing the exception.</returns>
         public static IList<ArraySegment<byte>> FromRemoteException(IncomingRequest request, RemoteException exception)
         {
             var payload = new List<ArraySegment<byte>>();
@@ -318,12 +341,24 @@ namespace IceRpc
             return payload;
         }
 
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="dispatch">The request's dispatch object. Used for the protocol and encoding.</param>
+        /// <returns>A new payload.</returns>
         public static IList<ArraySegment<byte>> FromVoidResponse(Dispatch dispatch) =>
-            new List<ArraySegment<byte>> { dispatch.Protocol.GetVoidReturnPayload(dispatch.Encoding) };
+            FromVoidResponse(dispatch.IncomingRequest);
 
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="request">The request. Used for the protocol and encoding.</param>
+        /// <returns>A new payload.</returns>
         public static IList<ArraySegment<byte>> FromVoidResponse(IncomingRequest request) =>
             new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
+        /// <summary>Reads a request payload and converts it into a return value.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="reader">An input stream reader used to read the return value.</param>
+        /// <param name="connection">The connection the payload was received on.</param>
+        /// <typeparam name="T">The type of the return value</typeparam>
+        /// <returns>The return value</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             InputStreamReader<T> reader,
