@@ -28,9 +28,8 @@ namespace IceRpc
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
-        public IncomingResponse(Protocol protocol, ArraySegment<byte> data, int maxSize)
-            : this(protocol, data, maxSize, null)
+        public IncomingResponse(Protocol protocol, ArraySegment<byte> data)
+            : this(protocol, data, null)
         {
         }
 
@@ -121,15 +120,13 @@ namespace IceRpc
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompress.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the response frame.</param>
         internal IncomingResponse(
             Protocol protocol,
             ArraySegment<byte> data,
-            int maxSize,
             SocketStream? socketStream)
-            : base(protocol, maxSize)
+            : base(protocol)
         {
             SocketStream = socketStream;
 
@@ -139,7 +136,6 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 Payload = data; // there is no response frame header with ice1
-
                 if ((byte)istr.ReadReplyStatus() <= (byte)ReplyStatus.UserException)
                 {
                     hasEncapsulation = true;
@@ -184,7 +180,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="response">The outgoing response frame.</param>
         internal IncomingResponse(OutgoingResponse response)
-            : base(response.Protocol, int.MaxValue)
+            : base(response.Protocol)
         {
             if (Protocol == Protocol.Ice2)
             {
@@ -198,7 +194,7 @@ namespace IceRpc
 
         // Constructor for oneway response pseudo frame.
         internal IncomingResponse(Connection connection, Encoding encoding)
-            : base(connection.Protocol, int.MaxValue)
+            : base(connection.Protocol)
         {
             Connection = connection;
             PayloadEncoding = encoding;

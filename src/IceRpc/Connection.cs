@@ -730,10 +730,11 @@ namespace IceRpc
 
                 // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
                 // before we restore its context.
-                activity = Server?.ActivitySource?.StartActivity("IceRpc.Dispatch", ActivityKind.Server);
-                if (activity == null && (_socket!.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}",
+                                                                 ActivityKind.Server);
+                if (activity == null && (_socket.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
-                    activity = new Activity("IceRpc.Dispatch");
+                    activity = new Activity($"{request.Path}/{request.Operation}");
                     // TODO we should start the activity after restoring its context, we should update this once
                     // we move to CreateActivity in .NET 6
                     activity.Start();
@@ -741,8 +742,11 @@ namespace IceRpc
 
                 if (activity != null)
                 {
-                    activity.AddTag("Operation", request.Operation);
-                    activity.AddTag("Path", request.Path);
+                    activity.AddTag("rpc.system", "icerpc");
+                    activity.AddTag("rpc.service", request.Path);
+                    activity.AddTag("rpc.method", request.Operation);
+                    // TODO add additional attributes
+                    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                     request.RestoreActivityContext(activity);
                 }
 
