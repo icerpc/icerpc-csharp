@@ -27,6 +27,8 @@ namespace IceRpc.Internal
                 _ => base[option],
             };
 
+        protected internal override bool HasAcceptor => true;
+
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
         private protected bool HasCompressionFlag { get; }
@@ -85,7 +87,9 @@ namespace IceRpc.Internal
             }
         }
 
-        protected internal override IAcceptor CreateAcceptor(Server server)
+        protected internal override IAcceptor CreateAcceptor(
+            IncomingConnectionOptions options,
+            ILogger logger)
         {
             if (Address == IPAddress.None)
             {
@@ -97,7 +101,7 @@ namespace IceRpc.Internal
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                TcpOptions tcpOptions = server.ConnectionOptions.TransportOptions as TcpOptions ?? TcpOptions.Default;
+                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
                     socket.DualMode = !tcpOptions.IsIPv6Only;
@@ -105,7 +109,7 @@ namespace IceRpc.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, server.Logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -116,7 +120,7 @@ namespace IceRpc.Internal
                 socket.Dispose();
                 throw new TransportException(ex);
             }
-            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), server);
+            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
         }
 
         protected internal override MultiStreamSocket CreateClientSocket(

@@ -97,6 +97,9 @@ namespace IceRpc
         /// <summary>Gets the default port of this endpoint.</summary>
         protected internal abstract ushort DefaultPort { get; }
 
+        /// <summary>Returns true if the endpoint supports the <c>CreateAcceptor</c> method.</summary>
+        protected internal virtual bool HasAcceptor => false;
+
         /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
 
@@ -189,9 +192,12 @@ namespace IceRpc
         /// from clients and creates a new socket for each client. This is typically used to implement a
         /// stream-based transport such as TCP or Quic. Datagram or serial transports don't implement this method but
         /// instead implement the <see cref="CreateServerSocket"/> method.</summary>
-        /// <param name="server">The server associated to the acceptor.</param>
+        /// <param name="options">The server connection options.</param>
+        /// <param name="logger">The logger.</param>
         /// <returns>An acceptor for this endpoint.</returns>
-        protected internal virtual IAcceptor CreateAcceptor(Server server) =>
+        protected internal virtual IAcceptor CreateAcceptor(
+            IncomingConnectionOptions options,
+            ILogger logger) =>
             throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
 
         /// <summary>Creates a client socket for this endpoint.</summary>

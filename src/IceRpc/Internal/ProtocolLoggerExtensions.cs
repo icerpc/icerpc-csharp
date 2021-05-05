@@ -9,30 +9,31 @@ namespace IceRpc.Internal
     /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
     internal static class ProtocolLoggerExtensions
     {
-        private const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
+        // The constants are internal for testing purpose.
+        internal const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
 
-        private const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
-        private const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 1;
-        private const int DatagramMaximumSizeExceeded = BaseEventId + 2;
+        internal const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
+        internal const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 1;
+        internal const int DatagramMaximumSizeExceeded = BaseEventId + 2;
 
-        private const int ReceivedIce1CloseConnectionFrame = BaseEventId + 3;
-        private const int ReceivedIce1RequestBatchFrame = BaseEventId + 4;
-        private const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 5;
+        internal const int ReceivedIce1CloseConnectionFrame = BaseEventId + 3;
+        internal const int ReceivedIce1RequestBatchFrame = BaseEventId + 4;
+        internal const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 5;
 
-        private const int ReceivedGoAwayFrame = BaseEventId + 6;
-        private const int ReceivedInitializeFrame = BaseEventId + 7;
-        private const int ReceivedRequestFrame = BaseEventId + 8;
-        private const int ReceivedResponseFrame = BaseEventId + 9;
-        private const int RequestException = BaseEventId + 10;
-        private const int RetryRequestRetryableException = BaseEventId + 11;
-        private const int RetryRetryConnectionException = BaseEventId + 12;
+        internal const int ReceivedGoAwayFrame = BaseEventId + 6;
+        internal const int ReceivedInitializeFrame = BaseEventId + 7;
+        internal const int ReceivedRequestFrame = BaseEventId + 8;
+        internal const int ReceivedResponseFrame = BaseEventId + 9;
+        internal const int RequestException = BaseEventId + 10;
+        internal const int RetryRequestRetryableException = BaseEventId + 11;
+        internal const int RetryRequestConnectionException = BaseEventId + 12;
 
-        private const int SentIce1ValidateConnectionFrame = BaseEventId + 13;
-        private const int SentIce1CloseConnectionFrame = BaseEventId + 14;
-        private const int SentGoAwayFrame = BaseEventId + 15;
-        private const int SentInitializeFrame = BaseEventId + 16;
-        private const int SentRequestFrame = BaseEventId + 17;
-        private const int SentResponseFrame = BaseEventId + 18;
+        internal const int SentIce1ValidateConnectionFrame = BaseEventId + 13;
+        internal const int SentIce1CloseConnectionFrame = BaseEventId + 14;
+        internal const int SentGoAwayFrame = BaseEventId + 15;
+        internal const int SentInitializeFrame = BaseEventId + 16;
+        internal const int SentRequestFrame = BaseEventId + 17;
+        internal const int SentResponseFrame = BaseEventId + 18;
 
         private static readonly Action<ILogger, int, Exception> _datagramMaximumSizeExceeded =
             LoggerMessage.Define<int>(
@@ -114,7 +115,7 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestConnectionException =
             LoggerMessage.Define<string, string, RetryPolicy, int, int>(
                 LogLevel.Debug,
-                new EventId(RetryRetryConnectionException, nameof(RetryRetryConnectionException)),
+                new EventId(RetryRequestConnectionException, nameof(RetryRequestConnectionException)),
                 "retrying request because of connection exception (Path={Path}, Operation={Operation}, " +
                 "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
 

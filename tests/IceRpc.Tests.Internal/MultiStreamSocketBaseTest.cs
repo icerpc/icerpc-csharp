@@ -28,8 +28,8 @@ namespace IceRpc.Tests.Internal
                                                                   ClientEndpoint.Protocol.GetEncoding(),
                                                                   endpoint: null,
                                                                   altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                                  null,
-                                                                  new ProxyOptions { Invoker = Communicator });
+                                                                  connection: null,
+                                                                  options: new());
         protected MultiStreamSocket ServerSocket => _serverSocket!;
         protected MultiStreamSocketType SocketType { get; }
         private MultiStreamSocket? _clientSocket;

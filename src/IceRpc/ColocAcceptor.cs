@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
 using IceRpc.Internal;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,19 +24,18 @@ namespace IceRpc
             new ConcurrentDictionary<ColocEndpoint, ColocAcceptor>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
-
         private readonly ColocEndpoint _endpoint;
-
-        // TODO: descriptive comment
+        private readonly ILogger _logger;
+        // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
         private long _nextId;
-        private readonly Server _server;
+        private readonly IncomingConnectionOptions _options;
 
         public async ValueTask<MultiStreamSocket> AcceptAsync()
         {
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocSocket(_endpoint, id, writer, reader, _server.ConnectionOptions, _server.Logger);
+            return new ColocSocket(_endpoint, id, writer, reader, _options, _logger);
         }
 
         public void Dispose()
@@ -44,17 +44,18 @@ namespace IceRpc
             _colocAcceptorDictionary.Remove(_endpoint);
         }
 
-        public override string ToString() => _server.ToString();
+        public override string ToString() => $"{base.ToString()} {_endpoint}";
 
         internal static bool TryGetValue(
             ColocEndpoint endpoint,
             [NotNullWhen(returnValue: true)] out ColocAcceptor? acceptor) =>
             _colocAcceptorDictionary.TryGetValue(endpoint, out acceptor);
 
-        internal ColocAcceptor(ColocEndpoint endpoint, Server server)
+        internal ColocAcceptor(ColocEndpoint endpoint, IncomingConnectionOptions options, ILogger logger)
         {
             _endpoint = endpoint;
-            _server = server;
+            _logger = logger;
+            _options = options;
 
             // There's always a single reader (the acceptor) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads.
