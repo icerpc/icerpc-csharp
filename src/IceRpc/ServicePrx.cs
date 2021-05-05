@@ -539,9 +539,12 @@ namespace IceRpc
             // by interceptors will be children of IceRpc.Invocation activity.
             if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
             {
-                activity = new Activity("IceRpc.Invocation");
-                activity.AddTag("Operation", request.Operation);
-                activity.AddTag("Path", request.Path);
+                activity = new Activity($"{request.Path}/{request.Operation}");
+                activity.AddTag("rpc.system", "icerpc");
+                activity.AddTag("rpc.service", request.Path);
+                activity.AddTag("rpc.method", request.Operation);
+                // TODO add additional attributes
+                // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                 activity.Start();
             }
 

@@ -54,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
             }));
             await prx.IcePingAsync();
             Assert.IsNotNull(invocationActivity);
-            Assert.AreEqual("IceRpc.Invocation", invocationActivity.DisplayName);
+            Assert.AreEqual("//ice_ping", invocationActivity.DisplayName);
             Assert.AreEqual(testActivity, invocationActivity.Parent);
             Assert.AreEqual(testActivity, Activity.Current);
             testActivity.Stop();
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.ClientServer
             // Await the server shutdown to ensure the dispatch has finish
             await server2.ShutdownAsync();
             Assert.IsNotNull(dispatchActivity);
-            Assert.AreEqual("IceRpc.Dispatch", dispatchActivity.DisplayName);
+            Assert.AreEqual("//ice_ping", dispatchActivity.DisplayName);
             // Wait to receive the dispatch activity stop event
             Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
