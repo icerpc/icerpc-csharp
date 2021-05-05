@@ -65,7 +65,7 @@ namespace IceRpc
         /// connection. For outgoing connections, set can be called during configuration.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
         /// set.</value>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is an incoming connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is an incoming connection.</exception>
         public IDispatcher? Dispatcher
         {
             get => Server?.Dispatcher ?? _dispatcher;
