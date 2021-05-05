@@ -25,7 +25,7 @@ module IceRpc
         /// The payload is not compressed and can be read directly.
         Decompressed = 0,
 
-        /// The payload is compressed using the gzip format.
-        GZip = 1,
+        /// The payload is compressed using the deflate format.
+        Deflate = 1,
     }
 }
