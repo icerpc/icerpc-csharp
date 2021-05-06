@@ -502,6 +502,7 @@ namespace IceRpc.Tests.Internal
             await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
+            proxy.Endpoint = null; // Clear the endpoint to ensure the invocations only use the given connection
             Task pingTask = proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
