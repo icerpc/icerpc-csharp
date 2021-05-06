@@ -2351,7 +2351,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << eb;
 
     _out << nl << "IceRpc.ProxyOptions options = server.ProxyOptions;";
-    _out << nl << "options.Invoker ??= server.Invoker;";
+    _out << nl << "options.Invoker ?\?= server.Invoker;";
 
     _out << nl << "if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)";
     _out << sb;
