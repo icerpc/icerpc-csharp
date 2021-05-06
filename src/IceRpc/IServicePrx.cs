@@ -55,12 +55,64 @@ namespace IceRpc
                 payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
         }
 
+        /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicit specified.
+        /// </summary>
+        public const string DefaultPath = "/IceRpc.Service";
+
         /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IProxyFactory<IServicePrx> Factory = new ServicePrxFactory();
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx> IceReader = istr => Factory.Read(istr);
+
+        /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
+        /// <param name="connection">The connection for the proxy, if connection is an outgoing connection the
+        /// <see cref="Connection.RemoteEndpoint"/> would be used as the <see cref="Endpoint"/> for the proxy,
+        /// otherwise an endpointless proxy would be created.</param>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// </param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromConnection(Connection connection, string? path = null) =>
+            Factory.Create(
+                path ?? DefaultPath,
+                connection.Protocol,
+                connection.Protocol.GetEncoding(),
+                endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,
+                altEndpoints: Array.Empty<Endpoint>(),
+                connection,
+                options: new ProxyOptions());
+
+        /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// </param>
+        /// <param name="protocol">The proxy protocol.</param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
+            Factory.Create(
+                path ?? DefaultPath,
+                protocol,
+                protocol.GetEncoding(),
+                endpoint: null,
+                altEndpoints: Array.Empty<Endpoint>(),
+                connection: null,
+                options: new ProxyOptions());
+
+        /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
+        /// <param name="server">The created proxy would use the <see cref="Server.ProxyEndpoint"/> as its
+        /// <see cref="Endpoint"/>.</param>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// </param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromServer(Server server, string? path = null) =>
+            Factory.Create(
+                path ?? DefaultPath,
+                server.Protocol,
+                server.Protocol.GetEncoding(),
+                endpoint: server.ProxyEndpoint,
+                altEndpoints: Array.Empty<Endpoint>(),
+                connection: null,
+                options: new ProxyOptions());
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
