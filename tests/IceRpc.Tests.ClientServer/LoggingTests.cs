@@ -118,7 +118,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = CreateServer(communicator, colocated, portNumber: 1);
             server.Listen();
 
-            IServicePrx service = server.CreateProxy<IServicePrx>("/");
+            IServicePrx service = IServicePrx.FromServer(server, "/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.ClientServer
             await using Server server = CreateServer(communicator, colocated, portNumber: 2);
             server.Listen();
 
-            IServicePrx service = server.CreateProxy<IServicePrx>("/");
+            IServicePrx service = IServicePrx.FromServer(server, "/");
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();

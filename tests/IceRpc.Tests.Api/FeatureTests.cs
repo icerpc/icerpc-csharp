@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            IFeatureServicePrx prx = server.CreateProxy<IFeatureServicePrx>("/test");
+            var prx = IFeatureServicePrx.FromServer(server, "/test");
 
             Multiplier multiplier = 10;
             // This interceptor stores the multiplier into the binary context to be read by the middleware.

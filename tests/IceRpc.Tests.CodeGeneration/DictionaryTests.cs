@@ -30,7 +30,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-            _prx = _server.CreateProxy<IDictionaryOperationsPrx>("/test");
+            _prx = IDictionaryOperationsPrx.FromServer(_server, "/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

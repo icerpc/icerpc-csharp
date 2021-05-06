@@ -2267,6 +2267,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     // Proxy static methods
     //
     _out << sp;
+    _out << nl << "/// <summary>The path for proxies of <see cref=\"" << name
+         << "\"/> type when the path is not explicitly specified.</summary>";
+    _out << nl << "public new const string DefaultPath = \"" << defaultPath(p->scoped()) << "\";";
+
+    _out << sp;
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.IProxyFactory<" << name << "> Factory = new IceProxyFactory();";
     _out << sp;
@@ -2276,6 +2281,95 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "istr => IceRpc.ProxyFactory.Read(Factory, istr);";
     _out.dec();
+
+    _out << sp;
+    _out << nl << "/// <summary>Creates an <see cref=\"" << name
+         << "\"/> proxy from the given connection and path.</summary>";
+    _out << nl << "/// <param name=\"connection\">The connection for the proxy. If the connection is an outgoing "
+         << "connection,";
+    _out << nl << "/// <see cref=\"IceRpc.Connection.RemoteEndpoint\"/> is used as the <see cref=\"Endpoint\"/> for "
+         << "the proxy,";
+    _out << nl << "/// otherwise an endpointless proxy is created.</param>";
+    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
+         << "is used.";
+    _out << nl << "/// </param>";
+    _out << nl << "/// <returns>The new proxy.</returns>";
+    _out << nl << "public static new "
+         << name << " FromConnection(IceRpc.Connection connection, string? path = null) =>";
+    _out.inc();
+    _out << nl << "Factory.Create(";
+    _out.inc();
+    _out << nl << "path ?? DefaultPath,"
+         << nl << "connection.Protocol,"
+         << nl << "IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),"
+         << nl << "endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
+         << nl << "connection,"
+         << nl << "options: new());";
+    _out.dec();
+    _out.dec();
+
+    _out << sp;
+    _out << nl << "/// <summary>Creates an <see cref=\"" << name
+         << "\"/> endpointless proxy with the given path and protocol.</summary>";
+    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
+         << "is used.";
+    _out << nl << "/// </param>";
+    _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
+    _out << nl << "/// <returns>The new proxy.</returns>";
+    _out << nl << "public static new "
+         << name << " FromPath(string? path = null, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
+    _out.inc();
+    _out << nl << "Factory.Create(";
+    _out.inc();
+    _out << nl << "path ?? DefaultPath,"
+         << nl << "protocol,"
+         << nl << "IceRpc.ProtocolExtensions.GetEncoding(protocol),"
+         << nl << "endpoint: null,"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
+         << nl << "connection: null,"
+         << nl << "options: new());";
+    _out.dec();
+    _out.dec();
+
+    _out << sp;
+    _out << nl << "/// <summary>Creates an <see cref=\"" << name
+         << "\"/> proxy from the given server and path.</summary>";
+    _out << nl << "/// <param name=\"server\">The created proxy uses the <see cref=\"Server.ProxyEndpoint\"/> "
+         << "as its";
+    _out << nl << "/// <see cref=\"Endpoint\"/>.</param>";
+    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
+         << "is used.";
+    _out << nl << "/// </param>";
+    _out << nl << "/// <returns>The new proxy.</returns>";
+    _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null)";
+    _out << sb;
+    _out << nl << "if (server.ProxyEndpoint == null)";
+    _out << sb;
+    _out << nl << "throw new global::System.InvalidOperationException("
+         << "\"cannot create a proxy using a server with no endpoint\");";
+    _out << eb;
+
+    _out << nl << "IceRpc.ProxyOptions options = server.ProxyOptions;";
+    _out << nl << "options.Invoker ?\?= server.Invoker;";
+
+    _out << nl << "if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)";
+    _out << sb;
+    _out << nl << "options = options.Clone();";
+    _out << nl << "options.IsOneway = true;";
+    _out << eb;
+
+    _out << nl << "return Factory.Create(";
+    _out.inc();
+    _out << nl << "path ?? DefaultPath,"
+         << nl << "server.Protocol,"
+         << nl << "IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),"
+         << nl << "endpoint: server.ProxyEndpoint,"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
+         << nl << "connection: null,"
+         << nl << "options);";
+    _out.dec();
+    _out << eb;
 
     _out << sp;
     _out << nl << "// <summary>An <see cref=\"InputStreamReader{T}\"/> used to read <see cref=\"" << name

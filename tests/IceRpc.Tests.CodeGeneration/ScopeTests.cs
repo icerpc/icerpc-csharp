@@ -33,10 +33,10 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
-            _prx1 = _server.CreateProxy<Scope.IOperationsPrx>("/test1");
-            _prx2 = _server.CreateProxy<Scope.Inner.IOperationsPrx>("/test2");
-            _prx3 = _server.CreateProxy<Scope.Inner.Inner2.IOperationsPrx>("/test3");
-            _prx4 = _server.CreateProxy<Scope.Inner.Test.Inner2.IOperationsPrx>("/test4");
+            _prx1 = Scope.IOperationsPrx.FromServer(_server, "/test1");
+            _prx2 = Scope.Inner.IOperationsPrx.FromServer(_server, "/test2");
+            _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromServer(_server, "/test3");
+            _prx4 = Scope.Inner.Test.Inner2.IOperationsPrx.FromServer(_server, "/test4");
 
             _server.Listen();
         }

@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            IGreeterServicePrx? prx = server.CreateProxy<IGreeterServicePrx>("/test");
+            IGreeterServicePrx? prx = IGreeterServicePrx.FromServer(server, "/test");
 
             await prx.IcePingAsync();
 
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            prx = server.CreateProxy<IGreeterServicePrx>("/");
+            prx = IGreeterServicePrx.FromServer(server, "/");
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -413,7 +413,7 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
+            var prx = IGreeterServicePrx.FromServer(server, "/");
 
             (ReadOnlyMemory<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
                 "SayHello",
@@ -517,6 +517,68 @@ namespace IceRpc.Tests.Api
             var prx = IGreeterServicePrx.Parse($"ice+universal://localhost/test?transport=tcp&protocol={protocol}",
                                                communicator);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
+        }
+
+        [Test]
+        public void Proxy_FactoryMethods()
+        {
+            Assert.AreEqual("/Ice.Object", IServicePrx.DefaultPath);
+            IServicePrx service = IServicePrx.FromPath();
+            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
+            Assert.IsNull(service.Endpoint);
+
+            service = IServicePrx.FromPath("/test");
+            Assert.AreEqual("/test", service.Path);
+            Assert.IsNull(service.Endpoint);
+
+            Assert.AreEqual("/IceRpc.Tests.Api.GreeterService", IGreeterServicePrx.DefaultPath);
+            IGreeterServicePrx greeter = IGreeterServicePrx.FromPath();
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            Assert.IsNull(greeter.Endpoint);
+
+            greeter = IGreeterServicePrx.FromPath("/test");
+            Assert.AreEqual("/test", greeter.Path);
+            Assert.IsNull(greeter.Endpoint);
+
+            var connection = new Connection { RemoteEndpoint = "ice+tcp://localhost:10000" };
+
+            service = IServicePrx.FromConnection(connection);
+            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
+            Assert.AreEqual(connection, service.Connection);
+            Assert.AreEqual(connection.RemoteEndpoint, service.Endpoint);
+
+            greeter = IGreeterServicePrx.FromConnection(connection);
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            Assert.AreEqual(connection, greeter.Connection);
+            Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
+
+            var server = new Server
+            {
+                Endpoint = "ice+tcp://127.0.0.1:10000",
+                ProxyHost = "localhost"
+            };
+
+            service = IServicePrx.FromServer(server);
+            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
+            Assert.IsNull(service.Connection);
+            Assert.AreEqual(server.ProxyEndpoint, service.Endpoint);
+
+            greeter = IGreeterServicePrx.FromServer(server);
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            Assert.IsNull(greeter.Connection);
+            Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
+
+            connection = new Connection { LocalEndpoint = "ice+tcp://localhost:10000" };
+
+            service = IServicePrx.FromConnection(connection);
+            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
+            Assert.AreEqual(connection, service.Connection);
+            Assert.IsNull(service.Endpoint);
+
+            greeter = IGreeterServicePrx.FromConnection(connection);
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            Assert.AreEqual(connection, greeter.Connection);
+            Assert.IsNull(greeter.Endpoint);
         }
 
         public class GreeterService : IGreeterService

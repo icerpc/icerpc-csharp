@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            IGreeterTestServicePrx greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
+            IGreeterTestServicePrx greeter = IGreeterTestServicePrx.FromServer(_server, path);
 
             Assert.AreNotEqual(0, greeter.Endpoint!.Port);
 
