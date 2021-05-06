@@ -229,11 +229,8 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-            : base(request.Protocol, features)
+            : this(request.Protocol, response.PayloadEncoding, features)
         {
-            _payload = new List<ArraySegment<byte>>();
-            PayloadEncoding = response.PayloadEncoding;
-
             if (Protocol == response.Protocol)
             {
                 Payload.Add(response.Payload);
@@ -404,6 +401,14 @@ namespace IceRpc
             _payload = payload;
             _payloadSize = -1;
             Payload = payload;
+        }
+
+        private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection? features)
+                   : base(protocol, features)
+        {
+            _payload = new List<ArraySegment<byte>>();
+            _payloadSize = -1;
+            PayloadEncoding = encoding;
         }
     }
 }
