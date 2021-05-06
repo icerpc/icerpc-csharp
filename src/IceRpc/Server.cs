@@ -136,6 +136,7 @@ namespace IceRpc
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private Task? _shutdownTask;
+        private CancellationTokenSource? _shutdownCancelSource;
 
         /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -267,15 +268,16 @@ namespace IceRpc
         /// <return>A task that completes once the shutdown is complete.</return>
         public async Task ShutdownAsync(CancellationToken cancel = default)
         {
-            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
-            // synchronously) after releasing the lock.
-            using CancellationTokenSource cancelShutdownSource = new();
-            using CancellationTokenRegistration _ = cancel.Register(() => cancelShutdownSource.Cancel());
             lock (_mutex)
             {
-                _shutdownTask ??= PerformShutdownAsync(cancelShutdownSource.Token);
+                _shutdownCancelSource ??= new();
+                _shutdownTask ??= PerformShutdownAsync(_shutdownCancelSource.Token);
             }
 
+            // Cancel shutdown task if this call is canceled.
+            using CancellationTokenRegistration _ = cancel.Register(() => _shutdownCancelSource!.Cancel());
+
+            // Wait for shutdown to complete.
             await _shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync(CancellationToken cancel)
@@ -309,6 +311,8 @@ namespace IceRpc
                 finally
                 {
                     Logger.LogServerShutdownComplete(this);
+
+                    _shutdownCancelSource!.Dispose();
 
                     // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
                     // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code

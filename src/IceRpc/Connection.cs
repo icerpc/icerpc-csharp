@@ -117,7 +117,7 @@ namespace IceRpc
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
@@ -134,7 +134,7 @@ namespace IceRpc
 
         /// <summary>The connection options.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public ConnectionOptions? Options
         {
             get => _options?.Clone();
@@ -147,7 +147,7 @@ namespace IceRpc
                 }
                 if (value == null)
                 {
-                    throw new InvalidArgumentException($"{nameof(value)} can't be null");
+                    throw new ArgumentException($"{nameof(value)} can't be null");
                 }
                 _options = value.Clone();
             }
@@ -198,7 +198,7 @@ namespace IceRpc
 
         /// <summary>The server that created this incoming connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public Server? Server
         {
             get => _server;
@@ -313,8 +313,7 @@ namespace IceRpc
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to <c>ConnectionState.Closed</c>
-        /// If `Closed` events are registered, it waits for the events to be executed.
-        /// </summary>
+        /// If <c>Closed</c> events are registered, it waits for the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
@@ -704,7 +703,7 @@ namespace IceRpc
                 }
                 catch (ConnectionClosedException) when (
                     (State != ConnectionState.Closed && _peerControlStream!.ReceivedEndOfStream) ||
-                    State == ConnectionState.Closing)
+                     State == ConnectionState.Closing)
                 {
                     // Don't abort the connection if the connection is being gracefully closed (either the peer
                     // control stream is done which indicates the reception of the GoAway frame or the connection
