@@ -179,25 +179,23 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Constructs an outgoing response from the given incoming response with a void payload.
-        /// The new response will use the protocol and encoding of <paramref name="request"/>.</summary>
+        /// <summary>Constructs an outgoing response with a void payload. The new response will use the protocol and
+        /// encoding of <paramref name="request"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
             : this(request.Protocol,
-                   request.PayloadEncoding,
                    IceRpc.Payload.FromVoidReturnValue(request),
                    features)
         {
         }
 
-        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="dispatch"/>.
-        /// </summary>
+        /// <summary>Constructs an outgoing response with a payload. The new response will use the protocol
+        /// of the <paramref name="dispatch"/>.</summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
-            : this(dispatch.Protocol, dispatch.Encoding, payload, dispatch.ResponseFeatures)
+            : this(dispatch.Protocol, payload, dispatch.ResponseFeatures)
         {
         }
 
@@ -231,11 +229,11 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-            : this(request.Protocol,
-                   request.PayloadEncoding,
-                   new List<ArraySegment<byte>>(),
-                   features)
+            : base(request.Protocol, features)
         {
+            _payload = new List<ArraySegment<byte>>();
+            PayloadEncoding = response.PayloadEncoding;
+
             if (Protocol == response.Protocol)
             {
                 Payload.Add(response.Payload);
@@ -356,10 +354,9 @@ namespace IceRpc
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <param name="features">The features for this response.</param>
         public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-            : this(request.Protocol,
-                   request.PayloadEncoding,
-                   IceRpc.Payload.FromRemoteException(request, exception),
-                   features)
+                    : this(request.Protocol,
+                           IceRpc.Payload.FromRemoteException(request, exception),
+                           features)
         {
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
@@ -400,14 +397,13 @@ namespace IceRpc
         }
 
         private OutgoingResponse(Protocol protocol,
-                                 Encoding encoding,
                                  IList<ArraySegment<byte>> payload,
                                  FeatureCollection? features)
-            : base(protocol, features)
+                    : base(protocol, features)
         {
-            PayloadEncoding = encoding;
             _payload = payload;
             _payloadSize = -1;
+            Payload = payload;
         }
     }
 }
