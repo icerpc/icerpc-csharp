@@ -46,6 +46,10 @@ namespace IceRpc
                     PayloadCompressionFormat = payloadCompressionFormat;
                     PayloadEncoding = payloadEncoding;
                 }
+                else
+                {
+                    PayloadEncoding = Encoding.V11;
+                }
                 _payload = value;
                 _payloadSize = -1;
             }
