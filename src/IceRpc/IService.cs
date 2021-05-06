@@ -60,11 +60,11 @@ namespace IceRpc
                 Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
 
-        /// <summary>Dispatches an incoming request payload and returns the corresponding response payload.</summary>
+        /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch object for the request being dispatched.</param>
+        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The corresponding payload.</returns>
+        /// <returns>The response payload.</returns>
         public ValueTask<IList<ArraySegment<byte>>> DispatchAsync(ReadOnlyMemory<byte> payload, Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
@@ -126,7 +126,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
 
-            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
+            payload.ToEmptyArgs(dispatch.Connection);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceId(dispatch, returnValue);
         }
@@ -142,7 +142,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
+            payload.ToEmptyArgs(dispatch.Connection);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceIds(dispatch, returnValue);
         }
@@ -174,7 +174,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
+            payload.ToEmptyArgs(dispatch.Connection);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return Payload.FromVoidReturnValue(dispatch);
         }

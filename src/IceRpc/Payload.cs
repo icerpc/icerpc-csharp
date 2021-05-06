@@ -382,7 +382,7 @@ namespace IceRpc
         /// unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="connection">The connection the payload was received on.</param>
-        public static void ToVoidArg(
+        public static void ToEmptyArgs(
             this ReadOnlyMemory<byte> payload,
             Connection connection) =>
             payload.ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
