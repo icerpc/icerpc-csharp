@@ -865,7 +865,7 @@ namespace IceRpc
                     {
                         // We log this exception, since otherwise it would be lost.
                         _socket!.Logger.LogDispatchException(request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(request);
+                        return new OutgoingResponse(request);
                     }
                     else
                     {

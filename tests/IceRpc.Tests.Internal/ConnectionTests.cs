@@ -175,7 +175,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
@@ -459,7 +459,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
@@ -495,7 +495,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
@@ -571,7 +571,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
