@@ -12,6 +12,11 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
+        /// <summary>The exception if response was constructed with an exception.</summary>
+        /// <remarks>If <c>ResultType</c> is set to <c>ResultType.Failure</c>, the exception might still be null if
+        /// the response is constructed from an <c>IncomingResponse</c></summary>
+        public Exception? Exception;
+
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -93,9 +98,7 @@ namespace IceRpc
         /// <returns>A new OutgoingResponse.</returns>
         public static OutgoingResponse WithVoidReturnValue(IncomingRequest request, FeatureCollection? features = null)
         {
-            var response = new OutgoingResponse(request.Protocol,
-                                                request.PayloadEncoding,
-                                                features ?? new FeatureCollection());
+            var response = new OutgoingResponse(request.Protocol, request.PayloadEncoding, features);
             response.Payload.Add(request.Protocol.GetVoidReturnPayload(request.PayloadEncoding));
             return response;
         }
@@ -221,7 +224,7 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+            : this(request.Protocol, request.PayloadEncoding, features)
         {
             if (Protocol == response.Protocol)
             {
@@ -332,7 +335,7 @@ namespace IceRpc
         /// <param name="dispatch">The dispatch for the incoming request for which this constructor
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
-        public OutgoingResponse(Dispatch dispatch, RemoteException exception)
+        public OutgoingResponse(Dispatch dispatch, Exception exception)
             : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
         {
         }
@@ -342,9 +345,11 @@ namespace IceRpc
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <param name="features">The features for this response.</param>
-        public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-            : this(request.Protocol, request.PayloadEncoding, features ?? new FeatureCollection())
+        public OutgoingResponse(IncomingRequest request, Exception exception, FeatureCollection? features = null)
+            : this(request.Protocol, request.PayloadEncoding, features)
         {
+            Exception = exception;
+
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (PayloadEncoding == Encoding.V11)
             {
@@ -355,6 +360,13 @@ namespace IceRpc
                     UnhandledException _ => ReplyStatus.UnknownLocalException,
                     _ => ReplyStatus.UserException
                 };
+            }
+
+            // If the exception is not a remote exception or it needs to be converted to an unhandled exception,
+            // marshal an unhandled exception.
+            if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+            {
+                remoteException = new UnhandledException(exception);
             }
 
             OutputStream ostr;
@@ -385,7 +397,7 @@ namespace IceRpc
                 ostr.Write(replyStatus);
             }
 
-            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             if (PayloadEncoding == Encoding.V11)
             {
                 switch (replyStatus)
@@ -418,20 +430,20 @@ namespace IceRpc
                         break;
 
                     default:
-                        ostr.WriteException(exception);
+                        ostr.WriteException(remoteException);
                         break;
                 }
             }
             else
             {
-                ostr.WriteException(exception);
+                ostr.WriteException(remoteException);
             }
 
             ostr.Finish();
 
-            if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
+            if (Protocol == Protocol.Ice2 && remoteException.RetryPolicy.Retryable != Retryable.No)
             {
-                RetryPolicy retryPolicy = exception.RetryPolicy;
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
 
                 BinaryContextOverride.Add(
                     (int)BinaryContextKey.RetryPolicy,
@@ -485,7 +497,7 @@ namespace IceRpc
             return (response, ostr);
         }
 
-        private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection features)
+        private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection? features)
             : base(protocol, features)
         {
             PayloadEncoding = encoding;

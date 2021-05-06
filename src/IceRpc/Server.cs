@@ -243,7 +243,7 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocAcceptor = _endpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocAcceptor));
 
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);

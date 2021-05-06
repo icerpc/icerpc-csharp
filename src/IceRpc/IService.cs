@@ -194,10 +194,8 @@ namespace IceRpc
             {
                 return await DispatchAsync(request, dispatch, cancel).ConfigureAwait(false);
             }
-            catch (RemoteException ex) when (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
+            catch (Exception ex)
             {
-                // Remote exceptions are converted to an outgoing response here to allow middlewares to access
-                // the response features set on the dispatch.
                 return new OutgoingResponse(dispatch, ex);
             }
         }

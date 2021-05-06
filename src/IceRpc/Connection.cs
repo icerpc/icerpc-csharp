@@ -762,31 +762,62 @@ namespace IceRpc
                 // include the activity tracking options.
                 _socket!.Logger.LogReceivedRequest(request);
 
-                OutgoingResponse response;
-                try
-                {
-                    response = await DispatchAsync(request, cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // No need to send the response if the dispatch is canceled by the client.
-                    Debug.Assert(cancel.IsCancellationRequested);
-                    return;
-                }
-
-                if (stream.IsBidirectional)
+                OutgoingResponse? response = null;
+                if (Dispatcher is IDispatcher dispatcher)
                 {
                     try
                     {
-                        // Send the response over the stream
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        response = await Dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
+                    }
+                    catch(Exception ex)
+                    {
+                        response = new(request, ex);
+                    }
+
+                    // If the response result type is failure we check the exception to either transform the
+                    // response or log the exception.
+                    if (response.Exception != null)
+                    {
+                        if (response.Exception is OperationCanceledException cancelEx &&
+                            stream.IsBidirectional &&
+                            cancelEx.CancellationToken == cancel &&
+                            State > ConnectionState.Active)
+                        {
+                            // The connection is being shutdown and shutdown aborted the dispatch, replace the
+                            // response with a dispatch exception to notify the client of the cancellation caused
+                            // by the connection shutdown.
+                            response = new(request, new DispatchException("dispatch canceled by shutdown"));
+                        }
+                        else if (response.Exception is not RemoteException remoteEx || remoteEx.ConvertToUnhandled)
+                        {
+                            // We log the exception as the UnhandledException may not include all details.
+                            _socket!.Logger.LogDispatchException(request, response.Exception);
+                        }
+                        else if (!stream.IsBidirectional)
+                        {
+                            // We log this exception, since otherwise it would be lost since we don't send a response.
+                            _socket!.Logger.LogDispatchException(request, response.Exception);
+                        }
+                    }
+                }
+                else if(stream.IsBidirectional)
+                {
+                    response = new(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
+                }
+
+                // Send the response if the stream is bidirectional.
+                if (stream.IsBidirectional)
+                {
+                    Debug.Assert(response != null);
+                    try
+                    {
+                        await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                     }
                     catch (RemoteException ex)
                     {
                         // Send the exception as the response instead of sending the response from the dispatch
-                        // if sending raises a remote exception.
-                        response = new OutgoingResponse(request, ex);
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        // This can occur if the response exceeds the peer's incoming frame max size.
+                        await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
                     }
                     _socket.Logger.LogSentResponse(response);
                 }
@@ -802,71 +833,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
-        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
-        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
-        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
-        /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="request">The request being dispatched.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
-        private async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-        {
-            if (Dispatcher is IDispatcher dispatcher)
-            {
-                try
-                {
-                    OutgoingResponse response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
-                    cancel.ThrowIfCancellationRequested();
-                    return response;
-                }
-                catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
-                {
-                    if (State == ConnectionState.Active)
-                    {
-                        // The client requested cancellation, we log it and let it propagate.
-                        _socket!.Logger.LogDispatchCanceledByClient(request);
-                        throw;
-                    }
-                    else
-                    {
-                        // The connection is being shutdown and it aborted the dispatch
-                        Debug.Assert(State > ConnectionState.Active);
-                        return new OutgoingResponse(request, new DispatchException("dispatch canceled by shutdown"));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (request.IsOneway)
-                    {
-                        // We log this exception, since otherwise it would be lost.
-                        _socket!.Logger.LogDispatchException(request, ex);
-                        return OutgoingResponse.WithVoidReturnValue(request);
-                    }
-                    else
-                    {
-                        RemoteException actualEx;
-                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                        {
-                            actualEx = remoteEx;
-                        }
-                        else
-                        {
-                            actualEx = new UnhandledException(ex);
-
-                            // We log the "source" exception as UnhandledException may not include all details.
-                            _socket!.Logger.LogDispatchException(request, ex);
-                        }
-                        return new OutgoingResponse(request, actualEx);
-                    }
-                }
-            }
-            else
-            {
-                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
-            }
-        }
-
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
             if (_socket == null)
@@ -875,7 +841,6 @@ namespace IceRpc
                 return;
             }
 
-            using IDisposable? socketScope = _socket.StartScope(Server);
             Task shutdownTask;
             try
             {
@@ -910,6 +875,8 @@ namespace IceRpc
 
             async Task PerformShutdownAsync(Exception exception)
             {
+                using IDisposable? scope = _socket.StartScope(Server);
+
                 // Abort outgoing streams and get the largest incoming stream IDs. With Ice2, we don't wait for
                 // the incoming streams to complete before sending the GoAway frame but instead provide the ID
                 // of the latest incoming stream IDs to the peer. The peer will close the connection only once

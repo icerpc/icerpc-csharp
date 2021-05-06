@@ -89,7 +89,17 @@ namespace IceRpc
 
         /// <summary>Aborts the stream. This is called by the connection when it's being closed. If needed, the stream
         /// implementation should abort the pending receive task.</summary>
-        public virtual void Abort(Exception ex) => _cancelDispatchSource?.Cancel();
+        public virtual void Abort(Exception ex)
+        {
+            try
+            {
+                _cancelDispatchSource?.Cancel();
+            }
+            catch(ObjectDisposedException)
+            {
+                // Ignore, this can occur if the stream is released concurrently.
+            }
+        }
 
         /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>

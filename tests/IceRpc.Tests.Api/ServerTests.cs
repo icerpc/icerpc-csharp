@@ -257,31 +257,36 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {
             await using var communicator = new Communicator();
             var semaphore = new SemaphoreSlim(0);
+            bool waitForCancellation = true;
             await using var server = new Server
             {
                 Invoker = communicator,
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
-                    Assert.That(cancel.CanBeCanceled, Is.True);
-                    semaphore.Release();
-                    try
+                    if (waitForCancellation)
                     {
-                        await Task.Delay(-1, cancel);
-                    }
-                    catch (OperationCanceledException)
-                    {
+                        Assert.That(cancel.CanBeCanceled, Is.True);
                         semaphore.Release();
-                        throw;
+                        try
+                        {
+                            await Task.Delay(-1, cancel);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            semaphore.Release();
+                            throw;
+                        }
+                        catch
+                        {
+                        }
+                        Assert.Fail();
                     }
-                    catch
-                    {
-                    }
-                    Assert.Fail();
                     return OutgoingResponse.WithVoidReturnValue(request);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -293,23 +298,27 @@ namespace IceRpc.Tests.Api
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
-            semaphore.Wait();
+            semaphore.Wait(); // Wait for the dispatch
+
             Assert.That(task.IsCompleted, Is.False);
             cancellationSource.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await task);
 
-            // Wait for the dispatch cancellation
+            // Now wait for the dispatch cancellation
             semaphore.Wait();
 
-            // Verify service still works
+            // Verify the service still works.
+            waitForCancellation = false;
             Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
             Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
         }
 
-        [Test]
+        [TestCase(false)]
+        [TestCase(true)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
-        // completes with an OperationCanceledException.
-        public async Task Server_ShutdownCancelAsync()
+        // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
+        //  Shutdown, which call ShutdownAsync with a canceled token.
+        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown)
         {
             await using var communicator = new Communicator();
             var semaphore = new SemaphoreSlim(0);
@@ -331,48 +340,28 @@ namespace IceRpc.Tests.Api
             var proxy = server.CreateProxy<IProxyTestPrx>("/");
 
             Task task = proxy.IcePingAsync();
-            semaphore.Wait();
+            semaphore.Wait(); // Wait for the dispatch
 
-            using var cancellationSource = new CancellationTokenSource();
-            Task shutdownTask = server.ShutdownAsync(cancellationSource.Token);
-            Assert.That(task.IsCompleted, Is.False);
-            Assert.That(shutdownTask.IsCompleted, Is.False);
+            Task shutdownTask;
+            if (disposeInsteadOfShutdown)
+            {
+                // Dispose to trigger the dispatch cancellation immediately.
+                Assert.That(task.IsCompleted, Is.False);
+                shutdownTask = server.DisposeAsync().AsTask();
+            }
+            else
+            {
+                // Shutdown and cancel it to trigger the dispatch cancellation.
+                using var cancellationSource = new CancellationTokenSource();
+                shutdownTask = server.ShutdownAsync(cancellationSource.Token);
+                Assert.That(task.IsCompleted, Is.False);
+                Assert.That(shutdownTask.IsCompleted, Is.False);
+                cancellationSource.Cancel();
+            }
 
-            cancellationSource.Cancel();
+            // Ensure the client gets a DispatchException and that shutdown doesn't throw.
             Assert.ThrowsAsync<DispatchException>(async () => await task);
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
-        }
-
-        [Test]
-        [Log(LogAttributeLevel.Debug)]
-        // Like Server_ShutdownCancelAsync, except ShutdownAsync with a canceled token is called by DisposeAsync.
-        public async Task Server_DisposeAsync()
-        {
-            await using var communicator = new Communicator();
-            var semaphore = new SemaphoreSlim(0);
-            var server = new Server
-            {
-                Invoker = communicator,
-                Dispatcher = new InlineDispatcher(async (request, cancel) =>
-                {
-                    Assert.That(cancel.CanBeCanceled, Is.True);
-                    semaphore.Release();
-                    await Task.Delay(-1, cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
-                }),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
-            server.Listen();
-
-            var proxy = server.CreateProxy<IProxyTestPrx>("/");
-
-            Task task = proxy.IcePingAsync();
-            semaphore.Wait();
-            Assert.That(task.IsCompleted, Is.False);
-            ValueTask disposeTask = server.DisposeAsync();
-            Assert.ThrowsAsync<DispatchException>(async () => await task);
-            Assert.DoesNotThrowAsync(async () => await disposeTask);
         }
 
         private class ProxyTest : IProxyTest
