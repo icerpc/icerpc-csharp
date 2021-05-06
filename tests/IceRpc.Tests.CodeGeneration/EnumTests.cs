@@ -132,7 +132,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
-            IEnumOperationsPrx? prx = server.CreateProxy<IEnumOperationsPrx>("/test");
+            IEnumOperationsPrx? prx = IEnumOperationsPrx.FromServer(server, "/test");
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);
         }

@@ -3,11 +3,9 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -76,8 +74,9 @@ namespace IceRpc
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
-        /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
+        /// <summary>Returns the endpoint included in proxies created by
+        /// <see cref="IServicePrx.FromServer(Server, string?)"/>. This endpoint is computed from the values of
+        /// <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
         /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
         public Endpoint? ProxyEndpoint { get; private set; }
 
@@ -159,35 +158,6 @@ namespace IceRpc
                                                 altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
                                                 ProxyOptions);
-        }
-
-        /// <summary>Creates a proxy for a service hosted by this server.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="path">The path of the service.</param>
-        /// <returns>A new proxy with a single endpoint, <see cref="ProxyEndpoint"/>.</returns>
-        public T CreateProxy<T>(string path) where T : class, IServicePrx
-        {
-            if (ProxyEndpoint == null)
-            {
-                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
-            }
-
-            ProxyOptions options = ProxyOptions;
-            options.Invoker ??= Invoker;
-
-            if (ProxyEndpoint.IsDatagram && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
-
-            return Proxy.GetFactory<T>().Create(path,
-                                                ProxyEndpoint.Protocol,
-                                                ProxyEndpoint.Protocol.GetEncoding(),
-                                                ProxyEndpoint,
-                                                altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                connection: null,
-                                                options);
         }
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their

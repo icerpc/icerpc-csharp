@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             router.Map("/compress", new CompressService());
-            ICompressServicePrx prx = server.CreateProxy<ICompressServicePrx>("/compress");
+            ICompressServicePrx prx = ICompressServicePrx.FromServer(server, "/compress");
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
