@@ -522,7 +522,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_FactoryMethods()
         {
-            Assert.AreEqual("/IceRpc.Service", IServicePrx.DefaultPath);
+            Assert.AreEqual("/Ice.Object", IServicePrx.DefaultPath);
             IServicePrx service = IServicePrx.FromPath();
             Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
             Assert.IsNull(service.Endpoint);

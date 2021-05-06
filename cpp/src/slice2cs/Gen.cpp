@@ -2303,7 +2303,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "connection.Protocol,"
          << nl << "IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),"
          << nl << "endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,"
-         << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection,"
          << nl << "options: new());";
     _out.dec();
@@ -2326,7 +2326,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "protocol,"
          << nl << "IceRpc.ProtocolExtensions.GetEncoding(protocol),"
          << nl << "endpoint: null,"
-         << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection: null,"
          << nl << "options: new());";
     _out.dec();
@@ -2365,7 +2365,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "server.Protocol,"
          << nl << "IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),"
          << nl << "endpoint: server.ProxyEndpoint,"
-         << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
+         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection: null,"
          << nl << "options);";
     _out.dec();

@@ -57,7 +57,7 @@ namespace IceRpc
 
         /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicitly specified.
         /// </summary>
-        public const string DefaultPath = "/IceRpc.Service";
+        public const string DefaultPath = "/Ice.Object";
 
         /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IProxyFactory<IServicePrx> Factory = new ServicePrxFactory();
@@ -79,7 +79,7 @@ namespace IceRpc
                 connection.Protocol,
                 connection.Protocol.GetEncoding(),
                 endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,
-                altEndpoints: Array.Empty<Endpoint>(),
+                altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection,
                 options: new ProxyOptions());
 
@@ -94,7 +94,7 @@ namespace IceRpc
                 protocol,
                 protocol.GetEncoding(),
                 endpoint: null,
-                altEndpoints: Array.Empty<Endpoint>(),
+                altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection: null,
                 options: new ProxyOptions());
 
@@ -125,7 +125,7 @@ namespace IceRpc
                 server.Protocol,
                 server.Protocol.GetEncoding(),
                 endpoint: server.ProxyEndpoint,
-                altEndpoints: Array.Empty<Endpoint>(),
+                altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection: null,
                 options);
         }

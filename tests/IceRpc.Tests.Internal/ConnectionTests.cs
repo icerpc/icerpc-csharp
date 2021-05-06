@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -464,7 +463,7 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            await using var communicator = new Communicator{ InvocationMaxAttempts = 1};
+            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
