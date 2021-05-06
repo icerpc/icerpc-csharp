@@ -275,7 +275,17 @@ namespace IceRpc
             }
 
             // Cancel shutdown task if this call is canceled.
-            using CancellationTokenRegistration _ = cancel.Register(() => _shutdownCancelSource!.Cancel());
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+            {
+                try
+                {
+                    _shutdownCancelSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected if server shutdown completed already.
+                }
+            });
 
             // Wait for shutdown to complete.
             await _shutdownTask.ConfigureAwait(false);
