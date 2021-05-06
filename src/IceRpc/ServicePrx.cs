@@ -126,13 +126,7 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <inheritdoc/>
-        public ILocationResolver? LocationResolver { get; set; }
-
-        /// <inheritdoc/>
         public string Path { get; } = "";
-
-        /// <inheritdoc/>
-        public bool PreferExistingConnection { get; set; }
 
         /// <inheritdoc/>
         public Protocol Protocol { get; }
@@ -189,10 +183,6 @@ namespace IceRpc
                 return true;
             }
 
-            if (CacheConnection != other.CacheConnection)
-            {
-                return false;
-            }
             if (Encoding != other.Encoding)
             {
                 return false;
@@ -227,15 +217,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (LocationResolver != other.LocationResolver)
-            {
-                return false;
-            }
             if (Path != other.Path)
-            {
-                return false;
-            }
-            if (PreferExistingConnection != other.PreferExistingConnection)
             {
                 return false;
             }
@@ -397,12 +379,6 @@ namespace IceRpc
                     sb.Append(Path);
                 }
 
-                if (!CacheConnection)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("cache-connection=false");
-                }
-
                 if (Context.Count > 0)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -438,12 +414,6 @@ namespace IceRpc
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("oneway=true");
-                }
-
-                if (!PreferExistingConnection)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("prefer-existing-connection=false");
                 }
 
                 if (_altEndpoints.Count > 0)
@@ -563,13 +533,10 @@ namespace IceRpc
         internal ProxyOptions GetOptions() =>
              new()
              {
-                 CacheConnection = CacheConnection,
                  Context = _context,
                  InvocationTimeout = _invocationTimeout,
                  Invoker = Invoker,
-                 IsOneway = IsOneway,
-                 LocationResolver = LocationResolver,
-                 PreferExistingConnection = PreferExistingConnection
+                 IsOneway = IsOneway
              };
 
         // Helper constructor
@@ -581,15 +548,12 @@ namespace IceRpc
             Connection? connection,
             ProxyOptions options)
         {
-            CacheConnection = options.CacheConnection;
             _connection = connection;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
             _invocationTimeout = options.InvocationTimeout;
             Invoker = options.Invoker!;
             IsOneway = options.IsOneway;
-            LocationResolver = options.LocationResolver;
-            PreferExistingConnection = options.PreferExistingConnection;
             Protocol = protocol;
 
             Endpoint = endpoint; // use the Endpoint set validation

@@ -166,12 +166,9 @@ namespace IceRpc.Internal
 
             proxyOptions = proxyOptions.Clone();
 
-            proxyOptions.CacheConnection = parsedOptions.CacheConnection ?? proxyOptions.CacheConnection;
             proxyOptions.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? proxyOptions.Context;
             proxyOptions.IsOneway = parsedOptions.IsOneway ?? proxyOptions.IsOneway;
             proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
-            proxyOptions.PreferExistingConnection =
-                parsedOptions.PreferExistingConnection ?? proxyOptions.PreferExistingConnection;
 
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
@@ -295,11 +292,6 @@ namespace IceRpc.Internal
                         parsedOptions.Context[contextKey] = contextValue;
                     }
                 }
-                else if (name == "cache-connection")
-                {
-                    CheckProxyOption(name, parsedOptions.CacheConnection != null);
-                    parsedOptions.CacheConnection = bool.Parse(value);
-                }
                 else if (name == "encoding")
                 {
                     CheckProxyOption(name, parsedOptions.Encoding != null);
@@ -318,11 +310,6 @@ namespace IceRpc.Internal
                 {
                     CheckProxyOption(name, parsedOptions.IsOneway != null);
                     parsedOptions.IsOneway = bool.Parse(value);
-                }
-                else if (name == "prefer-existing-connection")
-                {
-                    CheckProxyOption(name, parsedOptions.PreferExistingConnection != null);
-                    parsedOptions.PreferExistingConnection = bool.Parse(value);
                 }
                 else if (iceScheme)
                 {
@@ -373,7 +360,6 @@ namespace IceRpc.Internal
         private struct ParsedOptions
         {
             internal string? AltEndpoint;
-            internal bool? CacheConnection;
 
             internal SortedDictionary<string, string>? Context;
 
@@ -384,7 +370,6 @@ namespace IceRpc.Internal
             internal TimeSpan? InvocationTimeout;
 
             internal bool? IsOneway;
-            internal bool? PreferExistingConnection;
         }
     }
 }

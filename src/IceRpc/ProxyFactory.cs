@@ -297,7 +297,7 @@ namespace IceRpc
                 Connection? connection = null;
                 if (endpoint == null)
                 {
-                    if ((options.LocationResolver != null || istr.Connection == null) && identity is Identity id)
+                    if (istr.Connection == null && identity is Identity id)
                     {
                         endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
                     }

@@ -24,18 +24,9 @@ namespace IceRpc.Tests.ClientServer
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
-
             Assert.AreEqual(Transport.Loc, greeter.Endpoint!.Transport);
+            SetupServer(greeter.Protocol, greeter.Path, greeter.Endpoint.Host, greeter.Endpoint["category"]);
 
-            ILocationResolver locationResolver = SetupServer(greeter.Protocol,
-                                                             greeter.Path,
-                                                             greeter.Endpoint.Host,
-                                                             greeter.Endpoint["category"]);
-
-            Assert.IsNull(greeter.LocationResolver);
-            Assert.ThrowsAsync<NoEndpointException>(async () => await greeter.SayHelloAsync());
-
-            greeter.LocationResolver = locationResolver;
             await greeter.SayHelloAsync();
             Assert.IsNotNull(greeter.Connection);
 
@@ -43,8 +34,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
                 Assert.AreEqual(Transport.Loc, badGreeter.Endpoint!.Transport);
-
-                badGreeter.LocationResolver = locationResolver;
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
             }
         }
@@ -56,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
             await _communicator.ShutdownAsync();
         }
 
-        private ILocationResolver SetupServer(Protocol protocol, string path, string location, string? category)
+        private void SetupServer(Protocol protocol, string path, string location, string? category)
         {
             Assert.IsTrue(protocol == Protocol.Ice1 || category == null);
 
@@ -77,7 +66,8 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.AreNotEqual(0, greeter.Endpoint!.Port);
 
-            return new LocationResolver(protocol, location, category, greeter.Endpoint);
+            // install location resolver interceptor
+            _communicator.Use(next => new LocationResolver(protocol, location, category, greeter.Endpoint, next));
         }
 
         private class GreeterTestService : IGreeterTestService
@@ -92,10 +82,12 @@ namespace IceRpc.Tests.ClientServer
             private readonly string? _category;
             private readonly string _location;
 
+            private readonly ILocationResolver _next;
+
             private readonly Protocol _protocol;
             private readonly Endpoint _resolvedEndpoint;
 
-            public ValueTask<IReadOnlyList<Endpoint>> ResolveAsync(
+            public ValueTask<(Endpoint?, ImmutableList<Endpoint>)> ResolveAsync(
                 Endpoint endpoint,
                 bool refreshCache,
                 CancellationToken cancel)
@@ -104,11 +96,11 @@ namespace IceRpc.Tests.ClientServer
 
                 if (endpoint.Protocol == _protocol && endpoint.Host == _location && endpoint["category"] == _category)
                 {
-                    return new(ImmutableList.Create(_resolvedEndpoint));
+                    return new((_resolvedEndpoint, ImmutableList<Endpoint>.Empty));
                 }
                 else
                 {
-                    return new(ImmutableList<Endpoint>.Empty);
+                    return _next.ResolveAsync(endpoint, refreshCache, cancel);
                 }
             }
 
@@ -116,12 +108,14 @@ namespace IceRpc.Tests.ClientServer
                 Protocol protocol,
                 string location,
                 string? category,
-                Endpoint resolvedEndpoint)
+                Endpoint resolvedEndpoint,
+                ILocationResolver next)
             {
                 _category = category;
                 _location = location;
                 _protocol = protocol;
                 _resolvedEndpoint = resolvedEndpoint;
+                _next = next;
             }
         }
     }

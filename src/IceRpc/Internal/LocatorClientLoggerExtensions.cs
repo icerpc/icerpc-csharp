@@ -3,7 +3,7 @@
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace IceRpc.Internal
 {
@@ -20,16 +20,16 @@ namespace IceRpc.Internal
         private const int Resolved = BaseEventId + 5;
         private const int Resolving = BaseEventId + 6;
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _clearAdapterCacheEntry =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _clearAdapterCacheEntry =
+            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Trace,
                 new EventId(ClearCacheEntry, nameof(ClearCacheEntry)),
-                "removed endpoints for adapter ID {AdapterId}, endpoints = {Endpoints}");
-        private static readonly Action<ILogger, Identity, IReadOnlyList<Endpoint>, Exception> _clearWellKnownCacheEntry =
-            LoggerMessage.Define<Identity, IReadOnlyList<Endpoint>>(
+                "removed endpoints for adapter ID {AdapterId}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
+        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _clearWellKnownCacheEntry =
+            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Trace,
                 new EventId(ClearCacheEntry, nameof(ClearCacheEntry)),
-                "removed endpoints for well-known proxy {Identity}, endpoints = {Endpoints}");
+                "removed endpoints for well-known proxy {Identity}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
 
         private static readonly Action<ILogger, string, Exception> _couldNotResolveAdapterEndpoint =
             LoggerMessage.Define<string>(
@@ -43,17 +43,17 @@ namespace IceRpc.Internal
                 new EventId(CouldNotResolveEndpoint, nameof(CouldNotResolveEndpoint)),
                 "could not resolve endpoint(s) for well-known proxy = {Identity}");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _foundAdapterEntryInCache =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _foundAdapterEntryInCache =
+            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Trace,
                 new EventId(FoundEntryInCache, nameof(FoundEntryInCache)),
-                "found entry for adapter ID {AdapterId} in cache, endpoints = {Endpoints}");
+                "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
 
-        private static readonly Action<ILogger, Identity, IReadOnlyList<Endpoint>, Exception> _foundWellKnownEntryInCache =
-            LoggerMessage.Define<Identity, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _foundWellKnownEntryInCache =
+            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Trace,
                 new EventId(FoundEntryInCache, nameof(FoundEntryInCache)),
-                "found entry for well-known proxy {Identity} in cache, endpoints = {Endpoints}");
+                "found entry for well-known proxy {Identity} in cache, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
 
         private static readonly Action<ILogger, string, ServicePrx, Exception> _receivedInvalidProxyForAdapter =
             LoggerMessage.Define<string, ServicePrx>(
@@ -78,17 +78,17 @@ namespace IceRpc.Internal
                 new EventId(ResolveFailure, nameof(ResolveFailure)),
                 "failure when resolving well-known proxy {Identity}");
 
-        private static readonly Action<ILogger, string, IReadOnlyList<Endpoint>, Exception> _resolvedAdapter =
-            LoggerMessage.Define<string, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _resolvedAdapter =
+            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Debug,
                 new EventId(Resolved, nameof(Resolved)),
-                "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoints = {Endpoints}");
+                "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
 
-        private static readonly Action<ILogger, Identity, IReadOnlyList<Endpoint>, Exception> _resolvedWellKnown =
-            LoggerMessage.Define<Identity, IReadOnlyList<Endpoint>>(
+        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _resolvedWellKnown =
+            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
                 LogLevel.Debug,
                 new EventId(Resolved, nameof(Resolved)),
-                "resolved well-known proxy using locator, well-known proxy = {Identity}, endpoints = {Endpoints}");
+                "resolved well-known proxy using locator, well-known proxy = {Identity}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
 
         private static readonly Action<ILogger, string, Exception> _resolvingAdapter = LoggerMessage.Define<string>(
             LogLevel.Debug,
@@ -105,15 +105,16 @@ namespace IceRpc.Internal
             this ILogger logger,
             string location,
             string? category,
-            IReadOnlyList<Endpoint> endpoints)
+            Endpoint endpoint,
+            ImmutableList<Endpoint> altEndpoints)
         {
             if (category == null)
             {
-                _clearAdapterCacheEntry(logger, location, endpoints, null!);
+                _clearAdapterCacheEntry(logger, location, endpoint, altEndpoints, null!);
             }
             else
             {
-                _clearWellKnownCacheEntry(logger, new Identity(location, category), endpoints, null!);
+                _clearWellKnownCacheEntry(logger, new Identity(location, category), endpoint, altEndpoints, null!);
             }
         }
 
@@ -133,15 +134,16 @@ namespace IceRpc.Internal
             this ILogger logger,
             string location,
             string? category,
-            IReadOnlyList<Endpoint> endpoints)
+            Endpoint endpoint,
+            ImmutableList<Endpoint> altEndpoints)
         {
             if (category == null)
             {
-                _foundAdapterEntryInCache(logger, location, endpoints, null!);
+                _foundAdapterEntryInCache(logger, location, endpoint, altEndpoints, null!);
             }
             else
             {
-                _foundWellKnownEntryInCache(logger, new Identity(location, category), endpoints, null!);
+                _foundWellKnownEntryInCache(logger, new Identity(location, category), endpoint, altEndpoints, null!);
             }
         }
 
@@ -181,15 +183,16 @@ namespace IceRpc.Internal
             this ILogger logger,
             string location,
             string? category,
-            IReadOnlyList<Endpoint> endpoints)
+            Endpoint endpoint,
+            ImmutableList<Endpoint> altEndpoints)
         {
             if (category == null)
             {
-                _resolvedAdapter(logger, location, endpoints, null!);
+                _resolvedAdapter(logger, location, endpoint, altEndpoints, null!);
             }
             else
             {
-                _resolvedWellKnown(logger, new Identity(location, category), endpoints, null!);
+                _resolvedWellKnown(logger, new Identity(location, category), endpoint, altEndpoints, null!);
             }
         }
 

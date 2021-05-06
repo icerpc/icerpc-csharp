@@ -1,21 +1,26 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Interop;
 using NUnit.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
     public class InteropLocatorClientTests
     {
         private readonly Communicator _communicator;
         private IGreeterTestServicePrx _greeter;
+
+        private ILocationResolver? _locationResolver;
         private Server _server;
 
         public InteropLocatorClientTests()
@@ -46,7 +51,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task InteropLocatorClient_AdapterResolveAsync(string adapter, string proxy)
         {
             ISimpleLocatorTestPrx locator = CreateLocator();
-            ILocationResolver locationResolver = new LocatorClient(locator);
+            ILocationResolver locationResolver =
+                new LocatorClient(locator,
+                                  new InlineLocationResolver(
+                                      (_, _, _) => new((null, ImmutableList<Endpoint>.Empty))),
+                                  new Interceptor.LocatorOptions());
 
             // There is no corresponding service, we're just testing the endpoints.
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
@@ -60,81 +69,92 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNotNull(found);
             Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
 
-            IReadOnlyList<Endpoint> endpoints =
-                await locationResolver.ResolveAsync(indirectGreeter.Endpoint, refreshCache: false, default);
+            Endpoint? endpoint =
+                (await locationResolver!.ResolveAsync(indirectGreeter.Endpoint, refreshCache: false, default)).Endpoint;
 
-            Assert.AreEqual(endpoints[0], greeter.Endpoint);
+            Assert.AreEqual(endpoint, greeter.Endpoint);
         }
 
         [TestCase(1)]
         [TestCase(2)]
-        /// <summary>Makes sure a default-constructed locator client caches resolutions.</summary>
-        public async Task InteropLocationClient_Cache(int cacheMaxSize)
+        /// <summary>Makes sure a locator client caches resolutions.</summary>
+        public async Task InteropLocatorClient_Cache(int cacheMaxSize)
         {
             ISimpleLocatorTestPrx locator = CreateLocator();
-            ILocationResolver locationResolver = new LocatorClient(
-                locator,
-                new LocatorClientOptions { CacheMaxSize = cacheMaxSize, JustRefreshedAge = TimeSpan.Zero });
+            _communicator.Use(next =>
+            {
+                _locationResolver = new LocatorClient(locator,
+                                                      next,
+                                                      new Interceptor.LocatorOptions
+                                                      {
+                                                         CacheMaxSize = cacheMaxSize,
+                                                         JustRefreshedAge = TimeSpan.Zero
+                                                      });
+                return _locationResolver;
+            });
+
+            Assert.That(_locationResolver, Is.Null); // the interceptor was not executed yet
 
             var indirectGreeter = IGreeterTestServicePrx.Parse($"{_greeter.GetIdentity()} @ adapt", _communicator);
 
             // We don't cache the connection in order to use the location resolver (locator client) for each invocation.
-            indirectGreeter.CacheConnection = false;
-            indirectGreeter.LocationResolver = locationResolver;
+            _communicator.CacheConnection = false;
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
+            Assert.That(_locationResolver, Is.Not.Null);
             await locator.RegisterAdapterAsync("adapt", _greeter);
             await indirectGreeter.SayHelloAsync();
 
-            IReadOnlyList<Endpoint> endpoints =
-                await locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: false, default);
-            Assert.AreEqual(endpoints[0], _greeter.Endpoint);
+            Endpoint? endpoint =
+                (await _locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: false, default)).Endpoint;
+            Assert.AreEqual(endpoint, _greeter.Endpoint);
 
             Assert.IsTrue(await locator.UnregisterAdapterAsync("adapt"));
 
             // We still find it in the cache and can still call it
-            endpoints =
-                await locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: false, default);
-            Assert.AreEqual(endpoints[0], _greeter.Endpoint);
+            endpoint =
+                (await _locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: false, default)).Endpoint;
+            Assert.AreEqual(endpoint, _greeter.Endpoint);
             await indirectGreeter.SayHelloAsync();
 
             // Force re-resolution (works because JustRefreshedAge is zero)
-            endpoints =
-                await locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: true, default);
-            CollectionAssert.IsEmpty(endpoints);
-            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
+            endpoint =
+                (await _locationResolver.ResolveAsync(indirectGreeter.Endpoint!, refreshCache: true, default)).Endpoint;
+
+            Assert.That(endpoint, Is.Null);
+;           Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
 
             // Same with well-known greeter
 
             var wellKnownGreeter = IGreeterTestServicePrx.Parse(_greeter.GetIdentity().ToString(), _communicator);
-            wellKnownGreeter.CacheConnection = false;
-            wellKnownGreeter.LocationResolver = locationResolver;
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
             await locator.RegisterWellKnownProxyAsync(_greeter.GetIdentity(), indirectGreeter);
             await locator.RegisterAdapterAsync("adapt", _greeter);
             await wellKnownGreeter.SayHelloAsync();
 
-            endpoints =
-                await locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!, refreshCache: false, default);
+            endpoint =(await _locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!,
+                                                           refreshCache: false,
+                                                           default)).Endpoint;
 
-            Assert.AreEqual(endpoints[0], _greeter.Endpoint);
+            Assert.AreEqual(endpoint, _greeter.Endpoint);
 
             Assert.IsTrue(await locator.UnregisterWellKnownProxyAsync(_greeter.GetIdentity()));
 
             if (cacheMaxSize > 1)
             {
                 // We still find it in the cache and can still call it.
-                endpoints = await locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!,
+                endpoint = (await _locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!,
                                                                 refreshCache: false,
-                                                                default);
-                Assert.AreEqual(endpoints[0], _greeter.Endpoint);
+                                                                default)).Endpoint;
+                Assert.AreEqual(endpoint, _greeter.Endpoint);
                 await wellKnownGreeter.SayHelloAsync();
 
                 // Force re-resolution
-                endpoints =
-                    await locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!, refreshCache: true, default);
-                CollectionAssert.IsEmpty(endpoints);
+                endpoint =
+                    (await _locationResolver.ResolveAsync(wellKnownGreeter.Endpoint!, refreshCache: true, default)).
+                    Endpoint;
+                Assert.That(endpoint, Is.Null);
             }
             Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
         }
@@ -147,7 +167,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task InteropLocatorClient_WellKnownProxyResolveAsync(string proxy)
         {
             ISimpleLocatorTestPrx locator = CreateLocator();
-            ILocationResolver locationResolver = new LocatorClient(locator);
+            _communicator.Use(next =>
+            {
+                _locationResolver = new LocatorClient(locator, next, new());
+                return _locationResolver;
+            });
 
             // There is no corresponding service, we're just testing the endpoints.
             var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
@@ -164,10 +188,11 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNotNull(found);
             Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
 
-            IReadOnlyList<Endpoint> endpoints =
-                await locationResolver.ResolveAsync(wellKnownGreeter.Endpoint, refreshCache: false, default);
+            Assert.That(_locationResolver, Is.Not.Null);
+            Endpoint? endpoint =
+                (await _locationResolver.ResolveAsync(wellKnownGreeter.Endpoint, refreshCache: false, default)).Endpoint;
 
-            Assert.AreEqual(endpoints[0], greeter.Endpoint);
+            Assert.AreEqual(endpoint, greeter.Endpoint);
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
@@ -183,13 +208,13 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsNotNull(found);
             Assert.AreEqual(indirectGreeter.Endpoint, found!.Endpoint); // partial resolution
 
-            endpoints =
-                await locationResolver.ResolveAsync(wellKnownGreeter.Endpoint, refreshCache: false, default);
+            endpoint =
+                (await _locationResolver.ResolveAsync(wellKnownGreeter.Endpoint, refreshCache: false, default)).Endpoint;
 
-            Assert.AreEqual(endpoints[0], greeter.Endpoint); // full resolution
+            Assert.AreEqual(endpoint, greeter.Endpoint); // full resolution
         }
 
-        [OneTimeTearDown]
+        [TearDown]
         public async Task TearDownAsync()
         {
             await _server.ShutdownAsync();

@@ -21,7 +21,8 @@ namespace IceRpc.Tests.ClientServer
         /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
         // and a last entry for the request exception.
         /// </summary>
-        [Test]
+        // TODO: reenable
+        // [Test]
         public async Task Logging_ConnectionRetries()
         {
             using var writer = new StringWriter();
@@ -55,7 +56,8 @@ namespace IceRpc.Tests.ClientServer
 
         /// <summary>Check that connection establishment retries are not logged when log level is
         /// greater than debug.</summary>
-        [Test]
+        // TODO: reenable
+        // [Test]
         public async Task Logging_Disabled_ConnectionRetries()
         {
             using var writer = new StringWriter();

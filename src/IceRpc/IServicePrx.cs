@@ -80,11 +80,6 @@ namespace IceRpc
         /// <value>The secondary endpoints of this proxy.</value>
         public ImmutableList<Endpoint> AltEndpoints { get; set; }
 
-        /// <summary>Indicates whether or not this proxy caches its connection. Setting this value does not clear
-        /// <see cref="Connection"/></summary>
-        /// <value>True when the proxy caches its connection; otherwise, false.</value>
-        public bool CacheConnection { get; set; }
-
         /// <summary>Gets or sets the connection of this proxy. Setting the connection does not affect the proxy
         /// endpoints (if any); in particular, set does check the new connection is compatible with these endpoints.
         /// </summary>
@@ -115,17 +110,8 @@ namespace IceRpc
         /// is overridden by metadata on the Slice operation's definition.</value>
         public bool IsOneway { get; set; }
 
-        /// <summary>The location resolver associated with this proxy.</summary>
-        public ILocationResolver? LocationResolver { get; set; }
-
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         public string Path { get; }
-
-        /// <summary>Indicates whether or not this proxy prefers using an existing connection over creating a new one.
-        /// When <c>true</c> the proxy will prefer reusing an active connection to any of its endpoints, otherwise
-        /// endpoints are checked in order trying to get an active connection to the first endpoint, and if one doesn't
-        /// exists creating a new one to the first endpoint.</summary>
-        public bool PreferExistingConnection { get; set; }
 
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }

@@ -15,7 +15,6 @@ namespace IceRpc
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
-        public ImmutableList<Endpoint> AltEndpoints { get; set; }
         public Connection? Connection { get; set; }
 
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
@@ -28,8 +27,6 @@ namespace IceRpc
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; }
 
-        public Endpoint? Endpoint { get; set; }
-
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -40,6 +37,7 @@ namespace IceRpc
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
         public bool IsOneway { get; set; }
+        public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; set; }
@@ -51,7 +49,7 @@ namespace IceRpc
         public override Encoding PayloadEncoding { get; }
 
         /// <summary>The progress provider.</summary>
-        public IProgress<bool>? Progress { get; }
+        public IProgress<bool>? Progress { get; set; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
@@ -332,9 +330,7 @@ namespace IceRpc
             FeatureCollection? features)
             : base(proxy.Protocol, features)
         {
-            AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
             if (Protocol == Protocol.Ice1)
