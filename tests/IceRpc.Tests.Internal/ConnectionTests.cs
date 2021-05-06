@@ -517,12 +517,9 @@ namespace IceRpc.Tests.Internal
 
                 await shutdownTask;
 
-                // Next invocation on the connection should throw the ConnectionClosedException
-                ConnectionClosedException? ex =
-                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
-                Assert.That(ex, Is.Not.Null);
-                Assert.That(ex!.Message, Is.EqualTo("client message"));
-                Assert.That(ex.IsClosedByPeer, Is.False);
+                // Next invocation on the connection should throw the ConnectionRefusedException
+                ConnectionRefusedException? ex =
+                    Assert.ThrowsAsync<ConnectionRefusedException>(async () => await pingTask);
                 Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
             }
             else
@@ -537,15 +534,13 @@ namespace IceRpc.Tests.Internal
                 Assert.DoesNotThrowAsync(async () => await pingTask);
 
                 // Next invocation on the connection should throw the ConnectionClosedException
-                ConnectionClosedException? ex =
-                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await proxy.IcePingAsync());
+                ConnectionRefusedException? ex =
+                    Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 Assert.That(ex, Is.Not.Null);
 
                 // TODO: after connetion refactoring, should a non-resumable connection remember if
                 // it was closed by the peer and the closure reason? The server message isn't very
                 // useful right now except for tracing.
-                Assert.That(ex!.Message, Is.EqualTo("cannot access closed connection"));
-                Assert.That(ex.IsClosedByPeer, Is.False);
                 Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
             }
         }
