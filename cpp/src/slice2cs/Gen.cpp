@@ -2655,38 +2655,41 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "current request.</param>";
                 if (returns.size() == 1)
                 {
-                    _out << nl << "/// <param name=\"returnValue\">The return value to write into the new frame.</param>";
+                    _out << nl << "/// <param name=\"returnValue\">The return value to write into the new response payload.</param>";
                 }
                 else
                 {
-                    _out << nl << "/// <param name=\"returnValues\">The return values to write into the new frame.</param>";
+                    _out << nl << "/// <param name=\"returnValueTuple\">The return values to write into the new response payload.</param>";
                 }
                 _out << nl << "/// <returns>A new response payload.</returns>";
-                _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "<< fixId(operationName(operation))
-                    << "(IceRpc.Dispatch dispatch, ";
+                _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "
+                     << fixId(operationName(operation))
+                     << "(";
+                _out.inc();
+                _out << nl << "IceRpc.Dispatch dispatch,";
 
                 if (returns.size() == 1)
                 {
-                    _out << toTupleType(returns, true) << " returnValue) =>";
+                    _out << nl << toTupleType(returns, true) << " returnValue) =>";
                 }
                 else
                 {
-                    _out << "in " << toTupleType(returns, true) << " returnValues) =>";
+                    _out << nl << "in " << toTupleType(returns, true) << " returnValueTuple) =>";
                 }
 
                 _out.inc();
                 if (returns.size() == 1)
                 {
-                    _out << nl << "IceRpc.Payload.FromSingleResponseArg(";
+                    _out << nl << "IceRpc.Payload.FromSingleReturnValue(";
                 }
                 else
                 {
-                    _out << nl << "IceRpc.Payload.FromResponseArgs(";
+                    _out << nl << "IceRpc.Payload.FromReturnValueTuple(";
                 }
 
                 _out.inc();
                 _out << nl << "dispatch,";
-                _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValues,");
+                _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValueTuple,");
                 _out << nl;
                 writeOutgoingResponseWriter(operation);
                 string classFormat = opFormatTypeToString(operation);
@@ -2695,6 +2698,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << "," << nl << classFormat;
                 }
                 _out << ");";
+                _out.dec();
                 _out.dec();
                 _out.dec();
             }
@@ -2727,22 +2731,24 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     _out << sp;
     _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> IceRpc.IService"
-         << ".DispatchAsync("
-         << "global::System.ReadOnlyMemory<byte> payload, "
-         << "IceRpc.Dispatch dispatch, "
-         << "global::System.Threading.CancellationToken cancel) =>";
+         << ".DispatchAsync(";
     _out.inc();
-    _out << nl << "DispatchAsync(this, payload, dispatch, cancel);";
+     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
+          << nl << "IceRpc.Dispatch dispatch,"
+          << nl << "global::System.Threading.CancellationToken cancel) => "
+          << "DispatchAsync(this, payload, dispatch, cancel);";
     _out.dec();
 
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
     _out << nl << "protected static global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> "
-         << "DispatchAsync(" << fixId(name) << " servant, "
-         << "global::System.ReadOnlyMemory<byte> payload, "
-         << "IceRpc.Dispatch dispatch, "
-         << "global::System.Threading.CancellationToken cancel) =>";
+         << "DispatchAsync(";
+    _out.inc();
+    _out << nl <<  fixId(name) << " servant,"
+         << nl << "global::System.ReadOnlyMemory<byte> payload,"
+         << nl << "IceRpc.Dispatch dispatch,"
+         << nl << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
     _out << nl << "dispatch.Operation switch";
     _out << sb;
@@ -2764,6 +2770,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
 
     _out << eb << ";"; // switch expression
+    _out.dec(); // params
     _out.dec(); // method
     return true;
 }
@@ -2803,11 +2810,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "Payload = ";
         if (returnType.size() == 1)
         {
-            _out << "IceRpc.Payload.FromSingleResponseArg(";
+            _out << "IceRpc.Payload.FromSingleReturnValue(";
         }
         else
         {
-            _out << "IceRpc.Payload.FromResponseArgs(";
+            _out << "IceRpc.Payload.FromReturnValueTuple(";
         }
         _out.inc();
         _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
@@ -2817,7 +2824,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         string classFormat = opFormatTypeToString(operation);
         if (classFormat != "default")
         {
-            _out << "," << nl << "format: " << opFormatTypeToString(operation);
+            _out << "," << nl << "classFormat: " << opFormatTypeToString(operation);
         }
         _out << ");";
         _out.dec();
@@ -2880,7 +2887,12 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "protected ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>>";
-    _out << " " << internalName << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch, global::System.Threading.CancellationToken cancel)";
+    _out << " " << internalName << "(";
+    _out.inc();
+    _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
+         << nl << "IceRpc.Dispatch dispatch,"
+         << nl << "global::System.Threading.CancellationToken cancel)";
+    _out.dec();
     _out << sb;
 
     if (!isIdempotent(operation))
@@ -2953,7 +2965,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
         if (returnType.size() == 0)
         {
-            _out << nl << "return IceRpc.Payload.FromVoidResponse(dispatch);";
+            _out << nl << "return IceRpc.Payload.FromVoidReturnValue(dispatch);";
         }
         else
         {

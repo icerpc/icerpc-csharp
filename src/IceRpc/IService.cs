@@ -24,41 +24,40 @@ namespace IceRpc
         public static class Request
         {
             /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
-            /// <summary>Decodes the ice_id operation parameters from an <see cref="IncomingRequest"/>.</summary>
             /// <param name="payload">The request payload.</param>
             /// <param name="connection">The connection that received this request.</param>
             /// <returns>The return value decoded from the frame.</returns>
             public static string IceIsA(ReadOnlyMemory<byte> payload, Connection connection) =>
-                Payload.ToArgs(payload, InputStream.IceReaderIntoString, connection);
+                payload.ToArgs(InputStream.IceReaderIntoString, connection);
         }
 
         /// <summary>Provides a response payload factory method for each non-void remote operation
-        /// defined in the pseudo-interface Object.</summary>
+        /// defined in the pseudo-interface Service.</summary>
         public static class Response
         {
-            /// <summary>Creates an response payload for operation ice_id.</summary>
-            /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
-            /// <param name="returnValue">The return value to write into the new frame.</param>
+            /// <summary>Creates a response payload for operation ice_id.</summary>
+            /// <param name="dispatch">The dispatch properties.</param>
+            /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static IList<ArraySegment<byte>> IceId(Dispatch dispatch, string returnValue) =>
-                Payload.FromSingleResponseArg(dispatch, returnValue, OutputStream.IceWriterFromString);
+                Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromString);
 
-            /// <summary>Creates an response payload for operation ice_ids.</summary>
-            /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
-            /// <param name="returnValue">The return value to write into the new frame.</param>
+            /// <summary>Creates a response payload for operation ice_ids.</summary>
+            /// <param name="dispatch">The dispatch properties.</param>
+            /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static IList<ArraySegment<byte>> IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
-                Payload.FromSingleResponseArg(
+                Payload.FromSingleReturnValue(
                     dispatch,
                     returnValue,
                     (ostr, returnValue) => ostr.WriteSequence(returnValue, OutputStream.IceWriterFromString));
 
-            /// <summary>Creates an response payload for operation ice_isA.</summary>
-            /// <param name="dispatch">Holds decoded header data and other information about the current request.</param>
-            /// <param name="returnValue">The return value to write into the new frame.</param>
+            /// <summary>Creates a response payload for operation ice_isA.</summary>
+            /// <param name="dispatch">The dispatch properties.</param>
+            /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static IList<ArraySegment<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
-                Payload.FromSingleResponseArg(dispatch, returnValue, OutputStream.IceWriterFromBool);
+                Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
 
         /// <summary>Dispatches an incoming request payload and returns the corresponding response payload.</summary>
@@ -177,7 +176,7 @@ namespace IceRpc
         {
             payload.ReadEmptyEncapsulation(dispatch.Protocol.GetEncoding());
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
-            return Payload.FromVoidResponse(dispatch);
+            return Payload.FromVoidReturnValue(dispatch);
         }
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)

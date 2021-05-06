@@ -362,7 +362,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<IList<ArraySegment<byte>>> DispatchAsync(ReadOnlyMemory<byte> payload,
                                                         Dispatch dispatch,
                                                         CancellationToken cancel) =>
-                new(IceRpc.Payload.FromSingleResponseArg(dispatch,
+                new(IceRpc.Payload.FromSingleReturnValue(dispatch,
                                                          new MyClassAlsoEmpty(),
                                                          (ostr, ae) => ostr.WriteClass(ae, null)));
         }

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -170,13 +169,13 @@ namespace IceRpc
                     ostr.Finish();
                     return response;
                 }
-                */
+        */
 
-        /// <summary>Constructs an outgoing response from the given incoming response with a void payload.
-        /// The new response will use the protocol and encoding of <paramref name="dispatch"/>.</summary>
+        /// <summary>Constructs an outgoing response with a void payload. The new response will use the protocol and
+        /// encoding of <paramref name="dispatch"/>.</summary>
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         public OutgoingResponse(Dispatch dispatch)
-        : this(dispatch.IncomingRequest, dispatch.ResponseFeatures)
+            : this(dispatch.IncomingRequest, dispatch.ResponseFeatures)
         {
         }
 
@@ -185,10 +184,10 @@ namespace IceRpc
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
-        : this(request.Protocol,
-               request.PayloadEncoding,
-               IceRpc.Payload.FromVoidResponse(request),
-               features ?? new FeatureCollection())
+            : this(request.Protocol,
+                   request.PayloadEncoding,
+                   IceRpc.Payload.FromVoidReturnValue(request),
+                   features)
         {
         }
 
@@ -198,17 +197,7 @@ namespace IceRpc
         /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
-        : this(dispatch.IncomingRequest, payload, dispatch.ResponseFeatures)
-        {
-        }
-
-        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="request"/>.</summary>
-        /// <param name="request">The request on which this constructor creates a response.</param>
-        /// <param name="payload">The payload of this response.</param>
-        /// <param name="features">The features of this response.</param>
-        public OutgoingResponse(IncomingRequest request, IList<ArraySegment<byte>> payload, FeatureCollection? features = null)
-        : this(request.Protocol, request.PayloadEncoding, payload, features ?? new FeatureCollection())
+            : this(dispatch.Protocol, dispatch.Encoding, payload, dispatch.ResponseFeatures)
         {
         }
 
@@ -245,7 +234,7 @@ namespace IceRpc
             : this(request.Protocol,
                    request.PayloadEncoding,
                    new List<ArraySegment<byte>>(),
-                   features ?? new FeatureCollection())
+                   features)
         {
             if (Protocol == response.Protocol)
             {
@@ -370,7 +359,7 @@ namespace IceRpc
             : this(request.Protocol,
                    request.PayloadEncoding,
                    IceRpc.Payload.FromRemoteException(request, exception),
-                   features ?? new FeatureCollection())
+                   features)
         {
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
@@ -413,7 +402,7 @@ namespace IceRpc
         private OutgoingResponse(Protocol protocol,
                                  Encoding encoding,
                                  IList<ArraySegment<byte>> payload,
-                                 FeatureCollection features)
+                                 FeatureCollection? features)
             : base(protocol, features)
         {
             PayloadEncoding = encoding;

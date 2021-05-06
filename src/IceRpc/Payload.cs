@@ -14,7 +14,7 @@ namespace IceRpc
 
         // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
         // and the first segment has always at least 2 bytes.
-        private static readonly OutputStream.Position _encapsulationStart = new(0, 1);
+        private static readonly OutputStream.Position _responseEncapsulationStart = new(0, 1);
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
@@ -185,18 +185,18 @@ namespace IceRpc
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and response argument.
-        /// Use this method when the operation takes a single parameter.</summary>
+        /// Use this method when the operation returns a single value.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch for the request.</param>
-        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="returnValue">The return value to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
 
-        public static IList<ArraySegment<byte>> FromSingleResponseArg<T>(
+        public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
-            T arg,
+            T returnValue,
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
@@ -209,26 +209,26 @@ namespace IceRpc
 
             var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
                                         payload,
-                                        _encapsulationStart,
+                                        _responseEncapsulationStart,
                                         dispatch.Encoding,
                                         classFormat);
-            writer(ostr, arg);
+            writer(ostr, returnValue);
             ostr.Finish();
             return payload;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and response arguments.
-        /// Use this method when the operation takes multiple parameters.</summary>
+        /// Use this method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch for the request.</param>
-        /// <param name="args">The arguments to write into the payload.</param>
+        /// <param name="returnValueTuple">The return values to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromResponseArgs<T>(
+        public static IList<ArraySegment<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
-            in T args,
+            in T returnValueTuple,
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
@@ -241,10 +241,10 @@ namespace IceRpc
 
             var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
                                         payload,
-                                        _encapsulationStart,
+                                        _responseEncapsulationStart,
                                         dispatch.Encoding,
                                         classFormat);
-            writer(ostr, in args);
+            writer(ostr, in returnValueTuple);
             ostr.Finish();
             return payload;
         }
@@ -280,7 +280,7 @@ namespace IceRpc
 
                 ostr = new OutputStream(request.Protocol.GetEncoding(),
                                         payload,
-                                        _encapsulationStart,
+                                        _responseEncapsulationStart,
                                         request.PayloadEncoding,
                                         FormatType.Sliced);
 
@@ -347,21 +347,21 @@ namespace IceRpc
         /// <summary>Creates a payload representing a void return value.</summary>
         /// <param name="dispatch">The request's dispatch object. Used for the protocol and encoding.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidResponse(Dispatch dispatch) =>
-            FromVoidResponse(dispatch.IncomingRequest);
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(Dispatch dispatch) =>
+            FromVoidReturnValue(dispatch.IncomingRequest);
 
         /// <summary>Creates a payload representing a void return value.</summary>
         /// <param name="request">The request. Used for the protocol and encoding.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidResponse(IncomingRequest request) =>
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
             new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
-        /// <summary>Reads a request payload and converts it into a return value.</summary>
+        /// <summary>Reads a request payload and converts it into the request arguments.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="reader">An input stream reader used to read the return value.</param>
+        /// <param name="reader">An input stream reader used to read the arguments.</param>
         /// <param name="connection">The connection the payload was received on.</param>
-        /// <typeparam name="T">The type of the return value</typeparam>
-        /// <returns>The return value</returns>
+        /// <paramtype name="T">The type of the arguments.</paramtype>
+        /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             InputStreamReader<T> reader,
@@ -380,10 +380,12 @@ namespace IceRpc
 
         /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
         /// unknown tagged arguments.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="connection">The connection the payload was received on.</param>
         public static void ToVoidArg(
             this ReadOnlyMemory<byte> payload,
-            Connection connction) =>
-            payload.ReadEmptyEncapsulation(connction.Protocol.GetEncoding());
+            Connection connection) =>
+            payload.ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
 
     }
 }
