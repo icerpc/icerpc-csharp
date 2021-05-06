@@ -2285,13 +2285,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "/// <summary>Creates an <see cref=\"" << name
          << "\"/> proxy from the given connection and path.</summary>";
-    _out << nl << "/// <param name=\"connection\">The connection for the proxy, if connection is an outgoing "
-         << "connection the";
-    _out << nl << "/// <see cref=\"IceRpc.Connection.RemoteEndpoint\"/> would be used as the <see cref=\"Endpoint\"/> for "
+    _out << nl << "/// <param name=\"connection\">The connection for the proxy. If the connection is an outgoing "
+         << "connection,";
+    _out << nl << "/// <see cref=\"IceRpc.Connection.RemoteEndpoint\"/> is used as the <see cref=\"Endpoint\"/> for "
          << "the proxy,";
-    _out << nl << "/// otherwise an endpointless proxy would be created.</param>";
+    _out << nl << "/// otherwise an endpointless proxy is created.</param>";
     _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "would be used.";
+         << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static new "
@@ -2305,7 +2305,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,"
          << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
          << nl << "connection,"
-         << nl << "options: new IceRpc.ProxyOptions());";
+         << nl << "options: new());";
     _out.dec();
     _out.dec();
 
@@ -2313,7 +2313,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Creates an <see cref=\"" << name
          << "\"/> endpointless proxy with the given path and protocol.</summary>";
     _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "would be used.";
+         << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
@@ -2328,18 +2328,18 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: null,"
          << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
          << nl << "connection: null,"
-         << nl << "options: new IceRpc.ProxyOptions());";
+         << nl << "options: new());";
     _out.dec();
     _out.dec();
 
     _out << sp;
     _out << nl << "/// <summary>Creates an <see cref=\"" << name
          << "\"/> proxy from the given server and path.</summary>";
-    _out << nl << "/// <param name=\"server\">The created proxy would use the <see cref=\"Server.ProxyEndpoint\"/> "
+    _out << nl << "/// <param name=\"server\">The created proxy uses the <see cref=\"Server.ProxyEndpoint\"/> "
          << "as its";
     _out << nl << "/// <see cref=\"Endpoint\"/>.</param>";
     _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "would be used.";
+         << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static new "
@@ -2353,7 +2353,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: server.ProxyEndpoint,"
          << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
          << nl << "connection: null,"
-         << nl << "options: new IceRpc.ProxyOptions());";
+         << nl << "options: new());";
     _out.dec();
     _out.dec();
 

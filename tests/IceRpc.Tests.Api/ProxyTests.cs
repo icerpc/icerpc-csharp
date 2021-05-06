@@ -568,11 +568,7 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(greeter.Connection);
             Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
 
-            connection = new Connection
-            {
-                RemoteEndpoint = "ice+tcp://localhost:10000",
-                Server = server,
-            };
+            connection = new Connection { LocalEndpoint = "ice+tcp://localhost:10000" };
 
             service = IServicePrx.FromConnection(connection);
             Assert.AreEqual(IServicePrx.DefaultPath, service.Path);

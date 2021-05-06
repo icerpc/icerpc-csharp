@@ -67,10 +67,10 @@ namespace IceRpc
         public static readonly InputStreamReader<IServicePrx> IceReader = istr => Factory.Read(istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
-        /// <param name="connection">The connection for the proxy, if connection is an outgoing connection the
-        /// <see cref="Connection.RemoteEndpoint"/> would be used as the <see cref="Endpoint"/> for the proxy,
-        /// otherwise an endpointless proxy would be created.</param>
-        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// <param name="connection">The connection for the proxy. If the connection is an outgoing connection,
+        /// <see cref="Connection.RemoteEndpoint"/> is used as the <see cref="Endpoint"/> for the proxy,
+        /// otherwise an endpointless proxy is created.</param>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
@@ -84,7 +84,7 @@ namespace IceRpc
                 options: new ProxyOptions());
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
-        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
         /// </param>
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>
@@ -99,9 +99,9 @@ namespace IceRpc
                 options: new ProxyOptions());
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
-        /// <param name="server">The created proxy would use the <see cref="Server.ProxyEndpoint"/> as its
+        /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
         /// <see cref="Endpoint"/>.</param>
-        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> would be used.
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromServer(Server server, string? path = null) =>
