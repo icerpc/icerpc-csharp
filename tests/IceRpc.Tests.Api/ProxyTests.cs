@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            IGreeterServicePrx? prx = server.CreateProxy<IGreeterServicePrx>("/test");
+            IGreeterServicePrx? prx = IGreeterServicePrx.FromServer(server, "/test");
 
             await prx.IcePingAsync();
 
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            prx = server.CreateProxy<IGreeterServicePrx>("/");
+            prx = IGreeterServicePrx.FromServer(server, "/");
             var connection = await prx.GetConnectionAsync();
 
             prx = IGreeterServicePrx.Parse(s, communicator);
@@ -413,7 +413,7 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            IGreeterServicePrx prx = server.CreateProxy<IGreeterServicePrx>("/");
+            var prx = IGreeterServicePrx.FromServer(server, "/");
 
             (ReadOnlyMemory<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
                 "SayHello",

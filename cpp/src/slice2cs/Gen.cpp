@@ -2268,7 +2268,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     //
     _out << sp;
     _out << nl << "/// <summary>The path for proxies of <see cref=\"" << name
-         << "\"/> type when the path is not explicit specified.</summary>";
+         << "\"/> type when the path is not explicitly specified.</summary>";
     _out << nl << "public new const string DefaultPath = \"" << defaultPath(p->scoped()) << "\";";
 
     _out << sp;
@@ -2342,10 +2342,24 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
-    _out << nl << "public static new "
-         << name << " FromServer(IceRpc.Server server, string? path = null) =>";
-    _out.inc();
-    _out << nl << "Factory.Create(";
+    _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null)";
+    _out << sb;
+    _out << nl << "if (server.ProxyEndpoint == null)";
+    _out << sb;
+    _out << nl << "throw new global::System.InvalidOperationException("
+         << "\"cannot create a proxy using a server with no endpoint\");";
+    _out << eb;
+
+    _out << nl << "IceRpc.ProxyOptions options = server.ProxyOptions;";
+    _out << nl << "options.Invoker ??= server.Invoker;";
+
+    _out << nl << "if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)";
+    _out << sb;
+    _out << nl << "options = options.Clone();";
+    _out << nl << "options.IsOneway = true;";
+    _out << eb;
+
+    _out << nl << "return Factory.Create(";
     _out.inc();
     _out << nl << "path ?? DefaultPath,"
          << nl << "server.Protocol,"
@@ -2353,9 +2367,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: server.ProxyEndpoint,"
          << nl << "altEndpoints: global::System.Array.Empty<IceRpc.Endpoint>(),"
          << nl << "connection: null,"
-         << nl << "options: new());";
+         << nl << "options);";
     _out.dec();
-    _out.dec();
+    _out << eb;
 
     _out << sp;
     _out << nl << "// <summary>An <see cref=\"InputStreamReader{T}\"/> used to read <see cref=\"" << name

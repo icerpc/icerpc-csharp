@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = server.CreateProxy<IMiddlewareTestServicePrx>("/test");
+            var prx = IMiddlewareTestServicePrx.FromServer(server, "/test");
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Api
             router.Map("/test", new TestService());
             server.Dispatcher = router;
             server.Listen();
-            var prx = server.CreateProxy<IServicePrx>("/test");
+            var prx = IServicePrx.FromServer(server, "/test");
             await prx.IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", interceptorCalls[0]);

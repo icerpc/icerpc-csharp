@@ -55,7 +55,7 @@ namespace IceRpc
                 payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
         }
 
-        /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicit specified.
+        /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicitly specified.
         /// </summary>
         public const string DefaultPath = "/IceRpc.Service";
 
@@ -104,15 +104,31 @@ namespace IceRpc
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
         /// </param>
         /// <returns>The new proxy.</returns>
-        public static IServicePrx FromServer(Server server, string? path = null) =>
-            Factory.Create(
+        public static IServicePrx FromServer(Server server, string? path = null)
+        {
+            if (server.ProxyEndpoint == null)
+            {
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
+            }
+
+            ProxyOptions options = server.ProxyOptions;
+            options.Invoker ??= server.Invoker;
+
+            if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)
+            {
+                options = options.Clone();
+                options.IsOneway = true;
+            }
+
+            return Factory.Create(
                 path ?? DefaultPath,
                 server.Protocol,
                 server.Protocol.GetEncoding(),
                 endpoint: server.ProxyEndpoint,
                 altEndpoints: Array.Empty<Endpoint>(),
                 connection: null,
-                options: new ProxyOptions());
+                options);
+        }
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

@@ -111,18 +111,18 @@ public class Client : TestHelper
 
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = server.CreateProxy<IdecimalPrx>("/test");
+        IdecimalPrx p = IdecimalPrx.FromServer(server, "/test");
         await p.defaultAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            server.CreateProxy<IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx>("/test1");
+            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.FromServer(server, "/test1");
         await t1.opAsync();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            server.CreateProxy<IceRpc.Slice.Test.Escape.System.ITestPrx>("/test2");
+            IceRpc.Slice.Test.Escape.System.ITestPrx.FromServer(server, "/test2");
         await t2.opAsync();
         Output.WriteLine("ok");
 
