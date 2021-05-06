@@ -569,7 +569,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
 
             connection = new Connection
-            { 
+            {
                 RemoteEndpoint = "ice+tcp://localhost:10000",
                 Server = server,
             };
