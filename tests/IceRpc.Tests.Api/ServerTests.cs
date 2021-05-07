@@ -29,9 +29,9 @@ namespace IceRpc.Tests.Api
                 // ProxyHost can't be empty
                 Assert.Throws<ArgumentException>(() => server.ProxyHost = "");
 
-                Assert.DoesNotThrow(() => server.CreateProxy<IServicePrx>("/foo"));
+                Assert.DoesNotThrow(() => IServicePrx.FromServer(server, "/foo"));
                 server.Endpoint = null;
-                Assert.Throws<InvalidOperationException>(() => server.CreateProxy<IServicePrx>("/foo"));
+                Assert.Throws<InvalidOperationException>(() => IServicePrx.FromServer(server, "/foo"));
             }
 
             {
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.Api
                     Dispatcher = new ProxyTest(),
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
-                var proxy = server.CreateProxy<IProxyTestPrx>("/foo");
+                var proxy = IProxyTestPrx.FromServer(server, "/foo");
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -218,7 +218,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
-            IProxyTestPrx? proxy = server.CreateProxy<IProxyTestPrx>("/foo/bar");
+            IProxyTestPrx? proxy = IProxyTestPrx.FromServer(server, "/foo/bar");
             CheckProxy(proxy);
 
             // change some properties
@@ -257,7 +257,6 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {
@@ -287,14 +286,14 @@ namespace IceRpc.Tests.Api
                         }
                         Assert.Fail();
                     }
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             server.Listen();
 
-            var proxy = server.CreateProxy<IProxyTestPrx>("/");
+            var proxy = IProxyTestPrx.FromServer(server, "/");
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -330,14 +329,14 @@ namespace IceRpc.Tests.Api
                     Assert.That(cancel.CanBeCanceled, Is.True);
                     semaphore.Release();
                     await Task.Delay(-1, cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             server.Listen();
 
-            var proxy = server.CreateProxy<IProxyTestPrx>("/");
+            var proxy = IProxyTestPrx.FromServer(server, "/");
 
             Task task = proxy.IcePingAsync();
             semaphore.Wait(); // Wait for the dispatch

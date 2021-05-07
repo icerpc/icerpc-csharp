@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using IceRpc.Internal;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,22 +97,6 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            // TODO: fix once we have FromConnection factory method
-            public IServicePrx CreateProxy(Connection connection) =>
-                IServicePrx.Factory.Create(
-                    "/foo",
-                    Endpoint.Protocol,
-                    Endpoint.Protocol.GetEncoding(),
-                    endpoint: null,
-                    altEndpoints: ImmutableList<Endpoint>.Empty,
-                    connection,
-                    new ProxyOptions
-                    {
-                        // TODO: temporary, remove once the proxy no longer depends on the communicator for sending
-                        // invocations.
-                        Invoker = new Communicator { InvocationMaxAttempts = 1 }
-                    });
-
             public async ValueTask DisposeAsync()
             {
                 if (_cachedClientConnection != null)
@@ -192,11 +175,13 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
-            IServicePrx proxy = factory.CreateProxy(factory.Client);
+            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            var proxy = IServicePrx.FromConnection(factory.Client);
+            proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
 
             if (closeClientSide)
@@ -474,11 +459,13 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
-            IServicePrx proxy = factory.CreateProxy(factory.Client);
+            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            var proxy = IServicePrx.FromConnection(factory.Client);
+            proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
 
             // Make sure we receive few pings while the invocation is pending.
@@ -508,11 +495,14 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
-            IServicePrx proxy = factory.CreateProxy(factory.Client);
+            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            var proxy = IServicePrx.FromConnection(factory.Client);
+            proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
+            proxy.Endpoint = null; // Clear the endpoint to ensure the invocations only use the given connection
             Task pingTask = proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
@@ -581,11 +571,13 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.WithVoidReturnValue(request);
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
-            IServicePrx proxy = factory.CreateProxy(factory.Client);
+            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            var proxy = IServicePrx.FromConnection(factory.Client);
+            proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 

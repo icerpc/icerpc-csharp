@@ -105,7 +105,7 @@ namespace IceRpc
         public bool IsDatagram => (_localEndpoint ?? _remoteEndpoint)?.IsDatagram ?? false;
 
         /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
-        public bool IsIncoming => Server != null;
+        public bool IsIncoming => _localEndpoint != null;
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
@@ -113,7 +113,11 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public Endpoint? LocalEndpoint => IsIncoming ? _localEndpoint : _socket?.LocalEndpoint;
+        public Endpoint? LocalEndpoint
+        {
+            get => _localEndpoint ?? _socket?.LocalEndpoint;
+            internal set => _localEndpoint = value;
+        }
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
@@ -184,16 +188,16 @@ namespace IceRpc
         /// the remote endpoint is not allowed (the connection is connected or it's an incoming connection).</exception>
         public Endpoint? RemoteEndpoint
         {
-             get => IsIncoming ? _socket?.RemoteEndpoint : _remoteEndpoint;
-             set
-             {
+            get => _remoteEndpoint ?? _socket?.RemoteEndpoint;
+            set
+            {
                 if (State > ConnectionState.NotConnected)
                 {
                     throw new InvalidOperationException(
                         $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
                 }
                 _remoteEndpoint = value;
-             }
+            }
         }
 
         /// <summary>The server that created this incoming connection.</summary>
@@ -293,7 +297,7 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
-        private readonly Endpoint? _localEndpoint;
+        private Endpoint? _localEndpoint;
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
@@ -330,7 +334,7 @@ namespace IceRpc
         {
             ValueTask connectTask = new();
             MultiStreamSocket socket;
-            lock(_mutex)
+            lock (_mutex)
             {
                 if (State == ConnectionState.Closed)
                 {
@@ -356,7 +360,7 @@ namespace IceRpc
                         {
                             throw new InvalidOperationException("outgoing connection has no remote endpoint set");
                         }
-                        else if(_localEndpoint != null)
+                        else if (_localEndpoint != null)
                         {
                             throw new InvalidOperationException("outgoing connection has local endpoint set");
                         }

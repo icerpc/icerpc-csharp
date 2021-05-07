@@ -55,12 +55,80 @@ namespace IceRpc
                 payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
         }
 
+        /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicitly specified.
+        /// </summary>
+        public const string DefaultPath = "/Ice.Object";
+
         /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IProxyFactory<IServicePrx> Factory = new ServicePrxFactory();
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx> IceReader = istr => Factory.Read(istr);
+
+        /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
+        /// <param name="connection">The connection for the proxy. If the connection is an outgoing connection,
+        /// <see cref="Connection.RemoteEndpoint"/> is used as the <see cref="Endpoint"/> for the proxy,
+        /// otherwise an endpointless proxy is created.</param>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
+        /// </param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromConnection(Connection connection, string? path = null) =>
+            Factory.Create(
+                path ?? DefaultPath,
+                connection.Protocol,
+                connection.Protocol.GetEncoding(),
+                endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,
+                altEndpoints: ImmutableList<Endpoint>.Empty,
+                connection,
+                options: new ProxyOptions());
+
+        /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
+        /// </param>
+        /// <param name="protocol">The proxy protocol.</param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
+            Factory.Create(
+                path ?? DefaultPath,
+                protocol,
+                protocol.GetEncoding(),
+                endpoint: null,
+                altEndpoints: ImmutableList<Endpoint>.Empty,
+                connection: null,
+                options: new ProxyOptions());
+
+        /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
+        /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
+        /// <see cref="Endpoint"/>.</param>
+        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
+        /// </param>
+        /// <returns>The new proxy.</returns>
+        public static IServicePrx FromServer(Server server, string? path = null)
+        {
+            if (server.ProxyEndpoint == null)
+            {
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
+            }
+
+            ProxyOptions options = server.ProxyOptions;
+            options.Invoker ??= server.Invoker;
+
+            if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)
+            {
+                options = options.Clone();
+                options.IsOneway = true;
+            }
+
+            return Factory.Create(
+                path ?? DefaultPath,
+                server.Protocol,
+                server.Protocol.GetEncoding(),
+                endpoint: server.ProxyEndpoint,
+                altEndpoints: ImmutableList<Endpoint>.Empty,
+                connection: null,
+                options);
+        }
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

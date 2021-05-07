@@ -96,13 +96,6 @@ namespace IceRpc.Test
             }
         }
 
-        public static T AddWithGuid<T>(Server server, IService service) where T : class, IServicePrx
-        {
-            var path = $"/{System.Guid.NewGuid()}";
-            (server.Dispatcher as Router)!.Map(path, service);
-            return server.CreateProxy<T>(path);
-        }
-
         public virtual void ServerReady()
         {
         }

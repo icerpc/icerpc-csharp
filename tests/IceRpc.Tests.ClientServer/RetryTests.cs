@@ -81,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
+            IRetryBidirServicePrx proxy = IRetryBidirServicePrx.FromServer(server, "/");
 
             Connection connection = await proxy.GetConnectionAsync();
             connection.Dispatcher = server.Dispatcher;

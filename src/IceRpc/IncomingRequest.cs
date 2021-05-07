@@ -94,35 +94,6 @@ namespace IceRpc
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
 
-        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
-        /// unknown tagged arguments.</summary>
-        public void ReadEmptyArgs()
-        {
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-        }
-
-        /// <summary>Reads the arguments from a request.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="reader">The delegate used to read the arguments.</param>
-        /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(InputStreamReader<T> reader)
-        {
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
-                                                                reader,
-                                                                connection: Connection,
-                                                                proxyOptions: Connection.Server?.ProxyOptions);
-        }
-
         /// <summary>Reads a single stream argument from the request.</summary>
         /// <param name="reader">The delegate used to read the argument.</param>
         /// <returns>The request argument.</returns>

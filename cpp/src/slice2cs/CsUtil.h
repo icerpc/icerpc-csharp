@@ -16,6 +16,7 @@ namespace Slice
 enum CSharpBaseType { ObjectType = 1, ExceptionType = 2 };
 
 std::string fixId(const std::string&, unsigned int = 0);
+std::string defaultPath(const std::string&);
 
 // Returns the namespace of a Contained entity.
 std::string getNamespace(const ContainedPtr&);
