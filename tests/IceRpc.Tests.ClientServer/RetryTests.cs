@@ -81,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            IRetryBidirServicePrx proxy = server.CreateProxy<IRetryBidirServicePrx>("/");
+            var proxy = IRetryBidirServicePrx.FromServer(server, "/");
             await proxy.IcePingAsync();
             proxy.Connection!.Dispatcher = server.Dispatcher;
             IRetryBidirServicePrx bidir = proxy.Clone(); // keeps Connection
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.ClientServer
                     results.Add(retry.OpWithDataAsync(-1, 0, seq));
                 }
 
-                _ = service.Connection!.GoAwayAsync();
+                _ = service.Connection!.ShutdownAsync();
 
                 for (int i = 0; i < maxQueue; i++)
                 {
@@ -341,7 +341,7 @@ namespace IceRpc.Tests.ClientServer
                     prx = prx1.Clone();
                     prx.AltEndpoints = ImmutableList.Create(prx3.Endpoint!, prx2.Endpoint!);
 
-                    // TODO
+                    // TODO: reenable
                     /*
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
@@ -368,10 +368,11 @@ namespace IceRpc.Tests.ClientServer
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
 
-                    await using var connection1 =
-                        await Connection.CreateAsync(retry.Endpoint!, (Communicator)retry.Invoker);
-                    await using var connection2 =
-                        await Connection.CreateAsync(retry.Endpoint!, (Communicator)retry.Invoker);
+                    await using var connection1 = new Connection { RemoteEndpoint = retry.Endpoint };
+                    await using var connection2 = new Connection { RemoteEndpoint = retry.Endpoint };
+
+                    await connection1.ConnectAsync();
+                    await connection2.ConnectAsync();
 
                     var retry1 = retry.Clone();
                     retry1.Connection = connection1;

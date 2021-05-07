@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
+using System.Collections.Generic;
 
 namespace IceRpc
 {
@@ -21,16 +23,23 @@ namespace IceRpc
             CompressionLevel compressionLevel,
             int compressionMinSize) =>
             next => new InlineInvoker(
-                async (request, cancel) =>
+                (request, cancel) =>
                 {
                     if (request.PayloadEncoding == Encoding.V20 &&
                         request.PayloadCompressionFormat == CompressionFormat.Decompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
-                        // TODO move CompressPayload out of the OutgoingFrame class
-                        request.CompressPayload(compressionLevel, compressionMinSize);
+                        (CompressionResult result, ArraySegment<byte> compressedPayload) =
+                            request.Payload.Compress(request.Protocol,
+                                                     request: true,
+                                                     compressionLevel,
+                                                     compressionMinSize);
+                        if (result == CompressionResult.Success)
+                        {
+                            request.Payload = new List<ArraySegment<byte>> { compressedPayload };
+                        }
                     }
-                    return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                    return next.InvokeAsync(request, cancel);
                 });
     }
 }

@@ -38,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
                 ProxyHost = "localhost"
             };
-            Prx = Server.CreateProxy<IStressTestServicePrx>("/test");
+            Prx = IStressTestServicePrx.FromServer(Server, "/test");
             Server.Listen();
         }
 

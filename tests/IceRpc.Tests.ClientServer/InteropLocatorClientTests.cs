@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = _server.CreateProxy<IGreeterTestServicePrx>(path);
+            _greeter = IGreeterTestServicePrx.FromServer(_server, path);
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -223,9 +223,9 @@ namespace IceRpc.Tests.ClientServer
 
         private ISimpleLocatorTestPrx CreateLocator()
         {
-            string path = $"/{System.Guid.NewGuid()}";
+            string path = $"/{Guid.NewGuid()}";
             (_server.Dispatcher as Router)!.Map(path, new Locator());
-            return _server.CreateProxy<ISimpleLocatorTestPrx>(path);
+            return ISimpleLocatorTestPrx.FromServer(_server, path);
         }
 
         private class Locator : ISimpleLocatorTest

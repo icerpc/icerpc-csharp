@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             // The invocation activity is only created if the logger is enabled or Activity.Current is set.
-            var prx = server.CreateProxy<IGreeterTestServicePrx>("/");
+            var prx = IGreeterTestServicePrx.FromServer(server, "/");
             Activity? invocationActivity = null;
             bool called = false;
             communicator.Use(next => new InlineInvoker((request, cancel) =>
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
             }));
             await prx.IcePingAsync();
             Assert.IsNotNull(invocationActivity);
-            Assert.AreEqual("IceRpc.Invocation", invocationActivity.DisplayName);
+            Assert.AreEqual("//ice_ping", invocationActivity.DisplayName);
             Assert.AreEqual(testActivity, invocationActivity.Parent);
             Assert.AreEqual(testActivity, Activity.Current);
             testActivity.Stop();
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.ClientServer
 
             // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
             // the server has an ActivitySource with listeners.
-            var prx = server1.CreateProxy<IGreeterTestServicePrx>("/");
+            var prx = IGreeterTestServicePrx.FromServer(server1, "/");
             await prx.IcePingAsync();
             Assert.IsTrue(called);
             Assert.IsNull(dispatchActivity);
@@ -122,12 +122,12 @@ namespace IceRpc.Tests.ClientServer
             };
 
             server2.Listen();
-            prx = server2.CreateProxy<IGreeterTestServicePrx>("/");
+            prx = IGreeterTestServicePrx.FromServer(server2, "/");
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server2.ShutdownAsync();
             Assert.IsNotNull(dispatchActivity);
-            Assert.AreEqual("IceRpc.Dispatch", dispatchActivity.DisplayName);
+            Assert.AreEqual("//ice_ping", dispatchActivity.DisplayName);
             // Wait to receive the dispatch activity stop event
             Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
@@ -137,8 +137,7 @@ namespace IceRpc.Tests.ClientServer
         /// parent activity for the Dispatch activity. This test runs with the two supported protocols because
         /// the propagation of the activity context is different for Ice2 and Ice1.</summary>
 
-        // TODO
-        // [TestCase(Protocol.Ice1)]
+        // TODO: how did I break this? [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
         public async Task Tracing_ActivityPropagationAsync(Protocol protocol)
         {
@@ -183,7 +182,7 @@ namespace IceRpc.Tests.ClientServer
 
             server.Listen();
 
-            var prx = server.CreateProxy<IGreeterTestServicePrx>("/test");
+            var prx = IGreeterTestServicePrx.FromServer(server, "/test");
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.

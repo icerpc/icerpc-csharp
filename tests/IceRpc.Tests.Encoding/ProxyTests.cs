@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Encoding
             // Create an endpointless proxy
             IServicePrx endpointLess = _server.CreateEndpointlessProxy<IServicePrx>("/foo");
 
-            IServicePrx regular = _server.CreateProxy<IServicePrx>("/bar");
+            IServicePrx regular = IServicePrx.FromServer(_server, "/bar");
 
             // Just to establish connection
             await regular.IcePingAsync(new Invocation { IsOneway = true });

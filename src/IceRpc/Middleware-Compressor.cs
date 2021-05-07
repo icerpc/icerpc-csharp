@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
+using System.Collections.Generic;
 
 namespace IceRpc
 {
@@ -30,7 +32,15 @@ namespace IceRpc
                         response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
                     {
                         // TODO move CompressPayload out of the OutgoingFrame class
-                        response.CompressPayload(compressionLevel, compressionMinSize);
+                        (CompressionResult result, ArraySegment<byte> compressedPayload) =
+                            response.Payload.Compress(request.Protocol,
+                                                      request: false,
+                                                      compressionLevel,
+                                                      compressionMinSize);
+                        if (result == CompressionResult.Success)
+                        {
+                            response.Payload = new List<ArraySegment<byte>> { compressedPayload };
+                        }
                     }
                     return response;
                 });

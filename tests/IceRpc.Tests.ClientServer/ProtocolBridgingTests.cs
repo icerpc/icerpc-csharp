@@ -86,13 +86,13 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingService());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = _targetServer.CreateProxy<IProtocolBridgingServicePrx>("/target");
+            var targetService = IProtocolBridgingServicePrx.FromServer(_targetServer, "/target");
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = _forwarderServer.CreateProxy<IProtocolBridgingServicePrx>("/forward");
+            var forwardService = IProtocolBridgingServicePrx.FromServer(_forwarderServer, "/forward");
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated) =>
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                var proxy = dispatch.Server!.CreateProxy<IProtocolBridgingServicePrx>(dispatch.Path);
+                var proxy = IProtocolBridgingServicePrx.FromServer(dispatch.Server!, dispatch.Path);
                 proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }

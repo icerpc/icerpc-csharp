@@ -468,7 +468,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamSocket_PingAsync()
         {
             var semaphore = new SemaphoreSlim(0);
-            ServerSocket.Ping += EventHandler;
+            ServerSocket.PingReceived = () => semaphore.Release();
             using var source = new CancellationTokenSource();
 
             // Start accept stream on the server side to receive transport frames.
@@ -487,10 +487,6 @@ namespace IceRpc.Tests.Internal
             // Cancel AcceptStreamAsync
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await acceptStreamTask);
-
-            ServerSocket.Ping -= EventHandler;
-
-            void EventHandler(object? state, EventArgs args) => semaphore.Release();
         }
 
         [Test]

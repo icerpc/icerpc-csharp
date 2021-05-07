@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,7 +50,7 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            var greeter = server.CreateProxy<IGreeterTestServicePrx>("/foo");
+            var greeter = IGreeterTestServicePrx.FromServer(server, "/foo");
             Assert.AreEqual(Transport.TCP, greeter.Endpoint!.Transport);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 

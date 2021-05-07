@@ -40,10 +40,19 @@ namespace IceRpc
             private int _cacheMaxSize = 100;
         }
 
-        public static Func<ILocationResolver, ILocationResolver> Locator(ILocatorPrx locator, LocatorOptions options) =>
-            next => new LocatorClient(locator, next, options);
-
+        /// <summary>Creates a location resolver interceptor that resolves loc endpoints using an <see cref="ILocator"/>
+        /// service and the default for <see cref="LocatorOptions"/>.</summary>
+        /// <param name="locator">A proxy to the locator service.</param>
+        /// <returns>The new location resolver interceptor.</returns>
         public static Func<ILocationResolver, ILocationResolver> Locator(ILocatorPrx locator) =>
             Locator(locator, new());
+
+        /// <summary>Creates a location resolver interceptor that resolves loc endpoints using an <see cref="ILocator"/>
+        /// service.</summary>
+        /// <param name="locator">A proxy to the locator service.</param>
+        /// <param name="options">Options for this interceptor.</param>
+        /// <returns>The new location resolver interceptor.</returns>
+        public static Func<ILocationResolver, ILocationResolver> Locator(ILocatorPrx locator, LocatorOptions options) =>
+            next => new LocatorClient(locator, next, options);
     }
 }

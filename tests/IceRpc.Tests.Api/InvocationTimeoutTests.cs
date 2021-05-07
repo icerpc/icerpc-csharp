@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            IServicePrx prx = _server.CreateProxy<IServicePrx>("/test");
+            IServicePrx prx = IServicePrx.FromServer(_server, "/test");
             await using var pool = new Communicator();
             prx.Invoker = pool;
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);

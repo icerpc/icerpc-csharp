@@ -193,7 +193,7 @@ namespace IceRpc.Tests.Api
         }
 
         private IGreeterServicePrx GetGreeter(string path) =>
-            _server.CreateProxy<IGreeterServicePrx>(path);
+            IGreeterServicePrx.FromServer(_server, path);
 
         public class GreeterService : IGreeterService
         {

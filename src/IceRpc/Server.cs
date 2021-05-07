@@ -3,11 +3,9 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -76,8 +74,9 @@ namespace IceRpc
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>Returns the endpoint included in proxies created by <see cref="CreateProxy"/>. This endpoint is
-        /// computed from the values of <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
+        /// <summary>Returns the endpoint included in proxies created by
+        /// <see cref="IServicePrx.FromServer(Server, string?)"/>. This endpoint is computed from the values of
+        /// <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
         /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
         public Endpoint? ProxyEndpoint { get; private set; }
 
@@ -119,6 +118,8 @@ namespace IceRpc
 
         private readonly CancellationTokenSource _cancelDispatchSource = new();
 
+        private Connection? _incomingConnection;
+
         private Endpoint? _endpoint;
 
         private ILogger? _logger;
@@ -159,35 +160,6 @@ namespace IceRpc
                                                 ProxyOptions);
         }
 
-        /// <summary>Creates a proxy for a service hosted by this server.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="path">The path of the service.</param>
-        /// <returns>A new proxy with a single endpoint, <see cref="ProxyEndpoint"/>.</returns>
-        public T CreateProxy<T>(string path) where T : class, IServicePrx
-        {
-            if (ProxyEndpoint == null)
-            {
-                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
-            }
-
-            ProxyOptions options = ProxyOptions;
-            options.Invoker ??= Invoker;
-
-            if (ProxyEndpoint.IsDatagram && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
-
-            return Proxy.GetFactory<T>().Create(path,
-                                                ProxyEndpoint.Protocol,
-                                                ProxyEndpoint.Protocol.GetEncoding(),
-                                                ProxyEndpoint,
-                                                altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                connection: null,
-                                                options);
-        }
-
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
         /// include the actual port selected by the operating system.</summary>
@@ -215,23 +187,25 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                _incomingConnectionFactory = _endpoint.IsDatagram ?
-                    new DatagramIncomingConnectionFactory(this, _endpoint) :
-                    new AcceptorIncomingConnectionFactory(this, _endpoint);
-
-                _endpoint = _incomingConnectionFactory.Endpoint;
-                UpdateProxyEndpoint();
-
-                if (ConnectionOptions.AuthenticationOptions != null)
+                if (_endpoint.HasAcceptor)
                 {
-                    ConnectionOptions.AuthenticationOptions = ConnectionOptions.AuthenticationOptions.Clone();
-                    ConnectionOptions.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                    {
-                        new SslApplicationProtocol(_endpoint.Protocol.GetName())
-                    };
-                }
+                    _incomingConnectionFactory = new IncomingConnectionFactory(this, _endpoint);
+                    _endpoint = _incomingConnectionFactory.Endpoint;
+                    UpdateProxyEndpoint();
 
-                _incomingConnectionFactory.Activate();
+                    // Activate the factory to start accepting new connections.
+                    _incomingConnectionFactory.Activate();
+                }
+                else
+                {
+                    MultiStreamSocket socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
+                    _incomingConnection = new Connection(socket, this);
+                    _endpoint = socket.LocalEndpoint!;
+                    UpdateProxyEndpoint();
+
+                    // Connect the connection to start accepting new streams.
+                    _ = _incomingConnection.ConnectAsync(default);
+                }
 
                 _listening = true;
 
@@ -241,7 +215,7 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _incomingColocConnectionFactory = new AcceptorIncomingConnectionFactory(this, colocEndpoint);
+                    _incomingColocConnectionFactory = new IncomingConnectionFactory(this, colocEndpoint);
                     _incomingColocConnectionFactory.Activate();
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
@@ -309,10 +283,15 @@ namespace IceRpc
                     // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
                     // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
                     // _mutex.
-                    Task colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
-                    Task incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync() ?? Task.CompletedTask;
-
-                    await Task.WhenAll(colocShutdownTask, incomingShutdownTask).ConfigureAwait(false);
+                    // TODO: forward the cancellation token to the methods below. The connections should be
+                    // responsible for canceling dispatch.
+                    Task? colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync();
+                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
+                    Task? incomingConnectionShutdownTask = _incomingConnection?.ShutdownAsync(cancel: default);
+                    await Task.WhenAll(
+                        colocShutdownTask ?? Task.CompletedTask,
+                        incomingShutdownTask ?? Task.CompletedTask,
+                        incomingConnectionShutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -333,6 +312,11 @@ namespace IceRpc
         public async ValueTask DisposeAsync()
         {
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+            if (_incomingConnection != null)
+            {
+                // The connection is disposed by ShutdownAsync but we do it again here to prevent a warning.
+                await _incomingConnection.DisposeAsync().ConfigureAwait(false);
+            }
             _cancelDispatchSource.Dispose();
         }
 

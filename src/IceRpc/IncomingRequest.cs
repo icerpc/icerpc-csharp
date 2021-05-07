@@ -47,7 +47,26 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public override ArraySegment<byte> Payload
+        {
+            get => _payload;
+            set
+            {
+                // reset the payload encoding and compression format values
+                var istr = new InputStream(value, Protocol.GetEncoding());
+                (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
+                PayloadCompressionFormat = payloadEncoding == Encoding.V20 ?
+                    istr.ReadCompressionFormat() : CompressionFormat.Decompressed;
+                PayloadEncoding = payloadEncoding;
+                _payload = value;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+
+        /// <inheritdoc/>
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
         public Priority Priority { get; }
@@ -69,39 +88,11 @@ namespace IceRpc
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
 
+        ArraySegment<byte> _payload;
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
-
-        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
-        /// unknown tagged arguments.</summary>
-        public void ReadEmptyArgs()
-        {
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-        }
-
-        /// <summary>Reads the arguments from a request.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="reader">The delegate used to read the arguments.</param>
-        /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(InputStreamReader<T> reader)
-        {
-            if (SocketStream != null)
-            {
-                throw new InvalidDataException("stream data available for operation without stream parameter");
-            }
-
-            return Payload.AsReadOnlyMemory().ReadEncapsulation(Protocol.GetEncoding(),
-                                                                reader,
-                                                                connection: Connection,
-                                                                proxyOptions: Connection.Server?.ProxyOptions);
-        }
 
         /// <summary>Reads a single stream argument from the request.</summary>
         /// <param name="reader">The delegate used to read the argument.</param>
@@ -149,15 +140,13 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="maxSize">The maximum payload size, checked during decompression.</param>
         /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            int maxSize,
             SocketStream? socketStream)
-            : base(protocol, maxSize)
+            : base(protocol)
         {
             SocketStream = socketStream;
 
@@ -215,7 +204,7 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            Payload = data.Slice(istr.Pos);
+            _payload = data.Slice(istr.Pos);
 
             PayloadEncoding = istr.ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
             if (PayloadEncoding == Encoding.V20)
@@ -228,7 +217,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="request">The outgoing request frame.</param>
         internal IncomingRequest(OutgoingRequest request)
-            : base(request.Protocol, int.MaxValue)
+            : base(request.Protocol)
         {
             if (Protocol == Protocol.Ice1)
             {

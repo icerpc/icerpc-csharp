@@ -10,18 +10,10 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    internal abstract class IncomingConnectionFactory
+    // The IncomingConnectionFactory creates connections using an acceptor.
+    internal sealed class IncomingConnectionFactory
     {
-        internal abstract Endpoint Endpoint { get; }
-        internal abstract void Activate();
-
-        internal abstract Task ShutdownAsync();
-    }
-
-    // IncomingConnectionFactory for acceptor based transports.
-    internal sealed class AcceptorIncomingConnectionFactory : IncomingConnectionFactory
-    {
-        internal override Endpoint Endpoint { get; }
+        internal Endpoint Endpoint { get; }
 
         private readonly IAcceptor _acceptor;
         private Task? _acceptTask;
@@ -30,12 +22,10 @@ namespace IceRpc
         private readonly object _mutex = new();
         private bool _shutdown;
 
-        public override string ToString() => _acceptor.ToString()!;
-
-        internal AcceptorIncomingConnectionFactory(Server server, Endpoint endpoint)
+        internal IncomingConnectionFactory(Server server, Endpoint endpoint)
         {
             _server = server;
-            _acceptor = endpoint.CreateAcceptor(_server);
+            _acceptor = endpoint.CreateAcceptor(_server.ConnectionOptions, _server.Logger);
             Endpoint = _acceptor.Endpoint;
 
             using IDisposable? scope = server.Logger.StartAcceptorScope(server, _acceptor);
@@ -45,7 +35,7 @@ namespace IceRpc
             }
         }
 
-        internal override void Activate()
+        internal void Activate()
         {
             // Start the asynchronous operation from the thread pool to prevent eventually accepting
             // synchronously new connections from this thread.
@@ -67,7 +57,7 @@ namespace IceRpc
             }
         }
 
-        internal override async Task ShutdownAsync()
+        internal async Task ShutdownAsync()
         {
             using IDisposable? scope = _server.Logger.StartAcceptorScope(_server, _acceptor);
             _server.Logger.LogStopAcceptingConnections();
@@ -83,7 +73,7 @@ namespace IceRpc
             }
 
             // The connection set is immutable once _shutdown is true
-            IEnumerable<Task> tasks = _connections.Select(connection => connection.GoAwayAsync($"server shutdown"));
+            IEnumerable<Task> tasks = _connections.Select(connection => connection.ShutdownAsync($"server shutdown"));
 
             // Wait for AcceptAsync and the connection closure to return.
             if (_acceptTask != null)
@@ -124,7 +114,8 @@ namespace IceRpc
                     continue;
                 }
 
-                var connection = new Connection(socket, _server.ConnectionOptions, _server);
+                var connection = new Connection(socket, _server);
+
                 lock (_mutex)
                 {
                     if (_shutdown)
@@ -152,40 +143,13 @@ namespace IceRpc
                 CancellationToken cancel = source.Token;
                 try
                 {
-                    // Accept the connection (handshake, protocol initialization, ...)
-                    await connection.AcceptAsync(cancel).ConfigureAwait(false);
+                    // Connect the connection (handshake, protocol initialization, ...)
+                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
                 }
                 catch
                 {
-                    // Failed incoming connection, abort the connection.
-                    await connection.AbortAsync("connection lost").ConfigureAwait(false);
                 }
             }
         }
-    }
-
-    // IncomingConnectionFactory for datagram based transports
-    internal sealed class DatagramIncomingConnectionFactory : IncomingConnectionFactory
-    {
-        internal override Endpoint Endpoint { get; }
-
-        private readonly Connection _connection;
-
-        public override string ToString() => _connection.ToString()!;
-
-        internal DatagramIncomingConnectionFactory(Server server, Endpoint endpoint)
-        {
-            MultiStreamSocket socket = endpoint.CreateServerSocket(server.ConnectionOptions, server.Logger);
-            _connection = new Connection(socket, server.ConnectionOptions, server);
-            Endpoint = _connection.LocalEndpoint;
-        }
-
-        internal override void Activate()
-        {
-            _ = _connection.AcceptAsync(default);
-            _ = _connection.InitializeAsync(default);
-        }
-
-        internal override Task ShutdownAsync() => _connection.GoAwayAsync($"server shutdown");
     }
 }

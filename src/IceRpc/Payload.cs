@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,6 +11,11 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
+
+        // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
+        // and the first segment has always at least 2 bytes.
+        private static readonly OutputStream.Position _responseEncapsulationStart = new(0, 1);
+
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
@@ -177,5 +183,209 @@ namespace IceRpc
                 throw payload.ToRemoteException(proxy, connection);
             }
         }
+
+        /// <summary>Creates the payload of a response from the request's dispatch and response argument.
+        /// Use this method when the operation returns a single value.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="returnValue">The return value to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+
+        public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
+            Dispatch dispatch,
+            T returnValue,
+            OutputStreamWriter<T> writer,
+            FormatType classFormat = default)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
+            byte[] buffer = new byte[256];
+            buffer[0] = (byte)ResultType.Success;
+            payload.Add(buffer);
+
+            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
+                                        payload,
+                                        _responseEncapsulationStart,
+                                        dispatch.Encoding,
+                                        classFormat);
+            writer(ostr, returnValue);
+            ostr.Finish();
+            return payload;
+        }
+
+        /// <summary>Creates the payload of a response from the request's dispatch and response arguments.
+        /// Use this method when the operation returns a tuple.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="returnValueTuple">The return values to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromReturnValueTuple<T>(
+            Dispatch dispatch,
+            in T returnValueTuple,
+            OutputStreamValueWriter<T> writer,
+            FormatType classFormat = default) where T : struct
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
+            byte[] buffer = new byte[256];
+            buffer[0] = (byte)ResultType.Success;
+            payload.Add(buffer);
+
+            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
+                                        payload,
+                                        _responseEncapsulationStart,
+                                        dispatch.Encoding,
+                                        classFormat);
+            writer(ostr, in returnValueTuple);
+            ostr.Finish();
+            return payload;
+        }
+
+        /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
+        /// <param name="request">The incoming request used to create this response payload. </param>
+        /// <param name="exception">The exception.</param>
+        /// <returns>A response payload containing the exception.</returns>
+        public static IList<ArraySegment<byte>> FromRemoteException(IncomingRequest request, RemoteException exception)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            ReplyStatus replyStatus = ReplyStatus.UserException;
+            if (request.PayloadEncoding == Encoding.V11)
+            {
+                replyStatus = exception switch
+                {
+                    ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
+                    OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
+                    UnhandledException _ => ReplyStatus.UnknownLocalException,
+                    _ => ReplyStatus.UserException
+                };
+            }
+
+            OutputStream ostr;
+            if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
+            {
+                // Write ResultType.Failure or ReplyStatus.UserException (both have the same value, 1) followed by an
+                // encapsulation.
+                byte[] buffer = new byte[256];
+                buffer[0] = (byte)ResultType.Failure;
+                payload.Add(buffer);
+
+                ostr = new OutputStream(request.Protocol.GetEncoding(),
+                                        payload,
+                                        _responseEncapsulationStart,
+                                        request.PayloadEncoding,
+                                        FormatType.Sliced);
+
+                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
+                {
+                    // The first byte of the encapsulation data is the actual ReplyStatus
+                    ostr.Write(replyStatus);
+                }
+            }
+            else
+            {
+                Debug.Assert(request.Protocol == Protocol.Ice1 && (byte)replyStatus > (byte)ReplyStatus.UserException);
+                ostr = new OutputStream(Ice1Definitions.Encoding, payload); // not an encapsulation
+                ostr.Write(replyStatus);
+            }
+
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            if (request.PayloadEncoding == Encoding.V11)
+            {
+                switch (replyStatus)
+                {
+                    case ReplyStatus.ObjectNotExistException:
+                    case ReplyStatus.OperationNotExistException:
+                        if (request.Protocol == Protocol.Ice1)
+                        {
+                            request.Identity.IceWrite(ostr);
+                        }
+                        else
+                        {
+                            var identity = Identity.Empty;
+                            try
+                            {
+                                identity = Identity.FromPath(request.Path);
+                            }
+                            catch (FormatException)
+                            {
+                                // ignored, i.e. we'll marshal an empty identity
+                            }
+                            identity.IceWrite(ostr);
+                        }
+                        ostr.WriteIce1Facet(request.Facet);
+                        ostr.WriteString(request.Operation);
+                        break;
+
+                    case ReplyStatus.UnknownLocalException:
+                        ostr.WriteString(exception.Message);
+                        break;
+
+                    default:
+                        ostr.WriteException(exception);
+                        break;
+                }
+            }
+            else
+            {
+                ostr.WriteException(exception);
+            }
+
+            ostr.Finish();
+
+            return payload;
+        }
+
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="dispatch">The request's dispatch object. Used for the protocol and encoding.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(Dispatch dispatch) =>
+            FromVoidReturnValue(dispatch.IncomingRequest);
+
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="request">The request. Used for the protocol and encoding.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
+            new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
+
+        /// <summary>Reads a request payload and converts it into the request arguments.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="reader">An input stream reader used to read the arguments.</param>
+        /// <param name="connection">The connection the payload was received on.</param>
+        /// <paramtype name="T">The type of the arguments.</paramtype>
+        /// <returns>The request arguments.</returns>
+        public static T ToArgs<T>(
+            this ReadOnlyMemory<byte> payload,
+            InputStreamReader<T> reader,
+            Connection connection)
+        {
+            if (payload.Length == 0)
+            {
+                throw new ArgumentException("invalid empty payload", nameof(payload));
+            }
+
+            return payload.ReadEncapsulation(connection.Protocol.GetEncoding(),
+                                             reader,
+                                             connection: connection,
+                                             proxyOptions: connection.Server?.ProxyOptions);
+        }
+
+        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
+        /// unknown tagged arguments.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="connection">The connection the payload was received on.</param>
+        public static void ToEmptyArgs(
+            this ReadOnlyMemory<byte> payload,
+            Connection connection) =>
+            payload.ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
+
     }
 }

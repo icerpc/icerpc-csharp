@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
+[assembly: InternalsVisibleTo("IceRpc.Tests.Api")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.CodeGeneration")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
 [assembly: InternalsVisibleTo("IceRpc.Tests.Encoding")]

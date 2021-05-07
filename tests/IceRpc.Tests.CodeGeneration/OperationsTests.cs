@@ -30,7 +30,7 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
 
-            _prx = _server.CreateProxy<IOperationsPrx>("/test");
+            _prx = IOperationsPrx.FromServer(_server, "/test");
             _derivedPrx = _prx.As<IDerivedOperationsPrx>();
 
             Assert.AreEqual(protocol, _prx.Protocol);

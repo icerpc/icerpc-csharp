@@ -26,7 +26,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _prx = _server.CreateProxy<IOptionalOperationsPrx>("/");
+            _prx = IOptionalOperationsPrx.FromServer(_server, "/");
         }
 
         [OneTimeTearDown]

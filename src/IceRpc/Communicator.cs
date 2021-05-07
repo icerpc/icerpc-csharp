@@ -44,7 +44,7 @@ namespace IceRpc
         }
 
         /// <summary>Indicates whether or not this connection pool prefers using an existing connection over creating
-        /// a new one during binding.</summary>
+        /// a new one when supplying a connection to an outgoing request.</summary>
         /// <value>When <c>true</c>, the connection pool first iterates over all endpoints (in order) to look for an
         /// existing active connection; if it cannot find such a connection, it creates one by iterating again over
         /// the endpoints. When <c>false</c>, the connection pool iterates over the endpoints only once to retrieve or
@@ -137,20 +137,24 @@ namespace IceRpc
 
                 do
                 {
+                    // Step 1: obtain a connection using the location resolver and GetConnectionAsync.
+
+                    bool refreshCache = tryAgain;
+
                     while (request.Connection == null)
                     {
                         if (endpoint?.Transport == Transport.Loc)
                         {
                             (endpoint, altEndpoints) =
                                  await _locationResolver.ResolveAsync(endpoint!,
-                                                                      refreshCache: tryAgain,
+                                                                      refreshCache,
                                                                       cancel).ConfigureAwait(false);
                         }
 
                         if (endpoint != null)
                         {
                             // It's critical to perform the coloc conversion before filtering the endpoints and calling
-                            // BindAsync because excludedEndpoints are populated using
+                            // GetConnectionAsync because excludedEndpoints are populated using
                             // request.Connection.RemoteEndpoint.
                             endpoint = endpoint.ToColocEndpoint() ?? endpoint;
                             altEndpoints = altEndpoints.Select(e => e.ToColocEndpoint() ?? e);
@@ -161,7 +165,7 @@ namespace IceRpc
                             }
                             altEndpoints = altEndpoints.Where(e => IsUsable(e, request.IsOneway));
 
-                            // Filter-out excluded endpoints before calling BindAsync
+                            // Filter-out excluded endpoints before calling GetConnectionAsync
                             if (excludedEndpoints != null)
                             {
                                 if (endpoint != null && excludedEndpoints.Contains(endpoint))
@@ -187,11 +191,15 @@ namespace IceRpc
 
                         try
                         {
-                            request.Connection = await BindAsync(endpoint, altEndpoints, cancel).ConfigureAwait(false);
+                            request.Connection =
+                                await GetConnectionAsync(endpoint, altEndpoints, cancel).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
-                            if (tryAgain)
+                            // We don't count this failure to obtain a connection as an attempt.
+                            logger.LogRequestConnectException(endpoint, altEndpoints, ex);
+
+                            if (refreshCache)
                             {
                                 // We failed to establish a connection to any of the just refreshed endpoints. Retrying
                                 // more is pointless.
@@ -200,14 +208,10 @@ namespace IceRpc
                             else
                             {
                                 exception = ex;
-                                excludedEndpoints ??= new();
+                                excludedEndpoints ??= new List<Endpoint>();
                                 excludedEndpoints.Add(endpoint!);
                                 excludedEndpoints.AddRange(altEndpoints);
-
-                                // We don't consider this failure to obtain a connection as an attempt.
-                                // TODO: logging
-
-                                tryAgain = true;
+                                refreshCache = true; // and loop back once
                             }
                         }
                     }
@@ -217,6 +221,8 @@ namespace IceRpc
                     {
                         request.Proxy.Connection = request.Connection;
                     }
+
+                    // Step 2: call the invoker pipeline
 
                     try
                     {
@@ -243,20 +249,16 @@ namespace IceRpc
                     // endpoints this prevents the endpoints to be tried again during the current retry sequence.
                     if (retryPolicy == RetryPolicy.OtherReplica)
                     {
-                        excludedEndpoints ??= new();
-
-                        // This works because we perform the coloc conversion before filtering excluded endpoints.
-                        excludedEndpoints.Add(request.Connection.RemoteEndpoint);
+                        excludedEndpoints ??= new List<Endpoint>();
+                        excludedEndpoints.Add(request.Connection.RemoteEndpoint!);
                     }
 
-                    // Check if we can retry, we cannot retry if we have consumed all attempts, the current retry
-                    // policy doesn't allow retries, the request was already released, or an incoming connection
-                    // receives an exception with OtherReplica retry policy.
-
+                    // Check if we can retry
                     if (attempt == InvocationMaxAttempts ||
                         retryPolicy == RetryPolicy.NoRetry ||
                         (request.IsSent && releaseRequestAfterSent) ||
-                        (request.Connection.IsIncoming && retryPolicy == RetryPolicy.OtherReplica))
+                        (retryPolicy == RetryPolicy.OtherReplica &&
+                            (request.Connection.IsIncoming || endpoint == null)))
                     {
                         tryAgain = false;
                     }
@@ -280,9 +282,8 @@ namespace IceRpc
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
-                        if (endpoint != null &&
-                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsActive) &&
-                            !request.Connection.IsIncoming)
+                        if (retryPolicy == RetryPolicy.OtherReplica ||
+                            (!request.Connection.IsActive && !request.Connection.IsIncoming))
                         {
                             // Retry with a new connection
                             request.Connection = null;
@@ -335,10 +336,9 @@ namespace IceRpc
 
                 // Shutdown and destroy all the incoming and outgoing Ice connections and wait for the connections to be
                 // finished.
-                var disposedException = new CommunicatorDisposedException();
                 IEnumerable<Task> closeTasks =
                     _outgoingConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.GoAwayAsync(disposedException));
+                        connection => connection.ShutdownAsync("connection pool shutdown"));
 
                 await Task.WhenAll(closeTasks).ConfigureAwait(false);
 
@@ -347,7 +347,7 @@ namespace IceRpc
                     try
                     {
                         Connection connection = await connect.ConfigureAwait(false);
-                        await connection.GoAwayAsync(disposedException).ConfigureAwait(false);
+                        await connection.ShutdownAsync("connection pool shutdown").ConfigureAwait(false);
                     }
                     catch
                     {
@@ -360,6 +360,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Installs one or more invoker interceptors.</summary>
+        /// <param name="interceptor">One or more invoker interceptors.</param>
+        /// <exception name="InvalidOperationException">Thrown if this method is called after the first call to
+        /// <see cref="InvokeAsync"/>.</exception>
         public void Use(params Func<IInvoker, IInvoker>[] interceptor)
         {
             if (_invoker != null)
@@ -370,6 +374,10 @@ namespace IceRpc
             _invokerInterceptorList = _invokerInterceptorList.AddRange(interceptor);
         }
 
+        /// <summary>Installs one or more location resolver interceptors.</summary>
+        /// <param name="interceptor">One or more location resolver interceptors.</param>
+        /// <exception name="InvalidOperationException">Thrown if this method is called after the first call to
+        /// <see cref="InvokeAsync"/>.</exception>
         public void Use(params Func<ILocationResolver, ILocationResolver>[] interceptor)
         {
             if (_locationResolver != null)
@@ -378,71 +386,6 @@ namespace IceRpc
                     "interceptors must be installed before the first call to InvokeAsync");
             }
             _locationResolverInterceptorList = _locationResolverInterceptorList.AddRange(interceptor);
-        }
-
-        internal ValueTask<Connection> BindAsync(
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints,
-            CancellationToken cancel)
-        {
-            if (PreferExistingConnection)
-            {
-                lock (_mutex)
-                {
-                    Connection? connection = GetCachedConnection(endpoint);
-
-                    if (connection == null)
-                    {
-                        foreach (Endpoint altEndpoint in altEndpoints)
-                        {
-                            connection = GetCachedConnection(altEndpoint);
-                            if (connection != null)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    if (connection != null)
-                    {
-                        return new(connection);
-                    }
-                }
-            }
-
-            return CreateConnectionAsync();
-
-            async ValueTask<Connection> CreateConnectionAsync()
-            {
-                OutgoingConnectionOptions connectionOptions = ConnectionOptions ?? OutgoingConnectionOptions.Default;
-
-                try
-                {
-                    return await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    foreach (Endpoint altEndpoint in altEndpoints)
-                    {
-                        try
-                        {
-                            return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // ignored
-                        }
-                    }
-
-                    // If we cannot connect to any endpoint, we throw the first exception
-                    // TODO: should we throw an AggregateException instead?
-                    throw;
-                }
-            }
-
-            Connection? GetCachedConnection(Endpoint endpoint) =>
-                _outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
-                connections.FirstOrDefault(connection => connection.IsActive) is Connection connection ?
-                    connection : null;
         }
 
         private IInvoker CreateInvokerPipeline()
@@ -530,6 +473,71 @@ namespace IceRpc
                 Debug.Assert(size <= _retryBufferSize);
                 _retryBufferSize -= size;
             }
+        }
+
+        /// <summary>Returns an active connection to one of the specified endpoints. The behavior of this method
+        /// depends on <see cref="PreferExistingConnection"/>.</summary>
+        /// <param name="endpoint">The first endpoint to try.</param>
+        /// <param name="altEndpoints">The alternative endpoints.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        private ValueTask<Connection> GetConnectionAsync(
+            Endpoint endpoint,
+            IEnumerable<Endpoint> altEndpoints,
+            CancellationToken cancel)
+        {
+            if (PreferExistingConnection)
+            {
+                lock (_mutex)
+                {
+                    if (GetCachedConnection(endpoint) is Connection connection)
+                    {
+                        return new(connection);
+                    }
+
+                    foreach (Endpoint altEndpoint in altEndpoints)
+                    {
+                        if (GetCachedConnection(altEndpoint) is Connection altConnection)
+                        {
+                            return new(altConnection);
+                        }
+                    }
+                }
+            }
+
+            return CreateConnectionAsync();
+
+            async ValueTask<Connection> CreateConnectionAsync()
+            {
+                OutgoingConnectionOptions connectionOptions = ConnectionOptions ?? OutgoingConnectionOptions.Default;
+
+                try
+                {
+                    return await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    foreach (Endpoint altEndpoint in altEndpoints)
+                    {
+                        try
+                        {
+                            return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+
+                    // If we cannot connect to any endpoint, we throw the first exception
+                    // TODO: should we throw an AggregateException instead?
+                    throw;
+                }
+            }
+
+            Connection? GetCachedConnection(Endpoint endpoint) =>
+                _outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
+                connections.FirstOrDefault(connection => connection.IsActive) is Connection connection ?
+                    connection : null;
         }
 
         private bool IncRetryBufferSize(int size)

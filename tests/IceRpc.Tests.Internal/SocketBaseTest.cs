@@ -18,17 +18,14 @@ namespace IceRpc.Tests.Internal
     /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
     public class SocketBaseTest
     {
-        private protected Communicator Communicator { get; }
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
-        private protected ILogger Logger => Server.Logger;
-        protected Server Server { get; }
-        protected IncomingConnectionOptions ServerConnectionOptions => Server.ConnectionOptions;
+        private protected ILogger Logger { get; }
+        protected IncomingConnectionOptions ServerConnectionOptions { get; }
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions ClientConnectionOptions =>
-            Communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default;
+        protected OutgoingConnectionOptions ClientConnectionOptions { get; }
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
             IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
@@ -59,7 +56,7 @@ namespace IceRpc.Tests.Internal
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            var clientConnectionOptions = new OutgoingConnectionOptions
+            ClientConnectionOptions = new OutgoingConnectionOptions
             {
                 AuthenticationOptions = new()
                 {
@@ -72,12 +69,8 @@ namespace IceRpc.Tests.Internal
                     TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
                 }
             };
-            Communicator = new Communicator
-            {
-                ConnectionOptions = clientConnectionOptions
-            };
 
-            var serverConnectionOptions = new IncomingConnectionOptions()
+            ServerConnectionOptions = new IncomingConnectionOptions()
             {
                 AuthenticationOptions = new()
                 {
@@ -85,15 +78,12 @@ namespace IceRpc.Tests.Internal
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                 }
             };
-            Server = new Server
-            {
-                Invoker = Communicator,
-                ConnectionOptions = serverConnectionOptions,
-            };
+
+            Logger = Runtime.DefaultLoggerFactory.CreateLogger("IceRpc");
 
             if (transport == "coloc")
             {
-                ClientEndpoint = new ColocEndpoint(Guid.NewGuid().ToString(), 4062, Server.Protocol);
+                ClientEndpoint = new ColocEndpoint(Guid.NewGuid().ToString(), 4062, protocol);
                 ServerEndpoint = ClientEndpoint;
             }
             else
@@ -125,12 +115,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync()
-        {
-            _acceptor?.Dispose();
-            await Communicator.DisposeAsync();
-            await Server.DisposeAsync();
-        }
+        public void Shutdown() => _acceptor?.Dispose();
 
         static protected async ValueTask<SingleStreamSocket> SingleStreamSocketAsync(Task<MultiStreamSocket> socket) =>
             (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
@@ -206,9 +191,9 @@ namespace IceRpc.Tests.Internal
             return multiStreamSocket;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(Server);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
 
         protected MultiStreamSocket CreateServerSocket() =>
-            ServerEndpoint.CreateServerSocket(Server.ConnectionOptions, Server.Logger);
+            ServerEndpoint.CreateServerSocket(ServerConnectionOptions, Logger);
     }
 }

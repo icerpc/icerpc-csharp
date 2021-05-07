@@ -63,7 +63,7 @@ namespace IceRpc
                             throw new InvalidDataException("unexpected data for Slic Ping fame");
                         }
                         _ = PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Pong, cancel: CancellationToken.None);
-                        ReceivedPing();
+                        PingReceived?.Invoke();
                         break;
                     }
                     case SlicDefinitions.FrameType.Pong:
@@ -435,7 +435,7 @@ namespace IceRpc
             (long, long) streamIds = base.AbortStreams(exception, predicate);
 
             // Unblock requests waiting on the semaphores.
-            var ex = new ConnectionClosedException(isClosedByPeer: false, RetryPolicy.AfterDelay(TimeSpan.Zero));
+            var ex = new ConnectionClosedException();
             _bidirectionalStreamSemaphore?.Complete(ex);
             _unidirectionalStreamSemaphore?.Complete(ex);
 

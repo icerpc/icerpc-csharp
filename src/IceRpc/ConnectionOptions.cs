@@ -229,7 +229,7 @@ namespace IceRpc
         private int _incomingFrameMaxSize = 1024 * 1024;
         private int _unidirectionalStreamMaxCount = 100;
 
-        protected ConnectionOptions Clone()
+        protected internal ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
             options.TransportOptions = TransportOptions?.Clone();
@@ -295,6 +295,8 @@ namespace IceRpc
             set => _acceptTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
+
+        internal static OutgoingConnectionOptions Default = new();
 
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;
