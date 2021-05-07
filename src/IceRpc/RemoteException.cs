@@ -236,6 +236,14 @@ namespace IceRpc
 
     public partial class UnhandledException : RemoteException
     {
+        /// <summary>Constructs a new exception where the cause is a remote exception. The remote exception features
+        /// are inherited and set on this UnhandledException.</summary>
+        /// <param name="innerException">The remote exception that is the cause of the current exception.</param>
+        public UnhandledException(RemoteException innerException)
+            : base(message: null, innerException) =>
+            // Inherit the features of the unhandled remote exception.
+            Features = innerException.Features;
+
         /// <summary>Constructs a new exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public UnhandledException(Exception innerException)

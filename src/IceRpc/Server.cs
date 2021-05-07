@@ -136,7 +136,7 @@ namespace IceRpc
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        private Lazy<Task>? _shutdownTask;
+        private Task? _shutdownTask;
         private CancellationTokenSource? _shutdownCancelSource;
 
         /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
@@ -243,7 +243,7 @@ namespace IceRpc
             lock (_mutex)
             {
                 _shutdownCancelSource ??= new();
-                _shutdownTask ??= new Lazy<Task>(PerformShutdownAsync(_shutdownCancelSource.Token));
+                _shutdownTask ??= PerformShutdownAsync();
             }
 
             // Cancel shutdown task if this call is canceled.
@@ -260,10 +260,11 @@ namespace IceRpc
             });
 
             // Wait for shutdown to complete.
-            await _shutdownTask.Value.ConfigureAwait(false);
+            await _shutdownTask.ConfigureAwait(false);
 
-            async Task PerformShutdownAsync(CancellationToken cancel)
+            async Task PerformShutdownAsync()
             {
+                CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
                     Logger.LogServerShuttingDown(this);
@@ -281,6 +282,9 @@ namespace IceRpc
                     // Stop accepting new connections by disposing of the acceptors.
                     _acceptor?.Dispose();
                     _colocAcceptor?.Dispose();
+
+                    // Yield to ensure the mutex is released while we shutdown the connections.
+                    await Task.Yield();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each

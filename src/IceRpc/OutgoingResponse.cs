@@ -344,9 +344,8 @@ namespace IceRpc
         /// <param name="request">The incoming request for which this constructor
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
-        /// <param name="features">The features for this response.</param>
-        public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-            : this(request.Protocol, IceRpc.Payload.FromRemoteException(request, exception), features)
+        public OutgoingResponse(IncomingRequest request, RemoteException exception)
+            : this(request.Protocol, IceRpc.Payload.FromRemoteException(request, exception), exception.Features)
         {
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {

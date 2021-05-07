@@ -1,13 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
+using IceRpc.Internal;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
 using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
 
@@ -57,7 +58,9 @@ namespace IceRpc
             _options = options;
 
             // There's always a single reader (the acceptor) but there might be several writers calling Write
-            // concurrently if there are connection establishment attempts from multiple threads.
+            // concurrently if there are connection establishment attempts from multiple threads. Not allowing
+            // synchronous continuations is safer as otherwise disposal of the acceptor could end up running
+            // the continuation of AcceptAsync.
             _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(
                 new UnboundedChannelOptions
                 {

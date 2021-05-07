@@ -730,7 +730,7 @@ namespace IceRpc
             Debug.Assert(stream != null);
             try
             {
-                // Get a cancelleation token for the dispatch. The token is cancelled when the stream is reset by the
+                // Get a cancellation token for the dispatch. The token is cancelled when the stream is reset by the
                 // peer or when the stream is aborted because the connection shutdown timed out.
                 CancellationToken cancel = stream.CancelDispatchToken;
 
@@ -906,7 +906,7 @@ namespace IceRpc
                     // Wait for the peer to close the connection.
                     while (true)
                     {
-                        // We can't just wait for the accept stream task failure as the task can sometime succeeds
+                        // We can't just wait for the accept stream task failure as the task can sometime succeed
                         // depending on the thread scheduling. So we also check for the state to ensure the loop
                         // eventually terminates once the peer connection is closed.
                         if (State == ConnectionState.Closed)
