@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -65,6 +66,28 @@ namespace IceRpc
             Internal.UriParser.CheckPath(path, nameof(path));
             _pipeline ??= CreatePipeline();
             _exactMatchRoutes[path] = dispatcher;
+        }
+
+        /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
+        /// an existing route at the same path, it is replaced.</summary>
+        /// <param name="service">The target service of this route.</param>
+        /// <seealso cref="Mount"/>
+        public void Map<TService>(TService service) where TService : IService
+        {
+            if (typeof(TService).GetInterfaces().Where(
+                    t => t.IsAssignableTo(typeof(IService))).FirstOrDefault() is Type serviceType &&
+                serviceType.GetField("DefaultPath",
+                                     BindingFlags.Public | BindingFlags.Static) is FieldInfo defaultPathField &&
+                defaultPathField.GetValue(null) is string defaultPath)
+            {
+                _pipeline ??= CreatePipeline();
+                _exactMatchRoutes[defaultPath] = service;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"{typeof(TService).FullName} does not have a string field named DefaultPath");
+            }
         }
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.

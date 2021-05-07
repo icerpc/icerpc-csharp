@@ -39,4 +39,8 @@ module IceRpc::Tests::Api
         int compute(int value);
         void fail();
     }
+
+    interface Base {}
+    interface Derived : Base {}
+    interface MostDerived : Derived {}
 }

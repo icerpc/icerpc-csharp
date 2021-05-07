@@ -60,6 +60,10 @@ namespace IceRpc
                 Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
 
+        /// <summary>The path for services of <see cref="IService"/> type when the path is not explicitly specified.
+        /// </summary>
+        public const string DefaultPath = "/Ice.Object";
+
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties, which include properties of both the request and response</param>

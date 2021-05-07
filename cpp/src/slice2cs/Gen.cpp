@@ -2801,7 +2801,12 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << sp;
     }
 
+    _out << nl << "/// <summary>The path for services of <see cref=\"" << name
+         << "\"/> type when the path is not explicitly specified.</summary>";
+    _out << nl << "public new const string DefaultPath = \"" << defaultPath(p->scoped()) << "\";";
+
     // The _ice prefix is in case the user "extends" the partial generated interface.
+    _out << sp;
     _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
         << name << "))!;";
     _out << nl
