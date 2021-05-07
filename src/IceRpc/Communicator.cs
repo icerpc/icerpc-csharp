@@ -30,6 +30,9 @@ namespace IceRpc
         /// invocation. It must be a number greater than 0.</summary>
         public int InvocationMaxAttempts { get; set; } = 5; // TODO: > 0 and <= 5
 
+        /// <summary>Gets or sets the location resolver of this connection pool.</summary>
+        public ILocationResolver? LocationResolver { get; set; }
+
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
         /// its logger using <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
         /// <value>The logger factory of this connection pool.</value>
@@ -78,10 +81,6 @@ namespace IceRpc
         private ImmutableList<Func<IInvoker, IInvoker>> _invokerInterceptorList =
             ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
-        private ILocationResolver? _locationResolver;
-        private ImmutableList<Func<ILocationResolver, ILocationResolver>> _locationResolverInterceptorList =
-            ImmutableList<Func<ILocationResolver, ILocationResolver>>.Empty;
-
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
@@ -102,7 +101,6 @@ namespace IceRpc
 
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            _locationResolver ??= CreateLocationResolverPipeline();
             _invoker ??= CreateInvokerPipeline();
 
             // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
@@ -145,12 +143,36 @@ namespace IceRpc
                     {
                         if (endpoint?.Transport == Transport.Loc)
                         {
+                            if (LocationResolver is not ILocationResolver locationResolver)
+                            {
+                                // TODO: throw a different exception like NoLocationResolverException?
+                                throw new NoEndpointException(request.Proxy.ToString()!);
+                            }
+
                             try
                             {
                                 (endpoint, altEndpoints) =
-                                    await _locationResolver.ResolveAsync(endpoint!,
-                                                                         refreshCache,
-                                                                         cancel).ConfigureAwait(false);
+                                    await locationResolver.ResolveAsync(endpoint!,
+                                                                        refreshCache,
+                                                                        cancel).ConfigureAwait(false);
+                            }
+                            // TODO: should we let OperationCanceledException through?
+                            catch
+                            {
+                                // TODO: log exception?
+                                throw new NoEndpointException(request.Proxy.ToString()!);
+                            }
+                        }
+                        else if (endpoint == null &&
+                                 proxy.Protocol == Protocol.Ice1 &&
+                                 LocationResolver is Interop.IIdentityResolver identityResolver)
+                        {
+                            try
+                            {
+                                (endpoint, altEndpoints) =
+                                    await identityResolver.ResolveAsync(proxy.Identity,
+                                                                        refreshCache,
+                                                                        cancel).ConfigureAwait(false);
                             }
                             // TODO: should we let OperationCanceledException through?
                             catch
@@ -391,20 +413,6 @@ namespace IceRpc
             _invokerInterceptorList = _invokerInterceptorList.AddRange(interceptor);
         }
 
-        /// <summary>Installs one or more location resolver interceptors.</summary>
-        /// <param name="interceptor">One or more location resolver interceptors.</param>
-        /// <exception name="InvalidOperationException">Thrown if this method is called after the first call to
-        /// <see cref="InvokeAsync"/>.</exception>
-        public void Use(params Func<ILocationResolver, ILocationResolver>[] interceptor)
-        {
-            if (_locationResolver != null)
-            {
-                throw new InvalidOperationException(
-                    "interceptors must be installed before the first call to InvokeAsync");
-            }
-            _locationResolverInterceptorList = _locationResolverInterceptorList.AddRange(interceptor);
-        }
-
         private IInvoker CreateInvokerPipeline()
         {
             IInvoker pipeline = new InlineInvoker((request, cancel) =>
@@ -467,20 +475,6 @@ namespace IceRpc
                     stream?.Release();
                 }
             }
-        }
-
-        private ILocationResolver CreateLocationResolverPipeline()
-        {
-            ILocationResolver pipeline = new InlineLocationResolver(
-                (LocEndpoint, refreshCache, cancel) => new((null, ImmutableList<Endpoint>.Empty)));
-
-            IEnumerable<Func<ILocationResolver, ILocationResolver>> interceptorEnumerable =
-                _locationResolverInterceptorList;
-            foreach (Func<ILocationResolver, ILocationResolver> interceptor in interceptorEnumerable.Reverse())
-            {
-                pipeline = interceptor(pipeline);
-            }
-            return pipeline;
         }
 
         private void DecRetryBufferSize(int size)

@@ -213,9 +213,7 @@ namespace IceRpc
 
                 if (proxy.Impl.IsWellKnown)
                 {
-                    // Need to replace Loc endpoint since we're changing the identity.
-                    endpoint = LocEndpoint.Create(identity);
-                    connection = null; // clear cached connection since we're changing the endpoint
+                    connection = null; // clear cached connection
                 }
 
                 return GetFactory<T>().Create(identity,

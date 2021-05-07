@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -10,10 +10,40 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc.Interop
 {
+    /// <summary>An options class for configuring a <see cref="LocatorClient"/>.</summary>
+    public sealed class LocatorClientOptions
+    {
+        /// <summary>When true, if the lookup finds a stale cache entry, it returns the stale entry's endpoint(s)
+        /// and executes a call "in the background" to refresh this entry. The default is false, meaning the lookup
+        /// does not return stale values.</summary>
+        public bool Background { get; set; }
+
+        /// <summary>The maximum size of the cache. Must be 0 (meaning no cache) or greater.</summary>
+        public int CacheMaxSize
+        {
+            get => _cacheMaxSize;
+            set => _cacheMaxSize = value >= 0 ? value :
+                throw new ArgumentException($"{nameof(CacheMaxSize)} must be positive", nameof(value));
+        }
+
+        /// <summary>When a cache entry's age is <c>JustRefreshedAge</c> or less, it's considered just refreshed and
+        /// won't be updated even when the caller requests a refresh.</summary>
+        public TimeSpan JustRefreshedAge { get; set; } = TimeSpan.FromSeconds(1);
+
+        /// <summary>The logger factory used to create the IceRpc logger.</summary>
+        public ILoggerFactory LoggerFactory { get; set; } = Runtime.DefaultLoggerFactory;
+
+        /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning
+        /// the cache entries never become stale.</summary>
+        public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
+
+        private int _cacheMaxSize = 100;
+    }
+
     /// <summary>A location resolver that provides the implementation of the Locator interceptor.</summary>
-    internal sealed class LocatorClient : ILocationResolver
+    public sealed class LocatorClient : ILocationResolver, IIdentityResolver
     {
         private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;
         private readonly bool _background;
@@ -33,108 +63,17 @@ namespace IceRpc.Internal
         // _mutex protects _cacheKeys, _requests and updates to _cache
         private readonly object _mutex = new();
 
-        private readonly ILocationResolver _next;
-
         private readonly Dictionary<(string Location, string? Category), Task<(Endpoint?, ImmutableList<Endpoint>)>> _requests =
             new();
 
         private readonly TimeSpan _ttl;
 
-        /// <inherit-doc/>
-        public async ValueTask<(Endpoint?, ImmutableList<Endpoint>)> ResolveAsync(
-            Endpoint locEndpoint,
-            bool refreshCache,
-            CancellationToken cancel)
-        {
-            if (locEndpoint.Transport == Transport.Loc && locEndpoint.Protocol == Protocol.Ice1)
-            {
-                string location = locEndpoint.Host;
-                string? category = locEndpoint["category"];
-
-                Endpoint? endpoint = null;
-                ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                bool expired = false;
-                bool justRefreshed = false;
-                bool resolved = false;
-
-                if (HasCache && _cache.TryGetValue(
-                    (location, category),
-                    out (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> _) entry))
-                {
-                    endpoint = entry.Endpoint;
-                    altEndpoints = entry.AltEndpoints;
-                    TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
-                    expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
-                    justRefreshed = cacheEntryAge <= _justRefreshedAge;
-                }
-
-                if (endpoint == null || (!_background && expired) || (refreshCache && !justRefreshed))
-                {
-                    (endpoint, altEndpoints) =
-                        await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
-                    resolved = true;
-                }
-                else if (_background && expired)
-                {
-                    // We retrieved expired endpoints from the cache, so we launch a refresh in the background.
-                    _ = ResolveWithLocatorAsync(location, category, cancel: default);
-                }
-
-                // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
-                // endpoint.
-                if (endpoint?.Transport == Transport.Loc)
-                {
-                    try
-                    {
-                        // Resolves adapter ID recursively, by checking first the cache. If we resolved the endpoint, we
-                        // request a cache refresh for the adapter.
-                        (endpoint, altEndpoints) = await ResolveAsync(endpoint!,
-                                                                      refreshCache || resolved,
-                                                                      cancel).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        // When the second resolution fails, we clear the cache entry for the initial successful
-                        // resolution, since the overall resolution is a failure.
-                        // endpoint below can hold a loc endpoint only when an exception is thrown.
-                        if (endpoint == null || endpoint.Transport == Transport.Loc)
-                        {
-                            ClearCache(location, category);
-                        }
-                    }
-                }
-
-                if (endpoint != null)
-                {
-                    if (resolved)
-                    {
-                        _logger.LogResolved(location, category, endpoint, altEndpoints);
-                    }
-                    else
-                    {
-                        _logger.LogFoundEntryInCache(location, category, endpoint, altEndpoints);
-                    }
-                    return (endpoint, altEndpoints);
-                }
-                else
-                {
-                    _logger.LogCouldNotResolveEndpoint(location, category);
-                    // and try the next location resolver in the pipeline
-                }
-            }
-
-            return await _next.ResolveAsync(locEndpoint, refreshCache, cancel).ConfigureAwait(false);
-        }
-
         /// <summary>Constructs a locator client.</summary>
         /// <param name="locator">The locator proxy.</param>
-        /// <param name="next">The next location resolver in the pipeline.</param>
-        /// <param name="options">Options to configure this locator client. See
-        /// <see cref="Interceptor.LocatorOptions"/>.</param>
-        internal LocatorClient(ILocatorPrx locator, ILocationResolver next, Interceptor.LocatorOptions options)
+        /// <param name="options">Options to configure this locator client.</param>
+        public LocatorClient(ILocatorPrx locator, LocatorClientOptions options)
         {
             _locator = locator;
-            _next = next;
             _background = options.Background;
             _cacheMaxSize = options.CacheMaxSize;
             _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
@@ -147,6 +86,28 @@ namespace IceRpc.Internal
                 throw new ArgumentException("JustRefreshedAge must be smaller than Ttl", nameof(options));
             }
         }
+
+        /// <summary>Constructs a locator client with defailt options.</summary>
+        /// <param name="locator">The locator proxy.</param>
+        public LocatorClient(ILocatorPrx locator)
+            : this(locator, new())
+        {
+        }
+
+        /// <inherit-doc/>
+        public ValueTask<(Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints)> ResolveAsync(
+            Endpoint locEndpoint,
+            bool refreshCache,
+            CancellationToken cancel) =>
+            locEndpoint.Transport == Transport.Loc ?
+                ResolveAsync(locEndpoint.Host, category: null, refreshCache, cancel) :
+                new((null, ImmutableList<Endpoint>.Empty));
+
+        /// <inherit-doc/>
+        public ValueTask<(Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints)> ResolveAsync(
+            Identity identity,
+            bool refreshCache,
+            CancellationToken cancel) => ResolveAsync(identity.Name, identity.Category, refreshCache, cancel);
 
         private void ClearCache(string location, string? category)
         {
@@ -163,6 +124,84 @@ namespace IceRpc.Internal
                     }
                 }
             }
+        }
+
+        /// <summary>Provides the implementation of the public ResolveAsync methods.</summary>
+        private async ValueTask<(Endpoint?, ImmutableList<Endpoint>)> ResolveAsync(
+            string location,
+            string? category,
+            bool refreshCache,
+            CancellationToken cancel)
+        {
+            Endpoint? endpoint = null;
+            ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+            bool expired = false;
+            bool justRefreshed = false;
+            bool resolved = false;
+
+            if (HasCache && _cache.TryGetValue(
+                (location, category),
+                out (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> _) entry))
+            {
+                endpoint = entry.Endpoint;
+                altEndpoints = entry.AltEndpoints;
+                TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
+                expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
+                justRefreshed = cacheEntryAge <= _justRefreshedAge;
+            }
+
+            if (endpoint == null || (!_background && expired) || (refreshCache && !justRefreshed))
+            {
+                (endpoint, altEndpoints) =
+                    await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
+                resolved = true;
+            }
+            else if (_background && expired)
+            {
+                // We retrieved expired endpoints from the cache, so we launch a refresh in the background.
+                _ = ResolveWithLocatorAsync(location, category, cancel: default);
+            }
+
+            // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
+            // endpoint.
+            if (endpoint?.Transport == Transport.Loc)
+            {
+                try
+                {
+                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the endpoint, we
+                    // request a cache refresh for the adapter.
+                    (endpoint, altEndpoints) = await ResolveAsync(endpoint!,
+                                                                  refreshCache || resolved,
+                                                                  cancel).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // When the second resolution fails, we clear the cache entry for the initial successful
+                    // resolution, since the overall resolution is a failure.
+                    // endpoint below can hold a loc endpoint only when an exception is thrown.
+                    if (endpoint == null || endpoint.Transport == Transport.Loc)
+                    {
+                        ClearCache(location, category);
+                    }
+                }
+            }
+
+            if (endpoint != null)
+            {
+                if (resolved)
+                {
+                    _logger.LogResolved(location, category, endpoint, altEndpoints);
+                }
+                else
+                {
+                    _logger.LogFoundEntryInCache(location, category, endpoint, altEndpoints);
+                }
+            }
+            else
+            {
+                _logger.LogCouldNotResolveEndpoint(location, category);
+            }
+            return (endpoint, altEndpoints);
         }
 
         private async Task<(Endpoint?, ImmutableList<Endpoint>)> ResolveWithLocatorAsync(

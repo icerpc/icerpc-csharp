@@ -297,15 +297,8 @@ namespace IceRpc
                 Connection? connection = null;
                 if (endpoint == null)
                 {
-                    if (istr.Connection == null && identity is Identity id)
-                    {
-                        endpoint = LocEndpoint.Create(id); // well-known proxy with a loc endpoint (temporary)
-                    }
-                    else
-                    {
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                        connection = istr.Connection;
-                    }
+                    endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
+                    connection = istr.Connection;
                 }
 
                 try
