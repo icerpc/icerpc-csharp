@@ -286,7 +286,7 @@ namespace IceRpc.Tests.Api
                         }
                         Assert.Fail();
                     }
-                    return new OutgoingResponse(request);
+                    return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -329,7 +329,7 @@ namespace IceRpc.Tests.Api
                     Assert.That(cancel.CanBeCanceled, Is.True);
                     semaphore.Release();
                     await Task.Delay(-1, cancel);
-                    return new OutgoingResponse(request);
+                    return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
