@@ -224,9 +224,13 @@ namespace IceRpc
 
                     // Step 2: call the invoker pipeline
 
+                    cancel.ThrowIfCancellationRequested();
+                    response?.Dispose();
+                    response = null;
+                    request.IsSent = false;
+
                     try
                     {
-                        request.IsSent = false;
                         response = await _invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                         if (response.ResultType == ResultType.Success)

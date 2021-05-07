@@ -341,13 +341,11 @@ namespace IceRpc.Tests.ClientServer
                     prx = prx1.Clone();
                     prx.AltEndpoints = ImmutableList.Create(prx3.Endpoint!, prx2.Endpoint!);
 
-                    // TODO: reenable
-                    /*
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
-                    Assert.AreEqual(servers[2].ToString(), calls[1]);
-                    Assert.AreEqual(2, calls.Count);
-                    */
+                    // TODO: fix & reenable
+                    // Assert.AreEqual(servers[2].ToString(), calls[1]);
+                    // Assert.AreEqual(2, calls.Count);
 
                     // The first replica fails with ServiceNotFoundException exception and there is no additional
                     // replicas.
