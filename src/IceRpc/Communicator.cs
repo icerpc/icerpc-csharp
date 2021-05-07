@@ -145,10 +145,19 @@ namespace IceRpc
                     {
                         if (endpoint?.Transport == Transport.Loc)
                         {
-                            (endpoint, altEndpoints) =
-                                 await _locationResolver.ResolveAsync(endpoint!,
-                                                                      refreshCache,
-                                                                      cancel).ConfigureAwait(false);
+                            try
+                            {
+                                (endpoint, altEndpoints) =
+                                    await _locationResolver.ResolveAsync(endpoint!,
+                                                                         refreshCache,
+                                                                         cancel).ConfigureAwait(false);
+                            }
+                            // TODO: should we let OperationCanceledException through?
+                            catch
+                            {
+                                // TODO: log exception?
+                                throw new NoEndpointException(request.Proxy.ToString()!);
+                            }
                         }
 
                         if (endpoint != null)
@@ -194,6 +203,7 @@ namespace IceRpc
                             request.Connection =
                                 await GetConnectionAsync(endpoint, altEndpoints, cancel).ConfigureAwait(false);
                         }
+                        // TODO: should we let OperationCanceledException through?
                         catch (Exception ex)
                         {
                             // We don't count this failure to obtain a connection as an attempt.
@@ -238,6 +248,7 @@ namespace IceRpc
                             return response;
                         }
                     }
+                    // TODO: should we let OperationCanceledException through?
                     catch (Exception ex)
                     {
                         exception = ex;
