@@ -51,7 +51,11 @@ namespace IceRpc
             new ObjectDisposedException(nameof(SignaledSocketStream<T>));
 
         /// <summary>Aborts the stream.</summary>
-        public override void Abort(Exception ex) => SetException(ex);
+        public override void Abort(Exception ex)
+        {
+            base.Abort(ex);
+            SetException(ex);
+        }
 
         protected SignaledSocketStream(MultiStreamSocket socket, long streamId)
             : base(socket, streamId) => _source.RunContinuationsAsynchronously = true;

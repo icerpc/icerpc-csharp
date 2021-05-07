@@ -341,23 +341,11 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
-        /// <param name="dispatch">The dispatch for the incoming request for which this constructor
-        ///  creates a response.</param>
-        /// <param name="exception">The exception to store into the response's payload.</param>
-        public OutgoingResponse(Dispatch dispatch, RemoteException exception)
-            : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
-        {
-        }
-
-        /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
         /// <param name="request">The incoming request for which this constructor
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
-        /// <param name="features">The features for this response.</param>
-        public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
-                    : this(request.Protocol,
-                           IceRpc.Payload.FromRemoteException(request, exception),
-                           features)
+        public OutgoingResponse(IncomingRequest request, RemoteException exception)
+            : this(request.Protocol, IceRpc.Payload.FromRemoteException(request, exception), exception.Features)
         {
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
@@ -408,7 +396,7 @@ namespace IceRpc
         }
 
         private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection? features)
-                   : base(protocol, features)
+            : base(protocol, features)
         {
             _payload = new List<ArraySegment<byte>>();
             _payloadSize = -1;

@@ -189,47 +189,10 @@ namespace IceRpc
 
                 return new OutgoingResponse(dispatch, payload);
             }
-            catch (Exception ex)
+            catch (RemoteException exception)
             {
-                if (ex is OperationCanceledException)
-                {
-                    if (request.Connection.Server is Server server &&
-                        server.CancelDispatch.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    else if (cancel.IsCancellationRequested)
-                    {
-                        // The client requested cancellation.
-                        throw;
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-                }
-
-                if (request.IsOneway)
-                {
-                    // We log this exception, since otherwise it would be lost.
-                    request.Connection.Logger.LogDispatchException(request, ex);
-                    return new OutgoingResponse(dispatch);
-                }
-                else
-                {
-                    RemoteException actualEx;
-                    if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                    {
-                        actualEx = remoteEx;
-                    }
-                    else
-                    {
-                        actualEx = new UnhandledException(ex);
-
-                        // We log the "source" exception as UnhandledException may not include all details.
-                        request.Connection.Logger.LogDispatchException(request, ex);
-                    }
-                    return new OutgoingResponse(dispatch, actualEx);
-                }
+                exception.Features = dispatch.ResponseFeatures;
+                throw;
             }
         }
     }

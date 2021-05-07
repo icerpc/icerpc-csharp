@@ -25,18 +25,12 @@ module IceRpc::Tests::Api
     {
         ProxyTest receiveProxy();
         void sendProxy(ProxyTest proxy);
-
-        void waitForCancel();
-    }
-
-    interface ServerTest
-    {
-        void callback(ProxyTest callback);
     }
 
     interface FeatureService
     {
         int compute(int value);
-        void fail();
+        void failWithRemote();
+        void failWithUnhandled();
     }
 }
