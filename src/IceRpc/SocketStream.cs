@@ -22,10 +22,6 @@ namespace IceRpc
         public static readonly Func<SocketStream, System.IO.Stream> IceReceiveDataIntoIOStream =
             socketStream => socketStream.ReceiveDataIntoIOStream();
 
-        /// <summary>Get the cancellation token to provide to the dispatcher. The token is canceled when the
-        /// the stream is aborted.</summary>
-        public CancellationToken CancelDispatchToken => (_cancelDispatchSource ??= new()).Token;
-
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the socket.</summary>
         /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
@@ -66,6 +62,11 @@ namespace IceRpc
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
         /// this header to be set at the start of the first segment.</summary>
         protected virtual ReadOnlyMemory<byte> TransportHeader => default;
+
+        /// <summary>Get the cancellation token to provide to the dispatcher. The token is canceled when the
+        /// the stream is aborted. This is only accessed by the dispatch code for incoming streams. This
+        /// method is called from a single thread and doesn't need to be thread-safe.</summary>
+        internal CancellationToken CancelDispatchToken => (_cancelDispatchSource ??= new()).Token;
 
         /// <summary>The Reset event is triggered when a reset frame is received.</summary>
         internal event Action<long>? Reset;
