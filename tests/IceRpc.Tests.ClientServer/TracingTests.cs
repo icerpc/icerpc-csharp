@@ -137,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
         /// parent activity for the Dispatch activity. This test runs with the two supported protocols because
         /// the propagation of the activity context is different for Ice2 and Ice1.</summary>
 
-        // TODO: how did I break this? [TestCase(Protocol.Ice1)]
+        [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
         public async Task Tracing_ActivityPropagationAsync(Protocol protocol)
         {

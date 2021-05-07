@@ -103,12 +103,9 @@ namespace IceRpc
         {
             _invoker ??= CreateInvokerPipeline();
 
-            // If the request size is greater than Ice.RetryRequestSizeMax or the size of the request
-            // would increase the buffer retry size beyond Ice.RetryBufferSizeMax we release the request
-            // after it was sent to avoid holding too much memory and we wont retry in case of a failure.
-
-            // TODO: this "request size" is now just the payload size. Should we rename the property to
-            // RetryRequestPayloadMaxSize?
+            // If the request size is greater than RetryRequestMaxSize or the size of the request would increase the
+            // buffer retry size beyond RetryBufferMaxSize we release the request after it was sent to avoid holding too
+            // much memory and we won't retry in case of a failure.
 
             int requestSize = request.PayloadSize;
             bool releaseRequestAfterSent =
@@ -116,11 +113,6 @@ namespace IceRpc
 
             try
             {
-                if (Activity.Current != null && Activity.Current.Id != null)
-                {
-                    request.WriteActivityContext(Activity.Current);
-                }
-
                 ILogger logger = Logger;
                 int attempt = 1;
                 List<Endpoint>? excludedEndpoints = null;
@@ -146,7 +138,7 @@ namespace IceRpc
                             if (LocationResolver is not ILocationResolver locationResolver)
                             {
                                 // TODO: throw a different exception like NoLocationResolverException?
-                                throw new NoEndpointException(request.Proxy.ToString()!);
+                                throw new NoEndpointException(request.Proxy);
                             }
 
                             try
@@ -160,7 +152,7 @@ namespace IceRpc
                             catch
                             {
                                 // TODO: log exception?
-                                throw new NoEndpointException(request.Proxy.ToString()!);
+                                throw new NoEndpointException(request.Proxy);
                             }
                         }
                         else if (endpoint == null &&
@@ -178,7 +170,7 @@ namespace IceRpc
                             catch
                             {
                                 // TODO: log exception?
-                                throw new NoEndpointException(request.Proxy.ToString()!);
+                                throw new NoEndpointException(request.Proxy);
                             }
                         }
 
@@ -219,7 +211,7 @@ namespace IceRpc
                             // the endpoints were tried and did not work.
                             return response ??
                                 (exception != null ? throw ExceptionUtil.Throw(exception) :
-                                    throw new NoEndpointException(request.Proxy.ToString()!));
+                                    throw new NoEndpointException(request.Proxy));
                         }
 
                         try
@@ -266,6 +258,8 @@ namespace IceRpc
                     try
                     {
                         response = await _invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
+
+                        // TODO: release payload if releaseRequestAfterSent is true
 
                         if (response.ResultType == ResultType.Success)
                         {
@@ -431,6 +425,11 @@ namespace IceRpc
                 OutgoingRequest request,
                 CancellationToken cancel)
             {
+                if (Activity.Current != null && Activity.Current.Id != null)
+                {
+                    request.WriteActivityContext(Activity.Current);
+                }
+
                 SocketStream? stream = null;
                 try
                 {
@@ -442,8 +441,7 @@ namespace IceRpc
                     // Send the request and wait for the sending to complete.
                     await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
-                    // TODO: is this correct? When SendRequestFrameAsync throws an exception, we guarantee the request
-                    // was not sent?
+                    // TODO: move this set to stream.SendRequestFrameAsync
                     request.IsSent = true;
 
                     using IDisposable? streamSocket = stream.StartScope();
@@ -471,7 +469,7 @@ namespace IceRpc
                 }
                 finally
                 {
-                    // TODO: making SocketStream disposable would be simpler!
+                    // Release one ref-count
                     stream?.Release();
                 }
             }

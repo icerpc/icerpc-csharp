@@ -87,7 +87,7 @@ namespace IceRpc.Interop
             }
         }
 
-        /// <summary>Constructs a locator client with defailt options.</summary>
+        /// <summary>Constructs a locator client with default options.</summary>
         /// <param name="locator">The locator proxy.</param>
         public LocatorClient(ILocatorPrx locator)
             : this(locator, new())
