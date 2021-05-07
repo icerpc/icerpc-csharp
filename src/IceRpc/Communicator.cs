@@ -195,7 +195,9 @@ namespace IceRpc
                         {
                             // We can't get an endpoint: either the proxy has no usable endpoint to start with, or all
                             // the endpoints were tried and did not work.
-                            return response ?? throw exception ?? new NoEndpointException(request.Proxy.ToString()!);
+                            return response ??
+                                (exception != null ? throw ExceptionUtil.Throw(exception) :
+                                    throw new NoEndpointException(request.Proxy.ToString()!));
                         }
 
                         try
@@ -213,7 +215,7 @@ namespace IceRpc
                             {
                                 // We failed to establish a connection to any of the just refreshed endpoints. Retrying
                                 // more is pointless.
-                                return response ?? throw exception!;
+                                return response ?? throw ExceptionUtil.Throw(exception!);
                             }
                             else
                             {
