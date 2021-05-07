@@ -175,22 +175,16 @@ namespace IceRpc
                 }
         */
 
-        /// <summary>Constructs an outgoing response with a void payload. The new response will use the protocol and
-        /// encoding of <paramref name="dispatch"/>.</summary>
-        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
-        public OutgoingResponse(Dispatch dispatch)
-            : this(dispatch.IncomingRequest, dispatch.ResponseFeatures)
-        {
-        }
-
-        /// <summary>Constructs an outgoing response with a void payload. The new response will use the protocol and
+        /// <summary>Constructs an outgoing response with the given payload. The new response will use the protocol and
         /// encoding of <paramref name="request"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
+        /// <param name="payload">The payload of this response.</param>
         /// <param name="features">The features of this response.</param>
-        public OutgoingResponse(IncomingRequest request, FeatureCollection? features = null)
-            : this(request.Protocol,
-                   IceRpc.Payload.FromVoidReturnValue(request),
-                   features)
+        public OutgoingResponse(
+            IncomingRequest request, 
+            IList<ArraySegment<byte>> payload, 
+            FeatureCollection? features = null)
+            : this(request.Protocol, payload, features)
         {
         }
 
@@ -200,22 +194,6 @@ namespace IceRpc
         /// <param name="payload">The payload of this response.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
             : this(dispatch.Protocol, payload, dispatch.ResponseFeatures)
-        {
-        }
-
-        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="dispatch"/> and the encoding of <paramref name="response"/>.
-        /// </summary>
-        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
-        /// <param name="response">The incoming response used to construct the new outgoing response.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
-        /// binary context as a fallback - all the entries in this binary context are added before the response is sent,
-        /// except for entries previously added by dispatch interceptors.</param>
-        public OutgoingResponse(
-            Dispatch dispatch,
-            IncomingResponse response,
-            bool forwardBinaryContext = true)
-            : this(dispatch.IncomingRequest, response, forwardBinaryContext, dispatch.ResponseFeatures)
         {
         }
 
@@ -233,8 +211,11 @@ namespace IceRpc
             IncomingResponse response,
             bool forwardBinaryContext = true,
             FeatureCollection? features = null)
-            : this(request.Protocol, response.PayloadEncoding, features)
+            : base(request.Protocol, features)
         {
+            _payload = new List<ArraySegment<byte>>();
+            _payloadSize = -1;
+            PayloadEncoding = response.PayloadEncoding;
             if (Protocol == response.Protocol)
             {
                 Payload.Add(response.Payload);
@@ -385,22 +366,15 @@ namespace IceRpc
             }
         }
 
-        private OutgoingResponse(Protocol protocol,
-                                 IList<ArraySegment<byte>> payload,
-                                 FeatureCollection? features)
-                    : base(protocol, features)
+        private OutgoingResponse(
+            Protocol protocol,
+            IList<ArraySegment<byte>> payload,
+            FeatureCollection? features)
+            : base(protocol, features)
         {
             _payload = payload;
             _payloadSize = -1;
             Payload = payload;
-        }
-
-        private OutgoingResponse(Protocol protocol, Encoding encoding, FeatureCollection? features)
-            : base(protocol, features)
-        {
-            _payload = new List<ArraySegment<byte>>();
-            _payloadSize = -1;
-            PayloadEncoding = encoding;
         }
     }
 }
