@@ -12,11 +12,6 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
-        /// <summary>The exception if response was constructed with an exception.</summary>
-        /// <remarks>If <c>ResultType</c> is set to <c>ResultType.Failure</c>, the exception might still be null if
-        /// the response is constructed from an <c>IncomingResponse</c></summary>
-        public Exception? Exception;
-
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -332,24 +327,13 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
-        /// <param name="dispatch">The dispatch for the incoming request for which this constructor
-        ///  creates a response.</param>
-        /// <param name="exception">The exception to store into the response's payload.</param>
-        public OutgoingResponse(Dispatch dispatch, Exception exception)
-            : this(dispatch.IncomingRequest, exception, dispatch.ResponseFeatures)
-        {
-        }
-
-        /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
         /// <param name="request">The incoming request for which this constructor
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <param name="features">The features for this response.</param>
-        public OutgoingResponse(IncomingRequest request, Exception exception, FeatureCollection? features = null)
+        public OutgoingResponse(IncomingRequest request, RemoteException exception, FeatureCollection? features = null)
             : this(request.Protocol, request.PayloadEncoding, features)
         {
-            Exception = exception;
-
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (PayloadEncoding == Encoding.V11)
             {
@@ -360,13 +344,6 @@ namespace IceRpc
                     UnhandledException _ => ReplyStatus.UnknownLocalException,
                     _ => ReplyStatus.UserException
                 };
-            }
-
-            // If the exception is not a remote exception or it needs to be converted to an unhandled exception,
-            // marshal an unhandled exception.
-            if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
-            {
-                remoteException = new UnhandledException(exception);
             }
 
             OutputStream ostr;
@@ -397,7 +374,7 @@ namespace IceRpc
                 ostr.Write(replyStatus);
             }
 
-            remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             if (PayloadEncoding == Encoding.V11)
             {
                 switch (replyStatus)
@@ -430,20 +407,20 @@ namespace IceRpc
                         break;
 
                     default:
-                        ostr.WriteException(remoteException);
+                        ostr.WriteException(exception);
                         break;
                 }
             }
             else
             {
-                ostr.WriteException(remoteException);
+                ostr.WriteException(exception);
             }
 
             ostr.Finish();
 
-            if (Protocol == Protocol.Ice2 && remoteException.RetryPolicy.Retryable != Retryable.No)
+            if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
-                RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                RetryPolicy retryPolicy = exception.RetryPolicy;
 
                 BinaryContextOverride.Add(
                     (int)BinaryContextKey.RetryPolicy,

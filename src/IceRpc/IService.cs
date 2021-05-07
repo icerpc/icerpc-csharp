@@ -194,9 +194,10 @@ namespace IceRpc
             {
                 return await DispatchAsync(request, dispatch, cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (RemoteException exception)
             {
-                return new OutgoingResponse(dispatch, ex);
+                exception.Features = dispatch.ResponseFeatures;
+                throw;
             }
         }
     }

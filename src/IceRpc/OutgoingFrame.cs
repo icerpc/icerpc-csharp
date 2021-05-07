@@ -66,8 +66,6 @@ namespace IceRpc
 
         private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
         private FeatureCollection? _features;
-        private IList<ArraySegment<byte>> _payload = new List<ArraySegment<byte>>();
-        private int _payloadSize = -1; // -1 means not initialized
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>

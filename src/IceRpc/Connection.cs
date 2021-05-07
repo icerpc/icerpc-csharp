@@ -768,40 +768,36 @@ namespace IceRpc
                     {
                         response = await Dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
                     }
-                    catch(Exception ex)
+                    catch (OperationCanceledException exception) when (stream.IsBidirectional &&
+                                                                       exception.CancellationToken == cancel &&
+                                                                       State > ConnectionState.Active)
                     {
-                        response = new(request, ex);
+                        // The connection is being shutdown and shutdown aborted the dispatch, replace the
+                        // response with a dispatch exception to notify the client of the cancellation caused
+                        // by the connection shutdown.
+                        response = new OutgoingResponse(request, new DispatchException("dispatch canceled by shutdown"));
                     }
-
-                    // If the response result type is failure we check the exception to either transform the
-                    // response or log the exception.
-                    if (response.Exception != null)
+                    catch (Exception exception)
                     {
-                        if (response.Exception is OperationCanceledException cancelEx &&
-                            stream.IsBidirectional &&
-                            cancelEx.CancellationToken == cancel &&
-                            State > ConnectionState.Active)
-                        {
-                            // The connection is being shutdown and shutdown aborted the dispatch, replace the
-                            // response with a dispatch exception to notify the client of the cancellation caused
-                            // by the connection shutdown.
-                            response = new(request, new DispatchException("dispatch canceled by shutdown"));
-                        }
-                        else if (response.Exception is not RemoteException remoteEx || remoteEx.ConvertToUnhandled)
+                        // Convert the exception to an UnhandledException if needed.
+                        if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                         {
                             // We log the exception as the UnhandledException may not include all details.
-                            _socket!.Logger.LogDispatchException(request, response.Exception);
+                            _socket!.Logger.LogDispatchException(request, exception);
+                            remoteException = new UnhandledException(exception);
                         }
                         else if (!stream.IsBidirectional)
                         {
                             // We log this exception, since otherwise it would be lost since we don't send a response.
-                            _socket!.Logger.LogDispatchException(request, response.Exception);
+                            _socket!.Logger.LogDispatchException(request, exception);
                         }
+
+                        response = new OutgoingResponse(request, remoteException);
                     }
                 }
                 else if(stream.IsBidirectional)
                 {
-                    response = new(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
+                    response = new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
                 }
 
                 // Send the response if the stream is bidirectional.

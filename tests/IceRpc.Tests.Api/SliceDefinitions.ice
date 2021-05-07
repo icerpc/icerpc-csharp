@@ -30,6 +30,7 @@ module IceRpc::Tests::Api
     interface FeatureService
     {
         int compute(int value);
-        void fail();
+        void failWithRemote();
+        void failWithUnhandled();
     }
 }

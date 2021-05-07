@@ -81,6 +81,10 @@ namespace IceRpc
         /// in a remote server.</summary>
         public bool ConvertToUnhandled { get; set; }
 
+        /// <summary>The features of this remote exception when it is thrown by a service dispatch  method. The
+        /// features are set with the features from <c>Dispatch.ResponseFeatures</c>.</summary>
+        public FeatureCollection? Features { get; internal set; }
+
         /// <summary>The remote exception origin.</summary>
         public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
