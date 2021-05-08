@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -10,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
+    /// <summary>The implementation of <see cref="Interceptor.Retry"/>.</summary>
     internal sealed class RetryInvoker : IInvoker
     {
         private readonly int _bufferMaxSize;
@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // If the request size is greater than _requestMaxSize or the size of the request would increase the
-            // buffer size beyond bufferMaxSize we release the request after it was sent to avoid holding too
+            // buffer size beyond _bufferMaxSize we release the request after it was sent to avoid holding too
             // much memory and we won't retry in case of a failure.
 
             int requestSize = request.PayloadSize;

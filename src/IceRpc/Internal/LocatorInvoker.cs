@@ -96,6 +96,7 @@ namespace IceRpc.Internal
                     // else the resolution failed and we don't change the endpoints of the request
                 }
             }
+
             return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
 

@@ -136,8 +136,8 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
-        internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
+        internal bool IsIndirect => _endpoint?.Transport == Transport.Loc || IsWellKnown;
+        internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
