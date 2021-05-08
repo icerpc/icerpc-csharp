@@ -47,9 +47,9 @@ module IceRpc
         string paramName;
     }
 
-    /// A server exception is thrown when an implementation error occured. This can occur for example if the
+    /// A dispatch exception is thrown when an implementation error occured. This can occur for example if the
     /// response can't be sent because it's larger than the peer's incoming frame maximum size.
-    exception ServerException
+    exception DispatchException
     {
     }
 }

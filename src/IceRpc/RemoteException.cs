@@ -81,6 +81,10 @@ namespace IceRpc
         /// in a remote server.</summary>
         public bool ConvertToUnhandled { get; set; }
 
+        /// <summary>The features of this remote exception when it is thrown by a service dispatch  method. The
+        /// features are set with the features from <c>Dispatch.ResponseFeatures</c>.</summary>
+        public FeatureCollection? Features { get; internal set; }
+
         /// <summary>The remote exception origin.</summary>
         public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
@@ -232,6 +236,14 @@ namespace IceRpc
 
     public partial class UnhandledException : RemoteException
     {
+        /// <summary>Constructs a new exception where the cause is a remote exception. The remote exception features
+        /// are inherited and set on this UnhandledException.</summary>
+        /// <param name="innerException">The remote exception that is the cause of the current exception.</param>
+        public UnhandledException(RemoteException innerException)
+            : base(message: null, innerException) =>
+            // Inherit the features of the unhandled remote exception.
+            Features = innerException.Features;
+
         /// <summary>Constructs a new exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public UnhandledException(Exception innerException)

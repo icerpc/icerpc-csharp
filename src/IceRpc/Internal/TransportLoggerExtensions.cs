@@ -11,32 +11,25 @@ namespace IceRpc.Internal
     {
         // The constants are internal for testing purpose.
         internal const int BaseEventId = LoggerExtensions.TransportBaseEventId;
-        internal const int AcceptingConnections = BaseEventId + 0;
-        internal const int AcceptingConnectionFailed = BaseEventId + 1;
-        internal const int ConnectionAccepted = BaseEventId + 2;
-        internal const int ConnectionAcceptFailed = BaseEventId + 3;
-        internal const int ConnectionEventHandlerException = BaseEventId + 4;
-        internal const int ConnectionClosed = BaseEventId + 5;
-        internal const int ConnectionConnectFailed = BaseEventId + 6;
-        internal const int ConnectionEstablished = BaseEventId + 7;
-        internal const int ReceiveBufferSizeAdjusted = BaseEventId + 8;
-        internal const int ReceivedData = BaseEventId + 9;
-        internal const int ReceivedInvalidDatagram = BaseEventId + 10;
-        internal const int SendBufferSizeAdjusted = BaseEventId + 11;
-        internal const int SentData = BaseEventId + 12;
-        internal const int StartAcceptingConnections = BaseEventId + 13;
-        internal const int StartReceivingDatagrams = BaseEventId + 14;
-        internal const int StartReceivingDatagramsFailed = BaseEventId + 15;
-        internal const int StartSendingDatagrams = BaseEventId + 16;
-        internal const int StartSendingDatagramsFailed = BaseEventId + 17;
-        internal const int StopAcceptingConnections = BaseEventId + 18;
-        internal const int StopReceivingDatagrams = BaseEventId + 19;
-
-        private static readonly Action<ILogger, Exception> _acceptingConnections =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                new EventId(AcceptingConnections, nameof(AcceptingConnections)),
-                "listening for connections");
+        internal const int AcceptingConnectionFailed = BaseEventId + 0;
+        internal const int ConnectionAccepted = BaseEventId + 1;
+        internal const int ConnectionAcceptFailed = BaseEventId + 2;
+        internal const int ConnectionEventHandlerException = BaseEventId + 3;
+        internal const int ConnectionClosed = BaseEventId + 4;
+        internal const int ConnectionConnectFailed = BaseEventId + 5;
+        internal const int ConnectionEstablished = BaseEventId + 6;
+        internal const int ReceiveBufferSizeAdjusted = BaseEventId + 7;
+        internal const int ReceivedData = BaseEventId + 8;
+        internal const int ReceivedInvalidDatagram = BaseEventId + 9;
+        internal const int SendBufferSizeAdjusted = BaseEventId + 10;
+        internal const int SentData = BaseEventId + 11;
+        internal const int StartAcceptingConnections = BaseEventId + 12;
+        internal const int StartReceivingDatagrams = BaseEventId + 13;
+        internal const int StartReceivingDatagramsFailed = BaseEventId + 14;
+        internal const int StartSendingDatagrams = BaseEventId + 15;
+        internal const int StartSendingDatagramsFailed = BaseEventId + 16;
+        internal const int StopAcceptingConnections = BaseEventId + 17;
+        internal const int StopReceivingDatagrams = BaseEventId + 18;
 
         private static readonly Action<ILogger, Exception> _acceptingConnectionFailed =
             LoggerMessage.Define(
@@ -199,9 +192,6 @@ namespace IceRpc.Internal
             LoggerMessage.DefineScope<string, Protocol, string, EndPoint>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
-
-        internal static void LogAcceptingConnections(this ILogger logger) =>
-            _acceptingConnections(logger, null!);
 
         internal static void LogAcceptingConnectionFailed(this ILogger logger, Exception ex) =>
             _acceptingConnectionFailed(logger, ex);

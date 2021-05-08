@@ -3,8 +3,10 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -112,21 +114,18 @@ namespace IceRpc
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        internal CancellationToken CancelDispatch => _cancelDispatchSource.Token;
-
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        private readonly CancellationTokenSource _cancelDispatchSource = new();
+        private IAcceptor? _acceptor;
+        private IAcceptor? _colocAcceptor;
 
-        private Connection? _incomingConnection;
+        private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
 
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
-        private IncomingConnectionFactory? _incomingColocConnectionFactory;
-        private IncomingConnectionFactory? _incomingConnectionFactory;
         private bool _listening;
 
         // protects _shutdownTask
@@ -137,7 +136,8 @@ namespace IceRpc
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        private Lazy<Task>? _shutdownTask;
+        private Task? _shutdownTask;
+        private CancellationTokenSource? _shutdownCancelSource;
 
         /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -189,22 +189,23 @@ namespace IceRpc
 
                 if (_endpoint.HasAcceptor)
                 {
-                    _incomingConnectionFactory = new IncomingConnectionFactory(this, _endpoint);
-                    _endpoint = _incomingConnectionFactory.Endpoint;
+                    _acceptor = _endpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _endpoint = _acceptor.Endpoint;
                     UpdateProxyEndpoint();
 
-                    // Activate the factory to start accepting new connections.
-                    _incomingConnectionFactory.Activate();
+                    // Run task to start accepting new connections.
+                    Task.Run(() => AcceptAsync(_acceptor));
                 }
                 else
                 {
                     MultiStreamSocket socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
-                    _incomingConnection = new Connection(socket, this);
+                    var incomingConnection = new Connection(socket, this);
                     _endpoint = socket.LocalEndpoint!;
                     UpdateProxyEndpoint();
 
                     // Connect the connection to start accepting new streams.
-                    _ = _incomingConnection.ConnectAsync(default);
+                    _ = incomingConnection.ConnectAsync(default);
+                    _connections.Add(incomingConnection);
                 }
 
                 _listening = true;
@@ -215,8 +216,9 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _incomingColocConnectionFactory = new IncomingConnectionFactory(this, colocEndpoint);
-                    _incomingColocConnectionFactory.Activate();
+                    _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    Task.Run(() => AcceptAsync(_colocAcceptor));
+
                     EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
                     {
@@ -238,33 +240,31 @@ namespace IceRpc
         /// <return>A task that completes once the shutdown is complete.</return>
         public async Task ShutdownAsync(CancellationToken cancel = default)
         {
-            // We create the lazy shutdown task with the mutex locked then we create the actual task immediately (and
-            // synchronously) after releasing the lock.
             lock (_mutex)
             {
-                _shutdownTask ??= new Lazy<Task>(() => PerformShutdownAsync());
+                _shutdownCancelSource ??= new();
+                _shutdownTask ??= PerformShutdownAsync();
             }
 
-            try
-            {
-                await _shutdownTask.Value.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
+            // Cancel shutdown task if this call is canceled.
+            using CancellationTokenRegistration _ = cancel.Register(() =>
             {
                 try
                 {
-                    // When the caller requests cancellation, we signal _cancelDispatchSource.
-                    _cancelDispatchSource.Cancel();
+                    _shutdownCancelSource!.Cancel();
                 }
                 catch (ObjectDisposedException)
                 {
-                    // ignored, can occur with multiple / concurrent calls to ShutdownAsync/DisposeAsync
+                    // Expected if server shutdown completed already.
                 }
-                await _shutdownTask.Value.ConfigureAwait(false);
-            }
+            });
+
+            // Wait for shutdown to complete.
+            await _shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync()
             {
+                CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
                     Logger.LogServerShuttingDown(this);
@@ -279,23 +279,26 @@ namespace IceRpc
                         }
                     }
 
-                    // Shuts down the incoming connection factory to stop accepting new incoming requests or
-                    // connections. This ensures that once ShutdownAsync returns, no new requests will be dispatched.
-                    // Once _shutdownTask is non null, _incomingConnectionfactory cannot change, so no need to lock
-                    // _mutex.
-                    // TODO: forward the cancellation token to the methods below. The connections should be
-                    // responsible for canceling dispatch.
-                    Task? colocShutdownTask = _incomingColocConnectionFactory?.ShutdownAsync();
-                    Task? incomingShutdownTask = _incomingConnectionFactory?.ShutdownAsync();
-                    Task? incomingConnectionShutdownTask = _incomingConnection?.ShutdownAsync(cancel: default);
-                    await Task.WhenAll(
-                        colocShutdownTask ?? Task.CompletedTask,
-                        incomingShutdownTask ?? Task.CompletedTask,
-                        incomingConnectionShutdownTask ?? Task.CompletedTask).ConfigureAwait(false);
+                    // Stop accepting new connections by disposing of the acceptors.
+                    _acceptor?.Dispose();
+                    _colocAcceptor?.Dispose();
+
+                    // Yield to ensure the mutex is released while we shutdown the connections.
+                    await Task.Yield();
+
+                    // Shuts down the connections to stop accepting new incoming requests. This ensures that
+                    // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
+                    // connections waits for the connection dispatch to complete. If the cancellation token
+                    // is canceled, the dispatch will be cancelled. This can speed up the shutdown if the
+                    // dispatch check the dispatch cancellation token.
+                    await Task.WhenAll(_connections.Select(
+                        connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
                 }
                 finally
                 {
                     Logger.LogServerShutdownComplete(this);
+
+                    _shutdownCancelSource!.Dispose();
 
                     // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
                     // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
@@ -309,17 +312,86 @@ namespace IceRpc
         public override string ToString() => _endpoint?.ToString() ?? "";
 
         /// <inheritdoc/>
-        public async ValueTask DisposeAsync()
-        {
+        public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
-            if (_incomingConnection != null)
-            {
-                // The connection is disposed by ShutdownAsync but we do it again here to prevent a warning.
-                await _incomingConnection.DisposeAsync().ConfigureAwait(false);
-            }
-            _cancelDispatchSource.Dispose();
-        }
 
         private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
+
+        private async Task AcceptAsync(IAcceptor acceptor)
+        {
+            using IDisposable? scope = Logger.StartAcceptorScope(this, acceptor);
+            Logger.LogStartAcceptingConnections();
+
+            while (true)
+            {
+                MultiStreamSocket socket;
+                try
+                {
+                    socket = await acceptor.AcceptAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdownTask != null)
+                        {
+                            return;
+                        }
+                    }
+
+                    Logger.LogAcceptingConnectionFailed(ex);
+
+                    // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
+                    // again. Failures here are unexpected and could be considered fatal.
+                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                    continue;
+                }
+
+                var connection = new Connection(socket, this);
+
+                lock (_mutex)
+                {
+                    if (_shutdownTask != null)
+                    {
+                        connection.AbortAsync("server shutdown");
+                        return;
+                    }
+
+                    _connections.Add(connection);
+
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client
+                    // and server. Waiting could also cause a security issue if the client doesn't respond to the
+                    // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                    _ = AcceptConnectionAsync(connection);
+                }
+
+                // Set the callback used to remove the connection from the factory.
+                connection.Remove = connection =>
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdownTask == null)
+                        {
+                            _connections.Remove(connection);
+                        }
+                    }
+                };
+            }
+
+            async Task AcceptConnectionAsync(Connection connection)
+            {
+                using var source = new CancellationTokenSource(ConnectionOptions.AcceptTimeout);
+                CancellationToken cancel = source.Token;
+                try
+                {
+                    // Connect the connection (handshake, protocol initialization, ...)
+                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            }
+        }
     }
 }

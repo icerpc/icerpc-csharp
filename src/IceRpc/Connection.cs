@@ -121,7 +121,7 @@ namespace IceRpc
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
@@ -138,7 +138,7 @@ namespace IceRpc
 
         /// <summary>The connection options.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public ConnectionOptions? Options
         {
             get => _options?.Clone();
@@ -151,7 +151,7 @@ namespace IceRpc
                 }
                 if (value == null)
                 {
-                    throw new InvalidArgumentException($"{nameof(value)} can't be null");
+                    throw new ArgumentException($"{nameof(value)} can't be null");
                 }
                 _options = value.Clone();
             }
@@ -202,7 +202,7 @@ namespace IceRpc
 
         /// <summary>The server that created this incoming connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotEstablished</c>.</exception>
+        /// <c>ConnectionState.NotConnected</c>.</exception>
         public Server? Server
         {
             get => _server;
@@ -317,8 +317,7 @@ namespace IceRpc
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to <c>ConnectionState.Closed</c>
-        /// If `Closed` events are registered, it waits for the events to be executed.
-        /// </summary>
+        /// If <c>Closed</c> events are registered, it waits for the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
@@ -512,8 +511,7 @@ namespace IceRpc
         {
             try
             {
-                return new(ShutdownAsync());
-
+                return new(ShutdownAsync("connection closed", new CancellationToken(canceled: true)));
             }
             finally
             {
@@ -556,8 +554,8 @@ namespace IceRpc
             _localEndpoint = socket.LocalEndpoint!;
 
             Options = server.ConnectionOptions;
-            Server = server;
             Logger = server.Logger;
+            Server = server;
         }
 
         internal SocketStream CreateStream(bool bidirectional)
@@ -709,7 +707,7 @@ namespace IceRpc
                 }
                 catch (ConnectionClosedException) when (
                     (State != ConnectionState.Closed && _peerControlStream!.ReceivedEndOfStream) ||
-                    State == ConnectionState.Closing)
+                     State == ConnectionState.Closing)
                 {
                     // Don't abort the connection if the connection is being gracefully closed (either the peer
                     // control stream is done which indicates the reception of the GoAway frame or the connection
@@ -732,17 +730,9 @@ namespace IceRpc
             Debug.Assert(stream != null);
             try
             {
-                using var cancelSource = new CancellationTokenSource();
-                CancellationToken cancel = cancelSource.Token;
-                if (stream.IsBidirectional)
-                {
-                    // Be notified if the peer resets the stream to cancel the dispatch.
-                    //
-                    // The error code is ignored here since we can't provide it to the CancellationTokenSource. We
-                    // could consider setting the error code into Current to allow the user to figure out the
-                    // reason of the stream reset.
-                    stream.Reset += (long errorCode) => cancelSource.Cancel();
-                }
+                // Get a cancellation token for the dispatch. The token is cancelled when the stream is reset by the
+                // peer or when the stream is aborted because the connection shutdown timed out.
+                CancellationToken cancel = stream.CancelDispatchToken;
 
                 // Receives the request frame from the stream
                 using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
@@ -775,33 +765,58 @@ namespace IceRpc
                 // include the activity tracking options.
                 _socket!.Logger.LogReceivedRequest(request);
 
-                OutgoingResponse? response;
-
-                try
+                OutgoingResponse? response = null;
+                if (Dispatcher is IDispatcher dispatcher)
                 {
-                    response = await DispatchAsync(request, cancel).ConfigureAwait(false);
+                    try
+                    {
+                        response = await Dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException exception) when (stream.IsBidirectional &&
+                                                                       exception.CancellationToken == cancel &&
+                                                                       State > ConnectionState.Active)
+                    {
+                        // The connection is being shutdown and shutdown aborted the dispatch, replace the
+                        // response with a dispatch exception to notify the client of the cancellation caused
+                        // by the connection shutdown.
+                        response = new OutgoingResponse(request, new DispatchException("dispatch canceled by shutdown"));
+                    }
+                    catch (Exception exception)
+                    {
+                        // Convert the exception to an UnhandledException if needed.
+                        if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                        {
+                            // We log the exception as the UnhandledException may not include all details.
+                            _socket!.Logger.LogDispatchException(request, exception);
+                            remoteException = new UnhandledException(exception);
+                        }
+                        else if (!stream.IsBidirectional)
+                        {
+                            // We log this exception, since otherwise it would be lost since we don't send a response.
+                            _socket!.Logger.LogDispatchException(request, exception);
+                        }
+
+                        response = new OutgoingResponse(request, remoteException);
+                    }
                 }
-                catch (OperationCanceledException)
+                else if(stream.IsBidirectional)
                 {
-                    // No need to send the response if the dispatch is canceled by the client.
-                    Debug.Assert(cancel.IsCancellationRequested);
-                    return;
+                    response = new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
                 }
 
+                // Send the response if the stream is bidirectional.
                 if (stream.IsBidirectional)
                 {
                     Debug.Assert(response != null);
                     try
                     {
-                        // Send the response over the stream
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                     }
                     catch (RemoteException ex)
                     {
                         // Send the exception as the response instead of sending the response from the dispatch
-                        // if sending raises a remote exception.
-                        response = new OutgoingResponse(request, ex);
-                        await stream.SendResponseFrameAsync(response, cancel).ConfigureAwait(false);
+                        // This can occur if the response exceeds the peer's incoming frame max size.
+                        await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
                     }
                     _socket.Logger.LogSentResponse(response);
                 }
@@ -817,91 +832,17 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Dispatches a request by calling <see cref="IDispatcher.DispatchAsync"/> on the configured
-        /// <see cref="Dispatcher"/>. If <c>DispatchAsync</c> throws a <see cref="RemoteException"/> with
-        /// <see cref="RemoteException.ConvertToUnhandled"/> set to true, this method converts this exception into an
-        /// <see cref="UnhandledException"/> response. If <see cref="Dispatcher"/> is null, this method returns a
-        /// <see cref="ServiceNotFoundException"/> response.</summary>
-        /// <param name="request">The request being dispatched.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that provides the <see cref="OutgoingResponse"/> for the request.</returns>
-        private async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-        {
-            if (Dispatcher is IDispatcher dispatcher)
-            {
-                // cancel is canceled when the client cancels the call (resets the stream). We construct a separate
-                // source/token that combines cancel and the server's own cancel dispatch token when dispatching to
-                // a server.
-                using CancellationTokenSource? combinedSource = request.Connection.Server != null ?
-                    CancellationTokenSource.CreateLinkedTokenSource(cancel, request.Connection.Server.CancelDispatch) : null;
-
-                try
-                {
-                    OutgoingResponse response =
-                        await dispatcher.DispatchAsync(request, combinedSource?.Token ?? cancel).ConfigureAwait(false);
-
-                    cancel.ThrowIfCancellationRequested();
-                    return response;
-                }
-                catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-                {
-                    // The client requested cancellation, we log it and let it propagate.
-                    _socket!.Logger.LogDispatchCanceledByClient(request);
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    if (ex is OperationCanceledException &&
-                        request.Connection.Server is Server server &&
-                        server.CancelDispatch.IsCancellationRequested)
-                    {
-                        // Replace exception
-                        ex = new ServerException("dispatch canceled by server shutdown");
-                    }
-                    // else it's another OperationCanceledException that the implementation should have caught, and it
-                    // will become an UnhandledException below.
-
-                    if (request.IsOneway)
-                    {
-                        // We log this exception, since otherwise it would be lost.
-                        _socket!.Logger.LogDispatchException(request, ex);
-                        return new OutgoingResponse(request);
-                    }
-                    else
-                    {
-                        RemoteException actualEx;
-                        if (ex is RemoteException remoteEx && !remoteEx.ConvertToUnhandled)
-                        {
-                            actualEx = remoteEx;
-                        }
-                        else
-                        {
-                            actualEx = new UnhandledException(ex);
-
-                            // We log the "source" exception as UnhandledException may not include all details.
-                            _socket!.Logger.LogDispatchException(request, ex);
-                        }
-                        return new OutgoingResponse(request, actualEx);
-                    }
-                }
-            }
-            else
-            {
-                return new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
-            }
-        }
-
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
             if (_socket == null)
             {
-                throw new InvalidOperationException("connection is not established");
+                // The connection is not established, we're done.
+                return;
             }
 
-            using IDisposable? socketScope = _socket.StartScope(Server);
+            Task shutdownTask;
             try
             {
-                Task shutdownTask;
                 lock (_mutex)
                 {
                     if (State == ConnectionState.Active && !IsDatagram)
@@ -915,7 +856,15 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                // Ignore if user cancellation token got canceled.
+                lock (_mutex)
+                {
+                    if (State == ConnectionState.Closing)
+                    {
+                        _socket.AbortStreams(exception);
+                    }
+                    shutdownTask = _closeTask!;
+                }
+                await shutdownTask.ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -925,6 +874,8 @@ namespace IceRpc
 
             async Task PerformShutdownAsync(Exception exception)
             {
+                using IDisposable? scope = _socket.StartScope(Server);
+
                 // Abort outgoing streams and get the largest incoming stream IDs. With Ice2, we don't wait for
                 // the incoming streams to complete before sending the GoAway frame but instead provide the ID
                 // of the latest incoming stream IDs to the peer. The peer will close the connection only once
@@ -940,8 +891,8 @@ namespace IceRpc
                 try
                 {
                     Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
-                    using var source = new CancellationTokenSource(_options.CloseTimeout);
-                    CancellationToken cancel = source.Token;
+                    using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
+                    CancellationToken cancel = cancelCloseSource.Token;
 
                     // Write the close frame
                     await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
