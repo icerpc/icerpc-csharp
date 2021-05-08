@@ -23,7 +23,7 @@ namespace IceRpc
         // TODO consider including endpoints with transport failures during invocation?
         private readonly ConcurrentDictionary<Endpoint, DateTime> _transportFailures = new();
 
-        internal async ValueTask<Connection> ConnectAsync(
+        private async ValueTask<Connection> ConnectAsync(
             Endpoint endpoint,
             OutgoingConnectionOptions options,
             CancellationToken cancel)
@@ -173,23 +173,8 @@ namespace IceRpc
             }
         }
 
-        internal Connection? GetConnection(List<Endpoint> endpoints)
-        {
-            lock (_mutex)
-            {
-                foreach (Endpoint endpoint in endpoints)
-                {
-                    if (_outgoingConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
-                        connections.FirstOrDefault(connection => connection.IsActive) is Connection connection)
-                    {
-                        return connection;
-                    }
-                }
-                return null;
-            }
-        }
-
-        internal List<Endpoint> OrderEndpointsByTransportFailures(List<Endpoint> endpoints)
+        /*
+        private List<Endpoint> OrderEndpointsByTransportFailures(List<Endpoint> endpoints)
         {
             if (_transportFailures.IsEmpty)
             {
@@ -214,8 +199,9 @@ namespace IceRpc
                     endpoint => _transportFailures.TryGetValue(endpoint, out DateTime value) ? value : default).ToList();
             }
         }
+        */
 
-        internal void Remove(Connection connection)
+        private void Remove(Connection connection)
         {
             lock (_mutex)
             {

@@ -27,6 +27,7 @@ namespace IceRpc.Internal
         public override string Scheme => "ice+universal";
 
         protected internal override ushort DefaultPort => DefaultUniversalPort;
+        protected internal override bool HasConnect => false;
         protected internal override bool HasOptions => true;
 
         internal const ushort DefaultUniversalPort = 0;

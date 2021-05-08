@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using IceRpc.Interop;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,28 +13,37 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public class LocationResolverTests
     {
-        private readonly Communicator _communicator;
-        private Server _server = null!;
-
-        public LocationResolverTests() => _communicator = new Communicator();
+        private Communicator? _communicator;
+        private Server? _server;
 
         [TestCase("ice+loc://testlocation/test", "ice+loc://unknown-location/test", "test", "test @ testlocation")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test", "ice+loc://adapter/test")]
+        [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            var greeter = IGreeterTestServicePrx.Parse(proxy, _communicator);
+            _communicator = new Communicator
+            {
+                InstallDefaultInterceptors = false
+            };
 
-            Assert.AreEqual(Transport.Loc, greeter.Endpoint!.Transport);
+            var indirect = IGreeterTestServicePrx.Parse(proxy, _communicator);
+            IGreeterTestServicePrx direct = SetupServer(indirect.Protocol, indirect.Path);
+            Assert.That(direct.Endpoint, Is.Not.Null);
 
-            ILocationResolver locationResolver = SetupServer(greeter.Protocol,
-                                                             greeter.Path,
-                                                             greeter.Endpoint.Host);
+            if (indirect.Endpoint is Endpoint locEndpoint)
+            {
+                _communicator.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
+                                  Interceptor.Binder(_communicator));
+            }
+            else
+            {
+                var identity = indirect.GetIdentity();
+                _communicator.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
+                                  Interceptor.Binder(_communicator));
+            }
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await greeter.SayHelloAsync());
-
-            _communicator.LocationResolver = locationResolver;
-            await greeter.SayHelloAsync();
-            Assert.IsNotNull(greeter.Connection);
+            await indirect.SayHelloAsync();
+            Assert.That(indirect.Connection, Is.Not.Null);
 
             foreach (string badProxy in badProxies)
             {
@@ -46,18 +55,23 @@ namespace IceRpc.Tests.ClientServer
         [TearDown]
         public async Task TearDownAsync()
         {
-            await _server.ShutdownAsync();
-            await _communicator.ShutdownAsync();
+            if (_server != null)
+            {
+                await _server.ShutdownAsync();
+            }
+            if (_communicator != null)
+            {
+                await _communicator.ShutdownAsync();
+            }
         }
 
-        private ILocationResolver SetupServer(Protocol protocol, string path, string location)
+        private IGreeterTestServicePrx SetupServer(Protocol protocol, string path)
         {
             _server = new Server
             {
                 Invoker = _communicator,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
-                // TODO: should GetTestEndpoint be capable of returning port 0?
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
                 ProxyHost = "localhost"
             };
@@ -66,47 +80,40 @@ namespace IceRpc.Tests.ClientServer
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             var greeter = IGreeterTestServicePrx.FromServer(_server, path);
-
             Assert.AreNotEqual(0, greeter.Endpoint!.Port);
-
-            return new LocationResolver(protocol, location, greeter.Endpoint);
+            return greeter;
         }
+
+        // A very simple location resolver interceptor with no cache that resolves a single location represented by
+        // location and category.
+        private static Func<IInvoker, IInvoker> LocationResolver(
+            string location,
+            string? category,
+            Endpoint resolvedEndpoint) =>
+            next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    if ((request.Protocol == resolvedEndpoint.Protocol) &&
+                        ((request.Endpoint is Endpoint locEndpoint &&
+                          locEndpoint.Transport == Transport.Loc &&
+                          locEndpoint.Host == location &&
+                           category == null) ||
+                         (request.Endpoint == null &&
+                          request.Protocol == Protocol.Ice1 &&
+                          request.Identity.Name == location &&
+                          request.Identity.Category == category)))
+                    {
+                        request.Endpoint = resolvedEndpoint;
+                        CollectionAssert.IsEmpty(request.AltEndpoints);
+                    }
+                    // else don't do anything
+
+                    return next.InvokeAsync(request, cancel);
+                });
 
         private class GreeterTestService : IGreeterTestService
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
-        }
-
-        // A very simple location resolver with no cache that resolves a single location
-        private class LocationResolver : ILocationResolver
-        {
-            private readonly string _location;
-
-            private readonly Protocol _protocol;
-            private readonly Endpoint _resolvedEndpoint;
-
-            public ValueTask<(Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints)> ResolveAsync(
-                Endpoint locEndpoint,
-                bool refreshCache,
-                CancellationToken cancel)
-            {
-                Assert.AreEqual(Transport.Loc, locEndpoint.Transport);
-
-                Endpoint? endpoint =
-                    locEndpoint.Protocol == _protocol && locEndpoint.Host == _location ? _resolvedEndpoint : null;
-
-                return new((endpoint, ImmutableList<Endpoint>.Empty));
-            }
-
-            internal LocationResolver(
-                Protocol protocol,
-                string location,
-                Endpoint resolvedEndpoint)
-            {
-                _location = location;
-                _protocol = protocol;
-                _resolvedEndpoint = resolvedEndpoint;
-            }
         }
     }
 }

@@ -7,11 +7,12 @@ using System.Text;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Describes a special endpoint that needs to be resolved with a location resolver. See
-    /// <see cref="ILocationResolver"/>.</summary>
+    /// <summary></summary>
     internal sealed class LocEndpoint : Endpoint
     {
         protected internal override ushort DefaultPort => DefaultLocPort;
+
+        protected internal override bool HasConnect => false;
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || Data.Options.Length > 0;
 
         internal const ushort DefaultLocPort = 0;

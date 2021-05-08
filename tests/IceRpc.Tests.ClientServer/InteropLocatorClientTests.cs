@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {
+    /*
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
@@ -80,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
             var indirectGreeter = IGreeterTestServicePrx.Parse($"{_greeter.GetIdentity()} @ adapt", _communicator);
 
             // We don't cache the connection in order to use the location resolver (locator client) for each invocation.
-            _communicator.CacheConnection = false;
+            _communicator.CacheConnections = false;
             _communicator.LocationResolver = locatorClient;
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
@@ -257,4 +258,5 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
+    */
 }

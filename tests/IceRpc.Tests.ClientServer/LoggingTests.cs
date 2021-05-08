@@ -21,8 +21,7 @@ namespace IceRpc.Tests.ClientServer
         /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
         // and a last entry for the request exception.
         /// </summary>
-        // TODO: reenable
-        // [Test]
+        [Test]
         public async Task Logging_ConnectionRetries()
         {
             using var writer = new StringWriter();
@@ -46,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(10, logEntries.Count);
             var eventIds = new int[] {
                 Internal.TransportLoggerExtensions.ConnectionConnectFailed,
-                Internal.ProtocolLoggerExtensions.RequestConnectException,
+                Internal.ProtocolLoggerExtensions.RetryRequestConnectionException,
                 Internal.ProtocolLoggerExtensions.RequestException
             };
             foreach (JsonDocument entry in logEntries)
@@ -74,8 +73,7 @@ namespace IceRpc.Tests.ClientServer
 
         /// <summary>Check that connection establishment retries are not logged when log level is
         /// greater than debug.</summary>
-        // TODO: reenable
-        // [Test]
+        [Test]
         public async Task Logging_Disabled_ConnectionRetries()
         {
             using var writer = new StringWriter();

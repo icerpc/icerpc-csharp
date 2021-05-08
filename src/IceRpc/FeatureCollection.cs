@@ -43,7 +43,7 @@ namespace IceRpc
         /// <summary>Sets a new feature. Setting null removes the feature.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>
         /// <param name="feature">The feature value.</param>
-        public void Set<TFeature>(TFeature feature) => this[typeof(TFeature)] = feature;
+        public void Set<TFeature>(TFeature? feature) => this[typeof(TFeature)] = feature;
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

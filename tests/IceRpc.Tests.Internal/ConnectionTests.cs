@@ -179,7 +179,8 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            await using var communicator = new Communicator { InstallDefaultInterceptors = false };
+            communicator.Use(Interceptor.Binder(communicator)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
@@ -463,7 +464,8 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            await using var communicator = new Communicator { InstallDefaultInterceptors = false };
+            communicator.Use(Interceptor.Binder(communicator)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
@@ -499,7 +501,8 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            await using var communicator = new Communicator { InstallDefaultInterceptors = false };
+            communicator.Use(Interceptor.Binder(communicator)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             proxy.Endpoint = null; // Clear the endpoint to ensure the invocations only use the given connection
@@ -575,7 +578,8 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            await using var communicator = new Communicator { InvocationMaxAttempts = 1 };
+            await using var communicator = new Communicator { InstallDefaultInterceptors = false };
+            communicator.Use(Interceptor.Binder(communicator)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = communicator; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();

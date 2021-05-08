@@ -28,6 +28,7 @@ namespace IceRpc.Internal
         public override string Scheme => "opaque";
 
         protected internal override ushort DefaultPort => 0;
+        protected internal override bool HasConnect => false;
         protected internal override bool HasOptions => true;
 
         internal ReadOnlyMemory<byte> Value { get; }

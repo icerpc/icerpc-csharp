@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         internal const int ReceivedResponseFrame = BaseEventId + 9;
         internal const int RequestException = BaseEventId + 10;
         internal const int RetryRequestRetryableException = BaseEventId + 11;
-        internal const int RequestConnectException = BaseEventId + 12;
+        internal const int RetryRequestConnectionException = BaseEventId + 12;
 
         internal const int SentIce1ValidateConnectionFrame = BaseEventId + 13;
         internal const int SentIce1CloseConnectionFrame = BaseEventId + 14;
@@ -112,11 +112,12 @@ namespace IceRpc.Internal
                 "retrying request because of retryable exception (Path={Path}, Operation={Operation}, " +
                 "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
 
-        private static readonly Action<ILogger, Endpoint, IEnumerable<Endpoint>, Exception> _requestConnectException =
-            LoggerMessage.Define<Endpoint, IEnumerable<Endpoint>>(
+        private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestConnectionException =
+            LoggerMessage.Define<string, string, RetryPolicy, int, int>(
                 LogLevel.Debug,
-                new EventId(RequestConnectException, nameof(RequestConnectException)),
-                "failed to establish outgoing connection (Endpoint={Endpoint}, AltEndpoints={AltEndpoints}");
+                new EventId(RetryRequestConnectionException, nameof(RetryRequestConnectionException)),
+                "retrying request because of connection exception (Path={Path}, Operation={Operation}, " +
+                "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
 
         private static readonly Action<ILogger, Exception> _sentIce1ValidateConnectionFrame = LoggerMessage.Define(
             LogLevel.Debug,
@@ -227,12 +228,21 @@ namespace IceRpc.Internal
                 maxAttempts,
                 ex!);
 
-        internal static void LogRequestConnectException(
+        internal static void LogRetryRequestConnectionException(
             this ILogger logger,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints,
-            Exception ex) =>
-            _requestConnectException(logger, endpoint, altEndpoints, ex);
+            RetryPolicy retryPolicy,
+            int attempt,
+            int maxAttempts,
+            OutgoingRequest request,
+            Exception? ex) =>
+            _retryRequestConnectionException(
+                logger,
+                request.Path,
+                request.Operation,
+                retryPolicy,
+                attempt,
+                maxAttempts,
+                ex!);
 
         internal static void LogRequestException(this ILogger logger, OutgoingRequest request, Exception ex) =>
             _requestException(logger, request.Path, request.Operation, ex);

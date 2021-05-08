@@ -12,6 +12,9 @@ namespace IceRpc.Internal
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
+        // An attempt to connect to an IP endpoint with port 0 will always fail.
+        protected internal override bool HasConnect => Port != 0;
+
         protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0.

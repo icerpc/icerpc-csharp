@@ -14,6 +14,12 @@ namespace IceRpc
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
+        public IEnumerable<Endpoint> AltEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
+
+        public Endpoint? Endpoint { get; set; }
+
+        public IEnumerable<Endpoint> ExcludedEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
+
         public Connection? Connection { get; set; }
 
         /// <summary>The context of this request frame as a read-only dictionary.</summary>
@@ -371,7 +377,9 @@ namespace IceRpc
             FeatureCollection? features)
             : base(proxy.Protocol, features)
         {
+            AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
+            Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
             if (Protocol == Protocol.Ice1)
