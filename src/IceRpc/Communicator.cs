@@ -10,11 +10,12 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A connection pool manages a pool of outgoing connections. When used as an invoker and pipeline, it
-    /// installs automatically the <see cref="Interceptors.Retry"/>, <see cref="Interceptors.Coloc"/> and
-    /// <see cref="Interceptors.Binder"/> interceptors before all other interceptors. Retry is installed with max
-    /// attempts set to 5 and this connection pool's logger factory; and Binder is installed with this connection pool
-    /// as connection provider.</summary>
+    /// <summary>A connection pool manages a pool of outgoing connections and is a connection provider for the
+    /// <see cref="Interceptors.Binder"/> interceptor. By default, a connection pool is also usable as an invoker and
+    /// pipeline; when playing this role, it installs automatically the <see cref="Interceptors.Retry"/>,
+    /// <see cref="Interceptors.Coloc"/> and <see cref="Interceptors.Binder"/> interceptors before all other
+    /// interceptors. Retry is installed with max attempts set to 5 and this connection pool's logger factory; and
+    /// Binder is installed with this connection pool as connection provider.</summary>
     // TODO: rename to ConnectionPool
     public sealed partial class Communicator : Pipeline, IConnectionProvider, IAsyncDisposable
     {
