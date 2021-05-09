@@ -15,7 +15,7 @@ namespace IceRpc
     /// <summary>An invoker that manages a pool of outgoing connections and supports the installation of interceptors.
     /// </summary>
     // TODO: rename to ConnectionPool
-    public sealed partial class Communicator : IConnectionPool, IInvoker, IAsyncDisposable
+    public sealed partial class Communicator : IConnectionProvider, IInvoker, IAsyncDisposable
     {
         /// <summary>The connection options.</summary>
         public OutgoingConnectionOptions? ConnectionOptions { get; set; }

@@ -9,12 +9,14 @@ namespace IceRpc
     public static partial class Interceptor
     {
         /// <summary>Creates a binder interceptor. A binder is no-op when the request carries a connection; otherwise
-        /// it retrieves a connection from the connection pool and sets the request's connection.</summary>
-        /// <param name="pool">The connection pool.</param>
+        /// it retrieves a connection from its connection provider and sets the request's connection.</summary>
+        /// <param name="connectionProvider">The connection provider.</param>
         /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-        /// from the connection pool in the proxy that created the request.</param>
+        /// from its connection provider in the proxy that created the request.</param>
         /// <returns>A new binder interceptor.</returns>
-        public static Func<IInvoker, IInvoker> Binder(IConnectionPool pool, bool cacheConnection = true) =>
+        public static Func<IInvoker, IInvoker> Binder(
+            IConnectionProvider connectionProvider,
+            bool cacheConnection = true) =>
             next => new InlineInvoker(
                 async (request, cancel) =>
                 {
@@ -58,9 +60,10 @@ namespace IceRpc
                             throw new NoEndpointException(request.Proxy);
                         }
 
-                        request.Connection = await pool.GetConnectionAsync(request.Endpoint,
-                                                                           request.AltEndpoints,
-                                                                           cancel).ConfigureAwait(false);
+                        request.Connection =
+                            await connectionProvider.GetConnectionAsync(request.Endpoint,
+                                                                        request.AltEndpoints,
+                                                                        cancel).ConfigureAwait(false);
 
                         if (cacheConnection)
                         {
