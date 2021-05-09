@@ -101,9 +101,6 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Constructs a locator invoker.</summary>
-        /// <param name="locator">The locator proxy.</param>
-        /// <param name="options">Options to configure this locator client.</param>
-        /// <param name="next">The next invoker.</param>
         internal LocatorInvoker(ILocatorPrx locator, Interceptor.LocatorOptions options, IInvoker next)
         {
             _locator = locator;
