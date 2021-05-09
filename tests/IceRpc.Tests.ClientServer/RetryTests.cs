@@ -291,7 +291,10 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_ReportLastFailure()
         {
-            await using var communicator = new Communicator();
+            await using var communicator = new Communicator
+            {
+                PreferExistingConnection = false
+            };
 
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
@@ -342,10 +345,9 @@ namespace IceRpc.Tests.ClientServer
                     prx.AltEndpoints = ImmutableList.Create(prx3.Endpoint!, prx2.Endpoint!);
 
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
-                    // TODO: reenable
-                    // Assert.AreEqual(servers[0].ToString(), calls[0]);
-                    // Assert.AreEqual(servers[2].ToString(), calls[1]);
-                    // Assert.AreEqual(2, calls.Count);
+                    Assert.AreEqual(servers[0].ToString(), calls[0]);
+                    Assert.AreEqual(servers[2].ToString(), calls[1]);
+                    Assert.AreEqual(2, calls.Count);
 
                     // The first replica fails with ServiceNotFoundException exception and there is no additional
                     // replicas.
