@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -18,7 +18,7 @@ namespace IceRpc
             IConnectionProvider connectionProvider,
             bool cacheConnection = true) =>
             next => new InlineInvoker(
-                async (request, cancel) =>
+                (request, cancel) =>
                 {
                     if (request.Connection == null)
                     {
@@ -60,17 +60,21 @@ namespace IceRpc
                             throw new NoEndpointException(request.Proxy);
                         }
 
-                        request.Connection =
-                            await connectionProvider.GetConnectionAsync(request.Endpoint,
-                                                                        request.AltEndpoints,
-                                                                        cancel).ConfigureAwait(false);
+                        return PerformAsync(connectionProvider.GetConnectionAsync(request.Endpoint,
+                                                                                  request.AltEndpoints,
+                                                                                  cancel));
+                    }
+                    return next.InvokeAsync(request, cancel);
 
+                    async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
+                    {
+                        request.Connection = await task.ConfigureAwait(false);
                         if (cacheConnection)
                         {
                             request.Proxy.Connection = request.Connection;
                         }
+                        return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     }
-                    return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                 });
     }
 }
