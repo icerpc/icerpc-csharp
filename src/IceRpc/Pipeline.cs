@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary></summary>
+    /// <summary>A pipeline is an invoker created from zero or more interceptors installed through <see cref="Use"/>.
+    /// The last invoker of the pipeline simply calls the connection carried by the request or throws
+    /// <see cref="ArgumentNullException"/> if this connection is null.</summary>
     public class Pipeline : IInvoker
     {
         private IInvoker? _invoker;
@@ -40,6 +42,12 @@ namespace IceRpc
             _interceptorList = _interceptorList.AddRange(interceptor);
         }
 
+        /// <summary>Creates a pipeline of invokers by starting with the last invoker and applying all interceptors in
+        /// reverse order of installation. A derived class can override this method to add additional interceptors at
+        /// the beginning or the end of the pipeline. This method is called by the first call to
+        /// <see cref="InvokeAsync"/>.</summary>
+        /// <param name="lastInvoker">The last invoker in the pipeline.</param>
+        /// <returns>The pipeline of invokers.</returns>
         protected virtual IInvoker CreateInvoker(IInvoker lastInvoker)
         {
             IInvoker pipeline = lastInvoker;

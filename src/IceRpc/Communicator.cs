@@ -10,8 +10,11 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>An invoker that manages a pool of outgoing connections and supports the installation of interceptors.
-    /// </summary>
+    /// <summary>A connection pool manages a pool of outgoing connections. When used as an invoker and pipeline, it
+    /// installs automatically the <see cref="Interceptor.Retry"/>, <see cref="Interceptor.Coloc"/> and
+    /// <see cref="Interceptor.Binder"/> interceptors before all other interceptors. Retry is installed with max
+    /// attempts set to 5 and this connection pool's logger factory; and Binder is installed with this connection pool
+    /// as connection provider.</summary>
     // TODO: rename to ConnectionPool
     public sealed partial class Communicator : Pipeline, IConnectionProvider, IAsyncDisposable
     {
@@ -21,9 +24,10 @@ namespace IceRpc
         /// <summary>Indicates whether or not this connection pool can be used as an invoker.</summary>
         /// <value>When <c>true</c> (the default) this connection pool can be used an invoker and implements
         /// <see cref="IInvoker.InvokeAsync"/> using its base class. When <c>false</c>, calling InvokeAsync on this
-        /// connection pool throw <see cref="InvalidOperationException"/>.</value>
+        /// connection pool throws <see cref="InvalidOperationException"/>.</value>
         /// <remarks>Setting this value to false prevents you from using this connection pool as an invoker by
-        /// accident when you want to use it only as a connection provider.</remarks>
+        /// accident when you want to use it only as a connection provider for the <see cref="Interceptor.Binder"/>
+        /// interceptor.</remarks>
         public bool IsInvoker { get; set; } = true;
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates

@@ -185,13 +185,13 @@ namespace IceRpc.Interop
         /// <returns>The identity.</returns>
         public static Identity GetIdentity(this IServicePrx proxy) => proxy.Impl.Identity;
 
-        /// <summary>Returns the identity carried by this incoming request frame.</summary>
-        /// <param name="request">The incoming request frame.</param>
+        /// <summary>Returns the identity carried by this incoming request.</summary>
+        /// <param name="request">The incoming request.</param>
         /// <returns>The identity.</returns>
         public static Identity GetIdentity(this IncomingRequest request) => request.Identity;
 
-        /// <summary>Returns the identity carried by this outgoing request frame.</summary>
-        /// <param name="request">The outgoing request frame.</param>
+        /// <summary>Returns the identity carried by this outgoing request.</summary>
+        /// <param name="request">The outgoing request.</param>
         /// <returns>The identity.</returns>
         public static Identity GetIdentity(this OutgoingRequest request) => request.Identity;
     }

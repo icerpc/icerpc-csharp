@@ -98,8 +98,8 @@ namespace IceRpc.Tests.ClientServer
                            category == null) ||
                          (request.Endpoint == null &&
                           request.Protocol == Protocol.Ice1 &&
-                          request.Identity.Name == location &&
-                          request.Identity.Category == category)))
+                          category != null &&
+                          request.GetIdentity() == new Identity(location, category))))
                     {
                         request.Endpoint = resolvedEndpoint;
                         CollectionAssert.IsEmpty(request.AltEndpoints);
