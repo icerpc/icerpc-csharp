@@ -43,11 +43,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Indicates whether or not this connection pool prefers using an existing connection over creating
-        /// a new one when supplying a connection to an outgoing request.</summary>
-        /// <value>When <c>true</c>, the connection pool first iterates over all endpoints (in order) to look for an
+        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
+        /// over creating a new one.</summary>
+        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
         /// existing active connection; if it cannot find such a connection, it creates one by iterating again over
-        /// the endpoints. When <c>false</c>, the connection pool iterates over the endpoints only once to retrieve or
+        /// the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to retrieve or
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 

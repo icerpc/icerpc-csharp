@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
+    /// <summary>The implementation of <see cref="Interceptor.Locator(ILocatorPrx, Interceptor.LocatorOptions)"/>.
+    /// </summary>
     internal sealed class LocatorInvoker : IInvoker
     {
         private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;

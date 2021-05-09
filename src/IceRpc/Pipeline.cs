@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A pipeline is an invoker created from zero or more interceptors installed through <see cref="Use"/>.
-    /// The last invoker of the pipeline simply calls the connection carried by the request or throws
+    /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>.
+    /// The last invoker of the pipeline calls the connection carried by the request or throws
     /// <see cref="ArgumentNullException"/> if this connection is null.</summary>
     public class Pipeline : IInvoker
     {

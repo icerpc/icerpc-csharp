@@ -3,11 +3,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace IceRpc.Internal
 {
-    /// <summary></summary>
+    /// <summary>Represents an endpoint for the <see cref="Transport.Loc"/> pseudo transport. It needs to be converted
+    /// into one or more usable endpoints by an interceptor such as
+    /// <see cref="Interceptor.Locator(Interop.ILocatorPrx)"/>.</summary>
     internal sealed class LocEndpoint : Endpoint
     {
         protected internal override ushort DefaultPort => DefaultLocPort;

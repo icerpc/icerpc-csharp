@@ -14,15 +14,20 @@ namespace IceRpc
     /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
+        /// <summary>The alternatives to <see cref="Endpoint"/>. It should be empty when Endpoint is null.</summary>
         public IEnumerable<Endpoint> AltEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
 
+        /// <summary>The main target endpoint for this request.</summary>
         public Endpoint? Endpoint { get; set; }
 
+        /// <summary>A list of endpoints this request does not want to establish a connection to, typically because a
+        /// previous attempt asked the request not to.</summary>
         public IEnumerable<Endpoint> ExcludedEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
 
+        /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The context of this request frame as a read-only dictionary.</summary>
+        /// <summary>The context of this request as a read-only dictionary.</summary>
         public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
@@ -42,13 +47,27 @@ namespace IceRpc
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
         public bool IsOneway { get; set; }
+
+        /// <summary>Indicates whether or not this request has been sent.</summary>
+        /// <value>When <c>true</c>, the request was sent. When <c>false</c> the request was not sent yet.</value>
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; set; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; set; }
+        public string Path
+        {
+            get => _path;
+            set
+            {
+                if (Protocol == Protocol.Ice1)
+                {
+                    Identity = Identity.FromPath(value);
+                }
+                _path = value;
+            }
+        }
 
         /// <inheritdoc/>
         public override IList<ArraySegment<byte>> Payload
@@ -111,14 +130,15 @@ namespace IceRpc
         }
 
         /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; set; } = "";
+        internal string Facet { get; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
-        internal Identity Identity { get; set; }
+        internal Identity Identity { get; private set; }
 
         private readonly IReadOnlyDictionary<string, string> _initialContext;
         private IList<ArraySegment<byte>> _payload;
         private int _payloadSize = -1;
+        private string _path = "";
         private SortedDictionary<string, string>? _writableContext;
 
         /*
