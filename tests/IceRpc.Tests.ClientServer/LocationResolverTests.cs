@@ -21,24 +21,22 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _communicator = new Communicator
-            {
-                InstallDefaultInterceptors = false
-            };
+            _communicator = new Communicator { IsInvoker = false };
+            var pipeline = new Pipeline();
 
-            var indirect = IGreeterTestServicePrx.Parse(proxy, _communicator);
-            IGreeterTestServicePrx direct = SetupServer(indirect.Protocol, indirect.Path);
+            var indirect = IGreeterTestServicePrx.Parse(proxy, pipeline);
+            IGreeterTestServicePrx direct = SetupServer(indirect.Protocol, indirect.Path, pipeline);
             Assert.That(direct.Endpoint, Is.Not.Null);
 
             if (indirect.Endpoint is Endpoint locEndpoint)
             {
-                _communicator.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
-                                  Interceptor.Binder(_communicator));
+                pipeline.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
+                             Interceptor.Binder(_communicator));
             }
             else
             {
                 var identity = indirect.GetIdentity();
-                _communicator.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
+                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
                                   Interceptor.Binder(_communicator));
             }
 
@@ -47,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
 
             foreach (string badProxy in badProxies)
             {
-                var badGreeter = IGreeterTestServicePrx.Parse(badProxy, _communicator);
+                var badGreeter = IGreeterTestServicePrx.Parse(badProxy, pipeline);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
             }
         }
@@ -65,11 +63,11 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private IGreeterTestServicePrx SetupServer(Protocol protocol, string path)
+        private IGreeterTestServicePrx SetupServer(Protocol protocol, string path, IInvoker invoker)
         {
             _server = new Server
             {
-                Invoker = _communicator,
+                Invoker = invoker,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",

@@ -502,12 +502,12 @@ namespace IceRpc
         {
             Activity? activity = null;
 
-            var communicator = (Communicator)request.Proxy.Invoker;
+            var communicator = request.Proxy.Invoker as Communicator;
 
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors. Activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            if ((communicator != null && communicator.Logger.IsEnabled(LogLevel.Critical)) || Activity.Current != null)
             {
                 activity = new Activity($"{request.Path}/{request.Operation}");
                 activity.AddTag("rpc.system", "icerpc");
