@@ -10,7 +10,6 @@ namespace IceRpc
 {
     public static partial class Interceptor
     {
-
         /// <summary>An options class for configuring a Locator interceptor.</summary>
         public sealed class LocatorOptions
         {
@@ -41,9 +40,18 @@ namespace IceRpc
             private int _cacheMaxSize = 100;
         }
 
+        /// <summary>Creates a locator interceptor with default options.</summary>
+        /// <param name="locator">The locator proxy used for the resolutions.</param>
+        /// <returns>A new locator interceptor.</returns>
         public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator) => Locator(locator, new());
 
-        public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator, LocatorOptions options)  =>
+        /// <summary>Creates a locator interceptor. A locator interceptor is no-op when the request carries a
+        /// connection; otherwise "resolves" the endpoints of the request using an <see cref="ILocatorPrx"/> such as
+        /// IceGrid. It must be installed between <see cref="Retry"/> and <see cref="Binder"/>.</summary>
+        /// <param name="locator">The locator proxy used for the resolutions.</param>
+        /// <param name="options">The options of this interceptor.</param>
+        /// <returns>A new locator interceptor.</returns>
+        public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator, LocatorOptions options) =>
             next => new LocatorInvoker(locator, options, next);
     }
 }

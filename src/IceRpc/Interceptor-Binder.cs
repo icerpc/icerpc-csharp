@@ -11,8 +11,8 @@ namespace IceRpc
         /// <summary>Creates a binder interceptor. A binder is no-op when the request carries a connection; otherwise
         /// it retrieves a connection from the connection pool and sets the request's connection.</summary>
         /// <param name="pool">The connection pool.</param>
-        /// <param name="cacheConnection">When true (the default), the binder stores the connection it retrieves from
-        /// the connection pool in the proxy that created the request.</param>
+        /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
+        /// from the connection pool in the proxy that created the request.</param>
         /// <returns>A new binder interceptor.</returns>
         public static Func<IInvoker, IInvoker> Binder(IConnectionPool pool, bool cacheConnection = true) =>
             next => new InlineInvoker(
