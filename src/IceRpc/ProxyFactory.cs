@@ -294,35 +294,12 @@ namespace IceRpc
                     options.IsOneway = invocationMode != InvocationMode.Twoway;
                 }
 
-                Connection? connection = null;
-                if (endpoint == null)
-                {
-                    endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                    connection = istr.Connection;
-                }
+                // For interop with ZeroC Ice, an ice1 endpointless proxy is unmarshaled as an endpointless and
+                // connectionless proxy - a "well-known proxy".
 
                 try
                 {
-                    if (connection != null && connection.Protocol != Protocol.Ice1)
-                    {
-                        if (facet.Length > 0)
-                        {
-                            // can't create an ice2+ proxy with a facet
-                            throw new InvalidDataException(
-                                @$"received an endpointless proxy with a facet on an {connection.Protocol.GetName()
-                                } connection");
-                        }
-
-                        return factory.Create(identity.ToPath(),
-                                              connection.Protocol,
-                                              encoding,
-                                              endpoint,
-                                              altEndpoints,
-                                              connection,
-                                              options);
-                    }
-
-                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection, options);
+                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection: null, options);
                 }
                 catch (InvalidDataException)
                 {
