@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The implementation of <see cref="Interceptor.Retry"/>.</summary>
+    /// <summary>The implementation of <see cref="Interceptors.Retry"/>.</summary>
     internal sealed class RetryInvoker : IInvoker
     {
         private readonly int _bufferMaxSize;

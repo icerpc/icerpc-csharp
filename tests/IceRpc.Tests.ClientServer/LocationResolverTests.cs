@@ -31,13 +31,13 @@ namespace IceRpc.Tests.ClientServer
             if (indirect.Endpoint is Endpoint locEndpoint)
             {
                 pipeline.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
-                             Interceptor.Binder(_communicator));
+                             Interceptors.Binder(_communicator));
             }
             else
             {
                 var identity = indirect.GetIdentity();
                 pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
-                                  Interceptor.Binder(_communicator));
+                                  Interceptors.Binder(_communicator));
             }
 
             await indirect.SayHelloAsync();

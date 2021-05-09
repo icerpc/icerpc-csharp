@@ -54,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
             var indirectGreeter = IGreeterTestServicePrx.Parse($"{greeter.GetIdentity()} @ {adapter}", _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptor.Locator(locator));
+            _pipeline.Use(Interceptors.Locator(locator));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptor.Binder(_connectionPool));
+            _pipeline.Use(Interceptors.Binder(_connectionPool));
 
             await locator.RegisterAdapterAsync(adapter, greeter);
 
@@ -97,9 +97,9 @@ namespace IceRpc.Tests.ClientServer
             var wellKnownGreeter = IGreeterTestServicePrx.Parse(_greeter.GetIdentity().ToString(), _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptor.Retry(2));
-            _pipeline.Use(Interceptor.Locator(locator,
-                                              new Interceptor.LocatorOptions
+            _pipeline.Use(Interceptors.Retry(2));
+            _pipeline.Use(Interceptors.Locator(locator,
+                                              new Interceptors.LocatorOptions
                                               {
                                                   CacheMaxSize = cacheMaxSize,
                                                   JustRefreshedAge = TimeSpan.Zero
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             // We don't cache the connection in order to use the locator interceptor for each invocation.
-            _pipeline.Use(Interceptor.Binder(_connectionPool, cacheConnection: false));
+            _pipeline.Use(Interceptors.Binder(_connectionPool, cacheConnection: false));
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
             Assert.That(_called, Is.False);
@@ -191,7 +191,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(wellKnownGreeter.Endpoint, Is.Null);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptor.Locator(locator));
+            _pipeline.Use(Interceptors.Locator(locator));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptor.Binder(_connectionPool));
+            _pipeline.Use(Interceptors.Binder(_connectionPool));
 
             // Test with direct endpoints
             await locator.RegisterWellKnownProxyAsync(identity, greeter);

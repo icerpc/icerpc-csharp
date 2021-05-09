@@ -5,7 +5,7 @@ using System;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>An interceptor that decompresses the response payload.</summary>
         public static Func<IInvoker, IInvoker> Decompressor { get; } =

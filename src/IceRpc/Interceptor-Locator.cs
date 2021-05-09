@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>An options class for configuring a Locator interceptor.</summary>
         public sealed class LocatorOptions

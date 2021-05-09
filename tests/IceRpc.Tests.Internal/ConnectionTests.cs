@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Internal
             // Perform an invocation
             await using var pool = new Communicator { IsInvoker = false };
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptor.Binder(pool)); // TODO: is this needed?
+            pipeline.Use(Interceptors.Binder(pool)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = pipeline; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
@@ -467,7 +467,7 @@ namespace IceRpc.Tests.Internal
             // Perform an invocation
             await using var pool = new Communicator { IsInvoker = false };
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptor.Binder(pool)); // TODO: is this needed?
+            pipeline.Use(Interceptors.Binder(pool)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = pipeline; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();
@@ -505,7 +505,7 @@ namespace IceRpc.Tests.Internal
             // Perform an invocation
             await using var pool = new Communicator { IsInvoker = false };
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptor.Binder(pool)); // TODO: is this needed?
+            pipeline.Use(Interceptors.Binder(pool)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = pipeline; // TODO temporary FromConnection must setup the Invoker
             proxy.Endpoint = null; // Clear the endpoint to ensure the invocations only use the given connection
@@ -583,7 +583,7 @@ namespace IceRpc.Tests.Internal
             // Perform an invocation
             await using var pool = new Communicator { IsInvoker = false };
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptor.Binder(pool)); // TODO: is this needed?
+            pipeline.Use(Interceptors.Binder(pool)); // TODO: is this needed?
             var proxy = IServicePrx.FromConnection(factory.Client);
             proxy.Invoker = pipeline; // TODO temporary FromConnection must setup the Invoker
             Task pingTask = proxy.IcePingAsync();

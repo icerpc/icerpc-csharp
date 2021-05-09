@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>An interceptor that compresses the 2.0 encoded payload of a request, using the default compression
         /// settings, when <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>

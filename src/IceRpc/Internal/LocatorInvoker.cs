@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The implementation of <see cref="Interceptor.Locator(ILocatorPrx, Interceptor.LocatorOptions)"/>.
+    /// <summary>The implementation of <see cref="Interceptors.Locator(ILocatorPrx, Interceptors.LocatorOptions)"/>.
     /// </summary>
     internal sealed class LocatorInvoker : IInvoker
     {
@@ -103,7 +103,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Constructs a locator invoker.</summary>
-        internal LocatorInvoker(ILocatorPrx locator, Interceptor.LocatorOptions options, IInvoker next)
+        internal LocatorInvoker(ILocatorPrx locator, Interceptors.LocatorOptions options, IInvoker next)
         {
             _locator = locator;
             _background = options.Background;

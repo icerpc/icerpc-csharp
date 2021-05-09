@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>Creates a binder interceptor. A binder is no-op when the request carries a connection; otherwise
         /// it retrieves a connection from its connection provider and sets the request's connection.</summary>

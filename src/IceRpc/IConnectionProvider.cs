@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Provides connections to the <see cref="Interceptor.Binder"/> interceptor.
+    /// <summary>Provides connections to the <see cref="Interceptors.Binder"/> interceptor.
     /// </summary>
     public interface IConnectionProvider
     {

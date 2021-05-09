@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>Returns the coloc interceptor. This interceptor is no-op when the request carries a connection;
         /// otherwise, it converts each endpoint of the request into its coloc counterpart when available.

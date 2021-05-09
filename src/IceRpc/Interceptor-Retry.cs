@@ -6,7 +6,7 @@ using System;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>Creates a retry interceptor.</summary>
         /// <param name="maxAttempts">The maximum number of attempts for an invocation. Must be between 1 and 5.</param>

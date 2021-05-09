@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A connection pool manages a pool of outgoing connections. When used as an invoker and pipeline, it
-    /// installs automatically the <see cref="Interceptor.Retry"/>, <see cref="Interceptor.Coloc"/> and
-    /// <see cref="Interceptor.Binder"/> interceptors before all other interceptors. Retry is installed with max
+    /// installs automatically the <see cref="Interceptors.Retry"/>, <see cref="Interceptors.Coloc"/> and
+    /// <see cref="Interceptors.Binder"/> interceptors before all other interceptors. Retry is installed with max
     /// attempts set to 5 and this connection pool's logger factory; and Binder is installed with this connection pool
     /// as connection provider.</summary>
     // TODO: rename to ConnectionPool
@@ -26,7 +26,7 @@ namespace IceRpc
         /// <see cref="IInvoker.InvokeAsync"/> using its base class. When <c>false</c>, calling InvokeAsync on this
         /// connection pool throws <see cref="InvalidOperationException"/>.</value>
         /// <remarks>Setting this value to false prevents you from using this connection pool as an invoker by
-        /// accident when you want to use it only as a connection provider for the <see cref="Interceptor.Binder"/>
+        /// accident when you want to use it only as a connection provider for the <see cref="Interceptors.Binder"/>
         /// interceptor.</remarks>
         public bool IsInvoker { get; set; } = true;
 
@@ -215,9 +215,9 @@ namespace IceRpc
                 IInvoker pipeline = base.CreateInvoker(lastInvoker);
 
                 // Add default interceptors in reverse order of execution.
-                pipeline = Interceptor.Binder(this)(pipeline);
-                pipeline = Interceptor.Coloc(pipeline);
-                pipeline = Interceptor.Retry(maxAttempts: 5, loggerFactory: LoggerFactory)(pipeline);
+                pipeline = Interceptors.Binder(this)(pipeline);
+                pipeline = Interceptors.Coloc(pipeline);
+                pipeline = Interceptors.Retry(maxAttempts: 5, loggerFactory: LoggerFactory)(pipeline);
 
                 return pipeline;
             }
