@@ -56,15 +56,16 @@ namespace IceRpc.Tests.Api
             IServicePrx prx = IServicePrx.FromServer(_server, "/test");
             await using var pool = new Communicator();
             prx.Invoker = pool;
-            prx.InvocationTimeout = TimeSpan.FromMilliseconds(timeout);
             pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);
             }));
 
+            var invocation = new Invocation { Timeout = TimeSpan.FromMilliseconds(timeout) };
+
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
             Assert.AreEqual(dispatchDeadline, invocationDeadline);

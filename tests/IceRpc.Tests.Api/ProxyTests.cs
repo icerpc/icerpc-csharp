@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Api
             // Test that builtin operation correctly forward the context
             var invocation = new Invocation
             {
-                Context = new() { ["foo"] = "bar" }
+                Context = new Dictionary<string, string> { ["foo"] = "bar" }
             };
 
             await using var pool = new Communicator();
@@ -79,15 +79,6 @@ namespace IceRpc.Tests.Api
         {
             await using var communicator = new Communicator();
             var prx = IGreeterServicePrx.Parse(s, communicator);
-
-            prx.Context = new Dictionary<string, string>
-            {
-                { "key1", "value1" },
-                { "key2", "value2" },
-            };
-            Assert.AreEqual(2, prx.Context.Count);
-            Assert.AreEqual("value1", prx.Context["key1"]);
-            Assert.AreEqual("value2", prx.Context["key2"]);
 
             prx.Encoding = Encoding.V11;
             Assert.AreEqual(prx.Encoding, Encoding.V11);
@@ -125,14 +116,6 @@ namespace IceRpc.Tests.Api
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 
-            prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromMilliseconds(10));
-
-            prx.IsOneway = false;
-            Assert.IsFalse(prx.IsOneway);
-            prx.IsOneway = true;
-            Assert.IsTrue(prx.IsOneway);
-
             if (prx.Protocol == Protocol.Ice1)
             {
                 IGreeterServicePrx other =
@@ -165,9 +148,6 @@ namespace IceRpc.Tests.Api
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => prxIce1.Endpoint = prxIce2.Endpoint);
             Assert.Throws<ArgumentException>(() => prxIce2.Endpoint = prxIce1.Endpoint);
-
-            // Zero is not a valid invocation timeout
-            Assert.Throws<ArgumentException>(() => prxIce2.InvocationTimeout = TimeSpan.Zero);
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
@@ -188,15 +168,13 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
         [TestCase("ice+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
         [TestCase("ice+ws://host.zeroc.com//identity")]
-        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=100ms", "//identity")]
-        [TestCase("ice+ws://host.zeroc.com//identity?invocation-timeout=1s")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
         [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
         [TestCase("ice:location//identity#facet", "/location//identity%23facet")]
         [TestCase("ice+tcp://host.zeroc.com//identity")]
-        [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F?invocation-timeout=100ms",
+        [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F",
                   "/%7F%E2%82%AC$%25/!%23$'()*+,:;=@[]%20%2F")] // Only remarkable char is # converted into %23
         [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
         // another syntax for empty port
@@ -251,7 +229,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+ws://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
         [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
         [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
-        [TestCase("ice+tcp://host.zeroc.com/identity?invocation-timeout=0s")] // 0 is not a valid invocation timeout
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
         [TestCase("\"\"")]
@@ -373,7 +350,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
-        [TestCase("ice+tcp://localhost/path?invocation-timeout=10s&alt-endpoint=ice+ws://[::1]")]
+        [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+ws://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
             var prx1 = IServicePrx.Parse(proxyString, Communicator);
@@ -413,37 +390,6 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, connection));
         }
 
-        [TestCase("ice+tcp://host/test")]
-        [TestCase("ice:test")]
-        [TestCase("test:tcp -h host -p 10000")]
-        [TestCase("test @ adapt")]
-        public async Task Proxy_ParseWithOptionsAsync(string proxyString)
-        {
-            await using var communicator = new Communicator();
-            var proxyOptions = new ProxyOptions() { Invoker = communicator };
-
-            var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
-            Assert.IsFalse(proxy.IsOneway);
-            Assert.AreEqual(proxy.InvocationTimeout, ProxyOptions.DefaultInvocationTimeout);
-            CollectionAssert.IsEmpty(proxy.Context);
-
-            proxyOptions.Context = new Dictionary<string, string>()
-            {
-                ["c1"] = "TEST1",
-                ["c2"] = "TEST2"
-            };
-            proxyOptions.InvocationTimeout = TimeSpan.FromSeconds(1);
-            proxyOptions.IsOneway = true;
-
-            proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
-            proxyOptions.Context = ImmutableSortedDictionary<string, string>.Empty;
-
-            Assert.IsTrue(proxy.IsOneway);
-            Assert.AreEqual(TimeSpan.FromSeconds(1), proxy.InvocationTimeout);
-            Assert.AreEqual("TEST1", proxy.Context["c1"]);
-            Assert.AreEqual("TEST2", proxy.Context["c2"]);
-        }
-
         [Test]
         public async Task Proxy_UriOptions()
         {
@@ -454,35 +400,14 @@ namespace IceRpc.Tests.Api
 
             Assert.AreEqual("/test", prx.Path);
 
-            prx = IServicePrx.Parse(
-                    $"{proxyString}?context=c1=TEST1,c2=TEST&context=c2=TEST2,d%204=TEST%204,c3=TEST3",
-                    communicator);
-
-            Assert.AreEqual(4, prx.Context.Count);
-            Assert.AreEqual("TEST1", prx.Context["c1"]);
-            Assert.AreEqual("TEST2", prx.Context["c2"]);
-            Assert.AreEqual("TEST3", prx.Context["c3"]);
-            Assert.AreEqual("TEST 4", prx.Context["d 4"]);
-
-            // This works because Context is a sorted dictionary
-            Assert.AreEqual(prx.ToString(), $"{proxyString}?context=c1=TEST1,c2=TEST2,c3=TEST3,d%204=TEST%204");
-
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(60));
-            prx = IServicePrx.Parse($"{proxyString}?invocation-timeout=1s", communicator);
-            Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromSeconds(1));
-
-            string complicated = $"{proxyString}?invocation-timeout=10s&context=c%201=some%20value" +
-                "&oneway=true&alt-endpoint=ice+ws://localhost?resource=/x/y&context=c5=v5";
+            string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+ws://localhost?resource=/x/y";
             prx = IServicePrx.Parse(complicated, communicator);
 
+            Assert.AreEqual(Encoding.V11, prx.Encoding);
             Endpoint altEndpoint = prx.AltEndpoints[0];
             Assert.AreEqual(1, prx.AltEndpoints.Count);
             Assert.AreEqual(Transport.WS, altEndpoint.Transport);
             Assert.AreEqual("/x/y", altEndpoint["resource"]);
-            Assert.AreEqual(2, prx.Context.Count);
-            Assert.AreEqual("some value", prx.Context["c 1"]);
-            Assert.AreEqual("v5", prx.Context["c5"]);
-            Assert.IsTrue(prx.IsOneway);
         }
 
         [TestCase("1.3")]

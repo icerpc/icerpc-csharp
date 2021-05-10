@@ -20,7 +20,7 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The request context.</summary>
-        public SortedDictionary<string, string> Context { get; }
+        public IDictionary<string, string>? Context { get; set; }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -228,7 +228,8 @@ namespace IceRpc
 
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
-            Context = new SortedDictionary<string, string>((IDictionary<string, string>)request.Context);
+            Context = request.Context is IDictionary<string, string> context ?
+                new SortedDictionary<string, string>(context) : null;
 
             Priority = default;
             Deadline = request.Deadline;
@@ -248,7 +249,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                if (Context.TryGetValue("traceparent", out string? parentId))
+                if (Context != null && Context.TryGetValue("traceparent", out string? parentId))
                 {
                     activity.SetParentId(parentId);
                     if (Context.TryGetValue("tracestate", out string? traceState))

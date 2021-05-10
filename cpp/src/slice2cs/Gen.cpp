@@ -2353,12 +2353,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.ProxyOptions options = server.ProxyOptions;";
     _out << nl << "options.Invoker ?\?= server.Invoker;";
 
-    _out << nl << "if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)";
-    _out << sb;
-    _out << nl << "options = options.Clone();";
-    _out << nl << "options.IsOneway = true;";
-    _out << eb;
-
     _out << nl << "return Factory.Create(";
     _out.inc();
     _out << nl << "path ?? DefaultPath,"
@@ -2533,7 +2527,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (voidOp)
     {
-        _out << (oneway ? "oneway: true" : "oneway: IsOneway") << ", ";
+        _out << (oneway ? "oneway: true" : "oneway: false") << ", ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();

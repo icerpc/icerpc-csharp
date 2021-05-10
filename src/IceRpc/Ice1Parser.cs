@@ -240,6 +240,7 @@ namespace IceRpc
                         facet = StringUtil.UnescapeString(argument, 0, argument.Length, "");
                         break;
 
+                    // None of the "invocation mode" option has any effect with IceRPC
                     case 't':
                         if (argument != null)
                         {
@@ -254,7 +255,6 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -o option in '{s}'");
                         }
-                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'O':
@@ -263,8 +263,6 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -O option in '{s}'");
                         }
-
-                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'd':
@@ -273,7 +271,6 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -d option in '{s}'");
                         }
-                        proxyOptions.IsOneway = true;
                         break;
 
                     case 'D':
@@ -282,7 +279,6 @@ namespace IceRpc
                             throw new FormatException(
                                 $"unexpected argument '{argument}' provided for -D option in '{s}'");
                         }
-                        proxyOptions.IsOneway = true;
                         break;
 
                     case 's':
@@ -399,11 +395,6 @@ namespace IceRpc
                 }
 
                 Debug.Assert(endpoint != null);
-
-                if (endpoint.IsDatagram && altEndpoints.All(e => e.IsDatagram))
-                {
-                    proxyOptions.IsOneway = true;
-                }
 
                 return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
             }

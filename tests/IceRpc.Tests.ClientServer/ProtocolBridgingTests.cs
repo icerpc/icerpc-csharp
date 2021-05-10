@@ -68,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
 
                 var invocation = new Invocation
                 {
-                    Context = new() { ["MyCtx"] = "hello" }
+                    Context = new Dictionary<string, string> { ["MyCtx"] = "hello" }
                 };
 
                 Assert.AreEqual(13, await prx.OpAsync(13, invocation));
@@ -84,10 +84,7 @@ namespace IceRpc.Tests.ClientServer
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
-                prx = await prx.OpNewProxyAsync();
-
-                prx.Context = new Dictionary<string, string> { { "Direct", "1" } };
-                return prx;
+                return await prx.OpNewProxyAsync();
             }
         }
 

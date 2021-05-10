@@ -166,10 +166,6 @@ namespace IceRpc.Internal
 
             proxyOptions = proxyOptions.Clone();
 
-            proxyOptions.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? proxyOptions.Context;
-            proxyOptions.IsOneway = parsedOptions.IsOneway ?? proxyOptions.IsOneway;
-            proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
-
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
                     endpoint,
@@ -269,47 +265,10 @@ namespace IceRpc.Internal
                 string name = p[..equalPos];
                 string value = p[(equalPos + 1)..];
 
-                if (name == "context")
-                {
-                    if (!parseProxy)
-                    {
-                        throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
-                    }
-
-                    // We can have multiple context options: context=key1=value1,key2=value2 etc.
-                    foreach (string e in value.Split(','))
-                    {
-                        equalPos = e.IndexOf('=');
-                        if (equalPos <= 0)
-                        {
-                            throw new FormatException($"invalid option '{p}'");
-                        }
-                        string contextKey = Uri.UnescapeDataString(e[..equalPos]);
-                        string contextValue =
-                            equalPos == e.Length - 1 ? "" : Uri.UnescapeDataString(e[(equalPos + 1)..]);
-
-                        parsedOptions.Context ??= new SortedDictionary<string, string>();
-                        parsedOptions.Context[contextKey] = contextValue;
-                    }
-                }
-                else if (name == "encoding")
+                if (name == "encoding")
                 {
                     CheckProxyOption(name, parsedOptions.Encoding != null);
                     parsedOptions.Encoding = Encoding.Parse(value);
-                }
-                else if (name == "invocation-timeout")
-                {
-                    CheckProxyOption(name, parsedOptions.InvocationTimeout != null);
-                    parsedOptions.InvocationTimeout = TimeSpanExtensions.Parse(value);
-                    if (parsedOptions.InvocationTimeout.Value == TimeSpan.Zero)
-                    {
-                        throw new FormatException($"0 is not a valid value for the {name} option in '{uriString}'");
-                    }
-                }
-                else if (name == "oneway")
-                {
-                    CheckProxyOption(name, parsedOptions.IsOneway != null);
-                    parsedOptions.IsOneway = bool.Parse(value);
                 }
                 else if (iceScheme)
                 {
@@ -361,15 +320,9 @@ namespace IceRpc.Internal
         {
             internal string? AltEndpoint;
 
-            internal SortedDictionary<string, string>? Context;
-
             internal Encoding? Encoding;
 
             internal Dictionary<string, string>? EndpointOptions;
-
-            internal TimeSpan? InvocationTimeout;
-
-            internal bool? IsOneway;
         }
     }
 }

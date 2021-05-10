@@ -23,11 +23,6 @@ namespace IceRpc
             where T : class, IServicePrx
         {
             ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
-            if (connection.IsDatagram && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
 
             return factory.Create(path,
                                   connection.Protocol,
@@ -157,8 +152,7 @@ namespace IceRpc
                                            endpoint,
                                            altEndpoints,
                                            proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                                           identity,
-                                           proxyData.InvocationMode);
+                                           identity);
                 }
                 else
                 {
@@ -221,9 +215,6 @@ namespace IceRpc
 
                 if (protocol == Protocol.Ice1)
                 {
-                    InvocationMode invocationMode = endpoint != null && endpoint.IsDatagram ?
-                        InvocationMode.Oneway : InvocationMode.Twoway;
-
                     string facet;
                     Identity identity;
 
@@ -248,8 +239,7 @@ namespace IceRpc
                                            endpoint,
                                            altEndpoints,
                                            facet,
-                                           identity,
-                                           invocationMode);
+                                           identity);
                 }
                 else
                 {
@@ -284,15 +274,9 @@ namespace IceRpc
                 Endpoint? endpoint,
                 IEnumerable<Endpoint> altEndpoints,
                 string facet,
-                Identity identity,
-                InvocationMode invocationMode)
+                Identity identity)
             {
                 ProxyOptions options = istr.ProxyOptions;
-                if (options.IsOneway != (invocationMode != InvocationMode.Twoway))
-                {
-                    options = options.Clone();
-                    options.IsOneway = invocationMode != InvocationMode.Twoway;
-                }
 
                 // For interop with ZeroC Ice, an ice1 endpointless proxy is unmarshaled as an endpointless and
                 // connectionless proxy - a "well-known proxy".

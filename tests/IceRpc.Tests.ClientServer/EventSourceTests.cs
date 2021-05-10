@@ -117,12 +117,11 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = "ice+coloc://event_source"
             };
             server.Listen();
-            greeter.InvocationTimeout = TimeSpan.FromSeconds(1);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
-                tasks.Add(greeter.SayHelloAsync());
+                tasks.Add(greeter.SayHelloAsync(new Invocation { Timeout = TimeSpan.FromSeconds(1) }));
             }
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await Task.WhenAll(tasks));

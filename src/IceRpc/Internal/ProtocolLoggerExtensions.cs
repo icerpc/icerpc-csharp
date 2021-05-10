@@ -85,8 +85,8 @@ namespace IceRpc.Internal
             new EventId(ReceivedInitializeFrame, nameof(ReceivedInitializeFrame)),
             "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
-        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _receivedRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
+        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?, Exception> _receivedRequestFrame =
+            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?>(
                 LogLevel.Information,
                 new EventId(ReceivedRequestFrame, nameof(ReceivedRequestFrame)),
                 "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
@@ -142,8 +142,8 @@ namespace IceRpc.Internal
             new EventId(SentInitializeFrame, nameof(SentInitializeFrame)),
             "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
-        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _sentRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
+        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?, Exception> _sentRequestFrame =
+            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?>(
                 LogLevel.Information,
                 new EventId(SentRequestFrame, nameof(SentRequestFrame)),
                 "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +

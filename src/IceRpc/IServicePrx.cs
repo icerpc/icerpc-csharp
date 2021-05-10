@@ -114,12 +114,6 @@ namespace IceRpc
             ProxyOptions options = server.ProxyOptions;
             options.Invoker ??= server.Invoker;
 
-            if (server.ProxyEndpoint.IsDatagram && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
-
             return Factory.Create(
                 path ?? DefaultPath,
                 server.Protocol,
@@ -154,10 +148,6 @@ namespace IceRpc
         /// <value>The connection for this proxy, or null if the proxy does not have a connection.</value>
         public Connection? Connection { get; set; }
 
-        /// <summary>The context of this proxy, which will be sent with each invocation made using this proxy.
-        /// </summary>
-        public IReadOnlyDictionary<string, string> Context { get; set; }
-
         /// <summary>The encoding used to marshal request parameters.</summary>
         public Encoding Encoding { get; set; }
 
@@ -165,18 +155,8 @@ namespace IceRpc
         /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
         public Endpoint? Endpoint { get; set; }
 
-        /// <summary>The invocation timeout of this proxy.</summary>
-        public TimeSpan InvocationTimeout { get; set; }
-
         /// <summary>The invoker of this proxy.</summary>
         public IInvoker Invoker { get; set; }
-
-        /// <summary>Indicates whether or not using this proxy to invoke an operation that does not return anything
-        /// waits for an empty response from the target Ice object.</summary>
-        /// <value>When true, invoking such an operation does not wait for the response from the target object. When
-        /// false, invoking such an operation waits for the empty response from the target object, unless this behavior
-        /// is overridden by metadata on the Slice operation's definition.</value>
-        public bool IsOneway { get; set; }
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         public string Path { get; }
@@ -282,7 +262,7 @@ namespace IceRpc
                            Payload.FromEmptyArgs(this),
                            invocation,
                            idempotent: true,
-                           oneway: IsOneway,
+                           oneway: false,
                            cancel: cancel);
 
         /// <summary>Marshals the proxy into an OutputStream.</summary>

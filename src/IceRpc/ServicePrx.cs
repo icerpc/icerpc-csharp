@@ -70,14 +70,6 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public IReadOnlyDictionary<string, string> Context
-        {
-            // TODO: should we change this property's type to ImmutableSortedDictionary<string, string>?
-            get => _context;
-            set => _context = value.ToImmutableSortedDictionary();
-        }
-
-        /// <inheritdoc/>
         public Encoding Encoding { get; set; }
 
         /// <inheritdoc/>
@@ -112,18 +104,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public TimeSpan InvocationTimeout
-        {
-            get => _invocationTimeout;
-            set => _invocationTimeout = value != TimeSpan.Zero ? value :
-                throw new ArgumentException("0 is not a valid value for the invocation timeout", nameof(value));
-        }
-
-        /// <inheritdoc/>
         public IInvoker Invoker { get; set; }
-
-        /// <inheritdoc/>
-        public bool IsOneway { get; set; }
 
         /// <inheritdoc/>
         public string Path { get; } = "";
@@ -141,11 +122,8 @@ namespace IceRpc
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
-        private ImmutableSortedDictionary<string, string> _context;
 
         private Endpoint? _endpoint;
-
-        private TimeSpan _invocationTimeout;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -209,24 +187,11 @@ namespace IceRpc
             {
                 return false;
             }
-            if (_invocationTimeout != other._invocationTimeout)
-            {
-                return false;
-            }
-            if (IsOneway != other.IsOneway)
-            {
-                return false;
-            }
             if (Path != other.Path)
             {
                 return false;
             }
             if (Protocol != other.Protocol)
-            {
-                return false;
-            }
-
-            if (!_context.DictionaryEqual(other._context)) // done last since it's more expensive
             {
                 return false;
             }
@@ -246,9 +211,7 @@ namespace IceRpc
             // We only hash a subset of the properties to keep GetHashCode reasonably fast.
             var hash = new HashCode();
             hash.Add(Facet);
-            hash.Add(_invocationTimeout);
             hash.Add(Invoker);
-            hash.Add(IsOneway);
             hash.Add(Path);
             hash.Add(Protocol);
             if (_endpoint != null)
@@ -270,8 +233,8 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot marshal a proxy bound to an incoming connection");
             }
 
-            InvocationMode? invocationMode = IsOneway ? InvocationMode.Oneway : null;
-            if (Protocol == Protocol.Ice1 && IsOneway && (_endpoint?.IsDatagram ?? false))
+            InvocationMode invocationMode = InvocationMode.Twoway;
+            if (Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false))
             {
                 invocationMode = InvocationMode.Datagram;
             }
@@ -304,7 +267,7 @@ namespace IceRpc
                     identity.IceWrite(ostr);
                 }
 
-                ostr.WriteProxyData11(Facet, invocationMode ?? InvocationMode.Twoway, Protocol, Encoding);
+                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
 
                 if (IsIndirect)
                 {
@@ -379,41 +342,11 @@ namespace IceRpc
                     sb.Append(Path);
                 }
 
-                if (Context.Count > 0)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("context=");
-                    int index = 0;
-                    foreach ((string key, string value) in Context)
-                    {
-                        sb.Append(Uri.EscapeDataString(key));
-                        sb.Append('=');
-                        sb.Append(Uri.EscapeDataString(value));
-                        if (++index != Context.Count)
-                        {
-                            sb.Append(',');
-                        }
-                    }
-                }
-
                 if (Encoding != Ice2Definitions.Encoding) // possible but quite unlikely
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("encoding=");
                     sb.Append(Encoding);
-                }
-
-                if (_invocationTimeout != ProxyOptions.DefaultInvocationTimeout)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("invocation-timeout=");
-                    sb.Append(TimeSpanExtensions.ToPropertyValue(_invocationTimeout));
-                }
-
-                if (IsOneway)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("oneway=true");
                 }
 
                 if (_altEndpoints.Count > 0)
@@ -536,10 +469,7 @@ namespace IceRpc
         internal ProxyOptions GetOptions() =>
              new()
              {
-                 Context = _context,
-                 InvocationTimeout = _invocationTimeout,
-                 Invoker = Invoker,
-                 IsOneway = IsOneway
+                Invoker = Invoker,
              };
 
         // Helper constructor
@@ -552,11 +482,8 @@ namespace IceRpc
             ProxyOptions options)
         {
             _connection = connection;
-            _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
-            _invocationTimeout = options.InvocationTimeout;
             Invoker = options.Invoker!;
-            IsOneway = options.IsOneway;
             Protocol = protocol;
 
             Endpoint = endpoint; // use the Endpoint set validation
