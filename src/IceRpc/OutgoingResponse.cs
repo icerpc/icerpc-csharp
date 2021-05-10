@@ -181,8 +181,8 @@ namespace IceRpc
         /// <param name="payload">The payload of this response.</param>
         /// <param name="features">The features of this response.</param>
         public OutgoingResponse(
-            IncomingRequest request, 
-            IList<ArraySegment<byte>> payload, 
+            IncomingRequest request,
+            IList<ArraySegment<byte>> payload,
             FeatureCollection? features = null)
             : this(request.Protocol, payload, features)
         {

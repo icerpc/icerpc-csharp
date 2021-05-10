@@ -6,89 +6,61 @@ using System.Collections.Generic;
 
 namespace IceRpc.Internal
 {
-    /// <summary>This class contains ILogger extensions methods for logging protocol messages.</summary>
+    /// <summary>This class contains constants used for protocol logging event Ids.</summary>
     internal static class ProtocolLoggerExtensions
     {
-        // The constants are internal for testing purpose.
-        internal const int BaseEventId = LoggerExtensions.ProtocolBaseEventId;
-
-        internal const int DatagramConnectionReceiveCloseConnectionFrame = BaseEventId + 0;
-        internal const int DatagramSizeExceededIncomingFrameMaxSize = BaseEventId + 1;
-        internal const int DatagramMaximumSizeExceeded = BaseEventId + 2;
-
-        internal const int ReceivedIce1CloseConnectionFrame = BaseEventId + 3;
-        internal const int ReceivedIce1RequestBatchFrame = BaseEventId + 4;
-        internal const int ReceivedIce1ValidateConnectionFrame = BaseEventId + 5;
-
-        internal const int ReceivedGoAwayFrame = BaseEventId + 6;
-        internal const int ReceivedInitializeFrame = BaseEventId + 7;
-        internal const int ReceivedRequestFrame = BaseEventId + 8;
-        internal const int ReceivedResponseFrame = BaseEventId + 9;
-        internal const int RequestException = BaseEventId + 10;
-        internal const int RetryRequestRetryableException = BaseEventId + 11;
-        internal const int RetryRequestConnectionException = BaseEventId + 12;
-
-        internal const int SentIce1ValidateConnectionFrame = BaseEventId + 13;
-        internal const int SentIce1CloseConnectionFrame = BaseEventId + 14;
-        internal const int SentGoAwayFrame = BaseEventId + 15;
-        internal const int SentInitializeFrame = BaseEventId + 16;
-        internal const int SentRequestFrame = BaseEventId + 17;
-        internal const int SentResponseFrame = BaseEventId + 18;
-
         private static readonly Action<ILogger, int, Exception> _datagramMaximumSizeExceeded =
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
-                new EventId(DatagramMaximumSizeExceeded, nameof(DatagramMaximumSizeExceeded)),
+                ProtocolEventIds.DatagramMaximumSizeExceeded,
                 "maximum datagram size of {Size} exceeded");
 
         private static readonly Action<ILogger, int, Exception> _datagramSizeExceededIncomingFrameMaxSize =
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
-                new EventId(DatagramSizeExceededIncomingFrameMaxSize, nameof(DatagramSizeExceededIncomingFrameMaxSize)),
+                ProtocolEventIds.DatagramSizeExceededIncomingFrameMaxSize,
                 "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value");
 
         private static readonly Action<ILogger, Exception> _datagramConnectionReceiveCloseConnectionFrame =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(
-                    DatagramConnectionReceiveCloseConnectionFrame,
-                    nameof(DatagramConnectionReceiveCloseConnectionFrame)),
+                ProtocolEventIds.DatagramConnectionReceiveCloseConnectionFrame,
                 "ignoring close connection frame for datagram connection");
 
         private static readonly Action<ILogger, Exception> _receivedIce1CloseConnectionFrame =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ReceivedIce1CloseConnectionFrame, nameof(ReceivedIce1CloseConnectionFrame)),
+                ProtocolEventIds.ReceivedIce1CloseConnectionFrame,
                 "received close connection frame");
 
         private static readonly Action<ILogger, int, Exception> _receivedIce1RequestBatchFrame =
             LoggerMessage.Define<int>(
                 LogLevel.Information,
-                new EventId(ReceivedIce1RequestBatchFrame, nameof(ReceivedIce1RequestBatchFrame)),
+                ProtocolEventIds.ReceivedIce1RequestBatchFrame,
                 "received batch request (RequestCount={RequestCount})");
 
         private static readonly Action<ILogger, Exception> _receivedIce1ValidateConnectionFrame =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ReceivedIce1ValidateConnectionFrame, nameof(ReceivedIce1ValidateConnectionFrame)),
+                ProtocolEventIds.ReceivedIce1ValidateConnectionFrame,
                 "received validate connection frame");
 
         private static readonly Action<ILogger, long, long, string, Exception> _receivedGoAwayFrame =
             LoggerMessage.Define<long, long, string>(
                 LogLevel.Debug,
-                new EventId(ReceivedGoAwayFrame, nameof(ReceivedGoAwayFrame)),
+                ProtocolEventIds.ReceivedGoAwayFrame,
                 "received go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                 "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
 
         private static readonly Action<ILogger, int, Exception> _receivedInitializeFrame = LoggerMessage.Define<int>(
             LogLevel.Debug,
-            new EventId(ReceivedInitializeFrame, nameof(ReceivedInitializeFrame)),
+            ProtocolEventIds.ReceivedInitializeFrame,
             "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
         private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _receivedRequestFrame =
             LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
                 LogLevel.Information,
-                new EventId(ReceivedRequestFrame, nameof(ReceivedRequestFrame)),
+                ProtocolEventIds.ReceivedRequestFrame,
                 "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
                 "PayloadEncoding={PayloadEncoding}, PayloadCompressionFormat={PayloadCompressionFormat}, " +
                 "Context={Context})");
@@ -96,56 +68,56 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, ResultType, Exception> _receivedResponseFrame =
             LoggerMessage.Define<ResultType>(
                 LogLevel.Information,
-                new EventId(ReceivedResponseFrame, nameof(ReceivedResponseFrame)),
+                ProtocolEventIds.ReceivedResponseFrame,
                 "received response (ResultType={ResultType})");
 
         private static readonly Action<ILogger, string, string, Exception> _requestException =
             LoggerMessage.Define<string, string>(
                 LogLevel.Information,
-                new EventId(RequestException, nameof(RequestException)),
+                ProtocolEventIds.RequestException,
                 "request exception (Path={Path}, Operation={Operation})");
 
         private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestRetryableException =
             LoggerMessage.Define<string, string, RetryPolicy, int, int>(
                 LogLevel.Debug,
-                new EventId(RetryRequestRetryableException, nameof(RetryRequestRetryableException)),
+                ProtocolEventIds.RetryRequestRetryableException,
                 "retrying request because of retryable exception (Path={Path}, Operation={Operation}, " +
                 "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
 
         private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestConnectionException =
             LoggerMessage.Define<string, string, RetryPolicy, int, int>(
                 LogLevel.Debug,
-                new EventId(RetryRequestConnectionException, nameof(RetryRequestConnectionException)),
+                ProtocolEventIds.RetryRequestConnectionException,
                 "retrying request because of connection exception (Path={Path}, Operation={Operation}, " +
                 "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
 
         private static readonly Action<ILogger, Exception> _sentIce1ValidateConnectionFrame = LoggerMessage.Define(
             LogLevel.Debug,
-            new EventId(SentIce1ValidateConnectionFrame, nameof(SentIce1ValidateConnectionFrame)),
+            ProtocolEventIds.SentIce1ValidateConnectionFrame,
             "sent validate connection frame");
 
         private static readonly Action<ILogger, string, Exception> _sentIce1CloseConnectionFrame =
             LoggerMessage.Define<string>(
                 LogLevel.Debug,
-                new EventId(SentIce1CloseConnectionFrame, nameof(SentIce1CloseConnectionFrame)),
+                ProtocolEventIds.SentIce1CloseConnectionFrame,
                 "sent close connection frame (Reason={Reason})");
 
         private static readonly Action<ILogger, long, long, string, Exception> _sentGoAwayFrame =
             LoggerMessage.Define<long, long, string>(
                 LogLevel.Debug,
-                new EventId(SentGoAwayFrame, nameof(SentGoAwayFrame)),
+                ProtocolEventIds.SentGoAwayFrame,
                 "sent go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                 "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
 
         private static readonly Action<ILogger, int, Exception> _sentInitializeFrame = LoggerMessage.Define<int>(
             LogLevel.Debug,
-            new EventId(SentInitializeFrame, nameof(SentInitializeFrame)),
+            ProtocolEventIds.SentInitializeFrame,
             "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
         private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _sentRequestFrame =
             LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
                 LogLevel.Information,
-                new EventId(SentRequestFrame, nameof(SentRequestFrame)),
+                ProtocolEventIds.SentRequestFrame,
                 "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
                 "PayloadEncoding={PayloadEncoding}, PayloadCompressionFormat={PayloadCompressionFormat}, " +
                 "Context={Context})");
@@ -153,7 +125,7 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, ResultType, int, Encoding, CompressionFormat, Exception> _sentResponseFrame =
             LoggerMessage.Define<ResultType, int, Encoding, CompressionFormat>(
                 LogLevel.Information,
-                new EventId(SentResponseFrame, nameof(SentResponseFrame)),
+                ProtocolEventIds.SentResponseFrame,
                 "sent response (ResultType={ResultType}, Size={Size}, Encoding={Encoding}, " +
                 "CompressionFormat={CompressionFormat})");
 
