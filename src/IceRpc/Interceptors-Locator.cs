@@ -46,12 +46,26 @@ namespace IceRpc
         public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator) => Locator(locator, new());
 
         /// <summary>Creates a locator interceptor. A locator interceptor is no-op when the request carries a
-        /// connection; otherwise "resolves" the endpoints of the request using an <see cref="ILocatorPrx"/> such as
+        /// connection; otherwise it "resolves" the endpoints of the request using an <see cref="ILocatorPrx"/> such as
         /// IceGrid. It must be installed between <see cref="Retry"/> and <see cref="Binder"/>.</summary>
         /// <param name="locator">The locator proxy used for the resolutions.</param>
         /// <param name="options">The options of this interceptor.</param>
         /// <returns>A new locator interceptor.</returns>
-        public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator, LocatorOptions options) =>
-            next => new LocatorInvoker(locator, options, next);
+        public static Func<IInvoker, IInvoker> Locator(ILocatorPrx locator, LocatorOptions options)
+        {
+            // We validate the arguments immediately, not when we construct LocatorInvoker.
+            if (locator.Endpoint == null || locator.Endpoint.Transport == Transport.Loc)
+            {
+                throw new ArgumentException($"{nameof(locator)} needs a non-loc endpoint", nameof(locator));
+            }
+
+            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
+            {
+                throw new ArgumentException(
+                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}", nameof(options));
+            }
+
+            return next => new LocatorInvoker(locator, options, next);
+        }
     }
 }

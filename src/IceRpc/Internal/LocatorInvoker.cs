@@ -112,12 +112,11 @@ namespace IceRpc.Internal
             _justRefreshedAge = options.JustRefreshedAge;
             _logger = options.LoggerFactory.CreateLogger("IceRpc");
             _ttl = options.Ttl;
-
-            if (_ttl != Timeout.InfiniteTimeSpan && _justRefreshedAge >= _ttl)
-            {
-                throw new ArgumentException("JustRefreshedAge must be smaller than Ttl", nameof(options));
-            }
             _next = next;
+
+            // See Interceptors.Locator
+            Debug.Assert(_locator.Endpoint != null && _locator.Endpoint.Transport != Transport.Loc);
+            Debug.Assert(_ttl == Timeout.InfiniteTimeSpan || _justRefreshedAge < _ttl);
         }
 
         private void ClearCache(string location, string? category)
