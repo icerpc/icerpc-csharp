@@ -18,7 +18,8 @@ namespace IceRpc
             /// does not return stale values.</summary>
             public bool Background { get; set; }
 
-            /// <summary>The maximum size of the cache. Must be 0 (meaning no cache) or greater.</summary>
+            /// <summary>The maximum size of the cache. Must be 0 (meaning no cache) or greater. The default value is
+            /// 100.</summary>
             public int CacheMaxSize
             {
                 get => _cacheMaxSize;

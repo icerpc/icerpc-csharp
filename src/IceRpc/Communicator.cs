@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -154,7 +155,7 @@ namespace IceRpc
 
                     if (connection == null)
                     {
-                        throw exceptionList == null ? ex : new AggregateException(exceptionList);
+                        throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
                     }
                 }
                 return connection;
