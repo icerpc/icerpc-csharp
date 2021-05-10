@@ -538,18 +538,24 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection, greeter.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
 
+            await using var pool = new Communicator();
             var router = new Router();
             router.Use(next => new InlineDispatcher((request, cancel) =>
                 {
+                    connection = request.Connection;
                     service = IServicePrx.FromConnection(request.Connection);
                     greeter = IGreeterServicePrx.FromConnection(request.Connection);
                     return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
                 }));
+
             await using var server = new Server
             {
-                Endpoint = "ice+tcp://127.0.0.1:10000",
-                ProxyHost = "localhost"
+                Endpoint = "ice+tcp://127.0.0.1:0",
+                ProxyHost = "localhost",
+                Invoker = pool,
+                Dispatcher = router
             };
+            server.Listen();
 
             service = IServicePrx.FromServer(server);
             Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
