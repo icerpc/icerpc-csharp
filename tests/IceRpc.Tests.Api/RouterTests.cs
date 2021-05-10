@@ -192,23 +192,53 @@ namespace IceRpc.Tests.Api
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await IGreeterServicePrx.FromServer(_server).IcePingAsync());
-            _router.Map(new GreeterService());
+            _router.Map<IGreeterService>(new GreeterService());
             await IGreeterServicePrx.FromServer(_server).IcePingAsync();
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await IBasePrx.FromServer(_server).IcePingAsync());
-            _router.Map(new Base());
-            await IBasePrx.FromServer(_server).IcePingAsync();
+                async () => await IBaseAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseA>(new BaseA());
+            await IBaseAPrx.FromServer(_server).IcePingAsync();
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await IDerivedPrx.FromServer(_server).IcePingAsync());
-            _router.Map(new Derived());
-            await IDerivedPrx.FromServer(_server).IcePingAsync();
+                async () => await IDerivedAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedA>(new DerivedA());
+            await IDerivedAPrx.FromServer(_server).IcePingAsync();
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await IMostDerivedPrx.FromServer(_server).IcePingAsync());
-            _router.Map(new MostDerived());
-            await IMostDerivedPrx.FromServer(_server).IcePingAsync();
+                async () => await IMostDerivedAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedA>(new MostDerivedA());
+            await IMostDerivedAPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IBaseBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseB>(new BaseB());
+            await IBaseBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IDerivedBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedB>(new DerivedB());
+            await IDerivedBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IMostDerivedBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedB>(new MostDerivedB());
+            await IMostDerivedBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IBaseCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseC>(new BaseC());
+            await IBaseCPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IDerivedCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedC>(new DerivedC());
+            await IDerivedCPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IMostDerivedCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedC>(new MostDerivedC());
+            await IMostDerivedCPrx.FromServer(_server).IcePingAsync();
         }
 
         [TearDown]
@@ -227,8 +257,16 @@ namespace IceRpc.Tests.Api
                 throw new NotImplementedException();
         }
 
-        public class Base : IBase { }
-        public class Derived : IDerived { }
-        public class MostDerived : IMostDerived { }
+        public class BaseA : IBaseA { }
+        public class DerivedA : IDerivedA { }
+        public class MostDerivedA : IMostDerivedA { }
+
+        public class BaseB : IBaseB { }
+        public class DerivedB : IDerivedB { }
+        public class MostDerivedB : IMostDerivedB { }
+
+        public class BaseC : IBaseC { }
+        public class DerivedC : IDerivedC { }
+        public class MostDerivedC : IMostDerivedC { }
     }
 }

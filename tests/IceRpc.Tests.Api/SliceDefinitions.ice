@@ -40,7 +40,15 @@ module IceRpc::Tests::Api
         void fail();
     }
 
-    interface Base {}
-    interface Derived : Base {}
-    interface MostDerived : Derived {}
+    interface BaseA {}
+    interface DerivedA : BaseA {}
+    interface MostDerivedA : DerivedA {}
+
+    interface BaseB {}
+    interface DerivedB : BaseB, BaseA {}
+    interface MostDerivedB : DerivedB, DerivedA {}
+
+    interface BaseC {}
+    interface DerivedC : BaseC, BaseB, BaseA {}
+    interface MostDerivedC : DerivedC, DerivedB, DerivedA {}
 }

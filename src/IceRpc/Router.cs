@@ -16,7 +16,7 @@ namespace IceRpc
     {
         /// <summary>Returns the absolute path-prefix of this router. The absolute path of a service added to this
         /// Router is <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
-        /// <see cref="Map"/>.</summary>
+        /// <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
         /// characters starting with a <c>/</c>.</value>
         public string AbsolutePrefix { get; } = "";
@@ -71,22 +71,19 @@ namespace IceRpc
         /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
         /// an existing route at the same path, it is replaced.</summary>
         /// <param name="service">The target service of this route.</param>
+        /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <seealso cref="Mount"/>
-        public void Map<TService>(TService service) where TService : IService
+        public void Map<T>(IService service) where T : IService
         {
-            if (typeof(TService).GetInterfaces().Where(
-                    t => t.IsAssignableTo(typeof(IService))).FirstOrDefault() is Type serviceType &&
-                serviceType.GetField("DefaultPath",
-                                     BindingFlags.Public | BindingFlags.Static) is FieldInfo defaultPathField &&
-                defaultPathField.GetValue(null) is string defaultPath)
+            if (typeof(T).GetIceTypeId() is string typeId)
             {
+                Debug.Assert(typeId.StartsWith("::", StringComparison.InvariantCulture));
                 _pipeline ??= CreatePipeline();
-                _exactMatchRoutes[defaultPath] = service;
+                _exactMatchRoutes["/" + typeId[2..].Replace("::", ".")] = service;
             }
             else
             {
-                throw new InvalidOperationException(
-                    $"{typeof(TService).FullName} does not have a string field named DefaultPath");
+                throw new ArgumentException($"{typeof(T).FullName} doesn't have IceRpc.TypeId attribute", nameof(T));
             }
         }
 
@@ -96,7 +93,7 @@ namespace IceRpc
         /// the request.</param>
         /// <param name="dispatcher">The target of this route.</param>
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
-        /// <seealso cref="Map"/>
+        /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
@@ -121,7 +118,7 @@ namespace IceRpc
             return subRouter;
         }
 
-        /// <summary>Unregisters a route previously registered with <see cref="Map"/>.</summary>
+        /// <summary>Unregisters a route previously registered with <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <param name="path">The path of the route.</param>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>

@@ -15,6 +15,7 @@ namespace IceRpc
     public delegate T RequestReader<T>(IncomingRequest request);
 
     /// <summary>The base interface for all services.</summary>
+    [TypeId("::Ice::Object")]
     public interface IService : IDispatcher
     {
         // The following are helper classes and methods for generated servants.
@@ -59,10 +60,6 @@ namespace IceRpc
             public static IList<ArraySegment<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
                 Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
-
-        /// <summary>The path for services of <see cref="IService"/> type when the path is not explicitly specified.
-        /// </summary>
-        public const string DefaultPath = "/Ice.Object";
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
