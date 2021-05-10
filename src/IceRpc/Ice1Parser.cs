@@ -320,7 +320,6 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                endpoint = LocEndpoint.Create(identity);
                 return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
             }
 

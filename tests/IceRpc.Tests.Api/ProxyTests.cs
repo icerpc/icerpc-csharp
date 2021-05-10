@@ -80,11 +80,6 @@ namespace IceRpc.Tests.Api
             await using var communicator = new Communicator();
             var prx = IGreeterServicePrx.Parse(s, communicator);
 
-            prx.CacheConnection = false;
-            Assert.IsFalse(prx.CacheConnection);
-            prx.CacheConnection = true;
-            Assert.IsTrue(prx.CacheConnection);
-
             prx.Context = new Dictionary<string, string>
             {
                 { "key1", "value1" },
@@ -125,17 +120,13 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
             prx = IGreeterServicePrx.FromServer(server, "/");
-            var connection = await prx.GetConnectionAsync();
+            await prx.IcePingAsync();
+            Connection connection = prx.Connection!;
 
             prx = IGreeterServicePrx.Parse(s, communicator);
 
             prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
             Assert.AreEqual(prx.InvocationTimeout, TimeSpan.FromMilliseconds(10));
-
-            prx.PreferExistingConnection = false;
-            Assert.IsFalse(prx.PreferExistingConnection);
-            prx.PreferExistingConnection = true;
-            Assert.IsTrue(prx.PreferExistingConnection);
 
             prx.IsOneway = false;
             Assert.IsFalse(prx.IsOneway);
@@ -382,7 +373,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
-        [TestCase("ice+tcp://localhost/path?invocation-timeout=10s&cache-connection=false&alt-endpoint=ice+ws://[::1]")]
+        [TestCase("ice+tcp://localhost/path?invocation-timeout=10s&alt-endpoint=ice+ws://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
             var prx1 = IServicePrx.Parse(proxyString, Communicator);
@@ -432,12 +423,10 @@ namespace IceRpc.Tests.Api
             var proxyOptions = new ProxyOptions() { Invoker = communicator };
 
             var proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
-            Assert.IsTrue(proxy.CacheConnection);
             Assert.IsFalse(proxy.IsOneway);
             Assert.AreEqual(proxy.InvocationTimeout, ProxyOptions.DefaultInvocationTimeout);
             CollectionAssert.IsEmpty(proxy.Context);
 
-            proxyOptions.CacheConnection = false;
             proxyOptions.Context = new Dictionary<string, string>()
             {
                 ["c1"] = "TEST1",
@@ -449,7 +438,6 @@ namespace IceRpc.Tests.Api
             proxy = IServicePrx.Factory.Parse(proxyString, proxyOptions);
             proxyOptions.Context = ImmutableSortedDictionary<string, string>.Empty;
 
-            Assert.IsFalse(proxy.CacheConnection);
             Assert.IsTrue(proxy.IsOneway);
             Assert.AreEqual(TimeSpan.FromSeconds(1), proxy.InvocationTimeout);
             Assert.AreEqual("TEST1", proxy.Context["c1"]);
@@ -465,8 +453,6 @@ namespace IceRpc.Tests.Api
             var prx = IServicePrx.Parse(proxyString, communicator);
 
             Assert.AreEqual("/test", prx.Path);
-            prx = IServicePrx.Parse($"{proxyString}?cache-connection=false", communicator);
-            Assert.IsFalse(prx.CacheConnection);
 
             prx = IServicePrx.Parse(
                     $"{proxyString}?context=c1=TEST1,c2=TEST&context=c2=TEST2,d%204=TEST%204,c3=TEST3",

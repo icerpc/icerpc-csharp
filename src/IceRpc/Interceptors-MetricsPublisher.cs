@@ -4,7 +4,7 @@ using System;
 
 namespace IceRpc
 {
-    public static partial class Interceptor
+    public static partial class Interceptors
     {
         /// <summary>Creates an interceptor that publishes invocation metrics using an invocation event source
         /// <see cref="InvocationEventSource"/>.</summary>

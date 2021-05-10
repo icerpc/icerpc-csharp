@@ -120,13 +120,17 @@ namespace IceRpc.Tests.Api
                 server1.Listen();
 
                 var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
-                Connection connection = await prx.GetConnectionAsync();
+
+                // Establishes connection:
+                await prx.IcePingAsync(new Invocation { IsOneway = true });
+                Connection? connection = prx.Connection;
+                Assert.That(connection, Is.Not.Null);
 
                 IDispatcher dispatcher = new ProxyTest();
 
                 // We can set Dispatcher on an outgoing connection
-                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
-                Assert.DoesNotThrow(() => connection.Dispatcher = null);
+                Assert.DoesNotThrow(() => connection!.Dispatcher = dispatcher);
+                Assert.DoesNotThrow(() => connection!.Dispatcher = null);
             }
         }
 
@@ -202,7 +206,6 @@ namespace IceRpc.Tests.Api
 
             var proxyOptions = new ProxyOptions()
             {
-                CacheConnection = false,
                 // no need to set Communicator
                 Context = new Dictionary<string, string>() { ["speed"] = "fast" },
                 InvocationTimeout = TimeSpan.FromSeconds(10)
@@ -233,14 +236,12 @@ namespace IceRpc.Tests.Api
             IProxyTestPrx received = await proxy.ReceiveProxyAsync();
 
             // received inherits the proxy properties not the server options
-            Assert.AreEqual(received.CacheConnection, proxy.CacheConnection);
             CollectionAssert.IsEmpty(received.Context);
             Assert.AreEqual(received.InvocationTimeout, proxy.InvocationTimeout);
             Assert.AreEqual(received.IsOneway, proxy.IsOneway);
 
             static void CheckProxy(IProxyTestPrx proxy)
             {
-                Assert.IsFalse(proxy.CacheConnection);
                 Assert.AreEqual("fast", proxy.Context["speed"]);
                 Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
                 Assert.AreEqual("/foo/bar", proxy.Path);

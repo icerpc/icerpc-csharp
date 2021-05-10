@@ -21,13 +21,13 @@ using System.Runtime.Loader;
 
 namespace IceRpc
 {
-    /// <summary>The Ice runtime.</summary>
+    /// <summary>Provides global configuration for IceRPC in the current process.</summary>
     public static class Runtime
     {
         /// <summary>The IceRPC version in semver format.</summary>
         public const string StringVersion = "0.0.1-alpha";
 
-        /// <summary>Gets or sets the logger factory used by IceRpc classes when no logger factory is explicitly
+        /// <summary>Gets or sets the logger factory used by IceRPC classes when no logger factory is explicitly
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 

@@ -12,9 +12,6 @@ namespace IceRpc
     {
         public static TimeSpan DefaultInvocationTimeout { get; } = TimeSpan.FromSeconds(60);
 
-        /// <summary>Specifies whether or not the proxy caches its connection. The default value is true.</summary>
-        public bool CacheConnection { get; set; } = true;
-
         /// <summary>The context of the proxy.</summary>
         public IReadOnlyDictionary<string, string> Context { get; set; } =
             ImmutableSortedDictionary<string, string>.Empty;
@@ -33,12 +30,6 @@ namespace IceRpc
         /// <summary>When true, a void-returning operation on the proxy is invoked "oneway" even when no oneway metadata
         /// is specified.</summary>
         public bool IsOneway { get; set; }
-
-        /// <summary>The location resolver of the proxy.</summary>
-        public ILocationResolver? LocationResolver { get; set; }
-
-        /// <summary>(temporary).</summary>
-        public bool PreferExistingConnection { get; set; } = true;
 
         private TimeSpan _invocationTimeout = DefaultInvocationTimeout;
 

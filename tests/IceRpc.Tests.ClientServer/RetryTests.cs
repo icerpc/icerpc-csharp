@@ -81,12 +81,10 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            IRetryBidirServicePrx proxy = IRetryBidirServicePrx.FromServer(server, "/");
-
-            Connection connection = await proxy.GetConnectionAsync();
-            connection.Dispatcher = server.Dispatcher;
-            IRetryBidirServicePrx bidir = proxy.Clone();
-            bidir.Connection = connection;
+            var proxy = IRetryBidirServicePrx.FromServer(server, "/");
+            await proxy.IcePingAsync();
+            proxy.Connection!.Dispatcher = server.Dispatcher;
+            IRetryBidirServicePrx bidir = proxy.Clone(); // keeps Connection
             bidir.Endpoint = null; // endpointless proxy with a connection
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
@@ -150,7 +148,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(failedAttempts > 0);
             await WithRetryServiceAsync(
                 protocol,
-                communicator => communicator.InvocationMaxAttempts = maxAttempts,
+                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts), Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     // Idempotent operations can always be retried, the operation must succeed if the failed attempts are
@@ -221,7 +219,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsTrue(failedAttempts > 0);
             await WithRetryServiceAsync(
                 protocol,
-                communicator => communicator.InvocationMaxAttempts = maxAttempts,
+                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts), Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     if (failedAttempts > 0 && killConnection)
@@ -293,7 +291,10 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_ReportLastFailure()
         {
-            await using var communicator = new Communicator();
+            await using var communicator = new Communicator
+            {
+                PreferExistingConnection = false
+            };
 
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
@@ -342,6 +343,7 @@ namespace IceRpc.Tests.ClientServer
                     calls.Clear();
                     prx = prx1.Clone();
                     prx.AltEndpoints = ImmutableList.Create(prx3.Endpoint!, prx2.Endpoint!);
+
                     Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
                     Assert.AreEqual(servers[0].ToString(), calls[0]);
                     Assert.AreEqual(servers[2].ToString(), calls[1]);
@@ -359,7 +361,8 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
-                communicator => communicator.RetryBufferMaxSize = 2048,
+                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts: 5, bufferMaxSize: 2048),
+                                                 Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
@@ -396,7 +399,8 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
         {
             await WithRetryServiceAsync(
-                communicator => communicator.RetryRequestMaxSize = maxSize,
+                (pipeline, pool) => pipeline.Use(Interceptors.Retry(5, requestMaxSize: maxSize),
+                                                 Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     // Check that only requests with size smaller than RetryRequestMaxSize are retried.
@@ -433,15 +437,22 @@ namespace IceRpc.Tests.ClientServer
 
         private async Task WithRetryServiceAsync(
             Protocol protocol,
-            Action<Communicator>? configure,
+            Action<Pipeline, IConnectionProvider>? configure,
             Func<RetryService, IRetryServicePrx, Task> closure)
         {
-            await using var communicator = new Communicator();
-            configure?.Invoke(communicator);
+            await using var connectionPool = new Communicator { IsInvoker = configure == null };
+
+            Pipeline? pipeline = null;
+            if (configure != null)
+            {
+                pipeline = new Pipeline();
+                configure(pipeline, connectionPool);
+            }
+
             var service = new RetryService();
             var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pipeline ?? connectionPool,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ProxyHost = "localhost"
@@ -458,7 +469,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/retry", service);
             server.Dispatcher = router;
             server.Listen();
-            var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), communicator);
+            var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline ?? connectionPool);
             await closure(service, retry);
         }
 
@@ -466,7 +477,7 @@ namespace IceRpc.Tests.ClientServer
             WithRetryServiceAsync(Protocol.Ice2, null, closure);
 
         private Task WithRetryServiceAsync(
-            Action<Communicator>? configure,
+            Action<Pipeline, IConnectionProvider> configure,
             Func<RetryService, IRetryServicePrx, Task> closure) =>
             WithRetryServiceAsync(Protocol.Ice2, configure, closure);
 

@@ -62,16 +62,6 @@ namespace IceRpc
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
-        /// <summary>Returns the Connection for this proxy. If the proxy does not yet have an established connection,
-        /// it first attempts to create a connection.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The Connection for this proxy.</returns>
-        public static ValueTask<Connection> GetConnectionAsync(
-            this IServicePrx proxy,
-            CancellationToken cancel = default) =>
-            proxy.Impl.GetConnectionAsync(cancel);
-
         /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
         /// <returns>The proxy factory.</returns>
         public static IProxyFactory<T> GetFactory<T>() where T : class, IServicePrx
@@ -223,9 +213,7 @@ namespace IceRpc
 
                 if (proxy.Impl.IsWellKnown)
                 {
-                    // Need to replace Loc endpoint since we're changing the identity.
-                    endpoint = LocEndpoint.Create(identity);
-                    connection = null; // clear cached connection since we're changing the endpoint
+                    connection = null; // clear cached connection
                 }
 
                 return GetFactory<T>().Create(identity,

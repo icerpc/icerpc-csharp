@@ -97,8 +97,11 @@ namespace IceRpc
         /// <summary>Gets the default port of this endpoint.</summary>
         protected internal abstract ushort DefaultPort { get; }
 
-        /// <summary>Returns true if the endpoint supports the <c>CreateAcceptor</c> method.</summary>
+        /// <summary>Returns true if the endpoint supports the <see cref="CreateAcceptor"/> method.</summary>
         protected internal virtual bool HasAcceptor => false;
+
+        /// <summary>Returns true if the endpoint supports the <see cref="CreateClientSocket"/> method.</summary>
+        protected internal virtual bool HasConnect => true;
 
         /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
@@ -198,7 +201,8 @@ namespace IceRpc
         protected internal virtual IAcceptor CreateAcceptor(
             IncomingConnectionOptions options,
             ILogger logger) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot accept connections");
+            HasAcceptor ? throw new NotImplementedException($"endpoint '{this}' does not accept connections") :
+                throw new NotSupportedException($"endpoint '{this}' does not accept connections");
 
         /// <summary>Creates a client socket for this endpoint.</summary>
         /// <param name="options">The client connection options.</param>
@@ -207,7 +211,8 @@ namespace IceRpc
         protected internal virtual MultiStreamSocket CreateClientSocket(
             OutgoingConnectionOptions options,
             ILogger logger) =>
-            throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
+            HasConnect ? throw new NotImplementedException($"cannot establish a connection to endpoint '{this}'") :
+                throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
 
         /// <summary>Creates a server socket for this endpoint to receive data from one or multiple client.
         /// This is used to implement a transport which can only communicate with a single client (e.g. a serial
@@ -307,7 +312,7 @@ namespace IceRpc
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
         /// <param name="endpoint">The endpoint to check.</param>
         /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
-        public static Endpoint? ToColocEndpoint(this Endpoint endpoint) =>
+        public static Endpoint? GetColocCounterPart(this Endpoint endpoint) =>
             endpoint.Transport == Transport.Coloc ? endpoint :
                 (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 

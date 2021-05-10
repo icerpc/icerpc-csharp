@@ -44,7 +44,7 @@ namespace IceRpc
         }
     }
 
-    /// <summary>This exception reports that a proxy's endpoints could not be resolved.</summary>
+    /// <summary>This exception reports that a proxy has no endpoint or no usable endpoint.</summary>
     public class NoEndpointException : Exception
     {
         /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
@@ -53,9 +53,9 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
-        /// <param name="stringifiedProxy">The stringified proxy that was the cause of this exception.</param>
-        public NoEndpointException(string stringifiedProxy)
-            : base($"could not find the endpoints for proxy '{stringifiedProxy}'")
+        /// <param name="proxy">The proxy with no endpoint or no usable endpoint.</param>
+        public NoEndpointException(IServicePrx proxy)
+            : base($"proxy '{proxy}' has no usable endpoint")
         {
         }
     }

@@ -126,13 +126,7 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <inheritdoc/>
-        public ILocationResolver? LocationResolver { get; set; }
-
-        /// <inheritdoc/>
         public string Path { get; } = "";
-
-        /// <inheritdoc/>
-        public bool PreferExistingConnection { get; set; }
 
         /// <inheritdoc/>
         public Protocol Protocol { get; }
@@ -142,8 +136,8 @@ namespace IceRpc
         internal string Facet { get; } = "";
         internal Identity Identity { get; } = Identity.Empty;
 
-        internal bool IsIndirect => _endpoint is Endpoint endpoint && endpoint.Transport == Transport.Loc;
-        internal bool IsWellKnown => Protocol == Protocol.Ice1 && IsIndirect && _endpoint!.Data.Options.Length > 0;
+        internal bool IsIndirect => _endpoint?.Transport == Transport.Loc || IsWellKnown;
+        internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
@@ -189,10 +183,6 @@ namespace IceRpc
                 return true;
             }
 
-            if (CacheConnection != other.CacheConnection)
-            {
-                return false;
-            }
             if (Encoding != other.Encoding)
             {
                 return false;
@@ -227,15 +217,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (LocationResolver != other.LocationResolver)
-            {
-                return false;
-            }
             if (Path != other.Path)
-            {
-                return false;
-            }
-            if (PreferExistingConnection != other.PreferExistingConnection)
             {
                 return false;
             }
@@ -397,12 +379,6 @@ namespace IceRpc
                     sb.Append(Path);
                 }
 
-                if (!CacheConnection)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("cache-connection=false");
-                }
-
                 if (Context.Count > 0)
                 {
                     StartQueryOption(sb, ref firstOption);
@@ -438,12 +414,6 @@ namespace IceRpc
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("oneway=true");
-                }
-
-                if (!PreferExistingConnection)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("prefer-existing-connection=false");
                 }
 
                 if (_altEndpoints.Count > 0)
@@ -532,12 +502,12 @@ namespace IceRpc
         {
             Activity? activity = null;
 
-            var communicator = (Communicator)request.Proxy.Invoker;
+            var communicator = request.Proxy.Invoker as Communicator;
 
             // TODO add a client ActivitySource and use it to start the activities
             // Start the invocation activity before running client side interceptors. Activities started
             // by interceptors will be children of IceRpc.Invocation activity.
-            if (communicator.Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            if ((communicator != null && communicator.Logger.IsEnabled(LogLevel.Critical)) || Activity.Current != null)
             {
                 activity = new Activity($"{request.Path}/{request.Operation}");
                 activity.AddTag("rpc.system", "icerpc");
@@ -566,95 +536,11 @@ namespace IceRpc
         internal ProxyOptions GetOptions() =>
              new()
              {
-                 CacheConnection = CacheConnection,
                  Context = _context,
                  InvocationTimeout = _invocationTimeout,
                  Invoker = Invoker,
-                 IsOneway = IsOneway,
-                 LocationResolver = LocationResolver,
-                 PreferExistingConnection = PreferExistingConnection
+                 IsOneway = IsOneway
              };
-
-        /// <summary>Provides the implementation of <see cref="Proxy.GetConnectionAsync"/>.</summary>
-        internal async ValueTask<Connection> GetConnectionAsync(CancellationToken cancel)
-        {
-            Connection? connection = _connection;
-            if (connection != null && connection.IsActive)
-            {
-                return connection;
-            }
-
-            var communicator = (Communicator)Invoker;
-
-            using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(
-                cancel,
-                communicator.CancellationToken);
-            cancel = linkedCancellationSource.Token;
-
-            List<Endpoint>? endpoints = null;
-
-            if ((connection == null || (!connection.IsIncoming && !connection.IsActive)) && PreferExistingConnection)
-            {
-                // No cached connection, so now check if there is an existing connection that we can reuse.
-                endpoints = await communicator.ComputeEndpointsAsync(this,
-                                                                     refreshCache: false,
-                                                                     IsOneway,
-                                                                     cancel).ConfigureAwait(false);
-                connection = communicator.GetConnection(endpoints);
-                if (CacheConnection)
-                {
-                    _connection = connection;
-                }
-            }
-
-            OutgoingConnectionOptions options = communicator.ConnectionOptions ?? OutgoingConnectionOptions.Default;
-
-            bool refreshCache = false;
-
-            while (connection == null)
-            {
-                if (endpoints == null)
-                {
-                    endpoints = await communicator.ComputeEndpointsAsync(this,
-                                                                         refreshCache,
-                                                                         IsOneway,
-                                                                         cancel).ConfigureAwait(false);
-                }
-
-                Endpoint last = endpoints[^1];
-                foreach (Endpoint endpoint in endpoints)
-                {
-                    try
-                    {
-                        connection = await communicator.ConnectAsync(endpoint, options, cancel).ConfigureAwait(false);
-                        if (CacheConnection)
-                        {
-                            _connection = connection;
-                        }
-                        break;
-                    }
-                    catch
-                    {
-                        // Ignore the exception unless this is the last endpoint.
-                        if (ReferenceEquals(endpoint, last))
-                        {
-                            if (IsIndirect && !refreshCache)
-                            {
-                                // Try again once with freshly resolved endpoints
-                                refreshCache = true;
-                                endpoints = null;
-                            }
-                            else
-                            {
-                                throw;
-                            }
-                        }
-                    }
-                }
-            }
-            Debug.Assert(connection != null);
-            return connection;
-        }
 
         // Helper constructor
         private ServicePrx(
@@ -665,15 +551,12 @@ namespace IceRpc
             Connection? connection,
             ProxyOptions options)
         {
-            CacheConnection = options.CacheConnection;
             _connection = connection;
             _context = options.Context.ToImmutableSortedDictionary();
             Encoding = encoding;
             _invocationTimeout = options.InvocationTimeout;
             Invoker = options.Invoker!;
             IsOneway = options.IsOneway;
-            LocationResolver = options.LocationResolver;
-            PreferExistingConnection = options.PreferExistingConnection;
             Protocol = protocol;
 
             Endpoint = endpoint; // use the Endpoint set validation

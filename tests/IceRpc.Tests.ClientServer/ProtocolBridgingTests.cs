@@ -43,8 +43,22 @@ namespace IceRpc.Tests.ClientServer
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
 
-            // When colocated, the proxy is an endpointless proxy and "inherits" the forwarder's proxy protocol.
-            Assert.AreEqual(colocated ? forwarderProtocol : targetProtocol, newPrx.Protocol);
+            if (colocated)
+            {
+                if (newPrx.Connection == null)
+                {
+                    Assert.That(newPrx.Endpoint, Is.Null);
+                    Assert.AreEqual(Protocol.Ice1, newPrx.Protocol);
+
+                    // Fix up the "well-known" proxy
+                    // TODO: cleaner solution?
+                    newPrx.Endpoint = _targetServer.ProxyEndpoint;
+                }
+            }
+            else
+            {
+                Assert.AreEqual(targetProtocol, newPrx.Protocol);
+            }
 
             _ = await TestProxyAsync(newPrx, direct: true);
 
@@ -71,6 +85,7 @@ namespace IceRpc.Tests.ClientServer
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
                 prx = await prx.OpNewProxyAsync();
+
                 prx.Context = new Dictionary<string, string> { { "Direct", "1" } };
                 return prx;
             }
