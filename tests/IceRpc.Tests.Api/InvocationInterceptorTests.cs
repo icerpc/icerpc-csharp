@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Api
 
         internal class TestService : IInvocationInterceptorTestService
         {
-            public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
                 new(dispatch.Context);
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }

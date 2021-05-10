@@ -736,7 +736,7 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IReadOnlyDictionary<int, int>? R1, IReadOnlyDictionary<int, int>? R2)> OpIntDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntDictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
@@ -825,7 +825,7 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IReadOnlyDictionary<string, string>? R1, IReadOnlyDictionary<string, string>? R2)> OpStringDictAsync(
+        public ValueTask<(IEnumerable<KeyValuePair<string, string>>? R1, IEnumerable<KeyValuePair<string, string>>? R2)> OpStringDictAsync(
             Dictionary<string, string>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));

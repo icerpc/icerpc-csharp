@@ -169,7 +169,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             public ValueTask<C> OpCAsync(C p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, C>> OpCMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, C>>> OpCMapAsync(
                 Dictionary<string, C> p1,
                 Dispatch dispatch, CancellationToken cancel) => new(p1);
 
@@ -184,7 +184,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             public ValueTask<S> OpSAsync(S p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, S>> OpSMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, S>>> OpSMapAsync(
                 Dictionary<string, S> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             public ValueTask<Inner2.C> OpCAsync(Inner2.C p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, Inner2.C>> OpCMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, Inner2.C>>> OpCMapAsync(
                 Dictionary<string, Inner2.C> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -214,7 +214,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             public ValueTask<Inner2.S> OpSAsync(Inner2.S p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, Inner2.S>> OpSMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, Inner2.S>>> OpSMapAsync(
                 Dictionary<string, Inner2.S> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -232,7 +232,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             public ValueTask<C> OpCAsync(C c1, Dispatch dispatch, CancellationToken cancel) => new(c1);
 
-            public ValueTask<IReadOnlyDictionary<string, C>> OpCMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, C>>> OpCMapAsync(
                 Dictionary<string, C> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -244,7 +244,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             public ValueTask<S> OpSAsync(S p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, S>> OpSMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, S>>> OpSMapAsync(
                 Dictionary<string, S> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -265,7 +265,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, Scope.C>> OpCMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, Scope.C>>> OpCMapAsync(
                 Dictionary<string, Scope.C> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
@@ -280,7 +280,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
 
-            public ValueTask<IReadOnlyDictionary<string, Scope.S>> OpSMapAsync(
+            public ValueTask<IEnumerable<KeyValuePair<string, Scope.S>>> OpSMapAsync(
                 Dictionary<string, Scope.S> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(p1);
