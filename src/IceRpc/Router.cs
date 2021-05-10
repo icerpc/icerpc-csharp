@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +16,7 @@ namespace IceRpc
     {
         /// <summary>Returns the absolute path-prefix of this router. The absolute path of a service added to this
         /// Router is <code>$"{AbsolutePrefix}{path}"</code> where <c>path</c> corresponds to the argument given to
-        /// <see cref="Map"/>.</summary>
+        /// <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <value>The absolute prefix of this router. It is either an empty string or a string with two or more
         /// characters starting with a <c>/</c>.</value>
         public string AbsolutePrefix { get; } = "";
@@ -67,13 +68,24 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
+        /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
+        /// an existing route at the same path, it is replaced.</summary>
+        /// <typeparam name="T">The service type used to get the default path.</typeparam>
+        /// <param name="service">The target service of this route.</param>
+        /// <seealso cref="Mount"/>
+        public void Map<T>(IService service) where T : IService
+        {
+            _pipeline ??= CreatePipeline();
+            _exactMatchRoutes[GetDefaultPath<T>()] = service;
+        }
+
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>
         /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
         /// the request.</param>
         /// <param name="dispatcher">The target of this route.</param>
         /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
-        /// <seealso cref="Map"/>
+        /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
@@ -98,7 +110,7 @@ namespace IceRpc
             return subRouter;
         }
 
-        /// <summary>Unregisters a route previously registered with <see cref="Map"/>.</summary>
+        /// <summary>Unregisters a route previously registered with <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <param name="path">The path of the route.</param>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
@@ -107,6 +119,12 @@ namespace IceRpc
             Internal.UriParser.CheckPath(path, nameof(path));
             return _exactMatchRoutes.Remove(path);
         }
+
+        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(IService)"/>.</summary>
+        /// <typeparam name="T">The service type used to get the default path.</typeparam>
+        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
+        public bool Unmap<T>() where T : IService =>
+            _exactMatchRoutes.Remove(GetDefaultPath<T>());
 
         /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
         /// <param name="prefix">The prefix of the route.</param>
@@ -133,6 +151,21 @@ namespace IceRpc
         }
 
         public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
+
+        // Computes the service default path from the service typeId
+        private static string GetDefaultPath<T>() where T : IService
+        {
+            if (typeof(T).GetIceTypeId() is string typeId)
+            {
+                Debug.Assert(typeId.StartsWith("::", StringComparison.InvariantCulture));
+                return "/" + typeId[2..].Replace("::", ".");
+            }
+            else
+            {
+                throw new ArgumentException($"{typeof(T).FullName} doesn't have an IceRpc.TypeId attribute",
+                                            nameof(T));
+            }
+        }
 
         // Trim trailing slashes but keep the leading slash.
         private static string NormalizePrefix(string prefix)

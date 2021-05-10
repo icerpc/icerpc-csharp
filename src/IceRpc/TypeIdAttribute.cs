@@ -77,7 +77,6 @@ namespace IceRpc
                             result.Add(typeId);
                         }
                     }
-                    result.Add("::Ice::Object");
                     result.Sort(StringComparer.Ordinal);
                 }
                 return result.ToArray();

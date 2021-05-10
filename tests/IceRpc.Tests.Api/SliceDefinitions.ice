@@ -33,4 +33,16 @@ module IceRpc::Tests::Api
         void failWithRemote();
         void failWithUnhandled();
     }
+
+    interface BaseA {}
+    interface DerivedA : BaseA {}
+    interface MostDerivedA : DerivedA {}
+
+    interface BaseB {}
+    interface DerivedB : BaseB, BaseA {}
+    interface MostDerivedB : DerivedB, DerivedA {}
+
+    interface BaseC {}
+    interface DerivedC : BaseC, BaseB, BaseA {}
+    interface MostDerivedC : DerivedC, DerivedB, DerivedA {}
 }

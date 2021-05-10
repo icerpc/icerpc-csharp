@@ -15,6 +15,7 @@ namespace IceRpc
     public delegate T RequestReader<T>(IncomingRequest request);
 
     /// <summary>The base interface for all services.</summary>
+    [TypeId("::Ice::Object")]
     public interface IService : IDispatcher
     {
         // The following are helper classes and methods for generated servants.

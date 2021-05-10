@@ -185,6 +185,62 @@ namespace IceRpc.Tests.Api
             Assert.IsTrue(called);
         }
 
+        [Test]
+        public async Task Router_RouteDefaultPathAsync()
+        {
+            Assert.IsEmpty(_router.AbsolutePrefix);
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IGreeterServicePrx.FromServer(_server).IcePingAsync());
+            _router.Map<IGreeterService>(new GreeterService());
+            await IGreeterServicePrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IBaseAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseA>(new BaseA());
+            await IBaseAPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IDerivedAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedA>(new DerivedA());
+            await IDerivedAPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IMostDerivedAPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedA>(new MostDerivedA());
+            await IMostDerivedAPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IBaseBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseB>(new BaseB());
+            await IBaseBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IDerivedBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedB>(new DerivedB());
+            await IDerivedBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IMostDerivedBPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedB>(new MostDerivedB());
+            await IMostDerivedBPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IBaseCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IBaseC>(new BaseC());
+            await IBaseCPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IDerivedCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IDerivedC>(new DerivedC());
+            await IDerivedCPrx.FromServer(_server).IcePingAsync();
+
+            Assert.ThrowsAsync<ServiceNotFoundException>(
+                async () => await IMostDerivedCPrx.FromServer(_server).IcePingAsync());
+            _router.Map<IMostDerivedC>(new MostDerivedC());
+            await IMostDerivedCPrx.FromServer(_server).IcePingAsync();
+        }
+
         [TearDown]
         public async Task TearDownAsync()
         {
@@ -200,5 +256,17 @@ namespace IceRpc.Tests.Api
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();
         }
+
+        public class BaseA : IBaseA { }
+        public class DerivedA : IDerivedA { }
+        public class MostDerivedA : IMostDerivedA { }
+
+        public class BaseB : IBaseB { }
+        public class DerivedB : IDerivedB { }
+        public class MostDerivedB : IMostDerivedB { }
+
+        public class BaseC : IBaseC { }
+        public class DerivedC : IDerivedC { }
+        public class MostDerivedC : IMostDerivedC { }
     }
 }
