@@ -233,12 +233,6 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot marshal a proxy bound to an incoming connection");
             }
 
-            InvocationMode invocationMode = InvocationMode.Twoway;
-            if (Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false))
-            {
-                invocationMode = InvocationMode.Datagram;
-            }
-
             if (ostr.Encoding == Encoding.V11)
             {
                 if (Protocol == Protocol.Ice1)
@@ -265,6 +259,12 @@ namespace IceRpc
                     }
 
                     identity.IceWrite(ostr);
+                }
+
+                InvocationMode invocationMode = InvocationMode.Twoway;
+                if (Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false))
+                {
+                    invocationMode = InvocationMode.Datagram;
                 }
 
                 ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
