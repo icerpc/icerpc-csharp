@@ -20,20 +20,18 @@ namespace IceRpc
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxyOptions">The proxy options, used when connection is not null. This method does not modify
-        /// these options.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
-        /// <remarks>When reading proxies, proxyOptions must be non-null.</remarks>
         public static T Read<T>(
             this ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             InputStreamReader<T> reader,
             Connection? connection = null,
-            ProxyOptions? proxyOptions = null)
+            IInvoker? invoker = null)
         {
-            var istr = new InputStream(buffer, encoding, connection, proxyOptions);
+            var istr = new InputStream(buffer, encoding, connection, invoker);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -46,18 +44,16 @@ namespace IceRpc
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxyOptions">The proxy options, used when connection is not null. This method does not modify
-        /// these options.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
-        /// <remarks>When reading proxies, proxyOptions must be non-null.</remarks>
         public static T Read<T>(
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> reader,
             Connection? connection = null,
-            ProxyOptions? proxyOptions = null) =>
-            buffer.Read(Encoding.V20, reader, connection, proxyOptions);
+            IInvoker? invoker = null) =>
+            buffer.Read(Encoding.V20, reader, connection, invoker);
 
         /// <summary>Reads an empty encapsulation from the buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
@@ -84,20 +80,18 @@ namespace IceRpc
         /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
         /// encapsulation using an <see cref="InputStream"/>.</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxyOptions">The proxy options, used when connection is not null. This method does not modify
-        /// these options.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
-        /// <remarks>When reading classes, proxies or exceptions, proxyOptions must be non-null.</remarks>
         public static T ReadEncapsulation<T>(
             this ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             InputStreamReader<T> payloadReader,
             Connection? connection = null,
-            ProxyOptions? proxyOptions = null)
+            IInvoker? invoker = null)
         {
-            var istr = new InputStream(buffer, encoding, connection, proxyOptions, startEncapsulation: true);
+            var istr = new InputStream(buffer, encoding, connection, invoker, startEncapsulation: true);
             T result = payloadReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -110,18 +104,16 @@ namespace IceRpc
         /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
         /// encapsulation using an <see cref="InputStream"/>.</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxyOptions">The proxy options, used when connection is not null. This method does not modify
-        /// these options.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The contents of the encapsulation read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
         /// <c>payloadReader</c> finds invalid data.</exception>
-        /// <remarks>When reading classes, proxies or exceptions, proxyOptions must be non-null.</remarks>
         public static T ReadEncapsulation<T>(
             this ReadOnlyMemory<byte> buffer,
             InputStreamReader<T> payloadReader,
             Connection? connection = null,
-            ProxyOptions? proxyOptions = null) =>
-            buffer.ReadEncapsulation(Encoding.V20, payloadReader, connection, proxyOptions);
+            IInvoker? invoker = null) =>
+            buffer.ReadEncapsulation(Encoding.V20, payloadReader, connection, invoker);
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
 

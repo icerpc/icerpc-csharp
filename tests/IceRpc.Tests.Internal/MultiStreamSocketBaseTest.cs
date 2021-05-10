@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
                                                                   endpoint: null,
                                                                   altEndpoints: ImmutableList<Endpoint>.Empty,
                                                                   connection: null,
-                                                                  options: new());
+                                                                  invoker: null);
         protected MultiStreamSocket ServerSocket => _serverSocket!;
         protected MultiStreamSocketType SocketType { get; }
         private MultiStreamSocket? _clientSocket;

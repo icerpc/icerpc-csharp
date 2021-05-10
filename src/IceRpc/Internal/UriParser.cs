@@ -94,11 +94,9 @@ namespace IceRpc.Internal
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
-            string uriString,
-            ProxyOptions proxyOptions)
+        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints) ParseProxy(
+            string uriString)
         {
             bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
 
@@ -164,13 +162,10 @@ namespace IceRpc.Internal
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            proxyOptions = proxyOptions.Clone();
-
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
                     endpoint,
-                    altEndpoints,
-                    proxyOptions);
+                    altEndpoints);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
@@ -267,7 +262,14 @@ namespace IceRpc.Internal
 
                 if (name == "encoding")
                 {
-                    CheckProxyOption(name, parsedOptions.Encoding != null);
+                    if (!parseProxy)
+                    {
+                        throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
+                    }
+                    if (parsedOptions.Encoding != null)
+                    {
+                        throw new FormatException($"multiple {name} options in '{uriString}'");
+                    }
                     parsedOptions.Encoding = Encoding.Parse(value);
                 }
                 else if (iceScheme)
@@ -301,18 +303,6 @@ namespace IceRpc.Internal
                 }
             }
             return parsedOptions;
-
-            void CheckProxyOption(string name, bool alreadySet)
-            {
-                if (!parseProxy)
-                {
-                    throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
-                }
-                if (alreadySet)
-                {
-                    throw new FormatException($"multiple {name} options in '{uriString}'");
-                }
-            }
         }
 
         /// <summary>The proxy and endpoint options parsed by the UriParser.</summary>

@@ -110,11 +110,11 @@ namespace IceRpc
 
         internal Connection? Connection { get; }
 
+        /// <summary>Invoker used when unmarshaling proxies using Connection.</summary>
+        internal IInvoker? Invoker { get; }
+
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private set; }
-
-        /// <summary>Proxy options used when unmarshaling proxies using Connection.</summary>
-        internal ProxyOptions? ProxyOptions { get; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal SlicedData? SlicedData
@@ -958,7 +958,7 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="connection">The connection (optional).</param>
-        /// <param name="proxyOptions">The proxy options, used when connection is not null.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
         /// <c>encoding</c> represents the encoding of the header.</param>
         /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
@@ -971,14 +971,14 @@ namespace IceRpc
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             Connection? connection = null,
-            ProxyOptions? proxyOptions = null,
+            IInvoker? invoker = null,
             bool startEncapsulation = false,
             IReadOnlyDictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
             IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
             IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
         {
             Connection = connection;
-            ProxyOptions = proxyOptions;
+            Invoker = invoker;
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
 
             Pos = 0;

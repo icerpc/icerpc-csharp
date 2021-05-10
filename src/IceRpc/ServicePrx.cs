@@ -389,8 +389,8 @@ namespace IceRpc
             Endpoint? endpoint,
             IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
-            ProxyOptions options)
-            : this(protocol, encoding, endpoint, altEndpoints, connection, options)
+            IInvoker? invoker)
+            : this(protocol, encoding, endpoint, altEndpoints, connection, invoker)
         {
             Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
@@ -415,8 +415,8 @@ namespace IceRpc
             Endpoint? endpoint,
             IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
-            ProxyOptions options)
-            : this(Protocol.Ice1, encoding, endpoint, altEndpoints, connection, options)
+            IInvoker? invoker)
+            : this(Protocol.Ice1, encoding, endpoint, altEndpoints, connection, invoker)
         {
             if (identity.Name.Length == 0)
             {
@@ -465,13 +465,6 @@ namespace IceRpc
         /// <summary>Creates a shallow copy of this service proxy.</summary>
         internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
 
-        /// <summary>Returns a new copy of the underlying options.</summary>
-        internal ProxyOptions GetOptions() =>
-             new()
-             {
-                Invoker = Invoker,
-             };
-
         // Helper constructor
         private ServicePrx(
             Protocol protocol,
@@ -479,11 +472,11 @@ namespace IceRpc
             Endpoint? endpoint,
             IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
-            ProxyOptions options)
+            IInvoker? invoker)
         {
             _connection = connection;
             Encoding = encoding;
-            Invoker = options.Invoker!;
+            Invoker = invoker!; // TODO, temporary
             Protocol = protocol;
 
             Endpoint = endpoint; // use the Endpoint set validation

@@ -27,7 +27,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
             else
             {
@@ -37,7 +37,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
         }
 
@@ -76,10 +76,6 @@ namespace IceRpc
                 throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named Factory");
             }
         }
-
-        /// <summary>Returns a new copy of the underlying options.</summary>
-        /// <returns>An instance of the options class.</returns>
-        public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
 
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
@@ -222,7 +218,7 @@ namespace IceRpc
                                               endpoint,
                                               proxy.AltEndpoints,
                                               connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
             else
             {
@@ -232,7 +228,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
         }
     }

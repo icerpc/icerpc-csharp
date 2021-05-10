@@ -81,7 +81,7 @@ namespace IceRpc
                 endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,
                 altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection,
-                options: new ProxyOptions());
+                invoker: null);
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
@@ -96,7 +96,7 @@ namespace IceRpc
                 endpoint: null,
                 altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection: null,
-                options: new ProxyOptions());
+                invoker: null);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
         /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
@@ -111,9 +111,6 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
             }
 
-            ProxyOptions options = server.ProxyOptions;
-            options.Invoker ??= server.Invoker;
-
             return Factory.Create(
                 path ?? DefaultPath,
                 server.Protocol,
@@ -121,7 +118,7 @@ namespace IceRpc
                 endpoint: server.ProxyEndpoint,
                 altEndpoints: ImmutableList<Endpoint>.Empty,
                 connection: null,
-                options);
+                invoker: server.Invoker);
         }
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
@@ -349,8 +346,8 @@ namespace IceRpc
                 Endpoint? endpoint,
                 IEnumerable<Endpoint> altEndpoints,
                 Connection? connection,
-                ProxyOptions options) =>
-                new ServicePrx(path, protocol, encoding, endpoint, altEndpoints, connection, options);
+                IInvoker? invoker) =>
+                new ServicePrx(path, protocol, encoding, endpoint, altEndpoints, connection, invoker);
 
             public IServicePrx Create(
                 Identity identity,
@@ -359,8 +356,8 @@ namespace IceRpc
                 Endpoint? endpoint,
                 IEnumerable<Endpoint> altEndpoints,
                 Connection? connection,
-                ProxyOptions options) =>
-                new ServicePrx(identity, facet, encoding, endpoint, altEndpoints, connection, options);
+                IInvoker? invoker) =>
+                new ServicePrx(identity, facet, encoding, endpoint, altEndpoints, connection, invoker);
         }
     }
 }

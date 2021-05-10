@@ -2305,7 +2305,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,"
          << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection,"
-         << nl << "options: new());";
+         << nl << "invoker: null);";
     _out.dec();
     _out.dec();
 
@@ -2328,7 +2328,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: null,"
          << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection: null,"
-         << nl << "options: new());";
+         << nl << "invoker: null);";
     _out.dec();
     _out.dec();
 
@@ -2350,9 +2350,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"cannot create a proxy using a server with no endpoint\");";
     _out << eb;
 
-    _out << nl << "IceRpc.ProxyOptions options = server.ProxyOptions;";
-    _out << nl << "options.Invoker ?\?= server.Invoker;";
-
     _out << nl << "return Factory.Create(";
     _out.inc();
     _out << nl << "path ?? DefaultPath,"
@@ -2361,7 +2358,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << nl << "endpoint: server.ProxyEndpoint,"
          << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
          << nl << "connection: null,"
-         << nl << "options);";
+         << nl << "server.Invoker);";
     _out.dec();
     _out << eb;
 
@@ -2418,8 +2415,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.Endpoint? endpoint,";
     _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
     _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.ProxyOptions options) =>";
-    _out << nl << "new " << impl << "(path, protocol, encoding, endpoint, altEndpoints, connection, options);";
+    _out << nl << "IceRpc.IInvoker? invoker) =>";
+    _out << nl << "new " << impl << "(path, protocol, encoding, endpoint, altEndpoints, connection, invoker);";
     _out.dec();
     _out << sp;
     _out << nl << "public " << name << " Create(";
@@ -2430,8 +2427,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.Endpoint? endpoint,";
     _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
     _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.ProxyOptions options) =>";
-    _out << nl << "new " << impl << "(identity, facet, encoding, endpoint, altEndpoints, connection, options);";
+    _out << nl << "IceRpc.IInvoker? invoker) =>";
+    _out << nl << "new " << impl << "(identity, facet, encoding, endpoint, altEndpoints, connection, invoker);";
     _out.dec();
     _out << sp;
     _out << nl << "private class " << impl << " : IceRpc.ServicePrx, " << name;
@@ -2444,8 +2441,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.Endpoint? endpoint,";
     _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
     _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.ProxyOptions options)";
-    _out << nl << ": base(path, protocol, encoding, endpoint, altEndpoints, connection, options)";
+    _out << nl << "IceRpc.IInvoker? invoker)";
+    _out << nl << ": base(path, protocol, encoding, endpoint, altEndpoints, connection, invoker)";
     _out.dec();
     _out << sb;
     _out << eb;
@@ -2458,8 +2455,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.Endpoint? endpoint,";
     _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
     _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.ProxyOptions options)";
-    _out << nl << ": base(identity, facet, encoding, endpoint, altEndpoints, connection, options)";
+    _out << nl << "IceRpc.IInvoker? invoker)";
+    _out << nl << ": base(identity, facet, encoding, endpoint, altEndpoints, connection, invoker)";
     _out.dec();
     _out << sb;
     _out << eb;

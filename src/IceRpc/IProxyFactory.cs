@@ -14,7 +14,7 @@ namespace IceRpc
         /// <param name="endpoint">The endpoint of the proxy (can be null).</param>
         /// <param name="altEndpoints">The alternative endpoints of the proxy (can be empty).</param>
         /// <param name="connection">The connection of the proxy (can be null).</param>
-        /// <param name="options">The service proxy options.</param>
+        /// <param name="invoker">The invoker</param>
         /// <returns>The new service proxy.</returns>
         T Create(
             string path,
@@ -23,7 +23,7 @@ namespace IceRpc
             Endpoint? endpoint,
             IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
-            ProxyOptions options);
+            IInvoker? invoker);
 
         /// <summary>Creates a new service proxy that uses the ice1 protocol.</summary>
         /// <param name="identity">The identity of the target service.</param>
@@ -33,7 +33,7 @@ namespace IceRpc
         /// <param name="endpoint">The endpoint of the proxy (can be null).</param>
         /// <param name="altEndpoints">The alternative endpoints of the proxy (can be empty).</param>
         /// <param name="connection">The connection of the proxy (can be null).</param>
-        /// <param name="options">The service proxy options.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The new service proxy.</returns>
         T Create(
             Identity identity,
@@ -42,6 +42,6 @@ namespace IceRpc
             Endpoint? endpoint,
             IEnumerable<Endpoint> altEndpoints,
             Connection? connection,
-            ProxyOptions options);
+            IInvoker? invoker);
     }
 }

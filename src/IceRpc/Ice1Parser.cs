@@ -118,11 +118,9 @@ namespace IceRpc
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
         /// <param name="s">The string to parse.</param>
-        /// <param name="proxyOptions">The proxy options.</param>
         /// <returns>The arguments to create the proxy.</returns>
-        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
-            string s,
-            ProxyOptions proxyOptions)
+        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints) ParseProxy(
+            string s)
         {
             // TODO: rework this implementation
 
@@ -165,7 +163,6 @@ namespace IceRpc
             Encoding encoding = Ice1Definitions.Encoding;
             Endpoint? endpoint = null;
             var altEndpoints = ImmutableList<Endpoint>.Empty;
-            proxyOptions = proxyOptions.Clone();
 
             while (true)
             {
@@ -316,7 +313,7 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
+                return (identity, facet, encoding, endpoint, altEndpoints);
             }
 
             if (s[beg] == ':')
@@ -396,7 +393,7 @@ namespace IceRpc
 
                 Debug.Assert(endpoint != null);
 
-                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
+                return (identity, facet, encoding, endpoint, altEndpoints);
             }
             else if (s[beg] == '@')
             {
@@ -442,7 +439,7 @@ namespace IceRpc
                 }
 
                 endpoint = LocEndpoint.Create(adapterId, Protocol.Ice1);
-                return (identity, facet, encoding, endpoint, altEndpoints, proxyOptions);
+                return (identity, facet, encoding, endpoint, altEndpoints);
             }
 
             throw new FormatException($"malformed proxy '{s}'");
