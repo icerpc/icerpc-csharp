@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for locator logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for locator interceptor logging.</summary>
     public static class LocatorEventIds
     {
         public static readonly EventId ClearCacheEntry = new(BaseEventId + 0, nameof(ClearCacheEntry));

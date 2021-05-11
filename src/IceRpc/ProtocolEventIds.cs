@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for protocol logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for protocol logging.</summary>
     public static class ProtocolEventIds
     {
         public static readonly EventId DatagramConnectionReceiveCloseConnectionFrame =

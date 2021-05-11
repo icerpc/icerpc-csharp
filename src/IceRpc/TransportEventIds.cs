@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for transport logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for transport logging.</summary>
     public static class TransportEventIds
     {
         public static readonly EventId AcceptingConnectionFailed =
@@ -34,6 +34,6 @@ namespace IceRpc
             new(BaseEventId + 17, nameof(StopAcceptingConnections));
         public static readonly EventId StopReceivingDatagrams = new(BaseEventId + 18, nameof(StopReceivingDatagrams));
 
-        internal const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;
+        private const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;
     }
 }

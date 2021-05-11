@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for server logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for server logging.</summary>
     public static class ServerEventIds
     {
         public static readonly EventId ServerListening = new(BaseEventId + 0, nameof(ServerListening));

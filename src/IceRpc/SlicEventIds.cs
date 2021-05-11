@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains ILogger extensions methods for logging Slic transport messages.</summary>
+    /// <summary>This class contains event ID constants used for Slic transport logging.</summary>
     public static class SlicEventIds
     {
         public static readonly EventId ReceivedFrame = new(BaseEventId + 0, nameof(ReceivedFrame));

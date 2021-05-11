@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for Tls logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for Tls logging.</summary>
     public static class TlsEventIds
     {
         public static readonly EventId TlsAuthenticationSucceeded =

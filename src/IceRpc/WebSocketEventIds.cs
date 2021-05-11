@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
-    /// <summary>This class contains constants used for WebSocket logging event Ids.</summary>
+    /// <summary>This class contains event ID constants used for WebSocket logging.</summary>
     public static class WebSocketEventIds
     {
         public static readonly EventId HttpUpgradeRequestAccepted =
