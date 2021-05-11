@@ -524,7 +524,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (Activity.Current != null && Activity.Current.Id != null)
+            if (Activity.Current?.Id != null)
             {
                 request.WriteActivityContext(Activity.Current);
             }
