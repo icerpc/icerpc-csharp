@@ -89,11 +89,11 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection? features)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
-            Features = features ?? FeatureCollection.Empty;
+            Features = features;
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)

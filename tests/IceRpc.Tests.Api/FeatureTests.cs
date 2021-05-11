@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Api
                     }
                     catch (RemoteException remoteException)
                     {
-                        responseFeature = remoteException.Features?.Get<bool>();
+                        responseFeature = remoteException.Features.Get<bool>();
                         throw;
                     }
                 }));
