@@ -31,11 +31,7 @@ namespace IceRpc
         }
 
         /// <summary>The features of this frame.</summary>
-        public FeatureCollection Features
-        {
-            get => _features ??= new FeatureCollection();
-            set => _features = value;
-        }
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
@@ -65,7 +61,6 @@ namespace IceRpc
         internal Action<SocketStream>? StreamDataWriter { get; set; }
 
         private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
-        private FeatureCollection? _features;
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>
@@ -98,7 +93,7 @@ namespace IceRpc
         {
             Protocol = protocol;
             Protocol.CheckSupported();
-            _features = features;
+            Features = features ?? FeatureCollection.Empty;
         }
 
         private protected void WriteBinaryContext(OutputStream ostr)

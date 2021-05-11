@@ -77,7 +77,7 @@ namespace IceRpc.Internal
 
                     if (refreshCache)
                     {
-                        if (!fromCache)
+                        if (!fromCache && !request.Features.IsReadOnly)
                         {
                             // No need to resolve the loc endpoint / identity again since we didn't returned a cached
                             // value.
@@ -87,6 +87,11 @@ namespace IceRpc.Internal
                     else if (fromCache)
                     {
                         // Make sure the next attempt re-resolves location+category and sets refreshCache to true.
+
+                        if (request.Features.IsReadOnly)
+                        {
+                            request.Features = new FeatureCollection(request.Features);
+                        }
                         request.Features.Set(new CachedResolutionFeature(location, category));
                     }
 

@@ -1,15 +1,25 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace IceRpc
 {
     /// <summary>A collection of IceRpc features used during invocations and dispatches</summary>
     public class FeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     {
-        private readonly Dictionary<Type, object> _features = new();
+        /// <summary>Returns an empty read-only feature collection.</summary>
+        public static FeatureCollection Empty { get; } = new FeatureCollection { IsReadOnly = true };
+
+        /// <summary>Indicates whether this feature collection is read-only or read-write.</summary>
+        public bool IsReadOnly { get; private init; }
+
+        private readonly FeatureCollection? _defaults;
+
+        private Dictionary<Type, object>? _features;
 
         /// <summary>Gets or sets a feature. Setting null removes the feature.</summary>
         /// <param name="key">The feature key.</param>
@@ -20,20 +30,36 @@ namespace IceRpc
             Justification = "FeatureCollection relies on usage of type as the key")]
         public object? this[Type key]
         {
-            get => _features.TryGetValue(key, out object? value) ? value : null;
+            get => _features != null && _features.TryGetValue(key, out object? value) ? value : _defaults?[key];
 
             set
             {
+                if (IsReadOnly)
+                {
+                    // Currently only the shared Empty feature collection is read only.
+                    throw new InvalidOperationException("cannot update read-only feature collection");
+                }
+
                 if (value == null)
                 {
-                    _features.Remove(key);
+                    _features?.Remove(key);
                 }
                 else
                 {
+                    _features ??= new Dictionary<Type, object>();
                     _features[key] = value;
                 }
             }
         }
+
+        /// <summary>Constructs an empty read-write feature collection.</summary>
+        public FeatureCollection()
+        {
+        }
+
+        /// <summary>Constructs a feature collection with defaults.</summary>
+        /// <param name="defaults">The feature collection that provide default values.</param>
+        public FeatureCollection(FeatureCollection defaults) => _defaults = defaults;
 
         /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>
@@ -45,9 +71,12 @@ namespace IceRpc
         /// <param name="feature">The feature value.</param>
         public void Set<TFeature>(TFeature? feature) => this[typeof(TFeature)] = feature;
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<Type, object>> GetEnumerator() => _features.GetEnumerator();
+        public IEnumerator<KeyValuePair<Type, object>> GetEnumerator() =>
+            _features?.GetEnumerator() as IEnumerator<KeyValuePair<Type, object>> ??
+            ImmutableDictionary<Type, object>.Empty.GetEnumerator();
     }
 }

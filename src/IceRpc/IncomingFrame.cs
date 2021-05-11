@@ -19,7 +19,7 @@ namespace IceRpc
         }
 
         /// <summary>The features of this request.</summary>
-        public FeatureCollection Features { get; set; } = new();
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
