@@ -318,7 +318,7 @@ namespace IceRpc.Tests.ClientServer
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                if (dispatch.Context?.ContainsKey("retry") ?? false)
+                if (dispatch.Context.ContainsKey("retry"))
                 {
                     // Other replica so that the retry interceptor clears the connection
                     // We have to use ServiceNotFoundException because we use ice1.

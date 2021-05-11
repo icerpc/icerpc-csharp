@@ -28,7 +28,7 @@ namespace IceRpc
         public Connection? Connection { get; set; }
 
         /// <summary>The context of this request.</summary>
-        public IDictionary<string, string>? Context { get; set; }
+        public IDictionary<string, string> Context { get; set; }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
@@ -280,7 +280,11 @@ namespace IceRpc
                 // For Ice1 the Activity context is write to the request Context using the standard keys
                 // traceparent, tracestate and baggage.
 
-                Context ??= new SortedDictionary<string, string>();
+                if (Context.IsReadOnly)
+                {
+                    // Upgrade to read-write copy
+                    Context = new SortedDictionary<string, string>(Context);
+                }
 
                 Context["traceparent"] = activity.Id;
                 if (activity.TraceStateString != null)
@@ -388,7 +392,7 @@ namespace IceRpc
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Context = context;
+            Context = context ?? ImmutableSortedDictionary<string, string>.Empty;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
