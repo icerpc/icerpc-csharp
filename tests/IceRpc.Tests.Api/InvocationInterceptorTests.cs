@@ -129,10 +129,8 @@ namespace IceRpc.Tests.Api
 
         internal class TestService : IInvocationInterceptorTestService
         {
-            public ValueTask<IReadOnlyDictionary<string, string>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
-                // TODO: cast is temporary
-                new(dispatch.Context is IDictionary<string, string> context ?
-                        (IReadOnlyDictionary<string, string>)context : ImmutableDictionary<string, string>.Empty);
+            public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
+                new(dispatch.Context ?? ImmutableDictionary<string, string>.Empty);
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }
     }

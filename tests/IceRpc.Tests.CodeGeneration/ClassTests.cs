@@ -328,7 +328,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(IReadOnlyDictionary<string, AnyClass?> R1, IReadOnlyDictionary<string, AnyClass?> R2)> OpClassMapAsync(
+            public ValueTask<(IEnumerable<KeyValuePair<string, AnyClass?>> R1, IEnumerable<KeyValuePair<string, AnyClass?>> R2)> OpClassMapAsync(
                 Dictionary<string, AnyClass?> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));

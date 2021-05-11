@@ -451,15 +451,17 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     DictionaryPtr d = DictionaryPtr::dynamicCast(type);
     if (d)
     {
-        string typeName;
         if (readOnly)
         {
-            typeName = "IReadOnlyDictionary";
+            return "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<" +
+                typeToString(d->keyType(), package) + ", " +
+                typeToString(d->valueType(), package) + ">>";
         }
         else
         {
             string prefix = "cs:generic:";
             string meta;
+            string typeName;
 
             if (d->findMetadata(prefix, meta))
             {
@@ -469,11 +471,11 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
             {
                 typeName = "Dictionary";
             }
-        }
 
-        return "global::System.Collections.Generic." + typeName + "<" +
-            typeToString(d->keyType(), package) + ", " +
-            typeToString(d->valueType(), package) + ">";
+            return "global::System.Collections.Generic." + typeName + "<" +
+                typeToString(d->keyType(), package) + ", " +
+                typeToString(d->valueType(), package) + ">";
+        }
     }
 
     ContainedPtr contained = ContainedPtr::dynamicCast(type);

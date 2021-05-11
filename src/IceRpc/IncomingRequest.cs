@@ -187,7 +187,7 @@ namespace IceRpc
                 // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
-                Context = requestHeaderBody.Context ?? new SortedDictionary<string, string>();
+                Context = requestHeaderBody.Context;
 
                 BinaryContext = istr.ReadBinaryContext();
 

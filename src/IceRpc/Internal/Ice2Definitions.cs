@@ -68,8 +68,7 @@ namespace IceRpc.Internal
 
             if (context?.Count > 0)
             {
-                // TODO: temporary cast
-                ostr.WriteDictionary((IReadOnlyDictionary<string, string>)context,
+                ostr.WriteDictionary(context,
                                      OutputStream.IceWriterFromString,
                                      OutputStream.IceWriterFromString);
             }

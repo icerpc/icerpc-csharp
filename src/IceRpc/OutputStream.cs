@@ -345,12 +345,12 @@ namespace IceRpc
         /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
         /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
         public void WriteDictionary<TKey, TValue>(
-            IReadOnlyDictionary<TKey, TValue> v,
+            IEnumerable<KeyValuePair<TKey, TValue>> v,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
         {
-            WriteSize(v.Count);
+            WriteSize(v.Count());
             foreach ((TKey key, TValue value) in v)
             {
                 keyWriter(this, key);
@@ -365,7 +365,7 @@ namespace IceRpc
         /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
         /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
         public void WriteDictionary<TKey, TValue>(
-            IReadOnlyDictionary<TKey, TValue?> v,
+            IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
@@ -374,7 +374,7 @@ namespace IceRpc
         {
             if (withBitSequence)
             {
-                int count = v.Count;
+                int count = v.Count();
                 WriteSize(count);
                 BitSequence bitSequence = WriteBitSequence(count);
                 int index = 0;
@@ -394,7 +394,7 @@ namespace IceRpc
             }
             else
             {
-                WriteDictionary((IReadOnlyDictionary<TKey, TValue>)v, keyWriter, valueWriter);
+                WriteDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)v, keyWriter, valueWriter);
             }
         }
 
@@ -404,13 +404,13 @@ namespace IceRpc
         /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
         /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
         public void WriteDictionary<TKey, TValue>(
-            IReadOnlyDictionary<TKey, TValue?> v,
+            IEnumerable<KeyValuePair<TKey, TValue?>> v,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
             where TValue : struct
         {
-            int count = v.Count;
+            int count = v.Count();
             WriteSize(count);
             BitSequence bitSequence = WriteBitSequence(count);
             int index = 0;
@@ -755,17 +755,17 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
-            IReadOnlyDictionary<TKey, TValue>? v,
+            IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
-            if (v is IReadOnlyDictionary<TKey, TValue> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                int count = dict.Count;
+                int count = dict.Count();
                 WriteSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
                 WriteDictionary(dict, keyWriter, valueWriter);
             }
@@ -778,12 +778,12 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
-            IReadOnlyDictionary<TKey, TValue>? v,
+            IEnumerable<KeyValuePair<TKey, TValue>>? v,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
         {
-            if (v is IReadOnlyDictionary<TKey, TValue> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
@@ -801,14 +801,14 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
-            IReadOnlyDictionary<TKey, TValue?>? v,
+            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             bool withBitSequence,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
             where TValue : class
         {
-            if (v is IReadOnlyDictionary<TKey, TValue?> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
@@ -825,13 +825,13 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
-            IReadOnlyDictionary<TKey, TValue?>? v,
+            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             OutputStreamWriter<TKey> keyWriter,
             OutputStreamWriter<TValue> valueWriter)
             where TKey : notnull
             where TValue : struct
         {
-            if (v is IReadOnlyDictionary<TKey, TValue?> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
