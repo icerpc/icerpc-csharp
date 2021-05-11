@@ -23,13 +23,8 @@ namespace IceRpc.Tests.Internal
             new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
 
         protected MultiStreamSocket ClientSocket => _clientSocket!;
-        protected IServicePrx Proxy => IServicePrx.Factory.Create("/dummy",
-                                                                  ClientEndpoint.Protocol,
-                                                                  ClientEndpoint.Protocol.GetEncoding(),
-                                                                  endpoint: null,
-                                                                  altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                                  connection: null,
-                                                                  invoker: null);
+
+        protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
         protected MultiStreamSocket ServerSocket => _serverSocket!;
         protected MultiStreamSocketType SocketType { get; }
         private MultiStreamSocket? _clientSocket;

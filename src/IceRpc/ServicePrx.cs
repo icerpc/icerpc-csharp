@@ -104,7 +104,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public IInvoker Invoker { get; set; }
+        public IInvoker? Invoker { get; set; }
 
         /// <inheritdoc/>
         public string Path { get; } = "";
@@ -382,16 +382,9 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a new proxy class instance with the specified options.</summary>
-        protected internal ServicePrx(
-            string path,
-            Protocol protocol,
-            Encoding encoding,
-            Endpoint? endpoint,
-            IEnumerable<Endpoint> altEndpoints,
-            Connection? connection,
-            IInvoker? invoker)
-            : this(protocol, encoding, endpoint, altEndpoints, connection, invoker)
+        protected internal ServicePrx(string path, Protocol protocol)
         {
+            Protocol = protocol;
             Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
 
@@ -408,15 +401,7 @@ namespace IceRpc
         }
 
         /// <summary>Constructs a new proxy class instance with the specified options.</summary>
-        protected internal ServicePrx(
-            Identity identity,
-            string facet,
-            Encoding encoding,
-            Endpoint? endpoint,
-            IEnumerable<Endpoint> altEndpoints,
-            Connection? connection,
-            IInvoker? invoker)
-            : this(Protocol.Ice1, encoding, endpoint, altEndpoints, connection, invoker)
+        protected internal ServicePrx(Identity identity, string facet)
         {
             if (identity.Name.Length == 0)
             {
@@ -427,6 +412,7 @@ namespace IceRpc
             Identity = identity;
             Facet = facet;
             Path = identity.ToPath();
+            Protocol = Protocol.Ice1;
         }
 
         // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate
@@ -452,6 +438,12 @@ namespace IceRpc
             }
 
             ServicePrx proxy = request.Proxy.Impl;
+
+            if (proxy.Invoker == null)
+            {
+                throw new InvalidOperationException(
+                    "cannot make an invocation with a proxy that doesn't have an invoker");
+            }
             try
             {
                 return await proxy.Invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -464,26 +456,5 @@ namespace IceRpc
 
         /// <summary>Creates a shallow copy of this service proxy.</summary>
         internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
-
-        // Helper constructor
-        private ServicePrx(
-            Protocol protocol,
-            Encoding encoding,
-            Endpoint? endpoint,
-            IEnumerable<Endpoint> altEndpoints,
-            Connection? connection,
-            IInvoker? invoker)
-        {
-            _connection = connection;
-            Encoding = encoding;
-            Invoker = invoker!; // TODO, temporary
-            Protocol = protocol;
-
-            Endpoint = endpoint; // use the Endpoint set validation
-            if (altEndpoints.Any())
-            {
-                AltEndpoints = altEndpoints.ToImmutableList();
-            }
-        }
     }
 }

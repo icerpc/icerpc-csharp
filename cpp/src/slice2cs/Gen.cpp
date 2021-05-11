@@ -2273,13 +2273,24 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.IProxyFactory<" << name << "> Factory = new IceProxyFactory();";
+    _out << nl << "public static readonly new IceRpc.ProxyFactory<" << name << "> Factory =";
+    _out.inc();
+    _out << nl << "(path, protocol) => new " << impl << "(path, protocol);";
+    _out.dec();
+
+    _out << sp;
+    _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
+    _out << nl << "public static readonly new IceRpc.InteropProxyFactory<" << name << "> InteropFactory =";
+    _out.inc();
+    _out << nl << "(identity, facet) => new " << impl << "(identity, facet);";
+    _out.dec();
+
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.InputStreamReader{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => IceRpc.ProxyFactory.Read(Factory, istr);";
+    _out << nl << "istr => IceRpc.Proxy.Read<" << name << ">(istr);";
     _out.dec();
 
     _out << sp;
@@ -2297,16 +2308,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromConnection(IceRpc.Connection connection, string? path = null) =>";
     _out.inc();
-    _out << nl << "Factory.Create(";
-    _out.inc();
-    _out << nl << "path ?? DefaultPath,"
-         << nl << "connection.Protocol,"
-         << nl << "IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),"
-         << nl << "endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,"
-         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
-         << nl << "connection,"
-         << nl << "invoker: null);";
-    _out.dec();
+    _out << nl << "new " << impl << "(path ?? DefaultPath, connection.Protocol)";
+    _out << sb;
+    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),";
+    _out << nl << "Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,";
+    _out << nl << "Connection = connection";
+    _out << eb << ";";
     _out.dec();
 
     _out << sp;
@@ -2320,16 +2327,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromPath(string? path = null, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
     _out.inc();
-    _out << nl << "Factory.Create(";
-    _out.inc();
-    _out << nl << "path ?? DefaultPath,"
-         << nl << "protocol,"
-         << nl << "IceRpc.ProtocolExtensions.GetEncoding(protocol),"
-         << nl << "endpoint: null,"
-         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
-         << nl << "connection: null,"
-         << nl << "invoker: null);";
-    _out.dec();
+    _out << nl << "new " << impl << "(path ?? DefaultPath, protocol)";
+    _out << sb;
+    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(protocol)";
+    _out << eb << ";";
     _out.dec();
 
     _out << sp;
@@ -2350,16 +2351,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"cannot create a proxy using a server with no endpoint\");";
     _out << eb;
 
-    _out << nl << "return Factory.Create(";
-    _out.inc();
-    _out << nl << "path ?? DefaultPath,"
-         << nl << "server.Protocol,"
-         << nl << "IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),"
-         << nl << "endpoint: server.ProxyEndpoint,"
-         << nl << "altEndpoints: global::System.Collections.Immutable.ImmutableList<IceRpc.Endpoint>.Empty,"
-         << nl << "connection: null,"
-         << nl << "server.Invoker);";
-    _out.dec();
+    _out << nl << "return new " << impl << "(path ?? DefaultPath, server.Protocol)";
+    _out << sb;
+    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),";
+    _out << nl << "Endpoint = server.ProxyEndpoint,";
+    _out << nl << "Invoker = server.Invoker";
+    _out << eb << ";";
     _out << eb;
 
     _out << sp;
@@ -2367,7 +2364,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"/> nullable proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "?> IceReaderIntoNullable =";
     _out.inc();
-    _out << nl << "istr => IceRpc.ProxyFactory.ReadNullable(Factory, istr);";
+    _out << nl << "istr => IceRpc.Proxy.ReadNullable<" << name << ">(istr);";
     _out.dec();
 
     _out << sp;
@@ -2379,7 +2376,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker invoker) => "
-         << "IceRpc.ProxyFactory.Parse(Factory, s, invoker);";
+         << "IceRpc.Proxy.Parse<" << name << ">(s, invoker);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
@@ -2395,7 +2392,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "proxy = IceRpc.ProxyFactory.Parse(Factory, s, invoker);";
+    _out << nl << "proxy = IceRpc.Proxy.Parse<" << name << ">(s, invoker);";
     _out << eb;
     _out << nl << "catch";
     _out << sb;
@@ -2405,61 +2402,22 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "return true;";
     _out << eb;
     _out << sp;
-    _out << nl << "private class IceProxyFactory : IceRpc.IProxyFactory<" << name << ">";
-    _out << sb;
-    _out << nl << "public " << name << " Create(";
-    _out.inc();
-    _out << nl << "string path,";
-    _out << nl << "IceRpc.Protocol protocol,";
-    _out << nl << "IceRpc.Encoding encoding,";
-    _out << nl << "IceRpc.Endpoint? endpoint,";
-    _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
-    _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.IInvoker? invoker) =>";
-    _out << nl << "new " << impl << "(path, protocol, encoding, endpoint, altEndpoints, connection, invoker);";
-    _out.dec();
-    _out << sp;
-    _out << nl << "public " << name << " Create(";
-    _out.inc();
-    _out << nl << "IceRpc.Interop.Identity identity,";
-    _out << nl << "string facet,";
-    _out << nl << "IceRpc.Encoding encoding,";
-    _out << nl << "IceRpc.Endpoint? endpoint,";
-    _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
-    _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.IInvoker? invoker) =>";
-    _out << nl << "new " << impl << "(identity, facet, encoding, endpoint, altEndpoints, connection, invoker);";
-    _out.dec();
-    _out << sp;
+
+    // private impl
     _out << nl << "private class " << impl << " : IceRpc.ServicePrx, " << name;
     _out << sb;
-    _out << nl << "internal " << impl << "(";
+    _out << nl << "internal " << impl << "(string path, IceRpc.Protocol protocol)";
     _out.inc();
-    _out << nl << "string path,";
-    _out << nl << "IceRpc.Protocol protocol,";
-    _out << nl << "IceRpc.Encoding encoding,";
-    _out << nl << "IceRpc.Endpoint? endpoint,";
-    _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
-    _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.IInvoker? invoker)";
-    _out << nl << ": base(path, protocol, encoding, endpoint, altEndpoints, connection, invoker)";
+    _out << nl << ": base(path, protocol)";
     _out.dec();
     _out << sb;
     _out << eb;
     _out << sp;
-    _out << nl << "internal " << impl << "(";
+    _out << nl << "internal " << impl << "(IceRpc.Interop.Identity identity, string facet)";
     _out.inc();
-    _out << nl << "IceRpc.Interop.Identity identity,";
-    _out << nl << "string facet,";
-    _out << nl << "IceRpc.Encoding encoding,";
-    _out << nl << "IceRpc.Endpoint? endpoint,";
-    _out << nl << "global::System.Collections.Generic.IEnumerable<IceRpc.Endpoint> altEndpoints,";
-    _out << nl << "IceRpc.Connection? connection,";
-    _out << nl << "IceRpc.IInvoker? invoker)";
-    _out << nl << ": base(identity, facet, encoding, endpoint, altEndpoints, connection, invoker)";
+    _out << nl << ": base(identity, facet)";
     _out.dec();
     _out << sb;
-    _out << eb;
     _out << eb;
     _out << eb;
     _out << eb;
