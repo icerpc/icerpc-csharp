@@ -8,20 +8,16 @@ namespace IceRpc.Internal
     /// <summary>This class contains ILogger extensions methods for logging connection messages.</summary>
     internal static class ConnectionLoggerExtensions
     {
-        private const int BaseEventId = LoggerExtensions.ConnectionBaseEventId;
-        private const int DispatchException = BaseEventId + 0;
-        private const int DispatchCanceledByClient = BaseEventId + 1;
-
         private static readonly Action<ILogger, Connection, string, string, Exception> _dispatchException =
             LoggerMessage.Define<Connection, string, string>(
                 LogLevel.Debug,
-                new EventId(DispatchException, nameof(DispatchException)),
+                ConnectionEventIds.DispatchException,
                 "dispatch exception (Connection={Connection}, Path={Path}, Operation={Operation})");
 
         private static readonly Action<ILogger, Connection, string, string, Exception> _dispatchCanceledByClient =
             LoggerMessage.Define<Connection, string, string>(
                 LogLevel.Debug,
-                new EventId(DispatchCanceledByClient, nameof(DispatchCanceledByClient)),
+                ConnectionEventIds.DispatchCanceledByClient,
                 "dispatch canceled by client (Connection={Connection}, Path={Path}, Operation={Operation})");
 
         internal static void LogDispatchException(

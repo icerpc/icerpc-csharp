@@ -9,19 +9,16 @@ namespace IceRpc.Internal
     /// <summary>This class contains ILogger extensions methods for logging Tls messages.</summary>
     internal static class TlsLoggerExtensions
     {
-        private const int BaseEventId = LoggerExtensions.TlsBaseEventId;
-        private const int TlsAuthenticationSucceeded = BaseEventId + 2;
-
         private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthenticationSucceeded =
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
-                new EventId(TlsAuthenticationSucceeded, nameof(TlsAuthenticationSucceeded)),
+                TlsEventIds.TlsAuthenticationSucceeded,
                 "Tls authentication succeeded ({TlsConnectionInfo})");
 
         private static readonly Action<ILogger, Exception> _tlsAuthenticationFailed =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(TlsAuthenticationSucceeded, nameof(TlsAuthenticationSucceeded)),
+                TlsEventIds.TlsAuthenticationFailed,
                 "Tls authentication failed");
 
         internal static void LogTlsAuthenticationFailed(

@@ -8,42 +8,31 @@ using System.Linq;
 
 namespace IceRpc.Internal
 {
-    /// <summary>This class contains ILogger extensions methods for logging Slic transport messages.</summary>
+    /// <summary>This class contains constants used for Slic logging event Ids.</summary>
     internal static class SlicLoggerExtensions
     {
-        private const int BaseEventId = LoggerExtensions.SlicBaseEventId;
-        private const int ReceivedFrame = BaseEventId + 0;
-        private const int ReceivedInitializeFrame = BaseEventId + 1;
-        private const int ReceivedInitializeAckFrame = BaseEventId + 2;
-        private const int ReceivedResetFrame = BaseEventId + 3;
-        private const int ReceivedVersionFrame = BaseEventId + 4;
-        private const int SentFrame = BaseEventId + 5;
-        private const int SentInitializeFrame = BaseEventId + 6;
-        private const int SentInitializeAckFrame = BaseEventId + 7;
-        private const int SentResetFrame = BaseEventId + 8;
-        private const int SentVersionFrame = BaseEventId + 9;
-
         private static readonly Action<ILogger, SlicDefinitions.FrameType, int, Exception> _receivedFrame =
             LoggerMessage.Define<SlicDefinitions.FrameType, int>(
                 LogLevel.Debug,
-                new EventId(ReceivedFrame, nameof(ReceivedFrame)), "received Slic {FrameType} frame (Size={Size})");
+                SlicEventIds.ReceivedFrame,
+                "received Slic {FrameType} frame (Size={Size})");
 
         private static readonly Action<ILogger, int, StreamResetErrorCode, Exception> _receivedResetFrame =
             LoggerMessage.Define<int, StreamResetErrorCode>(
                 LogLevel.Debug,
-                new EventId(ReceivedResetFrame, nameof(ReceivedResetFrame)),
+                SlicEventIds.ReceivedResetFrame,
                 "received Slic StreamReset frame (Size={Size}, ResetCode={ResetCode})");
 
         private static readonly Action<ILogger, SlicDefinitions.FrameType, int, Exception> _sentFrame =
             LoggerMessage.Define<SlicDefinitions.FrameType, int>(
                 LogLevel.Debug,
-                new EventId(SentFrame, nameof(SentFrame)),
+                SlicEventIds.SentFrame,
                 "sent Slic {FrameType} frame (Size={Size})");
 
         private static readonly Action<ILogger, int, StreamResetErrorCode, Exception> _sentResetFrame =
             LoggerMessage.Define<int, StreamResetErrorCode>(
                 LogLevel.Debug,
-                new EventId(SentResetFrame, nameof(SentResetFrame)),
+                SlicEventIds.SentResetFrame,
                 "sent Slic StreamReset frame (Size={Size}, ErrorCode={ErrorCode})");
 
         internal static void LogReceivedSlicFrame(this ILogger logger, SlicDefinitions.FrameType type, int frameSize) =>
@@ -57,7 +46,7 @@ namespace IceRpc.Internal
             Dictionary<ParameterKey, ulong> parameters) =>
             LogSlicInitializeFrame(
                 logger,
-                new EventId(ReceivedInitializeFrame, nameof(ReceivedInitializeFrame)),
+                SlicEventIds.ReceivedInitializeFrame,
                 frameSize,
                 version,
                 body,
@@ -69,7 +58,7 @@ namespace IceRpc.Internal
             Dictionary<ParameterKey, ulong> parameters) =>
             LogSlicInitializeAckFrame(
                 logger,
-                new EventId(ReceivedInitializeAckFrame, nameof(ReceivedInitializeAckFrame)),
+                SlicEventIds.ReceivedInitializeAckFrame,
                 frameSize,
                 parameters);
 
@@ -85,7 +74,7 @@ namespace IceRpc.Internal
             VersionBody body) =>
             LogSlicVersionFrame(
                 logger,
-                new EventId(ReceivedVersionFrame, nameof(ReceivedVersionFrame)),
+                SlicEventIds.ReceivedVersionFrame,
                 frameSize,
                 body);
 
@@ -95,7 +84,7 @@ namespace IceRpc.Internal
             uint version) =>
             logger.Log(
                 LogLevel.Debug,
-                SentInitializeAckFrame,
+                SlicEventIds.SentInitializeAckFrame,
                 "received Slic Initialize frame with unsupported version (Size={Size}, Version={Version})",
                 frameSize,
                 version);
@@ -117,7 +106,7 @@ namespace IceRpc.Internal
             Dictionary<ParameterKey, ulong> parameters) =>
             LogSlicInitializeFrame(
                 logger,
-                new EventId(SentInitializeFrame, nameof(SentInitializeFrame)),
+                SlicEventIds.SentInitializeFrame,
                 frameSize,
                 version,
                 body,
@@ -129,7 +118,7 @@ namespace IceRpc.Internal
             Dictionary<ParameterKey, ulong> parameters) =>
             LogSlicInitializeAckFrame(
                 logger,
-                new EventId(SentInitializeAckFrame, nameof(SentInitializeAckFrame)),
+                SlicEventIds.SentInitializeAckFrame,
                 frameSize,
                 parameters);
 
@@ -142,7 +131,7 @@ namespace IceRpc.Internal
             {
                 LogSlicVersionFrame(
                     logger,
-                    new EventId(SentVersionFrame, nameof(SentVersionFrame)),
+                    SlicEventIds.SentVersionFrame,
                     frameSize,
                     body);
             }
@@ -161,7 +150,7 @@ namespace IceRpc.Internal
                 logger.Log(
                     LogLevel.Debug,
                     eventId,
-                    eventId.Id == SentInitializeFrame ?
+                    eventId == SlicEventIds.SentInitializeFrame ?
                         "sent Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})" :
                         "received Slic Initialize frame (Size={Size}, Version={Version}, Apln={Apln}, {Parameters})",
                     frameSize,
@@ -181,8 +170,8 @@ namespace IceRpc.Internal
             {
                 logger.Log(
                     LogLevel.Debug,
-                    SentInitializeAckFrame,
-                    eventId.Id == SentInitializeAckFrame ?
+                    eventId,
+                    eventId == SlicEventIds.SentInitializeAckFrame ?
                         "sent Slic InitializeAck frame (Size={Size}, {Parameters})" :
                         "received Slic InitializeAck frame (Size={Size}, {Parameters})",
                     frameSize,
@@ -200,8 +189,8 @@ namespace IceRpc.Internal
             {
                 logger.Log(
                 LogLevel.Debug,
-                SentInitializeAckFrame,
-                eventId.Id == SentVersionFrame ?
+                eventId,
+                eventId == SlicEventIds.SentVersionFrame ?
                     "sent Slic Version frame (Size={Size}, Versions=[{Versions}])" :
                     "received Slic Version frame (Size={Size}, Versions=[{Versions}])",
                 frameSize,

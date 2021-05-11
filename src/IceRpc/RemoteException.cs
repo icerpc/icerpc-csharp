@@ -88,7 +88,8 @@ namespace IceRpc
         /// <summary>The remote exception origin.</summary>
         public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
-        internal RetryPolicy RetryPolicy { get; }
+        /// <summary>The remote exception retry policy.</summary>
+        public RetryPolicy RetryPolicy { get; }
 
         /// <summary>When DefaultMessage is not null and the application does not construct the exception with a
         /// constructor that takes a message parameter, Message returns DefaultMessage. This property should be

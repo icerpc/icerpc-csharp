@@ -44,22 +44,21 @@ namespace IceRpc.Tests.ClientServer
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
             var eventIds = new int[] {
-                Internal.TransportLoggerExtensions.ConnectionConnectFailed,
-                Internal.ProtocolLoggerExtensions.RetryRequestConnectionException,
-                Internal.ProtocolLoggerExtensions.RequestException
+                TransportEventIds.ConnectionConnectFailed.Id,
+                ProtocolEventIds.RetryRequestConnectionException.Id,
+                ProtocolEventIds.RequestException.Id
             };
+
             foreach (JsonDocument entry in logEntries)
             {
-                string expectedLogLevel = GetEventId(entry) switch
-                {
-                    Internal.ProtocolLoggerExtensions.RequestException => "Information",
-                    _ => "Debug"
-                };
+                string expectedLogLevel = GetEventId(entry) == ProtocolEventIds.RequestException.Id ?
+                    "Information" : "Debug";
+
                 Assert.AreEqual(expectedLogLevel, GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 CollectionAssert.Contains(eventIds, GetEventId(entry));
                 JsonElement[] scopes = GetScopes(entry);
-                if (GetEventId(entry) == Internal.TransportLoggerExtensions.ConnectionConnectFailed)
+                if (GetEventId(entry) == TransportEventIds.ConnectionConnectFailed)
                 {
                     Assert.That(scopes, Is.Not.Empty);
 

@@ -9,32 +9,10 @@ namespace IceRpc.Internal
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static class TransportLoggerExtensions
     {
-        // The constants are internal for testing purpose.
-        internal const int BaseEventId = LoggerExtensions.TransportBaseEventId;
-        internal const int AcceptingConnectionFailed = BaseEventId + 0;
-        internal const int ConnectionAccepted = BaseEventId + 1;
-        internal const int ConnectionAcceptFailed = BaseEventId + 2;
-        internal const int ConnectionEventHandlerException = BaseEventId + 3;
-        internal const int ConnectionClosed = BaseEventId + 4;
-        internal const int ConnectionConnectFailed = BaseEventId + 5;
-        internal const int ConnectionEstablished = BaseEventId + 6;
-        internal const int ReceiveBufferSizeAdjusted = BaseEventId + 7;
-        internal const int ReceivedData = BaseEventId + 8;
-        internal const int ReceivedInvalidDatagram = BaseEventId + 9;
-        internal const int SendBufferSizeAdjusted = BaseEventId + 10;
-        internal const int SentData = BaseEventId + 11;
-        internal const int StartAcceptingConnections = BaseEventId + 12;
-        internal const int StartReceivingDatagrams = BaseEventId + 13;
-        internal const int StartReceivingDatagramsFailed = BaseEventId + 14;
-        internal const int StartSendingDatagrams = BaseEventId + 15;
-        internal const int StartSendingDatagramsFailed = BaseEventId + 16;
-        internal const int StopAcceptingConnections = BaseEventId + 17;
-        internal const int StopReceivingDatagrams = BaseEventId + 18;
-
         private static readonly Action<ILogger, Exception> _acceptingConnectionFailed =
             LoggerMessage.Define(
                 LogLevel.Error,
-                new EventId(AcceptingConnectionFailed, nameof(AcceptingConnectionFailed)),
+                TransportEventIds.AcceptingConnectionFailed,
                 "unexpected failure to accept a new connection");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _acceptorScope =
@@ -59,37 +37,37 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, Exception> _connectionAccepted =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ConnectionAccepted, nameof(ConnectionAccepted)),
+                TransportEventIds.ConnectionAccepted,
                 "accepted connection");
 
         private static readonly Action<ILogger, Exception> _connectionAcceptFailed =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ConnectionAcceptFailed, nameof(ConnectionAcceptFailed)),
+                TransportEventIds.ConnectionAcceptFailed,
                 "failed to accept connection");
 
         private static readonly Action<ILogger, Exception> _connectionConnectFailed =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ConnectionConnectFailed, nameof(ConnectionConnectFailed)),
+                TransportEventIds.ConnectionConnectFailed,
                 "connection establishment failed");
 
         private static readonly Action<ILogger, Exception> _connectionEstablished =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(ConnectionEstablished, nameof(ConnectionEstablished)),
+                TransportEventIds.ConnectionEstablished,
                 "established connection");
 
         private static readonly Action<ILogger, string, Exception> _connectionEventHandlerException =
             LoggerMessage.Define<string>(
                 LogLevel.Warning,
-                new EventId(ConnectionEventHandlerException, nameof(ConnectionEventHandlerException)),
+                TransportEventIds.ConnectionEventHandlerException,
                 "{Name} event handler raised exception");
 
         private static readonly Action<ILogger, string, bool, Exception> _connectionClosed =
             LoggerMessage.Define<string, bool>(
                 LogLevel.Debug,
-                new EventId(ConnectionClosed, nameof(ConnectionEventHandlerException)),
+                TransportEventIds.ConnectionEventHandlerException,
                 "closed connection (Reason={Reason}, IsClosedByPeer={IsClosedByPeer})");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverSocketServerSocketScope =
@@ -114,30 +92,31 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, string, int, int, Exception> _receiveBufferSizeAdjusted =
             LoggerMessage.Define<string, int, int>(
                 LogLevel.Debug,
-                new EventId(ReceiveBufferSizeAdjusted, nameof(ReceiveBufferSizeAdjusted)),
+                TransportEventIds.ReceiveBufferSizeAdjusted,
                 "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
         private static readonly Action<ILogger, int, Exception> _receivedData =
             LoggerMessage.Define<int>(
                 LogLevel.Trace,
-                new EventId(ReceivedData, nameof(ReceivedData)),
+                TransportEventIds.ReceivedData,
                 "received {Size} bytes");
+
         private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
             LoggerMessage.Define<int>(
                 LogLevel.Debug,
-                new EventId(ReceivedInvalidDatagram, nameof(ReceivedInvalidDatagram)),
+                TransportEventIds.ReceivedInvalidDatagram,
                 "received invalid {Bytes} bytes datagram");
 
         private static readonly Action<ILogger, string, int, int, Exception> _sendBufferSizeAdjusted =
             LoggerMessage.Define<string, int, int>(
                 LogLevel.Debug,
-                new EventId(SendBufferSizeAdjusted, nameof(SendBufferSizeAdjusted)),
+                TransportEventIds.SendBufferSizeAdjusted,
                 "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
 
         private static readonly Action<ILogger, int, Exception> _sentData =
             LoggerMessage.Define<int>(
                 LogLevel.Trace,
-                new EventId(SentData, nameof(SentData)),
+                TransportEventIds.SentData,
                 "sent {Size} bytes");
 
         private static readonly Func<ILogger, string, IDisposable> _serverSocketScope =
@@ -146,43 +125,43 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, Exception> _startAcceptingConnections =
             LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StartAcceptingConnections, nameof(StartAcceptingConnections)),
+                TransportEventIds.StartAcceptingConnections,
                 "starting to accept connections");
 
         private static readonly Action<ILogger, Exception> _startReceivingDatagrams =
             LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StartReceivingDatagrams, nameof(StartReceivingDatagrams)),
+                TransportEventIds.StartReceivingDatagrams,
                 "starting to receive datagrams");
 
         private static readonly Action<ILogger, Exception> _startReceivingDatagramsFailed =
             LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StartReceivingDatagramsFailed, nameof(StartReceivingDatagramsFailed)),
+                TransportEventIds.StartReceivingDatagramsFailed,
                 "starting receiving datagrams failed");
 
         private static readonly Action<ILogger, Exception> _startSendingDatagrams =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(StartSendingDatagrams, nameof(StartSendingDatagrams)),
+                TransportEventIds.StartSendingDatagrams,
                 "starting to send datagrams");
 
         private static readonly Action<ILogger, Exception> _startSendingDatagramsFailed =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                new EventId(StartSendingDatagramsFailed, nameof(StartSendingDatagramsFailed)),
+                TransportEventIds.StartSendingDatagramsFailed,
                 "starting sending datagrams failed");
 
         private static readonly Action<ILogger, Exception> _stopAcceptingConnections =
             LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StopAcceptingConnections, nameof(StopAcceptingConnections)),
+                TransportEventIds.StopAcceptingConnections,
                 "stopping to accept connections");
 
         private static readonly Action<ILogger, Exception> _stopReceivingDatagrams =
             LoggerMessage.Define(
                 LogLevel.Information,
-                new EventId(StopReceivingDatagrams, nameof(StopReceivingDatagrams)),
+                TransportEventIds.StopReceivingDatagrams,
                 "stopping to receive datagrams");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
