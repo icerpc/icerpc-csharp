@@ -251,7 +251,10 @@ namespace IceRpc
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false)
-            : this(proxy, operation, invocation?.Context, invocation?.RequestFeatures)
+            : this(proxy,
+                   operation,
+                   invocation?.Context ?? ImmutableSortedDictionary<string, string>.Empty,
+                   invocation?.RequestFeatures)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -386,13 +389,13 @@ namespace IceRpc
         private OutgoingRequest(
             IServicePrx proxy,
             string operation,
-            IDictionary<string, string>? context,
+            IDictionary<string, string> context,
             FeatureCollection? features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Context = context ?? ImmutableSortedDictionary<string, string>.Empty;
+            Context = context;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
