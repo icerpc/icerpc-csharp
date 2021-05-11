@@ -20,7 +20,7 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The request context.</summary>
-        public IDictionary<string, string>? Context { get; set; }
+        public IDictionary<string, string> Context { get; set; }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -187,7 +187,8 @@ namespace IceRpc
                 // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
-                Context = requestHeaderBody.Context;
+                Context = requestHeaderBody.Context as IDictionary<string, string> ??
+                    ImmutableSortedDictionary<string, string>.Empty;
 
                 BinaryContext = istr.ReadBinaryContext();
 
@@ -228,8 +229,7 @@ namespace IceRpc
 
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
-            Context = request.Context is IDictionary<string, string> context ?
-                new SortedDictionary<string, string>(context) : null;
+            Context = request.Context.ToImmutableSortedDictionary();
 
             Priority = default;
             Deadline = request.Deadline;

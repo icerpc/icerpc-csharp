@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace IceRpc
 {
@@ -16,7 +17,7 @@ namespace IceRpc
         public bool CompressRequestPayload { get; set; }
 
         /// <summary>Gets or sets the context dictionary carried by the request.</summary>
-        public IDictionary<string, string>? Context { get; set; }
+        public IDictionary<string, string> Context { get; set; } = ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>Gets or sets the deadline of this invocation.</summary>
         public DateTime? Deadline { get; set; }
