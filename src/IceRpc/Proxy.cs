@@ -22,26 +22,14 @@ namespace IceRpc
         /// <returns>A proxy with the desired type.</returns>
         public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
         {
-            T prx;
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                prx = GetInteropFactory<T>()(proxy.GetIdentity(), proxy.GetFacet());
-                prx.Encoding = proxy.Encoding;
-                prx.Endpoint = proxy.Endpoint;
-                prx.AltEndpoints = proxy.AltEndpoints;
-                prx.Connection = proxy.Connection;
-                prx.Invoker = proxy.Invoker;
-                return prx;
-            }
-            else
-            {
-                prx = GetFactory<T>()(proxy.Path, proxy.Protocol);
-                prx.Encoding = proxy.Encoding;
-                prx.Endpoint = proxy.Endpoint;
-                prx.AltEndpoints = proxy.AltEndpoints;
-                prx.Connection = proxy.Connection;
-                prx.Invoker = proxy.Invoker;
-            }
+            T prx = proxy.Protocol == Protocol.Ice1 ?
+                GetInteropFactory<T>()(proxy.GetIdentity(), proxy.GetFacet()) :
+                GetFactory<T>()(proxy.Path, proxy.Protocol); 
+            prx.Encoding = proxy.Encoding;
+            prx.Endpoint = proxy.Endpoint;
+            prx.AltEndpoints = proxy.AltEndpoints;
+            prx.Connection = proxy.Connection;
+            prx.Invoker = proxy.Invoker;
             return prx;
         }
 
@@ -88,11 +76,11 @@ namespace IceRpc
             if (typeof(T).GetField("InteropFactory") is FieldInfo factoryField)
             {
                 return factoryField.GetValue(null) is InteropProxyFactory<T> factory ? factory :
-                    throw new InvalidOperationException($"{typeof(T).FullName}.Factory is not a proxy factory");
+                    throw new InvalidOperationException($"{typeof(T).FullName}.InteropFactory is not a proxy factory");
             }
             else
             {
-                throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named Factory");
+                throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named InteropFactory");
             }
         }
         /// <summary>Sends a request to a service and returns the response.</summary>
@@ -217,40 +205,54 @@ namespace IceRpc
             }
 
             T prx;
+            Encoding encoding;
+            Endpoint? endpoint;
+            ImmutableList<Endpoint> altEndpoints;
             if (Internal.UriParser.IsProxyUri(proxyString))
             {
-                var args = Internal.UriParser.ParseProxy(proxyString);
-                Protocol protocol = args.Endpoint?.Protocol ?? Protocol.Ice2;
-                prx = GetFactory<T>()(args.Path, protocol);
-                prx.Encoding = args.Encoding;
-                prx.Endpoint = args.Endpoint;
-                prx.AltEndpoints = args.AltEndpoints;
-                prx.Invoker = invoker;
+                string path;
+                (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
+                prx = GetFactory<T>()(path, endpoint?.Protocol ?? Protocol.Ice2);
             }
             else
             {
-                var args = Ice1Parser.ParseProxy(proxyString);
-                prx = GetInteropFactory<T>()(args.Identity, args.Facet);
-                prx.Encoding = args.Encoding;
-                prx.Endpoint = args.Endpoint;
-                prx.AltEndpoints = args.AltEndpoints;
-                prx.Invoker = invoker;
+                Identity identity;
+                string facet;
+                (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
+                prx = GetInteropFactory<T>()(identity, facet);
             }
+            prx.Encoding = encoding;
+            prx.Endpoint = endpoint;
+            prx.AltEndpoints = altEndpoints;
+            prx.Invoker = invoker;
             return prx;
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
+        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
+        /// </param>
         /// <param name="istr">The input stream to read from.</param>
         /// <returns>The non-null proxy read from the stream.</returns>
-        public static T Read<T>(InputStream istr) where T : class, IServicePrx =>
-            ReadNullable<T>(istr) ?? throw new InvalidDataException("read null for a non-nullable proxy");
+        public static T Read<T>(
+            ProxyFactory<T> proxyFactory,
+            InteropProxyFactory<T> interopProxyFactory, 
+            InputStream istr) where T : class, IServicePrx =>
+            ReadNullable(proxyFactory, interopProxyFactory, istr) ??
+            throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a nullable proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
+        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
+        /// </param>
         /// <param name="istr">The input stream to read from.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public static T? ReadNullable<T>(InputStream istr) where T : class, IServicePrx
+        public static T? ReadNullable<T>(
+            ProxyFactory<T> proxyFactory, 
+            InteropProxyFactory<T> interopProxyFactory,
+            InputStream istr) where T : class, IServicePrx
         {
             if (istr.Encoding == Encoding.V11)
             {
@@ -332,7 +334,7 @@ namespace IceRpc
 
                     try
                     {
-                        var prx = GetFactory<T>()(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
+                        var prx = proxyFactory(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
                         prx.Encoding = proxyData.Encoding;
                         prx.Endpoint = endpoint;
                         prx.AltEndpoints = altEndpoints.ToImmutableList();
@@ -408,7 +410,7 @@ namespace IceRpc
 
                     try
                     {
-                        var prx = GetFactory<T>()(proxyData.Path, connection?.Protocol ?? protocol);
+                        var prx = proxyFactory(proxyData.Path, connection?.Protocol ?? protocol);
                         prx.Encoding = proxyData.Encoding ?? Encoding.V20;
                         prx.Endpoint = endpoint;
                         prx.AltEndpoints = altEndpoints;
@@ -436,7 +438,7 @@ namespace IceRpc
 
                 try
                 {
-                    var prx = GetInteropFactory<T>()(identity, facet);
+                    var prx = interopProxyFactory(identity, facet);
                     prx.Encoding = encoding;
                     prx.Endpoint = endpoint;
                     prx.AltEndpoints = altEndpoints.ToImmutableList();
@@ -456,12 +458,19 @@ namespace IceRpc
 
         /// <summary>Reads a tagged proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
+        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
+        /// </param>
         /// <param name="istr">The input stream to read from.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
-        public static T? ReadTagged<T>(InputStream istr, int tag)
+        public static T? ReadTagged<T>(
+            ProxyFactory<T> proxyFactory,
+            InteropProxyFactory<T> interopProxyFactory,
+            InputStream istr,
+            int tag)
             where T : class, IServicePrx =>
-            istr.ReadTaggedProxyHeader(tag) ? Read<T>(istr) : null;
+            istr.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, interopProxyFactory, istr) : null;
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -487,21 +496,18 @@ namespace IceRpc
                 }
 
                 prx = GetInteropFactory<T>()(identity, proxy.GetFacet());
-                prx.Encoding = proxy.Encoding;
                 prx.Endpoint = endpoint;
-                prx.AltEndpoints = proxy.AltEndpoints;
                 prx.Connection = connection;
-                prx.Invoker = proxy.Invoker;
             }
             else
             {
                 prx = GetFactory<T>()(path, proxy.Protocol);
-                prx.Encoding = proxy.Encoding;
                 prx.Endpoint = proxy.Endpoint;
-                prx.AltEndpoints = proxy.AltEndpoints;
                 prx.Connection = proxy.Connection;
-                prx.Invoker = proxy.Invoker;
             }
+            prx.Encoding = proxy.Encoding;
+            prx.AltEndpoints = proxy.AltEndpoints;
+            prx.Invoker = proxy.Invoker;
             return prx;
         }
     }

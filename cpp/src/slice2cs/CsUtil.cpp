@@ -905,7 +905,10 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.Proxy.ReadNullable<" << typeToString(underlying, scope) << ">(istr);";
+            out << "IceRpc.Proxy.ReadNullable("
+                << typeToString(underlying, scope) << ".Factory, "
+                << typeToString(underlying, scope) << ".InteropFactory, "
+                << "istr);";
             return;
         }
         else if (underlying->isClassType())
@@ -934,7 +937,10 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.Proxy.Read<" << typeToString(underlying, scope) << ">(istr)";
+        out << "IceRpc.Proxy.Read("
+            << typeToString(underlying, scope) << ".Factory, "
+            << typeToString(underlying, scope) << ".InteropFactory, "
+            << "istr)";
     }
     else if (underlying->isClassType())
     {
@@ -1127,7 +1133,10 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.Proxy.ReadTagged<" << typeToString(type, scope) << ">(istr, " << tag << ")";
+        out << "IceRpc.Proxy.ReadTagged("
+            << typeToString(type, scope) << ".Factory, "
+            << typeToString(type, scope) << ".InteropFactory, "
+            << "istr, " << tag << ")";
     }
     else if (builtin)
     {
