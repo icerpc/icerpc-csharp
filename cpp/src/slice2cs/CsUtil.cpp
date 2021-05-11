@@ -50,7 +50,7 @@ Slice::paramTypeStr(const MemberPtr& param, bool readOnly)
     return CsGenerator::typeToString(param->type(),
                                      getNamespace(InterfaceDefPtr::dynamicCast(param->operation()->container())),
                                      readOnly,
-                                     readOnly,
+                                     true, // isParam
                                      param->stream());
 }
 
@@ -336,11 +336,8 @@ string Slice::defaultPath(const string& name)
 }
 
 string
-Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, bool readOnly, bool readOnlyParam,
-                                 bool streamParam)
+Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, bool readOnly, bool isParam, bool streamParam)
 {
-    assert(!readOnlyParam || readOnly);
-
     if (streamParam)
     {
         if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && builtin->kind() == Builtin::KindByte)
@@ -368,7 +365,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         seq = SequencePtr::dynamicCast(optional->underlying());
         if (!seq || !readOnly)
         {
-            return typeToString(optional->underlying(), package, readOnly) + "?";
+            return typeToString(optional->underlying(), package, readOnly, isParam) + "?";
         }
         // else process seq in the code below.
     }
@@ -422,8 +419,8 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         if (readOnly)
         {
             auto elementType = seq->type();
-            string elementTypeStr = "<" + typeToString(elementType, package, readOnly) + ">";
-            if (isFixedSizeNumericSequence(seq) && customType.empty() && readOnlyParam)
+            string elementTypeStr = "<" + typeToString(elementType, package, readOnly, false) + ">";
+            if (isFixedSizeNumericSequence(seq) && customType.empty() && readOnly && isParam)
             {
                 return "global::System.ReadOnlyMemory" + elementTypeStr; // same for optional!
             }
@@ -451,13 +448,13 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     DictionaryPtr d = DictionaryPtr::dynamicCast(type);
     if (d)
     {
-        if (readOnly)
+        if (isParam && readOnly)
         {
             return "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<" +
                 typeToString(d->keyType(), package) + ", " +
                 typeToString(d->valueType(), package) + ">>";
         }
-        else
+        else if (isParam)
         {
             string prefix = "cs:generic:";
             string meta;
@@ -473,6 +470,12 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
             }
 
             return "global::System.Collections.Generic." + typeName + "<" +
+                typeToString(d->keyType(), package) + ", " +
+                typeToString(d->valueType(), package) + ">";
+        }
+        else
+        {
+            return "global::System.Collections.Generic.IDictionary<" +
                 typeToString(d->keyType(), package) + ", " +
                 typeToString(d->valueType(), package) + ">";
         }
@@ -665,7 +668,7 @@ Slice::toTupleType(const MemberList& params, bool readOnly)
 }
 
 string
-Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope, bool readOnly, bool readOnlyParam)
+Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope, bool readOnly, bool param)
 {
     ostringstream out;
     if (auto optional = OptionalPtr::dynamicCast(type))
@@ -674,21 +677,21 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
         TypePtr underlying = optional->underlying();
         if (underlying->isInterfaceType())
         {
-            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope) << ".IceWriterFromNullable";
+            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceWriterFromNullable";
         }
         else
         {
             assert(underlying->isClassType());
-            out << typeToString(underlying, scope) << ".IceWriterFromNullable";
+            out << typeToString(underlying, scope, readOnly, param) << ".IceWriterFromNullable";
         }
     }
     else if (type->isInterfaceType())
     {
-        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope) << ".IceWriter";
+        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceWriter";
     }
     else if (type->isClassType())
     {
-        out << typeToString(type, scope) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
@@ -706,11 +709,11 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     {
         // We generate the sequence writer inline, so this function must not be called when the top-level object is
         // not cached.
-        out << "(ostr, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, readOnlyParam);
+        out << "(ostr, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, param);
     }
     else
     {
-        out << typeToString(type, scope) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
     }
     return out.str();
 }
@@ -743,7 +746,7 @@ Slice::CsGenerator::writeMarshalCode(
             }
             else
             {
-                out << ", " << typeToString(underlying, scope) << ".IceTypeId);";
+                out << ", " << typeToString(underlying, scope, false, !forNestedType) << ".IceTypeId);";
             }
         }
         else

@@ -32,50 +32,5 @@ namespace IceRpc.Internal
             encoding.CheckSupported();
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
-
-        /// <summary>Writes a request header body. This implementation is slightly more efficient than the generated
-        /// code because it avoids the allocation of a dictionary to write the context.</summary>
-        internal static void WriteIce2RequestHeaderBody(
-            this OutputStream ostr,
-            string path,
-            string operation,
-            bool idempotent,
-            DateTime deadline,
-            IDictionary<string, string> context)
-        {
-            Debug.Assert(ostr.Encoding == Encoding);
-
-            // All bits are set to true by default, and true means the corresponding value is set.
-            BitSequence bitSequence = ostr.WriteBitSequence(3);
-
-            ostr.WriteString(path);
-            ostr.WriteString(operation);
-
-            if (idempotent)
-            {
-                ostr.WriteBool(true);
-            }
-            else
-            {
-                bitSequence[0] = false;
-            }
-
-            bitSequence[1] = false; // TODO: source for priority.
-
-            // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-            ostr.WriteVarLong(
-                deadline == DateTime.MaxValue ? -1 : (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds);
-
-            if (context.Count > 0)
-            {
-                ostr.WriteDictionary(context,
-                                     OutputStream.IceWriterFromString,
-                                     OutputStream.IceWriterFromString);
-            }
-            else
-            {
-                bitSequence[2] = false;
-            }
-        }
     }
 }
