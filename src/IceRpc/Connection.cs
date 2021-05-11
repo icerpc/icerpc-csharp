@@ -38,7 +38,7 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public sealed class Connection : IInvoker, IAsyncDisposable
+    public sealed class Connection : IAsyncDisposable, IInvoker
     {
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument.</summary>
