@@ -48,10 +48,9 @@ namespace IceRpc
         public TimeSpan Timeout
         {
             get => _timeout ?? Runtime.DefaultInvocationTimeout;
-            set => _timeout = (value != TimeSpan.Zero) ? value :
-                throw new ArgumentException("zero is not a valid timeout value", nameof(Timeout));
+            set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
+                throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
         }
-
         private TimeSpan? _timeout;
     }
 }

@@ -2522,9 +2522,9 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << "idempotent: true, ";
     }
-    if (voidOp)
+    if (voidOp && oneway)
     {
-        _out << (oneway ? "oneway: true" : "oneway: false") << ", ";
+        _out << "oneway: true, ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();

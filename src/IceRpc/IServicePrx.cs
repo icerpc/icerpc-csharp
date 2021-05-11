@@ -259,7 +259,6 @@ namespace IceRpc
                            Payload.FromEmptyArgs(this),
                            invocation,
                            idempotent: true,
-                           oneway: false,
                            cancel: cancel);
 
         /// <summary>Marshals the proxy into an OutputStream.</summary>

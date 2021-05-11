@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using System.Threading;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
@@ -27,7 +28,13 @@ namespace IceRpc
         /// <summary>The timeout for invocations that do not specify a timeout or deadline. The default value is 60s.
         /// </summary>
         /// <seealso cref="Invocation"/>
-        public static TimeSpan DefaultInvocationTimeout { get; set; } = TimeSpan.FromSeconds(60);
+        public static TimeSpan DefaultInvocationTimeout
+        {
+            get => _defaultInvocationTimeout;
+            set => _defaultInvocationTimeout = value > TimeSpan.Zero || value == Timeout.InfiniteTimeSpan ? value :
+                throw new ArgumentException($"{nameof(DefaultInvocationTimeout)} must be greater than 0",
+                                            nameof(DefaultInvocationTimeout));
+        }
 
         /// <summary>Gets or sets the logger factory used by IceRPC classes when no logger factory is explicitly
         /// configured.</summary>
@@ -73,6 +80,8 @@ namespace IceRpc
         }
 
         private static IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactTypeIdClassFactoryCache;
+
+        private static TimeSpan _defaultInvocationTimeout = TimeSpan.FromSeconds(60);
 
         // The mutex protects assignment to class and exception factory caches
         private static readonly object _mutex = new();
