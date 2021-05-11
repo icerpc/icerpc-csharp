@@ -38,7 +38,7 @@ namespace IceRpc
     }
 
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
-    public sealed class Connection : IAsyncDisposable
+    public sealed class Connection : IInvoker, IAsyncDisposable
     {
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument.</summary>
@@ -518,6 +518,58 @@ namespace IceRpc
                 // These are disposed by AbortAsync but we do it again here to prevent a warning.
                 _timer?.Dispose();
                 _socket?.Dispose();
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        {
+            if (Activity.Current != null && Activity.Current.Id != null)
+            {
+                request.WriteActivityContext(Activity.Current);
+            }
+
+            SocketStream? stream = null;
+            try
+            {
+                using IDisposable? socketScope = StartScope();
+
+                // Create the outgoing stream.
+                stream = CreateStream(!request.IsOneway);
+
+                // Send the request and wait for the sending to complete.
+                await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+
+                // TODO: move this set to stream.SendRequestFrameAsync
+                request.IsSent = true;
+
+                using IDisposable? streamSocket = stream.StartScope();
+                Logger.LogSentRequest(request);
+
+                // The request is sent, notify the progress callback.
+                // TODO: Get rid of the sentSynchronously parameter which is always false now?
+                if (request.Progress is IProgress<bool> progress)
+                {
+                    progress.Report(false);
+                    request.Progress = null; // Only call the progress callback once (TODO: revisit this?)
+                }
+
+                // Wait for the reception of the response.
+                IncomingResponse response = request.IsOneway ?
+                    new IncomingResponse(this, request.PayloadEncoding) :
+                    await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                response.Connection = this;
+
+                if (!request.IsOneway)
+                {
+                    Logger.LogReceivedResponse(response);
+                }
+                return response;
+            }
+            finally
+            {
+                // Release one ref-count
+                stream?.Release();
             }
         }
 
