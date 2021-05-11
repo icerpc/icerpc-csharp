@@ -57,16 +57,9 @@ namespace IceRpc.Interop
                 }
             }
 
-            if (proxy.IsOneway)
+            if (proxy.Endpoint?.IsDatagram ?? false)
             {
-                if (proxy.Endpoint?.IsDatagram ?? false)
-                {
-                    sb.Append(" -d");
-                }
-                else
-                {
-                    sb.Append(" -o");
-                }
+                sb.Append(" -d");
             }
             else
             {

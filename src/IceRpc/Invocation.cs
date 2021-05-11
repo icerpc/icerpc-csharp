@@ -16,19 +16,19 @@ namespace IceRpc
         public bool CompressRequestPayload { get; set; }
 
         /// <summary>Gets or sets the context dictionary carried by the request.</summary>
-        public SortedDictionary<string, string> Context { get; set; } = new();
+        public IDictionary<string, string>? Context { get; set; }
 
-        /// <summary>Gets or sets the deadline of this invocation. When null or set to <see cref="DateTime.MaxValue"/>,
-        /// <see cref="Proxy.InvokeAsync"/> uses <see cref="Timeout"/> to create (and enforce) a deadline for the
-        /// invocation.</summary>
+        /// <summary>Gets or sets the deadline of this invocation.</summary>
         public DateTime? Deadline { get; set; }
 
         /// <summary>Gets or sets whether the caller considers the implementation of the target operation idempotent.
         /// </summary>
         public bool IsIdempotent { get; set; }
 
-        /// <summary>Gets or sets whether a void-returning request is oneway. When true, the request is sent as a
-        /// oneway request. Otherwise, the request is sent as a twoway request.</summary>
+        /// <summary>Gets or sets whether a void-returning request is oneway. This property has no effect for operations
+        /// defined in Slice that return a value.</summary>
+        /// <value>When <c>true</c>, the request is sent as a oneway request. When <c>false</c>, the request is sent as
+        /// a twoway request unless the operation is marked oneway in its Slice definition.</value>
         public bool IsOneway { get; set; }
 
         /// <summary>Gets or sets the progress provider.</summary>
@@ -40,16 +40,17 @@ namespace IceRpc
         /// <summary>Gets or sets the features carried by the response.</summary>
         public FeatureCollection ResponseFeatures { get; set; } = new FeatureCollection();
 
-        /// <summary>Gets or sets the timeout of this invocation. The null value is equivalent to the proxy's invocation
-        /// timeout. <see cref="Proxy.InvokeAsync"/> creates a deadline from this timeout unless <see cref="Deadline"/>
-        /// is null or set to <see cref="DateTime.MaxValue"/>.</summary>
-        public TimeSpan? Timeout
+        /// <summary>Gets or sets the timeout of this invocation. The conversion of this invocation into an
+        /// <see cref="OutgoingRequest"/> creates a deadline from this timeout when <see cref="Deadline"/> is null or
+        /// set to <see cref="DateTime.MaxValue"/>.</summary>
+        /// <value>The timeout of this invocation. Its default value is <see cref="Runtime.DefaultInvocationTimeout"/>.
+        /// </value>
+        public TimeSpan Timeout
         {
-            get => _timeout;
-            set => _timeout = (value == null || value.Value != TimeSpan.Zero) ? value :
-                throw new ArgumentException("zero is not a valid timeout value", nameof(Timeout));
+            get => _timeout ?? Runtime.DefaultInvocationTimeout;
+            set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
+                throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
         }
-
         private TimeSpan? _timeout;
     }
 }

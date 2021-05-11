@@ -50,7 +50,7 @@ namespace IceRpc.Interop
                                                            proxy.Endpoint,
                                                            proxy.AltEndpoints,
                                                            proxy.Connection,
-                                                           proxy.GetOptions());
+                                                           proxy.Invoker);
             }
             else
             {

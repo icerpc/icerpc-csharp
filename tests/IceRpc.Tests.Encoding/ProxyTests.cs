@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Encoding
             var prx2 = _data[0].AsReadOnlyMemory().Read(encoding,
                                                         IServicePrx.IceReader,
                                                         connection: null,
-                                                        prx.GetOptions());
+                                                        prx.Invoker);
             Assert.AreEqual(prx, prx2);
         }
 
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Encoding
             IServicePrx prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
                                                                 IServicePrx.IceReader,
                                                                 regular.Connection!,
-                                                                proxyOptions: new ProxyOptions());
+                                                                invoker: null);
             Assert.AreEqual(regular.Connection, prx1.Connection);
             Assert.AreEqual(prx1.Endpoint, regular.Connection!.RemoteEndpoint);
         }

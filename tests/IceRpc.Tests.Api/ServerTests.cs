@@ -199,55 +199,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice2, server.Protocol);
         }
 
-        [Test]
-        public async Task Server_ProxyOptionsAsync()
-        {
-            await using var communicator = new Communicator();
-
-            var proxyOptions = new ProxyOptions()
-            {
-                // no need to set Communicator
-                Context = new Dictionary<string, string>() { ["speed"] = "fast" },
-                InvocationTimeout = TimeSpan.FromSeconds(10)
-            };
-
-            var service = new ProxyTest();
-
-            await using var server = new Server
-            {
-                Invoker = communicator,
-                ProxyOptions = proxyOptions,
-                Dispatcher = service,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
-            IProxyTestPrx? proxy = IProxyTestPrx.FromServer(server, "/foo/bar");
-            CheckProxy(proxy);
-
-            // change some properties
-            proxy.Context = new Dictionary<string, string>();
-            proxy.InvocationTimeout = TimeSpan.FromSeconds(20);
-
-            server.Listen();
-            await proxy.SendProxyAsync(proxy);
-            Assert.IsNotNull(service.Proxy);
-            CheckProxy(service.Proxy!);
-
-            IProxyTestPrx received = await proxy.ReceiveProxyAsync();
-
-            // received inherits the proxy properties not the server options
-            CollectionAssert.IsEmpty(received.Context);
-            Assert.AreEqual(received.InvocationTimeout, proxy.InvocationTimeout);
-            Assert.AreEqual(received.IsOneway, proxy.IsOneway);
-
-            static void CheckProxy(IProxyTestPrx proxy)
-            {
-                Assert.AreEqual("fast", proxy.Context["speed"]);
-                Assert.AreEqual(TimeSpan.FromSeconds(10), proxy.InvocationTimeout);
-                Assert.AreEqual("/foo/bar", proxy.Path);
-            }
-        }
-
         [TestCase(" :")]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]

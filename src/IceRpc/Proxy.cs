@@ -27,7 +27,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
             else
             {
@@ -37,7 +37,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
         }
 
@@ -77,10 +77,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns a new copy of the underlying options.</summary>
-        /// <returns>An instance of the options class.</returns>
-        public static ProxyOptions GetOptions(this IServicePrx proxy) => proxy.Impl.GetOptions();
-
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
@@ -118,7 +114,7 @@ namespace IceRpc
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
                 if (deadline == DateTime.MaxValue)
                 {
-                    TimeSpan timeout = invocation?.Timeout ?? proxy.InvocationTimeout;
+                    TimeSpan timeout = invocation?.Timeout ?? Runtime.DefaultInvocationTimeout;
                     if (timeout != Timeout.InfiniteTimeSpan)
                     {
                         deadline = DateTime.UtcNow + timeout;
@@ -222,7 +218,7 @@ namespace IceRpc
                                               endpoint,
                                               proxy.AltEndpoints,
                                               connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
             else
             {
@@ -232,7 +228,7 @@ namespace IceRpc
                                               proxy.Endpoint,
                                               proxy.AltEndpoints,
                                               proxy.Connection,
-                                              proxy.GetOptions());
+                                              proxy.Invoker);
             }
         }
     }

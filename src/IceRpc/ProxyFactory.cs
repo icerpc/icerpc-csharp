@@ -22,29 +22,17 @@ namespace IceRpc
         public static T Create<T>(this IProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
-            ProxyOptions options = connection.Server?.ProxyOptions ?? new ProxyOptions();
-            if (connection.IsDatagram && !options.IsOneway)
-            {
-                options = options.Clone();
-                options.IsOneway = true;
-            }
-
             return factory.Create(path,
                                   connection.Protocol,
                                   connection.Protocol.GetEncoding(),
                                   connection.IsIncoming ? null : connection.RemoteEndpoint,
                                   ImmutableList<Endpoint>.Empty,
                                   connection,
-                                  options);
+                                  connection.Server?.Invoker);
         }
 
-        // Temporary adapter
+        /// <summary>Creates a proxy from a string and invoker.</summary>
         public static T Parse<T>(this IProxyFactory<T> factory, string s, IInvoker invoker)
-            where T : class, IServicePrx =>
-            Parse(factory, s, new ProxyOptions() { Invoker = invoker });
-
-        /// <summary>Creates a proxy from a string and proxy options.</summary>
-        public static T Parse<T>(this IProxyFactory<T> factory, string s, ProxyOptions proxyOptions)
             where T : class, IServicePrx
         {
             string proxyString = s.Trim();
@@ -55,7 +43,7 @@ namespace IceRpc
 
             if (Internal.UriParser.IsProxyUri(proxyString))
             {
-                var args = Internal.UriParser.ParseProxy(proxyString, proxyOptions);
+                var args = Internal.UriParser.ParseProxy(proxyString);
                 Protocol protocol = args.Endpoint?.Protocol ?? Protocol.Ice2;
                 return factory.Create(args.Path,
                                       protocol,
@@ -63,18 +51,18 @@ namespace IceRpc
                                       args.Endpoint,
                                       args.AltEndpoints,
                                       connection: null,
-                                      args.Options);
+                                      invoker);
             }
             else
             {
-                var args = Ice1Parser.ParseProxy(proxyString, proxyOptions);
+                var args = Ice1Parser.ParseProxy(proxyString);
                 return factory.Create(args.Identity,
                                       args.Facet,
                                       args.Encoding,
                                       args.Endpoint,
                                       args.AltEndpoints,
                                       connection: null,
-                                      args.Options);
+                                      invoker);
             }
         }
 
@@ -97,11 +85,6 @@ namespace IceRpc
         public static T? ReadNullable<T>(this IProxyFactory<T> factory, InputStream istr)
             where T : class, IServicePrx
         {
-            if (istr.ProxyOptions == null)
-            {
-                throw new InvalidOperationException("cannot read a proxy from an InputStream without proxy options");
-            }
-
             if (istr.Encoding == Encoding.V11)
             {
                 var identity = new Identity(istr);
@@ -157,8 +140,7 @@ namespace IceRpc
                                            endpoint,
                                            altEndpoints,
                                            proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
-                                           identity,
-                                           proxyData.InvocationMode);
+                                           identity);
                 }
                 else
                 {
@@ -189,7 +171,7 @@ namespace IceRpc
                                               endpoint,
                                               altEndpoints,
                                               connection,
-                                              istr.ProxyOptions);
+                                              istr.Invoker);
                     }
                     catch (Exception ex)
                     {
@@ -221,9 +203,6 @@ namespace IceRpc
 
                 if (protocol == Protocol.Ice1)
                 {
-                    InvocationMode invocationMode = endpoint != null && endpoint.IsDatagram ?
-                        InvocationMode.Oneway : InvocationMode.Twoway;
-
                     string facet;
                     Identity identity;
 
@@ -248,8 +227,7 @@ namespace IceRpc
                                            endpoint,
                                            altEndpoints,
                                            facet,
-                                           identity,
-                                           invocationMode);
+                                           identity);
                 }
                 else
                 {
@@ -269,7 +247,7 @@ namespace IceRpc
                                               endpoint,
                                               altEndpoints,
                                               connection,
-                                              istr.ProxyOptions);
+                                              istr.Invoker);
                     }
                     catch (Exception ex)
                     {
@@ -284,22 +262,14 @@ namespace IceRpc
                 Endpoint? endpoint,
                 IEnumerable<Endpoint> altEndpoints,
                 string facet,
-                Identity identity,
-                InvocationMode invocationMode)
+                Identity identity)
             {
-                ProxyOptions options = istr.ProxyOptions;
-                if (options.IsOneway != (invocationMode != InvocationMode.Twoway))
-                {
-                    options = options.Clone();
-                    options.IsOneway = invocationMode != InvocationMode.Twoway;
-                }
-
                 // For interop with ZeroC Ice, an ice1 endpointless proxy is unmarshaled as an endpointless and
                 // connectionless proxy - a "well-known proxy".
 
                 try
                 {
-                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection: null, options);
+                    return factory.Create(identity, facet, encoding, endpoint, altEndpoints, connection: null, istr.Invoker);
                 }
                 catch (InvalidDataException)
                 {

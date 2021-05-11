@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,14 +40,14 @@ namespace IceRpc.Tests.Api
             var prx = Prx.Clone();
             await using var pool = new Communicator();
             prx.Invoker = pool;
-            prx.InvocationTimeout = TimeSpan.FromMilliseconds(10);
             pool.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 await Task.Delay(100, default);
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(
+                new Invocation { Timeout = TimeSpan.FromMilliseconds(10) }));
         }
 
         /// <summary>Ensure that invocation interceptors are called in the expected order.</summary>
@@ -114,14 +115,10 @@ namespace IceRpc.Tests.Api
             var prx = Prx.Clone();
             await using var pool = new Communicator();
             prx.Invoker = pool;
-            prx.Context = new Dictionary<string, string>()
-                {
-                    { "foo", "foo" }
-                };
 
             pool.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.WritableContext["foo"] = "bar";
+                request.Context = new Dictionary<string, string> { ["foo"] = "bar" };
                 return await next.InvokeAsync(request, cancel);
             }));
 
@@ -133,7 +130,7 @@ namespace IceRpc.Tests.Api
         internal class TestService : IInvocationInterceptorTestService
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(dispatch.Context);
+                new(dispatch.Context ?? ImmutableDictionary<string, string>.Empty);
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }
     }

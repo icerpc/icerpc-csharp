@@ -104,7 +104,7 @@ namespace IceRpc
                 istr = new InputStream(payload.Slice(1),
                                        protocol.GetEncoding(),
                                        connection,
-                                       proxy.GetOptions(),
+                                       proxy.Invoker,
                                        startEncapsulation: true);
 
                 if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
@@ -155,7 +155,7 @@ namespace IceRpc
                 payload.Slice(1).ReadEncapsulation(connection.Protocol.GetEncoding(),
                                                    reader,
                                                    connection,
-                                                   proxy.GetOptions()) :
+                                                   proxy.Invoker) :
                 throw payload.ToRemoteException(proxy, connection);
         }
 
@@ -375,7 +375,7 @@ namespace IceRpc
             return payload.ReadEncapsulation(connection.Protocol.GetEncoding(),
                                              reader,
                                              connection: connection,
-                                             proxyOptions: connection.Server?.ProxyOptions);
+                                             invoker: connection.Server?.Invoker);
         }
 
         /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only

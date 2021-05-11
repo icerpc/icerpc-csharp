@@ -23,15 +23,15 @@ namespace IceRpc.Tests.ClientServer
                 {
                     // No retries before timeout kicks-in because the delay specified in the AfterDelay retry policy
                     // is greater than the invocation timeout.
-                    retry.InvocationTimeout = TimeSpan.FromMilliseconds(100);
+                    var invocation = new Invocation { Timeout = TimeSpan.FromMilliseconds(100) };
                     Assert.CatchAsync<OperationCanceledException>(
-                        async () => await retry.OpRetryAfterDelayAsync(1, 10000));
+                        async () => await retry.OpRetryAfterDelayAsync(1, 10000, invocation));
 
                     // The second attempt succeed, the elapsed time between attempts must be greater than the delay
                     // specify in the AfterDelay retry policy.
                     service.Attempts = 0;
-                    retry.InvocationTimeout = Timeout.InfiniteTimeSpan;
-                    await retry.OpRetryAfterDelayAsync(1, 100);
+                    invocation.Timeout = Timeout.InfiniteTimeSpan;
+                    await retry.OpRetryAfterDelayAsync(1, 100, invocation);
                     Assert.AreEqual(2, service.Attempts);
                 });
         }

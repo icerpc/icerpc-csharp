@@ -27,8 +27,8 @@ namespace IceRpc
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The context of this request as a read-only dictionary.</summary>
-        public IReadOnlyDictionary<string, string> Context => _writableContext ?? _initialContext;
+        /// <summary>The context of this request.</summary>
+        public IDictionary<string, string>? Context { get; set; }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
@@ -118,28 +118,15 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
 
-        /// <summary>WritableContext is a writable version of Context. Its entries are always the same as Context's
-        /// entries.</summary>
-        public SortedDictionary<string, string> WritableContext
-        {
-            get
-            {
-                _writableContext ??= new SortedDictionary<string, string>((IDictionary<string, string>)_initialContext);
-                return _writableContext;
-            }
-        }
-
         /// <summary>The facet of the target service. ice1 only.</summary>
         internal string Facet { get; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; private set; }
 
-        private readonly IReadOnlyDictionary<string, string> _initialContext;
         private IList<ArraySegment<byte>> _payload;
         private int _payloadSize = -1;
         private string _path = "";
-        private SortedDictionary<string, string>? _writableContext;
 
         /*
         /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
@@ -293,10 +280,12 @@ namespace IceRpc
                 // For Ice1 the Activity context is write to the request Context using the standard keys
                 // traceparent, tracestate and baggage.
 
-                WritableContext["traceparent"] = activity.Id;
+                Context ??= new SortedDictionary<string, string>();
+
+                Context["traceparent"] = activity.Id;
                 if (activity.TraceStateString != null)
                 {
-                    WritableContext["tracestate"] = activity.TraceStateString;
+                    Context["tracestate"] = activity.TraceStateString;
                 }
 
                 using IEnumerator<KeyValuePair<string, string?>> e = activity.Baggage.GetEnumerator();
@@ -309,7 +298,7 @@ namespace IceRpc
                                                              HttpUtility.UrlEncode(e.Current.Value)).ToString());
                     }
                     while (e.MoveNext());
-                    WritableContext["baggage"] = string.Join(',', baggage);
+                    Context["baggage"] = string.Join(',', baggage);
                 }
             }
             else
@@ -393,12 +382,13 @@ namespace IceRpc
         private OutgoingRequest(
             IServicePrx proxy,
             string operation,
-            IReadOnlyDictionary<string, string>? context,
+            IDictionary<string, string>? context,
             FeatureCollection? features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
+            Context = context;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
@@ -412,8 +402,6 @@ namespace IceRpc
             Path = proxy.Path;
             PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
 
-            // This makes a copy if context is not immutable.
-            _initialContext = context?.ToImmutableSortedDictionary() ?? proxy.Context;
             _payload = new List<ArraySegment<byte>>();
         }
     }

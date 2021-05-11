@@ -236,14 +236,23 @@ namespace IceRpc.Internal
             string facet,
             string operation,
             bool idempotent,
-            IReadOnlyDictionary<string, string> context)
+            IDictionary<string, string>? context)
         {
             Debug.Assert(ostr.Encoding == Encoding);
             identity.IceWrite(ostr);
             ostr.WriteIce1Facet(facet);
             ostr.WriteString(operation);
             ostr.Write(idempotent ? OperationMode.Idempotent : OperationMode.Normal);
-            ostr.WriteDictionary(context, OutputStream.IceWriterFromString, OutputStream.IceWriterFromString);
+            if (context == null || context.Count == 0)
+            {
+                ostr.WriteSize(0);
+            }
+            else
+            {
+                ostr.WriteDictionary(context,
+                                     OutputStream.IceWriterFromString,
+                                     OutputStream.IceWriterFromString);
+            }
         }
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());

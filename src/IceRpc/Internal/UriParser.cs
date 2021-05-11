@@ -94,11 +94,9 @@ namespace IceRpc.Internal
 
         /// <summary>Parses an ice or ice+transport URI string that represents a proxy.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="proxyOptions">The proxyOptions to set options that are not parsed.</param>
         /// <returns>The arguments to create a proxy.</returns>
-        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints, ProxyOptions Options) ParseProxy(
-            string uriString,
-            ProxyOptions proxyOptions)
+        internal static (string Path, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints) ParseProxy(
+            string uriString)
         {
             bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
 
@@ -164,17 +162,10 @@ namespace IceRpc.Internal
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            proxyOptions = proxyOptions.Clone();
-
-            proxyOptions.Context = parsedOptions.Context?.ToImmutableSortedDictionary() ?? proxyOptions.Context;
-            proxyOptions.IsOneway = parsedOptions.IsOneway ?? proxyOptions.IsOneway;
-            proxyOptions.InvocationTimeout = parsedOptions.InvocationTimeout ?? proxyOptions.InvocationTimeout;
-
             return (uri.AbsolutePath,
                     parsedOptions.Encoding ?? Encoding.V20,
                     endpoint,
-                    altEndpoints,
-                    proxyOptions);
+                    altEndpoints);
         }
 
         /// <summary>Registers the ice and ice+universal schemes.</summary>
@@ -269,47 +260,17 @@ namespace IceRpc.Internal
                 string name = p[..equalPos];
                 string value = p[(equalPos + 1)..];
 
-                if (name == "context")
+                if (name == "encoding")
                 {
                     if (!parseProxy)
                     {
                         throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
                     }
-
-                    // We can have multiple context options: context=key1=value1,key2=value2 etc.
-                    foreach (string e in value.Split(','))
+                    if (parsedOptions.Encoding != null)
                     {
-                        equalPos = e.IndexOf('=');
-                        if (equalPos <= 0)
-                        {
-                            throw new FormatException($"invalid option '{p}'");
-                        }
-                        string contextKey = Uri.UnescapeDataString(e[..equalPos]);
-                        string contextValue =
-                            equalPos == e.Length - 1 ? "" : Uri.UnescapeDataString(e[(equalPos + 1)..]);
-
-                        parsedOptions.Context ??= new SortedDictionary<string, string>();
-                        parsedOptions.Context[contextKey] = contextValue;
+                        throw new FormatException($"multiple {name} options in '{uriString}'");
                     }
-                }
-                else if (name == "encoding")
-                {
-                    CheckProxyOption(name, parsedOptions.Encoding != null);
                     parsedOptions.Encoding = Encoding.Parse(value);
-                }
-                else if (name == "invocation-timeout")
-                {
-                    CheckProxyOption(name, parsedOptions.InvocationTimeout != null);
-                    parsedOptions.InvocationTimeout = TimeSpanExtensions.Parse(value);
-                    if (parsedOptions.InvocationTimeout.Value == TimeSpan.Zero)
-                    {
-                        throw new FormatException($"0 is not a valid value for the {name} option in '{uriString}'");
-                    }
-                }
-                else if (name == "oneway")
-                {
-                    CheckProxyOption(name, parsedOptions.IsOneway != null);
-                    parsedOptions.IsOneway = bool.Parse(value);
                 }
                 else if (iceScheme)
                 {
@@ -342,18 +303,6 @@ namespace IceRpc.Internal
                 }
             }
             return parsedOptions;
-
-            void CheckProxyOption(string name, bool alreadySet)
-            {
-                if (!parseProxy)
-                {
-                    throw new FormatException($"{name} is not a valid option for endpoint '{uriString}'");
-                }
-                if (alreadySet)
-                {
-                    throw new FormatException($"multiple {name} options in '{uriString}'");
-                }
-            }
         }
 
         /// <summary>The proxy and endpoint options parsed by the UriParser.</summary>
@@ -361,15 +310,9 @@ namespace IceRpc.Internal
         {
             internal string? AltEndpoint;
 
-            internal SortedDictionary<string, string>? Context;
-
             internal Encoding? Encoding;
 
             internal Dictionary<string, string>? EndpointOptions;
-
-            internal TimeSpan? InvocationTimeout;
-
-            internal bool? IsOneway;
         }
     }
 }

@@ -107,9 +107,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The options of proxies received in requests or created using this server.</summary>
-        public ProxyOptions ProxyOptions { get; set; } = new();
-
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
@@ -145,19 +142,13 @@ namespace IceRpc
         /// <returns>A new proxy.</returns>
         public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
         {
-            // temporary
-            ProxyOptions.Invoker ??= Invoker;
-
-            // TODO: other than path, the only useful info here is Protocol and its encoding. ProxyOptions are not used
-            // unless the user gives a connection to this new proxy.
-
             return Proxy.GetFactory<T>().Create(path,
                                                 Protocol,
                                                 Protocol.GetEncoding(),
                                                 endpoint: null,
                                                 altEndpoints: ImmutableList<Endpoint>.Empty,
                                                 connection: null,
-                                                ProxyOptions);
+                                                Invoker);
         }
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their

@@ -57,8 +57,8 @@ namespace IceRpc.Internal
             ProtocolEventIds.ReceivedInitializeFrame,
             "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
-        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _receivedRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
+        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?, Exception> _receivedRequestFrame =
+            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?>(
                 LogLevel.Information,
                 ProtocolEventIds.ReceivedRequestFrame,
                 "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
@@ -114,8 +114,8 @@ namespace IceRpc.Internal
             ProtocolEventIds.SentInitializeFrame,
             "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
 
-        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>, Exception> _sentRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, IReadOnlyDictionary<string, string>>(
+        private static readonly Action<ILogger, string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?, Exception> _sentRequestFrame =
+            LoggerMessage.Define<string, string, int, Encoding, CompressionFormat, ICollection<KeyValuePair<string, string>>?>(
                 LogLevel.Information,
                 ProtocolEventIds.SentRequestFrame,
                 "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
