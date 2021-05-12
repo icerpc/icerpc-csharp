@@ -57,23 +57,6 @@ namespace IceRpc
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
-        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
-        /// <typeparam name="T">The proxy type.</typeparam>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="identity">The proxy identity.</param>
-        /// <param name="facet">The proxy facet.</param>
-        /// <returns>A proxy with the given identity and facet.</returns>
-        public static T Create<T>(
-            this ProxyFactory<T> proxyFactory,
-            Identity identity,
-            string facet) where T : class, IServicePrx
-        {
-            T prx = proxyFactory(identity.ToPath(), Protocol.Ice1);
-            prx.Impl.Identity = identity;
-            prx.Impl.Facet = facet;
-            return prx;
-        }
-
         /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
         /// <returns>The proxy factory.</returns>
         public static ProxyFactory<T> GetFactory<T>() where T : class, IServicePrx
@@ -499,6 +482,23 @@ namespace IceRpc
             prx.Encoding = proxy.Encoding;
             prx.AltEndpoints = proxy.AltEndpoints;
             prx.Invoker = proxy.Invoker;
+            return prx;
+        }
+
+        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
+        /// <typeparam name="T">The proxy type.</typeparam>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
+        /// <param name="identity">The proxy identity.</param>
+        /// <param name="facet">The proxy facet.</param>
+        /// <returns>A proxy with the given identity and facet.</returns>
+        private static T Create<T>(
+            this ProxyFactory<T> proxyFactory,
+            Identity identity,
+            string facet) where T : class, IServicePrx
+        {
+            T prx = proxyFactory(identity.ToPath(), Protocol.Ice1);
+            prx.Impl.Identity = identity;
+            prx.Impl.Facet = facet;
             return prx;
         }
     }
