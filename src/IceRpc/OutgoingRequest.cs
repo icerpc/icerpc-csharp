@@ -254,7 +254,7 @@ namespace IceRpc
             : this(proxy,
                    operation,
                    invocation?.Context ?? ImmutableSortedDictionary<string, string>.Empty,
-                   invocation?.RequestFeatures)
+                   invocation?.RequestFeatures ?? FeatureCollection.Empty)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -390,7 +390,7 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             IDictionary<string, string> context,
-            FeatureCollection? features)
+            FeatureCollection features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
