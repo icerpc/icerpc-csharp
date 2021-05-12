@@ -342,7 +342,7 @@ namespace IceRpc
                 }
                 else if (State > ConnectionState.NotConnected)
                 {
-                    return Task.CompletedTask;
+                    throw new InvalidOperationException($"connection is already connected");
                 }
 
                 _options ??= IsIncoming ? IncomingConnectionOptions.Default : OutgoingConnectionOptions.Default;
@@ -524,14 +524,10 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // TODO: would be nicer to call a private method that returns a value task.
-            try
+            // TODO: temporary, not thread-safe
+            if (_state == ConnectionState.NotConnected)
             {
                 await ConnectAsync(cancel).ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-                // ignored (TODO: temporary)
             }
 
             if (Activity.Current?.Id != null)
