@@ -292,7 +292,7 @@ namespace IceRpc
                     return CreateIce1Proxy(proxyData.Encoding,
                                            endpoint,
                                            altEndpoints,
-                                           proxyData.FacetPath.Count == 1 ? proxyData.FacetPath[0] : "",
+                                           proxyData.FacetPath,
                                            identity);
                 }
                 else
@@ -356,19 +356,19 @@ namespace IceRpc
 
                 if (protocol == Protocol.Ice1)
                 {
-                    string facet;
+                    ImmutableList<string> facetPath;
                     Identity identity;
 
                     int hashIndex = proxyData.Path.IndexOf('#');
                     if (hashIndex == -1)
                     {
                         identity = Identity.FromPath(proxyData.Path);
-                        facet = "";
+                        facetPath = ImmutableList<string>.Empty;
                     }
                     else
                     {
                         identity = Identity.FromPath(proxyData.Path[0..hashIndex]);
-                        facet = proxyData.Path[(hashIndex + 1)..];
+                        facetPath = ImmutableList.Create(proxyData.Path[(hashIndex + 1)..]);
                     }
 
                     if (identity.Name.Length == 0)
@@ -379,7 +379,7 @@ namespace IceRpc
                     return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V20,
                                            endpoint,
                                            altEndpoints,
-                                           facet,
+                                           facetPath,
                                            identity);
                 }
                 else
@@ -414,7 +414,7 @@ namespace IceRpc
                 Encoding encoding,
                 Endpoint? endpoint,
                 IEnumerable<Endpoint> altEndpoints,
-                string facet,
+                IList<string> facetPath,
                 Identity identity)
             {
                 // For interop with ZeroC Ice, an ice1 endpointless proxy is unmarshaled as an endpointless and
@@ -422,7 +422,9 @@ namespace IceRpc
 
                 try
                 {
-                    T proxy = proxyFactory.Create(identity, facet);
+                    T proxy = proxyFactory(identity.ToPath(), Protocol.Ice1);
+                    proxy.Impl.Identity = identity;
+                    proxy.Impl.FacetPath = facetPath;
                     proxy.Encoding = encoding;
                     proxy.Endpoint = endpoint;
                     proxy.AltEndpoints = altEndpoints.ToImmutableList();
