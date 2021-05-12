@@ -22,18 +22,18 @@ namespace IceRpc
         /// <returns>A proxy with the desired type.</returns>
         public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
         {
-            T prx = GetFactory<T>()(proxy.Path, proxy.Protocol);
+            T newProxy = GetFactory<T>()(proxy.Path, proxy.Protocol);
             if (proxy.Protocol == Protocol.Ice1)
             {
-                prx.Impl.Identity = proxy.GetIdentity();
-                prx.Impl.Facet = proxy.GetFacet();
+                newProxy.Impl.Identity = proxy.Impl.Identity;
+                newProxy.Impl.Facet = proxy.Impl.Facet;
             }
-            prx.Encoding = proxy.Encoding;
-            prx.Endpoint = proxy.Endpoint;
-            prx.AltEndpoints = proxy.AltEndpoints;
-            prx.Connection = proxy.Connection;
-            prx.Invoker = proxy.Invoker;
-            return prx;
+            newProxy.Encoding = proxy.Encoding;
+            newProxy.Endpoint = proxy.Endpoint;
+            newProxy.AltEndpoints = proxy.AltEndpoints;
+            newProxy.Connection = proxy.Connection;
+            newProxy.Invoker = proxy.Invoker;
+            return newProxy;
         }
 
         /// <summary>Tests whether a proxy points to a remote service whose associated proxy interface is T or an
@@ -193,7 +193,7 @@ namespace IceRpc
                 throw new FormatException("an empty string does not represent a proxy");
             }
 
-            T prx;
+            T proxy;
             Encoding encoding;
             Endpoint? endpoint;
             ImmutableList<Endpoint> altEndpoints;
@@ -201,20 +201,20 @@ namespace IceRpc
             {
                 string path;
                 (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
-                prx = GetFactory<T>()(path, endpoint?.Protocol ?? Protocol.Ice2);
+                proxy = GetFactory<T>()(path, endpoint?.Protocol ?? Protocol.Ice2);
             }
             else
             {
                 Identity identity;
                 string facet;
                 (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
-                prx = GetFactory<T>().Create(identity, facet);
+                proxy = GetFactory<T>().Create(identity, facet);
             }
-            prx.Encoding = encoding;
-            prx.Endpoint = endpoint;
-            prx.AltEndpoints = altEndpoints;
-            prx.Invoker = invoker;
-            return prx;
+            proxy.Encoding = encoding;
+            proxy.Endpoint = endpoint;
+            proxy.AltEndpoints = altEndpoints;
+            proxy.Invoker = invoker;
+            return proxy;
         }
 
         /// <summary>Reads a proxy from the input stream.</summary>
@@ -317,13 +317,13 @@ namespace IceRpc
 
                     try
                     {
-                        var prx = proxyFactory(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
-                        prx.Encoding = proxyData.Encoding;
-                        prx.Endpoint = endpoint;
-                        prx.AltEndpoints = altEndpoints.ToImmutableList();
-                        prx.Connection = connection;
-                        prx.Invoker = istr.Invoker;
-                        return prx;
+                        T proxy = proxyFactory(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
+                        proxy.Encoding = proxyData.Encoding;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                        proxy.Connection = connection;
+                        proxy.Invoker = istr.Invoker;
+                        return proxy;
                     }
                     catch (Exception ex)
                     {
@@ -393,13 +393,13 @@ namespace IceRpc
 
                     try
                     {
-                        var prx = proxyFactory(proxyData.Path, connection?.Protocol ?? protocol);
-                        prx.Encoding = proxyData.Encoding ?? Encoding.V20;
-                        prx.Endpoint = endpoint;
-                        prx.AltEndpoints = altEndpoints;
-                        prx.Connection = connection;
-                        prx.Invoker = istr.Invoker;
-                        return prx;
+                        T proxy = proxyFactory(proxyData.Path, connection?.Protocol ?? protocol);
+                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints;
+                        proxy.Connection = connection;
+                        proxy.Invoker = istr.Invoker;
+                        return proxy;
                     }
                     catch (Exception ex)
                     {
@@ -421,12 +421,12 @@ namespace IceRpc
 
                 try
                 {
-                    var prx = proxyFactory.Create(identity, facet);
-                    prx.Encoding = encoding;
-                    prx.Endpoint = endpoint;
-                    prx.AltEndpoints = altEndpoints.ToImmutableList();
-                    prx.Invoker = istr.Invoker;
-                    return prx;
+                    T proxy = proxyFactory.Create(identity, facet);
+                    proxy.Encoding = encoding;
+                    proxy.Endpoint = endpoint;
+                    proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                    proxy.Invoker = istr.Invoker;
+                    return proxy;
                 }
                 catch (InvalidDataException)
                 {
@@ -459,47 +459,30 @@ namespace IceRpc
         /// <returns>A proxy with the specified path and type.</returns>
         public static T WithPath<T>(this IServicePrx proxy, string path) where T : class, IServicePrx
         {
-            if (path == proxy.Path && proxy is T prx)
+            if (path == proxy.Path && proxy is T newProxy)
             {
-                return prx;
+                return newProxy;
             }
 
-            prx = GetFactory<T>()(path, proxy.Protocol);
+            newProxy = GetFactory<T>()(path, proxy.Protocol);
             if (proxy.Protocol == Protocol.Ice1)
             {
-                prx.Impl.Identity = Identity.FromPath(path);
-                prx.Impl.Facet = proxy.GetFacet();
-                prx.Endpoint = proxy.Endpoint;
+                newProxy.Impl.Identity = Identity.FromPath(path);
+                newProxy.Impl.Facet = proxy.GetFacet();
+                newProxy.Endpoint = proxy.Endpoint;
                 // clear cached connection of well-known proxy
-                prx.Connection = proxy.Impl.IsWellKnown ? null : proxy.Connection;
+                newProxy.Connection = proxy.Impl.IsWellKnown ? null : proxy.Connection;
             }
             else
             {
-                prx = GetFactory<T>()(path, proxy.Protocol);
-                prx.Endpoint = proxy.Endpoint;
-                prx.Connection = proxy.Connection;
+                newProxy = GetFactory<T>()(path, proxy.Protocol);
+                newProxy.Endpoint = proxy.Endpoint;
+                newProxy.Connection = proxy.Connection;
             }
-            prx.Encoding = proxy.Encoding;
-            prx.AltEndpoints = proxy.AltEndpoints;
-            prx.Invoker = proxy.Invoker;
-            return prx;
-        }
-
-        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
-        /// <typeparam name="T">The proxy type.</typeparam>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="identity">The proxy identity.</param>
-        /// <param name="facet">The proxy facet.</param>
-        /// <returns>A proxy with the given identity and facet.</returns>
-        private static T Create<T>(
-            this ProxyFactory<T> proxyFactory,
-            Identity identity,
-            string facet) where T : class, IServicePrx
-        {
-            T prx = proxyFactory(identity.ToPath(), Protocol.Ice1);
-            prx.Impl.Identity = identity;
-            prx.Impl.Facet = facet;
-            return prx;
+            newProxy.Encoding = proxy.Encoding;
+            newProxy.AltEndpoints = proxy.AltEndpoints;
+            newProxy.Invoker = proxy.Invoker;
+            return newProxy;
         }
     }
 }

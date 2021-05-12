@@ -115,6 +115,7 @@ namespace IceRpc
         ServicePrx IServicePrx.Impl => this;
 
         public string Facet { get; set; } = "";
+        
         public Identity Identity
         {
             get => _identity;
@@ -401,14 +402,7 @@ namespace IceRpc
             Protocol = protocol;
             Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
-            try
-            {
-                Encoding = Protocol.GetEncoding();
-            }
-            catch
-            {
-                Encoding = Protocol.Ice2.GetEncoding();
-            }
+            Encoding = Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }
 
         // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -84,7 +85,8 @@ namespace IceRpc
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
             new ServicePrx(path ?? DefaultPath, connection.Protocol)
             {
-                Encoding = connection.Protocol.GetEncoding(),
+                Identity = connection.Protocol == Protocol.Ice1 ?
+                    Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
                 Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,
                 Connection = connection,
                 // TODO set the Invoker
@@ -96,7 +98,10 @@ namespace IceRpc
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
-            new ServicePrx(path ?? DefaultPath, protocol) { Encoding = protocol.GetEncoding() };
+            new ServicePrx(path ?? DefaultPath, protocol)
+            {
+                Identity = protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty
+            };
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
         /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
@@ -113,7 +118,7 @@ namespace IceRpc
 
             return new ServicePrx(path ?? DefaultPath, server.Protocol)
             {
-                Encoding = server.Protocol.GetEncoding(),
+                Identity = server.Protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
                 Endpoint = server.ProxyEndpoint,
                 Invoker = server.Invoker
             };
