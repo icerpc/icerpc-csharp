@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Features;
 using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
@@ -103,10 +103,10 @@ namespace IceRpc
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
-            if (compress && invocation?.RequestFeatures[typeof(Features.CompressPayload)] == null)
+            if (compress)
             {
                 invocation ??= new Invocation();
-                invocation.RequestFeatures[typeof(Features.CompressPayload)] = Features.CompressPayload.Yes;
+                invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
             }
 
             try

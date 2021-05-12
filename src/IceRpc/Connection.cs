@@ -851,7 +851,7 @@ namespace IceRpc
                         response = new OutgoingResponse(request, remoteException);
                     }
                 }
-                else if(stream.IsBidirectional)
+                else if (stream.IsBidirectional)
                 {
                     response = new OutgoingResponse(request, new ServiceNotFoundException(RetryPolicy.OtherReplica));
                 }

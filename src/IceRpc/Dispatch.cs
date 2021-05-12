@@ -48,7 +48,7 @@ namespace IceRpc
         public FeatureCollection RequestFeatures => IncomingRequest.Features;
 
         /// <summary>The features associated with the response.</summary>
-        public FeatureCollection ResponseFeatures { get; set; } = new();
+        public FeatureCollection ResponseFeatures { get; set; } = FeatureCollection.Empty;
 
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;
