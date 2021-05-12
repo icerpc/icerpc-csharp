@@ -17,8 +17,8 @@ namespace IceRpc
         /// <returns>True if the two dictionaries have the exact same entries using the value's default equality
         /// comparison; otherwise, false.</returns>
         public static bool DictionaryEqual<TKey, TValue>(
-            this IReadOnlyDictionary<TKey, TValue> lhs,
-            IReadOnlyDictionary<TKey, TValue> rhs) where TKey : notnull =>
+            this IDictionary<TKey, TValue> lhs,
+            IDictionary<TKey, TValue> rhs) where TKey : notnull =>
             DictionaryEqual(lhs, rhs, valueComparer: null);
 
         /// <summary>Compares two dictionaries for equality. <see
@@ -32,8 +32,8 @@ namespace IceRpc
         /// the default comparer.</param>
         /// <returns>True if the two dictionaries have the exact same entries; otherwise, false.</returns>
         public static bool DictionaryEqual<TKey, TValue>(
-            this IReadOnlyDictionary<TKey, TValue> lhs,
-            IReadOnlyDictionary<TKey, TValue> rhs,
+            this IDictionary<TKey, TValue> lhs,
+            IDictionary<TKey, TValue> rhs,
             IEqualityComparer<TValue>? valueComparer) where TKey : notnull
         {
             if (lhs == null)
@@ -72,7 +72,7 @@ namespace IceRpc
         /// <typeparam name="TValue">The type of dictionary's value.</typeparam>
         /// <param name="dict">The dictionary.</param>
         /// <returns>A hash code computed using the dictionary's entries.</returns>
-        public static int GetDictionaryHashCode<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dict)
+        public static int GetDictionaryHashCode<TKey, TValue>(this IDictionary<TKey, TValue> dict)
             where TKey : notnull =>
             GetDictionaryHashCode(dict, valueComparer: null);
 
@@ -84,7 +84,7 @@ namespace IceRpc
         /// uses the default comparer.</param>
         /// <returns>A hash code computed using the dictionary's entries.</returns>
         public static int GetDictionaryHashCode<TKey, TValue>(
-            this IReadOnlyDictionary<TKey, TValue> dict,
+            this IDictionary<TKey, TValue> dict,
             IEqualityComparer<TValue>? valueComparer)
             where TKey : notnull
         {

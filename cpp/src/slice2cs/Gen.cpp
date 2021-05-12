@@ -2941,11 +2941,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (opCompressReturn(operation))
     {
-        _out << nl << "if (dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] == null)";
-        _out << sb;
-        _out << nl << "dispatch.ResponseFeatures[typeof(IceRpc.Features.CompressPayload)] = "
-             << "IceRpc.Features.CompressPayload.Yes;";
-        _out << eb;
+        _out << nl << "dispatch.ResponseFeatures = IceRpc.Features.CompressPayloadExtensions.CompressPayload(dispatch.ResponseFeatures);";
     }
 
     // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params

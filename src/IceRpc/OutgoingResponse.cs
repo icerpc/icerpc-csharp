@@ -179,12 +179,10 @@ namespace IceRpc
         /// encoding of <paramref name="request"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response.</param>
-        /// <param name="features">The features of this response.</param>
         public OutgoingResponse(
             IncomingRequest request,
-            IList<ArraySegment<byte>> payload,
-            FeatureCollection? features = null)
-            : this(request.Protocol, payload, features)
+            IList<ArraySegment<byte>> payload)
+            : this(request.Protocol, payload, FeatureCollection.Empty)
         {
         }
 
@@ -205,13 +203,11 @@ namespace IceRpc
         /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
         /// binary context as a fallback - all the entries in this binary context are added before the response is sent,
         /// except for entries previously added by dispatch interceptors.</param>
-        /// <param name="features">The features for this response.</param>
         public OutgoingResponse(
             IncomingRequest request,
             IncomingResponse response,
-            bool forwardBinaryContext = true,
-            FeatureCollection? features = null)
-            : base(request.Protocol, features)
+            bool forwardBinaryContext = true)
+            : base(request.Protocol, FeatureCollection.Empty)
         {
             _payload = new List<ArraySegment<byte>>();
             _payloadSize = -1;
@@ -369,7 +365,7 @@ namespace IceRpc
         private OutgoingResponse(
             Protocol protocol,
             IList<ArraySegment<byte>> payload,
-            FeatureCollection? features)
+            FeatureCollection features)
             : base(protocol, features)
         {
             _payload = payload;

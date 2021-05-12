@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
@@ -16,8 +17,6 @@ namespace IceRpc.Internal
         public override bool? IsSecure => true;
 
         protected internal override bool HasAcceptor => true;
-
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         // The default port with ice1 is 0, just like for IP endpoints.
         protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultColocPort;
@@ -74,7 +73,7 @@ namespace IceRpc.Internal
         }
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)
-            : base(new EndpointData(Transport.Coloc, host, port, Array.Empty<string>()), protocol)
+            : base(new EndpointData(Transport.Coloc, host, port, ImmutableList<string>.Empty), protocol)
         {
         }
     }

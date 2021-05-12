@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -18,7 +19,7 @@ namespace IceRpc.Internal
         public override string? this[string option] =>
             option switch
             {
-                "option" => Data.Options.Length > 0 ?
+                "option" => Data.Options.Count > 0 ?
                                 string.Join(",", Data.Options.Select(s => Uri.EscapeDataString(s))) : null,
                 "transport" => TransportName,
                 _ => null
@@ -44,7 +45,7 @@ namespace IceRpc.Internal
                 sb.Append(Protocol.GetName());
             }
 
-            if (Data.Options.Length > 0)
+            if (Data.Options.Count > 0)
             {
                 sb.Append(optionSeparator);
                 sb.Append("option=");
@@ -82,11 +83,11 @@ namespace IceRpc.Internal
                 options.Remove("protocol");
             }
 
-            string[] endpointDataOptions = Array.Empty<string>();
+            var endpointDataOptions = ImmutableList<string>.Empty;
             if (options.TryGetValue("option", out value))
             {
                 // Each option must be percent-escaped; we hold it in memory unescaped, and later marshal it unescaped.
-                endpointDataOptions = value.Split(",").Select(s => Uri.UnescapeDataString(s)).ToArray();
+                endpointDataOptions = value.Split(",").Select(s => Uri.UnescapeDataString(s)).ToImmutableList();
                 options.Remove("option");
             }
 

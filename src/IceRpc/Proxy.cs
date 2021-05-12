@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
 using System;
@@ -98,10 +99,10 @@ namespace IceRpc
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
-            if (compress && invocation?.RequestFeatures[typeof(Features.CompressPayload)] == null)
+            if (compress)
             {
                 invocation ??= new Invocation();
-                invocation.RequestFeatures[typeof(Features.CompressPayload)] = Features.CompressPayload.Yes;
+                invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
             }
 
             try
@@ -282,21 +283,21 @@ namespace IceRpc
 
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    if (proxyData.FacetPath.Length > 1)
+                    if (proxyData.FacetPath.Count > 1)
                     {
                         throw new InvalidDataException(
-                            $"received proxy with {proxyData.FacetPath.Length} elements in its facet path");
+                            $"received proxy with {proxyData.FacetPath.Count} elements in its facet path");
                     }
 
                     return CreateIce1Proxy(proxyData.Encoding,
                                            endpoint,
                                            altEndpoints,
-                                           proxyData.FacetPath.Length == 1 ? proxyData.FacetPath[0] : "",
+                                           proxyData.FacetPath.Count == 1 ? proxyData.FacetPath[0] : "",
                                            identity);
                 }
                 else
                 {
-                    if (proxyData.FacetPath.Length > 0)
+                    if (proxyData.FacetPath.Count > 0)
                     {
                         throw new InvalidDataException(
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with facet");

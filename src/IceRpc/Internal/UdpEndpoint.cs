@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -229,10 +230,10 @@ namespace IceRpc.Internal
 
         internal static UdpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
-            if (data.Options.Length > 0)
+            if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
+                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new(data, protocol);
         }
@@ -243,7 +244,7 @@ namespace IceRpc.Internal
             return new UdpEndpoint(new EndpointData(transport,
                                                     host: istr.ReadString(),
                                                     port: ReadPort(istr),
-                                                    Array.Empty<string>()),
+                                                    ImmutableList<string>.Empty),
                                    compress: istr.ReadBool());
         }
 
@@ -313,7 +314,7 @@ namespace IceRpc.Internal
                 options.Remove("--interface");
             }
 
-            return new UdpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
+            return new UdpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
                                    ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface);

@@ -254,7 +254,7 @@ namespace IceRpc
             : this(proxy,
                    operation,
                    invocation?.Context ?? ImmutableSortedDictionary<string, string>.Empty,
-                   invocation?.RequestFeatures)
+                   invocation?.RequestFeatures ?? FeatureCollection.Empty)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -370,11 +370,18 @@ namespace IceRpc
             if (Protocol == Protocol.Ice2)
             {
                 OutputStream.Position start = ostr.StartFixedLengthSize(2);
-                ostr.WriteIce2RequestHeaderBody(Path,
-                                                Operation,
-                                                IsIdempotent,
-                                                Deadline,
-                                                Context);
+
+                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+                var requestHeaderBody = new Ice2RequestHeaderBody(
+                    Path,
+                    Operation,
+                    idempotent: IsIdempotent ? true : null,
+                    priority: null,
+                    deadline: Deadline == DateTime.MaxValue ? -1 :
+                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
+                    Context);
+
+                requestHeaderBody.IceWrite(ostr);
 
                 WriteBinaryContext(ostr);
                 ostr.EndFixedLengthSize(start, 2);
@@ -390,7 +397,7 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             IDictionary<string, string> context,
-            FeatureCollection? features)
+            FeatureCollection features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
