@@ -96,7 +96,7 @@ namespace IceRpc
             {
                 _cancelDispatchSource?.Cancel();
             }
-            catch(ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
                 // Ignore, this can occur if the stream is released concurrently.
             }

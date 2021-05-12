@@ -3,7 +3,6 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -130,7 +129,7 @@ namespace IceRpc.Tests.Api
         internal class TestService : IInvocationInterceptorTestService
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(dispatch.Context ?? ImmutableDictionary<string, string>.Empty);
+                new(dispatch.Context);
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }
     }

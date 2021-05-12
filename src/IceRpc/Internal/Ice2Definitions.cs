@@ -41,7 +41,7 @@ namespace IceRpc.Internal
             string operation,
             bool idempotent,
             DateTime deadline,
-            IDictionary<string, string>? context)
+            IDictionary<string, string> context)
         {
             Debug.Assert(ostr.Encoding == Encoding);
 
@@ -66,7 +66,7 @@ namespace IceRpc.Internal
             ostr.WriteVarLong(
                 deadline == DateTime.MaxValue ? -1 : (long)(deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-            if (context?.Count > 0)
+            if (context.Count > 0)
             {
                 ostr.WriteDictionary(context,
                                      OutputStream.IceWriterFromString,

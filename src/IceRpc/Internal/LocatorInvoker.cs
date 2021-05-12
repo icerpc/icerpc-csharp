@@ -222,7 +222,7 @@ namespace IceRpc.Internal
         {
             _logger.LogResolving(location, category);
 
-           Task<(Endpoint?, ImmutableList<Endpoint>)>? task;
+            Task<(Endpoint?, ImmutableList<Endpoint>)>? task;
             lock (_mutex)
             {
                 if (!_requests.TryGetValue((location, category), out task))
