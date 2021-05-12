@@ -25,13 +25,6 @@ namespace IceRpc
     /// <returns>The new created proxy.</returns>
     public delegate T ProxyFactory<T>(string path, Protocol protocol) where T : class, IServicePrx;
 
-    /// <summary>A delegate that creates a proxy from an identity and a facet.</summary>
-    /// <typeparam name="T">The proxy type</typeparam>
-    /// <param name="identity">The proxy identity.</param>
-    /// <param name="facet">The proxy facet</param>
-    /// <returns>The new created proxy.</returns>
-    public delegate T InteropProxyFactory<T>(Interop.Identity identity, string facet) where T : class, IServicePrx;
-
     /// <summary>Base interface of all service proxies.</summary>
     public interface IServicePrx : IEquatable<IServicePrx>
     {
@@ -76,14 +69,10 @@ namespace IceRpc
         public static readonly ProxyFactory<IServicePrx> Factory =
             (path, protocol) => new ServicePrx(path, protocol);
 
-        /// <summary>Factory for <see cref="IServicePrx"/> proxies from identity and facet arguments.</summary>
-        public static readonly InteropProxyFactory<IServicePrx> InteropFactory =
-            (identity, facet) => new ServicePrx(identity, facet);
-
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx> IceReader =
-            istr => Proxy.Read(Factory, InteropFactory, istr);
+            istr => Proxy.Read(Factory, istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection for the proxy. If the connection is an outgoing connection,
@@ -133,7 +122,7 @@ namespace IceRpc
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx?> IceReaderIntoNullable =
-            istr => Proxy.ReadNullable(Factory, InteropFactory, istr);
+            istr => Proxy.ReadNullable(Factory, istr);
 
         /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

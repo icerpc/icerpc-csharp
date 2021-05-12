@@ -114,8 +114,21 @@ namespace IceRpc
 
         ServicePrx IServicePrx.Impl => this;
 
-        internal string Facet { get; } = "";
-        internal Identity Identity { get; } = Identity.Empty;
+        public string Facet { get; set; } = "";
+        public Identity Identity
+        {
+            get => _identity;
+            set
+            {
+                Debug.Assert(Protocol == Protocol.Ice1 || value == Identity.Empty);
+                if (Protocol == Protocol.Ice1 && value.Name.Length == 0)
+                {
+                    throw new ArgumentException("identity name of ice1 service cannot be empty",
+                                                nameof(Identity));
+                }
+                _identity = value;
+            }
+        }
 
         internal bool IsIndirect => _endpoint?.Transport == Transport.Loc || IsWellKnown;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
@@ -124,6 +137,7 @@ namespace IceRpc
         private volatile Connection? _connection;
 
         private Endpoint? _endpoint;
+        private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -387,32 +401,14 @@ namespace IceRpc
             Protocol = protocol;
             Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
-
-            if (Protocol == Protocol.Ice1)
+            try
             {
-                Identity = Identity.FromPath(Path);
-                if (Identity.Name.Length == 0)
-                {
-                    throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                                 nameof(path));
-                }
-                // and keep facet empty
+                Encoding = Protocol.GetEncoding();
             }
-        }
-
-        /// <summary>Constructs a new proxy class instance with the specified options.</summary>
-        protected internal ServicePrx(Identity identity, string facet)
-        {
-            if (identity.Name.Length == 0)
+            catch
             {
-                throw new ArgumentException("cannot create ice1 service proxy with an empty identity name",
-                                             nameof(identity));
+                Encoding = Protocol.Ice2.GetEncoding();
             }
-
-            Identity = identity;
-            Facet = facet;
-            Path = identity.ToPath();
-            Protocol = Protocol.Ice1;
         }
 
         // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate

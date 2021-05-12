@@ -22,9 +22,12 @@ namespace IceRpc
         /// <returns>A proxy with the desired type.</returns>
         public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
         {
-            T prx = proxy.Protocol == Protocol.Ice1 ?
-                GetInteropFactory<T>()(proxy.GetIdentity(), proxy.GetFacet()) :
-                GetFactory<T>()(proxy.Path, proxy.Protocol); 
+            T prx = GetFactory<T>()(proxy.Path, proxy.Protocol);
+            if (proxy.Protocol == Protocol.Ice1)
+            {
+                prx.Impl.Identity = proxy.GetIdentity();
+                prx.Impl.Facet = proxy.GetFacet();
+            }
             prx.Encoding = proxy.Encoding;
             prx.Endpoint = proxy.Endpoint;
             prx.AltEndpoints = proxy.AltEndpoints;
@@ -54,6 +57,23 @@ namespace IceRpc
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
 
+        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
+        /// <typeparam name="T">The proxy type.</typeparam>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
+        /// <param name="identity">The proxy identity.</param>
+        /// <param name="facet">The proxy facet.</param>
+        /// <returns>A proxy with the given identity and facet.</returns>
+        public static T Create<T>(
+            this ProxyFactory<T> proxyFactory,
+            Identity identity,
+            string facet) where T : class, IServicePrx
+        {
+            T prx = proxyFactory(identity.ToPath(), Protocol.Ice1);
+            prx.Impl.Identity = identity;
+            prx.Impl.Facet = facet;
+            return prx;
+        }
+
         /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
         /// <returns>The proxy factory.</returns>
         public static ProxyFactory<T> GetFactory<T>() where T : class, IServicePrx
@@ -69,20 +89,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
-        /// <returns>The proxy factory.</returns>
-        public static InteropProxyFactory<T> GetInteropFactory<T>() where T : class, IServicePrx
-        {
-            if (typeof(T).GetField("InteropFactory") is FieldInfo factoryField)
-            {
-                return factoryField.GetValue(null) is InteropProxyFactory<T> factory ? factory :
-                    throw new InvalidOperationException($"{typeof(T).FullName}.InteropFactory is not a proxy factory");
-            }
-            else
-            {
-                throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named InteropFactory");
-            }
-        }
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
@@ -219,7 +225,7 @@ namespace IceRpc
                 Identity identity;
                 string facet;
                 (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
-                prx = GetInteropFactory<T>()(identity, facet);
+                prx = GetFactory<T>().Create(identity, facet);
             }
             prx.Encoding = encoding;
             prx.Endpoint = endpoint;
@@ -230,28 +236,22 @@ namespace IceRpc
 
         /// <summary>Reads a proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
-        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
-        /// </param>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
         /// <param name="istr">The input stream to read from.</param>
         /// <returns>The non-null proxy read from the stream.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
-            InteropProxyFactory<T> interopProxyFactory, 
             InputStream istr) where T : class, IServicePrx =>
-            ReadNullable(proxyFactory, interopProxyFactory, istr) ??
+            ReadNullable(proxyFactory, istr) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a nullable proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
-        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
-        /// </param>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
         /// <param name="istr">The input stream to read from.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadNullable<T>(
-            ProxyFactory<T> proxyFactory, 
-            InteropProxyFactory<T> interopProxyFactory,
+            ProxyFactory<T> proxyFactory,
             InputStream istr) where T : class, IServicePrx
         {
             if (istr.Encoding == Encoding.V11)
@@ -438,7 +438,7 @@ namespace IceRpc
 
                 try
                 {
-                    var prx = interopProxyFactory(identity, facet);
+                    var prx = proxyFactory.Create(identity, facet);
                     prx.Encoding = encoding;
                     prx.Endpoint = endpoint;
                     prx.AltEndpoints = altEndpoints.ToImmutableList();
@@ -458,19 +458,16 @@ namespace IceRpc
 
         /// <summary>Reads a tagged proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy when reading an ice2 proxy.</param>
-        /// <param name="interopProxyFactory">An interop factory used to create the proxy when reading an ice1 proxy.
-        /// </param>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
         /// <param name="istr">The input stream to read from.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(
             ProxyFactory<T> proxyFactory,
-            InteropProxyFactory<T> interopProxyFactory,
             InputStream istr,
             int tag)
             where T : class, IServicePrx =>
-            istr.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, interopProxyFactory, istr) : null;
+            istr.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, istr) : null;
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
@@ -483,21 +480,15 @@ namespace IceRpc
             {
                 return prx;
             }
-            else if (proxy.Protocol == Protocol.Ice1)
+
+            prx = GetFactory<T>()(path, proxy.Protocol);
+            if (proxy.Protocol == Protocol.Ice1)
             {
-                var identity = Identity.FromPath(path);
-
-                Endpoint? endpoint = proxy.Endpoint;
-                Connection? connection = proxy.Connection;
-
-                if (proxy.Impl.IsWellKnown)
-                {
-                    connection = null; // clear cached connection
-                }
-
-                prx = GetInteropFactory<T>()(identity, proxy.GetFacet());
-                prx.Endpoint = endpoint;
-                prx.Connection = connection;
+                prx.Impl.Identity = Identity.FromPath(path);
+                prx.Impl.Facet = proxy.GetFacet();
+                prx.Endpoint = proxy.Endpoint;
+                // clear cached connection of well-known proxy
+                prx.Connection = proxy.Impl.IsWellKnown ? null : proxy.Connection;
             }
             else
             {

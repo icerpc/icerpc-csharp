@@ -2279,18 +2279,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.InteropProxyFactory<" << name << "> InteropFactory =";
-    _out.inc();
-    _out << nl << "(identity, facet) => new " << impl << "(identity, facet);";
-    _out.dec();
-
-    _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.InputStreamReader{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.Read(Factory, InteropFactory, istr);";
+    _out << nl << "istr => IceRpc.Proxy.Read(Factory, istr);";
     _out.dec();
 
     _out << sp;
@@ -2310,6 +2303,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "new " << impl << "(path ?? DefaultPath, connection.Protocol)";
     _out << sb;
+    _out << nl << "Identity = connection.Protocol == IceRpc.Protocol.Ice1 ?";
+    _out.inc();
+    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
+    _out.dec();
     _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),";
     _out << nl << "Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,";
     _out << nl << "Connection = connection";
@@ -2329,6 +2326,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "new " << impl << "(path ?? DefaultPath, protocol)";
     _out << sb;
+    _out << nl << "Identity = protocol == IceRpc.Protocol.Ice1 ?";
+    _out.inc();
+    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
+    _out.dec();
     _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(protocol)";
     _out << eb << ";";
     _out.dec();
@@ -2353,6 +2354,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
 
     _out << nl << "return new " << impl << "(path ?? DefaultPath, server.Protocol)";
     _out << sb;
+    _out << nl << "Identity = server.Protocol == IceRpc.Protocol.Ice1 ?";
+    _out.inc();
+    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
+    _out.dec();
     _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),";
     _out << nl << "Endpoint = server.ProxyEndpoint,";
     _out << nl << "Invoker = server.Invoker";
@@ -2364,7 +2369,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"/> nullable proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "?> IceReaderIntoNullable =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.ReadNullable(Factory, InteropFactory, istr);";
+    _out << nl << "istr => IceRpc.Proxy.ReadNullable(Factory, istr);";
     _out.dec();
 
     _out << sp;
@@ -2412,15 +2417,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
     _out << sb;
     _out << eb;
-    _out << sp;
-    _out << nl << "internal " << impl << "(IceRpc.Interop.Identity identity, string facet)";
-    _out.inc();
-    _out << nl << ": base(identity, facet)";
-    _out.dec();
-    _out << sb;
-    _out << eb;
-    _out << eb;
-    _out << eb;
+
+    _out << eb; // impl class end
+    _out << eb; // prx interface end
 }
 
 void
