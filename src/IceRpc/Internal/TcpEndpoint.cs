@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -160,17 +161,17 @@ namespace IceRpc.Internal
             return new TcpEndpoint(new EndpointData(transport,
                                                     host: istr.ReadString(),
                                                     port: ReadPort(istr),
-                                                    Array.Empty<string>()),
+                                                    ImmutableList<string>.Empty),
                                    timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
                                    compress: istr.ReadBool());
         }
 
         internal static TcpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
-            if (data.Options.Length > 0)
+            if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
+                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new(data, protocol);
         }
@@ -182,7 +183,7 @@ namespace IceRpc.Internal
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()),
+            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
                                    ParseTimeout(options, endpointString),
                                    ParseCompress(options, endpointString));
         }
@@ -201,7 +202,7 @@ namespace IceRpc.Internal
                 tls = bool.Parse(value);
                 options.Remove("tls");
             }
-            return new TcpEndpoint(new EndpointData(transport, host, port, Array.Empty<string>()), tls);
+            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty), tls);
         }
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)

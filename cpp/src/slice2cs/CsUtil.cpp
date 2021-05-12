@@ -363,7 +363,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     if (optional)
     {
         seq = SequencePtr::dynamicCast(optional->underlying());
-        if (!seq || !readOnly)
+        if (!isParam || !seq || !readOnly)
         {
             return typeToString(optional->underlying(), package, readOnly, isParam) + "?";
         }
@@ -416,11 +416,16 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     if(seq)
     {
         string customType = seq->findMetadataWithPrefix("cs:generic:");
-        if (readOnly)
+
+        if (!isParam)
+        {
+            return "global::System.Collections.Generic.IList<" + typeToString(seq->type(), package) + ">";
+        }
+        else if (readOnly)
         {
             auto elementType = seq->type();
             string elementTypeStr = "<" + typeToString(elementType, package, readOnly, false) + ">";
-            if (isFixedSizeNumericSequence(seq) && customType.empty() && readOnly && isParam)
+            if (isFixedSizeNumericSequence(seq) && customType.empty())
             {
                 return "global::System.ReadOnlyMemory" + elementTypeStr; // same for optional!
             }
@@ -448,13 +453,19 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     DictionaryPtr d = DictionaryPtr::dynamicCast(type);
     if (d)
     {
-        if (isParam && readOnly)
+        if (!isParam)
+        {
+            return "global::System.Collections.Generic.IDictionary<" +
+                typeToString(d->keyType(), package) + ", " +
+                typeToString(d->valueType(), package) + ">";
+        }
+        else if (readOnly)
         {
             return "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<" +
                 typeToString(d->keyType(), package) + ", " +
                 typeToString(d->valueType(), package) + ">>";
         }
-        else if (isParam)
+        else
         {
             string prefix = "cs:generic:";
             string meta;
@@ -470,12 +481,6 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
             }
 
             return "global::System.Collections.Generic." + typeName + "<" +
-                typeToString(d->keyType(), package) + ", " +
-                typeToString(d->valueType(), package) + ">";
-        }
-        else
-        {
-            return "global::System.Collections.Generic.IDictionary<" +
                 typeToString(d->keyType(), package) + ", " +
                 typeToString(d->valueType(), package) + ">";
         }
@@ -1041,15 +1046,10 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             {
                 out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param << ".Span" << ");";
             }
-            else if (readOnly)
+            else
             {
                 // param is an IEnumerable<T>
                 out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param << ");";
-            }
-            else
-            {
-                assert(!hasCustomType);
-                out << nl << "ostr.WriteTaggedArray(" << tag << ", " << param << ");";
             }
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
@@ -1178,7 +1178,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
                     << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
                     << inputStreamReader(elementType, scope)
                     << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
-                    << "> " << tmpName << " ? new " << typeToString(seq, scope) << "(" << tmpName << ")"
+                    << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
                     << " : null";
             }
             else
@@ -1188,7 +1188,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
                     << (elementType->isVariableLength() ? "false" : "true")
                     << ", " << inputStreamReader(elementType, scope)
                     << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
-                    << "> " << tmpName << " ? new " << typeToString(seq, scope) << "(" << tmpName << ")"
+                    << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
                     << " : null";
             }
         }
@@ -1251,7 +1251,7 @@ Slice::CsGenerator::sequenceMarshalCode(
     const string& scope,
     const string& value,
     bool readOnly,
-    bool readOnlyParam)
+    bool isParam)
 {
     TypePtr type = seq->type();
     ostringstream out;
@@ -1262,19 +1262,14 @@ Slice::CsGenerator::sequenceMarshalCode(
 
     if (isFixedSizeNumericSequence(seq) && (readOnly || !hasCustomType))
     {
-        if (readOnlyParam && !hasCustomType)
+        if (isParam && readOnly && !hasCustomType)
         {
             out << "ostr.WriteSequence(" << value << ".Span)";
         }
-        else if (readOnly)
+        else
         {
             // value is an IEnumerable<T>
             out << "ostr.WriteSequence(" << value << ")";
-        }
-        else
-        {
-            assert(!hasCustomType);
-            out << "ostr.WriteArray(" << value << ")";
         }
     }
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
@@ -1330,7 +1325,7 @@ Slice::CsGenerator::sequenceUnmarshalCode(const SequencePtr& seq, const string& 
     }
     else
     {
-        out << "new " << typeToString(seq, scope) << "(";
+        out << "new " << typeToString(seq, scope, false, true) << "(";
         if (generic == "Stack")
         {
             out << "global::System.Linq.Enumerable.Reverse(";
@@ -1422,7 +1417,12 @@ Slice::CsGenerator::dictionaryUnmarshalCode(const DictionaryPtr& dict, const str
     {
         out << "withBitSequence: true, ";
     }
-    out << inputStreamReader(key, scope) << ", " << inputStreamReader(value, scope) << ")";
+    out << inputStreamReader(key, scope) << ", " << inputStreamReader(value, scope);
+    if (SequencePtr::dynamicCast(value) || DictionaryPtr::dynamicCast(value))
+    {
+        out << " as " << typeToString(value, scope);
+    }
+    out << ")";
     return out.str();
 }
 

@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
@@ -74,7 +75,7 @@ namespace IceRpc.Internal
         }
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)
-            : base(new EndpointData(Transport.Coloc, host, port, Array.Empty<string>()), protocol)
+            : base(new EndpointData(Transport.Coloc, host, port, ImmutableList<string>.Empty), protocol)
         {
         }
     }

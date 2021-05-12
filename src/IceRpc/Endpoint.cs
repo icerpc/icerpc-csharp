@@ -35,8 +35,8 @@ namespace IceRpc
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this
         /// external representation.</summary>
-        /// <remarks>The Options field of EndpointData is a writable array but should be treated as if it was read-only.
-        /// Do not update the contents of this array.</remarks>
+        /// <remarks>The Options field of EndpointData is a writable list but should be treated as if it was read-only.
+        /// Do not update the contents of this list.</remarks>
         public EndpointData Data { get; }
 
         /// <summary>The host name or address.</summary>

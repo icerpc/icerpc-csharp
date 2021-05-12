@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -16,11 +17,11 @@ namespace IceRpc.Internal
 
         public override string? this[string option] => option == "resource" ? Resource : base[option];
 
-        protected internal override bool HasOptions => Data.Options.Length > 0 || base.HasOptions;
+        protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
 
         /// <summary>A URI specifying the resource associated with this endpoint. The value is passed as the target for
         /// GET in the WebSocket upgrade request.</summary>
-        internal string Resource => Data.Options.Length > 0 ? Data.Options[0] : "/";
+        internal string Resource => Data.Options.Count > 0 ? Data.Options[0] : "/";
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
@@ -34,17 +35,17 @@ namespace IceRpc.Internal
             bool compress = istr.ReadBool();
             string resource = istr.ReadString();
 
-            string[] options = resource == "/" ? Array.Empty<string>() : new string[] { resource };
+            IList<string> options = resource == "/" ? ImmutableList<string>.Empty : ImmutableList.Create(resource);
 
             return new WSEndpoint(new EndpointData(transport, host, port, options), timeout, compress);
         }
 
         internal static new WSEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
-            if (data.Options.Length > 1)
+            if (data.Options.Count > 1)
             {
                 // Drop options we don't understand
-                data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
+                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList.Create(data.Options[0]));
             }
 
             return new(data, protocol);
@@ -67,7 +68,7 @@ namespace IceRpc.Internal
                 options.Remove("-r");
             }
 
-            string[] endpointDataOptions = resource == "/" ? Array.Empty<string>() : new string[] { resource };
+            var endpointDataOptions = resource == "/" ? ImmutableList<string>.Empty : ImmutableList.Create(resource);
 
             return new WSEndpoint(new EndpointData(transport, host, port, endpointDataOptions),
                                   ParseTimeout(options, endpointString),
@@ -109,10 +110,11 @@ namespace IceRpc.Internal
                 options.Remove("tls");
             }
 
-            var data = new EndpointData(transport,
-                                        host,
-                                        port,
-                                        resource == null ? Array.Empty<string>() : new string[] { resource });
+            var data = new EndpointData(
+                transport,
+                host,
+                port,
+                resource == null ? ImmutableList<string>.Empty : ImmutableList.Create(resource));
 
             return new WSEndpoint(data, tls);
         }
