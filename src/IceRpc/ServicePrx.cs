@@ -103,19 +103,7 @@ namespace IceRpc
             }
         }
 
-        /// <inheritdoc/>
-        public IInvoker? Invoker { get; set; }
-
-        /// <inheritdoc/>
-        public string Path { get; } = "";
-
-        /// <inheritdoc/>
-        public Protocol Protocol { get; }
-
-        ServicePrx IServicePrx.Impl => this;
-
-        public string Facet { get; set; } = "";
-        
+        /// <summary>The identity of this proxy. Used only with the ice1 protocol.</summary>
         public Identity Identity
         {
             get => _identity;
@@ -131,6 +119,28 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
+        public IInvoker? Invoker { get; set; }
+
+        /// <inheritdoc/>
+        public string Path { get; } = "";
+
+        /// <inheritdoc/>
+        public Protocol Protocol { get; }
+
+        ServicePrx IServicePrx.Impl => this;
+
+        /// <summary>The facet of this proxy. Used only with the ice1 protocol.</summary>
+        internal string Facet
+        {
+            get => FacetPath.Count == 0 ? "" : FacetPath[0];
+            set => FacetPath = value.Length > 0 ? ImmutableList.Create(value) : ImmutableList<string>.Empty;
+        }
+
+        /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
+        /// </summary>
+        internal IList<string> FacetPath { get; set; } = ImmutableList<string>.Empty;
+
         internal bool IsIndirect => _endpoint?.Transport == Transport.Loc || IsWellKnown;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
@@ -138,6 +148,7 @@ namespace IceRpc
         private volatile Connection? _connection;
 
         private Endpoint? _endpoint;
+
         private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -276,13 +287,15 @@ namespace IceRpc
                     identity.IceWrite(ostr);
                 }
 
-                InvocationMode invocationMode = InvocationMode.Twoway;
-                if (Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false))
-                {
-                    invocationMode = InvocationMode.Datagram;
-                }
-
-                ostr.WriteProxyData11(Facet, invocationMode, Protocol, Encoding);
+                var proxyData = new ProxyData11(
+                    FacetPath,
+                    Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false) ?
+                        InvocationMode.Datagram : InvocationMode.Twoway,
+                    secure: false,
+                    Protocol,
+                    protocolMinor: 0,
+                    Encoding);
+                proxyData.IceWrite(ostr);
 
                 if (IsIndirect)
                 {
