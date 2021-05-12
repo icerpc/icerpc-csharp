@@ -402,7 +402,7 @@ namespace IceRpc
             Protocol = protocol;
             Internal.UriParser.CheckPath(path, nameof(path));
             Path = path;
-            Encoding = Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
+            Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }
 
         // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate
