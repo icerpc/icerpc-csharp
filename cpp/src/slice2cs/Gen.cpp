@@ -2307,7 +2307,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
     _out.dec();
-    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(connection.Protocol),";
     _out << nl << "Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,";
     _out << nl << "Connection = connection";
     _out << eb << ";";
@@ -2330,7 +2329,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
     _out.dec();
-    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(protocol)";
     _out << eb << ";";
     _out.dec();
 
@@ -2358,7 +2356,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.inc();
     _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
     _out.dec();
-    _out << nl << "Encoding = IceRpc.ProtocolExtensions.GetEncoding(server.Protocol),";
     _out << nl << "Endpoint = server.ProxyEndpoint,";
     _out << nl << "Invoker = server.Invoker";
     _out << eb << ";";
