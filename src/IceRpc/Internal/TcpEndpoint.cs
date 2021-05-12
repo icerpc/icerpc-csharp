@@ -80,10 +80,6 @@ namespace IceRpc.Internal
             }
             else if (_tls is bool tls)
             {
-                if (base.HasOptions)
-                {
-                    sb.Append(optionSeparator);
-                }
                 sb.Append($"tls={tls.ToString().ToLowerInvariant()}");
             }
         }

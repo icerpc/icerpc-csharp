@@ -15,7 +15,6 @@ namespace IceRpc.Internal
         protected internal override ushort DefaultPort => DefaultLocPort;
 
         protected internal override bool HasConnect => false;
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
 
         internal const ushort DefaultLocPort = 0;
 

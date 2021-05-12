@@ -108,7 +108,7 @@ namespace IceRpc
 
         /// <summary>Indicates whether or not this endpoint has options with non default values that ToString would
         /// print. Always true for ice1 endpoints.</summary>
-        protected internal abstract bool HasOptions { get; }
+        protected internal virtual bool HasOptions => Protocol == Protocol.Ice1;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>

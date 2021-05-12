@@ -18,8 +18,6 @@ namespace IceRpc.Internal
 
         protected internal override bool HasAcceptor => true;
 
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1;
-
         // The default port with ice1 is 0, just like for IP endpoints.
         protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultColocPort;
 
