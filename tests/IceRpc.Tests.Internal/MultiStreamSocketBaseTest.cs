@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
