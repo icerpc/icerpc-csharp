@@ -157,7 +157,7 @@ namespace IceRpc.Tests.ClientServer
                 CancellationToken cancel)
             {
                 IncomingResponse incomingResponse =
-                    await _target.Invoker.InvokeAsync(new OutgoingRequest(_target, incomingRequest), cancel);
+                    await _target.Invoker!.InvokeAsync(new OutgoingRequest(_target, incomingRequest), cancel);
 
                 return new OutgoingResponse(incomingRequest, incomingResponse);
             }
