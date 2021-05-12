@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc.Internal
@@ -14,7 +15,6 @@ namespace IceRpc.Internal
         protected internal override ushort DefaultPort => DefaultLocPort;
 
         protected internal override bool HasConnect => false;
-        protected internal override bool HasOptions => Protocol == Protocol.Ice1 || Data.Options.Length > 0;
 
         internal const ushort DefaultLocPort = 0;
 
@@ -23,23 +23,12 @@ namespace IceRpc.Internal
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
-        internal static LocEndpoint Create(EndpointData data, Protocol protocol)
-        {
-            // Drop all options we don't understand.
+        // Drop all options we don't understand.
+        internal static LocEndpoint Create(EndpointData data, Protocol protocol) =>
+            new(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty), protocol);
 
-            if (protocol == Protocol.Ice1 && data.Options.Length > 1)
-            {
-                // Well-known proxy.
-                data = new EndpointData(data.Transport, data.Host, data.Port, new string[] { data.Options[0] });
-            }
-            else if (protocol != Protocol.Ice1 && data.Options.Length > 0)
-            {
-                data = new EndpointData(data.Transport, data.Host, data.Port, Array.Empty<string>());
-            }
-            return new(data, protocol);
-        }
         internal static LocEndpoint Create(string location, Protocol protocol) =>
-            new(new EndpointData(Transport.Loc, location, port: 0, Array.Empty<string>()), protocol);
+            new(new EndpointData(Transport.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
 
         internal static LocEndpoint ParseIce1Endpoint(
             Transport transport,
@@ -52,7 +41,7 @@ namespace IceRpc.Internal
             return new(new EndpointData(transport,
                                         host,
                                         port,
-                                        Array.Empty<string>()),
+                                        ImmutableList<string>.Empty),
                         Protocol.Ice1);
         }
 
@@ -63,7 +52,7 @@ namespace IceRpc.Internal
             Dictionary<string, string> _)
         {
             Debug.Assert(transport == Transport.Loc);
-            return new(new EndpointData(transport, host, port, Array.Empty<string>()), Protocol.Ice2);
+            return new(new EndpointData(transport, host, port, ImmutableList<string>.Empty), Protocol.Ice2);
         }
 
         // Constructor

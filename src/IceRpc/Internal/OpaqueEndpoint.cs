@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -71,7 +72,7 @@ namespace IceRpc.Internal
             Transport transport,
             Encoding valueEncoding,
             ReadOnlyMemory<byte> value) =>
-            new(new EndpointData(transport, host: "", port: 0, Array.Empty<string>()), valueEncoding, value);
+            new(new EndpointData(transport, host: "", port: 0, ImmutableList<string>.Empty), valueEncoding, value);
 
         internal static OpaqueEndpoint Parse(Dictionary<string, string?> options, string endpointString)
         {

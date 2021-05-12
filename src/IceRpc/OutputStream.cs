@@ -741,12 +741,6 @@ namespace IceRpc
 
         // Write methods for tagged constructed types except class
 
-        /// <summary>Writes a tagged array of fixed-size numeric values to the stream.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The array to write.</param>
-        public void WriteTaggedArray<T>(int tag, T[]? v) where T : struct =>
-            WriteTaggedSequence(tag, new ReadOnlySpan<T>(v));
-
         /// <summary>Writes a tagged dictionary with fixed-size entries to the stream.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to write.</param>
