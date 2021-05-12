@@ -544,7 +544,6 @@ namespace IceRpc
                 request.IsSent = true;
 
                 using IDisposable? streamSocket = stream.StartScope();
-                Logger.LogSentRequest(request);
 
                 // The request is sent, notify the progress callback.
                 // TODO: Get rid of the sentSynchronously parameter which is always false now?
@@ -559,11 +558,6 @@ namespace IceRpc
                     new IncomingResponse(this, request.PayloadEncoding) :
                     await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
-
-                if (!request.IsOneway)
-                {
-                    Logger.LogReceivedResponse(response);
-                }
                 return response;
             }
             finally
@@ -777,7 +771,6 @@ namespace IceRpc
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
 
             using IDisposable? streamScope = stream.StartScope();
-            Activity? activity = null;
 
             Debug.Assert(stream != null);
             try
@@ -790,28 +783,6 @@ namespace IceRpc
                 using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
                 request.StreamId = stream.Id;
-
-                // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
-                // before we restore its context.
-                activity = Server?.ActivitySource?.StartActivity($"{request.Path}/{request.Operation}",
-                                                                 ActivityKind.Server);
-                if (activity == null && (Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
-                {
-                    activity = new Activity($"{request.Path}/{request.Operation}");
-                    // TODO we should start the activity after restoring its context, we should update this once
-                    // we move to CreateActivity in .NET 6
-                    activity.Start();
-                }
-
-                if (activity != null)
-                {
-                    activity.AddTag("rpc.system", "icerpc");
-                    activity.AddTag("rpc.service", request.Path);
-                    activity.AddTag("rpc.method", request.Operation);
-                    // TODO add additional attributes
-                    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                    request.RestoreActivityContext(activity);
-                }
 
                 // It is important to start the activity above before logging in case the logger has been configured to
                 // include the activity tracking options.

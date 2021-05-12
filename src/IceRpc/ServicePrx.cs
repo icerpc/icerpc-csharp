@@ -429,39 +429,6 @@ namespace IceRpc
             Path = identity.ToPath();
         }
 
-        // TODO: currently cancel is/should always be request.CancellationToken but we should eliminate
-        // request.CancellationToken.
-        public static async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
-        {
-            Activity? activity = null;
-
-            var communicator = request.Proxy.Invoker as Communicator;
-
-            // TODO add a client ActivitySource and use it to start the activities
-            // Start the invocation activity before running client side interceptors. Activities started
-            // by interceptors will be children of IceRpc.Invocation activity.
-            if ((communicator != null && communicator.Logger.IsEnabled(LogLevel.Critical)) || Activity.Current != null)
-            {
-                activity = new Activity($"{request.Path}/{request.Operation}");
-                activity.AddTag("rpc.system", "icerpc");
-                activity.AddTag("rpc.service", request.Path);
-                activity.AddTag("rpc.method", request.Operation);
-                // TODO add additional attributes
-                // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                activity.Start();
-            }
-
-            ServicePrx proxy = request.Proxy.Impl;
-            try
-            {
-                return await proxy.Invoker.InvokeAsync(request, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                activity?.Stop();
-            }
-        }
-
         /// <summary>Creates a shallow copy of this service proxy.</summary>
         internal ServicePrx Clone() => (ServicePrx)MemberwiseClone();
 

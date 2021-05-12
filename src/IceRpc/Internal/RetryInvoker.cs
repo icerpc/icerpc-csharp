@@ -140,12 +140,6 @@ namespace IceRpc.Internal
                 }
                 while (tryAgain);
 
-                if (exception != null)
-                {
-                    using IDisposable? socketScope = request.Connection?.StartScope();
-                    _logger.LogRequestException(request, exception);
-                }
-
                 Debug.Assert(response != null || exception != null);
                 Debug.Assert(response == null || response.ResultType == ResultType.Failure);
                 return response ?? throw ExceptionUtil.Throw(exception!);
