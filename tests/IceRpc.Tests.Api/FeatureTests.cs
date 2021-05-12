@@ -83,26 +83,28 @@ namespace IceRpc.Tests.Api
                 }));
             router.Mount("/test", new FeatureService());
 
-            await using var communicator = new Communicator();
-
             await using var server = new Server
             {
-                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router
             };
 
             server.Listen();
 
-            var prx = IFeatureServicePrx.FromServer(server, "/test");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = IFeatureServicePrx.FromConnection(connection, "/test");
 
             Multiplier multiplier = 10;
+
+            var pipeline = new Pipeline();
             // This interceptor stores the multiplier into the binary context to be read by the middleware.
-            communicator.Use(next => new InlineInvoker(async (request, cancel) =>
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 request.BinaryContextOverride.Add(1, ostr => ostr.WriteInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
+
+            prx.Invoker = pipeline;
 
             int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);

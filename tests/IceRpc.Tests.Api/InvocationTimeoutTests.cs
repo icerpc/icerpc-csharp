@@ -10,15 +10,12 @@ namespace IceRpc.Tests.Api
     [Parallelizable]
     public class InvocationTimeoutTests
     {
-        private readonly Communicator _communicator;
         private readonly Server _server;
 
         public InvocationTimeoutTests()
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
         }
@@ -27,7 +24,6 @@ namespace IceRpc.Tests.Api
         public async Task ShutdownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
@@ -53,10 +49,12 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            IServicePrx prx = IServicePrx.FromServer(_server, "/test");
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(next => new InlineInvoker((request, cancel) =>
+            await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+
+            IServicePrx prx = IServicePrx.FromConnection(connection, "/test");
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);

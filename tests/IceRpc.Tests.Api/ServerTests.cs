@@ -13,12 +13,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Server_Exceptions()
         {
-            await using var communicator = new Communicator();
-
             {
                 await using var server = new Server
                 {
-                    Invoker = communicator,
                     Endpoint = "tcp -h foo -p 10000"
                 };
 
@@ -37,7 +34,6 @@ namespace IceRpc.Tests.Api
                 // Listen twice is incorrect
                 await using var server = new Server
                 {
-                    Invoker = communicator,
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
                 server.Listen();
@@ -47,11 +43,12 @@ namespace IceRpc.Tests.Api
             {
                 await using var server = new Server
                 {
-                    Invoker = communicator,
                     Dispatcher = new ProxyTest(),
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
-                var proxy = IProxyTestPrx.FromServer(server, "/foo");
+
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var proxy = IProxyTestPrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -73,7 +70,6 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Invoker = communicator,
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
                 server1.Listen();
@@ -82,7 +78,6 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Invoker = communicator,
                             Endpoint = "ice+tcp://127.0.0.1:15001"
                         };
                         server2.Listen();
@@ -93,7 +88,6 @@ namespace IceRpc.Tests.Api
                 string endpoint = TestHelper.GetUniqueColocEndpoint();
                 await using var server1 = new Server
                 {
-                    Invoker = communicator,
                     Endpoint = endpoint
                 };
                 server1.Listen();
@@ -102,7 +96,6 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Invoker = communicator,
                             Endpoint = endpoint
                         };
                         server2.Listen();
@@ -110,26 +103,22 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                await using var server1 = new Server
+                await using var server = new Server
                 {
-                    Invoker = communicator,
                     Endpoint = "ice+tcp://127.0.0.1:15001"
                 };
 
-                server1.Listen();
+                server.Listen();
 
-                var prx = IServicePrx.Parse("ice+tcp://127.0.0.1:15001/hello", communicator);
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-                // Establishes connection:
-                await prx.IcePingAsync(new Invocation { IsOneway = true });
-                Connection? connection = prx.Connection;
-                Assert.That(connection, Is.Not.Null);
+                var prx = IServicePrx.FromConnection(connection);
 
                 IDispatcher dispatcher = new ProxyTest();
 
                 // We can set Dispatcher on an outgoing connection
-                Assert.DoesNotThrow(() => connection!.Dispatcher = dispatcher);
-                Assert.DoesNotThrow(() => connection!.Dispatcher = null);
+                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
+                Assert.DoesNotThrow(() => connection.Dispatcher = null);
             }
         }
 
@@ -137,10 +126,8 @@ namespace IceRpc.Tests.Api
         [TestCase("tcp -h 127.0.0.1 -p 0 -t 15000")]
         public async Task Server_EndpointInformation(string endpoint)
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Endpoint = endpoint
             };
 
@@ -176,11 +163,7 @@ namespace IceRpc.Tests.Api
         {
             // Verifies that changing Endpoint or ProxyHost updates ProxyEndpoint.
 
-            await using var communicator = new Communicator();
-            await using var server = new Server
-            {
-                Invoker = communicator
-            };
+            await using var server = new Server();
 
             Assert.IsNull(server.ProxyEndpoint);
             server.Endpoint = "ice+tcp://127.0.0.1";
@@ -201,22 +184,19 @@ namespace IceRpc.Tests.Api
         [TestCase(" :")]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
-        public async Task Server_InvalidEndpoints(string endpoint)
+        public void Server_InvalidEndpoints(string endpoint)
         {
-            await using var communicator = new Communicator();
-            Assert.Throws<FormatException>(() => new Server { Invoker = communicator, Endpoint = endpoint });
+            Assert.Throws<FormatException>(() => new Server { Endpoint = endpoint });
         }
 
         [Test]
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {
-            await using var communicator = new Communicator();
             var semaphore = new SemaphoreSlim(0);
             bool waitForCancellation = true;
             await using var server = new Server
             {
-                Invoker = communicator,
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
                     if (waitForCancellation)
@@ -244,7 +224,8 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            var proxy = IProxyTestPrx.FromServer(server, "/");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var proxy = IProxyTestPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -270,11 +251,9 @@ namespace IceRpc.Tests.Api
         //  Shutdown, which call ShutdownAsync with a canceled token.
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown)
         {
-            await using var communicator = new Communicator();
             var semaphore = new SemaphoreSlim(0);
             var server = new Server
             {
-                Invoker = communicator,
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {
                     Assert.That(cancel.CanBeCanceled, Is.True);
@@ -287,7 +266,9 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            var proxy = IProxyTestPrx.FromServer(server, "/");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+
+            var proxy = IProxyTestPrx.FromConnection(connection);
 
             Task task = proxy.IcePingAsync();
             semaphore.Wait(); // Wait for the dispatch
@@ -314,16 +295,13 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
         }
 
+        // TODO: the test does not call any of ProxyTest operations!
         private class ProxyTest : IProxyTest
         {
             internal IProxyTestPrx? Proxy { get; set; }
 
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel)
-            {
-                var prx = IProxyTestPrx.FromPath(dispatch.Path, dispatch.Server!.Protocol);
-                prx.Invoker = dispatch.Server.Invoker;
-                return new(prx);
-            }
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+                new(IProxyTestPrx.FromPath(dispatch.Path, dispatch.Connection.Protocol));
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {

@@ -10,20 +10,20 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class ProxyTests : ColocTest
+    public class ProxyTests
     {
         [Test]
         public async Task Proxy_BuiltinOperationsAsync()
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
-            IGreeterServicePrx? prx = IGreeterServicePrx.FromServer(server, "/test");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+
+            var prx = IGreeterServicePrx.FromConnection(connection);
 
             await prx.IcePingAsync();
 
@@ -57,9 +57,9 @@ namespace IceRpc.Tests.Api
                 Context = new Dictionary<string, string> { ["foo"] = "bar" }
             };
 
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(next => new InlineInvoker((request, cancel) =>
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.AreEqual(request.Context, invocation.Context);
                 return next.InvokeAsync(request, cancel);
@@ -74,10 +74,10 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice+tcp://localhost:10000/test")]
         [TestCase("test:tcp -h localhost -p 10000")]
-        public async Task Proxy_SetProperty(string s)
+        public void Proxy_SetProperty(string s)
         {
-            await using var communicator = new Communicator();
-            var prx = IGreeterServicePrx.Parse(s, communicator);
+            var pipeline = new Pipeline();
+            var prx = IGreeterServicePrx.Parse(s, pipeline);
 
             prx.Encoding = Encoding.V11;
             Assert.AreEqual(prx.Encoding, Encoding.V11);
@@ -86,13 +86,13 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", communicator);
+                var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001", pipeline);
                 prx.Endpoint = prx2.Endpoint;
                 Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
             else
             {
-                var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", communicator);
+                var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test", pipeline);
                 prx.Endpoint = prx2.Endpoint;
                 Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
@@ -102,21 +102,10 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
             }
 
-            var server = new Server
-            {
-                Invoker = communicator,
-                Dispatcher = new GreeterService(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-            prx = IGreeterServicePrx.FromServer(server, "/");
-            await prx.IcePingAsync();
-            Connection connection = prx.Connection!;
-
-            prx = IGreeterServicePrx.Parse(s, communicator);
-
             if (prx.Protocol == Protocol.Ice1)
             {
+                prx = IGreeterServicePrx.Parse(s, pipeline);
+
                 IGreeterServicePrx other =
                     prx.WithPath<IGreeterServicePrx>("/test").WithFacet<IGreeterServicePrx>("facet");
 
@@ -139,9 +128,10 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_SetProperty_ArgumentException()
         {
-            var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000", Communicator);
+            var pipeline = new Pipeline();
+            var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000", pipeline);
             Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
-            var prxIce2 = IServicePrx.Parse("ice+tcp://host.zeroc.com/hello", Communicator);
+            var prxIce2 = IServicePrx.Parse("ice+tcp://host.zeroc.com/hello", pipeline);
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
 
             // Endpoints protocol must match the proxy protocol
@@ -155,9 +145,10 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp:ssl -h localhost -p 10000")]
         public void Proxy_Parse_ValidInputIce1Format(string str)
         {
-            var prx = IServicePrx.Parse(str, Communicator);
+            var pipeline = new Pipeline();
+            var prx = IServicePrx.Parse(str, pipeline);
             Assert.AreEqual(Protocol.Ice1, prx.Protocol);
-            Assert.IsTrue(IServicePrx.TryParse(prx.ToString()!, Communicator, out IServicePrx? prx2));
+            Assert.IsTrue(IServicePrx.TryParse(prx.ToString()!, pipeline, out IServicePrx? prx2));
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -198,21 +189,22 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
-            var prx = IServicePrx.Parse(str, Communicator);
+            var pipeline = new Pipeline();
+            var prx = IServicePrx.Parse(str, pipeline);
 
             if (path != null)
             {
                 Assert.AreEqual(path, prx.Path);
             }
 
-            var prx2 = IServicePrx.Parse(prx.ToString()!, Communicator);
+            var prx2 = IServicePrx.Parse(prx.ToString()!, pipeline);
             Assert.AreEqual(prx, prx2); // round-trip works
 
             // Also try with non-default ToStringMode
-            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.ASCII), Communicator);
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.ASCII), pipeline);
             Assert.AreEqual(prx, prx2);
 
-            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.Compat), Communicator);
+            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.Compat), pipeline);
             Assert.AreEqual(prx, prx2);
         }
 
@@ -255,8 +247,9 @@ namespace IceRpc.Tests.Api
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
         public void Proxy_Parse_InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => IServicePrx.Parse(str, Communicator));
-            Assert.IsFalse(IServicePrx.TryParse(str, Communicator, out _));
+            var pipeline = new Pipeline();
+            Assert.Throws<FormatException>(() => IServicePrx.Parse(str, pipeline));
+            Assert.IsFalse(IServicePrx.TryParse(str, pipeline, out _));
         }
 
         /// <summary>Test that the parsed proxy has the expected identity and location</summary>
@@ -283,7 +276,8 @@ namespace IceRpc.Tests.Api
         [TestCase("category/test", "test", "category")]
         public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
         {
-            var prx = IServicePrx.Parse(str, Communicator);
+            var pipeline = new Pipeline();
+            var prx = IServicePrx.Parse(str, pipeline);
             Assert.AreEqual(name, prx.GetIdentity().Name);
             Assert.AreEqual(category, prx.GetIdentity().Category);
             Assert.AreEqual("", prx.GetFacet());
@@ -292,10 +286,11 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_Equals()
         {
+            var pipeline = new Pipeline();
             Assert.IsTrue(IServicePrx.Equals(null, null));
-            var prx = IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", Communicator);
+            var prx = IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", pipeline);
             Assert.IsTrue(IServicePrx.Equals(prx, prx));
-            Assert.IsTrue(IServicePrx.Equals(prx, IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", Communicator)));
+            Assert.IsTrue(IServicePrx.Equals(prx, IServicePrx.Parse("ice+tcp://host.zeroc.com/identity", pipeline)));
             Assert.IsFalse(IServicePrx.Equals(null, prx));
             Assert.IsFalse(IServicePrx.Equals(prx, null));
         }
@@ -307,7 +302,8 @@ namespace IceRpc.Tests.Api
                   ":opaque -e 1.8 -t 100 -v ABCD")]
         public void Proxy_EndpointInformation(string prx)
         {
-            var p1 = IServicePrx.Parse(prx, Communicator);
+            var pipeline = new Pipeline();
+            var p1 = IServicePrx.Parse(prx, pipeline);
 
             var tcpEndpoint = p1.Endpoint;
             Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
@@ -352,9 +348,10 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+ws://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
-            var prx1 = IServicePrx.Parse(proxyString, Communicator);
+            var pipeline = new Pipeline();
+            var prx1 = IServicePrx.Parse(proxyString, pipeline);
             var prx2 = prx1.Clone();
-            var prx3 = IServicePrx.Parse(prx2.ToString()!, Communicator);
+            var prx3 = IServicePrx.Parse(prx2.ToString()!, pipeline);
 
             CheckGetHashCode(prx1, prx2);
             CheckGetHashCode(prx1, prx3);
@@ -371,36 +368,35 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Proxy_InvokeAsync()
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Dispatcher = new GreeterService(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 
-            var prx = IGreeterServicePrx.FromServer(server, "/");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = IGreeterServicePrx.FromConnection(connection);
 
-            (ReadOnlyMemory<byte> responsePayload, Connection connection) = await prx.InvokeAsync(
+            (ReadOnlyMemory<byte> responsePayload, Connection responseConnection) = await prx.InvokeAsync(
                 "SayHello",
                 Payload.FromEmptyArgs(prx));
 
-            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, connection));
+            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, responseConnection));
         }
 
         [Test]
-        public async Task Proxy_UriOptions()
+        public void Proxy_UriOptions()
         {
-            await using var communicator = new Communicator();
+            var pipeline = new Pipeline();
             string proxyString = "ice+tcp://localhost:10000/test";
 
-            var prx = IServicePrx.Parse(proxyString, communicator);
+            var prx = IServicePrx.Parse(proxyString, pipeline);
 
             Assert.AreEqual("/test", prx.Path);
 
             string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+ws://localhost?resource=/x/y";
-            prx = IServicePrx.Parse(complicated, communicator);
+            prx = IServicePrx.Parse(complicated, pipeline);
 
             Assert.AreEqual(Encoding.V11, prx.Encoding);
             Endpoint altEndpoint = prx.AltEndpoints[0];
@@ -411,10 +407,10 @@ namespace IceRpc.Tests.Api
 
         [TestCase("1.3")]
         [TestCase("2.1")]
-        public async Task Proxy_NotSupportedEncoding(string encoding)
+        public void Proxy_NotSupportedEncoding(string encoding)
         {
-            await using var communicator = new Communicator();
-            var prx = IGreeterServicePrx.Parse("/test", communicator);
+            var pipeline = new Pipeline();
+            var prx = IGreeterServicePrx.Parse("/test", pipeline);
             prx.Encoding = Encoding.Parse(encoding);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
@@ -423,9 +419,12 @@ namespace IceRpc.Tests.Api
         [TestCase("4")]
         public async Task Proxy_NotSupportedProtocol(string protocol)
         {
-            await using var communicator = new Communicator();
-            var prx = IGreeterServicePrx.Parse($"ice+universal://localhost/test?transport=tcp&protocol={protocol}",
-                                               communicator);
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = $"ice+universal://localhost?transport=tcp&protocol={protocol}"
+            };
+
+            var prx = IGreeterServicePrx.FromConnection(connection);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
 
@@ -463,6 +462,9 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
 
             await using var pool = new Communicator();
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Binder(pool));
+
             var router = new Router();
             router.Use(next => new InlineDispatcher((request, cancel) =>
                 {
@@ -474,9 +476,9 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Endpoint = "ice+tcp://127.0.0.1:0",
+                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
                 ProxyHost = "localhost",
-                Invoker = pool,
+                Invoker = pipeline,
                 Dispatcher = router
             };
             server.Listen();
