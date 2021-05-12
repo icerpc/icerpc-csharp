@@ -8,7 +8,7 @@ namespace IceRpc
 {
     public static partial class Middleware
     {
-        /// <summary>Options class to configure Compressor middleware.</summary>
+        /// <summary>Options class to configure CustomCompressor middleware.</summary>
         public class CompressorOptions
         {
             /// <summary>The compression level for the compress operation.</summary>
