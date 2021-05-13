@@ -89,7 +89,6 @@ namespace IceRpc
                     Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
                 Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,
                 Connection = connection,
-                // TODO set the Invoker
             };
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
