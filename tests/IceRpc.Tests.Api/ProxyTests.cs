@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Api
         {
             var prx = IServicePrx.Parse(str);
             Assert.AreEqual(Protocol.Ice1, prx.Protocol);
-            Assert.IsTrue(IServicePrx.TryParse(prx.ToString()!, out IServicePrx? prx2));
+            Assert.IsTrue(IServicePrx.TryParse(prx.ToString()!, invoker: null, out IServicePrx? prx2));
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -244,7 +244,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => IServicePrx.Parse(str));
-            Assert.IsFalse(IServicePrx.TryParse(str, out _));
+            Assert.IsFalse(IServicePrx.TryParse(str, invoker: null, out _));
         }
 
         /// <summary>Test that the parsed proxy has the expected identity and location</summary>
