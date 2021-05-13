@@ -24,7 +24,7 @@ namespace IceRpc.Tests.ClientServer
             string serverCertFile,
             string caFile)
         {
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
@@ -72,7 +72,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_With_ValidationCallback(string clientCertFile, string serverCertFile)
         {
             bool clientValidationCallbackCalled = false;
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
 
             bool serverValidationCallbackCalled = false;
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
@@ -118,7 +118,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var cert0 = new X509Certificate2(GetCertificatePath("c_rsa_ca1.p12"), "password");
             var cert1 = new X509Certificate2(GetCertificatePath("c_rsa_ca2.p12"), "password");
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -148,7 +148,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
@@ -186,7 +186,7 @@ namespace IceRpc.Tests.ClientServer
                         })
                 };
             }
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
@@ -229,7 +229,7 @@ namespace IceRpc.Tests.ClientServer
                     new X509Certificate2(GetCertificatePath(clientCertFile), "password")
                 };
             }
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -255,7 +255,7 @@ namespace IceRpc.Tests.ClientServer
             }
 
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions,
                 (server, prx) => Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync()));
         }
@@ -285,7 +285,7 @@ namespace IceRpc.Tests.ClientServer
             string targetHost,
             OperatingSystem mustSucceed)
         {
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -303,7 +303,7 @@ namespace IceRpc.Tests.ClientServer
 
             await WithSecureServerAsync(
                 targetHost,
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
@@ -329,7 +329,7 @@ namespace IceRpc.Tests.ClientServer
             Justification = "Test code")]
         public async Task TlsConfiguration_With_CommonProtocol()
         {
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -347,7 +347,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
@@ -374,7 +374,7 @@ namespace IceRpc.Tests.ClientServer
             Justification = "Test code")]
         public async Task TlsConfiguration_Fail_NoCommonProtocol()
         {
-            await using var clientCommunicator = new Communicator
+            await using var clientConnectionPool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -393,7 +393,7 @@ namespace IceRpc.Tests.ClientServer
 
             // This should throw the client and the server doesn't enable a common protocol.
             await WithSecureServerAsync(
-                clientCommunicator,
+                clientConnectionPool,
                 tlsServerOptions: new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
@@ -409,14 +409,14 @@ namespace IceRpc.Tests.ClientServer
             Path.Combine(GetCertificatesDir(), file);
 
         private Task WithSecureServerAsync(
-            Communicator clientCommunicator,
+            ConnectionPool clientConectionPool,
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure) =>
-            WithSecureServerAsync(null, clientCommunicator, tlsServerOptions, closure);
+            WithSecureServerAsync(null, clientConectionPool, tlsServerOptions, closure);
 
         private async Task WithSecureServerAsync(
             string? hostname,
-            Communicator clientCommunicator,
+            ConnectionPool clientConectionPool,
             SslServerAuthenticationOptions tlsServerOptions,
             Action<Server, IServicePrx> closure)
         {
@@ -427,10 +427,10 @@ namespace IceRpc.Tests.ClientServer
                 _ => hostname
             };
 
-            await using var serverCommunicator = new Communicator();
+            await using var serverConnectionPool = new ConnectionPool();
             await using var server = new Server
             {
-                Invoker = serverCommunicator,
+                Invoker = serverConnectionPool,
                 HasColocEndpoint = false,
                 Dispatcher = new GreeterTestService(),
                 Endpoint = GetTestEndpoint(serverHost, tls: true),
@@ -442,7 +442,7 @@ namespace IceRpc.Tests.ClientServer
 
             server.Listen();
 
-            var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1", tls: true), clientCommunicator);
+            var prx = IServicePrx.Parse(GetTestProxy("/", hostname ?? "::1", tls: true), clientConectionPool);
             closure(server, prx);
         }
 

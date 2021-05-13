@@ -39,7 +39,7 @@ namespace IceRpc
         /// reference to the inner exception that is the cause of this exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public CommunicatorDisposedException(Exception innerException)
-            : base($"{typeof(Communicator).FullName}", innerException)
+            : base($"{typeof(ConnectionPool).FullName}", innerException)
         {
         }
     }

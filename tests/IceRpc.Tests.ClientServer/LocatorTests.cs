@@ -17,8 +17,8 @@ namespace IceRpc.Tests.ClientServer
     public class LocatorTests
     {
         private bool _called;
-        private readonly Communicator _connectionPool = new() { IsInvoker = false };
-        private IGreeterTestServicePrx _greeter;
+        private readonly ConnectionPool _pool = new() { IsInvoker = false };
+        private readonly IGreeterTestServicePrx _greeter;
 
         private readonly Pipeline _pipeline = new();
         private Server _server;
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptors.Binder(_connectionPool));
+            _pipeline.Use(Interceptors.Binder(_pool));
 
             await locator.RegisterAdapterAsync(adapter, greeter);
 
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             // We don't cache the connection in order to use the locator interceptor for each invocation.
-            _pipeline.Use(Interceptors.Binder(_connectionPool, cacheConnection: false));
+            _pipeline.Use(Interceptors.Binder(_pool, cacheConnection: false));
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
             Assert.That(_called, Is.False);
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptors.Binder(_connectionPool));
+            _pipeline.Use(Interceptors.Binder(_pool));
 
             // Test with direct endpoints
             await locator.RegisterWellKnownProxyAsync(identity, greeter);
@@ -252,7 +252,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task TearDownAsync()
         {
             await _server.ShutdownAsync();
-            await _connectionPool.ShutdownAsync();
+            await _pool.ShutdownAsync();
         }
 
         private ISimpleLocatorTestPrx CreateLocator()

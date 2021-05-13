@@ -12,18 +12,18 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public class ProtocolBridgingTests : ClientServerBaseTest
     {
-        private readonly Communicator _communicator;
+        private readonly ConnectionPool _pool;
         private Server _forwarderServer = null!;
         private readonly Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
-        public ProtocolBridgingTests() => _communicator = new Communicator();
+        public ProtocolBridgingTests() => _pool = new ConnectionPool();
 
         [TearDown]
         public async Task TearDownAsync()
         {
             await Task.WhenAll(_forwarderServer.ShutdownAsync(), _targetServer.ShutdownAsync());
-            await _communicator.DisposeAsync();
+            await _pool.DisposeAsync();
         }
 
         [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
@@ -110,7 +110,7 @@ namespace IceRpc.Tests.ClientServer
             Server CreateServer(Protocol protocol, int port, bool colocated) =>
                 new Server
                 {
-                    Invoker = _communicator,
+                    Invoker = _pool,
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
