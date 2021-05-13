@@ -22,7 +22,7 @@ namespace IceRpc
             public bool DecompressRequestPayload { get; set; } = true;
         }
 
-        /// <summary>An middleware that compresses the 2.0 encoded payload of a response, using the default compression
+        /// <summary>A middleware that compresses the 2.0 encoded payload of a response, using the default compression
         /// settings, when <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
         public static Func<IDispatcher, IDispatcher> Compressor { get; } =
             CustomCompressor(new());
